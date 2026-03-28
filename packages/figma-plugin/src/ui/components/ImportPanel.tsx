@@ -81,6 +81,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
+  const [conflictExistingValues, setConflictExistingValues] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
+  const [conflictDecisions, setConflictDecisions] = useState<Map<string, 'accept' | 'reject'>>(new Map());
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
@@ -92,34 +94,45 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
   const targetSetRef = useRef(targetSet);
-  const [existingPaths, setExistingPaths] = useState<Set<string> | null>(null);
-  const [existingPathsFetching, setExistingPathsFetching] = useState(false);
-  const existingPathsCacheRef = useRef<{ set: string; paths: Set<string> } | null>(null);
+  const [existingTokenMap, setExistingTokenMap] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
+  const [existingPathsFetching, setExistingTokenMapFetching] = useState(false);
+  const existingPathsCacheRef = useRef<{ set: string; tokens: Map<string, { $type: string; $value: unknown }> } | null>(null);
 
   // Rollback state: tracks the last import so it can be undone
   const [lastImport, setLastImport] = useState<{ entries: { setName: string; paths: string[] }[] } | null>(null);
   const [undoing, setUndoing] = useState(false);
 
-  // Pre-fetch existing token paths for the target set to show new vs. overwrite preview
+  const clearConflictState = useCallback(() => {
+    clearConflictState();
+    setConflictExistingValues(null);
+    setConflictDecisions(new Map());
+  }, []);
+
+  // Pre-fetch existing tokens for the target set to show new vs. overwrite preview + conflict values
   const prefetchExistingPaths = useCallback((setName: string) => {
     if (existingPathsCacheRef.current?.set === setName) {
-      setExistingPaths(existingPathsCacheRef.current.paths);
+      setExistingTokenMap(existingPathsCacheRef.current.tokens);
       return;
     }
-    setExistingPathsFetching(true);
+    setExistingTokenMapFetching(true);
     fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
       .then(res => {
-        if (!res.ok) return new Set<string>();
-        return res.json().then((data: { tokens?: Record<string, unknown> }) =>
-          new Set<string>(flattenTokenGroup(data.tokens ?? {}).keys())
-        );
+        if (!res.ok) return new Map<string, { $type: string; $value: unknown }>();
+        return res.json().then((data: { tokens?: Record<string, unknown> }) => {
+          const flat = flattenTokenGroup(data.tokens ?? {});
+          const map = new Map<string, { $type: string; $value: unknown }>();
+          for (const [path, tok] of flat) {
+            map.set(path, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
+          }
+          return map;
+        });
       })
-      .then(paths => {
-        existingPathsCacheRef.current = { set: setName, paths };
-        setExistingPaths(paths);
+      .then(tokens => {
+        existingPathsCacheRef.current = { set: setName, tokens };
+        setExistingTokenMap(tokens);
       })
-      .catch(() => setExistingPaths(null))
-      .finally(() => setExistingPathsFetching(false));
+      .catch(() => setExistingTokenMap(null))
+      .finally(() => setExistingTokenMapFetching(false));
   }, [serverUrl]);
 
   // Fetch available sets
@@ -152,7 +165,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   // Re-run preview when target set changes while tokens are loaded
   useEffect(() => {
     targetSetRef.current = targetSet;
-    setConflictPaths(null);
+    clearConflictState();
     if (tokens.length > 0) {
       existingPathsCacheRef.current = null;
       prefetchExistingPaths(targetSet);
@@ -209,7 +222,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setTypeFilter(null);
         setLoading(false);
         existingPathsCacheRef.current = null;
-        setExistingPaths(null);
+        setExistingTokenMap(null);
       }
     };
 
@@ -291,7 +304,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setSuccessMessage(null);
         setCollectionData([]);
         existingPathsCacheRef.current = null;
-        setExistingPaths(null);
+        setExistingTokenMap(null);
       } catch (err) {
         const detail = err instanceof SyntaxError ? err.message : String(err);
         setError(`Could not parse JSON file: ${detail}`);
@@ -320,7 +333,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setSuccessMessage(null);
         setCollectionData([]);
         existingPathsCacheRef.current = null;
-        setExistingPaths(null);
+        setExistingTokenMap(null);
       } catch (err) {
         setError(`Could not parse CSS file: ${getErrorMessage(err)}`);
       }
@@ -348,7 +361,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setSuccessMessage(null);
         setCollectionData([]);
         existingPathsCacheRef.current = null;
-        setExistingPaths(null);
+        setExistingTokenMap(null);
       } catch (err) {
         setError(`Could not parse Tailwind config: ${getErrorMessage(err)}`);
       }
@@ -421,8 +434,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setTokens([]);
     setSource(null);
     setTypeFilter(null);
-    setConflictPaths(null);
-    setExistingPaths(null);
+    clearConflictState();
+    setExistingTokenMap(null);
   };
 
   // ── Variables import (multi-set) ──────────────────────────────────────────
@@ -437,11 +450,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       .reduce((a, m) => a + m.tokens.length, 0), 0);
 
   // Preview counts for styles/JSON import
-  const previewNewCount = existingPaths !== null
-    ? [...selectedTokens].filter(p => !existingPaths.has(p)).length
+  const previewNewCount = existingTokenMap !== null
+    ? [...selectedTokens].filter(p => !existingTokenMap.has(p)).length
     : null;
-  const previewOverwriteCount = existingPaths !== null
-    ? [...selectedTokens].filter(p => existingPaths.has(p)).length
+  const previewOverwriteCount = existingTokenMap !== null
+    ? [...selectedTokens].filter(p => existingTokenMap.has(p)).length
     : null;
 
   const handleImportVariables = async () => {
@@ -530,7 +543,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   // ── Styles import (flat list, unchanged) ─────────────────────────────────
 
   const toggleToken = (path: string) => {
-    setConflictPaths(null);
+    clearConflictState();
     setSelectedTokens(prev => {
       const next = new Set(prev);
       if (next.has(path)) next.delete(path);
@@ -540,7 +553,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   };
 
   const toggleAll = () => {
-    setConflictPaths(null);
+    clearConflictState();
     if (selectedTokens.size === tokens.length) setSelectedTokens(new Set());
     else setSelectedTokens(new Set(tokens.map(t => t.path)));
   };
@@ -555,7 +568,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setNewSetError(null);
     setTargetSet(name);
     lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, name);
-    setConflictPaths(null);
+    clearConflictState();
     setNewSetInputVisible(false);
     setNewSetDraft('');
   };
@@ -566,13 +579,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setNewSetError(null);
   };
 
-  const executeImport = async (strategy: 'skip' | 'overwrite') => {
+  const executeImport = async (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>) => {
     setImporting(true);
-    setConflictPaths(null);
+    clearConflictState();
     setError(null);
 
     try {
-      const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
+      const tokensToImport = tokens.filter(t => selectedTokens.has(t.path) && !excludePaths?.has(t.path));
       setImportProgress({ done: 0, total: tokensToImport.length });
 
       try {
@@ -608,7 +621,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       onImported();
       onImportComplete(targetSet);
       existingPathsCacheRef.current = null;
-      setExistingPaths(null);
+      setExistingTokenMap(null);
       if (imported > 0) {
         setLastImport({ entries: [{ setName: targetSet, paths: tokensToImport.map(t => t.path) }] });
       }
@@ -659,13 +672,25 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
       if (res.ok) {
         const data = await res.json();
-        const existing = new Set(flattenTokenGroup(data.tokens || {}).keys());
+        const flat = flattenTokenGroup(data.tokens || {});
+        const existingKeys = new Set(flat.keys());
         const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
-        const conflicts = tokensToImport.filter(t => existing.has(t.path)).map(t => t.path);
+        const conflicts = tokensToImport.filter(t => existingKeys.has(t.path)).map(t => t.path);
         if (conflicts.length > 0) {
           // Discard results if the user changed the target set while the fetch was in flight
           if (checkingForSet === targetSetRef.current) {
             setConflictPaths(conflicts);
+            // Store existing values for the conflict merge view
+            const existingVals = new Map<string, { $type: string; $value: unknown }>();
+            for (const p of conflicts) {
+              const tok = flat.get(p);
+              if (tok) existingVals.set(p, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
+            }
+            setConflictExistingValues(existingVals);
+            // Default all conflicts to 'accept' (incoming wins)
+            const decisions = new Map<string, 'accept' | 'reject'>();
+            for (const p of conflicts) decisions.set(p, 'accept');
+            setConflictDecisions(decisions);
           }
           return;
         }
@@ -686,6 +711,36 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         Connect to server to import tokens
       </div>
     );
+  }
+
+  function renderConflictValue(type: string, value: unknown): JSX.Element {
+    if (value === undefined || value === null) return <span>—</span>;
+    if (type === 'color' && typeof value === 'string') {
+      return (
+        <>
+          <span
+            className="w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 inline-block"
+            style={{ backgroundColor: value.slice(0, 7) }}
+          />
+          {value}
+        </>
+      );
+    }
+    if ((type === 'dimension' || type === 'duration' || type === 'fontSize') && typeof value === 'object' && value !== null && 'value' in value) {
+      const v = value as { value: number; unit?: string };
+      return <span>{v.value}{v.unit ?? 'px'}</span>;
+    }
+    if (type === 'typography' && typeof value === 'object' && value !== null) {
+      const v = value as Record<string, any>;
+      const parts: string[] = [];
+      if (v.fontFamily) parts.push(Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily);
+      if (v.fontSize) parts.push(typeof v.fontSize === 'object' ? `${v.fontSize.value}${v.fontSize.unit ?? 'px'}` : `${v.fontSize}px`);
+      if (v.fontWeight) parts.push(String(v.fontWeight));
+      return <span>{parts.join(' ') || '—'}</span>;
+    }
+    if (typeof value === 'string') return <span>{value}</span>;
+    if (typeof value === 'number' || typeof value === 'boolean') return <span>{String(value)}</span>;
+    return <span>{JSON.stringify(value)}</span>;
   }
 
   return (
@@ -1227,7 +1282,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 <select
                   value={sets.includes(targetSet) ? targetSet : targetSet}
                   onChange={e => {
-                    setConflictPaths(null);
+                    clearConflictState();
                     if (e.target.value === '__new__') {
                       setNewSetInputVisible(true);
                     } else {
@@ -1289,65 +1344,145 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             </div>
           )}
 
-          {/* Action row */}
+          {/* Action row — merge conflict view or simple import button */}
           {conflictPaths !== null && conflictPaths.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {(() => {
                 const newCount = selectedTokens.size - conflictPaths.length;
+                const acceptCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
+                const rejectCount = conflictPaths.length - acceptCount;
+                const totalToImport = newCount + acceptCount;
                 return (
-                  <div className="text-[10px] text-[var(--color-figma-text)]">
-                    <span className="font-medium">{conflictPaths.length} conflict{conflictPaths.length !== 1 ? 's' : ''}</span>
-                    {newCount > 0 && <span className="text-[var(--color-figma-text-secondary)]">, {newCount} new</span>}
-                    {' '}— how should conflicts be handled?
-                  </div>
+                  <>
+                    {/* Summary + bulk actions */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[10px] text-[var(--color-figma-text)]">
+                        <span className="font-medium">{conflictPaths.length} conflict{conflictPaths.length !== 1 ? 's' : ''}</span>
+                        {newCount > 0 && <span className="text-[var(--color-figma-text-secondary)]"> + {newCount} new</span>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            const next = new Map(conflictDecisions);
+                            for (const p of conflictPaths) next.set(p, 'accept');
+                            setConflictDecisions(next);
+                          }}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10 transition-colors"
+                        >
+                          Accept all
+                        </button>
+                        <button
+                          onClick={() => {
+                            const next = new Map(conflictDecisions);
+                            for (const p of conflictPaths) next.set(p, 'reject');
+                            setConflictDecisions(next);
+                          }}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30 transition-colors"
+                        >
+                          Reject all
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Per-token conflict list */}
+                    <div className="max-h-[240px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+                      {conflictPaths.map(path => {
+                        const decision = conflictDecisions.get(path) ?? 'accept';
+                        const isAccepted = decision === 'accept';
+                        const incoming = tokens.find(t => t.path === path);
+                        const existing = conflictExistingValues?.get(path);
+                        return (
+                          <div key={path} className="px-2 py-1.5 bg-[var(--color-figma-bg)]">
+                            {/* Path + toggle */}
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
+                                {path}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  const next = new Map(conflictDecisions);
+                                  next.set(path, isAccepted ? 'reject' : 'accept');
+                                  setConflictDecisions(next);
+                                }}
+                                className={`shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium cursor-pointer transition-colors ${
+                                  isAccepted
+                                    ? 'bg-[var(--color-figma-success,#16a34a)]/15 text-[var(--color-figma-success,#16a34a)]'
+                                    : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
+                                }`}
+                              >
+                                {isAccepted ? (
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                                ) : (
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                )}
+                                {isAccepted ? 'Accept' : 'Reject'}
+                              </button>
+                            </div>
+                            {/* Value comparison */}
+                            <div className={`flex flex-col gap-0.5 rounded px-1.5 py-1 border-l-2 ${
+                              isAccepted ? 'border-l-[var(--color-figma-success,#16a34a)]/50' : 'border-l-[var(--color-figma-border)]'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide w-[52px] shrink-0">Current</span>
+                                <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                                  {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide w-[52px] shrink-0">Incoming</span>
+                                <span className={`flex items-center gap-1 text-[10px] font-mono truncate ${
+                                  isAccepted ? 'text-[var(--color-figma-success,#16a34a)]' : 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
+                                }`}>
+                                  {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Import action */}
+                    <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      <span className="text-[var(--color-figma-success,#16a34a)]">{acceptCount} accepted</span>
+                      {rejectCount > 0 && <><span>·</span><span>{rejectCount} rejected</span></>}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const rejected = new Set(
+                          [...conflictDecisions.entries()].filter(([, v]) => v === 'reject').map(([k]) => k)
+                        );
+                        executeImport('overwrite', rejected);
+                      }}
+                      disabled={importing || totalToImport === 0}
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    >
+                      {importing
+                        ? importProgress
+                          ? `Importing ${importProgress.done}/${importProgress.total}…`
+                          : 'Importing…'
+                        : totalToImport === 0
+                          ? 'No tokens to import'
+                          : `Import ${totalToImport} token${totalToImport !== 1 ? 's' : ''}`}
+                    </button>
+                    {importing && importProgress && importProgress.total > 0 && (
+                      <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
+                          style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => clearConflictState()}
+                      disabled={importing}
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
+                    >
+                      Revise selection
+                    </button>
+                  </>
                 );
               })()}
-              <div className="max-h-[72px] overflow-y-auto rounded border border-[var(--color-figma-warning,#f59e0b)]/30 bg-[var(--color-figma-warning,#f59e0b)]/5 divide-y divide-[var(--color-figma-border)]">
-                {conflictPaths.map(path => (
-                  <div key={path} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
-                    {path}
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => executeImport('skip')}
-                  disabled={importing}
-                  className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                >
-                  {importing
-                    ? importProgress
-                      ? `Importing ${importProgress.done}/${importProgress.total}…`
-                      : 'Importing…'
-                    : 'Skip & import new'}
-                </button>
-                <button
-                  onClick={() => executeImport('overwrite')}
-                  disabled={importing}
-                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
-                >
-                  {importing
-                    ? importProgress
-                      ? `Importing ${importProgress.done}/${importProgress.total}…`
-                      : 'Importing…'
-                    : 'Overwrite & import all'}
-                </button>
-              </div>
-              {importing && importProgress && importProgress.total > 0 && (
-                <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
-                    style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
-                  />
-                </div>
-              )}
-              <button
-                onClick={() => setConflictPaths(null)}
-                disabled={importing}
-                className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
-              >
-                Revise selection
-              </button>
             </div>
           ) : (
             <button

@@ -207,3 +207,24 @@ Already up to date.
 
 --- Merging: Add parsers for CSS custom properties and Tailwind theme config imports ---
 Already up to date.
+[main 2aefe80] chore(backlog): done – Add parsers for CSS custom properties and Tailwind theme config imports
+ 6 files changed, 596 insertions(+), 335 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/tokenParsers.ts
+
+## 2026-03-28 - Add parsers for CSS custom properties and Tailwind theme config imports
+- Extracted all parsing logic from `PasteTokensModal.tsx` into a shared module `tokenParsers.ts` (CSS, Tailwind, DTCG, CSV, name:value, type inference, path validation)
+- Added `parseTailwindConfigFile()` which handles `module.exports`, `export default`, `defineConfig()` wrappers, extracts `theme`/`theme.extend` objects, and supports Tailwind's `DEFAULT` key convention
+- Added two new import source buttons in ImportPanel: "Import from CSS file" and "Import from Tailwind config" under a "Code-first Sources" section
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: No import conflict resolution UI — importing tokens that overlap with existing ones shows a skip/overwrite strategy picker but no per-token preview; add a merge conflict view showing each overlapping token's current vs. incoming value with per-token accept/reject (like git merge tools)
+  Worktree: /tmp/backlog-34977-mwogHX
+
+  ✓ done: No import conflict resolution UI
+    Replaced simple skip/overwrite strategy picker with per-token merge conflict view showing current vs. incoming values, individual accept/reject toggles, bulk Accept All/Reject All, and type-aware value previews (color swatches, dimensions, typography). No server changes needed — excluded rejected tokens from import list.
+    47 turns · 504s · $2.69
+
+--- Merging: No import conflict resolution UI ---
+Already up to date.

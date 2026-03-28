@@ -366,3 +366,20 @@
   - Tailwind config files need multiple layers of unwrapping: `defineConfig()`, `module.exports =`, `export default`, then `theme:` / `theme.extend:` extraction with balanced brace matching
   - Tailwind's `DEFAULT` key should map to the parent path, not `parent.DEFAULT`
 ---
+
+## 2026-03-28 - No import conflict resolution UI
+- Replaced the simple skip/overwrite strategy picker with a per-token merge conflict view showing current vs. incoming values with individual accept/reject toggles
+- Key changes:
+  - `existingPaths` (Set<string>) expanded to `existingTokenMap` (Map with $type/$value) so conflict view can show current token values
+  - Added `conflictExistingValues` and `conflictDecisions` state for per-token accept/reject tracking
+  - Added `clearConflictState()` helper to reset all conflict-related state atomically
+  - `executeImport` now accepts optional `excludePaths` set to skip rejected tokens
+  - `handleImportStyles` populates existing values and initializes decisions when conflicts detected
+  - New `renderConflictValue()` inline helper renders type-aware value previews (color swatches, dimensions, typography, etc.)
+  - Merge view UI: summary bar with Accept All / Reject All bulk actions, scrollable per-token cards with path + toggle pill + current/incoming value comparison, import button with dynamic count
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L83-108 (state), ~L110-130 (prefetch), ~L656-700 (handleImportStyles), ~L582 (executeImport), ~L716-749 (renderConflictValue), ~L1318-1475 (merge view UI)
+- **Learnings for future iterations:**
+  - `flattenTokenGroup()` returns a Map<string, DTCGToken> — storing the full map instead of just keys is cheap and enables value comparison UIs downstream
+  - When multiple state variables must be cleared together, a `clearConflictState()` helper prevents forgetting one; use `useCallback` so it's stable for event handlers
+  - The batch import API only supports global strategy, but per-token decisions can be achieved by simply excluding rejected tokens from the import list and using 'overwrite' strategy — no server changes needed
+---
