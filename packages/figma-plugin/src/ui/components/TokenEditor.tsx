@@ -15,6 +15,7 @@ import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
 import { TokenDependents } from './TokenDependents';
 import { MetadataEditor } from './MetadataEditor';
+import { PathAutocomplete } from './PathAutocomplete';
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -94,6 +95,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
+  const [showPathAutocomplete, setShowPathAutocomplete] = useState(false);
+  const pathInputWrapperRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenType, setTokenType] = useState(initialType || 'color');
@@ -502,14 +505,37 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         </button>
         <div className="flex-1 min-w-0">
           {isCreateMode ? (
-            <input
-              type="text"
-              value={editPath}
-              onChange={e => { setEditPath(e.target.value); setError(null); }}
-              placeholder={`Token path (e.g. ${NAMESPACE_SUGGESTIONS[tokenType]?.example || 'group.token-name'})`}
-              autoFocus
-              className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
-            />
+            <div className="relative" ref={pathInputWrapperRef}>
+              <input
+                type="text"
+                value={editPath}
+                onChange={e => { setEditPath(e.target.value); setError(null); setShowPathAutocomplete(true); }}
+                onFocus={() => { if (editPath.trim()) setShowPathAutocomplete(true); }}
+                onBlur={e => {
+                  // Close autocomplete unless the click is within the autocomplete dropdown
+                  if (!pathInputWrapperRef.current?.contains(e.relatedTarget as Node)) {
+                    setShowPathAutocomplete(false);
+                  }
+                }}
+                placeholder="Token path (e.g. color.brand.500)"
+                autoFocus
+                autoComplete="off"
+                className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
+              />
+              {showPathAutocomplete && editPath.trim() && (
+                <PathAutocomplete
+                  query={editPath}
+                  allTokensFlat={allTokensFlat}
+                  onSelect={path => {
+                    setEditPath(path);
+                    setError(null);
+                    // Keep autocomplete open if the selected path ends with a dot (group)
+                    setShowPathAutocomplete(path.endsWith('.'));
+                  }}
+                  onClose={() => setShowPathAutocomplete(false)}
+                />
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
               <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>

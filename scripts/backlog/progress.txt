@@ -296,3 +296,12 @@
   - The path input subtitle area (lines ~508-512) is a good slot for contextual hints — it already shows "new token" vs "in {setName}"
   - Suggestions disappear naturally via `!editPath.includes('.')` check — no extra dismiss state needed
 ---
+
+## 2026-03-28 - TokenEditor create mode has no path autocomplete from existing tree structure
+- Created `PathAutocomplete` component that extracts unique group prefixes from `allTokensFlat` and uses `fuzzyScore` to match against user input. Shows groups (with folder icon, appends trailing `.` on select) and token paths (with dot icon) in a dropdown. Keyboard navigation (arrows, Enter/Tab, Escape) supported. Integrated into TokenEditor's create mode path input with focus/blur handling. Selecting a group keeps autocomplete open for continued drilling.
+- Files changed: `packages/figma-plugin/src/ui/components/PathAutocomplete.tsx` (new, ~165 lines), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L18,~L81,~L489
+- **Learnings for future iterations:**
+  - The `AliasAutocomplete` pattern (fuzzy-scored dropdown with keyboard nav) is reusable for other autocomplete contexts — the key differences are data source and selection behavior.
+  - For group-level autocomplete, appending `.` on group selection keeps the flow natural for drilling into nested hierarchies.
+  - Event listener capture phase (`true` third arg) is needed for keydown handlers on autocomplete to intercept before the input's own handlers.
+---

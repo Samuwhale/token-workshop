@@ -512,3 +512,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor create mode has no path autocomplete from existing tree structure — typing `color.` doesn't suggest existing groups like `color.brand`, `color.neutral`; users must memorize or look up the hierarchy, leading to typos and inconsistent naming
   Worktree: /tmp/backlog-85816-uuPjrk
+
+  ✓ done: TokenEditor create mode has no path autocomplete from existing tree structure
+    Created PathAutocomplete component with fuzzy-matched group prefix and token path suggestions; integrated into TokenEditor create mode input with keyboard nav and drill-down on group select.
+    23 turns · 197s · $0.84
+
+--- Merging: TokenEditor create mode has no path autocomplete from existing tree structure ---
+Already up to date.
