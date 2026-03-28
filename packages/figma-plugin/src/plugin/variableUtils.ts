@@ -56,6 +56,7 @@ export function convertToFigmaValue(value: any, tokenType: string): VariableValu
 export function convertFromFigmaValue(value: any, variableType: VariableResolvedDataType): any {
   switch (variableType) {
     case 'COLOR':
+      if (value == null) return null;
       return rgbToHex(value, value.a ?? 1);
     default:
       return value;

@@ -249,3 +249,23 @@ Already up to date.
 
 --- Merging: ThemeManager fetches all token sets on mount to compute coverage gaps ---
 Already up to date.
+[main 3b86623] chore(backlog): done – ThemeManager fetches all token sets on mount to compute coverage gaps
+ 7 files changed, 109 insertions(+), 58 deletions(-)
+
+## 2026-03-28 - ThemeManager fetches all token sets on mount to compute coverage gaps
+- Added `GET /api/themes/coverage` server-side endpoint that computes coverage gaps using the in-memory TokenStore, returning the full CoverageMap in a single request. Replaced the client-side N+1 fetch pattern (one request per token set) with a single fetch to the new endpoint.
+- Removed `flattenTokenGroup` import from ThemeManager.tsx since coverage computation is now server-side.
+- Files changed: `packages/server/src/routes/themes.ts` ~L270 (new endpoint), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1 (removed import), ~L118 (replaced N fetch calls with single coverage fetch)
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  62 items remaining
+===============================================================
+  Claimed: `convertFromFigmaValue` crashes on undefined COLOR values — when a variable has no value set for a mode, `valuesByMode[modeId]` is `undefined`; calling `rgbToHex(undefined)` throws TypeError; needs a null guard before conversion
+  Worktree: /tmp/backlog-63411-E1Mcmd
+
+  ✓ done: `convertFromFigmaValue` crashes on undefined COLOR values
+    Added null guard in convertFromFigmaValue before rgbToHex call — returns null when value is undefined instead of throwing TypeError.
+    10 turns · 42s · $0.23
+
+--- Merging: `convertFromFigmaValue` crashes on undefined COLOR values ---
+Already up to date.

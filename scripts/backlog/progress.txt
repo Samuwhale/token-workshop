@@ -477,3 +477,10 @@
   - `fastify.tokenStore` is available in all route plugins since it's decorated before route registration in index.ts
   - Pre-existing TS errors in the server package are known; only check for new errors from your changes
 ---
+
+## 2026-03-28 - `convertFromFigmaValue` crashes on undefined COLOR values
+- Added null guard (`if (value == null) return null`) before `rgbToHex(value, value.a ?? 1)` in `convertFromFigmaValue` to handle cases where `valuesByMode[modeId]` is undefined.
+- Files changed: `packages/figma-plugin/src/plugin/variableUtils.ts` ~L58
+- **Learnings for future iterations:**
+  - Figma's `valuesByMode[modeId]` can be `undefined` when a variable has no value set for a mode — always guard before type-specific conversions.
+---
