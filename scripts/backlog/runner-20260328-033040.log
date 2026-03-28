@@ -415,3 +415,10 @@ Already up to date.
 ===============================================================
   Claimed: PublishPanel git diff view has no search or filter — when a push/pull involves 50+ changed files, users must scroll through the entire list with no way to filter by path or file type
   Worktree: /tmp/backlog-84992-LJ06vl
+
+  ✓ done: PublishPanel git diff view has no search or filter
+    Added a filter input to the diff file list (shown when 5+ files) with case-insensitive path matching, search icon, clear button, and match counter.
+    16 turns · 112s · $0.53
+
+--- Merging: PublishPanel git diff view has no search or filter ---
+Already up to date.

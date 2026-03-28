@@ -386,3 +386,10 @@
 - **Learnings for future iterations:**
   - The original code had no explicit cap — the visual clipping came from `overflow-hidden` on the rounded container plus narrow plugin viewport. Adding an explicit threshold with a toggle is better UX than relying on scroll.
 ---
+
+## 2026-03-28 - PublishPanel git diff view has no search or filter
+- Added a filter input to the diff file list that appears when 5+ files are shown. Case-insensitive substring matching on file paths with a search icon, clear button, and "X of Y files" counter. The filter only affects the visible list — all files remain in state for push/pull/skip selection. The search bar auto-hides when fewer than 5 files are present.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L98 (state), ~L830 (filter UI)
+- **Learnings for future iterations:**
+  - The diff file list uses an IIFE inside JSX — state for filtering must live outside it (in the component body) since the IIFE re-runs each render anyway.
+---

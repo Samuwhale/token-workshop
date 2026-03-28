@@ -419,3 +419,16 @@ Already up to date.
 
 --- Merging: PreviewPanel silently caps color swatches at 16 tokens ---
 Already up to date.
+[main 44ec199] chore(backlog): done – PreviewPanel silently caps color swatches at 16 tokens
+ 6 files changed, 61 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - PreviewPanel silently caps color swatches at 16 tokens
+- Extracted a `ColorGroup` component with `useState` for expand/collapse. Groups with >16 swatches show only the first 16 by default, with a "Show all N colors" button. The group header now also shows the token count in parentheses. When expanded, a "Show less" button collapses back to 16.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L204
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  36 items remaining
+===============================================================
+  Claimed: BatchEditor silently skips alias tokens when scaling — applying a scale factor to dimension tokens quietly ignores any token whose value is an alias reference, with no report of which tokens were skipped or why
+  Worktree: /tmp/backlog-85816-FBphdD
