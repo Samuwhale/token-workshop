@@ -348,3 +348,11 @@
   - `Record<string, number>` doesn't prevent `undefined` values at runtime — always validate at the boundary
   - The `?? 0` fallback pattern is dangerous for formula evaluation — it silently masks missing data
 ---
+
+## 2026-03-28 - `runValidate` in AnalyticsPanel.tsx silently ignores non-ok HTTP responses
+- Added `else` branch to `runValidate` that sets `validateError` with status code and response body excerpt, and marks results as stale
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L118-126
+- **Learnings for future iterations:**
+  - When reading response body for error messages, use `.text().catch(() => '')` since the body may not be readable
+  - Mark results as stale (`setResultsStale(true)`) on error so the UI reflects that previous results may no longer be valid
+---

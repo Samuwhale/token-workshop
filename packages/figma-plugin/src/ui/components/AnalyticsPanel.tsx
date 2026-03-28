@@ -121,6 +121,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         setValidateResults(issues);
         setResultsStale(false);
         onValidationComplete?.(issues.length);
+      } else {
+        const text = await res.text().catch(() => '');
+        setValidateError(`Validation failed (${res.status}${text ? ': ' + text.slice(0, 120) : ''})`);
+        setResultsStale(true);
       }
     } catch {
       setValidateError('Validation failed — check server connection');
