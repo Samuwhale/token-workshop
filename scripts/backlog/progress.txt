@@ -370,3 +370,12 @@
   - The create form is rendered outside the virtual scroll container (after the `virtualListRef` div), so `scrollIntoView` on the form div itself is the correct approach rather than manipulating scroll position of the virtual list
   - `color-mix(in srgb, ...)` works well for semi-transparent accent colors in animations without needing rgba conversion
 ---
+
+## 2026-03-28 - TokenEditor dependents section doesn't refresh after saving changes
+- Patched `colorFlatMap` memo in TokenEditor to overlay the current editor's value for the token being edited, so dependent previews always reflect the latest saved/loaded value even when the parent's `allTokensFlat` is stale from an async refresh
+- Root cause: after save, `handleEditorSave` calls `setEditingToken(null)` + `refreshAll()` (async). On reopen, `fetchToken()` gets fresh value but `allTokensFlat` prop may still be stale, causing `resolveRefValue` for dependents to use the old color
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L148-161
+- **Learnings for future iterations:**
+  - The `colorFlatMap` is derived from `allTokensFlat` (parent prop) but the editor fetches its own token value independently — these can be out of sync after save due to async parent refresh
+  - Overlaying the editor's own value into derived maps is a general pattern for fixing stale-prop issues in editors that fetch their own data
+---

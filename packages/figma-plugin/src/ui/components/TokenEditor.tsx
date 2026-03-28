@@ -148,13 +148,18 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
 
   // Flat map of color token string values — used for reference resolution in this editor.
+  // Overlay the current editor value for the token being edited so dependent previews
+  // reflect the latest saved/loaded value even when the parent's allTokensFlat is stale.
   const colorFlatMap = useMemo(() => {
     const map: Record<string, unknown> = {};
     for (const [p, e] of Object.entries(allTokensFlat)) {
       if (e.$type === 'color') map[p] = e.$value;
     }
+    if (tokenType === 'color' && !isCreateMode) {
+      map[tokenPath] = reference || value;
+    }
     return map;
-  }, [allTokensFlat]);
+  }, [allTokensFlat, tokenType, tokenPath, isCreateMode, reference, value]);
 
   useEffect(() => {
     if (isCreateMode) return; // skip fetch in create mode

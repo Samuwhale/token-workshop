@@ -455,3 +455,16 @@ Already up to date.
 
 --- Merging: TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse ---
 Already up to date.
+[main 046cc18] chore(backlog): done – TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse
+ 7 files changed, 56 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse
+- Added `createFormRef` and a `useEffect` that calls `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` when `showCreateForm` becomes true
+- Added a CSS `create-form-pulse` keyframe animation (accent-colored inset box-shadow that fades out over 0.6s) applied on form appearance
+- The pulse animation restarts correctly even on rapid toggle via reflow trick (`void offsetWidth`)
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  12 items remaining
+===============================================================
+  Claimed: TokenList search doesn't support structured queries — no `type:color`, `set:brand`, `has:alias`, or `modified:today` qualifiers; all filtering requires separate dropdown controls scattered across the toolbar
+  Worktree: /tmp/backlog-10278-d6R3vj

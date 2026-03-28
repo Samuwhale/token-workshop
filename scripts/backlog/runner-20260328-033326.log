@@ -531,3 +531,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor dependents section doesn't refresh after saving changes — if you edit a color that 10 tokens alias, the "Used by" section still shows stale before/after previews until you close and reopen the editor
   Worktree: /tmp/backlog-92630-E6t6d4
+
+  ✓ done: TokenEditor dependents section doesn't refresh after saving changes
+    Patched colorFlatMap memo in TokenEditor to overlay the current editor's value for the token being edited, so dependent color previews always resolve against the latest saved/loaded value even when the parent's allTokensFlat prop is stale from async refresh.
+    17 turns · 234s · $0.9
+
+--- Merging: TokenEditor dependents section doesn't refresh after saving changes ---
+Already up to date.
