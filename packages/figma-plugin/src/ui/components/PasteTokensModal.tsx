@@ -148,6 +148,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   const [input, setInput] = useState('');
   const [prefix, setPrefix] = useState('');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [rowOverwrites, setRowOverwrites] = useState<Record<string, boolean>>({});
   const [overwriteAll, setOverwriteAll] = useState(false);
@@ -208,26 +209,44 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     if (confirmCount === 0 || busy) return;
     setBusy(true);
     setSubmitError('');
+    const total = toCreate.length + toUpdate.length;
+    setProgress({ current: 0, total });
+    let done = 0;
     try {
-      const allTokens = [...toCreate, ...toUpdate].map(row => ({
-        path: row.path,
-        $value: row.$value,
-        $type: row.$type,
-      }));
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: allTokens, strategy: 'overwrite' }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(data.error || 'Failed to import tokens');
+      for (const row of toCreate) {
+        const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ $value: row.$value, $type: row.$type }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(data.error || `Failed to create token "${row.path}"`);
+        }
+        done++;
+        setProgress({ current: done, total });
+      }
+      for (const row of toUpdate) {
+        const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ $value: row.$value, $type: row.$type }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(data.error || `Failed to update token "${row.path}"`);
+        }
+        done++;
+        setProgress({ current: done, total });
       }
       onConfirm();
     } catch (err) {
       setSubmitError(getErrorMessage(err));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -404,6 +423,25 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           </div>
         )}
 
+        {progress && (
+          <div className="px-4 py-2 border-t border-[var(--color-figma-border)]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Importing tokens…
+              </span>
+              <span className="text-[10px] font-mono text-[var(--color-figma-text)]">
+                {progress.current}/{progress.total}
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--color-figma-accent)] transition-[width] duration-100"
+                style={{ width: `${Math.round((progress.current / progress.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {submitError && (
           <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)] border-t border-[var(--color-figma-border)]">{submitError}</div>
         )}
@@ -421,7 +459,9 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
             title={confirmCount > 0 ? `${adaptShortcut('⌘')}↵ to confirm` : undefined}
             className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
           >
-            {busy
+            {busy && progress
+              ? `Saving ${progress.current}/${progress.total}…`
+              : busy
               ? 'Saving…'
               : confirmCount === 0 && conflicts.length > 0
               ? 'All conflicts skipped'

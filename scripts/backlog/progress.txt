@@ -447,3 +447,13 @@
   - `TokenValidator` from `@tokenmanager/core` is safe to import directly in UI components (not a re-export chain issue); it handles references/formulas gracefully
   - The `validate()` method returns errors with `path: message` format; splitting on first `:` gives a clean user-facing message
 ---
+
+## 2026-03-28 - PasteTokensModal has no progress bar during import
+- Added `progress` state (`{ current, total }`) to track import progress in `handleConfirm`
+- Added a progress bar UI (accent-colored fill bar + "current/total" counter) that appears between the token list and the footer during import
+- Button text also shows "Saving N/M…" while busy
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L151,L210-L240,L430-L445
+- **Learnings for future iterations:**
+  - Progress bar uses `transition-[width] duration-100` for smooth fill animation without being laggy
+  - Progress state is set to null on completion/error to cleanly hide the bar
+---

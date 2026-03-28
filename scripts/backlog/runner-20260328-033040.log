@@ -592,3 +592,16 @@ Already up to date.
 
 --- Merging: PasteTokensModal creates tokens one-at-a-time via individual POST requests ---
 Already up to date.
+[main 9f469dc] chore(backlog): done – PasteTokensModal creates tokens one-at-a-time via individual POST requests
+ 6 files changed, 45 insertions(+), 26 deletions(-)
+
+## 2026-03-28 - BatchEditor type conversion doesn't validate value compatibility
+- Added value-vs-type compatibility validation to BatchEditor's type change flow using `TokenValidator` from `@tokenmanager/core`
+- `typeChangeInfo` useMemo now validates each token's current `$value` against the target type, collecting incompatible tokens with error messages
+- Inline preview shows count of incompatible values; confirmation banner turns red and lists specific incompatible tokens (up to 3 with "and N more…")
+
+===============================================================
+  Iteration 29 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: No quickstart wizard that chains token generation → semantic mapping → theme setup — EmptyState offers these as separate actions; a guided flow ("Step 1: generate primitives, Step 2: create semantics, Step 3: set up themes") would reduce the learning curve for new users
+  Worktree: /tmp/backlog-84992-YI64IR
