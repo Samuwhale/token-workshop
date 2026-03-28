@@ -37,3 +37,16 @@ Already up to date.
 
 --- Merging: Token list: keyboard shortcut hint on group rows ---
 Already up to date.
+[main 1a5633c] chore(backlog): done – Token list: keyboard shortcut hint on group rows
+ 6 files changed, 33 insertions(+), 2 deletions(-)
+
+## 2026-03-28 - Token list: keyboard shortcut hint on group rows
+- Added `n` key handler directly on group row `onKeyDown` so pressing `n` while a group is focused opens the create sibling form (previously only available via context menu accelerator)
+- Added a `<kbd>N</kbd>` hint label that appears only when the group row receives `:focus-visible` (keyboard focus), using Tailwind's `group-focus-visible/group:inline` variant
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L456 (keydown handler), ~L519 (kbd hint element)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  58 items remaining
+===============================================================
+  Claimed: **Token list: name validation as-you-type in create form** — currently path validation only happens on submit. Add inline validation as the user types: flag invalid characters, warn if the path already exists (would overwrite), indicate if the parent group will be auto-created. This makes errors surfaced before the user clicks Create.
+  Worktree: /tmp/backlog-76772-6JHAEJ

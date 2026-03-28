@@ -465,3 +465,13 @@
   - The `group/group` named group was already on the group row div, so the hint automatically hides on mouse interaction
   - `hidden` + `group-focus-visible/group:inline` is cleaner than opacity toggles for keyboard-only UI
 ---
+
+## 2026-03-28 - useFigmaSync.ts error handlers restore stale closure values
+- Fixed stale closure bug in `handleSyncGroup` and `handleSyncGroupStyles` error handlers
+- Both catch blocks were calling `setSyncGroupPending(syncGroupPending)` / `setSyncGroupStylesPending(syncGroupStylesPending)` which captured the state value at `useCallback` creation time. On error after the state was cleared to `null`, this would set it back to whatever stale value was in the closure — potentially `null` itself or an outdated value from a previous render
+- Fix: save the pending value to a local `const saved` before clearing to `null`, then restore `saved` on error. Also used `saved.groupPath` instead of destructured `groupPath` for consistency
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L22-41, ~L43-62
+- **Learnings for future iterations:**
+  - When a `useCallback` clears state then needs to restore it on error, always capture the value in a local variable before clearing — the closure variable may be stale by the time the catch block runs
+  - The `syncGroupPending` state was already in the `useCallback` deps array, so the closure value matched the render-time value, but the real issue is that between `setSyncGroupPending(null)` and the catch block, a re-render may have already happened with the null value — the original closure variable still holds the old value, but writing `setSyncGroupPending(syncGroupPending)` is semantically wrong (it's a no-op or stale restore). Using a saved local makes the intent explicit.
+---

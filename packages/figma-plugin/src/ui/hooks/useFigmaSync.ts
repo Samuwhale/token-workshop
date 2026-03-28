@@ -21,43 +21,43 @@ export function useFigmaSync(
 
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
-    const { groupPath } = syncGroupPending;
+    const saved = syncGroupPending;
     setSyncGroupPending(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
-      const prefix = groupPath + '.';
+      const prefix = saved.groupPath + '.';
       const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
-        if (path === groupPath || path.startsWith(prefix)) {
+        if (path === saved.groupPath || path.startsWith(prefix)) {
           tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
         }
       }
       parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap: setCollectionNames, modeMap: setModeNames } }, '*');
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
-      setSyncGroupPending(syncGroupPending);
+      setSyncGroupPending(saved);
     }
   }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames]);
 
   const handleSyncGroupStyles = useCallback(async () => {
     if (!syncGroupStylesPending || !connected) return;
-    const { groupPath } = syncGroupStylesPending;
+    const saved = syncGroupStylesPending;
     setSyncGroupStylesPending(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
-      const prefix = groupPath + '.';
+      const prefix = saved.groupPath + '.';
       const tokens: { path: string; $type: string; $value: any }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
-        if (path === groupPath || path.startsWith(prefix)) {
+        if (path === saved.groupPath || path.startsWith(prefix)) {
           tokens.push({ path, $type: entry.$type, $value: entry.$value });
         }
       }
       parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
     } catch (err) {
       console.error('Failed to create styles from group:', err);
-      setSyncGroupStylesPending(syncGroupStylesPending);
+      setSyncGroupStylesPending(saved);
     }
   }, [syncGroupStylesPending, connected, serverUrl]);
 
