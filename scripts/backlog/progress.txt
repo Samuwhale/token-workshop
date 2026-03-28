@@ -289,3 +289,11 @@
   - `Array.prototype.every()` returns `true` for empty arrays, so the new check subsumes the old `length === 0` check — no special case needed
   - DTCG metadata keys always start with `$` — this is a reliable discriminator for "has no real child tokens"
 ---
+
+## 2026-03-28 - `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block
+- Wrapped the loop + `saveSet` call in a `try/finally` block so `endBatch()` always runs even if `saveSet` throws. Moved `emit()` after the `finally` block (consistent with other methods like `replaceSetTokens`, `deleteTokensByGeneratorId`).
+- Files changed: `packages/server/src/services/token-store.ts` ~L541
+- **Learnings for future iterations:**
+  - Most `beginBatch`/`endBatch` pairs in token-store.ts already use `try/finally` — `batchUpsertTokens` was the sole exception
+  - Server TypeScript has many pre-existing TS errors (missing Node type declarations) — don't be alarmed, verify your changes aren't adding new ones
+---

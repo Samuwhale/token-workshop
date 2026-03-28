@@ -541,26 +541,29 @@ export class TokenStore {
     this.beginBatch();
     let imported = 0;
     let skipped = 0;
-    for (const { path: tokenPath, token } of tokens) {
-      const enriched = this.enrichFormulaExtension(token);
-      const existing = this.getTokenAtPath(set.tokens, tokenPath);
-      if (existing) {
-        if (strategy === 'overwrite') {
-          if ('$value' in enriched) existing.$value = enriched.$value;
-          if ('$type' in enriched) existing.$type = enriched.$type;
-          if ('$description' in enriched) existing.$description = enriched.$description;
-          if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
-          imported++;
+    try {
+      for (const { path: tokenPath, token } of tokens) {
+        const enriched = this.enrichFormulaExtension(token);
+        const existing = this.getTokenAtPath(set.tokens, tokenPath);
+        if (existing) {
+          if (strategy === 'overwrite') {
+            if ('$value' in enriched) existing.$value = enriched.$value;
+            if ('$type' in enriched) existing.$type = enriched.$type;
+            if ('$description' in enriched) existing.$description = enriched.$description;
+            if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
+            imported++;
+          } else {
+            skipped++;
+          }
         } else {
-          skipped++;
+          this.setTokenAtPath(set.tokens, tokenPath, enriched);
+          imported++;
         }
-      } else {
-        this.setTokenAtPath(set.tokens, tokenPath, enriched);
-        imported++;
       }
+      await this.saveSet(setName);
+    } finally {
+      this.endBatch();
     }
-    await this.saveSet(setName);
-    this.endBatch();
     this.emit({ type: 'token-updated', setName, tokenPath: '' });
     return { imported, skipped };
   }

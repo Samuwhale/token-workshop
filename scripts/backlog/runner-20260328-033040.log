@@ -79,3 +79,10 @@ Already up to date.
 ===============================================================
   Claimed: `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block — if `saveSet` throws, batch depth is never decremented and all subsequent rebuilds are suppressed
   Worktree: /tmp/backlog-84992-NDsTPY
+
+  ✓ done: `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block
+    Wrapped saveSet + loop in try/finally so endBatch() always runs; moved emit() after the finally block
+    18 turns · 70s · $0.41
+
+--- Merging: `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block ---
+Already up to date.
