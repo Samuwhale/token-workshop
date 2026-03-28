@@ -555,3 +555,10 @@
 - **Learnings for future iterations:**
   - `parseFloat` naturally strips unit suffixes (`"16px"` → 16, `"1.5rem"` → 1.5), making it ideal for DTCG dimension parsing without regex.
 ---
+
+## 2026-03-28 - `applyTextStyle` modifies text style properties without loading font
+- Added an `else` branch in `applyTextStyle` that loads the style's existing font (`style.fontName`) before setting `fontSize`, `lineHeight`, or `letterSpacing` when `fontFamily` is not provided. Previously these properties were set without any font loaded, which throws in the Figma API.
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L77
+- **Learnings for future iterations:**
+  - Figma's plugin API requires the font to be loaded before modifying ANY text-related style property, not just `fontName`. Always ensure `figma.loadFontAsync` is called before touching `fontSize`, `lineHeight`, `letterSpacing`, etc.
+---

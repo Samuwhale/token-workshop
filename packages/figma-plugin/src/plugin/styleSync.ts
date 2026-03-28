@@ -73,6 +73,9 @@ async function applyTextStyle(token: any) {
     const fontStyle = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : (val.fontStyle || 'Regular');
     await figma.loadFontAsync({ family, style: fontStyle });
     style.fontName = { family, style: fontStyle };
+  } else if (val.fontSize || val.lineHeight || val.letterSpacing) {
+    // Must load the existing font before modifying any text style properties
+    await figma.loadFontAsync(style.fontName);
   }
   if (val.fontSize) style.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
   if (val.lineHeight) {

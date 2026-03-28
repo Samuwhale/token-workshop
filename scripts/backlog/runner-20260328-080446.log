@@ -251,3 +251,23 @@ Already up to date.
 
 --- Merging: `parseDimValue` returns 0 for string dimensions ---
 Already up to date.
+[main 333ea65] chore(backlog): done – `parseDimValue` returns 0 for string dimensions
+ 5 files changed, 35 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - `parseDimValue` returns 0 for string dimensions
+- Added a `typeof dim === 'string'` branch that uses `parseFloat(dim)` to extract the numeric portion from DTCG dimension strings like `"16px"` or `"1.5rem"`. Falls back to 0 for unparseable strings.
+- Files changed: `packages/figma-plugin/src/plugin/colorUtils.ts` ~L143
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  54 items remaining
+===============================================================
+  Claimed: `applyTextStyle` modifies text style properties without loading font — when `fontFamily` is falsy the font-loading block is skipped, but `fontSize`/`lineHeight`/`letterSpacing` are still set on the style, which throws if the font isn't loaded
+  Worktree: /tmp/backlog-63685-l4yW2y
+
+  ✓ done: `applyTextStyle` modifies text style properties without loading font
+    Added else branch to load the style's existing font before setting fontSize/lineHeight/letterSpacing when fontFamily is not provided
+    9 turns · 46s · $0.26
+
+--- Merging: `applyTextStyle` modifies text style properties without loading font ---
+Already up to date.
