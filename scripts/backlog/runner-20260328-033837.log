@@ -37,3 +37,17 @@ Already up to date.
 
 --- Merging: `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path ---
 Already up to date.
+[main 88b4ab7] chore(backlog): done – `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path
+ 7 files changed, 38 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path
+- Added `setSaving(false)` before `onSaved()` on the non-mapping success path (line ~335). The semantic-mapping path already reset it; only the fallthrough to `onSaved` was missing the reset.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L335
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  89 items remaining
+===============================================================
+  Claimed: Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
+  Worktree: /tmp/backlog-10278-Znoevr

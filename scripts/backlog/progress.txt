@@ -391,3 +391,10 @@
 - **Learnings for future iterations:**
   - When a state flag (like `saving`) is set at the top of an async handler, audit every exit path — early returns, branching success paths, and catch blocks — to ensure it gets reset.
 ---
+
+## 2026-03-28 - ColorPicker initializes HSL state from props but never syncs
+- Stale — already done. The `useEffect` at ColorPicker.tsx ~L229 already syncs HSL state from the `value` prop. It tracks `prevValue` via ref and updates `hue`, `sat`, `lit`, `alpha`, `hexInput`, and `hexInputError` whenever the prop changes. Hue is intentionally preserved for achromatic colors (s < 0.5).
+- Files changed: none
+- **Learnings for future iterations:**
+  - The ColorPicker already has a two-way sync: prop→state via useEffect ~L229, state→prop via useEffect ~L250. The `prevValue` ref prevents infinite loops between them.
+---

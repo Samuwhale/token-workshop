@@ -100,7 +100,7 @@
 
 - [x] `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` — no `default` branch, returns `undefined` which renders as "undefined" in the UI
 - [~] `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
-- [~] `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
+- [x] `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
 
 ### UX
 
@@ -121,7 +121,7 @@
 ### Bugs
 
 - [~] CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
-- [ ] Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
+- [~] Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
 
 ### QoL
 
