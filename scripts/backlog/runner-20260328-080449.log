@@ -100,3 +100,16 @@ Already up to date.
 
 --- Merging: No "Duplicate token" in context menu ---
 Already up to date.
+[main 94fdf32] chore(backlog): done – No "Duplicate token" in context menu
+ 6 files changed, 32 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - No "Duplicate token" in context menu
+- The "Duplicate token" context menu action already existed (with `-copy` suffix and Cmd+D shortcut), but it was not copying `$description`. Fixed `handleDuplicateToken` to include `$description` in the POST body when present.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1083
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  92 items remaining
+===============================================================
+  Claimed: No drag-to-reorder tokens within the same group — tokens can be dragged between groups but sort order within a group is not user-controllable
+  Worktree: /tmp/backlog-63973-jqzq60

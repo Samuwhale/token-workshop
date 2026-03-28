@@ -200,10 +200,10 @@ export async function lintTokens(
   const flatTokens: Record<string, Token> = {};
   // All tokens for cross-set alias resolution
   const allFlatTokens: Record<string, Token> = {};
-  for (const [tokenPath, entry] of Object.entries(allEntries)) {
-    allFlatTokens[tokenPath] = entry.token;
+  for (const entry of allEntries) {
+    allFlatTokens[entry.path] = entry.token;
     if (entry.setName === setName) {
-      flatTokens[tokenPath] = entry.token;
+      flatTokens[entry.path] = entry.token;
     }
   }
 
@@ -409,9 +409,17 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
   const issues: ValidationIssue[] = [];
 
   // Use the already-merged flat token map instead of rebuilding per-set
-  const allTokensMap = tokenStore.getAllFlatTokens();
+  const allTokensList = tokenStore.getAllFlatTokens();
+  // Build keyed lookup for alias resolution and cycle detection
+  const allTokensMap: Record<string, { token: Token; setName: string }> = {};
+  for (const entry of allTokensList) {
+    // Keep first entry per path for lookup (all sets have the path)
+    if (!allTokensMap[entry.path]) {
+      allTokensMap[entry.path] = { token: entry.token, setName: entry.setName };
+    }
+  }
 
-  for (const [tokenPath, { token, setName }] of Object.entries(allTokensMap)) {
+  for (const { path: tokenPath, token, setName } of allTokensList) {
     // Missing $type
     if (!token.$type) {
       issues.push({

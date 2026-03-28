@@ -499,3 +499,20 @@
   - The duplicate token feature was already implemented in a prior session — always verify before building from scratch.
   - The server POST endpoint at `/api/tokens/:set/*` already accepts `$description` in the body.
 ---
+
+## 2026-03-28 - Flat token map silently shadows tokens when two sets define the same path
+- Changed `flatTokens` from `Map<string, single_entry>` to `Map<string, Array<entries>>` so all sets' versions of a token are preserved.
+- Added `crossSetDependents` map built by scanning ALL token entries across ALL sets, used by `getDependents()` for accurate delete-safety checks.
+- Updated `rebuildFlatTokens` to push entries into arrays instead of overwriting.
+- Updated `rebuildResolver` to use first entry per path (value resolution) while `crossSetDependents` captures all cross-set references.
+- Updated `getAllFlatTokens` to return flat array of `{path, token, setName}` (was keyed Record that lost duplicates).
+- Updated `searchTokens` to emit one result per set entry per matching path.
+- Updated `resolveTokens` to emit one result per set that defines a resolved path.
+- Updated `getFlatTokensForSet`, `findTokensByGeneratorId`, `buildDependencyMap` to iterate array entries.
+- Updated `lint.ts` consumers (`lintTokens`, `validateAllTokens`) for new `getAllFlatTokens` return type.
+- Files changed: `packages/server/src/services/token-store.ts` ~L34 (data structure), ~L170 (rebuild), ~L203 (resolver), ~L213 (crossSetDependents), ~L260 (buildDependencyMap), ~L745 (findTokensByGeneratorId), ~L795 (resolveTokens/resolveToken), ~L855 (getFlatTokensForSet/getAllFlatTokens), ~L885 (searchTokens), ~L950 (getDependents); `packages/server/src/services/lint.ts` ~L198, ~L412
+- **Learnings for future iterations:**
+  - When a Map is keyed by path but needs to store entries from multiple sets, use `Map<string, Array<entry>>` and push rather than overwrite.
+  - Cross-set dependency tracking must be separate from the resolver (which needs one token per path for value resolution) — build a parallel dependents map by scanning all entries.
+  - Changing `getAllFlatTokens` from Record to Array is a breaking API change but necessary since JS objects can't have duplicate keys.
+---

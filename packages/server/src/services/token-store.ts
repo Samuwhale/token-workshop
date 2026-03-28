@@ -8,6 +8,8 @@ import {
   type ResolvedToken,
   isFormula,
   isReference,
+  parseReference,
+  makeReferenceGlobalRegex,
   flattenTokenGroup,
   TokenResolver,
 } from '@tokenmanager/core';
@@ -29,8 +31,10 @@ export { isSafeRegex } from './token-tree-utils.js';
 export class TokenStore {
   private dir: string;
   private sets: Map<string, TokenSet> = new Map();
-  private flatTokens: Map<string, { token: Token; setName: string }> = new Map();
+  private flatTokens: Map<string, Array<{ token: Token; setName: string }>> = new Map();
   private resolver: TokenResolver | null = null;
+  /** Cross-set dependents: refTarget -> set of {path, setName} that reference it. */
+  private crossSetDependents: Map<string, Array<{ path: string; setName: string }>> = new Map();
   private watcher: ReturnType<typeof watch> | null = null;
   private changeListeners: Set<(event: ChangeEvent) => void> = new Set();
   private _rebuildDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -171,10 +175,16 @@ export class TokenStore {
     this.flatTokens.clear();
     for (const [setName, set] of this.sets) {
       for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
-        this.flatTokens.set(tokenPath, { token: token as Token, setName });
+        let entries = this.flatTokens.get(tokenPath);
+        if (!entries) {
+          entries = [];
+          this.flatTokens.set(tokenPath, entries);
+        }
+        entries.push({ token: token as Token, setName });
       }
     }
     this.rebuildResolver();
+    this.rebuildCrossSetDependents();
   }
 
   /** Begin a batch operation — defers flat-token rebuilds until endBatch(). */
@@ -192,10 +202,35 @@ export class TokenStore {
 
   private rebuildResolver(): void {
     const allTokens: Record<string, Token> = {};
-    for (const [tokenPath, { token }] of this.flatTokens) {
-      allTokens[tokenPath] = token;
+    for (const [tokenPath, entries] of this.flatTokens) {
+      if (entries.length > 0) {
+        allTokens[tokenPath] = entries[0].token;
+      }
     }
     this.resolver = new TokenResolver(allTokens, '__merged__');
+  }
+
+  /** Build cross-set dependents map by scanning ALL token entries across all sets. */
+  private rebuildCrossSetDependents(): void {
+    // Forward: for every (path, setName) pair, collect what it references
+    // Reverse: refTarget -> all (path, setName) that reference it
+    const dependents = new Map<string, Array<{ path: string; setName: string }>>();
+
+    for (const [tokenPath, entries] of this.flatTokens) {
+      for (const { token, setName } of entries) {
+        const refs = this.collectRefsFromValue(token.$value);
+        for (const ref of refs) {
+          let list = dependents.get(ref);
+          if (!list) {
+            list = [];
+            dependents.set(ref, list);
+          }
+          list.push({ path: tokenPath, setName });
+        }
+      }
+    }
+
+    this.crossSetDependents = dependents;
   }
 
   // -----------------------------------------------------------------------
@@ -237,9 +272,14 @@ export class TokenStore {
    */
   private buildDependencyMap(overrides?: Map<string, unknown>): Map<string, Set<string>> {
     const deps = new Map<string, Set<string>>();
-    for (const [tokenPath, { token }] of this.flatTokens) {
-      const value = overrides?.has(tokenPath) ? overrides.get(tokenPath) : token.$value;
-      deps.set(tokenPath, this.collectRefsFromValue(value));
+    for (const [tokenPath, entries] of this.flatTokens) {
+      // Merge references from ALL sets' versions of this token
+      const merged = new Set<string>();
+      for (const { token } of entries) {
+        const value = overrides?.has(tokenPath) ? overrides.get(tokenPath) : token.$value;
+        for (const ref of this.collectRefsFromValue(value)) merged.add(ref);
+      }
+      deps.set(tokenPath, merged);
     }
     // Add entries for override paths not yet in flatTokens (new tokens)
     if (overrides) {
@@ -725,11 +765,13 @@ export class TokenStore {
   findTokensByGeneratorId(generatorId: string): Array<{ setName: string; path: string; generatorId: string }> {
     const matchAll = generatorId === '*';
     const results: Array<{ setName: string; path: string; generatorId: string }> = [];
-    for (const [tokenPath, { token, setName }] of this.flatTokens) {
-      const ext = token.$extensions?.['com.tokenmanager.generator'] as Record<string, unknown> | undefined;
-      const gid = ext?.generatorId;
-      if (typeof gid === 'string' && (matchAll || gid === generatorId)) {
-        results.push({ setName, path: tokenPath, generatorId: gid });
+    for (const [tokenPath, entries] of this.flatTokens) {
+      for (const { token, setName } of entries) {
+        const ext = token.$extensions?.['com.tokenmanager.generator'] as Record<string, unknown> | undefined;
+        const gid = ext?.generatorId;
+        if (typeof gid === 'string' && (matchAll || gid === generatorId)) {
+          results.push({ setName, path: tokenPath, generatorId: gid });
+        }
       }
     }
     return results;
@@ -774,24 +816,30 @@ export class TokenStore {
     const resolvedMap = this.resolver.resolveAll();
     const results: ResolvedToken[] = [];
     for (const [tokenPath, resolved] of resolvedMap) {
-      const entry = this.flatTokens.get(tokenPath);
-      // Attach the correct setName from our flat token map
-      results.push({
-        ...resolved,
-        setName: entry?.setName ?? resolved.setName,
-      });
+      const entries = this.flatTokens.get(tokenPath);
+      // Emit one result per set that defines this token
+      if (entries && entries.length > 1) {
+        for (const entry of entries) {
+          results.push({ ...resolved, setName: entry.setName });
+        }
+      } else {
+        results.push({
+          ...resolved,
+          setName: entries?.[0]?.setName ?? resolved.setName,
+        });
+      }
     }
     return results;
   }
 
   async resolveToken(tokenPath: string): Promise<ResolvedToken | undefined> {
-    const entry = this.flatTokens.get(tokenPath);
-    if (!entry || !this.resolver) return undefined;
+    const entries = this.flatTokens.get(tokenPath);
+    if (!entries || entries.length === 0 || !this.resolver) return undefined;
     try {
       const resolved = this.resolver.resolve(tokenPath);
       return {
         ...resolved,
-        setName: entry.setName,
+        setName: entries[0].setName,
       };
     } catch {
       return undefined;
@@ -801,19 +849,24 @@ export class TokenStore {
   /** Get all tokens in a set as a flat map of path -> Token */
   async getFlatTokensForSet(setName: string): Promise<Record<string, Token>> {
     const result: Record<string, Token> = {};
-    for (const [tokenPath, entry] of this.flatTokens) {
-      if (entry.setName === setName) {
-        result[tokenPath] = entry.token;
+    for (const [tokenPath, entries] of this.flatTokens) {
+      for (const entry of entries) {
+        if (entry.setName === setName) {
+          result[tokenPath] = entry.token;
+          break;
+        }
       }
     }
     return result;
   }
 
-  /** Get all flat tokens across all sets, keyed by path. */
-  getAllFlatTokens(): Record<string, { token: Token; setName: string }> {
-    const result: Record<string, { token: Token; setName: string }> = {};
-    for (const [tokenPath, entry] of this.flatTokens) {
-      result[tokenPath] = entry;
+  /** Get all flat tokens across all sets (includes all set versions per path). */
+  getAllFlatTokens(): Array<{ path: string; token: Token; setName: string }> {
+    const result: Array<{ path: string; token: Token; setName: string }> = [];
+    for (const [tokenPath, entries] of this.flatTokens) {
+      for (const entry of entries) {
+        result.push({ path: tokenPath, token: entry.token, setName: entry.setName });
+      }
     }
     return result;
   }
@@ -832,7 +885,7 @@ export class TokenStore {
     const qLower = q?.toLowerCase();
     const results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> = [];
 
-    for (const [tokenPath, entry] of this.flatTokens) {
+    for (const [tokenPath, entries] of this.flatTokens) {
       if (results.length >= limit) break;
       const lp = tokenPath.toLowerCase();
       const leafName = tokenPath.includes('.') ? tokenPath.slice(tokenPath.lastIndexOf('.') + 1) : tokenPath;
@@ -841,44 +894,48 @@ export class TokenStore {
       // Free text: match against path or leaf name
       if (qLower && !lp.includes(qLower) && !ln.includes(qLower)) continue;
 
-      // type: qualifier
-      if (types && types.length > 0) {
-        const et = (entry.token.$type || '').toLowerCase();
-        if (!types.some(t => et === t || et.includes(t))) continue;
-      }
-
-      // has: qualifiers
-      let skip = false;
-      if (has && has.length > 0) {
-        for (const h of has) {
-          if ((h === 'alias' || h === 'ref') && !isReference(entry.token.$value)) { skip = true; break; }
-          if (h === 'direct' && isReference(entry.token.$value)) { skip = true; break; }
-          if ((h === 'description' || h === 'desc') && !entry.token.$description) { skip = true; break; }
-          if ((h === 'extension' || h === 'ext') && (!entry.token.$extensions || Object.keys(entry.token.$extensions).length === 0)) { skip = true; break; }
-        }
-      }
-      if (skip) continue;
-
-      // value: qualifier
-      if (values && values.length > 0) {
-        const sv = JSON.stringify(entry.token.$value).toLowerCase();
-        if (!values.some(v => sv.includes(v))) continue;
-      }
-
       // path: qualifier
       if (paths && paths.length > 0 && !paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
 
       // name: qualifier
       if (names && names.length > 0 && !names.some(n => ln.includes(n))) continue;
 
-      results.push({
-        setName: entry.setName,
-        path: tokenPath,
-        name: leafName,
-        $type: entry.token.$type || 'unknown',
-        $value: entry.token.$value,
-        $description: entry.token.$description,
-      });
+      for (const entry of entries) {
+        if (results.length >= limit) break;
+
+        // type: qualifier
+        if (types && types.length > 0) {
+          const et = (entry.token.$type || '').toLowerCase();
+          if (!types.some(t => et === t || et.includes(t))) continue;
+        }
+
+        // has: qualifiers
+        let skip = false;
+        if (has && has.length > 0) {
+          for (const h of has) {
+            if ((h === 'alias' || h === 'ref') && !isReference(entry.token.$value)) { skip = true; break; }
+            if (h === 'direct' && isReference(entry.token.$value)) { skip = true; break; }
+            if ((h === 'description' || h === 'desc') && !entry.token.$description) { skip = true; break; }
+            if ((h === 'extension' || h === 'ext') && (!entry.token.$extensions || Object.keys(entry.token.$extensions).length === 0)) { skip = true; break; }
+          }
+        }
+        if (skip) continue;
+
+        // value: qualifier
+        if (values && values.length > 0) {
+          const sv = JSON.stringify(entry.token.$value).toLowerCase();
+          if (!values.some(v => sv.includes(v))) continue;
+        }
+
+        results.push({
+          setName: entry.setName,
+          path: tokenPath,
+          name: leafName,
+          $type: entry.token.$type || 'unknown',
+          $value: entry.token.$value,
+          $description: entry.token.$description,
+        });
+      }
     }
 
     return results;
@@ -886,12 +943,7 @@ export class TokenStore {
 
   /** Get all tokens that reference the given token path, with their set names. */
   getDependents(tokenPath: string): Array<{ path: string; setName: string }> {
-    if (!this.resolver) return [];
-    const depPaths = this.resolver.getDependents(tokenPath);
-    return Array.from(depPaths).map(path => ({
-      path,
-      setName: this.flatTokens.get(path)?.setName ?? 'unknown',
-    }));
+    return this.crossSetDependents.get(tokenPath) ?? [];
   }
 
   /** Get all token groups (the raw data) keyed by set name */
