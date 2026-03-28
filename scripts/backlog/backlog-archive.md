@@ -24,3 +24,26 @@ Completed items removed from backlog.md to keep it lean.
 - [x] Node collection logic duplicated in `selectionHandling.ts` — `remapBindings` and `syncBindings` have nearly identical scope-based node collection (selection vs page); extract to shared helper
 - [x] `resolveStyleForWeight` calls `listAvailableFontsAsync` on every invocation — during a sync processing many typography tokens, this makes redundant API calls; the font list should be cached per plugin session
 - [x] Missing export `validateStepName` in `generator-service.ts` — imported from `@tokenmanager/core` but doesn't exist as an export from that module
+
+## Archived 2026-03-28 (21 items)
+- [x] No undo for destructive operations beyond toast — bulk delete, group rename, and generator runs have confirmation modals but no rollback; implement undo for all write operations via server-side operation log, or at minimum show "last 5 operations" with rollback in the command palette
+- [x] `refreshTokens` double-fires on initial load — `refreshTokens` depends on `activeSet`, and calls `setActiveSet(current)` which changes `activeSet`, which re-triggers the effect; generation counter prevents stale display but the fetch fires twice
+- [x] Missing imports in `token-store.ts` — `parseReference`, `makeReferenceGlobalRegex`, and `TokenNode` are used but not imported from `@tokenmanager/core`; `isSafeRegex` is re-exported but not imported for local use; these cause compilation failures or silently disable features like circular reference detection
+- [x] Resolver inconsistent color map initialization — `resolve(path)` creates a fresh color map without seeding already-resolved tokens, unlike `resolveAll()` which seeds them; this creates a latent gap in cycle detection for incrementally-added tokens
+- [x] CORS origin includes string `'null'` — allows requests from sandboxed iframes, data: URLs, and redirects; if intentional for the Figma plugin iframe, add a comment; otherwise remove
+- [x] TokenList `handleListKeyDown` has stale closure — `selectedPaths` and `displayedLeafNodes` are missing from the `useCallback` dependency array; Cmd+C copies stale selection
+- [x] Multiple fetch calls in TokenList with no error handling — `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave` don't check `res.ok` or catch network errors; failed operations push undo slots and refresh as if they succeeded
+- [x] `useSetMergeSplit` silently swallows all errors — multiple `catch {}` blocks with `// ignore`; network errors, server errors, and JSON parse errors all vanish with no user feedback
+- [x] `useSetMetadata` silently swallows save errors — `handleSaveMetadata` catches all errors with `// best-effort; close modal regardless`; user gets no feedback that their changes failed
+- [x] `useGitSync` mutates ref inside `setState` updater — `setSelectedFiles(prev => ...)` mutates `knownFilesRef.current` inside the updater function; updater functions should be pure; will be replayed incorrectly in StrictMode
+- [x] Token badge text contrast fails WCAG AA — several badge colors (`#95a5a6` shadow, `#00cec9` duration, `#00b894` asset, `#1abc9c` number) have < 4.5:1 contrast ratio against the `#2c2c2c` dark background; lighten these text colors to meet AA minimum
+- [x] Icon-only buttons in TokenTreeNode missing `aria-label` — move up/down, create sibling, and other icon buttons have `title` but no `aria-label`; screen readers announce these as unlabeled buttons
+- [x] Interactive targets below 24px in both token and theme pages — ThemeManager reorder arrows (~12x10px), TokenTreeNode action buttons (~18x18px), view mode toggles (~20px tall); increase minimum padding to `p-1.5` for 24px+ targets
+- [x] No `<label>` or `aria-label` on form inputs — dimension name, option name, set filter, and search inputs rely solely on placeholder text which disappears on focus; add `aria-label` to all inputs
+- [x] No `aria-live` regions for dynamic status messages — copy feedback, apply result, delete error, and ThemeManager error banner appear dynamically but aren't announced by screen readers; wrap in `aria-live="polite"`
+- [x] Coverage gap scrollable list in ThemeManager has no keyboard navigation — the `max-h-32 overflow-y-auto` container traps keyboard focus; add `tabIndex={0}` or ensure inner buttons receive focus naturally
+- [x] Minimum text size of 9px used for secondary content across both pages — borderline legible even on high-DPI; audit all `text-[9px]` usage and bump to 10px where space allows
+- [x] TokenList is 1600+ lines with 40+ useState hooks — high re-render surface and hard to reason about; extract related state into custom hooks (`useTokenCreate`, `useFindReplace`, `useDragDrop`)
+- [x] TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context; many props are forwarded recursively unchanged
+- [x] `handleCreate` and `handleCreateAndNew` are near-identical — ~90% shared logic (validation, API call, undo setup) with only the post-success action differing; should be a single function with a parameter
+- [x] `DEFAULT_WEIGHT_STYLES` in `fontLoading.ts` is defined but never used — `weightToFontStyleFallback` serves the same purpose and is the one actually called

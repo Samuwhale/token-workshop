@@ -180,3 +180,9 @@ Already up to date.
 
 --- Merging: DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used ---
 Already up to date.
+[main 0815a7a] chore(backlog): done – DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used
+ 5 files changed, 30 insertions(+), 8 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 49)
