@@ -15,7 +15,8 @@ import {
   formatDisplayPath, nodeParentPath, flattenVisible,
   pruneDeletedPaths, filterByDuplicatePaths, filterTokenNodes,
   sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths,
-  flattenLeafNodes, findLeafByPath, collectGroupLeaves, getDefaultValue,
+  flattenLeafNodes, findLeafByPath, findGroupByPath,
+  buildZoomBreadcrumb, collectGroupLeaves, getDefaultValue,
   hasStructuredQualifiers, parseStructuredQuery, QUERY_QUALIFIERS,
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
@@ -75,6 +76,7 @@ export function TokenList({
   const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
 
   // Track editor saves: highlightedToken is set to saved path after TokenEditor save
   const prevHighlightRef = useRef<string | null>(null);
@@ -124,6 +126,7 @@ export function TokenList({
     if (tokens.length === 0) return;
     if (initializedForSet.current === setName) return;
     initializedForSet.current = setName;
+    setZoomRootPath(null);
     try {
       const stored = sessionStorage.getItem(`token-expand:${setName}`);
       if (stored !== null) {
@@ -495,7 +498,13 @@ export function TokenList({
   }, []);
 
   const displayedTokens = useMemo(() => {
-    let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths) : sortedTokens;
+    // Apply zoom: if a zoom root is set, extract that subtree's children
+    let baseTokens = sortedTokens;
+    if (zoomRootPath) {
+      const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
+      baseTokens = zoomNode?.children ?? [];
+    }
+    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -508,7 +517,14 @@ export function TokenList({
       else result = [];
     }
     return result;
-  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths]);
+  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths]);
+
+  // Auto-clear zoom if the zoomed group no longer exists in the tree
+  useEffect(() => {
+    if (zoomRootPath && !findGroupByPath(sortedTokens, zoomRootPath)) {
+      setZoomRootPath(null);
+    }
+  }, [sortedTokens, zoomRootPath]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
@@ -708,7 +724,7 @@ export function TokenList({
     const target = e.target as HTMLElement;
     const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
 
-    // Escape: close create form, exit select mode, or blur search
+    // Escape: close create form, exit select mode, exit zoom, or blur search
     if (e.key === 'Escape') {
       if (showCreateForm) {
         e.preventDefault();
@@ -720,6 +736,13 @@ export function TokenList({
         setSelectMode(false);
         setSelectedPaths(new Set());
         setShowBatchEditor(false);
+        return;
+      }
+      if (zoomRootPath) {
+        e.preventDefault();
+        setZoomRootPath(null);
+        setVirtualScrollTop(0);
+        if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
         return;
       }
       return;
@@ -876,7 +899,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -1782,6 +1805,26 @@ export function TokenList({
     }
   }, [flatItems, itemOffsets]);
 
+  const handleZoomIntoGroup = useCallback((groupPath: string) => {
+    setZoomRootPath(groupPath);
+    setVirtualScrollTop(0);
+    if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
+    // Ensure the zoom target's children are visible
+    setExpandedPaths(prev => { const next = new Set(prev); next.add(groupPath); return next; });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomRootPath(null);
+    setVirtualScrollTop(0);
+    if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
+  }, []);
+
+  const handleZoomToAncestor = useCallback((ancestorPath: string) => {
+    setZoomRootPath(ancestorPath || null);
+    setVirtualScrollTop(0);
+    if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
+  }, []);
+
   // Virtual scroll window computation — uses itemOffsets for variable-height rows
   const virtualContainerH = virtualListRef.current?.clientHeight ?? 500;
   const totalVirtualH = itemOffsets[flatItems.length];
@@ -1805,6 +1848,11 @@ export function TokenList({
     }
     return map;
   }, [flatItems]);
+
+  const zoomBreadcrumb = useMemo(() => {
+    if (!zoomRootPath) return null;
+    return buildZoomBreadcrumb(zoomRootPath, sortedTokens);
+  }, [zoomRootPath, sortedTokens]);
 
   const breadcrumbSegments = useMemo(() => {
     if (flatItems.length === 0 || rawStart >= flatItems.length) return [];
@@ -1875,6 +1923,7 @@ export function TokenList({
     onGenerateScaleFromGroup,
     onFilterByType: setTypeFilter,
     onJumpToGroup: handleJumpToGroup,
+    onZoomIntoGroup: handleZoomIntoGroup,
     onInlineSave: handleInlineSave,
     onRenameToken: handleRenameToken,
     onDetachFromGenerator: handleDetachFromGenerator,
@@ -1900,7 +1949,7 @@ export function TokenList({
     handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
-    handleDetachFromGenerator, handleToggleChain, pinnedTokens.togglePin,
+    handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
     handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave,
@@ -2770,7 +2819,43 @@ export function TokenList({
           </div>
         ) : (
           <div className="py-1">
-            {breadcrumbSegments.length > 0 && (
+            {zoomBreadcrumb ? (
+              <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px]">
+                <button
+                  onClick={handleZoomOut}
+                  className="flex items-center gap-0.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] mr-1"
+                  title="Exit focus mode (Esc)"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleZoomOut}
+                  className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+                >
+                  Root
+                </button>
+                {zoomBreadcrumb.map((seg, i) => (
+                  <span key={seg.path} className="flex items-center gap-0.5">
+                    <span className="opacity-40 mx-0.5">›</span>
+                    {i < zoomBreadcrumb.length - 1 ? (
+                      <button
+                        className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
+                        title={seg.path}
+                        onClick={() => handleZoomToAncestor(seg.path)}
+                      >
+                        {seg.name}
+                      </button>
+                    ) : (
+                      <span className="font-medium text-[var(--color-figma-text)] truncate max-w-[120px]" title={seg.path}>
+                        {seg.name}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            ) : breadcrumbSegments.length > 0 ? (
               <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
                 {breadcrumbSegments.map((seg, i) => (
                   <span key={seg.path} className="flex items-center gap-0.5">
@@ -2785,7 +2870,7 @@ export function TokenList({
                   </span>
                 ))}
               </div>
-            )}
+            ) : null}
             <div style={{ height: virtualTopPad }} aria-hidden="true" />
             {flatItems.slice(virtualStartIdx, virtualEndIdx).map(({ node, depth }) => {
               const moveEnabled = sortOrder === 'default' && connected;

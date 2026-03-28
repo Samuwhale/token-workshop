@@ -124,7 +124,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
     onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
-    onJumpToGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
+    onJumpToGroup, onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
     onToggleChain, onTogglePin, onDragStart, onDragEnd,
     onDragOverGroup, onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
@@ -433,6 +433,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           className={`relative flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
+          onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
           onDragOver={(e) => {
             if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
             e.preventDefault();
@@ -642,6 +643,20 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             >
               <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
             </button>
+            {onZoomIntoGroup && (
+              <button
+                role="menuitem"
+                data-accel="f"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  onZoomIntoGroup(node.path);
+                }}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <span>Focus on group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F</span>
+              </button>
+            )}
             {onSetGroupScopes && (
               <button
                 role="menuitem"

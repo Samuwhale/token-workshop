@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: "focus group" / zoom-in mode** — clicking a group header in the tree could optionally "zoom into" that group: the path breadcrumb becomes the root, only that group's tokens are shown, and a ← Back button exits the zoom. This makes deep hierarchies navigable without losing context. Currently expanding a group still shows the whole tree, which can be noisy in large sets. Similar to how Figma's left panel lets you "enter" a frame.
   Worktree: /tmp/backlog-92332-Uzuh06
+
+  ✓ done: Token list: "focus group" / zoom-in mode
+    Implemented zoom-in mode: double-click or context menu "Focus on group" zooms into a group showing only its children. Breadcrumb bar with back arrow and ancestor navigation. Escape exits zoom. Auto-resets on set change or group deletion.
+    63 turns · 491s · $2.77
+
+--- Merging: Token list: "focus group" / zoom-in mode ---
+Already up to date.

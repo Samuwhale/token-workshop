@@ -389,6 +389,42 @@ export function findLeafByPath(nodes: TokenNode[], path: string): TokenNode | nu
   return null;
 }
 
+/** Walk the token tree and return the group node at the given path, or null. */
+export function findGroupByPath(nodes: TokenNode[], path: string): TokenNode | null {
+  for (const node of nodes) {
+    if (node.isGroup && node.path === path) return node;
+    if (node.children) {
+      const found = findGroupByPath(node.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Build breadcrumb segments from a zoom root path by walking the actual tree structure.
+ * Handles segment names containing dots correctly (by matching tree nodes, not splitting on '.').
+ */
+export function buildZoomBreadcrumb(
+  zoomPath: string,
+  nodes: TokenNode[],
+): Array<{ name: string; path: string }> {
+  const segments: Array<{ name: string; path: string }> = [];
+  let searchNodes = nodes;
+  let consumed = '';
+  while (consumed.length < zoomPath.length) {
+    const remaining = consumed ? zoomPath.slice(consumed.length + 1) : zoomPath;
+    const match = searchNodes.find(
+      n => n.isGroup && (remaining === n.name || remaining.startsWith(n.name + '.'))
+    );
+    if (!match) break;
+    consumed = consumed ? `${consumed}.${match.name}` : match.name;
+    segments.push({ name: match.name, path: match.path });
+    searchNodes = match.children ?? [];
+  }
+  return segments;
+}
+
 export function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> {
   const result: Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> = [];
   const walk = (list: TokenNode[]) => {

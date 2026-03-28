@@ -168,6 +168,7 @@ export interface TokenTreeContextType {
   onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
   onFilterByType?: (type: string) => void;
   onJumpToGroup?: (path: string) => void;
+  onZoomIntoGroup?: (groupPath: string) => void;
   onInlineSave?: (path: string, type: string, newValue: any) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
   onDetachFromGenerator?: (path: string) => void;

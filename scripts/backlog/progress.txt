@@ -388,3 +388,15 @@
 - **Learnings for future iterations:**
   - Related backlog items (duplicate case in controller.ts vs duplicate interface in types.ts) may be resolved by the same fix — check both when fixing either
 ---
+
+## 2026-03-28 - Token list: "focus group" / zoom-in mode
+- Implemented zoom-in mode for the token tree: double-clicking or right-click → "Focus on group" zooms into a group, showing only its children. A breadcrumb bar with ← back arrow, "Root", and ancestor segments provides navigation. Escape key exits zoom mode. Zoom auto-resets when the set changes or the zoomed group is deleted.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L391 — added `findGroupByPath` and `buildZoomBreadcrumb` utilities
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L171 — added `onZoomIntoGroup` to `TokenTreeContextType`
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L78 (state), ~L502 (displayedTokens zoom scoping), ~L522 (auto-clear guard), ~L726 (Escape handler), ~L1798 (zoom handlers), ~L1823 (zoomBreadcrumb memo), ~L1867 (treeCtx), ~L2813 (breadcrumb JSX)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L127 (destructure), ~L424 (double-click), ~L637 (context menu item)
+- **Learnings for future iterations:**
+  - When adding handlers to `useCallback` that are defined later in the component body, either move them before the callback or inline the logic to avoid TDZ. `handleZoomOut` was initially referenced in `handleListKeyDown` (defined earlier) — fixed by inlining the zoom-out logic.
+  - The `displayedTokens` pipeline is the right place to apply zoom scoping — it feeds all views (tree, table, canvas) and all downstream computations (flatItems, displayedLeafNodes, pinned tokens).
+---
