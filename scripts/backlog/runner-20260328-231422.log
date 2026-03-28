@@ -9,3 +9,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: bulkRename in token-store.ts does not validate for circular alias references after rename — a rename like `a→b` when `b` already aliases `{a}` (now `{b}`) creates a self-referencing cycle; the method checks for path collisions but never calls the existing circular-reference detection (`detectCircularRefs`) on the post-rename state; also, the revert logic (L1269-1272) only restores tokens in the renamed set but not the alias reference updates across other sets (L1252-1263), leaving cross-set aliases corrupted on failure
   Worktree: /tmp/backlog-85997-gsCvOc
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    63 turns · 574s · $2.73
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Decompose oversized useGeneratorDialog and useGitSync hooks
+- Decomposed `useGeneratorDialog` (463 lines, 20+ state vars) into 3 focused hooks:
+  - `useGeneratorPreview` — debounced preview fetching, existing token loading, overwrite detection
+  - `useGeneratorSave` — validation, confirmation flow, save API calls, semantic mapping
+
+Stop signal received. Exiting after iteration 1.

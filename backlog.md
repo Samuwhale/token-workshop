@@ -111,8 +111,6 @@
 
 ### Correctness & Safety
 
-- [!] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-
 ### Accessibility
 
 ### Maintainability

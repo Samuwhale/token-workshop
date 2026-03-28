@@ -390,3 +390,12 @@
   - `doAction` in useGitSync needed a wrapper in the orchestrator because the raw action (status update) and the conflict-aware logic (notifications, fetchConflicts on pull failure) are separate concerns — sub-hook returns the promise result, orchestrator adds the notification/conflict layer
   - Type exports (GitStatus, FileConflict, etc.) should stay in the orchestrator file since consumers already import from there
 ---
+
+## 2026-03-28 - Deep Inspect mode has no keyboard shortcut
+- Already implemented: Cmd/Ctrl+Shift+D keyboard shortcut exists at `SelectionInspector.tsx` ~L225-239
+- Button tooltip already references the shortcut at ~L606 via `adaptShortcut('⌘⇧D')`
+- No changes needed — item is stale
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always check if the feature already exists before planning implementation
+---

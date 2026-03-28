@@ -1,0 +1,15 @@
+NOTE: 8 [~] item(s) found — skipping reset (19 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — runs until stopped
+  Remaining items: 0
+  Completed total: 740 (next code pass in 10 items, next product pass in 5 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

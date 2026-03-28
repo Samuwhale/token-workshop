@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>] [max_iterations]
+# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>]
 #
 # Concurrency-safe: each agent runs in an isolated git worktree.
 # backlog.md mutations are serialised by file locks.
@@ -23,7 +23,6 @@ trap graceful_stop INT TERM
 
 TOOL="claude"
 MODEL="claude-sonnet-4-6"
-MAX_ITERATIONS=20
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -31,9 +30,7 @@ while [[ $# -gt 0 ]]; do
     --tool=*)  TOOL="${1#*=}"; shift ;;
     --model)   MODEL="$2"; shift 2 ;;
     --model=*) MODEL="${1#*=}"; shift ;;
-    *)
-      if [[ "$1" =~ ^[0-9]+$ ]]; then MAX_ITERATIONS="$1"; fi
-      shift ;;
+    *)         shift ;;
   esac
 done
 
@@ -706,7 +703,7 @@ NEXT_CODE_PASS_IN=$(( 10 - (CURRENT_COUNT % 10) ))
 NEXT_PRODUCT_PASS_IN=$(( 10 - ((CURRENT_COUNT + 5) % 10) ))
 [ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=10
 
-echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
+echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — runs until stopped"
 
 # Drain inbox before first iteration so items are available immediately
 drain_inbox
@@ -715,11 +712,13 @@ echo "  Remaining items: $(remaining)"
 echo "  Completed total: $CURRENT_COUNT (next code pass in $NEXT_CODE_PASS_IN items, next product pass in $NEXT_PRODUCT_PASS_IN items)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
-for i in $(seq 1 $MAX_ITERATIONS); do
+ITERATION=0
+while true; do
+  ITERATION=$((ITERATION + 1))
   REMAINING=$(remaining)
   echo ""
   echo "==============================================================="
-  echo "  Iteration $i / $MAX_ITERATIONS  ($TOOL)  —  $REMAINING items remaining"
+  echo "  Iteration $ITERATION  ($TOOL)  —  $REMAINING items remaining"
   echo "==============================================================="
 
   # Backlog empty — run a discovery pass to replenish before giving up
@@ -746,8 +745,15 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       drain_inbox
       REMAINING=$(remaining)
       if [[ "$REMAINING" -eq 0 ]]; then
-        echo "  Discovery pass produced no new items. Backlog fully drained!"
-        exit 0
+        # Don't exit — another runner may produce items. Wait and retry.
+        echo "  Discovery pass produced no new items. Waiting for work…"
+        sleep 30 || true
+        drain_inbox
+        REMAINING=$(remaining)
+        if [[ "$REMAINING" -eq 0 ]]; then
+          # Still nothing — keep waiting in the main loop
+          continue
+        fi
       fi
       echo "  Discovery pass added $REMAINING items — continuing."
     fi
@@ -756,8 +762,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   # ── Claim an item under lock ──
   CLAIMED_ITEM=""
   if ! claim_next_item; then
-    echo "No items available to claim (all in-progress or empty). Exiting."
-    exit 0
+    echo "  No items available to claim (all in-progress by other runners). Waiting…"
+    sleep 15 || true
+    continue
   fi
   echo "  Claimed: $CLAIMED_ITEM"
 
@@ -935,15 +942,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   if [ "$STOP_REQUESTED" -eq 1 ] || [ -f "$STOP_FILE" ]; then
     [ -f "$STOP_FILE" ] && rm -f "$STOP_FILE"
     echo ""
-    echo "Stop signal received. Exiting after iteration $i."
+    echo "Stop signal received. Exiting after iteration $ITERATION."
     exit 0
   fi
 
   sleep 2 || true
 done
-
-echo ""
-echo "Reached max iterations ($MAX_ITERATIONS) without completing."
-echo "  Remaining items: $(remaining)"
-echo "  Check backlog.md for current status."
-exit 1

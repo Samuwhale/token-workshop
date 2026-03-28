@@ -1,0 +1,11 @@
+NOTE: 4 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+  Remaining items: 4
+  Completed total: 740 (next code pass in 10 items, next product pass in 5 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  4 items remaining
+===============================================================
+  Claimed: **Token create form: type-specific value field placeholders and hints** — the value field shows no placeholder text that tells the user what format is expected for each type. Add contextual placeholder text per type (e.g., `#hex or oklch(...)` for color, `16px / 1rem` for dimension, `400 / bold` for fontWeight). This is especially valuable for users unfamiliar with DTCG value formats.
+  Worktree: /tmp/backlog-15773-q5evJE

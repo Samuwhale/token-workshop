@@ -1,0 +1,11 @@
+NOTE: 7 [~] item(s) found — skipping reset (19 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+  Remaining items: 1
+  Completed total: 740 (next code pass in 10 items, next product pass in 5 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  1 items remaining
+===============================================================
+  Claimed: bulkRename in token-store.ts does not validate for circular alias references after rename — a rename like `a→b` when `b` already aliases `{a}` (now `{b}`) creates a self-referencing cycle; the method checks for path collisions but never calls the existing circular-reference detection (`detectCircularRefs`) on the post-rename state; also, the revert logic (L1269-1272) only restores tokens in the renamed set but not the alias reference updates across other sets (L1252-1263), leaving cross-set aliases corrupted on failure
+  Worktree: /tmp/backlog-17439-SFup6e

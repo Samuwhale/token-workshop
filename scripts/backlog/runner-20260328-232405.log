@@ -1,0 +1,11 @@
+NOTE: 6 [~] item(s) found — skipping reset (16 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+  Remaining items: 2
+  Completed total: 740 (next code pass in 10 items, next product pass in 5 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  2 items remaining
+===============================================================
+  Claimed: ~170 raw `fetch()` calls across 37 UI files bypass the shared `apiFetch` utility — each reimplements its own error handling (or omits it); hotspots are TokenList.tsx (40 calls), ThemeManager.tsx (21 calls), useSetMergeSplit.ts (12 calls), and useGitSync.ts (9 calls); migrating to `apiFetch` would consolidate error handling, enable global timeout/retry, and eliminate dozens of per-call `res.ok` checks
+  Worktree: /tmp/backlog-17062-6s1qph
