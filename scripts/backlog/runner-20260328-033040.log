@@ -483,3 +483,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor create mode doesn't suggest naming based on the token type — creating a color token gives no hint to use `color.*` namespace; creating a dimension gives no hint for `spacing.*` or `sizing.*`; new users build inconsistent hierarchies
   Worktree: /tmp/backlog-84992-bWJfB5
+
+  ✓ done: TokenEditor create mode doesn't suggest naming based on token type
+    Added type-aware namespace suggestions: dynamic placeholder examples per token type and clickable prefix pills (e.g. 'color.', 'spacing.', 'sizing.') that appear below the path input when creating a new token
+    19 turns · 161s · $0.74
+
+--- Merging: TokenEditor create mode doesn't suggest naming based on token type ---
+Already up to date.

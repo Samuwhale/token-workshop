@@ -497,3 +497,17 @@ Already up to date.
 
 --- Merging: TokenEditor alias resolution chain hops are not clickable ---
 Already up to date.
+[main 58e5567] chore(backlog): done – TokenEditor alias resolution chain hops are not clickable
+ 6 files changed, 43 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenEditor alias resolution chain hops are not clickable
+- Made intermediate hops in the hover tooltip clickable by converting `<span>` to `<button>` with `onNavigateToAlias` handler
+- Removed `pointer-events-none` from tooltip container so clicks can reach the buttons
+- Added hover:underline and hover:accent color for visual affordance
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: TokenEditor mode/theme override inputs have no alias autocomplete — the per-mode value fields accept `{alias}` syntax but don't trigger the AliasAutocomplete dropdown, forcing users to type alias paths from memory
+  Worktree: /tmp/backlog-92630-Amgypa

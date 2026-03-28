@@ -46,6 +46,23 @@ function detectAliasCycle(
   }
 }
 
+/** Suggested namespace prefixes per token type to help new users build consistent hierarchies. */
+const NAMESPACE_SUGGESTIONS: Record<string, { prefixes: string[]; example: string }> = {
+  color: { prefixes: ['color.'], example: 'color.brand.primary' },
+  dimension: { prefixes: ['spacing.', 'sizing.', 'radius.'], example: 'spacing.md' },
+  typography: { prefixes: ['typography.'], example: 'typography.heading.lg' },
+  shadow: { prefixes: ['shadow.'], example: 'shadow.md' },
+  border: { prefixes: ['border.'], example: 'border.default' },
+  gradient: { prefixes: ['gradient.'], example: 'gradient.brand' },
+  duration: { prefixes: ['duration.'], example: 'duration.fast' },
+  fontFamily: { prefixes: ['fontFamily.'], example: 'fontFamily.body' },
+  fontWeight: { prefixes: ['fontWeight.'], example: 'fontWeight.bold' },
+  number: { prefixes: ['scale.', 'opacity.'], example: 'scale.ratio' },
+  string: { prefixes: [], example: 'label.heading' },
+  boolean: { prefixes: [], example: 'feature.darkMode' },
+  strokeStyle: { prefixes: ['strokeStyle.'], example: 'strokeStyle.dashed' },
+};
+
 interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
@@ -489,7 +506,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               type="text"
               value={editPath}
               onChange={e => { setEditPath(e.target.value); setError(null); }}
-              placeholder="Token path (e.g. color.brand.500)"
+              placeholder={`Token path (e.g. ${NAMESPACE_SUGGESTIONS[tokenType]?.example || 'group.token-name'})`}
               autoFocus
               className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
             />
@@ -509,6 +526,21 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             <div className="text-[9px] text-[var(--color-figma-danger,#f24822)]">A token with this path already exists in {pathToSet[editPath.trim()] || setName}</div>
           ) : (
             <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
+          )}
+          {isCreateMode && !editPath.includes('.') && (NAMESPACE_SUGGESTIONS[tokenType]?.prefixes.length ?? 0) > 0 && (
+            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Try:</span>
+              {NAMESPACE_SUGGESTIONS[tokenType].prefixes.map(prefix => (
+                <button
+                  key={prefix}
+                  type="button"
+                  onClick={() => { setEditPath(prefix); setError(null); }}
+                  className="px-1 py-px rounded text-[9px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
+                >
+                  {prefix}
+                </button>
+              ))}
+            </div>
           )}
         </div>
         {!isCreateMode && <button

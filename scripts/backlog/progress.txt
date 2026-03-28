@@ -284,3 +284,15 @@
 - **Learnings for future iterations:**
   - The alias chain is rendered in two places: a hover tooltip (pointer-events-none by default) and an inline expansion (already interactive). Both need to be kept in sync.
 ---
+
+## 2026-03-28 - TokenEditor create mode doesn't suggest naming based on token type
+- Added `NAMESPACE_SUGGESTIONS` map (13 token types → suggested prefixes + example paths)
+- Dynamic placeholder updates based on selected token type (e.g. "Token path (e.g. spacing.md)" for dimension)
+- Clickable "Try:" prefix pills appear below path input when path has no dot yet and suggestions exist for the type
+- Clicking a pill sets the path to the prefix (e.g. `color.`) so the user just types the leaf name
+- Pills hide once the user types a dot (i.e. already chose a namespace)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L49-65, ~L504, ~L523-535
+- **Learnings for future iterations:**
+  - The path input subtitle area (lines ~508-512) is a good slot for contextual hints — it already shows "new token" vs "in {setName}"
+  - Suggestions disappear naturally via `!editPath.includes('.')` check — no extra dismiss state needed
+---
