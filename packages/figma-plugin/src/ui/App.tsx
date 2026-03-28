@@ -225,7 +225,7 @@ export function App() {
     setActiveTabState(tab);
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
-  const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitContainerRef, handleSplitDragStart } = usePreviewSplit();
+  const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
@@ -1964,8 +1964,16 @@ export function App() {
                 />
               </div>
               <div
-                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] transition-colors"
+                role="separator"
+                aria-orientation="horizontal"
+                aria-valuenow={splitValueNow}
+                aria-valuemin={20}
+                aria-valuemax={80}
+                aria-label="Resize token list and preview"
+                tabIndex={0}
+                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
                 onMouseDown={handleSplitDragStart}
+                onKeyDown={handleSplitKeyDown}
               />
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ErrorBoundary panelName="Preview" onReset={() => setActiveTab('tokens')}>

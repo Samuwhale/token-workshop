@@ -337,3 +337,16 @@ Already up to date.
 
 --- Merging: No bulk delete endpoint ---
 Already up to date.
+[main f06b3ca] chore(backlog): done – No bulk delete endpoint
+ 8 files changed, 123 insertions(+), 10 deletions(-)
+
+## 2026-03-28 - No bulk delete endpoint
+- Added `deleteTokens(setName, tokenPaths[])` method to `TokenStore` that deletes multiple paths in a single save using `beginBatch`/`endBatch`
+- Added `POST /api/tokens/:set/bulk-delete` route accepting `{ paths: string[], force?: boolean }` with full dependency checking across all paths
+- Updated UI `executeDelete` in `TokenList.tsx` to use the bulk endpoint instead of `Promise.all` over individual DELETE calls
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  52 items remaining
+===============================================================
+  Claimed: File watcher suppression in token-store uses fixed 500ms setTimeout — `_writingFiles` entries in `token-store.ts` ~L343 are cleaned up via `setTimeout(500)` after disk writes; if the OS file watcher fires after the timeout expires, the write-triggered event won't be suppressed, causing a spurious reload and potential data race
+  Worktree: /tmp/backlog-85816-PZqP2e

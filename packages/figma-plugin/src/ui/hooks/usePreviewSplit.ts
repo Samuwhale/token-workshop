@@ -2,6 +2,14 @@ import { useState, useRef, useCallback } from 'react';
 import type React from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
+const SPLIT_MIN = 0.2;
+const SPLIT_MAX = 0.8;
+const KEYBOARD_STEP = 0.02;
+
+function clampRatio(n: number): number {
+  return Math.max(SPLIT_MIN, Math.min(SPLIT_MAX, n));
+}
+
 export function usePreviewSplit() {
   const [showPreviewSplit, setShowPreviewSplitState] = useState(() => lsGet(STORAGE_KEYS.PREVIEW_SPLIT) === '1');
   const setShowPreviewSplit = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
@@ -14,7 +22,7 @@ export function usePreviewSplit() {
   const [splitRatio, setSplitRatioState] = useState(() => {
     const s = lsGet(STORAGE_KEYS.PREVIEW_SPLIT_RATIO);
     const n = s ? parseFloat(s) : 0.5;
-    return isNaN(n) ? 0.5 : Math.max(0.2, Math.min(0.8, n));
+    return isNaN(n) ? 0.5 : clampRatio(n);
   });
   const splitRatioRef = useRef(splitRatio);
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -24,7 +32,7 @@ export function usePreviewSplit() {
     if (!container) return;
     const onMove = (me: MouseEvent) => {
       const rect = container.getBoundingClientRect();
-      const ratio = Math.max(0.2, Math.min(0.8, (me.clientY - rect.top) / rect.height));
+      const ratio = clampRatio((me.clientY - rect.top) / rect.height);
       splitRatioRef.current = ratio;
       setSplitRatioState(ratio);
     };
@@ -37,5 +45,21 @@ export function usePreviewSplit() {
     window.addEventListener('mouseup', onUp);
   }, []);
 
-  return { showPreviewSplit, setShowPreviewSplit, splitRatio, splitContainerRef, handleSplitDragStart };
+  const handleSplitKeyDown = useCallback((e: React.KeyboardEvent) => {
+    let delta = 0;
+    if (e.key === 'ArrowUp' || e.key === 'Up') delta = -KEYBOARD_STEP;
+    else if (e.key === 'ArrowDown' || e.key === 'Down') delta = KEYBOARD_STEP;
+    else if (e.key === 'Home') { delta = SPLIT_MIN - splitRatioRef.current; }
+    else if (e.key === 'End') { delta = SPLIT_MAX - splitRatioRef.current; }
+    else return;
+    e.preventDefault();
+    const ratio = clampRatio(splitRatioRef.current + delta);
+    splitRatioRef.current = ratio;
+    setSplitRatioState(ratio);
+    lsSet(STORAGE_KEYS.PREVIEW_SPLIT_RATIO, String(ratio));
+  }, []);
+
+  const splitValueNow = Math.round(splitRatio * 100);
+
+  return { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown };
 }
