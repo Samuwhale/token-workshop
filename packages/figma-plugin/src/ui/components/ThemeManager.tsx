@@ -97,6 +97,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [previewSearch, setPreviewSearch] = useState('');
   // Collapsed "Not included" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
+  // Dimension/option search filter
+  const [dimSearch, setDimSearch] = useState('');
+  const dimSearchRef = useRef<HTMLInputElement | null>(null);
 
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -804,6 +807,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     );
   }
 
+  // Filter dimensions (and their options) by search query
+  const filteredDimensions = useMemo(() => {
+    const q = dimSearch.trim().toLowerCase();
+    if (!q) return dimensions;
+    return dimensions.filter(dim => {
+      if (dim.name.toLowerCase().includes(q)) return true;
+      return dim.options.some(o => o.name.toLowerCase().includes(q));
+    });
+  }, [dimensions, dimSearch]);
+
   return (
     <div className="flex flex-col h-full">
       {error && (
@@ -930,6 +943,38 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             </div>
 
+            {/* Dimension search filter */}
+            {dimensions.length > 2 && (
+              <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50">
+                <div className="relative">
+                  <svg className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                  <input
+                    ref={dimSearchRef}
+                    type="text"
+                    value={dimSearch}
+                    onChange={e => setDimSearch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Escape') { setDimSearch(''); dimSearchRef.current?.blur(); } }}
+                    placeholder="Filter dimensions / options…"
+                    className="w-full pl-6 pr-6 py-1 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                  {dimSearch && (
+                    <button
+                      onClick={() => { setDimSearch(''); dimSearchRef.current?.focus(); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                      title="Clear search"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Priority hint */}
             {dimensions.length > 1 && (
               <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]/50 border-b border-[var(--color-figma-border)] flex items-center gap-1">
@@ -943,10 +988,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             {/* Dimension layer cards */}
             <div className="flex flex-col">
-              {dimensions.map((dim, dimIdx) => {
+              {filteredDimensions.map((dim) => {
                 const selectedOpt = selectedOptions[dim.id] || dim.options[0]?.name || '';
                 const opt = dim.options.find(o => o.name === selectedOpt);
                 const optSets = opt ? (optionSetOrders[dim.id]?.[opt.name] || sets) : sets;
+                const dimIdx = dimensions.indexOf(dim);
                 const layerNum = dimensions.length - dimIdx;
 
                 // Group sets by status
@@ -1021,7 +1067,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     {/* Option tabs */}
                     {dim.options.length > 0 && (
                       <div className="flex items-center gap-0 px-2 pt-1 pb-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-x-auto">
-                        {dim.options.map((o, oIdx) => (
+                        {dim.options.map((o, oIdx) => {
+                          const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
+                          return (
                           <button
                             key={o.name}
                             onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
@@ -1029,14 +1077,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               selectedOpt === o.name
                                 ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
                                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                            }`}
+                            }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                           >
                             {o.name}
                             {selectedOpt === o.name && (
                               <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[var(--color-figma-accent)] rounded-t" />
                             )}
                           </button>
-                        ))}
+                          );
+                        })}
                         {/* Add option inline */}
                         {showAddOption[dim.id] ? null : (
                           <button
@@ -1252,6 +1301,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   </div>
                 );
               })}
+              {dimSearch && filteredDimensions.length === 0 && (
+                <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
+                  No dimensions or options matching &ldquo;{dimSearch}&rdquo;
+                </div>
+              )}
+              {dimSearch && filteredDimensions.length > 0 && filteredDimensions.length < dimensions.length && (
+                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] text-center">
+                  Showing {filteredDimensions.length} of {dimensions.length} layers
+                </div>
+              )}
             </div>
 
             {/* Live Token Resolution Preview */}

@@ -524,3 +524,16 @@
 - **Learnings for future iterations:**
   - When a memoized regex has the `g` flag, don't use `.test()` in a loop — `lastIndex` advances between calls, causing alternating true/false. Use `path.search(regex) >= 0` or reset `lastIndex` before each call.
 ---
+
+## 2026-03-28 - ThemeManager dimension/option search
+- Added search/filter input at the top of the ThemeManager panel (shows when >2 dimensions exist)
+- Filters dimensions by name and option names — if any option matches, the dimension stays visible
+- Matching option tabs get a subtle accent ring highlight
+- "No results" empty state and "Showing X of Y" count when filter is active
+- Clear button (×) and Escape key to reset filter
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L99 (state), ~L820 (filteredDimensions memo), ~L945-975 (search input UI), ~L991 (use filteredDimensions in map), ~L1070-1088 (option tab highlight), ~L1300-1310 (no-results / count)
+- **Learnings for future iterations:**
+  - Search filter appears only when >2 dimensions to avoid clutter on simple themes
+  - `dimensions.indexOf(dim)` preserves correct layer numbering even when filtering
+  - Option tab highlight uses `ring-1 ring-accent/40` for subtle non-destructive visual cue
+---

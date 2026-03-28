@@ -203,3 +203,16 @@ Already up to date.
 
 --- Merging: BatchEditor renamePreview regex waste ---
 Already up to date.
+[main 7123203] chore(backlog): done – BatchEditor renamePreview regex waste
+ 5 files changed, 37 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - BatchEditor renamePreview regex waste
+- Replaced 3 instances of `new RegExp(findText)` with reuse of the already-memoized `parsedRegex`:
+  - Line 236: `renamePreview` filter — used `path.search(parsedRegex)` instead of `new RegExp(findText).test(path)`
+  - Line 428: `handleRename` filter — same change
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  49 items remaining
+===============================================================
+  Claimed: `useStyleSync.ts` pullRows `Promise.all` never checks `res.ok` on individual fetch responses (~line 152) — a 4xx/5xx from a single token PATCH silently succeeds, leaving the UI out of sync with the server
+  Worktree: /tmp/backlog-9651-KJ66lG

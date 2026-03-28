@@ -166,3 +166,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager dimension/option search — when a theme has many dimensions (e.g. brand × mode × density × viewport), there's no way to search or filter dimensions or their options; add a search/filter input at the top of the ThemeManager panel
   Worktree: /tmp/backlog-10054-XqkBQS
+
+  ✓ done: ThemeManager dimension/option search
+    Added search/filter input to ThemeManager that filters dimensions by name and option names, with matching option tab highlights, no-results state, and result count. Shows when >2 dimensions exist.
+    29 turns · 175s · $0.95
+
+--- Merging: ThemeManager dimension/option search ---
+Already up to date.
