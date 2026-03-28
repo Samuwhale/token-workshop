@@ -215,3 +215,10 @@ Already up to date.
 ===============================================================
   Claimed: No contextual token suggestions during property binding — when binding a token to a Figma property, the picker shows all tokens; rank and surface tokens most likely to match: same type as the property, tokens with similar resolved values, tokens frequently bound to the same property type, and tokens used on sibling layers in the same component
   Worktree: /tmp/backlog-63411-Ug9tvO
+
+  ✓ done: No contextual token suggestions during property binding
+    Added contextual scoring for bind candidates: ranks by primary type match, value similarity (RGB distance for colors, ratio comparison for numbers), sibling usage, and shared path prefixes. Shows "Suggested" / "All tokens" section dividers when applicable.
+    24 turns · 220s · $1.33
+
+--- Merging: No contextual token suggestions during property binding ---
+Already up to date.

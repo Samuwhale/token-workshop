@@ -18,6 +18,9 @@ import {
   buildRemoveBindingUndo,
   isTokenScopeCompatible,
   getDefaultScopesForProperty,
+  scoreBindCandidate,
+  collectSiblingBindings,
+  collectBoundPrefixes,
   SUGGESTED_NAMES,
   suggestTokenPath,
 } from './selectionInspectorUtils';
@@ -95,17 +98,30 @@ export function PropertyRow({
 
   const swatchColor = resolvedColor ?? ((prop === 'fill' || prop === 'stroke') && typeof value === 'string' && value.startsWith('#') ? value : null);
 
-  // Bind candidates
+  // Bind candidates with contextual scoring
   const compatibleTypesForBind = bindingFromProp === prop ? getCompatibleTokenTypes(prop) : [];
+  const currentPropValue = bindingFromProp === prop ? getCurrentValue(rootNodes, prop) : undefined;
+  const siblingBindings = bindingFromProp === prop ? collectSiblingBindings(rootNodes, prop) : new Set<string>();
+  const nodeBoundPrefixes = bindingFromProp === prop ? collectBoundPrefixes(rootNodes) : new Set<string>();
+
   const bindCandidatesAll = bindingFromProp === prop
     ? Object.entries(tokenMap)
         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
         .filter(([, entry]) => isTokenScopeCompatible(entry, prop))
         .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
+        .map(([path, entry]) => {
+          const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+          const score = scoreBindCandidate(path, entry, prop, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
+          return [path, entry, score] as [string, TokenMapEntry, number];
+        })
+        .sort((a, b) => b[2] - a[2])
     : [];
   const bindCandidates = bindCandidatesAll.slice(0, 12);
   const bindTotalCount = bindCandidatesAll.length;
   const bindHasMore = bindTotalCount > 12;
+  // Determine if we should show a "Suggested" divider — top candidates scored > 0
+  const suggestedCount = bindCandidates.filter(([, , s]) => s > 0).length;
+  const showSuggestedDivider = suggestedCount > 0 && suggestedCount < bindCandidates.length && !bindQuery;
 
   // Reset bind query when opening bind panel
   const prevBindingFromProp = useRef<BindableProperty | null>(null);
@@ -356,7 +372,7 @@ export function PropertyRow({
               </div>
             ) : (
               <div className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
-                {bindCandidates.map(([path, entry], idx) => {
+                {bindCandidates.map(([path, entry, score], idx) => {
                   let resolvedColorSwatch: string | null = null;
                   let resolvedValueDisplay: string | null = null;
                   const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
@@ -367,37 +383,54 @@ export function PropertyRow({
                   }
                   const isSelected = idx === bindSelectedIndex;
                   const isCurrent = isBound && path === binding;
+                  // Show section dividers when there are suggested vs. non-suggested candidates
+                  const showSuggestedHeader = showSuggestedDivider && idx === 0;
+                  const showOthersHeader = showSuggestedDivider && score === 0 && (idx === 0 || bindCandidates[idx - 1][2] > 0);
                   return (
-                    <button
-                      key={path}
-                      onClick={() => onBindToken(prop, path)}
-                      className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
-                    >
-                      {resolvedColorSwatch ? (
-                        <div
-                          className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: resolvedColorSwatch }}
-                        />
-                      ) : (
-                        <div className="w-3 h-3 shrink-0 flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
+                    <div key={path}>
+                      {showSuggestedHeader && (
+                        <div className="text-[8px] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5 flex items-center gap-1">
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z" />
+                          </svg>
+                          Suggested
                         </div>
                       )}
-                      <span className={`text-[9px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
-                        {path}
-                      </span>
-                      {isCurrent && (
-                        <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                      {showOthersHeader && (
+                        <div className="text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                          All tokens
+                        </div>
                       )}
-                      {resolvedValueDisplay && !isCurrent && (
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
-                          {resolvedValueDisplay}
+                      <button
+                        onClick={() => onBindToken(prop, path)}
+                        className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
+                      >
+                        {resolvedColorSwatch ? (
+                          <div
+                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                            style={{ backgroundColor: resolvedColorSwatch }}
+                          />
+                        ) : (
+                          <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
+                          </div>
+                        )}
+                        <span className={`text-[9px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
+                          {path}
                         </span>
-                      )}
-                      <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                        {entry.$type}
-                      </span>
-                    </button>
+                        {isCurrent && (
+                          <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                        )}
+                        {resolvedValueDisplay && !isCurrent && (
+                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+                            {resolvedValueDisplay}
+                          </span>
+                        )}
+                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                          {entry.$type}
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
                 {bindHasMore && (

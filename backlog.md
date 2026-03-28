@@ -53,10 +53,10 @@
 
 ### Bugs
 
-- [~] ThemeManager bulk set-status context menu has no ARIA `role="menu"` or `role="menuitem"` — screen readers won't announce it as a menu; add proper roles and focus management matching the TokenList context menu pattern
+- [x] ThemeManager bulk set-status context menu has no ARIA `role="menu"` or `role="menuitem"` — screen readers won't announce it as a menu; add proper roles and focus management matching the TokenList context menu pattern
 - [~] No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
 - [~] Theme cache returns mutable reference — `load()` returns the cache object directly; route handlers that mutate it (push, filter) change the cached copy in-place, so if `save()` throws the cache is left in an inconsistent state (mutated but not persisted)
-- [ ] Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
+- [~] Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
 
 ### QoL
 

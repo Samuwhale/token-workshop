@@ -188,6 +188,144 @@ export function getDefaultScopesForProperty(prop: BindableProperty): string[] {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Contextual bind-candidate scoring
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a hex color string to {r,g,b} in 0-255. Returns null if not a valid hex.
+ */
+function parseHexToRGB(hex: string): { r: number; g: number; b: number } | null {
+  if (!hex.startsWith('#')) return null;
+  const h = hex.length === 4
+    ? hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
+    : hex.length >= 7 ? hex.slice(1, 7) : null;
+  if (!h) return null;
+  const n = parseInt(h, 16);
+  if (isNaN(n)) return null;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/**
+ * Compute a 0-1 color similarity score (1 = identical, 0 = maximally different).
+ * Uses Euclidean distance in RGB space (max distance ≈ 441).
+ */
+function colorSimilarity(hex1: string, hex2: string): number {
+  const c1 = parseHexToRGB(hex1);
+  const c2 = parseHexToRGB(hex2);
+  if (!c1 || !c2) return 0;
+  const dist = Math.sqrt((c1.r - c2.r) ** 2 + (c1.g - c2.g) ** 2 + (c1.b - c2.b) ** 2);
+  return 1 - dist / 441.67; // 441.67 ≈ sqrt(3*255^2)
+}
+
+/**
+ * Compute a 0-1 numeric similarity score for dimension/number values.
+ * Uses ratio-based comparison so 8px vs 10px is "closer" than 100px vs 200px.
+ */
+function numericSimilarity(a: number, b: number): number {
+  if (a === b) return 1;
+  if (a === 0 && b === 0) return 1;
+  const max = Math.max(Math.abs(a), Math.abs(b));
+  if (max === 0) return 1;
+  return 1 - Math.abs(a - b) / (max + Math.abs(a - b));
+}
+
+/**
+ * Score a bind candidate for contextual ranking.
+ *
+ * Scoring dimensions (higher = more relevant):
+ *  - Primary type match: token $type is the "primary" type for this property (+20)
+ *  - Value similarity: resolved token value is close to current property value (+0-30)
+ *  - Sibling usage: token is bound to the same property on sibling nodes (+25)
+ *  - Same-node usage: token shares a path prefix with tokens already bound on this node (+10)
+ */
+export function scoreBindCandidate(
+  tokenPath: string,
+  entry: TokenMapEntry,
+  prop: BindableProperty,
+  currentValue: any,
+  resolvedTokenValue: any,
+  siblingBindings: Set<string>,
+  nodeBoundPrefixes: Set<string>,
+): number {
+  let score = 0;
+
+  // 1) Primary type match — the "natural" type for this property gets a boost
+  const primaryType = getTokenTypeForProperty(prop);
+  if (entry.$type === primaryType) {
+    score += 20;
+  }
+
+  // 2) Value similarity
+  if (currentValue != null && resolvedTokenValue != null) {
+    if (entry.$type === 'color' && typeof resolvedTokenValue === 'string' && typeof currentValue === 'string') {
+      const sim = colorSimilarity(currentValue, resolvedTokenValue);
+      score += Math.round(sim * 30); // 0-30 points
+    } else if ((entry.$type === 'dimension' || entry.$type === 'number') && currentValue != null) {
+      const tokenNum = typeof resolvedTokenValue === 'object' && resolvedTokenValue?.value != null
+        ? resolvedTokenValue.value
+        : typeof resolvedTokenValue === 'number' ? resolvedTokenValue : null;
+      const propNum = typeof currentValue === 'number' ? currentValue : null;
+      if (tokenNum != null && propNum != null) {
+        const sim = numericSimilarity(propNum, tokenNum);
+        score += Math.round(sim * 30);
+      }
+    }
+  }
+
+  // 3) Sibling usage — tokens bound to same property on sibling nodes
+  if (siblingBindings.has(tokenPath)) {
+    score += 25;
+  }
+
+  // 4) Same-node context — token shares a path prefix with already-bound tokens
+  const dotIdx = tokenPath.indexOf('.');
+  if (dotIdx > 0) {
+    const prefix = tokenPath.slice(0, dotIdx);
+    if (nodeBoundPrefixes.has(prefix)) {
+      score += 10;
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Collect token paths bound to the same property on sibling/related nodes.
+ * "Siblings" = all rootNodes (the full selection set).
+ */
+export function collectSiblingBindings(
+  rootNodes: SelectionNodeInfo[],
+  prop: BindableProperty,
+): Set<string> {
+  const paths = new Set<string>();
+  for (const node of rootNodes) {
+    const b = node.bindings[prop];
+    if (b) paths.add(b);
+  }
+  return paths;
+}
+
+/**
+ * Collect the top-level path prefixes of all tokens currently bound on the selected nodes.
+ * E.g. if a node has fill bound to "color.primary", this returns Set{"color"}.
+ */
+export function collectBoundPrefixes(
+  rootNodes: SelectionNodeInfo[],
+): Set<string> {
+  const prefixes = new Set<string>();
+  for (const node of rootNodes) {
+    for (const tokenPath of Object.values(node.bindings)) {
+      if (!tokenPath) continue;
+      const dotIdx = tokenPath.indexOf('.');
+      if (dotIdx > 0) {
+        prefixes.add(tokenPath.slice(0, dotIdx));
+      }
+    }
+  }
+  return prefixes;
+}
+
 /** Build an undo slot for removing a single binding */
 export function buildRemoveBindingUndo(
   binding: string,

@@ -170,3 +170,16 @@ Already up to date.
 
 --- Merging: ThemeManager bulk set-status context menu ARIA roles and focus management ---
 Already up to date.
+[main 5d2070d] chore(backlog): done – ThemeManager bulk set-status context menu ARIA roles and focus management
+ 6 files changed, 62 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - ThemeManager bulk set-status context menu ARIA roles and focus management
+- Added `role="menu"` and `aria-label` to the bulk context menu container div
+- Added `role="menuitem"` and `tabIndex={-1}` to each menu button
+- Added `aria-hidden="true"` to the non-interactive header text
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
+  Worktree: /tmp/backlog-62956-FeblkS
