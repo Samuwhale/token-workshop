@@ -320,3 +320,11 @@
   - When a cache has no invalidation mechanism and multiple writers exist, mtime-based validation is the simplest fix — one `fs.stat` per read is negligible for a local dev tool
   - The server package has pre-existing tsc errors (missing @types/node, etc.) — validate via plugin build or manual review
 ---
+
+## 2026-03-28 - Side effects inside `setActiveThemesState` updater
+- Moved `lsSetJson()` and `parent.postMessage()` out of the `setActiveThemesState(prev => { ... })` updater in `fetchThemes`. Added `activeThemesRef` to read current state outside the updater, then calls `setActiveThemes(next)` which handles side effects outside React's updater function.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L20 (ref), ~L62 (cleaned updater)
+- **Learnings for future iterations:**
+  - React concurrent mode may call setState updater functions multiple times — side effects (localStorage, postMessage) must never go inside them
+  - Use a ref to snapshot current state for async callbacks that need prev-state access without a functional updater
+---

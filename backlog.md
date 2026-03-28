@@ -38,7 +38,7 @@
 
 ### Bugs
 
-- [~] Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
+- [x] Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
 - [x] Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
 - [~] Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
 
@@ -53,7 +53,7 @@
 ### Bugs
 
 - [~] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
-- [ ] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
+- [~] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
 - [ ] Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
 - [ ] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
 

@@ -36,3 +36,16 @@ Already up to date.
 
 --- Merging: Theme dimensions store cache is never invalidated on external file changes ---
 Already up to date.
+[main dc9ecd9] chore(backlog): done – Theme dimensions store cache is never invalidated on external file changes
+ 6 files changed, 47 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Theme dimensions store cache is never invalidated on external file changes
+- Added mtime-based cache invalidation to `DimensionsStore` in themes.ts. On each `load()`, the file's mtime is checked via `fs.stat`; if it differs from the cached mtime, the file is re-read from disk. `save()` also updates the cached mtime after writing.
+- This fixes the bug where `renameSet` in token-store.ts writes to `$themes.json` directly, bypassing the store's `save()`, causing subsequent theme API reads to return stale cached data.
+- Files changed: `packages/server/src/routes/themes.ts` ~L14-51 (createDimensionsStore)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  100 items remaining
+===============================================================
+  Claimed: Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
+  Worktree: /tmp/backlog-92630-5kz3Su

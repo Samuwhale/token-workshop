@@ -17,6 +17,8 @@ export function useThemeSwitcher(
   const [activeThemes, setActiveThemesState] = useState<Record<string, string>>(() =>
     lsGetJson<Record<string, string>>(STORAGE_KEYS.ACTIVE_THEMES, {})
   );
+  const activeThemesRef = useRef(activeThemes);
+  activeThemesRef.current = activeThemes;
   const setActiveThemes = (map: Record<string, string>) => {
     lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, map);
     parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: map } }, '*');
@@ -60,18 +62,14 @@ export function useThemeSwitcher(
         const all: ThemeDimension[] = data.dimensions || [];
         setDimensions(all);
         // Remove active entries whose dimension or option no longer exists
-        setActiveThemesState(prev => {
-          const next: Record<string, string> = {};
-          for (const dim of all) {
-            if (prev[dim.id] && dim.options.some(o => o.name === prev[dim.id])) {
-              next[dim.id] = prev[dim.id];
-            }
+        const prev = activeThemesRef.current;
+        const next: Record<string, string> = {};
+        for (const dim of all) {
+          if (prev[dim.id] && dim.options.some(o => o.name === prev[dim.id])) {
+            next[dim.id] = prev[dim.id];
           }
-          // Persist cleaned map to localStorage + Figma clientStorage
-          lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, next);
-          parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: next } }, '*');
-          return next;
-        });
+        }
+        setActiveThemes(next);
       })
       .catch(err => {
         if (signal.aborted) return;

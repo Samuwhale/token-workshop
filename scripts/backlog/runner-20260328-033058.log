@@ -72,3 +72,10 @@ Already up to date.
 ===============================================================
   Claimed: Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
   Worktree: /tmp/backlog-85816-liTahi
+
+  ✓ done: Side effects inside `setActiveThemesState` updater
+    Moved lsSetJson() and parent.postMessage() out of setState updater in fetchThemes by using activeThemesRef + calling setActiveThemes() wrapper instead
+    11 turns · 70s · $0.35
+
+--- Merging: Side effects inside `setActiveThemesState` updater ---
+Already up to date.
