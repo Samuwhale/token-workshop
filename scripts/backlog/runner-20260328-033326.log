@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: `parseColor` in controller.ts only handles hex strings — if a color token uses `rgb()`, `hsl()`, or a named CSS color (which core's validator accepts), `parseColor` returns `null` and the color is silently not applied
   Worktree: /tmp/backlog-92630-4XKQOR
+
+  ✓ done: parseColor in controller.ts only handles hex strings
+    Extended parseColor to handle rgb()/rgba(), hsl()/hsla(), and 148 named CSS colors. Added parseHexRaw helper, hslToRgbValues converter, and CSS_NAMED_COLORS lookup map. Build passes.
+    14 turns · 109s · $0.47
+
+--- Merging: parseColor in controller.ts only handles hex strings ---
+Already up to date.

@@ -50,3 +50,4 @@ Already up to date.
   Iteration 3 / 90  (claude)  —  105 items remaining
 ===============================================================
   Claimed: `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
+  Worktree: /tmp/backlog-85816-0Pa9nc

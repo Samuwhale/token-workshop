@@ -63,3 +63,12 @@
   - `pathToSet` was already computed and available in App.tsx for the `onGoToToken` handler — adding set info to token entries just required passing it through the existing `TokenEntry` shape.
   - Using `ml-auto` on the set badge pushes it to the right within the flex row, cleanly separating it from the token path without interfering with the copy-value/CSS buttons.
 ---
+
+## 2026-03-28 - parseColor in controller.ts only handles hex strings
+- Extended `parseColor` to handle `rgb()`/`rgba()`, `hsl()`/`hsla()`, and all 148 named CSS colors (plus `transparent`). Extracted hex parsing into `parseHexRaw` helper, added `hslToRgbValues` for HSL→RGB conversion, and a `CSS_NAMED_COLORS` lookup map. All values are clamped to 0–1 range. Supports both comma-separated and space-separated CSS syntax.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L1208 (parseColor rewrite, ~100 lines added)
+- **Learnings for future iterations:**
+  - The controller runs in Figma's plugin sandbox (no DOM/canvas), so CSS color parsing must be done manually
+  - The core validator (`validator.ts`) already has a `CSS_NAMED_COLORS` set — the controller needs its own map with actual hex values since it must convert, not just validate
+  - rgb() values can be 0-255 integers or 0-100% — the regex captures the optional `%` suffix to distinguish
+---
