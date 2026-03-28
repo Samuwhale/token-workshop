@@ -419,3 +419,12 @@
   - `a.click()` for blob-URL downloads is async in some browsers — always defer `revokeObjectURL` by ~1s
   - Same pattern exists in AnalyticsPanel, PublishPanel, GraphPanel, ThemeCompare, ExportPanel
 ---
+
+## 2026-03-28 - generator-routes.ts uses `as unknown as GeneratorConfig` casts extensively
+- Replaced all 11 `as unknown as GeneratorConfig` casts with properly constructed typed objects that only include known fields — extra/malicious client properties no longer leak to disk
+- Added runtime validation to the PUT `/generators/:id` route which previously cast `request.body` directly to `Partial<TokenGenerator>` with no validation — now validates config via `validateGeneratorConfig`, sanitizes all other fields (name, type, sourceToken, targetSet, targetGroup, overrides, inputTable, targetSetTemplate), and rejects unknown generator types
+- Files changed: `packages/server/src/routes/generators.ts` ~L1-210 (validateGeneratorConfig rewrite), ~L280-330 (PUT route sanitization)
+- **Learnings for future iterations:**
+  - When validating a discriminated union from untrusted input, always construct a new object with only known fields rather than casting the input object — `as unknown as T` passes the type check but carries all original properties
+  - The PUT update route was a second unvalidated entry point — always audit all routes that accept the same data shape
+---

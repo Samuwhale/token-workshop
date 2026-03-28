@@ -468,3 +468,20 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox
 Already up to date.
+[main b7bd9bc] chore(backlog): code pass – code-pass
+ 5 files changed, 21 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - SnapshotPanel all operations silently broken — wrong apiFetch signature
+- Fixed all 5 `apiFetch` calls in `SnapshotPanel.tsx` to use the correct 2-arg signature `apiFetch(url, options?)` instead of the wrong 3-arg `apiFetch(serverUrl, path, options?)`. Also fixed the two calls that did `const res = await apiFetch(...); res.json()` — `apiFetch` already returns parsed JSON, not a Response.
+- Files changed: `packages/figma-plugin/src/ui/components/SnapshotPanel.tsx` ~L160–238
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  32 items remaining
+===============================================================
+  Claimed: TokenTableView description edit silently discarded — `commitEdit` at TokenTableView.tsx:132 passes `node.$value` (the existing token value) instead of the edited description text `raw`, making all table-view description edits no-ops that send the old value back to the server
+  Worktree: /tmp/backlog-9651-6Bt1vQ
