@@ -25,3 +25,28 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: [HIGH] missing await in resolver-store getSet, TokenTableView description edit broken, controller async handlers lack error handling, variableSync incomplete rollback, useFigmaSync style sync missing setName, duplicate color math in lint.ts
 Already up to date.
+[main 510471e] chore(backlog): code pass – code-pass
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - code-pass
+- Areas explored: UI components (TokenTableView, AnalyticsPanel, ResolverPanel, PasteTokensModal, HeatmapPanel, ColorPicker, PreviewPanel, MetadataEditor, SemanticMappingDialog, useFigmaSync, useThemeSwitcher, useResolvers, useServerEvents, apiFetch), server services (resolver-store, lint, token-store async API), plugin sandbox (variableSync rollback, controller async handlers, styleSync)
+- Found 6 items — written to backlog-inbox.md
+- Notable: resolver-store.ts:161 calls async `tokenStore.getSet()` without `await` — the Promise is always truthy so the null check never triggers and `set.tokens` returns undefined, silently breaking all resolver external-set loading; TokenTableView description edit passes the old value instead of the edited text
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: [HIGH] Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161 — `getSet` is async (returns `Promise<TokenSet | undefined>`) but called without `await` in `loadExternal`, so `set` is a Promise (always truthy), the `!set` guard never triggers, and `set.tokens` is `undefined`; resolver external-set loading silently produces undefined tokens for every resolution
+  Worktree: /tmp/backlog-10054-tcbh1A
+
+  ✓ done: Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161
+    Added missing `await` to async `tokenStore.getSet()` call in `loadExternal`, fixing silent undefined tokens during resolver external-set loading.
+    6 turns · 31s · $0.21
+
+--- Merging: Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161 ---
+Already up to date.

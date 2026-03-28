@@ -536,3 +536,10 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: resolver-store.ts:161 calls async `tokenStore.getSet()` without `await` — the Promise is always truthy so the null check never triggers and `set.tokens` returns undefined, silently breaking all resolver external-set loading; TokenTableView description edit passes the old value instead of the edited text
 ---
+
+## 2026-03-28 - Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161
+- Added `await` to the `tokenStore.getSet(setName)` call inside `loadExternal` in `resolver-store.ts`. The function was already `async` but the call was missing `await`, causing the Promise (always truthy) to skip the `!set` guard and pass `undefined` tokens downstream.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L161
+- **Learnings for future iterations:**
+  - `getSet` returns `Promise<TokenSet | undefined>` — any call site in an async context must `await` it
+---

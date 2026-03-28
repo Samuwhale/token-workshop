@@ -158,7 +158,7 @@ export class ResolverStore {
       if (setName.endsWith('.tokens.json')) {
         setName = setName.slice(0, -'.tokens.json'.length);
       }
-      const set = tokenStore.getSet(setName);
+      const set = await tokenStore.getSet(setName);
       if (!set) {
         throw new Error(`Token set "${setName}" (from resolver $ref "${filePath}") not found.`);
       }
