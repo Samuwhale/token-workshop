@@ -25,7 +25,16 @@ interface ThemeManagerProps {
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
-type CoverageToken = { path: string; set: string };
+type CoverageToken = {
+  path: string;
+  set: string;
+  /** The first alias target that cannot be resolved in the active sets */
+  missingRef?: string;
+  /** A concrete value found in another set that can fill the gap */
+  fillValue?: unknown;
+  /** $type for the fill token */
+  fillType?: string;
+};
 type CoverageMap = Record<string, Record<string, { uncovered: CoverageToken[] }>>;
 
 
@@ -93,6 +102,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   // Token values per set (for live preview)
   const [setTokenValues, setSetTokenValues] = useState<Record<string, Record<string, any>>>({});
+  // Token types per set (for auto-fill)
+  const setTokenTypesRef = useRef<Record<string, Record<string, string>>>({});
+  // Auto-fill in-progress state
+  const [fillingKeys, setFillingKeys] = useState<Set<string>>(new Set());
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
@@ -143,6 +156,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
       // Compute token values per set
       const tokenValues: Record<string, Record<string, any>> = {};
+      const tokenTypes: Record<string, Record<string, string>> = {};
       const failedSets: string[] = [];
       await Promise.all(sets.map(async (s) => {
         try {
@@ -150,10 +164,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           if (r.ok) {
             const d = await r.json();
             const map: Record<string, any> = {};
+            const typeMap: Record<string, string> = {};
             for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
               map[path] = token.$value;
+              if (token.$type) typeMap[path] = token.$type;
             }
             tokenValues[s] = map;
+            tokenTypes[s] = typeMap;
           } else {
             failedSets.push(s);
           }
@@ -162,6 +179,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         }
       }));
       setSetTokenValues(tokenValues);
+      setTokenTypesRef.current = tokenTypes;
       if (failedSets.length > 0) {
         setFetchWarnings(`Could not load ${failedSets.length === 1 ? `set "${failedSets[0]}"` : `${failedSets.length} sets (${failedSets.join(', ')})`} — coverage data may be incomplete`);
       } else {
@@ -176,6 +194,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         if (visited.has(target)) return false;
         if (!(target in activeValues)) return false;
         return isResolved(activeValues[target], activeValues, new Set([...visited, target]));
+      };
+
+      /** Find the first alias target in a reference chain that's missing from activeValues */
+      const findMissingRef = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): string | null => {
+        if (typeof value !== 'string') return null;
+        const m = /^\{([^}]+)\}$/.exec(value);
+        if (!m) return null;
+        const target = m[1];
+        if (visited.has(target)) return null; // circular — no single missing ref
+        if (!(target in activeValues)) return target; // this is the missing one
+        return findMissingRef(activeValues[target], activeValues, new Set([...visited, target]));
+      };
+
+      /** Search all loaded sets for a concrete value at the given path */
+      const findFillValue = (path: string): { value: unknown; type?: string } | null => {
+        for (const [setName, tokens] of Object.entries(tokenValues)) {
+          if (path in tokens) {
+            return { value: tokens[path], type: tokenTypes[setName]?.[path] };
+          }
+        }
+        return null;
       };
 
       const cov: CoverageMap = {};
@@ -200,9 +239,20 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               Object.assign(activeValues, tokenValues[setName] ?? {});
             }
           }
-          const uncovered = Object.entries(activeValues)
-            .filter(([, v]) => !isResolved(v, activeValues))
-            .map(([p]) => ({ path: p, set: tokenSetOrigin[p] ?? '' }));
+          const uncovered: CoverageToken[] = [];
+          for (const [p, v] of Object.entries(activeValues)) {
+            if (isResolved(v, activeValues)) continue;
+            const missingRef = findMissingRef(v, activeValues);
+            const entry: CoverageToken = { path: p, set: tokenSetOrigin[p] ?? '', missingRef: missingRef ?? undefined };
+            if (missingRef) {
+              const found = findFillValue(missingRef);
+              if (found) {
+                entry.fillValue = found.value;
+                entry.fillType = found.type;
+              }
+            }
+            uncovered.push(entry);
+          }
           cov[dim.id][opt.name] = { uncovered };
         }
       }
@@ -567,6 +617,93 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       });
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete option'));
+    }
+  };
+
+  // --- Auto-fill from source ---
+
+  /** Find the first override (enabled) set for a given option, to write fill tokens into */
+  const getOverrideSet = (dimId: string, optionName: string): string | null => {
+    const dim = dimensions.find(d => d.id === dimId);
+    const opt = dim?.options.find(o => o.name === optionName);
+    if (!opt) return null;
+    const entry = Object.entries(opt.sets).find(([, s]) => s === 'enabled');
+    return entry?.[0] ?? null;
+  };
+
+  /** Auto-fill a single uncovered token by creating its missing reference in the override set */
+  const handleAutoFillSingle = async (dimId: string, optionName: string, item: CoverageToken) => {
+    if (!item.missingRef || item.fillValue === undefined) return;
+    const targetSet = getOverrideSet(dimId, optionName);
+    if (!targetSet) {
+      setError('No override set available. Assign a set as Override first.');
+      return;
+    }
+    const fillKey = `${dimId}:${optionName}:${item.path}`;
+    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    try {
+      const tokenPath = item.missingRef.split('.').join('/');
+      const body: Record<string, unknown> = { $value: item.fillValue };
+      if (item.fillType) body.$type = item.fillType;
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Failed to create fill token (${res.status})`);
+        return;
+      }
+      debouncedFetchDimensions();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to auto-fill token'));
+    } finally {
+      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
+    }
+  };
+
+  /** Auto-fill all uncovered tokens that have a known fill value */
+  const handleAutoFillAll = async (dimId: string, optionName: string) => {
+    const items = coverage[dimId]?.[optionName]?.uncovered ?? [];
+    const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
+    if (fillable.length === 0) return;
+    const targetSet = getOverrideSet(dimId, optionName);
+    if (!targetSet) {
+      setError('No override set available. Assign a set as Override first.');
+      return;
+    }
+    // De-duplicate by missingRef — multiple tokens may reference the same missing path
+    const seen = new Set<string>();
+    const uniqueFillable: CoverageToken[] = [];
+    for (const item of fillable) {
+      if (!item.missingRef || seen.has(item.missingRef)) continue;
+      seen.add(item.missingRef);
+      uniqueFillable.push(item);
+    }
+    const fillKey = `${dimId}:${optionName}:__all__`;
+    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    try {
+      const batchTokens = uniqueFillable.map(item => {
+        const t: Record<string, unknown> = { path: item.missingRef!, $value: item.fillValue };
+        if (item.fillType) t.$type = item.fillType;
+        return t;
+      });
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: batchTokens, strategy: 'skip' }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Failed to batch-fill tokens (${res.status})`);
+        return;
+      }
+      debouncedFetchDimensions();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to auto-fill tokens'));
+    } finally {
+      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
     }
   };
 
@@ -1277,31 +1414,63 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         )}
 
                         {/* Coverage gaps */}
-                        {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (
+                        {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (() => {
+                          const uncoveredItems = coverage[dim.id][selectedOpt].uncovered;
+                          const fillableCount = uncoveredItems.filter(i => i.missingRef && i.fillValue !== undefined).length;
+                          const isFillAllInProgress = fillingKeys.has(`${dim.id}:${selectedOpt}:__all__`);
+                          return (
                           <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
-                            <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
-                              Missing values ({coverage[dim.id][selectedOpt].uncovered.length})
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
+                                Missing values ({uncoveredItems.length})
+                              </div>
+                              {fillableCount > 0 && (
+                                <button
+                                  onClick={() => handleAutoFillAll(dim.id, selectedOpt)}
+                                  disabled={isFillAllInProgress}
+                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+                                  title={`Auto-fill ${fillableCount} token${fillableCount !== 1 ? 's' : ''} from other sets into the override set`}
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                                  {isFillAllInProgress ? 'Filling…' : `Fill all (${fillableCount})`}
+                                </button>
+                              )}
                             </div>
-                            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
-                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
-                              {coverage[dim.id][selectedOpt].uncovered.map(item => (
-                                onNavigateToToken && item.set ? (
-                                  <button
-                                    key={item.path}
-                                    onClick={() => onNavigateToToken(item.set, item.path)}
-                                    className="text-left text-[10px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
-                                    title={`Navigate to ${item.path} in set "${item.set}"`}
-                                    role="listitem"
-                                  >
-                                    {item.path}
-                                  </button>
-                                ) : (
-                                  <div key={item.path} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem">{item.path}</div>
-                                )
-                              ))}
+                            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can&apos;t be resolved within the active sets.</p>
+                            <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
+                              {uncoveredItems.map(item => {
+                                const canFill = !!(item.missingRef && item.fillValue !== undefined);
+                                const isFilling = fillingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
+                                return (
+                                <div key={item.path} className="flex items-center gap-1 group/fill" role="listitem">
+                                  {onNavigateToToken && item.set ? (
+                                    <button
+                                      onClick={() => onNavigateToToken(item.set, item.path)}
+                                      className="flex-1 text-left text-[10px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
+                                      title={`Navigate to ${item.path} in set "${item.set}"${item.missingRef ? `\nMissing: {${item.missingRef}}` : ''}`}
+                                    >
+                                      {item.path}
+                                    </button>
+                                  ) : (
+                                    <div className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={item.missingRef ? `Missing: {${item.missingRef}}` : undefined}>{item.path}</div>
+                                  )}
+                                  {canFill && (
+                                    <button
+                                      onClick={() => handleAutoFillSingle(dim.id, selectedOpt, item)}
+                                      disabled={isFilling}
+                                      className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
+                                      title={`Create ${item.missingRef} in override set`}
+                                    >
+                                      {isFilling ? '…' : 'Fill'}
+                                    </button>
+                                  )}
+                                </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        )}
+                          );
+                        })()}
                         {expandedStale.has(covKey) && staleSetNames.length > 0 && (
                           <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
                             <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">

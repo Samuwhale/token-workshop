@@ -418,3 +418,12 @@
   - Action toasts need longer auto-dismiss (8s vs 3s) since the user needs time to read and decide
   - One-shot message listeners with a cleanup timeout prevent memory leaks from orphaned listeners
 ---
+
+## 2026-03-28 - ThemeManager coverage gap "auto-fill from source"
+- Implemented per-token "Fill" button and bulk "Fill all" button in the ThemeManager coverage gaps view. Extended CoverageToken type to track `missingRef` (the first broken alias target), `fillValue`, and `fillType`. Coverage computation now finds missing refs via alias chain traversal and looks up fill values across all loaded sets. Single fill uses POST /api/tokens/:set/*, bulk fill uses POST /api/tokens/:set/batch with strategy "skip". De-duplicates by missingRef to avoid redundant writes. Shows fillable count in "Fill all" button. Per-token fill buttons appear on hover. Both show loading states and error handling.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L28-37 (CoverageToken type), ~L102-107 (new state), ~L156-179 (token types collection), ~L196-222 (findMissingRef, findFillValue), ~L239-254 (extended coverage computation), ~L620-712 (auto-fill handlers), ~L1414-1476 (UI buttons)
+- **Learnings for future iterations:**
+  - Coverage tokens are "uncovered" because their alias references don't resolve — the fix is to add the missing reference target, not the token itself
+  - Multiple uncovered tokens can reference the same missing path — de-duplicate before batch creation
+  - Server tests and eslint fail in worktrees due to broken vitest symlinks and missing @eslint/js — pre-existing environment issue, not related to code changes
+---

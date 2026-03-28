@@ -264,3 +264,10 @@ Already up to date.
 
 --- Merging: Analytics panel bulk "promote duplicates to alias" ---
 Already up to date.
+[main 1e190f9] chore(backlog): done – Analytics panel bulk "promote duplicates to alias"
+ 8 files changed, 115 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - SelectionInspector "apply to other layers" fast path
+- After binding a token to a property on a single-layer selection, the plugin now checks for sibling layers (same parent) that support the same property and don't already have it bound. If peers are found, an actionable toast appears: "Apply [property] to N sibling layers?" with an "Apply" button.
+- Plugin side: Added `findPeersForProperty(nodeId, property)` and `applyToNodes(nodeIds, tokenPath, tokenType, targetProperty, resolvedValue)` to `selectionHandling.ts`. `findPeersForProperty` uses `nodeSupportsProperty()` helper to check capability per property type. `applyToNodes` applies to specific node IDs without changing the Figma selection.
+- Plugin side: Added `find-peers-for-property` and `apply-to-nodes` message handlers to `controller.ts`.
