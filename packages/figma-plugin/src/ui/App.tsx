@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, Component } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
@@ -33,7 +33,7 @@ import { VersionHistoryPanel } from './components/VersionHistoryPanel';
 import { SnapshotPanel } from './components/SnapshotPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
-import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
+import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
@@ -51,9 +51,13 @@ import { useSetDelete } from './hooks/useSetDelete';
 import { useSetDuplicate } from './hooks/useSetDuplicate';
 import { useSetMergeSplit } from './hooks/useSetMergeSplit';
 import { useSetMetadata } from './hooks/useSetMetadata';
-import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
+import { useModalVisibility } from './hooks/useModalVisibility';
+import { useTokenDataLoading } from './hooks/useTokenDataLoading';
+import { useSetTabs } from './hooks/useSetTabs';
+import { useRecentOperations } from './hooks/useRecentOperations';
+import type { SyncCompleteMessage } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
-import { stableStringify, adaptShortcut, getErrorMessage, SET_NAME_RE } from './shared/utils';
+import { adaptShortcut } from './shared/utils';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
@@ -312,17 +316,14 @@ export function App() {
   const { selectedNodes } = useSelection();
   const availableFonts = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
-  const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
-  const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
-  const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
-  const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
+  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot } = useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
     setErrorToast(`Alias target not found: ${aliasPath}`);
   }, []);
   const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias, handleNavigateBack, navHistory } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply } = useModalVisibility();
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
@@ -336,16 +337,9 @@ export function App() {
   useServerEvents(serverUrl, connected, onGeneratorError);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const [showPasteModal, setShowPasteModal] = useState(false);
-  const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
-  const [showGuidedSetup, setShowGuidedSetup] = useState(false);
-  const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const [showQuickApply, setShowQuickApply] = useState(false);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -353,26 +347,7 @@ export function App() {
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
 
   // Server-side operation log for undo/rollback
-  const [recentOperations, setRecentOperations] = useState<Array<{ id: string; timestamp: string; type: string; description: string; setName: string; affectedPaths: string[]; rolledBack: boolean }>>([]);
-  const fetchRecentOps = useCallback(async () => {
-    if (!connected) return;
-    try {
-      const data = await apiFetch<{ operations: typeof recentOperations }>(`${serverUrl}/api/operations?limit=10`);
-      setRecentOperations(data.operations);
-    } catch { /* ignore */ }
-  }, [serverUrl, connected]);
-  // Refresh operations list whenever tokens refresh
-  useEffect(() => { fetchRecentOps(); }, [fetchRecentOps, lintKey]);
-  const handleRollback = useCallback(async (opId: string) => {
-    try {
-      await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
-      refreshAll();
-      fetchRecentOps();
-      setSuccessToast('Operation rolled back');
-    } catch (err) {
-      setErrorToast(`Rollback failed: ${getErrorMessage(err)}`);
-    }
-  }, [serverUrl, refreshAll, fetchRecentOps]);
+  const { recentOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
 
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const handlePreviewEdit = useCallback(() => {
@@ -380,7 +355,6 @@ export function App() {
   }, [previewingToken]);
   const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, []);
   const editorIsDirtyRef = useRef(false);
-  const flatFetchGenRef = useRef(0);
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
@@ -406,7 +380,6 @@ export function App() {
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
   const [showValidationReturn, setShowValidationReturn] = useState(false);
-  const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const [tokenUsageCounts, setTokenUsageCounts] = useState<Record<string, number>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
@@ -454,43 +427,8 @@ export function App() {
     return themeOnlyTokensFlat;
   }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
 
-  // Must be declared before cascadeDiff useMemo which references them
-  const [dragSetName, setDragSetName] = useState<string | null>(null);
-  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
-
-  // Cascade diff: live diff of resolved values when dragging set tabs to reorder
-  const cascadeDiff = useMemo<Record<string, { before: any; after: any }> | null>(() => {
-    if (!dragSetName || !dragOverSetName || dragSetName === dragOverSetName) return null;
-    if (Object.keys(activeThemes).length > 0) return null; // theme-aware cascade uses different merge logic
-    const fromIdx = sets.indexOf(dragSetName);
-    const toIdx = sets.indexOf(dragOverSetName);
-    if (fromIdx === -1 || toIdx === -1) return null;
-    const proposedOrder = [...sets];
-    proposedOrder.splice(fromIdx, 1);
-    proposedOrder.splice(toIdx, 0, dragSetName);
-    // Build proposed merged flat (last set wins, same as fetchAllTokensFlatWithSets)
-    const proposedRaw: Record<string, TokenMapEntry> = {};
-    for (const sn of proposedOrder) {
-      const setMap = perSetFlat[sn];
-      if (setMap) Object.assign(proposedRaw, setMap);
-    }
-    const proposedResolved = resolveAllAliases(proposedRaw);
-    const diff: Record<string, { before: any; after: any }> = {};
-    const allPaths = new Set([...Object.keys(allTokensFlat), ...Object.keys(proposedResolved)]);
-    for (const path of allPaths) {
-      const before = allTokensFlat[path]?.$value;
-      const after = proposedResolved[path]?.$value;
-      if (stableStringify(before) !== stableStringify(after)) {
-        diff[path] = { before, after };
-      }
-    }
-    return Object.keys(diff).length > 0 ? diff : null;
-  }, [dragSetName, dragOverSetName, sets, perSetFlat, allTokensFlat, activeThemes]);
-
-  // Set context menu state
-  const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
-  const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
-  const tabMenuRef = useRef<HTMLDivElement>(null);
+  // Set tab management (drag, context menu, overflow, new-set form)
+  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
@@ -506,13 +444,6 @@ export function App() {
   const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen });
   const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });
 
-  // New set creation state
-  const [creatingSet, setCreatingSet] = useState(false);
-  const [newSetName, setNewSetName] = useState('');
-  const [newSetError, setNewSetError] = useState('');
-  const newSetInputRef = useRef<HTMLInputElement>(null);
-  const setTabsScrollRef = useRef<HTMLDivElement>(null);
-  const [setTabsOverflow, setSetTabsOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
 
   // Sidebar mode: activate when any set has a '/' folder separator or there are many sets
   const useSidebar = sets.some(s => s.includes('/')) || sets.length >= 7;
@@ -552,40 +483,9 @@ export function App() {
     });
   }, []);
 
-  useEffect(() => {
-    if (connected) {
-      const gen = ++flatFetchGenRef.current;
-      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
-        if (gen !== flatFetchGenRef.current) return; // stale response
-        setAllTokensFlat(resolveAllAliases(flat));
-        setPathToSet(pts);
-        setPerSetFlat(psf);
-      }).catch(err => {
-        if (gen !== flatFetchGenRef.current) return; // stale response
-        if (isNetworkError(err)) markDisconnected();
-        console.error('Failed to fetch tokens flat:', err);
-      });
-    }
-  }, [connected, serverUrl, tokens, markDisconnected]);
 
   const { heatmapResult, heatmapLoading, heatmapError, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
 
-  // Listen for variables-applied and capture a sync snapshot
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
-      if (msg?.type === 'variables-applied') {
-        // Snapshot current allTokensFlat values as last-applied baseline
-        const snap: Record<string, string> = {};
-        for (const [path, entry] of Object.entries(allTokensFlat)) {
-          snap[path] = stableStringify(entry.$value);
-        }
-        setSyncSnapshot(snap);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [allTokensFlat]);
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes
   useEffect(() => {
@@ -617,17 +517,6 @@ export function App() {
     return () => document.removeEventListener('keydown', handler);
   }, [menuOpen]);
 
-  // Close set context menu on outside click
-  useEffect(() => {
-    if (!tabMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (tabMenuRef.current && !tabMenuRef.current.contains(e.target as Node)) {
-        setTabMenuOpen(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [tabMenuOpen]);
 
   // Keyboard shortcuts — use a stable callback ref so the effect never
   // re-registers the listener yet always calls the latest handler.
@@ -667,156 +556,6 @@ export function App() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
-
-
-  // Focus new set input when it appears
-  useLayoutEffect(() => {
-    if (creatingSet && newSetInputRef.current) {
-      newSetInputRef.current.focus();
-      newSetInputRef.current.select();
-    }
-  }, [creatingSet]);
-
-  // Detect horizontal overflow in set tab bar — track left & right independently
-  const checkSetTabsOverflow = useCallback(() => {
-    const el = setTabsScrollRef.current;
-    if (!el) return;
-    const hasOverflow = el.scrollWidth > el.clientWidth;
-    setSetTabsOverflow({
-      left: hasOverflow && el.scrollLeft > 2,
-      right: hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - 2,
-    });
-  }, []);
-
-  useEffect(() => {
-    const el = setTabsScrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', checkSetTabsOverflow);
-    const ro = new ResizeObserver(checkSetTabsOverflow);
-    ro.observe(el);
-    return () => { el.removeEventListener('scroll', checkSetTabsOverflow); ro.disconnect(); };
-  }, [checkSetTabsOverflow]);
-
-  // Re-check overflow whenever the set list changes (tabs added/removed/renamed)
-  useEffect(() => { checkSetTabsOverflow(); }, [sets, checkSetTabsOverflow]);
-
-  const scrollSetTabs = useCallback((direction: 'left' | 'right') => {
-    const el = setTabsScrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
-  }, []);
-
-  // Scroll active set tab into view whenever activeSet changes
-  useEffect(() => {
-    const container = setTabsScrollRef.current;
-    if (!container) return;
-    const activeEl = container.querySelector('[data-active-set="true"]') as HTMLElement | null;
-    if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  }, [activeSet]);
-
-  const openSetMenu = (setName: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTabMenuOpen(setName);
-    setTabMenuPos({
-      x: Math.min(e.clientX, window.innerWidth - 176),
-      y: Math.min(e.clientY, window.innerHeight - 280),
-    });
-  };
-
-
-  const handleSetDragStart = (e: React.DragEvent, setName: string) => {
-    setDragSetName(setName);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleSetDragOver = (e: React.DragEvent, setName: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragSetName && dragSetName !== setName) {
-      setDragOverSetName(setName);
-    }
-  };
-
-  const handleSetDragEnd = () => {
-    setDragSetName(null);
-    setDragOverSetName(null);
-  };
-
-  const handleReorderSet = async (setName: string, direction: 'left' | 'right') => {
-    const idx = sets.indexOf(setName);
-    if (idx === -1) return;
-    const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= sets.length) return;
-    const newOrder = [...sets];
-    newOrder.splice(idx, 1);
-    newOrder.splice(targetIdx, 0, setName);
-    setSets(newOrder);
-    setTabMenuOpen(null);
-    try {
-      await apiFetch(`${serverUrl}/api/sets/reorder`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: newOrder }),
-      });
-      setSuccessToast('Set order updated');
-    } catch {
-      refreshTokens();
-    }
-  };
-
-  const handleSetDrop = async (e: React.DragEvent, targetSetName: string) => {
-    e.preventDefault();
-    if (!dragSetName || dragSetName === targetSetName) { handleSetDragEnd(); return; }
-    const fromIdx = sets.indexOf(dragSetName);
-    const toIdx = sets.indexOf(targetSetName);
-    if (fromIdx === -1 || toIdx === -1) { handleSetDragEnd(); return; }
-    const newOrder = [...sets];
-    newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, dragSetName);
-    setDragSetName(null);
-    setDragOverSetName(null);
-    setSets(newOrder);
-    try {
-      await apiFetch(`${serverUrl}/api/sets/reorder`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: newOrder }),
-      });
-      setSuccessToast('Set order updated');
-    } catch {
-      refreshTokens(); // revert on failure
-    }
-  };
-
-  const handleCreateSet = async () => {
-    const name = newSetName.trim();
-    if (!name) { setNewSetError('Name cannot be empty'); return; }
-    if (!SET_NAME_RE.test(name)) { setNewSetError('Use letters, numbers, - and _ (/ for folders)'); return; }
-    if (!connected) { setCreatingSet(false); return; }
-    try {
-      await apiFetch(`${serverUrl}/api/sets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
-      });
-      setCreatingSet(false);
-      setNewSetName('');
-      setNewSetError('');
-      refreshTokens();
-      setSuccessToast(`Created set "${name}"`);
-    } catch (err) {
-      if (isNetworkError(err)) {
-        markDisconnected();
-        setCreatingSet(false);
-        setNewSetName('');
-        setNewSetError('');
-      } else {
-        setNewSetError(err instanceof Error ? err.message : 'Network error');
-      }
-    }
-  };
 
 
   const handleClearAll = async () => {

@@ -1,0 +1,64 @@
+import { useState, useEffect, useRef } from 'react';
+import { fetchAllTokensFlatWithSets } from './useTokens';
+import { resolveAllAliases } from '../../shared/resolveAlias';
+import { isNetworkError } from '../shared/apiFetch';
+import { stableStringify } from '../shared/utils';
+import type { TokenMapEntry } from '../../shared/types';
+
+interface UseTokenDataLoadingParams {
+  serverUrl: string;
+  connected: boolean;
+  /** Token tree — used as a dependency to trigger re-fetch */
+  tokens: unknown[];
+  markDisconnected: () => void;
+}
+
+export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected }: UseTokenDataLoadingParams) {
+  const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
+  const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
+  const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
+  const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
+  const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
+  const flatFetchGenRef = useRef(0);
+
+  // Fetch flat tokens on connect / token-change
+  useEffect(() => {
+    if (connected) {
+      const gen = ++flatFetchGenRef.current;
+      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
+        if (gen !== flatFetchGenRef.current) return; // stale response
+        setAllTokensFlat(resolveAllAliases(flat));
+        setPathToSet(pts);
+        setPerSetFlat(psf);
+      }).catch(err => {
+        if (gen !== flatFetchGenRef.current) return;
+        if (isNetworkError(err)) markDisconnected();
+        console.error('Failed to fetch tokens flat:', err);
+      });
+    }
+  }, [connected, serverUrl, tokens, markDisconnected]);
+
+  // Listen for variables-applied and capture a sync snapshot
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data?.pluginMessage;
+      if (msg?.type === 'variables-applied') {
+        const snap: Record<string, string> = {};
+        for (const [path, entry] of Object.entries(allTokensFlat)) {
+          snap[path] = stableStringify(entry.$value);
+        }
+        setSyncSnapshot(snap);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [allTokensFlat]);
+
+  return {
+    allTokensFlat,
+    pathToSet,
+    perSetFlat,
+    filteredSetCount, setFilteredSetCount,
+    syncSnapshot,
+  };
+}
