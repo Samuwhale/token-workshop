@@ -305,3 +305,12 @@
   - For group-level autocomplete, appending `.` on group selection keeps the flow natural for drilling into nested hierarchies.
   - Event listener capture phase (`true` third arg) is needed for keydown handlers on autocomplete to intercept before the input's own handlers.
 ---
+
+## 2026-03-28 - TokenEditor "toggle alias mode" doesn't preserve the resolved value
+- Updated `handleToggleAlias` in TokenEditor to resolve the current alias reference via `resolveTokenValue` when switching from alias to direct mode, so the resolved concrete value (e.g. `#1a73e8`) is kept instead of reverting to the stale pre-alias raw value
+- Falls back to pre-alias value if resolution fails (broken alias, not yet set, etc.)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L13-14 (import), ~L342-363 (handleToggleAlias)
+- **Learnings for future iterations:**
+  - `resolveTokenValue` from `shared/resolveAlias.ts` works for all token types (not just colors) — prefer it over `resolveRefValue` from core which only handles string→string
+  - The `isAlias()` check is important before calling resolve since `reference` may be a partial input like `{` or `{color.`
+---

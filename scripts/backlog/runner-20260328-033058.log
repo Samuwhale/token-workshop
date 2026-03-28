@@ -519,3 +519,17 @@ Already up to date.
 
 --- Merging: TokenEditor create mode has no path autocomplete from existing tree structure ---
 Already up to date.
+[main a6bb853] chore(backlog): done – TokenEditor create mode has no path autocomplete from existing tree structure
+ 7 files changed, 237 insertions(+), 11 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/PathAutocomplete.tsx
+
+## 2026-03-28 - TokenEditor create mode has no path autocomplete from existing tree structure
+- Created `PathAutocomplete` component that extracts unique group prefixes from `allTokensFlat` and uses `fuzzyScore` to match against user input. Shows groups (with folder icon, appends trailing `.` on select) and token paths (with dot icon) in a dropdown. Keyboard navigation (arrows, Enter/Tab, Escape) supported. Integrated into TokenEditor's create mode path input with focus/blur handling. Selecting a group keeps autocomplete open for continued drilling.
+- Files changed: `packages/figma-plugin/src/ui/components/PathAutocomplete.tsx` (new, ~165 lines), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L18,~L81,~L489
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: TokenEditor extensions editor is a raw JSON textarea — no structured key-value editor, no syntax highlighting, no auto-formatting; easy to produce invalid JSON, especially for users unfamiliar with the extension schema
+  Worktree: /tmp/backlog-85816-XVFaZp

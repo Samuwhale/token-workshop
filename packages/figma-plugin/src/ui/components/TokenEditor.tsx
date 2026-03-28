@@ -11,6 +11,7 @@ import { ValueDiff } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
+import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
 import { TokenDependents } from './TokenDependents';
@@ -367,14 +368,21 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (!reference) setReference('{');
       setTimeout(() => { refInputRef.current?.focus(); }, 0);
     } else {
-      if (preAliasValueRef.current !== null) {
-        setValue(preAliasValueRef.current);
-        preAliasValueRef.current = null;
+      // Try to resolve the alias to its concrete value so the user keeps
+      // the resolved result (e.g. #1a73e8) instead of the stale pre-alias value.
+      let resolved: any = null;
+      if (reference && isAlias(reference)) {
+        const result = resolveTokenValue(reference, tokenType, allTokensFlat);
+        if (result.value != null && !result.error) {
+          resolved = result.value;
+        }
       }
+      setValue(resolved ?? preAliasValueRef.current ?? value);
+      preAliasValueRef.current = null;
       setReference('');
       setShowAutocomplete(false);
     }
-  }, [aliasMode, value, reference]);
+  }, [aliasMode, value, reference, tokenType, allTokensFlat]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

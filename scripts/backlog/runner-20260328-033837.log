@@ -407,3 +407,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor "toggle alias mode" doesn't preserve the resolved value — switching from alias `{color.brand.500}` (resolves to `#1a73e8`) to direct mode sets value back to the pre-alias raw value instead of offering to keep the resolved `#1a73e8`
   Worktree: /tmp/backlog-10278-LQNRfD
+
+  ✓ done: TokenEditor "toggle alias mode" doesn't preserve the resolved value
+    handleToggleAlias now resolves the alias via resolveTokenValue when switching to direct mode, preserving the resolved concrete value (e.g. #1a73e8) instead of reverting to the stale pre-alias raw value
+    18 turns · 159s · $0.65
+
+--- Merging: TokenEditor "toggle alias mode" doesn't preserve the resolved value ---
+Already up to date.
