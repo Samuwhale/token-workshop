@@ -2744,7 +2744,24 @@ export function TokenList({
           /* Cross-set search results */
           crossSetResults.length === 0 ? (
             <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-              No tokens found across all sets
+              <p>No tokens found across all sets</p>
+              {searchQuery && (() => {
+                const q = searchQuery.trim();
+                const qLower = q.toLowerCase();
+                const matchingType = availableTypes.find(t => t.toLowerCase() === qLower)
+                  || availableTypes.find(t => t.toLowerCase().startsWith(qLower));
+                if (matchingType && typeFilter !== matchingType) {
+                  return (
+                    <button
+                      onClick={() => { setSearchQuery(''); setTypeFilter(matchingType); }}
+                      className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      Filter by type: {matchingType} <span aria-hidden="true">&rarr;</span>
+                    </button>
+                  );
+                }
+                return null;
+              })()}
             </div>
           ) : (
             <div>
@@ -3074,31 +3091,126 @@ export function TokenList({
               <path d="M8 11h6M11 8v6" />
             </svg>
             <p className="mt-2 text-[11px] font-medium">No tokens match your filters</p>
-            {searchQuery && connected && (
-              <button
-                onClick={() => {
-                  if (onCreateNew) {
-                    onCreateNew(searchQuery);
-                  } else {
-                    const lastDot = searchQuery.lastIndexOf('.');
-                    if (lastDot >= 0) {
-                      setNewTokenGroup(searchQuery.slice(0, lastDot));
-                      setNewTokenName(searchQuery.slice(lastDot + 1));
+
+            {/* Smart suggestions based on query shape */}
+            {searchQuery && (() => {
+              const q = searchQuery.trim();
+              const qLower = q.toLowerCase();
+              const suggestions: { label: string; icon: string; action: () => void }[] = [];
+
+              // Path-like query (contains dots) → offer to create token at that path
+              const looksLikePath = q.includes('.') && /^[a-zA-Z0-9._-]+$/.test(q);
+              if (looksLikePath && connected) {
+                suggestions.push({
+                  label: `Create token at "${formatDisplayPath(q, q.split('.').pop() || q)}"`,
+                  icon: 'create',
+                  action: () => {
+                    if (onCreateNew) {
+                      onCreateNew(q);
+                    } else {
+                      const lastDot = q.lastIndexOf('.');
+                      if (lastDot >= 0) {
+                        setNewTokenGroup(q.slice(0, lastDot));
+                        setNewTokenName(q.slice(lastDot + 1));
+                      } else {
+                        setNewTokenGroup('');
+                        setNewTokenName(q);
+                      }
+                      setShowCreateForm(true);
+                    }
+                  },
+                });
+              }
+
+              // Non-path plain name → still offer create
+              if (!looksLikePath && connected && /^[a-zA-Z0-9_-]+$/.test(q)) {
+                suggestions.push({
+                  label: `Create token "${q}"`,
+                  icon: 'create',
+                  action: () => {
+                    if (onCreateNew) {
+                      onCreateNew(q);
                     } else {
                       setNewTokenGroup('');
-                      setNewTokenName(searchQuery);
+                      setNewTokenName(q);
+                      setShowCreateForm(true);
                     }
-                    setShowCreateForm(true);
-                  }
-                }}
-                className="mt-2 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                Create &ldquo;{searchQuery}&rdquo;
-              </button>
-            )}
+                  },
+                });
+              }
+
+              // Type-like query → offer to filter by matching type
+              const matchingType = availableTypes.find(t => t.toLowerCase() === qLower)
+                || availableTypes.find(t => t.toLowerCase().startsWith(qLower));
+              if (matchingType && typeFilter !== matchingType) {
+                suggestions.push({
+                  label: `Filter by type: ${matchingType}`,
+                  icon: 'filter',
+                  action: () => {
+                    setSearchQuery('');
+                    setTypeFilter(matchingType);
+                  },
+                });
+              }
+
+              // Value-like query (hex color, number) → suggest value: qualifier
+              const looksLikeValue = /^#[0-9a-fA-F]{3,8}$/.test(q) || /^\d+(\.\d+)?(px|rem|em|%)?$/.test(q);
+              if (looksLikeValue) {
+                suggestions.push({
+                  label: `Search by value: ${q}`,
+                  icon: 'value',
+                  action: () => setSearchQuery(`value:${q}`),
+                });
+              }
+
+              // Qualifier hint → if query partially matches a qualifier keyword
+              if (!q.includes(':')) {
+                const matchingQualifiers = QUERY_QUALIFIERS.filter(qf =>
+                  qf.qualifier.toLowerCase().startsWith(qLower) && qf.qualifier.toLowerCase() !== qLower
+                );
+                for (const mq of matchingQualifiers.slice(0, 2)) {
+                  suggestions.push({
+                    label: `Try qualifier: ${mq.qualifier} — ${mq.desc}`,
+                    icon: 'hint',
+                    action: () => setSearchQuery(mq.example || mq.qualifier),
+                  });
+                }
+              }
+
+              if (suggestions.length === 0) return null;
+
+              return (
+                <div className="mt-3 flex flex-col gap-1 w-full max-w-[240px]">
+                  <p className="text-[9px] uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-0.5">Suggestions</p>
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={s.action}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] text-left bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      {s.icon === 'create' && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                      )}
+                      {s.icon === 'filter' && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
+                      )}
+                      {s.icon === 'value' && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                      )}
+                      {s.icon === 'hint' && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" /></svg>
+                      )}
+                      <span className="truncate">{s.label}</span>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto shrink-0 opacity-40" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
             <button
               onClick={clearFilters}
-              className="mt-2 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+              className="mt-3 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
             >
               Clear filters
             </button>

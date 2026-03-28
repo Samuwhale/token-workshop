@@ -99,3 +99,16 @@ Already up to date.
 
 --- Merging: Token list: sticky group breadcrumb as a real interactable header ---
 Already up to date.
+[main b936093] chore(backlog): done – Token list: sticky group breadcrumb as a real interactable header
+ 6 files changed, 101 insertions(+), 21 deletions(-)
+
+## 2026-03-28 - Token list: sticky group breadcrumb as a real interactable header
+- Enhanced the existing sticky breadcrumb bar to be a proper interactable header:
+  - Added a home icon on the left for visual anchoring
+  - Last breadcrumb segment now rendered as bold non-link text (current group) while ancestors remain clickable links that jump to their group header
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: [HIGH] Plugin sandbox operations don't use `figma.group()` for undo batching — each variable creation, binding update, or property change in batch operations (apply-variables, sync-bindings, batch-bind-heatmap-nodes) creates a separate Figma undo step, so applying 50 tokens produces 50 undo entries instead of one atomic operation
+  Worktree: /tmp/backlog-76772-t5A0kd

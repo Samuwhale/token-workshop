@@ -691,20 +691,13 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-# 2-type pass rotation (every 2 items): product → code → product → …
-# Both are discovery-only — they stock the backlog, the main loop implements.
-_pass_type_for_count() {
-  local count=$1
-  local slot=$(( (count / 2) % 2 ))
-  case $slot in
-    0) echo "product" ;;
-    1) echo "code" ;;
-  esac
-}
+# Pass schedule:
+#   code pass  — every 8 completed items, or when the backlog is empty
+#   product pass — only when the backlog is empty (restocks the queue)
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_PASS_IN=$(( 2 - (CURRENT_COUNT % 2) ))
-NEXT_PASS_TYPE=$( _pass_type_for_count $(( CURRENT_COUNT + NEXT_PASS_IN )) )
+NEXT_CODE_PASS_IN=$(( 8 - (CURRENT_COUNT % 8) ))
+[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=8
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 

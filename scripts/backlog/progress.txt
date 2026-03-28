@@ -609,3 +609,19 @@
   - `group/breadcrumb` Tailwind variant works well for revealing hover-only actions in sticky bars without cluttering the compact UI
   - Collapsing descendants uses prefix matching (`path.startsWith(groupPath + '.')`) on `expandedPaths` which is efficient since the Set iteration is bounded by expanded count, not total token count
 ---
+
+## 2026-03-28 - Token list: "no results" state with smart suggestions
+- Replaced the basic "No tokens match your filters" empty state with a smart suggestion engine that analyzes the search query and offers contextual actions:
+  - **Path-like queries** (e.g., `colors.brand`): "Create token at colors.brand →" using `formatDisplayPath` for proper segment quoting
+  - **Simple name queries** (e.g., `primary`): "Create token primary →"
+  - **Type-like queries** (e.g., `shadow`, `col`): "Filter by type: shadow →" — matches exact or prefix against `availableTypes`
+  - **Value-like queries** (e.g., `#ff0000`, `16px`): "Search by value: #ff0000 →" — rewrites query to `value:` qualifier
+  - **Qualifier hints** (e.g., `typ`): "Try qualifier: type: — Filter by token type →" — suggests matching qualifier syntax
+- Suggestions rendered as clickable button rows with contextual SVG icons (plus, funnel, search, code)
+- Also enhanced the cross-set search empty state with type-filter suggestion
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3047-3160 (main empty state), ~L2723-2740 (cross-set empty state)
+- **Learnings for future iterations:**
+  - IIFE pattern `{(() => { ... })()}` works well in JSX for inline computed blocks with early returns — avoids needing a separate component for one-off conditional rendering
+  - `availableTypes` (computed from current set's tokens) is better than a hardcoded type list for suggestions since it only offers types that actually exist in the dataset
+  - The existing create-token flow via `onCreateNew` / `setNewTokenGroup+setNewTokenName+setShowCreateForm` already handled path splitting; the smart suggestions preserved this exact logic
+---

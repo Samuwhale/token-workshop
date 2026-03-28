@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: "no results" state with smart suggestions** — when a search query returns no results, the current empty state just shows "No tokens found". Add smart suggestions: if the query looks like a path (`colors.brand`), offer "Create a token at this path →"; if the query looks like a type (`shadow`), offer "Filter by type: shadow →". Turns a dead end into a useful fork.
   Worktree: /tmp/backlog-77523-Y5fX9F
+
+  ✓ done: Token list: "no results" state with smart suggestions
+    Replaced basic empty state with smart suggestion engine: path-like queries offer "Create token at path", type-like queries offer "Filter by type", value-like queries suggest value: qualifier, partial inputs suggest matching qualifiers. Also enhanced cross-set search empty state.
+    24 turns · 200s · $0.93
+
+--- Merging: Token list: "no results" state with smart suggestions ---
+Already up to date.
