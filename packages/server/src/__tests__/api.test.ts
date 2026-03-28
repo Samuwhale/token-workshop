@@ -121,7 +121,7 @@ describe('POST /api/tokens/:set/bulk-rename', () => {
     });
 
     expect(renameRes.ok).toBe(false);
-    expect(renameRes.status).toBe(500);
+    expect(renameRes.status).toBe(409);
     const body = await renameRes.json();
     expect(body.error).toContain('Circular reference');
 

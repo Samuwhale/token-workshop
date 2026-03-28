@@ -1476,19 +1476,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       <ConfirmModal
         title="Apply variable sync?"
         confirmLabel="Apply"
+        wide
         onCancel={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
           await varSync.applyVarDiff();
         }}
       >
-        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-          {[
-            varSync.varPushCount > 0 ? `↑ ${varSync.varPushCount} variable${varSync.varPushCount !== 1 ? 's' : ''} pushed to Figma` : null,
-            varSync.varPullCount > 0 ? `↓ ${varSync.varPullCount} variable${varSync.varPullCount !== 1 ? 's' : ''} pulled to local` : null,
-          ].filter(Boolean).join(', ')}
-          . This will overwrite existing values.
-        </p>
+        <SyncDiffSummary rows={varSync.varRows} dirs={varSync.varDirs} />
       </ConfirmModal>
     )}
 
@@ -1496,19 +1491,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       <ConfirmModal
         title="Apply style sync?"
         confirmLabel="Apply"
+        wide
         onCancel={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
           await styleSync.applyStyleDiff();
         }}
       >
-        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-          {[
-            styleSync.stylePushCount > 0 ? `↑ ${styleSync.stylePushCount} style${styleSync.stylePushCount !== 1 ? 's' : ''} pushed to Figma` : null,
-            styleSync.stylePullCount > 0 ? `↓ ${styleSync.stylePullCount} style${styleSync.stylePullCount !== 1 ? 's' : ''} pulled to local` : null,
-          ].filter(Boolean).join(', ')}
-          . This will overwrite existing values.
-        </p>
+        <SyncDiffSummary rows={styleSync.styleRows} dirs={styleSync.styleDirs} />
       </ConfirmModal>
     )}
 
@@ -1572,7 +1562,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   );
 }
 
-/* ── SyncPreviewModal ───────────────────────────────────────────────────── */
+/* ── Shared types ───────────────────────────────────────────────────────── */
 
 interface PreviewRow {
   path: string;
@@ -1582,6 +1572,74 @@ interface PreviewRow {
   figmaType?: string;
   cat: 'local-only' | 'figma-only' | 'conflict';
 }
+
+/* ── SyncDiffSummary (used inside apply confirm modals) ──────────────── */
+
+function SyncDiffSummary({ rows, dirs }: {
+  rows: PreviewRow[];
+  dirs: Record<string, 'push' | 'pull' | 'skip'>;
+}) {
+  const pushRows = rows.filter(r => dirs[r.path] === 'push');
+  const pullRows = rows.filter(r => dirs[r.path] === 'pull');
+  const skipCount = rows.filter(r => dirs[r.path] === 'skip').length;
+
+  const sections: { label: string; arrow: string; items: PreviewRow[]; direction: 'push' | 'pull' }[] = [];
+  if (pushRows.length > 0) sections.push({ label: 'Push to Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
+  if (pullRows.length > 0) sections.push({ label: 'Pull to local', arrow: '\u2193', items: pullRows, direction: 'pull' });
+
+  if (sections.length === 0) {
+    return <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)]">No changes to apply (all skipped).</p>;
+  }
+
+  return (
+    <div className="mt-2">
+      {sections.map(section => (
+        <div key={section.label} className="mb-2">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+            {section.arrow} {section.label} ({section.items.length})
+          </div>
+          <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+            {section.items.map(r => {
+              const isColor = r.localType === 'color' || r.figmaType === 'color';
+              const beforeVal = section.direction === 'push' ? r.figmaValue : r.localValue;
+              const afterVal = section.direction === 'push' ? r.localValue : r.figmaValue;
+              return (
+                <div key={r.path} className="px-2 py-1">
+                  <div className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
+                  {r.cat === 'conflict' && (
+                    <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                        {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
+                        <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeVal ?? ''}>{truncateValue(beforeVal ?? '', 36)}</span>
+                      </div>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                        {isColor && isHexColor(afterVal) && <DiffSwatch hex={afterVal} />}
+                        <span className="text-[var(--color-figma-text)] truncate" title={afterVal ?? ''}>{truncateValue(afterVal ?? '', 36)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {r.cat !== 'conflict' && (r.localValue ?? r.figmaValue) !== undefined && (
+                    <div className="flex items-center gap-1 mt-0.5 ml-1 text-[10px] font-mono min-w-0">
+                      {isColor && isHexColor(r.localValue ?? r.figmaValue) && <DiffSwatch hex={(r.localValue ?? r.figmaValue)!} />}
+                      <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue ?? r.figmaValue}>{truncateValue((r.localValue ?? r.figmaValue) ?? '', 36)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {skipCount > 0 && (
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{skipCount} item{skipCount !== 1 ? 's' : ''} skipped.</p>
+      )}
+    </div>
+  );
+}
+
+/* ── SyncPreviewModal ───────────────────────────────────────────────────── */
 
 function SyncPreviewModal({
   title,
@@ -1623,7 +1681,7 @@ function SyncPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-[280px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+      <div className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
         <div className="px-4 pt-4 pb-2">
           <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1647,18 +1705,48 @@ function SyncPreviewModal({
                     {section.label} ({section.rows.length})
                   </span>
                 </div>
-                <div className="ml-5 space-y-0.5">
-                  {section.rows.map(r => (
-                    <div key={r.path} className="flex items-center gap-1 min-w-0">
-                      {(r.localType === 'color' || r.figmaType === 'color') && (
-                        (() => {
-                          const hex = r.localValue ?? r.figmaValue ?? '';
-                          return isHexColor(hex) ? <DiffSwatch hex={hex} /> : null;
-                        })()
-                      )}
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={r.path}>{r.path}</span>
-                    </div>
-                  ))}
+                <div className="ml-5 space-y-0">
+                  {section.rows.map(r => {
+                    const valStr = (v: string | undefined) => v ?? '';
+                    const isColor = r.localType === 'color' || r.figmaType === 'color';
+                    // Determine before/after based on section direction
+                    const isPush = section.label.includes('Figma');
+                    const beforeVal = isPush ? r.figmaValue : r.localValue;
+                    const afterVal = isPush ? r.localValue : r.figmaValue;
+                    return (
+                      <div key={r.path} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</span>
+                        </div>
+                        {r.cat === 'conflict' && (
+                          <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                              {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
+                              <span className="text-[var(--color-figma-text-secondary)] truncate" title={valStr(beforeVal)}>{truncateValue(valStr(beforeVal), 40)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                              {isColor && isHexColor(afterVal) && <DiffSwatch hex={afterVal} />}
+                              <span className="text-[var(--color-figma-text)] truncate" title={valStr(afterVal)}>{truncateValue(valStr(afterVal), 40)}</span>
+                            </div>
+                          </div>
+                        )}
+                        {r.cat === 'local-only' && r.localValue !== undefined && (
+                          <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                            {isColor && isHexColor(r.localValue) && <DiffSwatch hex={r.localValue} />}
+                            <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue}>{truncateValue(r.localValue, 40)}</span>
+                          </div>
+                        )}
+                        {r.cat === 'figma-only' && r.figmaValue !== undefined && (
+                          <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                            {isColor && isHexColor(r.figmaValue) && <DiffSwatch hex={r.figmaValue} />}
+                            <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.figmaValue}>{truncateValue(r.figmaValue, 40)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))

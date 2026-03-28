@@ -9,6 +9,7 @@ interface ConfirmModalProps {
   confirmLabel: string;
   cancelLabel?: string;
   danger?: boolean;
+  wide?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
@@ -20,6 +21,7 @@ export function ConfirmModal({
   confirmLabel,
   cancelLabel = 'Cancel',
   danger = false,
+  wide = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -58,7 +60,7 @@ export function ConfirmModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <div className="px-4 pt-4 pb-3">
           <h3 id="confirm-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
