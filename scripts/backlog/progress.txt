@@ -626,3 +626,12 @@
   - `handleDropOnGroup` already had the correct error-handling pattern — `handleDropReorder` was simply missing it, an oversight when the function was written
   - Always add the `onError` callback to the useCallback dep array when it's used inside the callback
 ---
+
+## 2026-03-28 - `useSetMergeSplit` fetch calls missing `.ok` response checks
+- Added `checkedJson` and `checkedFetch` helpers that throw on non-ok HTTP responses
+- Applied response checks to all 7 fetch call sites: `handleCheckMergeConflicts` (2 GETs), `handleConfirmMerge` (1 GET + N writes), `openSplitDialog` (1 GET), `handleConfirmSplit` (1 GET + N creates + 1 delete)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L28-34 (helpers), ~L82-83, ~L115, ~L138-140, ~L171, ~L198-199, ~L213-214
+- **Learnings for future iterations:**
+  - Every `fetch` → `.json()` without an `.ok` check is a silent-failure bug — the JSON parse may succeed on an error body but produce nonsensical data
+  - Centralizing the check into a tiny helper (`checkedJson`/`checkedFetch`) keeps the diff small and the pattern consistent
+---

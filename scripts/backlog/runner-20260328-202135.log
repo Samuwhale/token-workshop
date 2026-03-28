@@ -63,3 +63,15 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  WARNING: Rate limit hit during code pass — skipping
+
+## 2026-03-28 - `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+- Added try/catch and `res.ok` check to the reorder fetch in `handleDropReorder`, mirroring the existing pattern from `handleDropOnGroup`. On non-ok responses, calls `onError` with the server error message (or a fallback), refreshes the token list, and returns early without pushing undo state. On network errors, calls `onError` with a network error message. Added `onError` to the `useCallback` dependency array.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L150-166
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  62 items remaining
+===============================================================
+  Claimed: Missing ASSET token type validation in core validator.ts — the `ASSET` type is defined in constants.ts but has no validation case in the validator's switch statement, so invalid ASSET token values pass validation silently
+  Worktree: /tmp/backlog-9231-R4P1n4

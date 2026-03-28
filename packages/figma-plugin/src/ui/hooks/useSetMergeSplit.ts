@@ -23,6 +23,16 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, any> {
   return flat;
 }
 
+async function checkedJson(res: Response, label: string): Promise<any> {
+  if (!res.ok) throw new Error(`${label}: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+async function checkedFetch(res: Response, label: string): Promise<Response> {
+  if (!res.ok) throw new Error(`${label}: ${res.status} ${res.statusText}`);
+  return res;
+}
+
 export function useSetMergeSplit({
   serverUrl, connected, sets,
   activeSet, setActiveSet, refreshTokens,
@@ -74,8 +84,8 @@ export function useSetMergeSplit({
         fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
         fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
       ]);
-      const srcData = await srcRes.json();
-      const tgtData = await tgtRes.json();
+      const srcData = await checkedJson(srcRes, `Failed to load source set "${mergingSet}"`);
+      const tgtData = await checkedJson(tgtRes, `Failed to load target set "${mergeTargetSet}"`);
       const srcFlat = flattenTokensObj(srcData.tokens || {});
       const tgtFlat = flattenTokensObj(tgtData.tokens || {});
       const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
@@ -104,10 +114,10 @@ export function useSetMergeSplit({
     setMergeLoading(true);
     try {
       const tgtRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
-      const tgtData = await tgtRes.json();
+      const tgtData = await checkedJson(tgtRes, `Failed to load target set "${mergeTargetSet}"`);
       const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
       const tgtFlat = flattenTokensObj(preMergeTokens);
-      const writes: Promise<any>[] = [];
+      const writes: Promise<Response>[] = [];
       for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
@@ -126,7 +136,10 @@ export function useSetMergeSplit({
           }));
         }
       }
-      await Promise.all(writes);
+      const writeResults = await Promise.all(writes);
+      for (const wr of writeResults) {
+        await checkedFetch(wr, 'Failed to write token during merge');
+      }
       const srcName = mergingSet;
       const targetName = mergeTargetSet;
       setMergingSet(null);
@@ -160,7 +173,7 @@ export function useSetMergeSplit({
     if (!connected) return;
     try {
       const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
-      const data = await res.json();
+      const data = await checkedJson(res, `Failed to load set "${setName}"`);
       const tokenRoot = data.tokens || {};
       const preview = Object.entries(tokenRoot)
         .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
@@ -187,22 +200,24 @@ export function useSetMergeSplit({
     setSplitLoading(true);
     try {
       const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
-      const data = await res.json();
+      const data = await checkedJson(res, `Failed to load set "${splittingSet}"`);
       const tokenRoot = data.tokens || {};
       const originalTokens: Record<string, unknown> = tokenRoot;
       const createdNames: string[] = [];
       for (const { key, newName } of splitPreview) {
         if (sets.includes(newName)) continue;
         const groupTokens = tokenRoot[key];
-        await fetch(`${serverUrl}/api/sets`, {
+        const createRes = await fetch(`${serverUrl}/api/sets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newName, tokens: groupTokens }),
         });
+        await checkedFetch(createRes, `Failed to create split set "${newName}"`);
         createdNames.push(newName);
       }
       if (splitDeleteOriginal) {
-        await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
+        const delRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
+        await checkedFetch(delRes, `Failed to delete original set "${splittingSet}"`);
         const remaining = sets.filter(s => s !== splittingSet);
         if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
       }

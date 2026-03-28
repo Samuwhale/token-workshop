@@ -127,3 +127,16 @@ Already up to date.
 
 --- Merging: `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch ---
 Already up to date.
+[main 5aa6404] chore(backlog): done – `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+ 5 files changed, 49 insertions(+), 9 deletions(-)
+
+## 2026-03-28 - `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+- Added try/catch and `res.ok` check to the reorder fetch in `handleDropReorder`, mirroring the existing pattern from `handleDropOnGroup`. On non-ok responses, calls `onError` with the server error message (or a fallback), refreshes the token list, and returns early without pushing undo state. On network errors, calls `onError` with a network error message. Added `onError` to the `useCallback` dependency array.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L150-166
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  63 items remaining
+===============================================================
+  Claimed: Resolver `invalidate()` comment says "iterative BFS" but uses `queue.pop()` (DFS) — line 122-128 of packages/core/src/resolver.ts; the traversal order doesn't affect correctness for invalidation but the stale comment is misleading
+  Worktree: /tmp/backlog-10461-pHu0ch
