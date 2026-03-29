@@ -414,9 +414,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           </div>
         )}
 
-        {/* ── Section: Figma Variables ──────────────────────────────────── */}
+        {/* ── Section: Sync Figma Variables ─────────────────────────────── */}
         <Section
-          title="Figma Variables"
+          title="Sync Figma Variables"
           open={openSections.has('figma-variables')}
           onToggle={() => toggleSection('figma-variables')}
           badge={

@@ -449,3 +449,11 @@
 - **Learnings for future iterations:**
   - TokenDependents was already dead code — never imported anywhere. The merge was essentially a rename of TokenReferences plus cleanup.
 ---
+
+## 2026-03-29 - Rename ambiguous "Figma Variables" sections in PublishPanel and ExportPanel
+- PublishPanel.tsx: renamed section title from "Figma Variables" to "Sync Figma Variables" (bidirectional sync direction now clear)
+- ExportPanel.tsx: renamed mode button label from "From Figma" to "Extract Figma" and updated section comment to "Extract Figma Variables mode"
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L417-419, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L528, ~L831
+- **Learnings for future iterations:**
+  - The ExportPanel mode button already had "From Figma" (not "Figma Variables") — the ambiguity was mainly in the section titles/comments and the PublishPanel heading
+---
