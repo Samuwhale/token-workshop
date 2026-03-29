@@ -1,0 +1,21 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    48303
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-133553.log
+
+  Queue:    24 ready · 2 in-progress · 3 failed
+  Done:     903 total (next code pass in 7, product pass in 2)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  24 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → Type scale has no inline step editing — spacing/opacity/z-index let you add/remove/rename steps inline, but type scale only offers 3 fixed presets with no customization; add the same collapsible "Edit steps" pattern so designers can create non-standard scales (e.g. skip 2xl, add "display") with custom exponents (TypeScaleGenerator.tsx:159-168)
+  Worktree: /tmp/backlog-48303-3vti07
+  Running agent… (started 13:35:53)

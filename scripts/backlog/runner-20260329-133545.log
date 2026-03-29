@@ -1,0 +1,21 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    47616
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-133545.log
+
+  Queue:    25 ready · 1 in-progress · 3 failed
+  Done:     903 total (next code pass in 7, product pass in 2)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  25 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → Type scale staircase editor only appears when sourceValue exists — if the user enters an inline base value there's no staircase visualization; compute from inline value so the interactive editor is always available (TypeScaleGenerator.tsx:152-158)
+  Worktree: /tmp/backlog-47616-25yGAU
+  Running agent… (started 13:35:46)

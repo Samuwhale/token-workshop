@@ -1,0 +1,24 @@
+./scripts/backlog/backlog.sh: line 217: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    46928
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-133536.log
+
+  Queue:    26 ready · 0
+0 in-progress · 3 failed
+  Done:     903 total (next code pass in 7, product pass in 2)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  26 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Type scale preview is the weakest of all generators — renders "Ag" text clamped to 8–32px so all steps look nearly identical; a type scale's purpose is showing visual hierarchy but the preview actively hides it; replace with a stacked typography specimen rendering actual text ("Heading", "Subheading", "Body text", "Caption") at generated sizes with real line-height, remove the clamp, show computed px alongside token value (e.g. "1.563rem → 25px"), and add a visual scale ruler showing ratio relationships between consecutive steps (TypeScaleGenerator.tsx:89-112)
+  Worktree: /tmp/backlog-46928-InjcHT
+  Running agent… (started 13:35:37)

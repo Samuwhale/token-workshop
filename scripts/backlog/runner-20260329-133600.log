@@ -1,0 +1,21 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    48983
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-133600.log
+
+  Queue:    23 ready · 3 in-progress · 3 failed
+  Done:     903 total (next code pass in 7, product pass in 2)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  23 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag (opacity: isDragging ? 0.8 : 0), not on hover; designers won't know the bars are interactive until they accidentally drag one (TypeScaleStaircaseEditor.tsx:226)
+  Worktree: /tmp/backlog-48983-p4emVP
+  Running agent… (started 13:36:01)
