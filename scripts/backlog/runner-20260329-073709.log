@@ -199,3 +199,18 @@ Already up to date.
 
   Merging to main: useDragDrop silently stops on first failure during batch move
 Already up to date.
+[main 1ed3e86] chore(backlog): done – useDragDrop silently stops on first failure during batch move
+ 11 files changed, 73 insertions(+), 19 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - useDragDrop silently stops on first failure during batch move
+- Removed `break` on first error in `handleDropOnGroup` — all planned moves are now attempted independently
+- Changed error reporting from generic "partial" message to detailed per-token failure list: each failed token's leaf name and specific reason (API error message or HTTP status) is shown
+- Error message formats: single failure shows `Move failed — "tokenName": reason`, partial shows `Moved N/M. Failed: "a": reason; "b": reason`, total failure shows `All N moves failed: ...`
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  5 queued · 5 in-progress · last took 1m45s
+═══════════════════════════════════════════════════════════════
+  → useUndo keyboard shortcut fires even when a text input has focus — useUndo.ts L84-94 listens for Ctrl+Z globally on `window`; if a user is typing in the find-replace input or token editor and presses Ctrl+Z, the hook fires the server undo instead of the browser's native text undo; add an `isTyping` guard matching the pattern already used in TokenList.tsx L915
+  Worktree: /tmp/backlog-69179-UKCYO1
+  Running agent… (started 08:02:04)

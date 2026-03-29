@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import type { UndoSlot } from './useUndo';
 import { apiFetch } from '../shared/apiFetch';
@@ -37,6 +37,9 @@ export function useSetMergeSplit({
   const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, any>>({});
   const [mergeChecked, setMergeChecked] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
+  // Tracks the target that was used for the most recent conflict check,
+  // so we can discard stale async results if the user changes target mid-check.
+  const mergeCheckTargetRef = useRef<string>('');
 
   // Split state
   const [splittingSet, setSplittingSet] = useState<string | null>(null);
@@ -65,16 +68,22 @@ export function useSetMergeSplit({
     setMergeTargetSet(target);
     setMergeChecked(false);
     setMergeConflicts([]);
+    setMergeResolutions({});
+    setMergeSrcFlat({});
   };
 
   const handleCheckMergeConflicts = async () => {
     if (!mergingSet || !mergeTargetSet || !connected) return;
+    const checkTarget = mergeTargetSet;
+    mergeCheckTargetRef.current = checkTarget;
     setMergeLoading(true);
     try {
       const [srcData, tgtData] = await Promise.all([
         apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
+        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(checkTarget)}`),
       ]);
+      // Discard results if the target changed while the check was in flight
+      if (mergeCheckTargetRef.current !== checkTarget) return;
       const srcFlat = flattenTokensObj(srcData.tokens || {});
       const tgtFlat = flattenTokensObj(tgtData.tokens || {});
       const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
@@ -92,6 +101,8 @@ export function useSetMergeSplit({
       setMergeResolutions(res);
       setMergeChecked(true);
     } catch (err) {
+      // Don't show error toast for stale checks
+      if (mergeCheckTargetRef.current !== checkTarget) return;
       setErrorToast(`Failed to check merge conflicts: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setMergeLoading(false);

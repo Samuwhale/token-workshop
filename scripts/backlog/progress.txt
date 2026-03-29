@@ -597,3 +597,13 @@
   - The batch moves in `handleDropOnGroup` are genuinely independent (each token → distinct new path), so `break` on first error was unnecessarily conservative
   - Undo/redo logic already handled partial success correctly — only the error reporting needed fixing
 ---
+
+## 2026-03-29 - useSetMergeSplit has no conflict revalidation after target change
+- Added `useRef` to track the target set used when conflict check starts; async results are discarded if target changed mid-flight
+- `changeMergeTarget` now clears all analysis state (`mergeSrcFlat`, `mergeResolutions`) in addition to `mergeChecked` and `mergeConflicts`
+- Captured `mergeTargetSet` into local `checkTarget` at start of `handleCheckMergeConflicts` and used it for the fetch + staleness guard
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L1 (import useRef), ~L40 (mergeCheckTargetRef), ~L65-69 (changeMergeTarget clears all state), ~L71-101 (staleness guard in handleCheckMergeConflicts)
+- **Learnings for future iterations:**
+  - The UI already gated the Merge button behind `mergeChecked`, so the race was the real bug: async check completing after target change would set `mergeChecked=true` with stale data
+  - Pattern: capture mutable state into a local const before an async operation, then compare against a ref after the await to detect staleness
+---

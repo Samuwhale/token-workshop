@@ -148,3 +148,10 @@ Already up to date.
   → useSetMergeSplit has no conflict revalidation after target change — users can check conflicts (L70-99), then change the target set (L64-68) before confirming, which silently invalidates the conflict analysis; the merge executes against stale `mergeSrcFlat` data captured at check time; add a dirty flag or auto-recheck when target changes
   Worktree: /tmp/backlog-66903-WQHUhR
   Running agent… (started 08:00:51)
+
+  ✓ done: useSetMergeSplit has no conflict revalidation after target change
+    Added ref-based staleness guard so async conflict check results are discarded if target changed mid-flight; changeMergeTarget now clears all analysis state (mergeSrcFlat, mergeResolutions, mergeConflicts, mergeChecked)
+    13 turns · 127s · $0.55
+
+  Merging to main: useSetMergeSplit has no conflict revalidation after target change
+Already up to date.
