@@ -155,3 +155,10 @@
 - **Learnings for future iterations:**
   - When a `switch` case accesses `msg.someProperty`, TypeScript infers the type from the union — if the message type is missing from the union, the access silently falls through as `any`. Always check that every `case` string in controller.ts has a corresponding entry in the `PluginMessage` union.
 ---
+
+## 2026-03-29 - PUT /api/sets/reorder has no try/catch
+- Wrapped the `withLock(...)` call in a try/catch with `handleRouteError(reply, err, 'Failed to reorder sets')` to match the error handling pattern used by every other set mutation endpoint.
+- Files changed: `packages/server/src/routes/sets.ts` ~L151
+- **Learnings for future iterations:**
+  - The `withLock` helper does not catch exceptions internally — callers must wrap it in try/catch if they want structured error responses.
+---

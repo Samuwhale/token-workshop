@@ -148,20 +148,24 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     if (!Array.isArray(order)) {
       return reply.status(400).send({ error: 'order must be an array of set names' });
     }
-    return withLock(async () => {
-      const previousOrder = await fastify.tokenStore.getSets();
-      fastify.tokenStore.reorderSets(order);
-      await fastify.operationLog.record({
-        type: 'set-reorder',
-        description: 'Reorder token sets',
-        setName: '',
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
+    try {
+      return await withLock(async () => {
+        const previousOrder = await fastify.tokenStore.getSets();
+        fastify.tokenStore.reorderSets(order);
+        await fastify.operationLog.record({
+          type: 'set-reorder',
+          description: 'Reorder token sets',
+          setName: '',
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
+        });
+        return { ok: true };
       });
-      return { ok: true };
-    });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to reorder sets');
+    }
   });
 
   // DELETE /api/data — wipe all sets and themes (danger zone)

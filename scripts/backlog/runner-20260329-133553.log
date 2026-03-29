@@ -79,3 +79,10 @@ Already up to date.
   → PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response (packages/server/src/routes/sets.ts:145-165)
   Worktree: /tmp/backlog-48303-pfhFb9
   Running agent… (started 13:47:09)
+
+  ✓ done: PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response
+    Wrapped withLock call in try/catch with handleRouteError to match all other set mutation endpoints
+    7 turns · 46s · $0.2
+
+  Merging to main: PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response
+Already up to date.

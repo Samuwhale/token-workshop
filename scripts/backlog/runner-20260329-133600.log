@@ -212,3 +212,18 @@ Already up to date.
 
   Merging to main: Three plugin message types handled in controller.ts are missing from the PluginMessage union
 Already up to date.
+[main b39243a7] chore(backlog): done – Three plugin message types handled in controller.ts are missing from the PluginMessage union
+ 6 files changed, 51 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Three plugin message types missing from PluginMessage union
+- Added `ScanTokenVariableBindingsMessage` interface (type: 'scan-token-variable-bindings', tokenPath: string) and `RemoveBindingFromNodeMessage` interface (type: 'remove-binding-from-node', nodeId: string, property: string) to types.ts. Added all three missing types (`SearchLayersMessage`, `ScanTokenVariableBindingsMessage`, `RemoveBindingFromNodeMessage`) to the `PluginMessage` discriminated union.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L341-365, ~L435-446
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  17 queued · 2 in-progress · last took 1m17s
+═══════════════════════════════════════════════════════════════
+  → useGeneratorSave overwrite-check failure silently proceeds to commit — when POST /api/generators/:id/check-overwrites errors, line 168 logs a warning and calls commitSave() without notifying the user; if the server is unavailable during the pre-save check, tokens that were manually edited after generation will be silently overwritten with no warning (packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts:167-169)
+  Worktree: /tmp/backlog-48983-jPXn6N
+  Running agent… (started 13:47:32)
