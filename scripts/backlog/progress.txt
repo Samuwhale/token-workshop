@@ -236,3 +236,9 @@
   - Filtering a list that renders inside a collapsible section: put the filter controls inside the collapsed content area so they don't take up space when collapsed.
   - `Array.from(new Set(...)).sort()` is the simplest pattern for deriving unique sorted values for a filter dropdown from a list of records.
 ---
+
+## 2026-03-29 - code-pass
+- Areas explored: TokenList.tsx (async handlers, error handling patterns), RecentActionsSource.tsx (OpIcon switch), ExportPanel.tsx (useEffect closure), packages/figma-plugin/src/ui/components/ (broad survey), packages/server/src/services/operation-log.ts (op type strings)
+- Found 4 items — written to backlog-inbox.md
+- Notable: 5 async handlers in TokenList.tsx share the same missing-try/catch pattern — root cause is the 4,100-line monolith making error handling easy to forget; OpIcon has never worked (all icons show as dots) because switch cases don't match the compound type strings the server actually emits
+---
