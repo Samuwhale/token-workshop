@@ -467,3 +467,15 @@
   - `derivedTokenPaths` maps token path → TokenGenerator object with `.name` — available from useGenerators hook
   - CommandPalette uses flat TokenEntry objects (no tree), so generator info needs to be baked in at the App level when building paletteTokens
 ---
+
+## 2026-03-29 - Generator badge on derived tokens is not actionable
+- Changed generator-name badge on derived tokens from a static `<span>` to a clickable `<button>` that navigates to the Generators tab and highlights the source generator
+- Added `onNavigateToGenerator` callback through the full chain: `TokenListActions` → `TokenList` → `TokenTreeContext` → `TokenTreeNode`
+- Badge shows hover state (accent color) and tooltip "click to open generator"
+- GraphPanel accepts `focusGeneratorId` prop, switches to list view, scrolls to the generator card, and highlights it with an accent ring that fades after 2s
+- App.tsx wires everything: sets `focusGeneratorId` state, calls `navigateTo('define', 'generators')`, and passes focus props to GraphPanel
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L106,L219 (added `onNavigateToGenerator` to both interfaces), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L43,L2198 (destructure + context), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L131,L1177-1192 (badge → button), `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L759,L887,L909,L928-940 (focusRef, highlight state, scroll effect, card props), `packages/figma-plugin/src/ui/App.tsx` ~L342,L1833,L1884,L1897,L1949-1950 (state + callbacks + GraphPanel props)
+- **Learnings for future iterations:**
+  - GraphPanel has two view modes: SVG node graph and list. Scroll-to-card only works in list view, so the focus effect switches to list view automatically.
+  - GeneratorPipelineCard is a display-only component with no existing edit dialog — "open the generator's edit dialog" in the backlog item was aspirational; navigating to the tab and highlighting the card is the actionable equivalent.
+---

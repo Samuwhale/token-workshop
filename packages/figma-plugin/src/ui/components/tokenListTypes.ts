@@ -103,6 +103,7 @@ export interface TokenListActions {
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
   onTokenTouched?: (path: string) => void;
   onError?: (msg: string) => void;
+  onNavigateToGenerator?: (generatorId: string) => void;
 }
 
 export interface TokenListProps {
@@ -216,6 +217,7 @@ export interface TokenTreeContextType {
   onDragLeaveToken?: () => void;
   onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
   onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  onNavigateToGenerator?: (generatorId: string) => void;
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */

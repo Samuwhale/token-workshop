@@ -40,7 +40,7 @@ import { useDragDrop } from '../hooks/useDragDrop';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onNavigateToGenerator },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -2195,6 +2195,7 @@ export function TokenList({
     onInlineSave: handleInlineSave,
     onRenameToken: handleRenameToken,
     onDetachFromGenerator: handleDetachFromGenerator,
+    onNavigateToGenerator,
     onToggleChain: handleToggleChain,
     onTogglePin: pinnedTokens.togglePin,
     onCompareToken: handleCompareToken,

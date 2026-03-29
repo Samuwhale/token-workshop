@@ -72,3 +72,18 @@ Already up to date.
 
   Merging to main: No way to filter the token list by generator
 Already up to date.
+[main 0aa0c11] chore(backlog): done – No way to filter the token list by generator
+ 10 files changed, 92 insertions(+), 20 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No way to filter the token list by generator
+- Added `generator:name` (alias `gen:name`) search qualifier to `filterTokenNodes` and `filterTokenNodesStructured` in tokenListUtils.ts
+- Added `has:generated` (alias `has:gen`) qualifier to filter for any generator-produced token
+- Extended `ParsedQuery` interface with `generators: string[]` field, updated `QUALIFIER_RE` regex, `parseStructuredQuery`, and `QUERY_QUALIFIERS` hint list
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  3 queued · 6 in-progress · last took 5m16s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox controller.ts lacks message property validation before dispatch — `controller.ts` switch-cases directly destructure message properties (L80: `msg.tokenPath`, `msg.tokenType`; L116: `msg.tokenMap`; L139: `msg.width`/`msg.height`; L181: `msg.nodeIds`) with no checks that these properties exist or have correct types; a malformed message (e.g., `msg.width` as string) causes silent misbehaviour or plugin crashes, and `figma.ui.resize(msg.width, msg.height)` will throw if values are non-numeric; add a validation layer or type guards at the controller entry point rather than trusting every message shape
+  Worktree: /tmp/backlog-66903-WRJLGu
+  Running agent… (started 07:56:14)

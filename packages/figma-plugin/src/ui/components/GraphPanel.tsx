@@ -756,13 +756,13 @@ function ApplyForm({
 // Generator pipeline card (shown after templates are applied)
 // ---------------------------------------------------------------------------
 
-function GeneratorPipelineCard({ generator }: { generator: TokenGenerator }) {
+function GeneratorPipelineCard({ generator, isFocused, focusRef }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null> }) {
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
 
   return (
-    <div className={`p-3 rounded border bg-[var(--color-figma-bg)] ${hasError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}>
+    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${hasError ? 'border-[var(--color-figma-error)]' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}
@@ -884,6 +884,8 @@ export interface GraphPanelProps {
   pendingGroupPath?: string | null;
   pendingGroupTokenType?: string | null;
   onClearPendingGroup?: () => void;
+  focusGeneratorId?: string | null;
+  onClearFocusGenerator?: () => void;
 }
 
 /** Map a DTCG token $type to the best-fit template id. */
@@ -904,9 +906,12 @@ export function GraphPanel({
   pendingGroupPath,
   pendingGroupTokenType,
   onClearPendingGroup,
+  focusGeneratorId,
+  onClearFocusGenerator,
 }: GraphPanelProps) {
   const help = usePanelHelp('generators');
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
+  const focusRef = useRef<HTMLDivElement>(null);
 
   const initialTemplate = pendingGroupPath
     ? (GRAPH_TEMPLATES.find(t => t.id === templateIdForTokenType(pendingGroupTokenType)) ?? GRAPH_TEMPLATES[0] ?? null)
@@ -919,6 +924,22 @@ export function GraphPanel({
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
+  const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<string | null>(null);
+
+  // Scroll to and highlight a focused generator (from token badge click)
+  useEffect(() => {
+    if (!focusGeneratorId) return;
+    setHighlightedGeneratorId(focusGeneratorId);
+    setViewMode('list'); // list view supports scroll-to-card
+    onClearFocusGenerator?.();
+    // Scroll after render
+    requestAnimationFrame(() => {
+      focusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    // Clear highlight after 2s
+    const timer = setTimeout(() => setHighlightedGeneratorId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [focusGeneratorId, onClearFocusGenerator]);
 
   const handleSelectTemplate = (template: GraphTemplate) => {
     setSelectedTemplate(template);
@@ -1105,7 +1126,7 @@ export function GraphPanel({
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
               {filteredGenerators.length > 0
                 ? filteredGenerators.map(gen => (
-                    <GeneratorPipelineCard key={gen.id} generator={gen} />
+                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} />
                   ))
                 : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
