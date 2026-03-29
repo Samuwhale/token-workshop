@@ -3,36 +3,36 @@ import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
 
-const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
+const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
   color: [
-    { label: 'Fill Color', value: 'FILL_COLOR' },
-    { label: 'Stroke Color', value: 'STROKE_COLOR' },
-    { label: 'Text Fill', value: 'TEXT_FILL' },
-    { label: 'Effect Color', value: 'EFFECT_COLOR' },
+    { label: 'Fill Color', value: 'FILL_COLOR', description: 'Background and shape fill colors' },
+    { label: 'Stroke Color', value: 'STROKE_COLOR', description: 'Border and outline colors' },
+    { label: 'Text Fill', value: 'TEXT_FILL', description: 'Text layer colors' },
+    { label: 'Effect Color', value: 'EFFECT_COLOR', description: 'Shadow and blur effect colors' },
   ],
   number: [
-    { label: 'Width & Height', value: 'WIDTH_HEIGHT' },
-    { label: 'Gap / Spacing', value: 'GAP' },
-    { label: 'Corner Radius', value: 'CORNER_RADIUS' },
-    { label: 'Opacity', value: 'OPACITY' },
-    { label: 'Font Size', value: 'FONT_SIZE' },
-    { label: 'Line Height', value: 'LINE_HEIGHT' },
-    { label: 'Letter Spacing', value: 'LETTER_SPACING' },
-    { label: 'Stroke Width', value: 'STROKE_FLOAT' },
+    { label: 'Width & Height', value: 'WIDTH_HEIGHT', description: 'Frame and element dimensions' },
+    { label: 'Gap / Spacing', value: 'GAP', description: 'Auto-layout gap and padding' },
+    { label: 'Corner Radius', value: 'CORNER_RADIUS', description: 'Rounded corner radius' },
+    { label: 'Opacity', value: 'OPACITY', description: 'Layer opacity (0–1)' },
+    { label: 'Font Size', value: 'FONT_SIZE', description: 'Text font size' },
+    { label: 'Line Height', value: 'LINE_HEIGHT', description: 'Text line height' },
+    { label: 'Letter Spacing', value: 'LETTER_SPACING', description: 'Text letter spacing' },
+    { label: 'Stroke Width', value: 'STROKE_FLOAT', description: 'Border and outline thickness' },
   ],
   dimension: [
-    { label: 'Width & Height', value: 'WIDTH_HEIGHT' },
-    { label: 'Gap / Spacing', value: 'GAP' },
-    { label: 'Corner Radius', value: 'CORNER_RADIUS' },
-    { label: 'Stroke Width', value: 'STROKE_FLOAT' },
+    { label: 'Width & Height', value: 'WIDTH_HEIGHT', description: 'Frame and element dimensions' },
+    { label: 'Gap / Spacing', value: 'GAP', description: 'Auto-layout gap and padding' },
+    { label: 'Corner Radius', value: 'CORNER_RADIUS', description: 'Rounded corner radius' },
+    { label: 'Stroke Width', value: 'STROKE_FLOAT', description: 'Border and outline thickness' },
   ],
   string: [
-    { label: 'Font Family', value: 'FONT_FAMILY' },
-    { label: 'Font Style', value: 'FONT_STYLE' },
-    { label: 'Text Content', value: 'TEXT_CONTENT' },
+    { label: 'Font Family', value: 'FONT_FAMILY', description: 'Typeface family name' },
+    { label: 'Font Style', value: 'FONT_STYLE', description: 'Weight and style (e.g. Bold Italic)' },
+    { label: 'Text Content', value: 'TEXT_CONTENT', description: 'Text layer content strings' },
   ],
   boolean: [
-    { label: 'Visibility (Show/Hide)', value: 'SHOW_HIDE' },
+    { label: 'Visibility (Show/Hide)', value: 'SHOW_HIDE', description: 'Toggle layer visibility' },
   ],
 };
 
@@ -405,16 +405,19 @@ export function MetadataEditor({
               Controls where this variable appears in Figma's variable picker. Empty = All scopes.
             </p>
             {FIGMA_SCOPES[tokenType].map(scope => (
-              <label key={scope.value} className="flex items-center gap-2 cursor-pointer">
+              <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={scopes.includes(scope.value)}
                   onChange={e => onScopesChange(
                     e.target.checked ? [...scopes, scope.value] : scopes.filter(s => s !== scope.value)
                   )}
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded mt-0.5"
                 />
-                <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                <span className="flex flex-col">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
+                </span>
               </label>
             ))}
           </div>

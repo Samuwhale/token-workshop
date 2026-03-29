@@ -528,3 +528,13 @@
   - ExportPanel is the full-featured export with CSS selector, set filtering, ZIP, and Figma variables modes; PublishPanel had a subset — when deduplicating, keep the richer version
   - The `\u2014` in the file is a literal escape sequence, not an em dash — large block replacements via Edit tool can fail on special characters; use sed for line-range deletions instead
 ---
+
+## 2026-03-29 - Figma scope labels in MetadataEditor are raw API names
+- Labels were already human-readable (e.g., "Fill Color", "Stroke Width") — the backlog item's claim about raw API names was stale
+- Added brief descriptions to each scope entry explaining what it controls (e.g., "Background and shape fill colors", "Auto-layout gap and padding")
+- Updated scope checkbox rendering to show description text below each label using a two-line layout
+- Files changed: `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L6-37 (FIGMA_SCOPES data), ~L407-420 (checkbox rendering)
+- **Learnings for future iterations:**
+  - The FIGMA_SCOPES constant already had human-readable labels from initial implementation; only descriptions were missing
+  - Changed `items-center` to `items-start` on the label flex container so the checkbox aligns with the first line of the two-line text
+---

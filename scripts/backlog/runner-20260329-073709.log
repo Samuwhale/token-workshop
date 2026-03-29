@@ -64,3 +64,10 @@ Already up to date.
   → Figma scope labels in MetadataEditor are raw API names — MetadataEditor.tsx shows scope checkboxes with labels like "FILL_COLOR", "STROKE_FLOAT", "WIDTH_HEIGHT" which are Figma's internal API names; replace with human-readable labels (e.g., "Fill color", "Stroke width", "Width & Height") and add brief descriptions of what each scope controls
   Worktree: /tmp/backlog-69179-ATK8e5
   Running agent… (started 07:42:39)
+
+  ✓ done: Figma scope labels in MetadataEditor are raw API names
+    Labels were already human-readable (stale claim); added brief descriptions to each scope checkbox explaining what each Figma property scope controls
+    10 turns · 78s · $0.43
+
+  Merging to main: Figma scope labels in MetadataEditor are raw API names
+Already up to date.

@@ -27,3 +27,18 @@ NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
 
   Merging to main: Export sub-tab duplicates Publish panel's File Export section
 Already up to date.
+[main 82a8312] chore(backlog): done – Export sub-tab duplicates Publish panel's File Export section
+ 6 files changed, 35 insertions(+), 278 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Export sub-tab duplicates Publish panel's File Export section
+- Removed the duplicate "File Export" collapsible section from PublishPanel.tsx, keeping the standalone ExportPanel sub-tab (Ship > Export) as the single export location. ExportPanel has all the advanced features (CSS selector, set filtering, ZIP download, Figma variables export) that PublishPanel's simpler copy lacked.
+- Removed: File Export section JSX (~200 lines), 7 export state variables, 5 export callback functions (togglePlatform, handleExport, handleDownloadFile, handleCopyFile, handleCopyAllPlatformResults), unused PLATFORMS/Platform imports, 'file-export' from default open sections.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (net -270 lines)
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  8 queued · 5 in-progress · last took 6m39s
+═══════════════════════════════════════════════════════════════
+  → TokenFlowPanel silently truncates large dependency graphs — TokenFlowPanel.tsx caps references at 20 and dependents at 30 with no indication that results are truncated; tokens in a large design system can easily exceed these limits; show a "+N more" indicator and allow expanding or scrolling to see all dependencies
+  Worktree: /tmp/backlog-67697-8j4SRm
+  Running agent… (started 07:43:24)
