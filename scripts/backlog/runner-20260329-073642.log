@@ -138,3 +138,10 @@ Already up to date.
   → useDragDrop silently stops on first failure during batch move — useDragDrop.ts L89 `break`s on first error when moving multiple tokens, leaving remaining items unmoved; users see a generic "partial" error toast but aren't told which specific token failed or why, and can't retry just the failed items
   Worktree: /tmp/backlog-67435-8iWhTf
   Running agent… (started 08:05:22)
+
+  ✓ done: useDragDrop silently stops on first failure during batch move
+    stale — already done. Current code iterates all planned moves without breaking, collects per-token failures with specific reasons, and shows detailed error messages.
+    7 turns · 47s · $0.27
+
+  Merging to main: useDragDrop silently stops on first failure during batch move
+Already up to date.

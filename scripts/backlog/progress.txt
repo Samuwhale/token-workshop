@@ -406,3 +406,10 @@
   - `window.location.reload()` works reliably in the Figma plugin iframe to reinitialize all localStorage-driven state
   - Exporting raw string values (not parsed JSON) simplifies import — each key value is stored exactly as localStorage expects it, requiring no format conversion
 ---
+
+## 2026-03-29 - useDragDrop silently stops on first failure during batch move
+- Already fixed: current code (lines 74-98) iterates all planned moves without breaking, collects per-token failures with specific reasons, and shows detailed error messages naming each failed token and why
+- No files changed — item is stale
+- **Learnings for future iterations:**
+  - The `handleDropOnGroup` function was previously refactored to remove the `break` and add detailed error reporting; this backlog item is outdated
+---
