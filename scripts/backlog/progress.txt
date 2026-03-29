@@ -628,3 +628,13 @@
   - sessionStorage is ideal for form recovery — survives page reloads within the session but not across browser sessions (appropriate for draft data)
   - Using a `dismissedRecovery` ref prevents the banner from reappearing after the user dismisses it within the same dialog open/close cycle
 ---
+
+## 2026-03-29 - Merge ConsistencyPanel and HeatmapPanel into a single "Binding Audit" panel
+- Created `BindingAuditPanel.tsx` wrapping both panels with an internal "Coverage" / "Suggestions" toggle rendered as underline tabs
+- Updated `App.tsx`: replaced `HeatmapPanel`+`ConsistencyPanel` imports with `BindingAuditPanel`; narrowed `ApplySubTab` from `'inspect' | 'heatmap' | 'consistency'` to `'inspect' | 'audit'`; replaced two Apply sub-tabs with single `'audit'` sub-tab labeled "Binding Audit"; merged two panel rendering blocks into one `BindingAuditPanel` block; updated toolbar heatmap button and command palette entry to use `'audit'`
+- Files changed: `packages/figma-plugin/src/ui/components/BindingAuditPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L28-29 (imports), ~L170 (type), ~L218-219 (tab config), ~L692 (command palette), ~L927-941 (toolbar button), ~L1075 (sub-tab click), ~L2100-2130 (panel render)
+- **Learnings for future iterations:**
+  - The `OverflowPanel` type also contained `'heatmap'` as a value — this is a distinct concept from sub-tabs (it's an overlay panel) and is unused, so it was left as-is; no need to rename it
+  - When merging panels that have different prop sources (one gets all props from App state, the other is self-contained), a thin wrapper component that accepts all props and routes them to the appropriate child is cleaner than inlining both into App
+  - The toolbar toggle button used `activeSubTab === 'heatmap'` in both the click handler and the aria-pressed/className — all three references must be updated together
+---

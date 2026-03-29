@@ -25,8 +25,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PreviewPanel } from './components/PreviewPanel';
-import { HeatmapPanel } from './components/HeatmapPanel';
-import { ConsistencyPanel } from './components/ConsistencyPanel';
+import { BindingAuditPanel } from './components/BindingAuditPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -167,7 +166,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
-type ApplySubTab = 'inspect' | 'heatmap' | 'consistency';
+type ApplySubTab = 'inspect' | 'audit';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
@@ -215,8 +214,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
-    { id: 'heatmap', label: 'Heatmap' },
-    { id: 'consistency', label: 'Consistency' },
+    { id: 'audit', label: 'Binding Audit' },
   ]},
   { id: 'ship', label: 'Ship', subTabs: [
     { id: 'publish', label: 'Publish' },
@@ -691,7 +689,7 @@ export function App() {
         label: 'Canvas Heatmap',
         description: 'Token adoption overlay on the canvas',
         category: 'Navigation',
-        handler: () => { navigateTo('apply', 'heatmap'); triggerHeatmapScan(); },
+        handler: () => { navigateTo('apply', 'audit'); triggerHeatmapScan(); },
       },
       {
         id: 'publish',
@@ -926,21 +924,21 @@ export function App() {
         {/* Heatmap toggle */}
         <button
           onClick={() => {
-            if (activeTopTab === 'apply' && activeSubTab === 'heatmap') {
+            if (activeTopTab === 'apply' && activeSubTab === 'audit') {
               navigateTo('apply', 'inspect');
             } else {
-              navigateTo('apply', 'heatmap');
+              navigateTo('apply', 'audit');
               triggerHeatmapScan();
             }
           }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            activeTopTab === 'apply' && activeSubTab === 'heatmap'
+            activeTopTab === 'apply' && activeSubTab === 'audit'
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Canvas heatmap: token adoption overlay"
-          aria-label="Toggle canvas heatmap"
-          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'heatmap'}
+          title="Binding audit: coverage and suggestions"
+          aria-label="Toggle binding audit"
+          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'audit'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -1074,7 +1072,7 @@ export function App() {
                 aria-selected={activeSubTab === sub.id}
                 onClick={() => {
                   setSubTab(sub.id);
-                  if (sub.id === 'heatmap') triggerHeatmapScan();
+                  if (sub.id === 'audit') triggerHeatmapScan();
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
                   activeSubTab === sub.id
@@ -2097,32 +2095,23 @@ export function App() {
               </ErrorBoundary>
           )}
 
-          {/* Heatmap sub-tab (Apply > Heatmap) */}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'heatmap' && (
-              <ErrorBoundary panelName="Heatmap" onReset={() => navigateTo('apply', 'inspect')}>
-              <HeatmapPanel
-                result={heatmapResult}
-                loading={heatmapLoading}
-                error={heatmapError}
-                scope={heatmapScope}
+          {/* Binding Audit sub-tab (Apply > Binding Audit) */}
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'audit' && (
+              <ErrorBoundary panelName="Binding Audit" onReset={() => navigateTo('apply', 'inspect')}>
+              <BindingAuditPanel
+                heatmapResult={heatmapResult}
+                heatmapLoading={heatmapLoading}
+                heatmapError={heatmapError}
+                heatmapScope={heatmapScope}
                 onScopeChange={setHeatmapScope}
                 onRescan={triggerHeatmapScan}
                 onCancel={cancelHeatmapScan}
                 onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
-                availableTokens={allTokensFlat}
                 onBatchBind={(nodeIds, tokenPath, property) => {
                   const entry = allTokensFlat[tokenPath];
                   if (!entry) return;
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
-              />
-              </ErrorBoundary>
-          )}
-
-          {/* Consistency sub-tab (Apply > Consistency) */}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'consistency' && (
-              <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
-              <ConsistencyPanel
                 availableTokens={allTokensFlat}
                 onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
               />

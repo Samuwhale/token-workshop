@@ -165,3 +165,18 @@ Already up to date.
 
   Merging to main: Bulk token creation table (useTableCreate) loses all work if dialog is closed
 Already up to date.
+[main 7c496af] chore(backlog): done – Bulk token creation table (useTableCreate) loses all work if dialog is closed
+ 7 files changed, 147 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Bulk token creation table (useTableCreate) loses all work if dialog is closed
+- Added sessionStorage auto-save for table-create draft (group + rows) on every state change
+- On reopen, if a draft with content exists, shows a recovery banner with Restore/Discard buttons
+- Draft is cleared on successful creation (resetTableCreate) or explicit discard
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  2 queued · 5 in-progress · last took 3m9s
+═══════════════════════════════════════════════════════════════
+  → Consistency scanner has quadratic time complexity on large pages — consistencyScanner.ts iterates all tokens for each scanned node (O(nodes * tokens)); for a page with 5,000 nodes and 1,000 tokens this causes multi-second hangs; build a reverse index (value -> token path) upfront to reduce to O(nodes * log(tokens))
+  Worktree: /tmp/backlog-66493-DcpGDC
+  Running agent… (started 08:03:36)
