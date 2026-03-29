@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
@@ -132,6 +132,61 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
 
   const anyDiff = Object.values(rowDiffs).some(Boolean);
 
+  // --- Copy / Export helpers ---
+  const [copied, setCopied] = useState(false);
+
+  const buildRows = useCallback((): string[][] => {
+    const header = ['Property', ...tokens.map(t => t.path)];
+    const rows: string[][] = [header];
+
+    if (!allSameType) {
+      rows.push(['type', ...tokens.map(t => t.type)]);
+    }
+    if (tokens.some(t => t.isAlias)) {
+      rows.push(['alias', ...tokens.map(t => (t.isAlias ? `{${t.aliasRef}}` : ''))]);
+    }
+
+    if (hasStructuredValues) {
+      for (const key of propertyKeys) {
+        rows.push([key, ...tokens.map(t => fmtProp(t.resolvedValue, key))]);
+      }
+    } else {
+      rows.push(['value', ...tokens.map(t => fmtValue(t.resolvedValue, t.type))]);
+    }
+
+    const hasScopes = tokens.some(t => {
+      const entry = allTokensFlat[t.path];
+      return entry?.$scopes && entry.$scopes.length > 0;
+    });
+    if (hasScopes) {
+      rows.push(['scopes', ...tokens.map(t => {
+        const entry = allTokensFlat[t.path];
+        return entry?.$scopes?.join(', ') ?? '';
+      })]);
+    }
+
+    return rows;
+  }, [tokens, allSameType, hasStructuredValues, propertyKeys, allTokensFlat]);
+
+  const handleCopy = useCallback(async () => {
+    const tsv = buildRows().map(r => r.join('\t')).join('\n');
+    await navigator.clipboard.writeText(tsv);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [buildRows]);
+
+  const handleExportCsv = useCallback(() => {
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const csv = buildRows().map(r => r.map(esc).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `token-compare-${tokens.length}-tokens.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [buildRows, tokens.length]);
+
   if (tokens.length === 0) {
     return (
       <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
@@ -179,12 +234,28 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
             </span>
           )}
         </div>
-        <button
-          onClick={onClose}
-          className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-        >
-          Close
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleCopy}
+            className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            title="Copy comparison as tab-separated table"
+          >
+            {copied ? 'Copied!' : 'Copy table'}
+          </button>
+          <button
+            onClick={handleExportCsv}
+            className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            title="Download comparison as CSV"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={onClose}
+            className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       {/* Comparison table */}

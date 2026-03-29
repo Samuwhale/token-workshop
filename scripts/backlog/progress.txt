@@ -494,3 +494,14 @@
   - Match siblings both by `$type` (canonical) and by leaf name (fallback for tokens without a type set)
   - DTCG type names are inconsistent across tools — handle plural forms (fontSizes, fontWeights, lineHeights, fontFamilies) alongside singular
 ---
+
+## 2026-03-29 - ComparePanel has no copy or export option
+- Added "Copy table" button (copies TSV to clipboard for pasting into spreadsheets/docs) and "Export CSV" button (downloads .csv file) to ComparePanel header
+- Both buttons serialize the full comparison table: type row (if mixed types), alias row, all value/property rows, and scopes row
+- TSV uses tab delimiters for direct paste; CSV uses proper quote-escaping for file download
+- "Copied!" feedback shown for 1.5s after clipboard copy, matching ThemeCompare pattern
+- Files changed: `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L1 (imports), ~L134-186 (buildRows/handleCopy/handleExportCsv), ~L228-248 (header buttons)
+- **Learnings for future iterations:**
+  - ComparePanel's `buildRows` helper can be reused if additional export formats are needed later
+  - The existing `fmtValue` and `fmtProp` functions serve double duty for both display and export text
+---
