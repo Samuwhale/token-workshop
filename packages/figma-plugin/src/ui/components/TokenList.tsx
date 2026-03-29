@@ -2146,7 +2146,7 @@ export function TokenList({
     }
   };
 
-  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string } | null => {
+  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[] } | null => {
     if (!deleteConfirm) return null;
     if (deleteConfirm.type === 'token') {
       const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
@@ -2173,6 +2173,7 @@ export function TokenList({
         ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} reference these and will become broken.`
         : undefined,
       confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}`,
+      pathList: paths,
     };
   };
 

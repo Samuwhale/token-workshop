@@ -20,7 +20,7 @@ export interface TokenListModalsProps {
 
   // Delete confirmation modal
   deleteConfirm: DeleteConfirm | null;
-  modalProps: { title: string; description?: string; confirmLabel: string } | null;
+  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[] } | null;
   executeDelete: () => void;
   onSetDeleteConfirm: (v: DeleteConfirm | null) => void;
 
@@ -306,9 +306,25 @@ export function TokenListModals(props: TokenListModalsProps) {
           description={modalProps.description}
           confirmLabel={modalProps.confirmLabel}
           danger
+          wide={!!modalProps.pathList}
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
-        />
+        >
+          {modalProps.pathList && modalProps.pathList.length > 0 && (
+            <div className="mt-2 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              {modalProps.pathList.slice(0, 20).map(p => (
+                <div key={p} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate hover:text-[var(--color-figma-text)]" title={p}>
+                  {p}
+                </div>
+              ))}
+              {modalProps.pathList.length > 20 && (
+                <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">
+                  and {modalProps.pathList.length - 20} more…
+                </div>
+              )}
+            </div>
+          )}
+        </ConfirmModal>
       )}
 
       {/* New group dialog */}

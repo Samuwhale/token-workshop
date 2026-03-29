@@ -388,3 +388,11 @@
   - The "assign ref on every render" pattern (`ref.current = stateValue` inline after the state declaration) is the canonical way to keep a ref in sync with state without additional effects or call-site changes.
   - Removing the stale dep from the effect dep array is the other half of the fix — keeping it would just re-register the listener (and thus create a new closure) on every state change anyway.
 ---
+
+## 2026-03-29 - Bulk-delete confirmation shows count only, not which tokens are selected
+- Added a scrollable path list to the bulk-delete confirmation modal. `getDeleteModalProps()` in `TokenList.tsx` now returns `pathList: paths` for the `bulk` type. `TokenListModalsProps` in `TokenListModals.tsx` was updated to accept `pathList?: string[]` on `modalProps`. The `ConfirmModal` renders the list as children: up to 20 paths in a monospace scrollable box, with an "and N more…" line when there are more than 20. Used `wide={!!modalProps.pathList}` to give the wider modal layout when the list is shown.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2149, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L23, ~L303
+- **Learnings for future iterations:**
+  - `ConfirmModal` already has a `children` prop and `wide` prop — use them to inject extra content into confirmation dialogs without modifying the modal component itself.
+  - Passing `pathList` through `modalProps` (rather than as a separate prop) keeps the modal interface cohesive and avoids adding new props to `TokenListModalsProps`.
+---
