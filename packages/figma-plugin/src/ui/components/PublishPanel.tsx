@@ -472,7 +472,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             );
           })}
         </div>
-      </div>
+      </Section>
 
         {/* ── Section: Figma Styles ────────────────────────────────────── */}
         <Section
@@ -681,7 +681,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               </button>
             </div>
           )}
-        </Section>
 
           {!git.gitLoading && git.gitStatus?.isRepo && (
             <GitSubPanel

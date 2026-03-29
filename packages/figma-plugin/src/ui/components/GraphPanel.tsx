@@ -785,17 +785,19 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
 
   const handleRerun = async () => {
     setRunning(true);
+    setActionError(null);
     try {
-      await fetch(`${serverUrl}/api/generators/${generator.id}/run`, { method: 'POST' });
+      await apiFetch(`${serverUrl}/api/generators/${generator.id}/run`, { method: 'POST' });
       onRefresh();
     } catch (err) {
-      console.error('Failed to re-run generator:', err);
+      setActionError(err instanceof Error ? err.message : 'Re-run failed');
     } finally {
       setRunning(false);
     }
@@ -803,6 +805,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
 
   const handleDuplicate = async () => {
     setDuplicating(true);
+    setActionError(null);
     try {
       const body = {
         type: generator.type,
@@ -814,14 +817,14 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
         config: generator.config,
         overrides: generator.overrides,
       };
-      await fetch(`${serverUrl}/api/generators`, {
+      await apiFetch(`${serverUrl}/api/generators`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       onRefresh();
     } catch (err) {
-      console.error('Failed to duplicate generator:', err);
+      setActionError(err instanceof Error ? err.message : 'Duplicate failed');
     } finally {
       setDuplicating(false);
     }
@@ -829,12 +832,14 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
 
   const handleDelete = async (deleteTokens: boolean) => {
     setDeleting(true);
+    setActionError(null);
     try {
-      await fetch(`${serverUrl}/api/generators/${generator.id}?deleteTokens=${deleteTokens}`, { method: 'DELETE' });
+      await apiFetch(`${serverUrl}/api/generators/${generator.id}?deleteTokens=${deleteTokens}`, { method: 'DELETE' });
       setShowDeleteConfirm(false);
       onRefresh();
     } catch (err) {
-      console.error('Failed to delete generator:', err);
+      setActionError(err instanceof Error ? err.message : 'Delete failed');
+      setShowDeleteConfirm(false);
     } finally {
       setDeleting(false);
     }
@@ -858,6 +863,17 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
       {hasError && (
         <div className="mb-2 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">
           Auto-run failed: {generator.lastRunError!.message}
+        </div>
+      )}
+      {actionError && (
+        <div className="mb-2 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words flex items-start gap-1.5">
+          <span className="shrink-0 mt-px">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </span>
+          <span className="flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="shrink-0 hover:opacity-70 transition-opacity" aria-label="Dismiss error">×</button>
         </div>
       )}
       <div className="flex items-center gap-1.5 text-[10px]">

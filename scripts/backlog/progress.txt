@@ -386,3 +386,12 @@
 - Found 2 items — written to backlog-inbox.md
 - Notable: Generator CRUD operations (create/delete/update) record before/after token snapshots in the operation log but add no structural `rollbackSteps`; rolling back a `generator-delete` restores generated tokens but permanently destroys the generator config (the `RollbackStep` union type has no generator actions at all)
 ---
+
+## 2026-03-29 - GraphPanel GeneratorPipelineCard uses raw fetch() for generator actions
+- Replaced all three raw `fetch()` calls in `GeneratorPipelineCard` (`handleRerun`, `handleDuplicate`, `handleDelete`) with `apiFetch()` which throws on 4xx/5xx responses. Added `actionError` state and an in-card error banner with a dismiss button so users see server errors (rate limits, 404, 500) instead of silent failures.
+- Also fixed a pre-existing JSX structural bug in `PublishPanel.tsx`: orphaned `</Section>` for Figma Variables (was `</div>` instead of `</Section>`) and orphaned `</Section>` in the Git section (GitSubPanel was outside the Section but left a dangling close tag). These broke the build before and after my changes.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L783, ~L792, ~L804, ~L830, ~L862; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L475, ~L684
+- **Learnings for future iterations:**
+  - Pre-existing JSX structural bugs (mismatched/orphaned Section tags) silently break the build but don't surface until the build runs. When the build fails on an unrelated file, always check if the error was pre-existing before investigating.
+  - Rolldown gives good diagnostics: `Expected corresponding JSX closing tag for 'Section'` with line pointer to where the element opened — follow that to find the mismatch.
+---
