@@ -18,6 +18,7 @@ import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
 import { QuickStartDialog } from './components/QuickStartDialog';
 import { QuickStartWizard } from './components/QuickStartWizard';
+import { WelcomePrompt } from './components/WelcomePrompt';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
@@ -322,6 +323,7 @@ export function App() {
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply } = useModalVisibility();
+  const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
@@ -2574,6 +2576,15 @@ export function App() {
           allSets={sets}
           onClose={() => setShowScaffoldWizard(false)}
           onConfirm={(firstPath) => { setShowScaffoldWizard(false); refreshAll(); if (firstPath) setPendingHighlight(firstPath); }}
+        />
+      )}
+
+      {/* First-run welcome prompt */}
+      {showWelcome && (
+        <WelcomePrompt
+          connected={connected}
+          onStartSetup={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1'); setShowWelcome(false); setShowGuidedSetup(true); }}
+          onDismiss={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, '1'); setShowWelcome(false); }}
         />
       )}
 

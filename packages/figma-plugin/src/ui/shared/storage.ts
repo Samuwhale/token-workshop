@@ -37,6 +37,7 @@ export const STORAGE_KEYS = {
   DENSITY:               'tm_density',
   ADVANCED_MODE:         'tm_advanced_mode',
   CONTRAST_BG:           'tm_contrast_bg',
+  FIRST_RUN_DONE:        'tm_first_run_done',
 } as const;
 
 /** Per-set dynamic key builders */

@@ -469,3 +469,16 @@
   - The "faint-always-visible button" pattern (opacity-40 + group-hover:opacity-100) should also include focus-visible:opacity-100 for keyboard accessibility
   - pointer-events-none on a wrapper div prevents Tab focus on children — never use it for elements that need keyboard access
 ---
+
+## 2026-03-29 - Add first-run detection with proactive guided setup prompt
+- Added `FIRST_RUN_DONE` localStorage key to `storage.ts`
+- Created `WelcomePrompt.tsx` — lightweight modal with "Start guided setup" / "I'll explore on my own" buttons
+- On first launch (no `tm_first_run_done` in localStorage), the welcome prompt renders as a centered modal overlay
+- "Start guided setup" sets the flag and opens the existing `QuickStartWizard`
+- "I'll explore on my own" sets the flag and dismisses — prompt never shown again
+- Setup button disabled when server is offline, with explanatory helper text
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L40 (new key), `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` (new, 46 lines), `packages/figma-plugin/src/ui/App.tsx` ~L21 (import), ~L326 (state), ~L2583-2591 (render)
+- **Learnings for future iterations:**
+  - `lsGet` returns `null` when the key doesn't exist, so `!lsGet(key)` is a clean first-run check
+  - Using lazy `useState(() => ...)` initializer avoids reading localStorage on every render
+---
