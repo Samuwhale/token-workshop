@@ -5,6 +5,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 import { apiFetch } from '../shared/apiFetch';
 import { FIGMA_SCOPES } from './MetadataEditor';
+import { AliasAutocomplete } from './AliasAutocomplete';
 
 const typeValidator = new TokenValidator();
 
@@ -80,6 +81,9 @@ export function BatchEditor({
   const [description, setDescription] = useState('');
   const [opacityPct, setOpacityPct] = useState('');
   const [scaleFactor, setScaleFactor] = useState('');
+  const [aliasInput, setAliasInput] = useState('');
+  const [aliasRef, setAliasRef] = useState('');
+  const [showAliasAutocomplete, setShowAliasAutocomplete] = useState(false);
   const [newType, setNewType] = useState('');
   const [targetSet, setTargetSet] = useState('');
   const [findText, setFindText] = useState('');
@@ -94,6 +98,7 @@ export function BatchEditor({
   const [showScopes, setShowScopes] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
+  const aliasInputRef = useRef<HTMLInputElement>(null);
   const handleApplyRef = useRef<() => void>(() => {});
 
   const selectedEntries = useMemo(() => (
@@ -223,9 +228,12 @@ export function BatchEditor({
       .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
   }, [hasScalable, scaleFactor, selectedEntries]);
 
+  const aliasActive = aliasRef !== '' && aliasRef.startsWith('{') && aliasRef.endsWith('}');
+
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
     batchScopes.length > 0 ||
+    aliasActive ||
     (hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
     (hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
 
@@ -313,6 +321,10 @@ export function BatchEditor({
 
       if (newType !== '') {
         patch.$type = newType;
+      }
+
+      if (aliasActive) {
+        patch.$value = aliasRef;
       }
 
       if (opacityActive) {
@@ -405,6 +417,8 @@ export function BatchEditor({
       setDescription('');
       setOpacityPct('');
       setScaleFactor('');
+      setAliasInput('');
+      setAliasRef('');
       setNewType('');
       setTimeout(() => descriptionRef.current?.focus(), 0);
     } catch (err) {
@@ -712,6 +726,70 @@ export function BatchEditor({
         </>
       )}
 
+      {/* Set alias — batch-convert all selected tokens to a reference value */}
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Set alias</span>
+          <input
+            ref={aliasInputRef}
+            type="text"
+            aria-label="Alias reference"
+            value={aliasInput}
+            onChange={e => {
+              const val = e.target.value;
+              setAliasInput(val);
+              // Derive canonical {path} ref: accept typed {path} or bare path
+              const stripped = val.startsWith('{') ? val.slice(1).replace(/\}$/, '') : val;
+              const canonical = stripped ? `{${stripped}}` : '';
+              setAliasRef(canonical);
+              setShowAliasAutocomplete(true);
+            }}
+            onFocus={() => setShowAliasAutocomplete(true)}
+            onBlur={() => setTimeout(() => setShowAliasAutocomplete(false), 150)}
+            onKeyDown={e => {
+              if (e.key === 'Escape') {
+                setShowAliasAutocomplete(false);
+                aliasInputRef.current?.blur();
+              }
+            }}
+            placeholder="{color.brand.primary}"
+            className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          {aliasInput && (
+            <button
+              type="button"
+              onClick={() => { setAliasInput(''); setAliasRef(''); setShowAliasAutocomplete(false); }}
+              aria-label="Clear alias"
+              className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
+        {showAliasAutocomplete && (
+          <div className="ml-[88px] relative">
+            <AliasAutocomplete
+              query={aliasInput.startsWith('{') ? aliasInput.slice(1).replace(/\}$/, '') : aliasInput}
+              allTokensFlat={allTokensFlat}
+              onSelect={path => {
+                const ref = `{${path}}`;
+                setAliasInput(ref);
+                setAliasRef(ref);
+                setShowAliasAutocomplete(false);
+              }}
+              onClose={() => setShowAliasAutocomplete(false)}
+            />
+          </div>
+        )}
+        {aliasActive && !showAliasAutocomplete && (
+          <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            Will set <span className="font-mono text-[var(--color-figma-text)]">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
+          </div>
+        )}
+      </div>
+
       {/* Type-change inline preview (before confirmation) */}
       {newType !== '' && !showTypeConfirm && typeChangeInfo && typeChangeInfo.currentTypes.length > 0 && (
         <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
@@ -799,7 +877,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${hasColors ? ', or opacity' : hasScalable ? ', or scale factor' : ''} to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${hasColors ? ', opacity' : ''}${hasScalable ? ', scale factor' : ''}, or alias to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">

@@ -336,3 +336,12 @@
   - `externalRefreshPendingRef` acts as a single-use flag: the effect checks it on every `allTokensFlat` change and only runs the diff logic when the flag is set, ignoring changes from user-initiated operations.
   - Skip diffing when `prev` is empty (`Object.keys(prev).length === 0`) to avoid a spurious toast on the initial data load when the SSE connection is first established.
 ---
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+  - `AliasAutocomplete` uses `document.addEventListener('keydown')` globally — it intercepts Enter/Arrow/Escape while mounted. Ensure the alias input's own `onKeyDown` does NOT call `handleApply` on Enter, otherwise both fire simultaneously (autocomplete selection + form submit). Leave Enter-to-submit to Cmd+Enter (global handler) and the Apply button.
+  - The `onMouseDown` + `e.preventDefault()` pattern inside `AliasAutocomplete` items prevents the input from blurring when a dropdown row is clicked, allowing the `onBlur` → 150ms timeout pattern to work correctly for click-outside dismissal.
+  - When extracting the query for `AliasAutocomplete`, strip leading `{` and trailing `}` from the input value — the component expects bare text after the opening brace.
+---
