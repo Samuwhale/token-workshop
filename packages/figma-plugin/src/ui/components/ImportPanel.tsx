@@ -803,7 +803,6 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           body: JSON.stringify({
             tokens: tokensToImport.map(t => {
               const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
-              if (t._warning) tok.$description = t._warning;
               if (source) tok.$extensions = { tokenmanager: { source: source === 'variables' ? 'figma-variables' : source === 'styles' ? 'figma-styles' : source } };
               return tok;
             }),

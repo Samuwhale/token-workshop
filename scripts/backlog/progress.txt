@@ -338,3 +338,11 @@
   - When switching from a single element to a fragment (`<>`) in a ternary, always use `</>` to close — not `/>`. JSX fragments do not self-close.
   - For 8-char hex colors (`#RRGGBBAA`), `colorHex.length === 9` is the correct check (1 + 8 = 9 chars including `#`).
 ---
+
+## 2026-03-29 - Import panel permanently stores duplicate-path warning text in token $description
+- Removed `if (t._warning) tok.$description = t._warning;` at ImportPanel.tsx:806. The `_warning` field is a runtime UI annotation set by `markDuplicatePaths()` to surface duplicate-path conflicts in the import UI — it was never meant to be written to the database. The fix removes the line entirely; the warning continues to display in the UI via the existing rendering logic that reads `t._warning` directly.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L806
+- **Learnings for future iterations:**
+  - `ImportToken` interface uses `_warning` (underscore prefix) as a convention for UI-only runtime annotations — these must never be included in POST bodies sent to the server.
+  - The JSON/CSS/Tailwind file import paths (L464, L502, L533) do not currently pass `$description` from parsed tokens either — that's a separate gap (ImportToken interface lacks `$description`).
+---
