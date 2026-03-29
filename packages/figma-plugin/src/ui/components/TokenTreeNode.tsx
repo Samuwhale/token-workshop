@@ -129,7 +129,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
     onJumpToGroup, onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onDragStart, onDragEnd,
+    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onDragStart, onDragEnd,
     onDragOverGroup, onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
@@ -1668,6 +1668,18 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
             >
               <span>View history</span>
+            </button>
+          )}
+          {onShowReferences && !selectMode && (
+            <button
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onShowReferences(node.path);
+              }}
+            >
+              <span>Show references</span>
             </button>
           )}
           <div className="my-1 border-t border-[var(--color-figma-border)]" />

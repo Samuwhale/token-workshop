@@ -105,6 +105,8 @@ export interface TokenListActions {
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
+  /** Navigate to Token Flow panel with this token pre-selected */
+  onShowReferences?: (path: string) => void;
 }
 
 export interface TokenListProps {
@@ -212,6 +214,8 @@ export interface TokenTreeContextType {
   onCompareToken?: (path: string) => void;
   /** Navigate to History panel filtered to this token path */
   onViewTokenHistory?: (path: string) => void;
+  /** Navigate to Token Flow panel with this token pre-selected */
+  onShowReferences?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;

@@ -23,6 +23,8 @@ export interface TokenFlowPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   onNavigateToToken?: (path: string) => void;
+  /** When set, the panel auto-selects this token path on mount / change */
+  initialPath?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -269,9 +271,17 @@ export function TokenFlowPanel({
   allTokensFlat,
   pathToSet,
   onNavigateToToken,
+  initialPath,
 }: TokenFlowPanelProps) {
   const help = usePanelHelp('token-flow');
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(initialPath ?? null);
+
+  // When an external caller sets initialPath (e.g. "Show references" action), select it
+  useEffect(() => {
+    if (initialPath && allTokensFlat[initialPath]) {
+      setSelectedPath(initialPath);
+    }
+  }, [initialPath, allTokensFlat]);
   const [sourceExpanded, setSourceExpanded] = useState(false);
   const [depExpanded, setDepExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

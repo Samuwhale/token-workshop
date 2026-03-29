@@ -538,3 +538,14 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: TokenTreeContext useMemo in TokenList.tsx omits 10+ handler functions from its dependency array — every callback in the tree (select, expand, copy, pin, rename, etc.) is stale after any state change; also, 7 destructive server endpoints skip operation log recording entirely
 ---
+
+## 2026-03-29 - Add "View dependency chain" action from TokenEditor and token context menu
+- Added "Show references" context menu item in TokenTreeNode that navigates to TokenFlowPanel with the token path pre-populated
+- Added "Show references" button in TokenEditor header (node-graph icon) that does the same
+- TokenFlowPanel now accepts `initialPath` prop and auto-selects it via useEffect
+- App.tsx manages `flowPanelInitialPath` state, passes it to TokenFlowPanel, and provides `onShowReferences` handler to all TokenList and TokenEditor instances
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L22-28,268-282 (props + initialPath effect), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L107,215 (onShowReferences in both interfaces), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L132,1673 (destructure + context menu item), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L411-412,414,955-967 (prop + header button), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L43,2252,2281 (destructure + context pass-through), `packages/figma-plugin/src/ui/App.tsx` ~L389,1839,1870,1905,1967,2166 (state + handlers + prop wiring)
+- **Learnings for future iterations:**
+  - The pattern for "navigate to panel with pre-populated data" is: state in App.tsx + setter in handler + prop to target panel + useEffect in panel to consume. Same as historyFilterPath and focusGeneratorId patterns.
+  - TokenTreeContextType and TokenListActions both need the callback added — former for context menu, latter for the actions prop from App.
+---

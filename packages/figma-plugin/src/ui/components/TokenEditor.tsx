@@ -409,9 +409,11 @@ interface TokenEditorProps {
   derivedTokenPaths?: Map<string, TokenGenerator>;
   /** Ref that will be assigned the handleBack function so parents can trigger guarded close (e.g. from a backdrop click). */
   closeRef?: MutableRefObject<() => void>;
+  /** Navigate to Token Flow panel with this token pre-selected */
+  onShowReferences?: (path: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths, closeRef }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths, closeRef, onShowReferences }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -952,6 +954,17 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             </div>
           )}
         </div>
+        {!isCreateMode && onShowReferences && <button
+          onClick={() => onShowReferences(tokenPath)}
+          title="Show references in Token Flow"
+          aria-label="Show references"
+          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+          </svg>
+        </button>}
         {!isCreateMode && <button
           onClick={() => {
             navigator.clipboard.writeText(tokenPath);
