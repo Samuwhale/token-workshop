@@ -220,3 +220,19 @@
 - **Learnings for future iterations:**
   - Before implementing, verify the full stack: data model → server API → UI state → rendered tooltip + edit dialog. The description feature was quietly complete at every layer.
 ---
+
+## 2026-03-29 - PublishPanel is a 2316-line monolith mixing three unrelated workflows
+- Decomposed PublishPanel.tsx (2316 lines) into focused sub-components with internal sub-tab navigation (Variables | Styles | Git tabs). Users no longer scroll past Git conflict resolution to find Figma sync — each workflow is now a dedicated panel.
+- Created `packages/figma-plugin/src/ui/components/publish/PublishShared.tsx` (~270 lines): shared types (PreviewRow), utilities (truncateValue, isHexColor), and display components (DiffSwatch, ValueCell, TokenChangeRow, FileTokenDiffList, SyncDiffSummary, VarDiffRowItem).
+- Created `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` (~450 lines): SyncPreviewModal, GitPreviewModal, CommitPreviewModal, PublishAllPreviewModal, ApplyDiffConfirmModal.
+- Created `packages/figma-plugin/src/ui/components/publish/VariableSyncSubPanel.tsx` (~120 lines): Variables workflow panel.
+- Created `packages/figma-plugin/src/ui/components/publish/StyleSyncSubPanel.tsx` (~120 lines): Styles workflow panel.
+- Created `packages/figma-plugin/src/ui/components/publish/GitSubPanel.tsx` (~210 lines): Git workflow panel with branch/commit/remote diff/push-pull UI.
+- Rewrote `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (~350 lines): orchestrator with readiness gate, publish-all banner, sub-tab strip with status badges, and all modal dispatch. Sub-tab selection persisted to localStorage (`tm_publish_subtab`).
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx`, `packages/figma-plugin/src/ui/components/publish/` (5 new files)
+- **Learnings for future iterations:**
+  - The accordion (all sections visible at once) anti-pattern creates poor UX when any one section has dense content (like merge conflict resolution). Internal sub-tabs keep the same shared state/hooks while giving each workflow full panel height.
+  - `ConfirmAction` union type must stay in the orchestrator when modals need data from multiple hooks simultaneously (PublishAllPreviewModal reads varSync + styleSync + git data). The sub-panels call `onRequestConfirm(action)` and the parent renders the appropriate modal.
+  - Sub-tab status badges in the tab strip (showing "In sync", "N conflicts", "Clean") let users quickly triage which workflow needs attention without navigating to each tab.
+  - The diff filter input is shown in the tab bar area only for variable/style tabs (where it applies), hidden for git tab to avoid confusion.
+---

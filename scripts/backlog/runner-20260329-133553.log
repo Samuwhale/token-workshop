@@ -123,3 +123,10 @@ Already up to date.
   → PublishPanel is a 2316-line monolith mixing three unrelated workflows — Variable sync, Style sync, and Git operations serve different user goals but are crammed into one scrollable panel with collapsible sections; decompose into three focused sub-panels (or sub-tabs within Ship > Publish) so users don't scroll past Git conflict resolution to find Figma sync (PublishPanel.tsx)
   Worktree: /tmp/backlog-48303-jipvCj
   Running agent… (started 13:49:49)
+
+  ✓ done: PublishPanel is a 2316-line monolith mixing three unrelated workflows — Variable sync, Style sync, and Git operations
+    Decomposed into 5 focused files (PublishShared, PublishModals, VariableSyncSubPanel, StyleSyncSubPanel, GitSubPanel) and rewrote PublishPanel.tsx as a ~350-line orchestrator with internal sub-tab navigation (Variables | Styles | Git) so users navigate directly to the workflow they need instead of scrolling past unrelated sections.
+    30 turns · 790s · $2.69
+
+  Merging to main: PublishPanel is a 2316-line monolith mixing three unrelated workflows — Variable sync, Style sync, and Git operations
+Already up to date.
