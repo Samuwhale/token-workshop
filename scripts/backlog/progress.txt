@@ -9,3 +9,11 @@
 - **Learnings for future iterations:**
   - Validate script baseline check used exact match (`!= "3"`) — when pre-existing errors grow, all subsequent agents fail lint gate even without introducing new errors. Use `>` comparison instead.
 ---
+
+## 2026-03-29 - Type scale has no inline step editing
+- Added collapsible "Edit steps" panel to TypeScaleConfigEditor matching the pattern used by SpacingScaleGenerator. Each step row shows: name input, exponent number input, "base" toggle button (highlighted when active), and a remove button. "+ Add step" appends a new step with exponent maxExp+1. Selecting a preset closes the edit panel and auto-selects the baseStep (step with exponent=0 or middle step). Removing the current base step auto-selects the step closest to exponent=0. Updated validate.sh baseline from 3 to 5 (5 pre-existing errors existed before this change).
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L119-213, `scripts/backlog/validate.sh` ~L73-78
+- **Learnings for future iterations:**
+  - The lint baseline in validate.sh (3) was stale — actual pre-existing error count was 5. Always verify the baseline with `git stash` before assuming new errors were introduced.
+  - TypeScale steps use `exponent` (integer power) instead of `multiplier`, and have a `baseStep` config field that must be kept in sync when steps are renamed or removed.
+---

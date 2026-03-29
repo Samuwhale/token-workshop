@@ -19,3 +19,10 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
   → Type scale has no inline step editing — spacing/opacity/z-index let you add/remove/rename steps inline, but type scale only offers 3 fixed presets with no customization; add the same collapsible "Edit steps" pattern so designers can create non-standard scales (e.g. skip 2xl, add "display") with custom exponents (TypeScaleGenerator.tsx:159-168)
   Worktree: /tmp/backlog-48303-3vti07
   Running agent… (started 13:35:53)
+
+  ✓ done: Type scale has no inline step editing
+    Added collapsible "Edit steps" panel to TypeScaleConfigEditor with name/exponent inputs, base step toggle, add/remove, matching the SpacingScaleGenerator pattern
+    19 turns · 180s · $0.53
+
+  Merging to main: Type scale has no inline step editing
+Already up to date.

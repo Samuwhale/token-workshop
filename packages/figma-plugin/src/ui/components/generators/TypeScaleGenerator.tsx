@@ -118,6 +118,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
 export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { config: TypeScaleConfig; onChange: (c: TypeScaleConfig) => void; sourceValue?: number }) {
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
   const activePresetRatio = TYPE_RATIO_PRESETS.find(p => Math.abs(p.value - config.ratio) < 0.0001);
   const activeStepPresetIdx = TYPE_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s.name === config.steps[i]?.name)
@@ -127,6 +128,26 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
     const val = parseFloat(customRatio);
     if (!isNaN(val) && val > 1) onChange({ ...config, ratio: Math.round(val * 1000) / 1000 });
   };
+  const updateStep = (idx: number, updates: Partial<TypeScaleStep>) => {
+    const steps = config.steps.map((s, i) => i === idx ? { ...s, ...updates } : s);
+    const baseStep = updates.name && config.steps[idx]?.name === config.baseStep ? updates.name : config.baseStep;
+    onChange({ ...config, steps, baseStep });
+  };
+  const addStep = () => {
+    const maxExp = Math.max(...config.steps.map(s => s.exponent), 0);
+    onChange({ ...config, steps: [...config.steps, { name: String(maxExp + 1), exponent: maxExp + 1 }] });
+  };
+  const removeStep = (idx: number) => {
+    const removed = config.steps[idx];
+    const steps = config.steps.filter((_, i) => i !== idx);
+    // If removing the base step, pick the step with exponent closest to 0
+    let baseStep = config.baseStep;
+    if (removed?.name === config.baseStep && steps.length > 0) {
+      baseStep = steps.reduce((best, s) => Math.abs(s.exponent) < Math.abs(best.exponent) ? s : best).name;
+    }
+    onChange({ ...config, steps, baseStep });
+  };
+  const setBaseStep = (name: string) => onChange({ ...config, baseStep: name });
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -160,11 +181,35 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
           {TYPE_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} title={preset.description} onClick={() => onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) })}
-              className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            <button key={preset.label} title={preset.description} onClick={() => { setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })), baseStep: preset.steps.find(s => s.exponent === 0)?.name ?? preset.steps[Math.floor(preset.steps.length / 2)]?.name ?? config.baseStep }); }}
+              className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
         </div>
+        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
+          Edit steps ({config.steps.length})
+        </button>
+        {showSteps && (
+          <div className="mt-1.5 flex flex-col gap-1">
+            {config.steps.map((step, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
+                  aria-label={`Step ${i + 1} name`}
+                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">exp</span>
+                <input type="number" step="1" value={step.exponent} onChange={e => updateStep(i, { exponent: Number(e.target.value) })}
+                  aria-label={`Step ${step.name} exponent`}
+                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                <button onClick={() => setBaseStep(step.name)} title={step.name === config.baseStep ? 'Base step (ratio^0)' : 'Set as base step'} aria-label={`Set ${step.name} as base step`}
+                  className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors shrink-0 ${step.name === config.baseStep ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >base</button>
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+              </div>
+            ))}
+            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
+          </div>
+        )}
       </div>
       <div className="flex gap-3">
         <div>
