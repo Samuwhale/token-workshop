@@ -483,3 +483,25 @@ Already up to date.
 
   Merging to main: Add "View dependency chain" action from TokenEditor and token context menu
 Already up to date.
+[main 637514bb] chore(backlog): done – Add "View dependency chain" action from TokenEditor and token context menu
+ 10 files changed, 77 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Add "View dependency chain" action from TokenEditor and token context menu
+- Added "Show references" context menu item in TokenTreeNode that navigates to TokenFlowPanel with the token path pre-populated
+- Added "Show references" button in TokenEditor header (node-graph icon) that does the same
+- TokenFlowPanel now accepts `initialPath` prop and auto-selects it via useEffect
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  3 queued · 3 in-progress · last took 6m33s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenTreeContext useMemo dependency array missing 10+ handler functions causing stale closures — the treeCtx value in TokenList.tsx lines 2197-2285 is memoized but omits onCreateGroup, onToggleSelect, onToggleExpand, onRequestCopyToken, onFilterByType, onNavigateToGenerator, onTogglePin, onViewTokenHistory, clearPendingRename and others from deps; child components get stale function references that close over outdated state, causing callbacks to use wrong values after state changes
+  Worktree: /tmp/backlog-69179-v4y1v0
+  Running agent… (started 08:36:04)
+
+  ✓ done: TokenTreeContext useMemo dependency array missing handler functions causing stale closures
+    Added 3 missing deps (handleRequestCopyToken, setNewGroupDialogParent, onNavigateToGenerator) to treeCtx useMemo in TokenList.tsx — fixes stale closure bugs for copy-token and navigate-to-generator callbacks
+    13 turns · 108s · $0.49
+
+  Merging to main: TokenTreeContext useMemo dependency array missing handler functions causing stale closures
+Already up to date.

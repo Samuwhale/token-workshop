@@ -549,3 +549,13 @@
   - The pattern for "navigate to panel with pre-populated data" is: state in App.tsx + setter in handler + prop to target panel + useEffect in panel to consume. Same as historyFilterPath and focusGeneratorId patterns.
   - TokenTreeContextType and TokenListActions both need the callback added — former for context menu, latter for the actions prop from App.
 ---
+
+## 2026-03-29 - TokenTreeContext useMemo dependency array missing handler functions causing stale closures
+- Added 3 missing dependencies to the `treeCtx` useMemo in TokenList.tsx: `handleRequestCopyToken`, `setNewGroupDialogParent`, and `onNavigateToGenerator`
+- The backlog item claimed 10+ missing handlers but careful audit found exactly 3 missing; most handlers were already correctly listed
+- `handleRequestCopyToken` (useCallback with [sets, setName] deps) and `onNavigateToGenerator` (prop) were genuine stale closure risks; `setNewGroupDialogParent` (useState setter) is stable but included for correctness
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2277
+- **Learnings for future iterations:**
+  - React useState setters are referentially stable so omitting them from deps doesn't cause stale closures, but including them is still good practice for exhaustive-deps compliance
+  - When auditing useMemo deps, compare every value in the object literal against the array — automated counting in backlog items can be inaccurate
+---
