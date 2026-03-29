@@ -294,3 +294,11 @@ Already up to date.
 
   Merging to main: No shared loading spinner component — each component (TokenList, ConfirmModal, PublishPanel, HeatmapPanel) implements its own spinner with different markup, sizes, and animation styles; extract a shared Spinner component for visual consistency across the plugin (scattered across 6+ components)
 Already up to date.
+[main acab42fa] chore(backlog): done – No shared loading spinner component — each component (TokenList, ConfirmModal, PublishPanel, HeatmapPanel) implements its own spinner with different markup, sizes, and animation styles; extract a shared Spinner component for visual consistency across the plugin (scattered across 6+ components)
+ 23 files changed, 1490 insertions(+), 70 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/Spinner.tsx
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 34)

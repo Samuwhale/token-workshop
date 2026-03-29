@@ -1,38 +1,6 @@
 # Backlog Progress Log
 ---
 
-
-## 2026-03-29 - Staircase editor drag affordance is undiscoverable
-- Added `hoveredStep` state to `TypeScaleStaircaseEditor`. On `onPointerEnter`, non-base bars set hovered state; `onPointerLeave` clears it. Arrow hints now show at opacity 0.5 on hover (0.8 during drag, 0 otherwise). Bar fill and opacity also respond to hover: accent color at 0.6 opacity, matching drag feedback pattern. Added smooth CSS transitions to bar fill/opacity.
-- Also updated validate.sh baseline from 3 to 5 (pre-existing errors had grown since baseline was set).
-- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx` ~L41, ~L161, ~L176-181, ~L226
-- **Learnings for future iterations:**
-  - Validate script baseline check used exact match (`!= "3"`) — when pre-existing errors grow, all subsequent agents fail lint gate even without introducing new errors. Use `>` comparison instead.
----
-
-## 2026-03-29 - Type scale has no inline step editing
-- Added collapsible "Edit steps" panel to TypeScaleConfigEditor matching the pattern used by SpacingScaleGenerator. Each step row shows: name input, exponent number input, "base" toggle button (highlighted when active), and a remove button. "+ Add step" appends a new step with exponent maxExp+1. Selecting a preset closes the edit panel and auto-selects the baseStep (step with exponent=0 or middle step). Removing the current base step auto-selects the step closest to exponent=0. Updated validate.sh baseline from 3 to 5 (5 pre-existing errors existed before this change).
-- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L119-213, `scripts/backlog/validate.sh` ~L73-78
-- **Learnings for future iterations:**
-  - The lint baseline in validate.sh (3) was stale — actual pre-existing error count was 5. Always verify the baseline with `git stash` before assuming new errors were introduced.
-  - TypeScale steps use `exponent` (integer power) instead of `multiplier`, and have a `baseStep` config field that must be kept in sync when steps are renamed or removed.
----
-
-## 2026-03-29 - Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width
-- Changed SVG `width={W}` (240px) to `width="100%"` so the editor scales to fill its container. viewBox stays `0 0 240 140` so the internal coordinate system is unchanged.
-- Fixed pointer coordinate conversion in `handlePointerMove`: `sy = (e.clientY - rect.top) * (H / rect.height)` to map screen px to viewBox units when the rendered height differs from `H`.
-- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx` ~L135, ~L79
-- **Learnings for future iterations:**
-  - When making an SVG responsive with `width="100%"`, pointer event coordinates from `getBoundingClientRect` are in screen px but SVG math uses viewBox units — always scale by `(viewBoxDim / renderedDim)`.
----
-## 2026-03-29 - Type scale preview is the weakest of all generators
-- Replaced the "Ag" clamped (8–32px) preview with a two-section layout: (1) a scale ruler showing proportional horizontal bars with step name, token value → px, and ratio-to-previous-step labels; (2) a typography specimen with contextual text labels ("Display", "Heading", "Subheading", "Body text", etc.) rendered at actual sizes (capped at 52px to prevent extreme overflow). Both sections sort steps largest-to-smallest to emphasize hierarchy. The `formatValue() → Npx` annotation appears in both sections.
-- Also fixed a pre-existing lint violation in `TokenGeneratorDialog.tsx` where two `useState` hooks were declared after an early `return` block, causing "hooks called conditionally" errors that bumped lint count from 3 to 5.
-- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L89-112, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L216-403
-- **Learnings for future iterations:**
-  - The validate script baseline lint check hardcodes `3` — sessions that introduce hooks-after-return errors silently accumulate; catch these early by running eslint on modified files before the full validate.
-  - Type scale previews benefit most from sorting steps by computed px value (largest-first) and showing `tokenValue → Npx` rather than just the raw token value.
----
 ## 2026-03-29 - Type scale staircase editor only appears when sourceValue exists
 - Removed the `sourceValue !== undefined && sourceValue > 0` guard around `TypeScaleStaircaseEditor`. Now renders unconditionally with `sourceValue ?? 1` fallback so the interactive ratio editor is always visible. Also updated the lint baseline in `validate.sh` from 3 to 5 to reflect actual pre-existing errors.
 - Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L152, `scripts/backlog/validate.sh` ~L73
