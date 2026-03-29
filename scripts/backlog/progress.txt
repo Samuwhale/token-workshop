@@ -374,3 +374,9 @@
   - Server operation types are compound strings like `'token-create'`, `'group-rename'`, `'bulk-delete'` — `includes()` matching is more robust than exact-string switch cases for icon dispatch.
   - When adding new operation categories, check `packages/server/src/routes/` for the full list of `type:` strings used in `logOperation` calls.
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: TokenList.tsx (bulk delete confirmation), generators/ directory (shadow generator gap), SettingsPanel.tsx (lint config discoverability), App.tsx (set tab bar navigation, keyboard shortcuts), useFindReplace.ts (cross-set scope), generator-service.ts (stale indicator), AnalyticsPanel.tsx (duplicate list set context), TokenEditor drawer (keyboard nav gap)
+- Found 8 items — written to backlog-inbox.md
+- Notable: Lint rule configuration (`useLintConfig`) is only reachable via AnalyticsPanel behind a toggle — SettingsPanel.tsx has zero references to lint; users looking for validation settings in Settings will never find them
+---
