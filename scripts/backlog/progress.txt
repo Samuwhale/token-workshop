@@ -395,3 +395,9 @@
   - HistoryPanel's tab bar uses `flex-1` per tab button so it auto-adjusts when adding a third tab
   - Exposing undo stack descriptions as a derived array (not the full UndoSlot with closures) keeps the API clean and avoids leaking restore callbacks to display-only components
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: App.tsx (tab/navigation structure, overflow panels, toolbar), PublishPanel.tsx (2316-line monolith, variable/style/git sync sections), HistoryPanel.tsx (git/snapshot/operations undo architecture), ThemeManager.tsx (dimensions/options/coverage/resolver integration), SettingsPanel.tsx (post-lint-removal state), SelectionInspector.tsx (binding workflow, property display), ImportPanel.tsx (import sources, conflict resolution), TokenEditor.tsx (structure, imports), TokenUsages.tsx (empty states), useVariableSync.ts (fire-and-forget push), useStyleSync.ts (truncated previews)
+- Found 11 items — written to backlog-inbox.md
+- Notable: PublishPanel combines three fundamentally different workflows (Figma variable sync, style sync, git operations) in one 2316-line scrollable panel; variable push is fire-and-forget with no success/failure feedback while style sync gets detailed metrics — inconsistency in the same panel
+---
