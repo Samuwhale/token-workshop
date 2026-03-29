@@ -134,11 +134,11 @@ export function SuggestedTokens({ suggestions, onApply, onNavigateToToken }: Sug
                   </div>
                 </div>
 
-                {/* Apply button — visible on hover */}
-                <div className="absolute right-1 top-0 bottom-0 flex items-center pointer-events-none group-hover:pointer-events-auto">
+                {/* Apply button — always faintly visible, full opacity on hover */}
+                <div className="absolute right-1 top-0 bottom-0 flex items-center">
                   <button
                     onClick={() => onApply(s.path, s.bestProperty)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))]"
+                    className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
                     title={`Apply "${s.path}" to ${propLabel}`}
                     aria-label={`Apply ${s.path} to ${propLabel}`}
                   >

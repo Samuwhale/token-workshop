@@ -457,3 +457,15 @@
 - **Learnings for future iterations:**
   - The ExportPanel mode button already had "From Figma" (not "Figma Variables") — the ambiguity was mainly in the section titles/comments and the PublishPanel heading
 ---
+
+## 2026-03-29 - SuggestedTokens apply button is only visible on hover with no keyboard shortcut
+- Made Apply button always faintly visible (opacity-40) instead of completely hidden (opacity-0 + pointer-events-none)
+- Button becomes fully opaque on row hover or keyboard focus (focus-visible:opacity-100)
+- Removed pointer-events-none from wrapper div so the button is always keyboard-reachable via Tab
+- Added focus-visible outline ring for keyboard users
+- No keyboard shortcut needed — the button is a native `<button>` element that already supports Enter/Space; the real issue was that it was unreachable via Tab due to pointer-events-none
+- Files changed: `packages/figma-plugin/src/ui/components/SuggestedTokens.tsx` ~L137-147
+- **Learnings for future iterations:**
+  - The "faint-always-visible button" pattern (opacity-40 + group-hover:opacity-100) should also include focus-visible:opacity-100 for keyboard accessibility
+  - pointer-events-none on a wrapper div prevents Tab focus on children — never use it for elements that need keyboard access
+---
