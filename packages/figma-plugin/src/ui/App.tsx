@@ -355,6 +355,7 @@ export function App() {
   }, [previewingToken]);
   const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, []);
   const editorIsDirtyRef = useRef(false);
+  const editorCloseRef = useRef<() => void>(() => { if (!editorIsDirtyRef.current) handleEditorClose(); });
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
@@ -1857,6 +1858,7 @@ export function App() {
                     initialType={editingToken.initialType}
                     initialValue={editingToken.initialValue}
                     onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
+                    closeRef={editorCloseRef}
                     onSaved={handleEditorSave}
                     onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                     dimensions={dimensions}
@@ -2130,7 +2132,7 @@ export function App() {
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={() => { if (!editorIsDirtyRef.current) handleEditorClose(); }}
+            onClick={() => editorCloseRef.current()}
           />
           <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '65%' }}>
             <div className="flex justify-center pt-2 pb-1 shrink-0">
@@ -2151,6 +2153,7 @@ export function App() {
                 isCreateMode={editingToken.isCreate}
                 initialType={editingToken.initialType}
                 onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
+                closeRef={editorCloseRef}
                 onSaved={handleEditorSave}
                 onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                 dimensions={dimensions}

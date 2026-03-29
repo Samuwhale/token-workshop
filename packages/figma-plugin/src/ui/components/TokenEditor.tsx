@@ -1,6 +1,7 @@
 import { getErrorMessage, adaptShortcut } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import type { MutableRefObject } from 'react';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
@@ -406,9 +407,11 @@ interface TokenEditorProps {
   availableFonts?: string[];
   /** Map of derived token paths to the generator that produces them. */
   derivedTokenPaths?: Map<string, TokenGenerator>;
+  /** Ref that will be assigned the handleBack function so parents can trigger guarded close (e.g. from a backdrop click). */
+  closeRef?: MutableRefObject<() => void>;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths, closeRef }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -702,6 +705,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const handleBack = () => {
     if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
   };
+  // Keep the ref up-to-date so App.tsx's backdrop click can call handleBack()
+  if (closeRef) closeRef.current = handleBack;
 
   const handleRevert = () => {
     if (!initialRef.current) return;
@@ -1313,17 +1318,44 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         />
       )}
 
-      {/* Discard confirmation */}
+      {/* Save changes confirmation */}
       {showDiscardConfirm && (
-        <ConfirmModal
-          title="Discard unsaved changes?"
-          description="Your edits have not been saved and will be lost."
-          confirmLabel="Discard"
-          cancelLabel="Keep editing"
-          danger
-          onConfirm={onBack}
-          onCancel={() => setShowDiscardConfirm(false)}
-        />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowDiscardConfirm(false); }}
+        >
+          <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="save-changes-title">
+            <div className="px-4 pt-4 pb-3">
+              <h3 id="save-changes-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Save changes?</h3>
+              <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Your edits have not been saved and will be lost if you close.
+              </p>
+            </div>
+            <div className="px-4 pb-4 flex flex-col gap-2">
+              {canSave && (!isCreateMode || editPath.trim() !== '') && (
+                <button
+                  onClick={() => { setShowDiscardConfirm(false); handleSaveRef.current(); }}
+                  disabled={saving}
+                  className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              )}
+              <button
+                onClick={() => { setShowDiscardConfirm(false); onBack(); }}
+                className="w-full px-3 py-1.5 rounded text-[11px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-border)]"
+              >
+                Discard
+              </button>
+              <button
+                onClick={() => setShowDiscardConfirm(false)}
+                className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Keep editing
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete confirmation */}

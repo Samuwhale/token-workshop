@@ -214,3 +214,10 @@ Already up to date.
   → TokenEditor silently discards edits when closed without saving — pressing Escape or clicking outside the editor panel loses all in-progress changes with no confirmation prompt; add an "unsaved changes" guard that either auto-saves (preferred) or prompts "Save changes?" before closing, matching the standard expectation for form editors (TokenEditor.tsx ~L1300, no dirty-state check on close)
   Worktree: /tmp/backlog-68874-fk4Ckr
   Running agent… (started 08:09:49)
+
+  ✓ done: TokenEditor silently discards edits when closed without saving
+    Changed discard modal to "Save changes?" dialog with [Save]/[Discard]/[Keep editing]; fixed drawer backdrop to trigger guarded close via closeRef instead of silently ignoring dirty state
+    42 turns · 351s · $1.25
+
+  Merging to main: TokenEditor silently discards edits when closed without saving
+Already up to date.

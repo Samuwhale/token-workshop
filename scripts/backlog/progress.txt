@@ -562,3 +562,13 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: command palette token search has no visual value preview (color swatches, dimension values) making it hard to distinguish similarly-named tokens; also no "select all children" on group context menu makes multi-select tedious for large groups; theme dimension labels use confusing non-standard terminology ("Foundation"/"Override") that doesn't match API terms or DTCG spec
 ---
+
+## 2026-03-29 - TokenEditor silently discards edits when closed without saving
+- Changed the "Discard unsaved changes?" confirmation modal to a "Save changes?" dialog with three actions: [Save] (saves and closes), [Discard] (discards and closes), [Keep editing] (stays in editor). Save button only appears when the form is valid (`canSave && editPath non-empty for create mode`).
+- Added `closeRef?: MutableRefObject<() => void>` prop to TokenEditor; assigned `closeRef.current = handleBack` in the render body so parents always have the latest guarded-close function.
+- Fixed App.tsx drawer backdrop click: previously silently ignored clicks when dirty (`if (!editorIsDirtyRef.current) handleEditorClose()`). Now calls `editorCloseRef.current()` which triggers `handleBack()` → shows the "Save changes?" dialog when dirty.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L408, ~L414, ~L707, ~L1321; `packages/figma-plugin/src/ui/App.tsx` ~L357, ~L1856, ~L2131, ~L2151
+- **Learnings for future iterations:**
+  - TokenEditor already had a dirty guard for Escape/Cancel but the drawer backdrop silently swallowed the click when dirty — the pattern of assigning `closeRef.current = handleBack` in render body (runs on every render, no effect needed) is a clean way to expose an always-fresh callback to a parent component.
+  - 3-button "Save changes?" inline dialogs can't use ConfirmModal (2-button only) — writing an inline modal with the same visual classes is the right approach rather than generalizing ConfirmModal for a single use case.
+---
