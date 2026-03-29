@@ -312,3 +312,10 @@
   - Type aliases defined inside a component function body can't be used as generic type params in the same function (TypeScript doesn't re-scope them correctly for `Extract<>`). Move discriminated union types to module level.
   - `handleAutoFillSingle` (single-token fill) was intentionally excluded from confirmation — per-item fills are low-blast-radius and already require individual user interaction.
 ---
+
+## 2026-03-29 - GraphPanel GeneratorPipelineCard uses raw fetch() for all three generator actions
+- stale — already done in a prior session (commit a8c4f0b5). All three handlers (handleRerun, handleDuplicate, handleDelete) already use `apiFetch`, and actionError state is displayed in the card with a dismiss button.
+- Files changed: none
+- **Learnings for future iterations:**
+  - None — item was fully implemented before this session.
+---
