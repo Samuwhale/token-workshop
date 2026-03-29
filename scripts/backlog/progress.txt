@@ -397,3 +397,9 @@
   - The old CommitPreviewModal had a TODO filter (`return true`) for token changes by selected files — now properly filters by converting selected file paths to set names
   - Using useMemo to group changes by file avoids recomputation on every render when expand/collapse state changes
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: PublishPanel.tsx (Figma Variables sync, Git commit, dry-run), ExportPanel.tsx (platform export, Figma Variables extraction, Save to Server), TokenEditor.tsx (inline editing, complex types), BatchEditor.tsx (undo block, discovery), ValueEditors.tsx (type support), HistoryPanel.tsx (git history, snapshots, restore), useRecentOperations.ts (operation log), UndoToast.tsx (undo feedback), QuickStartDialog.tsx + QuickStartWizard.tsx (onboarding flows), EmptyState.tsx (first-time UX), PanelHelpHint.tsx (contextual help), TokenFlowPanel.tsx (dependency visualization), GraphPanel.tsx (generator authoring), TokenReferences.tsx + TokenDependents.tsx (usage tracking duplication), ComparePanel.tsx + ThemeCompare.tsx (comparison features), PreviewPanel.tsx (live preview templates), SuggestedTokens.tsx (token suggestions)
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenReferences and TokenDependents are near-identical 400-line components (same props, same helpers, same layer scanning) that should be one component; PublishPanel and ExportPanel both have "Figma Variables" sections doing opposite things (sync vs extract) with no naming distinction; BatchEditor undo block references 3 undefined variables (crash on use)
+---
