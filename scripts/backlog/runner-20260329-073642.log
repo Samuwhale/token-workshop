@@ -49,3 +49,10 @@ Already up to date.
 
   Merging to main: useTokenDataLoading stale-closure bug in variables-applied listener
 Already up to date.
+[main 0f947a6] chore(backlog): done – useTokenDataLoading stale-closure bug in variables-applied listener
+ 5 files changed, 36 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
