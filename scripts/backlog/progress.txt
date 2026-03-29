@@ -331,3 +331,14 @@
   - React useState setters are referentially stable so omitting them from deps doesn't cause stale closures, but including them is still good practice for exhaustive-deps compliance
   - When auditing useMemo deps, compare every value in the object literal against the array — automated counting in backlog items can be inaccurate
 ---
+
+## 2026-03-29 - CommandPalette keyboard navigation fires wrong command in grouped (no-query) view
+- Root cause: `flatList` (used by ArrowDown/Enter) was built from `filteredCommands`, but the section view highlighted using `sectionFlatItems.indexOf()` which prepends Recent commands in a different order
+- Fix 1: Moved `sections` and `sectionFlatItems` computation before `flatList`; `flatList` now uses `sectionFlatItems` when in grouped mode so keyboard nav indices match visual order
+- Fix 2: Replaced `sectionFlatItems?.indexOf(cmd)` in section rendering with a running counter (`runningIdx++`) to correctly handle duplicate commands (same command in Recent and its category section)
+- Fix 3: Changed section item `key` from `cmd.id` to `section.header + ':' + cmd.id` to avoid React key collisions when a command appears in both Recent and its category
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L244-310 (reordered memos), ~L539-567 (running index counter)
+- **Learnings for future iterations:**
+  - When a flat list is used for keyboard navigation, it must be built from the same source as the visual rendering order — never from a parallel data structure
+  - `Array.indexOf` with object references fails for duplicates (same object in multiple sections); use a running counter instead
+---

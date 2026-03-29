@@ -258,7 +258,37 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
       .map(({ cmd }) => cmd);
   }, [query, commands, isTokenMode]);
 
-  // Flat list for keyboard nav
+  // Build grouped command sections for no-query mode
+  const sections = useMemo(() => {
+    if (isTokenMode || query.trim()) return null;
+    const recentCmds = recent
+      .map(r => commands.find(c => c.id === r.id))
+      .filter((c): c is Command => !!c);
+
+    const categories = new Map<string, Command[]>();
+    for (const cmd of filteredCommands) {
+      const cat = cmd.category ?? 'General';
+      if (!categories.has(cat)) categories.set(cat, []);
+      categories.get(cat)!.push(cmd);
+    }
+
+    const result: Array<{ header: string; items: Command[] }> = [];
+    if (recentCmds.length > 0) result.push({ header: 'Recent', items: recentCmds });
+    for (const [header, items] of categories) {
+      result.push({ header, items });
+    }
+    return result;
+  }, [isTokenMode, query, filteredCommands, commands, recent]);
+
+  // Compute flat index from sections (for keyboard nav alignment)
+  const sectionFlatItems = useMemo(() => {
+    if (!sections) return null;
+    const flat: Command[] = [];
+    for (const s of sections) flat.push(...s.items);
+    return flat;
+  }, [sections]);
+
+  // Flat list for keyboard nav — must match the visual rendering order exactly
   type FlatItem = { kind: 'command'; cmd: Command } | { kind: 'token'; token: TokenEntry } | { kind: 'group'; group: GroupEntry };
   const flatList: FlatItem[] = useMemo(() => {
     if (isTokenMode) {
@@ -267,8 +297,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
       for (const t of filteredTokens) items.push({ kind: 'token', token: t });
       return items;
     }
-    return filteredCommands.map(cmd => ({ kind: 'command' as const, cmd }));
-  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands]);
+    // When sections are shown (no-query grouped view), use sectionFlatItems
+    // so keyboard nav indices match the visual order (Recent first, then categories)
+    const cmdList = sectionFlatItems ?? filteredCommands;
+    return cmdList.map(cmd => ({ kind: 'command' as const, cmd }));
+  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands, sectionFlatItems]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -317,36 +350,6 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
     const active = items[activeIdx] as HTMLElement | undefined;
     active?.scrollIntoView({ block: 'nearest' });
   }, [activeIdx]);
-
-  // Build grouped command sections for no-query mode
-  const sections = useMemo(() => {
-    if (isTokenMode || query.trim()) return null;
-    const recentCmds = recent
-      .map(r => commands.find(c => c.id === r.id))
-      .filter((c): c is Command => !!c);
-
-    const categories = new Map<string, Command[]>();
-    for (const cmd of filteredCommands) {
-      const cat = cmd.category ?? 'General';
-      if (!categories.has(cat)) categories.set(cat, []);
-      categories.get(cat)!.push(cmd);
-    }
-
-    const result: Array<{ header: string; items: Command[] }> = [];
-    if (recentCmds.length > 0) result.push({ header: 'Recent', items: recentCmds });
-    for (const [header, items] of categories) {
-      result.push({ header, items });
-    }
-    return result;
-  }, [isTokenMode, query, filteredCommands, commands, recent]);
-
-  // Compute flat index from sections (for keyboard nav alignment)
-  const sectionFlatItems = useMemo(() => {
-    if (!sections) return null;
-    const flat: Command[] = [];
-    for (const s of sections) flat.push(...s.items);
-    return flat;
-  }, [sections]);
 
   return (
     <div
@@ -533,38 +536,37 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
           )}
 
           {/* Grouped sections (no query) */}
-          {!isTokenMode && sections && (
-            <>
-              {sections.map(section => (
-                <div key={section.header}>
-                  <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
-                    {section.header}
-                  </div>
-                  {section.items.map(cmd => {
-                    const flatIdx = sectionFlatItems?.indexOf(cmd) ?? -1;
-                    return (
-                      <button
-                        key={cmd.id}
-                        role="option"
-                        aria-selected={flatIdx === activeIdx}
-                        data-palette-item
-                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                        onMouseEnter={() => setActiveIdx(flatIdx)}
-                        onClick={() => executeCommand(cmd)}
-                      >
-                        <span className="text-[11px] font-medium flex-1">{cmd.label}</span>
-                        {cmd.shortcut && (
-                          <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                            {cmd.shortcut}
-                          </kbd>
-                        )}
-                      </button>
-                    );
-                  })}
+          {!isTokenMode && sections && (() => {
+            let runningIdx = 0;
+            return sections.map(section => (
+              <div key={section.header}>
+                <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                  {section.header}
                 </div>
-              ))}
-            </>
-          )}
+                {section.items.map(cmd => {
+                  const flatIdx = runningIdx++;
+                  return (
+                    <button
+                      key={section.header + ':' + cmd.id}
+                      role="option"
+                      aria-selected={flatIdx === activeIdx}
+                      data-palette-item
+                      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      onMouseEnter={() => setActiveIdx(flatIdx)}
+                      onClick={() => executeCommand(cmd)}
+                    >
+                      <span className="text-[11px] font-medium flex-1">{cmd.label}</span>
+                      {cmd.shortcut && (
+                        <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          {cmd.shortcut}
+                        </kbd>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ));
+          })()}
 
           {/* Filtered command results (with query) */}
           {!isTokenMode && !sections && (

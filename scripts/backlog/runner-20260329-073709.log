@@ -512,3 +512,11 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 53)
+[main ccb6c118] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 32 insertions(+), 252 deletions(-)
+  Milestone: 890 done — pass skipped (runner PID 67697 already running one)
+
+## 2026-03-29 - TokenTreeContext useMemo dependency array missing handler functions causing stale closures
+- Added 3 missing dependencies to the `treeCtx` useMemo in TokenList.tsx: `handleRequestCopyToken`, `setNewGroupDialogParent`, and `onNavigateToGenerator`
+- The backlog item claimed 10+ missing handlers but careful audit found exactly 3 missing; most handlers were already correctly listed
+- `handleRequestCopyToken` (useCallback with [sets, setName] deps) and `onNavigateToGenerator` (prop) were genuine stale closure risks; `setNewGroupDialogParent` (useState setter) is stable but included for correctness
