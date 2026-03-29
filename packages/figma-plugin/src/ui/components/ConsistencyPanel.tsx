@@ -36,6 +36,7 @@ const PROPERTY_LABELS: Record<string, string> = {
   paddingLeft: 'Padding Left',
   itemSpacing: 'Item Spacing',
   opacity: 'Opacity',
+  fontFamily: 'Font Family',
   fontSize: 'Font Size',
   fontWeight: 'Font Weight',
   lineHeight: 'Line Height',
@@ -199,10 +200,10 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     setError(null);
     setSnappedKeys(new Set());
 
-    // Build a flat resolved token map (color, dimension, number, fontWeight)
+    // Build a flat resolved token map (color, dimension, number, and all typography types)
     const tokenMap: Record<string, { $value: any; $type: string }> = {};
     for (const [path, entry] of Object.entries(availableTokens)) {
-      if (['color', 'dimension', 'number', 'fontWeight'].includes(entry.$type)) {
+      if (['color', 'dimension', 'number', 'fontWeight', 'fontFamily', 'fontSize', 'lineHeight', 'letterSpacing'].includes(entry.$type)) {
         tokenMap[path] = { $value: entry.$value, $type: entry.$type };
       }
     }

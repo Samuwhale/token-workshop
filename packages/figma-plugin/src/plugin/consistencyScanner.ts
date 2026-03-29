@@ -171,11 +171,20 @@ export async function scanConsistency(
     const dimTokens: [string, { $value: any }][] = [];
     const numTokens: [string, { $value: any }][] = [];
     const fontWeightTokens: [string, { $value: any }][] = [];
+    // fontFamily: string exact-match index — normalized lowercase → [{path, value}]
+    const fontFamilyIndex = new Map<string, { path: string; value: string }[]>();
     for (const [path, entry] of Object.entries(tokenMap)) {
       if (entry.$type === 'color') colorTokens.push([path, entry]);
-      else if (entry.$type === 'dimension') dimTokens.push([path, entry]);
+      // dimension + specific typography subtypes all feed the numeric dimension index
+      else if (['dimension', 'fontSize', 'lineHeight', 'letterSpacing'].includes(entry.$type)) dimTokens.push([path, entry]);
       else if (entry.$type === 'number') numTokens.push([path, entry]);
       else if (entry.$type === 'fontWeight') fontWeightTokens.push([path, entry]);
+      else if (entry.$type === 'fontFamily' && typeof entry.$value === 'string') {
+        const key = entry.$value.toLowerCase();
+        let arr = fontFamilyIndex.get(key);
+        if (!arr) { arr = []; fontFamilyIndex.set(key, arr); }
+        arr.push({ path, value: entry.$value });
+      }
     }
 
     const colorIndex = buildColorIndex(colorTokens);
@@ -293,6 +302,23 @@ export async function scanConsistency(
 
       // --- Typography properties (TEXT nodes only) ---
       if (node.type === 'TEXT') {
+        // Font family (exact string match)
+        if (!bound.has('fontFamily') && !bound.has('typography') && 'fontName' in node) {
+          const fontName = n['fontName'];
+          if (fontName && typeof fontName === 'object' && !Array.isArray(fontName) && 'family' in (fontName as object)) {
+            const family = (fontName as { family: string }).family;
+            const hits = fontFamilyIndex.get(family.toLowerCase());
+            if (hits) {
+              for (const hit of hits) {
+                addMatch(hit.path, 'fontFamily', hit.value, 'fontFamily', {
+                  nodeId: node.id, nodeName: node.name, nodeType: node.type,
+                  property: 'fontFamily', actualValue: family, tokenValue: hit.value,
+                });
+              }
+            }
+          }
+        }
+
         // Font size
         if (!bound.has('fontSize') && 'fontSize' in node) {
           const val = n['fontSize'];

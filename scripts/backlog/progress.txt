@@ -349,3 +349,12 @@
 - **Learnings for future iterations:**
   - Error handling was added to these routes in a prior session; no changes needed
 ---
+
+## 2026-03-29 - ConsistencyPanel Scan misses all typography properties
+- Added `fontFamily` to `PROPERTY_LABELS` in ConsistencyPanel.tsx. Expanded the token type filter from `['color', 'dimension', 'number', 'fontWeight']` to also include `'fontFamily'`, `'fontSize'`, `'lineHeight'`, `'letterSpacing'` so that design systems using specific DTCG typography subtypes (not just `dimension`) are included in the scan. In `consistencyScanner.ts`, extended the `dimTokens` bucket to accept `fontSize`, `lineHeight`, `letterSpacing` typed tokens in addition to `dimension`. Added `fontFamilyIndex` (a `Map<lowercaseFamily, [{path, value}]>`) and a new fontFamily scan block inside the TEXT node section that reads `node.fontName.family` and performs case-insensitive exact matching to suggest unbound fontFamily tokens.
+- Files changed: `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L28 (PROPERTY_LABELS), ~L205 (token filter); `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L170 (index building), ~L295 (fontFamily scan)
+- **Learnings for future iterations:**
+  - DTCG allows both generic types (`dimension`) and specific subtypes (`fontSize`, `lineHeight`, `letterSpacing`, `fontFamily`). Any scanner that builds indexes by `$type` must handle both forms or it silently drops tokens.
+  - fontFamily matching is string-exact (case-insensitive), not numeric — build a Map index rather than a sorted numeric array.
+  - Figma TextNode uses `fontName.family` for the font family string; there is no top-level `fontFamily` property on the node.
+---
