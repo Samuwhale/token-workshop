@@ -312,3 +312,12 @@
   - For plain-text tooltips that need multiple lines, `title` with `\n` separator works cross-browser.
   - IIFE in JSX `title={(() => { ... })()}` keeps tooltip computation colocated with the element without extracting a helper function.
 ---
+
+## 2026-03-29 - Theme live switcher shows no "tokens changed" count between options
+- Added a diff-count badge to each non-selected option chip in ThemeManager's dimension option tab strip. A muted badge (neutral tertiary color) shows how many tokens differ from the currently selected option. Badge only appears for non-active chips when diffCount > 0. Tooltip reads "N token(s) differ from [selectedOpt]". Existing "missing tokens" warning badge is preserved.
+- Implementation: added `optionDiffCounts` useMemo after `compareRows` (~L1013). It reuses the same `resolveOpt` pattern as the compareRows helper, resolving source+enabled sets and aliases for each option, then diffs against the selected option. In the option chip render, extracted `isSelected` variable and added the new badge before the existing missing-count badge.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1013 (new useMemo), ~L1543 (chip render)
+- **Learnings for future iterations:**
+  - The `resolveForOpt` pattern in `compareRows` is a useful reusable building block — extracting it to a broader `useMemo` keyed by `${dimId}/${optName}` avoids recomputation and can serve multiple UI features.
+  - Option chips already had a badge slot (missing count); adding a second badge type in sequence is clean and doesn't require layout changes.
+---

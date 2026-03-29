@@ -1011,6 +1011,48 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     return result;
   }, [showCompare, compareOptA, compareOptB, dimensions, setTokenValues, compareDiffsOnly, compareSearch]);
 
+  // --- Per-option diff counts vs currently selected option ---
+  const optionDiffCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const resolveOpt = (opt: ThemeOption): Record<string, any> => {
+      const merged: Record<string, any> = {};
+      for (const [s, st] of Object.entries(opt.sets)) {
+        if (st === 'source') Object.assign(merged, setTokenValues[s] ?? {});
+      }
+      for (const [s, st] of Object.entries(opt.sets)) {
+        if (st === 'enabled') Object.assign(merged, setTokenValues[s] ?? {});
+      }
+      const resolve = (v: any, depth = 0): any => {
+        if (depth > 10 || typeof v !== 'string') return v;
+        const m = /^\{([^}]+)\}$/.exec(v);
+        if (!m) return v;
+        const t = m[1];
+        return t in merged ? resolve(merged[t], depth + 1) : v;
+      };
+      const out: Record<string, any> = {};
+      for (const [p, v] of Object.entries(merged)) out[p] = resolve(v);
+      return out;
+    };
+    for (const dim of dimensions) {
+      if (dim.options.length < 2) continue;
+      const selOptName = selectedOptions[dim.id] || dim.options[0]?.name || '';
+      const selOpt = dim.options.find(o => o.name === selOptName);
+      if (!selOpt) continue;
+      const selTokens = resolveOpt(selOpt);
+      for (const opt of dim.options) {
+        if (opt.name === selOptName) continue;
+        const optTokens = resolveOpt(opt);
+        const allPaths = new Set([...Object.keys(optTokens), ...Object.keys(selTokens)]);
+        let diff = 0;
+        for (const path of allPaths) {
+          if (JSON.stringify(optTokens[path]) !== JSON.stringify(selTokens[path])) diff++;
+        }
+        counts[`${dim.id}/${opt.name}`] = diff;
+      }
+    }
+    return counts;
+  }, [dimensions, selectedOptions, setTokenValues]);
+
   // --- Render helpers ---
 
   const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
@@ -1490,17 +1532,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {dim.options.map((o, oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
                           const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
+                          const isSelected = selectedOpt === o.name;
+                          const diffCount = isSelected ? 0 : (optionDiffCounts[`${dim.id}/${o.name}`] ?? 0);
                           return (
                           <button
                             key={o.name}
                             onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
                             className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 flex items-center gap-1 ${
-                              selectedOpt === o.name
+                              isSelected
                                 ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
                                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                             }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                           >
                             {o.name}
+                            {!isSelected && diffCount > 0 && (
+                              <span
+                                className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-tertiary)]"
+                                title={`${diffCount} token${diffCount !== 1 ? 's' : ''} differ from ${selectedOpt}`}
+                              >
+                                {diffCount}
+                              </span>
+                            )}
                             {optMissingCount > 0 && (
                               <span
                                 className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]"
@@ -1509,7 +1561,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 {optMissingCount}
                               </span>
                             )}
-                            {selectedOpt === o.name && (
+                            {isSelected && (
                               <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[var(--color-figma-accent)] rounded-t" />
                             )}
                           </button>
