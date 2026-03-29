@@ -341,3 +341,11 @@
   - The backlog item referenced "HeatmapPanel's SCAN_TIMEOUT_MS" as a style reference but that constant doesn't actually exist in HeatmapPanel — it was pointing to the general pattern of using a setTimeout in the request effect, not a literal import.
   - The error state needs its own UI branch (not just the existing error div inside the token list section) because `tokens === null` means none of the token-list conditional sections render.
 ---
+
+## 2026-03-29 - Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
+- Extracted the ~10-line override-cleaning block into a private `clearNonLockedOverrides(generator)` helper. Both `executeSingleBrand` (formerly L519-531) and `executeGeneratorMultiBrand` (formerly L608-620) now call the helper.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L509 (new helper), ~L522, ~L596
+- **Learnings for future iterations:**
+  - The two blocks were nearly identical but had swapped variable declaration order (`hasRemaining` vs the length check) — the helper normalises the order.
+  - Early-return on `!overrides` in the helper keeps the call sites clean.
+---

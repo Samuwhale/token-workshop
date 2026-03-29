@@ -506,6 +506,22 @@ export class GeneratorService {
     return results;
   }
 
+  /** Removes non-locked overrides from a generator after execution. */
+  private async clearNonLockedOverrides(generator: TokenGenerator): Promise<void> {
+    const overrides = generator.overrides;
+    if (!overrides) return;
+    const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
+    for (const [key, val] of Object.entries(overrides)) {
+      if (val.locked) cleaned[key] = val;
+    }
+    if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
+      const hasRemaining = Object.keys(cleaned).length > 0;
+      await this.update(generator.id, {
+        overrides: hasRemaining ? cleaned : undefined,
+      });
+    }
+  }
+
   /** Original single-brand execution path. Writes to `effectiveTargetSet`. */
   private async executeSingleBrand(
     generator: TokenGenerator,
@@ -517,20 +533,7 @@ export class GeneratorService {
       ? await this.computeResultsWithValue(generator, sourceValueOverride)
       : await this.computeResults(generator, tokenStore);
 
-    // Clear non-locked overrides after execution
-    const overrides = generator.overrides;
-    if (overrides) {
-      const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
-      for (const [key, val] of Object.entries(overrides)) {
-        if (val.locked) cleaned[key] = val;
-      }
-      const hasRemaining = Object.keys(cleaned).length > 0;
-      if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
-        await this.update(generator.id, {
-          overrides: hasRemaining ? cleaned : undefined,
-        });
-      }
-    }
+    await this.clearNonLockedOverrides(generator);
 
     const extensions = {
       'com.tokenmanager.generator': {
@@ -606,20 +609,7 @@ export class GeneratorService {
       allResults.push(...results);
     }
 
-    // Clear non-locked overrides after all brands run
-    const overrides = generator.overrides;
-    if (overrides) {
-      const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
-      for (const [key, val] of Object.entries(overrides)) {
-        if (val.locked) cleaned[key] = val;
-      }
-      if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
-        const hasRemaining = Object.keys(cleaned).length > 0;
-        await this.update(generator.id, {
-          overrides: hasRemaining ? cleaned : undefined,
-        });
-      }
-    }
+    await this.clearNonLockedOverrides(generator);
 
     return allResults;
   }

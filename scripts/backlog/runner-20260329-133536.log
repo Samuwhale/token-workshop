@@ -353,3 +353,25 @@ Already up to date.
 
   Merging to main: ContrastCheckGenerator is the only generator without per-step override support
 Already up to date.
+[main 47f64f14] chore(backlog): done – ContrastCheckGenerator is the only generator without per-step override support
+ 7 files changed, 64 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ExtractTokensPanel has no timeout for plugin response
+- Added `EXTRACT_TIMEOUT_MS = 8000` constant and a `setTimeout` in the request effect. On timeout, `setLoading(false)` and `setError(...)` are called. Also added a new `!loading && tokens === null && error` UI state block that shows the error message and a Close button, so the panel is never stuck in an indefinite loading spinner.
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L56-86
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  3 queued · 2 in-progress · last took 2m28s
+═══════════════════════════════════════════════════════════════
+  → Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand — the ~10-line block that removes non-locked overrides and updates the generator is copied almost verbatim at lines 519-531 and 608-620 of generator-service.ts; extract to a private helper to fix both at once (packages/server/src/services/generator-service.ts:519-531, 608-620)
+  Worktree: /tmp/backlog-46928-xtewbe
+  Running agent… (started 14:24:02)
+
+  ✓ done: Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
+    Extracted duplicate ~10-line block into private clearNonLockedOverrides() helper; both call sites replaced with single call; all gates pass
+    9 turns · 48s · $0.19
+
+  Merging to main: Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
+Already up to date.
