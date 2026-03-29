@@ -184,7 +184,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       .then((data) => {
         setAvailableSets(data.sets || []);
       })
-      .catch(() => { /* ignore — sets filter will be hidden */ });
+      .catch((err) => { console.warn('[ExportPanel] failed to fetch sets:', err); });
   }, [connected, serverUrl]);
 
   const toggleSet = (name: string) => {
@@ -354,7 +354,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setCopiedFile(file.path);
       setTimeout(() => setCopiedFile(null), 1500);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
-    } catch {
+    } catch (err) {
+      console.warn('[ExportPanel] clipboard write failed for file copy:', err);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
     }
   };
@@ -366,7 +367,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setCopiedAll(true);
       setTimeout(() => setCopiedAll(false), 1500);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
-    } catch {
+    } catch (err) {
+      console.warn('[ExportPanel] clipboard write failed for copy all:', err);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
     }
   };
@@ -376,7 +378,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     try {
       await navigator.clipboard.writeText(allContent);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${results.length} file(s) to clipboard` } }, '*');
-    } catch {
+    } catch (err) {
+      console.warn('[ExportPanel] clipboard write failed for copy all platform results:', err);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
     }
   };
@@ -411,7 +414,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: setName }),
-        }).catch(() => { /* set may already exist */ });
+        }).catch((err) => { console.warn('[ExportPanel] failed to ensure set exists:', err); });
 
         // Build all tokens and upsert in a single batch request
         const batchTokens = collection.variables.map(variable => {

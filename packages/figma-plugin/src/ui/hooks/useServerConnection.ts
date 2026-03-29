@@ -36,7 +36,8 @@ export function useServerConnection() {
     try {
       const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(2000) });
       return res.ok;
-    } catch {
+    } catch (err) {
+      console.warn('[useServerConnection] health check failed:', err);
       return false;
     }
   }, []);
@@ -90,7 +91,8 @@ export function useServerConnection() {
           setConnected(ok);
           prevConnected = ok;
         }
-      } catch {
+      } catch (err) {
+        console.warn('[useServerConnection] health poll failed:', err);
         if (!cancelled) {
           if (prevConnected === true) {
             fireDisconnect();

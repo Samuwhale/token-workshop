@@ -550,8 +550,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       try {
         const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`);
         setDependents(data.dependents ?? []);
-      } catch {
-        // silently fail — dependency info is supplementary
+      } catch (err) {
+        console.warn('[TokenEditor] failed to fetch dependents:', err);
       } finally {
         setDependentsLoading(false);
       }
@@ -800,8 +800,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             setSaving(false);
             return;
           }
-        } catch {
-          // If the conflict check itself fails (network error), proceed with the save.
+        } catch (err) {
+          console.warn('[TokenEditor] conflict check failed, proceeding with save:', err);
         }
       }
 
@@ -826,7 +826,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           if (typeof parsed === 'object' && !Array.isArray(parsed)) {
             Object.assign(extensions, parsed);
           }
-        } catch {
+        } catch (err) {
+          console.debug('[TokenEditor] invalid extensions JSON:', err);
           setError('Invalid JSON in Extensions — fix before saving');
           setSaving(false);
           return;

@@ -64,19 +64,20 @@ export function lsGet(key: string, fallback?: string): string | null {
     const v = localStorage.getItem(key);
     if (v !== null) return v;
     return fallback ?? null;
-  } catch {
+  } catch (e) {
+    console.debug('[storage] read failed:', key, e);
     return fallback ?? null;
   }
 }
 
 /** Write a string value; silently ignores errors (quota, private mode). */
 export function lsSet(key: string, value: string): void {
-  try { localStorage.setItem(key, value); } catch {}
+  try { localStorage.setItem(key, value); } catch (e) { console.debug('[storage] write failed:', key, e); }
 }
 
 /** Remove a key; silently ignores errors. */
 export function lsRemove(key: string): void {
-  try { localStorage.removeItem(key); } catch {}
+  try { localStorage.removeItem(key); } catch (e) { console.debug('[storage] remove failed:', key, e); }
 }
 
 // ---------------------------------------------------------------------------
@@ -88,14 +89,15 @@ export function lsGetJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     return raw !== null ? (JSON.parse(raw) as T) : fallback;
-  } catch {
+  } catch (e) {
+    console.debug('[storage] JSON read failed:', key, e);
     return fallback;
   }
 }
 
 /** Stringify and write a JSON value; silently ignores errors. */
 export function lsSetJson<T>(key: string, value: T): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.debug('[storage] JSON write failed:', key, e); }
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +116,7 @@ export function lsClearByPrefix(...prefixes: string[]): void {
       if (k && prefixes.some(p => k.startsWith(p))) toRemove.push(k);
     }
     for (const k of toRemove) {
-      try { localStorage.removeItem(k); } catch {}
+      try { localStorage.removeItem(k); } catch (e) { console.debug('[storage] prefix remove failed:', k, e); }
     }
-  } catch {}
+  } catch (e) { console.debug('[storage] prefix clear failed:', e); }
 }

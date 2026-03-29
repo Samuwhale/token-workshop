@@ -60,7 +60,7 @@ export function useFindReplace({
     const existingPathSet = new Set(currentSetPaths);
     let pattern: RegExp | null = null;
     if (frIsRegex) {
-      try { pattern = new RegExp(frFind, 'g'); } catch { return []; }
+      try { pattern = new RegExp(frFind, 'g'); } catch (e) { console.debug('[useFindReplace] regex compile failed (expected during typing):', e); return []; }
     }
     const renames: Array<{ oldPath: string; newPath: string; conflict: boolean }> = [];
     const willBeFreed = new Set<string>();

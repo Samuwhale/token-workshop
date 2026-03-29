@@ -352,8 +352,8 @@ export function parseInput(raw: string): ParseResult {
       const twResult = parseTailwindConfig(trimmed);
       if (twResult.tokens.length > 0) return twResult;
       return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields, or a plain key/value object.'], format: 'error' };
-    } catch {
-      // JSON parse failed — try Tailwind/JS object conversion
+    } catch (e) {
+      console.debug('[tokenParsers] JSON parse failed, trying Tailwind/JS fallback:', e);
       const twResult = parseTailwindConfig(trimmed);
       if (twResult.tokens.length > 0) return twResult;
       // Re-parse for error message

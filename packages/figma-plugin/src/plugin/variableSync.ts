@@ -120,27 +120,27 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
         if (v) {
           // Restore values
           for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
-            try { v.setValueForMode(modeId, value as VariableValue); } catch { /* ignore individual restore errors */ }
+            try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { console.warn('[variableSync] rollback: setValueForMode failed:', e); }
           }
           // Restore name
-          try { v.name = snapshot.name; } catch { /* ignore */ }
+          try { v.name = snapshot.name; } catch (e) { console.warn('[variableSync] rollback: restore name failed:', e); }
           // Restore description
-          try { v.description = snapshot.description; } catch { /* ignore */ }
+          try { v.description = snapshot.description; } catch (e) { console.warn('[variableSync] rollback: restore description failed:', e); }
           // Restore hiddenFromPublishing
-          try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch { /* ignore */ }
+          try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { console.warn('[variableSync] rollback: restore hiddenFromPublishing failed:', e); }
           // Restore scopes
-          try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch { /* ignore */ }
+          try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { console.warn('[variableSync] rollback: restore scopes failed:', e); }
           // Restore plugin data
           try {
             v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
             v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
-          } catch { /* ignore */ }
+          } catch (e) { console.warn('[variableSync] rollback: restore pluginData failed:', e); }
         }
       }
       // Delete variables created during this operation (reverse order)
       for (const varId of [...createdVariableIds].reverse()) {
         const v = await figma.variables.getVariableByIdAsync(varId);
-        if (v) { try { v.remove(); } catch { /* ignore */ } }
+        if (v) { try { v.remove(); } catch (e) { console.warn('[variableSync] rollback: remove variable failed:', e); } }
       }
       // Delete collections created during this operation if they are now empty
       for (const colId of [...createdCollectionIds].reverse()) {
@@ -149,7 +149,7 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
         if (col) {
           const allVars = await figma.variables.getLocalVariablesAsync();
           const hasVars = allVars.some(v => v.variableCollectionId === colId);
-          if (!hasVars) { try { col.remove(); } catch { /* ignore */ } }
+          if (!hasVars) { try { col.remove(); } catch (e) { console.warn('[variableSync] rollback: remove collection failed:', e); } }
         }
       }
       rolledBack = true;

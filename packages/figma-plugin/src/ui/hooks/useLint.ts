@@ -36,8 +36,8 @@ export function useLint(
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
         });
         setViolations(data.violations ?? []);
-      } catch {
-        // server offline, timeout, or effect cleanup — silently clear
+      } catch (err) {
+        console.debug('[useLint] lint fetch failed (server offline, timeout, or cleanup):', err);
         setViolations([]);
       }
     }, DEBOUNCE_MS);

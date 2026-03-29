@@ -26,6 +26,14 @@ export function describeError(err: unknown, operation: string): string {
   return `${operation} failed: ${getErrorMessage(err, String(err))}`;
 }
 
+/** Log a caught error with a context label. Returns the formatted message string. */
+export function logCatch(context: string, err: unknown, level: 'debug' | 'warn' = 'warn'): string {
+  const msg = describeError(err, context);
+  if (level === 'debug') console.debug(msg);
+  else console.warn(msg);
+  return msg;
+}
+
 /** JSON.stringify with keys sorted recursively, so key-insertion-order differences never produce different strings. */
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {

@@ -180,7 +180,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
       await navigator.clipboard.writeText(text);
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
-    } catch {
+    } catch (err) {
+      console.warn('[ThemeCompare] clipboard write failed:', err);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
     }
   }, [buildTsv, filteredDiffs]);

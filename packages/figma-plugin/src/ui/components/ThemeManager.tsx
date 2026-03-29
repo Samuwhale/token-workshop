@@ -185,7 +185,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           }
           tokenValues[s] = map;
           tokenTypes[s] = typeMap;
-        } catch {
+        } catch (err) {
+          console.warn('[ThemeManager] failed to fetch token set:', s, err);
           failedSets.push(s);
         }
       }));
@@ -462,7 +463,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: opt.name, sets: opt.sets }),
               });
-            } catch {
+            } catch (err) {
+              console.warn('[ThemeManager] failed to restore option during undo:', opt.name, err);
               setError(`Undo restored layer but failed to restore option "${opt.name}"`);
             }
           }
@@ -556,7 +558,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           body: JSON.stringify({ options: reordered.map(o => o.name) }),
         },
       );
-    } catch {
+    } catch (err) {
+      console.warn('[ThemeManager] failed to reorder options:', err);
       fetchDimensions();
     }
   };
@@ -581,7 +584,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           body: JSON.stringify({ dimensionIds: reordered.map(d => d.id) }),
         },
       );
-    } catch {
+    } catch (err) {
+      console.warn('[ThemeManager] failed to reorder dimensions:', err);
       fetchDimensions();
     }
   };

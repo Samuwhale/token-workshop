@@ -50,7 +50,8 @@ function parseEntries(jsonText: string): ExtEntry[] | null {
       key: k,
       value: typeof v === 'string' ? v : JSON.stringify(v, null, 2),
     }));
-  } catch {
+  } catch (e) {
+    console.debug('[MetadataEditor] failed to parse extensions JSON:', e);
     return null;
   }
 }
@@ -65,7 +66,8 @@ function entriesToJson(entries: ExtEntry[]): string {
     if (val) {
       try {
         obj[e.key] = JSON.parse(val);
-      } catch {
+      } catch (e2) {
+        console.debug('[MetadataEditor] value is not valid JSON, treating as string:', e2);
         obj[e.key] = val;
       }
     } else {
@@ -82,7 +84,7 @@ function validateEntries(entries: ExtEntry[]): string | null {
   for (const e of entries) {
     const val = e.value.trim();
     if (val && (val.startsWith('{') || val.startsWith('['))) {
-      try { JSON.parse(val); } catch { return `Invalid JSON value for "${e.key}"`; }
+      try { JSON.parse(val); } catch (e2) { console.debug('[MetadataEditor] invalid JSON value for key:', e.key, e2); return `Invalid JSON value for "${e.key}"`; }
     }
   }
   return null;
@@ -169,7 +171,7 @@ function ExtensionsEditor({
         const formatted = JSON.stringify(JSON.parse(trimmed), null, 2);
         onExtensionsJsonTextChange(formatted);
         setLastSyncedText(formatted);
-      } catch { /* keep as-is */ }
+      } catch (e) { console.debug('[MetadataEditor] failed to format JSON:', e); /* keep as-is */ }
     }
     setRawMode(true);
   }, [extensionsJsonText, onExtensionsJsonTextChange]);
@@ -253,7 +255,8 @@ function ExtensionsEditor({
                       } else {
                         onExtensionsJsonErrorChange(null);
                       }
-                    } catch {
+                    } catch (e) {
+                      console.debug('[MetadataEditor] extensions JSON parse error:', e);
                       onExtensionsJsonErrorChange('Invalid JSON');
                     }
                   }

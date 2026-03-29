@@ -203,8 +203,8 @@ export async function selectHeatmapNodes(nodeIds: string[]) {
       figma.currentPage.selection = nodes;
       figma.viewport.scrollAndZoomIntoView(nodes);
     }
-  } catch {
-    // ignore — node might not be accessible
+  } catch (e) {
+    console.debug('[heatmapScanning] failed to select/zoom to nodes:', e);
   }
 }
 

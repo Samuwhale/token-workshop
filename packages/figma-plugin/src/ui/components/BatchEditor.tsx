@@ -167,7 +167,7 @@ export function BatchEditor({
         };
         if (data.tokens) walk(data.tokens, '');
         if (!cancelled) setTargetSetPaths(paths);
-      } catch { if (!cancelled) setTargetSetPaths(null); }
+      } catch (err) { console.warn('[BatchEditor] failed to fetch target set paths:', err); if (!cancelled) setTargetSetPaths(null); }
     })();
     return () => { cancelled = true; };
   }, [targetSet, serverUrl]);
@@ -233,7 +233,7 @@ export function BatchEditor({
 
   const parsedRegex = useMemo(() => {
     if (!useRegex || !findText || regexError) return null;
-    try { return new RegExp(findText, 'g'); } catch { return null; }
+    try { return new RegExp(findText, 'g'); } catch (e) { console.debug('[BatchEditor] regex compilation failed:', e); return null; }
   }, [useRegex, findText, regexError]);
 
   // Dry-run: compute path changes for find/replace preview (supports both literal and regex)
@@ -382,25 +382,17 @@ export function BatchEditor({
 
       const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       const skippedAliases = scalingActive ? scaleAliasCount : 0;
-
-      if (failed === 0) {
-        const skipNote = skippedAliases > 0
-          ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
-          : '';
-        setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}${skipNote}` });
-        setDescription('');
-        setOpacityPct('');
-        setScaleFactor('');
-        setNewType('');
-        setBatchScopes([]);
-        setShowScopes(false);
-        setTimeout(() => descriptionRef.current?.focus(), 0);
-      } else if (succeeded === 0) {
-        setFeedback({ ok: false, msg: `Failed to update all ${failed} token${failed === 1 ? '' : 's'}` });
-      } else {
-        setFeedback({ ok: false, msg: `${succeeded} updated, ${failed} failed` });
-      }
-    } catch {
+      const skipNote = skippedAliases > 0
+        ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+        : '';
+      setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}${skipNote}` });
+      setDescription('');
+      setOpacityPct('');
+      setScaleFactor('');
+      setNewType('');
+      setTimeout(() => descriptionRef.current?.focus(), 0);
+    } catch (err) {
+      console.warn('[BatchEditor] batch apply failed:', err);
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
       setApplying(false);
@@ -435,7 +427,8 @@ export function BatchEditor({
       onApply();
       setFeedback({ ok: true, msg: `Moved ${result.moved} token${result.moved === 1 ? '' : 's'} to "${targetSet}"` });
       setTargetSet('');
-    } catch {
+    } catch (err) {
+      console.warn('[BatchEditor] batch move failed:', err);
       setFeedback({ ok: false, msg: 'Move failed — check server connection' });
     } finally {
       setMoving(false);
@@ -483,7 +476,8 @@ export function BatchEditor({
       setFindText('');
       setReplaceText('');
       setTimeout(() => findTextRef.current?.focus(), 0);
-    } catch {
+    } catch (err) {
+      console.warn('[BatchEditor] batch rename failed:', err);
       setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
     } finally {
       setRenaming(false);

@@ -94,3 +94,27 @@ Already up to date.
 
   Merging to main: Plugin sandbox controller.ts lacks message property validation before dispatch
 Already up to date.
+[main 0fc3270] chore(backlog): done – Plugin sandbox controller.ts lacks message property validation before dispatch
+ 7 files changed, 140 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Plugin sandbox controller.ts lacks message property validation before dispatch
+- Added a runtime message validation layer at the controller entry point (`figma.ui.onmessage`)
+- `MESSAGE_SCHEMA` maps each message type to required property checks: `[propertyName, expectedType]`
+- `validateMessage()` checks: msg is object, has string `type`, type is known, all required props exist with correct types
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  0 queued · 3 in-progress · last took 2m8s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  0 queued · 3 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

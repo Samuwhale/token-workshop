@@ -71,3 +71,10 @@ Already up to date.
   → 95 bare `catch {}` blocks across 33 UI files silently swallow errors — TokenList.tsx alone has 14 empty catch blocks (localStorage reads, API calls, JSON parsing); hooks like useGitConflicts.ts L47, useGitStatus.ts L58, useLintConfig.ts (3 instances), and useSetTabs.ts (2 instances) catch and discard errors with no logging or user feedback; audit all 95 `catch {}` occurrences and add at minimum console.warn for debugging, and toast/inline error state for user-facing operations like API calls and sync actions
   Worktree: /tmp/backlog-67435-e9FiFl
   Running agent… (started 07:46:49)
+
+  ✓ done: Audit bare catch {} blocks and add error logging
+    Fixed ~100 bare catch blocks across 41 files with console.debug (storage/regex/JSON) or console.warn (API/network/clipboard); added logCatch() helper; flipped ESLint allowEmptyCatch to false to prevent regressions
+    50 turns · 737s · $5.54
+
+  Merging to main: Audit bare catch {} blocks and add error logging
+Already up to date.

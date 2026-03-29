@@ -543,3 +543,18 @@
   - The PluginMessage discriminated union provides compile-time safety but no runtime guarantees — postMessage payloads arrive as plain objects
   - Some message types used in controller.ts (scan-token-variable-bindings, remove-binding-from-node) were missing from the PluginMessage union type — the schema covers them anyway since validation works on raw objects
 ---
+
+## 2026-03-29 - Audit bare catch {} blocks and add error logging
+- Added `logCatch()` helper to `utils.ts` for standardized error logging
+- Fixed ~100 bare `catch {}` blocks across 41 files (37 UI + 4 plugin)
+- Logging levels: `console.debug` for storage/regex/JSON-parse (expected failures), `console.warn` for API/network/clipboard operations
+- Added once-per-session guard in `colorUtils.ts` for `@tokenmanager/core` unavailability warnings
+- Fixed 9 `.catch(() => {})` promise chains in `TokenTreeNode.tsx` (clipboard writes)
+- Changed ESLint `no-empty` rule from `allowEmptyCatch: true` to `false` to prevent future bare catches
+- Files changed: `eslint.config.js`, `packages/figma-plugin/src/ui/shared/utils.ts` (logCatch helper), `storage.ts`, `colorUtils.ts`, `tokenParsers.ts`, all component files (TokenList, HistoryPanel, AnalyticsPanel, BatchEditor, ExportPanel, MetadataEditor, ThemeManager, SettingsPanel, App, PanelHelpHint, TokenEditor, ValueEditors, TokenListModals, TokenTreeNode, TokenDependents, ThemeCompare, ImportPanel, PasteTokensModal), all hook files (useServerConnection, useGitStatus, useGitSync, useGitConflicts, useLintConfig, useLint, useSetTabs, useRecentOperations, useServerEvents, useFindReplace, useGeneratorSave, useDragDrop, useNodeGraph, useTokenCreate), plugin files (variableSync, selectionHandling, heatmapScanning, fontLoading)
+- **Learnings for future iterations:**
+  - colorUtils.ts uses dynamic `require('@tokenmanager/core')` — a once-per-session flag avoids spamming console on every color op
+  - ESLint `allowEmptyCatch: false` now enforces logging in all future catch blocks
+  - `.catch(() => {})` on promise chains (clipboard, fetch) are just as problematic as bare `catch {}` — grep for both patterns
+  - Plugin sandbox (variableSync rollback) catches are intentionally defensive — warn level is appropriate since they only fire during error recovery
+---

@@ -6,6 +6,11 @@
  * from core — do NOT re-export through this file (vite-plugin-singlefile TDZ risk).
  */
 
+let _coreWarnLogged = false;
+function logCoreUnavailable() {
+  if (!_coreWarnLogged) { console.debug('[colorUtils] @tokenmanager/core not available at runtime'); _coreWarnLogged = true; }
+}
+
 import {
   srgbToLinear as toLinear,
   srgbFromLinear as fromLinear,
@@ -111,6 +116,7 @@ function formatWideGamut(colorStr: string, format: ColorFormat): string {
       case 'p3': return serializeColor(toDisplayP3(parsed));
     }
   } catch {
+    logCoreUnavailable();
     return colorStr;
   }
 }
@@ -150,7 +156,7 @@ export function parseColorInput(input: string): string | null {
     const parsed = parseAnyColor(trimmed);
     if (parsed) return serializeColor(parsed);
   } catch {
-    // core not available
+    logCoreUnavailable();
   }
   return null;
 }
@@ -274,7 +280,7 @@ export function colorLuminance(colorStr: string): number | null {
     const parsed = parseAnyColor(colorStr);
     if (parsed) return parsedColorLuminance(parsed);
   } catch {
-    // core not available
+    logCoreUnavailable();
   }
   return null;
 }
@@ -307,6 +313,7 @@ export function isWideGamutColor(colorStr: string): boolean {
     const { isWideGamut } = require('@tokenmanager/core');
     return isWideGamut(colorStr);
   } catch {
+    logCoreUnavailable();
     return false;
   }
 }
@@ -321,6 +328,7 @@ export function getSrgbFallback(colorStr: string): string | null {
     const { srgbFallbackHex } = require('@tokenmanager/core');
     return srgbFallbackHex(colorStr);
   } catch {
+    logCoreUnavailable();
     return null;
   }
 }

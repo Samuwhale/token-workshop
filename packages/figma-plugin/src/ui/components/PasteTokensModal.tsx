@@ -95,7 +95,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   useEffect(() => {
     navigator.clipboard.readText().then(text => {
       if (text.trim()) setInput(text.trim());
-    }).catch(() => { /* clipboard unavailable or denied — leave empty */ });
+    }).catch((err) => { console.warn('[PasteTokensModal] clipboard read failed:', err); });
   }, []);
 
   useEffect(() => {

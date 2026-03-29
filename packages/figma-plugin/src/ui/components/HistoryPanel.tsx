@@ -652,7 +652,8 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
     try {
       const data = await apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`);
       setSnapshots(data.snapshots ?? []);
-    } catch {
+    } catch (err) {
+      console.warn('[HistoryPanel] failed to load snapshots:', err);
       setError('Could not load snapshots');
     } finally {
       setLoading(false);
@@ -682,7 +683,8 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
       setShowLabelInput(false);
       showSuccess('State saved');
       await loadSnapshots();
-    } catch {
+    } catch (err) {
+      console.warn('[HistoryPanel] failed to save snapshot:', err);
       setError('Failed to save snapshot');
     } finally {
       setSaving(false);
@@ -702,7 +704,8 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
       const sections: Record<string, boolean> = {};
       for (const c of unified) sections[c.set] = true;
       setOpenSections(sections);
-    } catch {
+    } catch (err) {
+      console.warn('[HistoryPanel] failed to load comparison:', err);
       setError('Failed to load comparison');
       setComparing(null);
     } finally {
@@ -719,7 +722,8 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
       showSuccess('Reverted to saved state');
       setComparing(null);
       setChanges(null);
-    } catch {
+    } catch (err) {
+      console.warn('[HistoryPanel] failed to revert snapshot:', err);
       setError('Failed to revert');
     } finally {
       setReverting(false);
@@ -735,7 +739,8 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
         setChanges(null);
       }
       await loadSnapshots();
-    } catch {
+    } catch (err) {
+      console.warn('[HistoryPanel] failed to delete snapshot:', err);
       setError('Failed to delete snapshot');
     }
   };

@@ -313,14 +313,14 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const cascadeChange = !node.isGroup ? cascadeDiff?.[node.path] : undefined;
 
   const handleCopyPath = () => {
-    navigator.clipboard.writeText(node.path).catch(() => {});
+    navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
     setCopiedWhat('path');
     setTimeout(() => setCopiedWhat(null), 1500);
   };
 
   const handleCopyValue = () => {
     const val = typeof displayValue === 'string' ? displayValue : JSON.stringify(displayValue);
-    navigator.clipboard.writeText(val).catch(() => {});
+    navigator.clipboard.writeText(val).catch(e => console.warn('[clipboard] write failed:', e));
     setCopiedWhat('value');
     setTimeout(() => setCopiedWhat(null), 1500);
   };
@@ -1664,7 +1664,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              navigator.clipboard.writeText(node.path).catch(() => {});
+              navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >
@@ -1674,7 +1674,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              navigator.clipboard.writeText(`var(--${node.path.replace(/\./g, '-')})`).catch(() => {});
+              navigator.clipboard.writeText(`var(--${node.path.replace(/\./g, '-')})`).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >
@@ -1684,7 +1684,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              navigator.clipboard.writeText(`$${node.path.replace(/\./g, '-')}`).catch(() => {});
+              navigator.clipboard.writeText(`$${node.path.replace(/\./g, '-')}`).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >
@@ -1694,7 +1694,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              navigator.clipboard.writeText(`{${node.path}}`).catch(() => {});
+              navigator.clipboard.writeText(`{${node.path}}`).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >
@@ -1706,7 +1706,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               const val = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
-              navigator.clipboard.writeText(val).catch(() => {});
+              navigator.clipboard.writeText(val).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >
@@ -1718,7 +1718,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
-                navigator.clipboard.writeText(formatHexAs(displayValue, fmt)).catch(() => {});
+                navigator.clipboard.writeText(formatHexAs(displayValue, fmt)).catch(e => console.warn('[clipboard] write failed:', e));
                 setContextMenuPos(null);
               }}
             >
@@ -1732,7 +1732,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             onClick={() => {
               const entry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
               if (node.$description) entry.$description = node.$description;
-              navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(() => {});
+              navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(e => console.warn('[clipboard] write failed:', e));
               setContextMenuPos(null);
             }}
           >

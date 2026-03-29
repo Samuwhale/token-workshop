@@ -57,7 +57,8 @@ export function useServerEvents(
         let data: Record<string, unknown>;
         try {
           data = JSON.parse(e.data as string);
-        } catch {
+        } catch (e) {
+          console.debug('[useServerEvents] failed to parse SSE event data:', e);
           return;
         }
 

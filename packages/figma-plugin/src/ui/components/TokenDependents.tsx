@@ -48,7 +48,7 @@ function formatDiffValue(val: any, type: string): string {
   if (val === null || val === undefined) return '—';
   if (type === 'color' && typeof val === 'string') return val.slice(0, 7);
   if (typeof val === 'object') {
-    try { return JSON.stringify(val); } catch { return String(val); }
+    try { return JSON.stringify(val); } catch (e) { console.debug('[TokenDependents] stringify failed:', e); return String(val); }
   }
   return String(val);
 }

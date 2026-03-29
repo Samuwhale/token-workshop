@@ -120,8 +120,8 @@ export function useGeneratorSave({
           try {
             const tokensData = await apiFetch<{ tokens: GeneratedTokenResult[] }>(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
             tokensForMapping = tokensData.tokens ?? [];
-          } catch {
-            // Best-effort — if fetching fails, skip semantic mapping
+          } catch (err) {
+            console.warn('[useGeneratorSave] failed to fetch generator tokens for semantic mapping:', err);
           }
         }
         if (tokensForMapping.length > 0) {
@@ -161,8 +161,8 @@ export function useGeneratorSave({
           setSaving(false);
           return;
         }
-      } catch {
-        // Best-effort — if the check fails, proceed without warning
+      } catch (err) {
+        console.warn('[useGeneratorSave] overwrite check failed, proceeding without warning:', err);
       }
       setSaving(false);
     }

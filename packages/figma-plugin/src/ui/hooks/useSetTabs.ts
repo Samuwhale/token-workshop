@@ -175,7 +175,8 @@ export function useSetTabs({
         body: JSON.stringify({ order: newOrder }),
       });
       setSuccessToast('Set order updated');
-    } catch {
+    } catch (err) {
+      console.warn('[useSetTabs] reorder set failed:', err);
       refreshTokens();
     }
   };
@@ -199,7 +200,8 @@ export function useSetTabs({
         body: JSON.stringify({ order: newOrder }),
       });
       setSuccessToast('Set order updated');
-    } catch {
+    } catch (err) {
+      console.warn('[useSetTabs] set drop reorder failed:', err);
       refreshTokens();
     }
   };

@@ -250,7 +250,8 @@ export function SettingsPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
       });
-    } catch {
+    } catch (err) {
+      console.warn('[SettingsPanel] failed to save lint config:', err);
       // revert on failure
       fetchLintConfig();
     }
@@ -265,7 +266,8 @@ export function SettingsPanel({
         body: JSON.stringify(defaults),
       });
       setLintConfig(defaults);
-    } catch {
+    } catch (err) {
+      console.warn('[SettingsPanel] failed to reset lint defaults:', err);
       fetchLintConfig();
     }
   }, [serverUrl, fetchLintConfig]);

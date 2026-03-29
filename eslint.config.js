@@ -40,7 +40,7 @@ export default [
         allowShortCircuit: true,
         allowTernary: true,
       }],
-      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-empty': ['error', { allowEmptyCatch: false }],
       'no-control-regex': 'off', // intentional in git-sync sanitizer
       'no-constant-binary-expression': 'error',
       'no-self-compare': 'error',

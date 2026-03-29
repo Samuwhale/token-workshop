@@ -628,7 +628,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           if (imported > 0) {
             rollbackEntries.push({ setName, paths: mode.tokens.map(t => t.path) });
           }
-        } catch {
+        } catch (err) {
+          console.warn('[ImportPanel] failed to import token batch:', err);
           for (const t of mode.tokens) failedPaths.push(t.path);
         }
         importedSets++;

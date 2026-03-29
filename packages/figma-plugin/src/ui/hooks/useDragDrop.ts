@@ -117,7 +117,8 @@ export function useDragDrop({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
               });
-            } catch {
+            } catch (err) {
+              console.warn('[useDragDrop] undo rename failed:', err);
               failures.push(oldPath);
             }
           }
@@ -135,7 +136,8 @@ export function useDragDrop({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPath, newPath }),
               });
-            } catch {
+            } catch (err) {
+              console.warn('[useDragDrop] redo rename failed:', err);
               failures.push(oldPath);
             }
           }

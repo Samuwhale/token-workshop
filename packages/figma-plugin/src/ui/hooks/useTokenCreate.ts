@@ -48,11 +48,11 @@ export function useTokenCreate({
   const [newTokenGroup, setNewTokenGroup] = useState('');
   const [newTokenName, setNewTokenName] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
-    try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
+    try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch (e) { console.debug('[useTokenCreate] storage read failed:', e); return 'color'; }
   });
   const setNewTokenType = (t: string) => {
     setNewTokenTypeState(t);
-    try { localStorage.setItem('tm_last_token_type', t); } catch {}
+    try { localStorage.setItem('tm_last_token_type', t); } catch (e) { console.debug('[useTokenCreate] storage write failed:', e); }
   };
   const [newTokenValue, setNewTokenValue] = useState('');
   const [newTokenDescription, setNewTokenDescription] = useState('');

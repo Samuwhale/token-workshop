@@ -66,7 +66,8 @@ export async function resolveStyleForWeight(family: string, weight: number | str
       }
     }
     return bestStyle;
-  } catch {
+  } catch (e) {
+    console.debug('[fontLoading] font style lookup failed, using fallback:', e);
     return weightToFontStyleFallback(targetWeight);
   }
 }

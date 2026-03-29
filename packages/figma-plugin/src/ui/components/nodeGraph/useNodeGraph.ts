@@ -26,7 +26,8 @@ function loadPositions(activeSet: string): Record<string, { x: number; y: number
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${activeSet}`);
     return raw ? JSON.parse(raw) : {};
-  } catch {
+  } catch (e) {
+    console.debug('[useNodeGraph] failed to load positions from localStorage:', e);
     return {};
   }
 }
@@ -38,7 +39,7 @@ function savePositions(activeSet: string, nodes: GraphNode[]): void {
   }
   try {
     localStorage.setItem(`${STORAGE_PREFIX}${activeSet}`, JSON.stringify(positions));
-  } catch { /* quota exceeded — noop */ }
+  } catch (e) { console.debug('[useNodeGraph] failed to save positions (quota exceeded?):', e); }
 }
 
 // ---------------------------------------------------------------------------

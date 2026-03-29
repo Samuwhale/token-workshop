@@ -52,14 +52,15 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
         const data = await apiFetch<GitStatus>(`${serverUrl}/api/sync/status`, { signal });
         setGitStatus(data);
         if (data.remote) setRemoteUrl(data.remote);
-      } catch {
+      } catch (err) {
+        console.warn('[useGitStatus] status fetch failed:', err);
         setGitStatus({ isRepo: false, branch: null, remote: null, status: null });
       }
       try {
         const branchData = await apiFetch<{ branches: string[] }>(`${serverUrl}/api/sync/branches`, { signal });
         setBranches(branchData.branches || []);
-      } catch {
-        // Branch fetch failure is non-fatal
+      } catch (err) {
+        console.warn('[useGitStatus] branch fetch failed (non-fatal):', err);
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;

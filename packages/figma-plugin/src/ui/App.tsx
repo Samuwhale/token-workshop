@@ -404,7 +404,7 @@ export function App() {
         if (!cancelled) {
           setGitHasChanges(data.status != null && !data.status.isClean);
         }
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('[App] git status check failed:', err); }
     };
     check();
     const interval = setInterval(check, 30000);
@@ -571,8 +571,8 @@ export function App() {
     setClearing(true);
     try {
       await apiFetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
-    } catch {
-      // best-effort
+    } catch (err) {
+      console.warn('[App] clear all data request failed:', err);
     }
     // Clear all plugin localStorage keys
     for (const key of [STORAGE_KEYS.ACTIVE_TAB, STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP]) {
@@ -630,7 +630,8 @@ export function App() {
             const inferredType = inferTypeFromValue(trimmed) || 'string';
             goToTokens();
             setEditingToken({ path: '', set: activeSet, isCreate: true, initialType: inferredType, initialValue: trimmed });
-          } catch {
+          } catch (err) {
+            console.warn('[App] clipboard read failed:', err);
             setErrorToast('Could not read clipboard — browser may have denied access');
           }
         },
@@ -2525,14 +2526,14 @@ export function App() {
             }
           }}
           onCopyTokenPath={(path) => {
-            navigator.clipboard.writeText(path).catch(() => {});
+            navigator.clipboard.writeText(path).catch((err) => { console.warn('[App] clipboard write failed for token path:', err); });
           }}
           onCopyTokenValue={(value) => {
-            navigator.clipboard.writeText(value).catch(() => {});
+            navigator.clipboard.writeText(value).catch((err) => { console.warn('[App] clipboard write failed for token value:', err); });
           }}
           onCopyTokenCssVar={(path) => {
             const cssVar = `--${path.replace(/\./g, '-')}`;
-            navigator.clipboard.writeText(cssVar).catch(() => {});
+            navigator.clipboard.writeText(cssVar).catch((err) => { console.warn('[App] clipboard write failed for CSS var:', err); });
           }}
           onClose={() => setShowCommandPalette(false)}
         />

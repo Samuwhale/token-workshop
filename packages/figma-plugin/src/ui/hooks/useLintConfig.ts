@@ -24,7 +24,8 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
     try {
       const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`);
       setConfig(data);
-    } catch {
+    } catch (err) {
+      console.warn('[useLintConfig] fetch config failed:', err);
       setConfig(null);
     } finally {
       setLoading(false);
@@ -45,7 +46,8 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
       });
       setConfig(saved);
       return true;
-    } catch {
+    } catch (err) {
+      console.warn('[useLintConfig] update config failed:', err);
       return false;
     } finally {
       setSaving(false);
@@ -70,7 +72,8 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
     try {
       const defaults = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config/default`);
       return updateConfig(defaults);
-    } catch {
+    } catch (err) {
+      console.warn('[useLintConfig] reset to defaults failed:', err);
       return false;
     } finally {
       setSaving(false);

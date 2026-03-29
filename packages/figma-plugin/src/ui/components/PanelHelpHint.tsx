@@ -22,7 +22,7 @@ const STORAGE_PREFIX = 'tm-panel-hint-dismissed-';
 export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintProps) {
   const storageKey = STORAGE_PREFIX + panelKey;
   const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === '1'; } catch { return false; }
+    try { return localStorage.getItem(storageKey) === '1'; } catch (e) { console.debug('[PanelHelpHint] localStorage read failed:', e); return false; }
   });
   const [expanded, setExpanded] = useState(!dismissed);
 
@@ -33,7 +33,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
   const dismiss = useCallback(() => {
     setExpanded(false);
     setDismissed(true);
-    try { localStorage.setItem(storageKey, '1'); } catch { /* noop */ }
+    try { localStorage.setItem(storageKey, '1'); } catch (e) { console.debug('[PanelHelpHint] localStorage write failed:', e); }
   }, [storageKey]);
 
   return (
@@ -139,7 +139,7 @@ export function PanelHelpBanner({ title, description, onDismiss }: {
 export function usePanelHelp(panelKey: string) {
   const storageKey = STORAGE_PREFIX + panelKey;
   const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(storageKey) === '1'; } catch { return false; }
+    try { return localStorage.getItem(storageKey) === '1'; } catch (e) { console.debug('[usePanelHelp] localStorage read failed:', e); return false; }
   });
   const [expanded, setExpanded] = useState(!dismissed);
 
@@ -147,7 +147,7 @@ export function usePanelHelp(panelKey: string) {
   const dismiss = useCallback(() => {
     setExpanded(false);
     setDismissed(true);
-    try { localStorage.setItem(storageKey, '1'); } catch { /* noop */ }
+    try { localStorage.setItem(storageKey, '1'); } catch (e) { console.debug('[usePanelHelp] localStorage write failed:', e); }
   }, [storageKey]);
 
   return { expanded, dismissed, toggle, dismiss };

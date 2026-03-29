@@ -121,7 +121,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setValidateResults(issues);
       setResultsStale(false);
       onValidationComplete?.(issues.length);
-    } catch {
+    } catch (err) {
+      console.warn('[AnalyticsPanel] validation request failed:', err);
       setValidateError('Validation failed — check server connection');
     } finally {
       setValidateLoading(false);
@@ -405,7 +406,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       // Refresh data
       setDeduplicating(null);
       setReloadKey(k => k + 1);
-    } catch {
+    } catch (err) {
+      console.warn('[AnalyticsPanel] deduplicate operation failed:', err);
       setDeduplicating(null);
     }
   };
@@ -432,7 +434,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setBulkDeduplicating(false);
       setConfirmBulkDedup(false);
       setReloadKey(k => k + 1);
-    } catch {
+    } catch (err) {
+      console.warn('[AnalyticsPanel] bulk deduplicate failed:', err);
       setBulkDeduplicating(false);
     }
   };

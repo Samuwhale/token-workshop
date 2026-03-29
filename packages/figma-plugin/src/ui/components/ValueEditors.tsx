@@ -2119,8 +2119,8 @@ export function CustomEditor({ value, onChange }: { value: any; onChange: (v: an
       const parsed = JSON.parse(raw);
       onChange(parsed);
       setParseError(null);
-    } catch {
-      // Not valid JSON — treat as plain string
+    } catch (e) {
+      console.debug('[ValueEditors] JSON parse failed, treating as string:', e);
       onChange(raw);
       setParseError(null);
     }
@@ -2135,7 +2135,8 @@ export function CustomEditor({ value, onChange }: { value: any; onChange: (v: an
           try {
             JSON.parse(e.target.value);
             setParseError(null);
-          } catch {
+          } catch (e) {
+            console.debug('[ValueEditors] live JSON validation failed:', e);
             setParseError('Not valid JSON — will be saved as string');
           }
         }}

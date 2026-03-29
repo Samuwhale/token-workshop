@@ -553,7 +553,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                         try {
                           const m = new RegExp(frFind).exec(oldPath);
                           if (m) { matchStart = m.index; matchLen = m[0].length; }
-                        } catch {}
+                        } catch (e) { console.debug('[TokenListModals] regex compilation failed:', e); }
                       } else {
                         const idx = oldPath.indexOf(frFind);
                         if (idx >= 0) { matchStart = idx; matchLen = frFind.length; }

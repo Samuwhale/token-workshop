@@ -97,7 +97,8 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
       } else {
         parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
       }
-    } catch {
+    } catch (err) {
+      console.warn('[useGitSync] git action failed:', err);
       // If pull fails, still check for conflicts (merge in progress)
       if (action === 'pull') {
         await fetchConflicts();

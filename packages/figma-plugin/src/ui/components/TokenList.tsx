@@ -137,7 +137,8 @@ export function TokenList({
       } else {
         setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
       }
-    } catch {
+    } catch (e) {
+      console.debug('[TokenList] storage read/parse expanded paths:', e);
       setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
     }
   }, [setName, tokens]);
@@ -146,7 +147,7 @@ export function TokenList({
     if (initializedForSet.current !== setNameRef.current) return;
     try {
       localStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
-    } catch {}
+    } catch (e) { console.debug('[TokenList] storage write expanded paths:', e); }
   }, [expandedPaths]);
 
   useEffect(() => {
@@ -237,11 +238,11 @@ export function TokenList({
   // Filters — search/ref persisted in sessionStorage (shared across sets);
   // typeFilter persisted in localStorage per-set so each set remembers its own filter
   const [searchQuery, setSearchQueryState] = useState(() => {
-    try { return sessionStorage.getItem('token-search') || ''; } catch { return ''; }
+    try { return sessionStorage.getItem('token-search') || ''; } catch (e) { console.debug('[TokenList] storage read search query:', e); return ''; }
   });
   const [typeFilter, setTypeFilterState] = useState<string>('');
   const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
-    try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch { return 'all'; }
+    try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch (e) { console.debug('[TokenList] storage read ref filter:', e); return 'all'; }
   });
 
   useEffect(() => {
@@ -257,7 +258,7 @@ export function TokenList({
     scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
     isFilterChangeRef.current = true;
     setSearchQueryState(v);
-    try { sessionStorage.setItem('token-search', v); } catch {}
+    try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[TokenList] storage write search query:', e); }
   }, []);
   const setTypeFilter = useCallback((v: string) => {
     const top = virtualScrollTopRef.current;
@@ -279,15 +280,15 @@ export function TokenList({
     scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
     isFilterChangeRef.current = true;
     setRefFilterState(v);
-    try { sessionStorage.setItem('token-ref-filter', v); } catch {}
+    try { sessionStorage.setItem('token-ref-filter', v); } catch (e) { console.debug('[TokenList] storage write ref filter:', e); }
   }, []);
 
   const [showDuplicates, setShowDuplicatesState] = useState(() => {
-    try { return sessionStorage.getItem('token-duplicates') === '1'; } catch { return false; }
+    try { return sessionStorage.getItem('token-duplicates') === '1'; } catch (e) { console.debug('[TokenList] storage read duplicates flag:', e); return false; }
   });
   const setShowDuplicates = useCallback((v: boolean) => {
     setShowDuplicatesState(v);
-    try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
+    try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch (e) { console.debug('[TokenList] storage write duplicates flag:', e); }
   }, []);
 
   const [crossSetSearch, setCrossSetSearch] = useState(false);
@@ -459,13 +460,13 @@ export function TokenList({
 
   // Multi-mode column view — show resolved values per theme option side-by-side
   const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
-    try { return localStorage.getItem('tm_multi_mode') === '1'; } catch { return false; }
+    try { return localStorage.getItem('tm_multi_mode') === '1'; } catch (e) { console.debug('[TokenList] storage read multi-mode:', e); return false; }
   });
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
   const toggleMultiMode = useCallback(() => {
     setMultiModeEnabled(prev => {
       const next = !prev;
-      try { localStorage.setItem('tm_multi_mode', next ? '1' : '0'); } catch {}
+      try { localStorage.setItem('tm_multi_mode', next ? '1' : '0'); } catch (e) { console.debug('[TokenList] storage write multi-mode:', e); }
       return next;
     });
   }, []);
@@ -616,7 +617,7 @@ export function TokenList({
         setJsonText(text);
         setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
       })
-      .catch(() => {});
+      .catch(err => console.warn('[TokenList] fetch raw JSON failed:', err));
   }, [tokens, viewMode, jsonDirty, connected, serverUrl, setName, allTokensFlat]);
 
   const boundTokenPaths = useMemo(() => {
@@ -1268,8 +1269,9 @@ export function TokenList({
         setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.dependents ?? [] });
         return;
       }
-    } catch {
+    } catch (err) {
       // If dependents check fails, proceed with rename anyway
+      console.warn('[TokenList] group dependents check failed:', err);
     }
     await executeGroupRename(oldGroupPath, newGroupPath);
   }, [connected, serverUrl, setName, executeGroupRename]);
@@ -1325,7 +1327,8 @@ export function TokenList({
     let data: { count: number; dependents: Array<{ path: string; setName: string }> };
     try {
       data = await apiFetch<{ count: number; dependents: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
-    } catch {
+    } catch (err) {
+      console.warn('[TokenList] token dependents check failed:', err);
       data = { count: 0, dependents: [] };
     }
     if (data.count > 0) {
@@ -1615,7 +1618,8 @@ export function TokenList({
     try {
       const result = await apiFetch<{ token: any }>(url);
       tokenData = result.token;
-    } catch {
+    } catch (err) {
+      console.warn('[TokenList] fetch token data failed:', err);
       return;
     }
     const exts: Record<string, unknown> = { ...tokenData?.$extensions };
@@ -1874,7 +1878,7 @@ export function TokenList({
     navigator.clipboard.writeText(json).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
-    }).catch(() => {});
+    }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
   }, []);
   copyTokensAsJsonRef.current = copyTokensAsJson;
 
@@ -1925,8 +1929,9 @@ export function TokenList({
         else unchanged++;
       }
       setVarDiffPending({ added, modified, unchanged, flat });
-    } catch {
+    } catch (err) {
       // Figma not reachable — show count-only confirmation
+      console.warn('[TokenList] Figma variable diff failed:', err);
       setVarDiffPending({ added: flat.length, modified: 0, unchanged: 0, flat });
     } finally {
       setVarDiffLoading(false);
@@ -3111,7 +3116,7 @@ export function TokenList({
                             setJsonError(null);
                             setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
                           })
-                          .catch(() => {});
+                          .catch(err => console.warn('[TokenList] reload raw JSON failed:', err));
                       }}
                       className="px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                     >

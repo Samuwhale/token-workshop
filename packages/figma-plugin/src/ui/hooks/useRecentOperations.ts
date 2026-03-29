@@ -33,7 +33,7 @@ export function useRecentOperations({
     try {
       const data = await apiFetch<{ operations: OperationEntry[] }>(`${serverUrl}/api/operations?limit=10`);
       setRecentOperations(data.operations);
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[useRecentOperations] fetch failed:', err); }
   }, [serverUrl, connected]);
 
   // Refresh operations list whenever tokens refresh

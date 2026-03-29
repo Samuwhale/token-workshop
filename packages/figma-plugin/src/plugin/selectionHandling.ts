@@ -651,7 +651,7 @@ function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<strin
       if (val !== undefined) {
         snap[prop] = JSON.parse(JSON.stringify(val));
       }
-    } catch { /* skip unreadable or unserializable properties */ }
+    } catch (e) { console.debug('[selectionHandling] skip unreadable or unserializable property:', prop, e); }
   }
   return snap;
 }
@@ -667,7 +667,7 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
       } else {
         (node as Record<string, unknown>)[prop] = val;
       }
-    } catch { /* ignore individual restore errors */ }
+    } catch (e) { console.debug('[selectionHandling] restoreNodeProps: failed to restore property:', prop, e); }
   }
 }
 
@@ -896,7 +896,8 @@ export function findPeersForProperty(nodeId: string, property: string) {
   let sourceNode: BaseNode | null = null;
   try {
     sourceNode = figma.getNodeById(nodeId);
-  } catch {
+  } catch (e) {
+    console.debug('[selectionHandling] findPeersForProperty: node lookup failed for', nodeId, e);
     figma.ui.postMessage({ type: 'peers-for-property-result', nodeIds: [], property });
     return;
   }

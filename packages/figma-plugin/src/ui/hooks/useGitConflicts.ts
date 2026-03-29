@@ -44,8 +44,8 @@ export function useGitConflicts({
         }
       }
       setConflictChoices(choices);
-    } catch {
-      // Conflict fetch failure is non-fatal
+    } catch (err) {
+      console.warn('[useGitConflicts] fetch failed:', err);
     }
   }, [serverUrl]);
 
