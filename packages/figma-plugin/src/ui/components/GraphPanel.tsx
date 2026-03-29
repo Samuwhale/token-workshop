@@ -845,7 +845,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
         sourceToken: generator.sourceToken,
         inlineValue: generator.inlineValue,
         targetSet: generator.targetSet,
-        targetGroup: `${generator.targetGroup}_copy`,
+        targetGroup: generator.targetGroup ? `${generator.targetGroup}_copy` : `${generator.name}_copy`,
         config: generator.config,
         overrides: generator.overrides,
       };

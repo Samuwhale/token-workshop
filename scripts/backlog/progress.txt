@@ -299,3 +299,10 @@
 - **Learnings for future iterations:**
   - When two parallel arrays are built from the same raw token data but only one calls `normalizeHex`, search for the other and fix it too — the bug is always the one that skips normalization.
 ---
+
+## 2026-03-29 - GraphPanel.tsx handleDuplicate constructs targetGroup without null guard
+- Added guard so that if `generator.targetGroup` is falsy, the duplicate falls back to `${generator.name}_copy` instead of producing `"undefined_copy"` or `"null_copy"`.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L848
+- **Learnings for future iterations:**
+  - Template literal interpolation of object properties with no null check silently produces `"undefined_copy"` — always guard or use nullish coalescing when constructing derived names from optional fields.
+---
