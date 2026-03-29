@@ -139,3 +139,20 @@ Already up to date.
 
   Merging to main: core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
 Already up to date.
+[main ba34f8e] chore(backlog): done – core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
+ 6 files changed, 60 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 830 done — pass skipped (runner PID 67173 already running one)
+
+## 2026-03-29 - core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
+- Replaced all `parseRawNum(...)!` non-null assertions with explicit null checks before division
+- RGB (L434-436): extracted raw values first, null-check, then divide by 255 or 100
+- oklch % (L463) and oklab % (L472): replaced ternary with if/else that checks parseRawNum result before dividing by 100
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  0 queued · 5 in-progress · last took 1m23s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

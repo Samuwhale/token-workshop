@@ -130,9 +130,12 @@ interface HistoryPanelProps {
   connected: boolean;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
+  /** When set, filter history to only entries that touched this token path */
+  filterTokenPath?: string | null;
+  onClearFilter?: () => void;
 }
 
-export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens }: HistoryPanelProps) {
+export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter }: HistoryPanelProps) {
   const [source, setSource] = useState<HistorySource>('commits');
 
   if (!connected) {
@@ -165,15 +168,40 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         ))}
       </div>
 
+      {/* Token filter banner */}
+      {filterTokenPath && (
+        <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-accent)_8%,transparent)] border-b border-[var(--color-figma-border)]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 min-w-0">
+            Filtering: <span className="font-mono text-[var(--color-figma-text)] truncate">{filterTokenPath}</span>
+          </span>
+          {onClearFilter && (
+            <button
+              onClick={onClearFilter}
+              className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+              title="Clear filter"
+              aria-label="Clear filter"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Source content */}
       {source === 'commits' ? (
         <GitCommitsSource
           serverUrl={serverUrl}
           onPushUndo={onPushUndo}
           onRefreshTokens={onRefreshTokens}
+          filterTokenPath={filterTokenPath ?? undefined}
         />
       ) : (
-        <SnapshotsSource serverUrl={serverUrl} />
+        <SnapshotsSource serverUrl={serverUrl} filterTokenPath={filterTokenPath ?? undefined} />
       )}
     </div>
   );
@@ -183,10 +211,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
    Git Commits source
    ══════════════════════════════════════════════════════════════════════════ */
 
-function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
+function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
+  filterTokenPath?: string;
 }) {
   const [commits, setCommits] = useState<CommitEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,6 +227,9 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [restoring, setRestoring] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Per-token filter: map from commit hash → change for that token (after eager fetch)
+  const [tokenFilterMap, setTokenFilterMap] = useState<Map<string, TokenChange> | null>(null);
+  const [filterLoading, setFilterLoading] = useState(false);
 
   const fetchCommits = useCallback(async () => {
     abortRef.current?.abort();
@@ -220,6 +252,36 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
     fetchCommits();
     return () => { abortRef.current?.abort(); };
   }, [fetchCommits]);
+
+  // When filterTokenPath changes, eagerly fetch all commit details to build filter map
+  useEffect(() => {
+    if (!filterTokenPath || commits.length === 0) {
+      setTokenFilterMap(null);
+      return;
+    }
+    let cancelled = false;
+    setFilterLoading(true);
+    Promise.all(
+      commits.map(async (commit) => {
+        try {
+          const data = await apiFetch<{ changes?: TokenChange[] }>(`${serverUrl}/api/sync/log/${commit.hash}/tokens`);
+          const match = (data.changes ?? []).find(c => c.path === filterTokenPath);
+          return { hash: commit.hash, change: match ?? null };
+        } catch {
+          return { hash: commit.hash, change: null };
+        }
+      })
+    ).then(results => {
+      if (cancelled) return;
+      const map = new Map<string, TokenChange>();
+      for (const { hash, change } of results) {
+        if (change) map.set(hash, change);
+      }
+      setTokenFilterMap(map);
+      setFilterLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [filterTokenPath, commits, serverUrl]);
 
   const fetchDetail = useCallback(async (hash: string) => {
     setDetailLoading(true);
@@ -457,12 +519,34 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
     );
   }
 
+  // Per-token filter mode: loading state while eagerly fetching diffs
+  if (filterTokenPath && filterLoading) {
+    return (
+      <div className="flex items-center justify-center flex-1 gap-2">
+        <svg className="animate-spin text-[var(--color-figma-accent)]" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
+        </svg>
+        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Searching history…</p>
+      </div>
+    );
+  }
+
+  // Per-token filter mode: computed filtered list
+  const filteredCommits = filterTokenPath && tokenFilterMap
+    ? commits.filter(c => tokenFilterMap.has(c.hash))
+    : null;
+
   // Timeline view
+  const displayCommits = filteredCommits ?? commits;
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">{commits.length} commits</span>
+        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          {filterTokenPath
+            ? `${displayCommits.length} of ${commits.length} commit${commits.length !== 1 ? 's' : ''}`
+            : `${commits.length} commit${commits.length !== 1 ? 's' : ''}`}
+        </span>
         <button
           onClick={fetchCommits}
           className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
@@ -471,32 +555,68 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
         </button>
       </div>
 
+      {/* Empty filter result */}
+      {filterTokenPath && tokenFilterMap && displayCommits.length === 0 && (
+        <div className="flex flex-col items-center justify-center flex-1 px-5 py-8 text-center gap-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            No commits found that changed this token.
+          </p>
+        </div>
+      )}
+
       {/* Commit list */}
       <div className="flex-1 overflow-y-auto">
-        {commits.map((commit, idx) => (
-          <button
-            key={commit.hash}
-            onClick={() => handleSelectCommit(commit.hash)}
-            className="w-full text-left px-3 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
-          >
-            <div className="flex items-start gap-2">
-              <div className="shrink-0 mt-1.5 flex flex-col items-center">
-                <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug truncate">{commit.message}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+        {displayCommits.map((commit, idx) => {
+          const tokenChange = tokenFilterMap?.get(commit.hash);
+          return (
+            <button
+              key={commit.hash}
+              onClick={() => handleSelectCommit(commit.hash)}
+              className="w-full text-left px-3 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+            >
+              <div className="flex items-start gap-2">
+                <div className="shrink-0 mt-1.5 flex flex-col items-center">
+                  <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug truncate">{commit.message}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                  </div>
+                  {tokenChange && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <StatusBadge status={tokenChange.status} />
+                      {tokenChange.status === 'modified' && (
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
+                          {formatTokenValue(tokenChange.type, tokenChange.before)} → {formatTokenValue(tokenChange.type, tokenChange.after)}
+                        </span>
+                      )}
+                      {tokenChange.status === 'added' && (
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                          {formatTokenValue(tokenChange.type, tokenChange.after)}
+                        </span>
+                      )}
+                      {tokenChange.status === 'removed' && (
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] line-through truncate">
+                          {formatTokenValue(tokenChange.type, tokenChange.before)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </div>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -506,7 +626,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens }: {
    Snapshots source
    ══════════════════════════════════════════════════════════════════════════ */
 
-function SnapshotsSource({ serverUrl }: { serverUrl: string }) {
+function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; filterTokenPath?: string }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -633,13 +753,17 @@ function SnapshotsSource({ serverUrl }: { serverUrl: string }) {
   // ── Compare view ──────────────────────────────────────────────────────
   if (comparing) {
     const snapshot = snapshots.find(s => s.id === comparing);
-    const summary = changes ? summarizeChanges(changes) : { added: 0, modified: 0, removed: 0 };
-    const noChanges = changes?.length === 0;
+    // When filtering by token path, only show that token's change
+    const displayChanges = filterTokenPath && changes
+      ? changes.filter(c => c.path === filterTokenPath)
+      : changes;
+    const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
+    const noChanges = displayChanges?.length === 0;
 
     // Group changes by set
     const bySet = new Map<string, TokenChange[]>();
-    if (changes) {
-      for (const c of changes) {
+    if (displayChanges) {
+      for (const c of displayChanges) {
         if (!bySet.has(c.set)) bySet.set(c.set, []);
         bySet.get(c.set)!.push(c);
       }
@@ -665,10 +789,12 @@ function SnapshotsSource({ serverUrl }: { serverUrl: string }) {
         </div>
 
         {/* Summary bar */}
-        {!diffLoading && changes && (
+        {!diffLoading && displayChanges && (
           <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
             {noChanges ? (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">No changes since this snapshot.</span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
+              </span>
             ) : (
               <ChangeSummaryBadges {...summary} />
             )}
@@ -687,10 +813,12 @@ function SnapshotsSource({ serverUrl }: { serverUrl: string }) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No changes since this snapshot.</p>
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+                {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
+              </p>
             </div>
           )}
-          {!diffLoading && changes && changes.length > 0 && (
+          {!diffLoading && displayChanges && displayChanges.length > 0 && (
             Array.from(bySet.entries()).map(([setName, setChanges]) => {
               const setSummary = summarizeChanges(setChanges);
               return (

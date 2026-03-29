@@ -514,3 +514,19 @@
   - `null / N` evaluates to `0` in JS, not `NaN` — so `isNaN` guards after nullable division are ineffective
   - The `!` non-null assertion operator is a type-level-only construct; at runtime it's a no-op that passes null through
 ---
+
+## 2026-03-29 - No per-token history view
+- Added "View history" context menu item to token rows in TokenTreeNode.tsx
+- Added `onViewTokenHistory` callback to TokenTreeContextType and TokenListActions
+- Wired callback through TokenList.tsx context to TokenTreeNode.tsx
+- Added `filterTokenPath` + `onClearFilter` props to HistoryPanel.tsx
+- In GitCommitsSource: when filterTokenPath is set, eagerly fetches all commit details in parallel, filters commit list to only commits that touched the token, shows inline status badge + before/after value on each matching row, shows "X of N commits" count in header, shows loading spinner while fetching, empty state if no commits found
+- In SnapshotsSource: when filterTokenPath is set, filters the compare-view diff to only show that token's change; updates "no changes" message to be token-specific
+- Added filter banner at the top of HistoryPanel with the token path and an ✕ clear button
+- App.tsx: added `historyFilterPath` state, wires `onViewTokenHistory` on all three TokenList instances to set filter + navigate to ship/history; clears filter on the ✕ button
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L85,L210; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L43, ~L2200, ~L2228; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L132, ~L1645; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L128-180 (props+banner), ~L200-240 (eager filter effect), ~L522-620 (filtered timeline view), ~L760 (snapshots filter); `packages/figma-plugin/src/ui/App.tsx` ~L384 (state), ~L1833,1884,1897 (actions), ~L2110 (HistoryPanel props)
+- **Learnings for future iterations:**
+  - Eager parallel fetch of all commit diffs (50 max) is the right client-side approach for token-path filtering — no server-side API change needed, and ~50 small HTTP requests is fast enough
+  - Filter state (historyFilterPath) lives in App.tsx because it needs to survive navigation; clear it when the user clicks ✕ in the banner
+  - The TokenListActions interface is the right place for App-level navigation callbacks (like onViewTokenHistory) vs TokenTreeContextType for within-TokenList callbacks
+---

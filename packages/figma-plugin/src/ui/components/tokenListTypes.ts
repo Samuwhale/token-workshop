@@ -103,7 +103,7 @@ export interface TokenListActions {
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
   onTokenTouched?: (path: string) => void;
   onError?: (msg: string) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  onViewTokenHistory?: (path: string) => void;
 }
 
 export interface TokenListProps {
@@ -209,6 +209,8 @@ export interface TokenTreeContextType {
   onTogglePin?: (path: string) => void;
   /** Enter select mode with this token pre-selected and open ComparePanel */
   onCompareToken?: (path: string) => void;
+  /** Navigate to History panel filtered to this token path */
+  onViewTokenHistory?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;

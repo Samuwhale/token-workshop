@@ -86,3 +86,10 @@ Already up to date.
   → No per-token history view — HistoryPanel.tsx shows full git commit and snapshot history but there is no way to filter by a specific token path to answer "what changed with `color.brand.primary` over time"; add a per-token history mode reachable from the token context menu ("View history") that filters the history timeline to only commits/snapshots that touched the selected token
   Worktree: /tmp/backlog-68874-QrpMmH
   Running agent… (started 07:49:56)
+
+  ✓ done: No per-token history view
+    Added 'View history' context menu item; HistoryPanel eagerly fetches all commit diffs in parallel and filters to commits touching the selected token, showing inline before/after values; snapshots compare view also filters to the selected token; filter banner shows active path with clear button
+    76 turns · 485s · $2.5
+
+  Merging to main: No per-token history view
+Already up to date.
