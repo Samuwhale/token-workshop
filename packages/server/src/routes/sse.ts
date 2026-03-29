@@ -9,9 +9,7 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
       Connection: 'keep-alive',
     });
 
-    // Send initial connection event
-    reply.raw.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
-
+    const { eventBus } = fastify;
     let closed = false;
 
     const cleanup = () => {
@@ -22,10 +20,32 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
       reply.raw.end();
     };
 
-    const unsubscribe = fastify.tokenStore.onChange((event) => {
+    // Check if the client is reconnecting with a Last-Event-ID
+    const lastEventId = request.headers['last-event-id'];
+    const lastSeq = lastEventId ? parseInt(lastEventId as string, 10) : NaN;
+
+    if (!isNaN(lastSeq)) {
+      // Client is reconnecting — try to replay missed events
+      const missed = eventBus.eventsSince(lastSeq);
+      if (missed === null) {
+        // Too stale — tell client to do a full refresh
+        reply.raw.write(`id: ${eventBus.currentSeq()}\nevent: stale\ndata: ${JSON.stringify({ type: 'stale' })}\n\n`);
+      } else {
+        // Replay missed events
+        for (const entry of missed) {
+          if (closed) break;
+          reply.raw.write(`id: ${entry.id}\ndata: ${JSON.stringify(entry.event)}\n\n`);
+        }
+      }
+    }
+
+    // Send initial connection event with the current sequence number
+    reply.raw.write(`id: ${eventBus.currentSeq()}\ndata: ${JSON.stringify({ type: 'connected', seq: eventBus.currentSeq() })}\n\n`);
+
+    const unsubscribe = eventBus.subscribe((entry) => {
       if (closed) return;
       try {
-        reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+        reply.raw.write(`id: ${entry.id}\ndata: ${JSON.stringify(entry.event)}\n\n`);
       } catch (err) {
         fastify.log.warn({ err }, 'SSE write failed; closing connection');
         cleanup();

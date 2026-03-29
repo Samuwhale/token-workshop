@@ -496,3 +496,16 @@
 - **Learnings for future iterations:**
   - The command palette guided-setup entry was likely added during a prior session that built the QuickStartWizard — backlog item is stale
 ---
+
+## 2026-03-29 - SSE connection has no event replay on reconnect
+- Added `EventBus` service (`packages/server/src/services/event-bus.ts`) that wraps TokenStore change events with monotonic sequence IDs and maintains a 256-entry ring buffer for replay
+- Updated SSE route (`packages/server/src/routes/sse.ts`) to send `id:` fields with each event, check `Last-Event-Id` header on reconnect, replay missed events from the buffer, or send a `stale` named event when the gap is too large
+- Updated client hook (`packages/figma-plugin/src/ui/hooks/useServerEvents.ts`) to accept `onRefresh` callback, listen for `stale` events, and trigger a full data refresh on any reconnection
+- Wired `refreshAll` (tokens + lint + generators) as the `onRefresh` callback in `App.tsx`
+- Added unit tests for EventBus (`packages/server/src/__tests__/event-bus.test.ts`)
+- Files changed: `packages/server/src/services/event-bus.ts` (new), `packages/server/src/routes/sse.ts` ~L1-73, `packages/server/src/index.ts` ~L31,68-76,136, `packages/figma-plugin/src/ui/hooks/useServerEvents.ts` ~L1-112, `packages/figma-plugin/src/ui/App.tsx` ~L338-349, `packages/server/src/__tests__/event-bus.test.ts` (new)
+- **Learnings for future iterations:**
+  - SSE spec's `Last-Event-Id` is automatically sent by `EventSource` on reconnect — no client-side code needed for that part
+  - The `event:` field in SSE creates named events that need `addEventListener('stale', ...)` instead of `onmessage`
+  - EventBus is decoupled from TokenStore via `onChange` subscription in `index.ts`, keeping TokenStore unchanged
+---

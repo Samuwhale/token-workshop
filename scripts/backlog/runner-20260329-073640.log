@@ -20,3 +20,10 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
   → SSE connection has no event replay on reconnect — if the SSE connection drops and the client reconnects, missed events are lost; the client must do a full data refetch; add a simple event sequence counter so the client can request missed events on reconnect, or at minimum detect staleness and trigger an automatic refresh
   Worktree: /tmp/backlog-67173-u4m8t9
   Running agent… (started 07:36:41)
+
+  ✓ done: SSE connection has no event replay on reconnect
+    Added EventBus with sequence IDs and ring buffer for event replay, SSE route sends id: fields and replays missed events or sends stale event on reconnect, client auto-refreshes all data on reconnection
+    33 turns · 324s · $1.33
+
+  Merging to main: SSE connection has no event replay on reconnect
+Already up to date.

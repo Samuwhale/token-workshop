@@ -335,7 +335,6 @@ export function App() {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
   }, []);
-  useServerEvents(serverUrl, connected, onGeneratorError);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [themesView, setThemesView] = useState<'manage' | 'compare' | 'resolvers'>('manage');
@@ -347,6 +346,7 @@ export function App() {
   const lintConfig = useLintConfig(serverUrl, connected);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
+  useServerEvents(serverUrl, connected, onGeneratorError, refreshAll);
 
   // Server-side operation log for undo/rollback
   const { recentOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });

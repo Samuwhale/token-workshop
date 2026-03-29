@@ -28,6 +28,7 @@ import { ManualSnapshotStore } from './services/manual-snapshot.js';
 import { snapshotRoutes } from './routes/snapshots.js';
 import { TokenLock } from './services/token-lock.js';
 import { createDimensionsStore, type DimensionsStore } from './routes/themes.js';
+import { EventBus } from './services/event-bus.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -64,6 +65,10 @@ export async function startServer(config: ServerConfig) {
 
   const dimensionsStore = createDimensionsStore(config.tokenDir);
 
+  // Event bus for SSE with sequence IDs and replay support
+  const eventBus = new EventBus();
+  tokenStore.onChange((event) => eventBus.push(event));
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('tokenLock', tokenLock);
@@ -73,6 +78,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate('operationLog', operationLog);
   fastify.decorate('resolverStore', resolverStore);
   fastify.decorate('manualSnapshots', manualSnapshots);
+  fastify.decorate('eventBus', eventBus);
 
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
@@ -131,5 +137,6 @@ declare module 'fastify' {
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;
     dimensionsStore: DimensionsStore;
+    eventBus: EventBus;
   }
 }

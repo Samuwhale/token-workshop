@@ -27,3 +27,18 @@ NOTE: 6 [~] item(s) found — skipping reset (19 other runner(s) active)
 
   Merging to main: QuickStart wizard is inaccessible after initial setup
 Already up to date.
+[main 8cb1e7a] chore(backlog): done – QuickStart wizard is inaccessible after initial setup
+ 5 files changed, 32 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - QuickStart wizard is inaccessible after initial setup
+- Already implemented: Command palette (Cmd+K) has a "Guided Setup" entry (id: 'guided-setup', category: 'Help') at App.tsx ~L752-758 that unconditionally calls `setShowGuidedSetup(true)`. The wizard is accessible at any time regardless of token count.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  11 queued · 5 in-progress · last took 3m6s
+═══════════════════════════════════════════════════════════════
+  → Paste import sends one API request per token instead of using batch endpoint — PasteTokensModal.tsx creates tokens individually via POST, causing slow imports for large payloads; the server already has POST /api/tokens/:set/batch with skip/overwrite strategy; use it for a single atomic request instead of N sequential ones
+  Worktree: /tmp/backlog-69179-juChkE
+  Running agent… (started 07:40:15)
