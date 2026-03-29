@@ -439,3 +439,9 @@
   - For all-sets preview, use `perSetFlat` (already loaded) rather than fetching each set — avoids N extra API calls on every keystroke.
   - IIFE pattern (`{frPreview.length > 0 && (() => { ... })()}`) is useful in JSX when you need local variables and branching logic before rendering preview items.
 ---
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` (new), `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L11, `packages/figma-plugin/src/ui/App.tsx` ~L24 (import), ~L326 (destructure), ~L558 (shortcut), ~L620 (command), ~L2530 (render), `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L25
+- **Learnings for future iterations:**
+  - SetSwitcher initializes `activeIdx` to the current set's index so the active set is pre-highlighted when the modal opens — good UX for quick confirmation via Enter with no query.
+  - The switcher deliberately navigates to define/tokens on selection so the newly selected set's tokens are immediately visible; callers that want different behaviour can pass a no-op navigate.
+  - `Cmd+Shift+S` was free (no conflict with existing shortcuts); always check KeyboardShortcutsModal for the current list before picking a new binding.
+---
