@@ -426,3 +426,11 @@
 - **Learnings for future iterations:**
   - The stable callback ref pattern (assign `ref.current = fn` before `return`, listen via `ref.current(...)`) is the right approach for global keydown handlers in components with many state deps — avoids re-registering the listener on every render while always calling the latest version of the handler.
 ---
+
+## 2026-03-29 - PublishPanel "Delete N orphan variables" fix button has no confirmation or preview
+- Added orphan confirmation modal: clicking "Delete N orphans" now opens a ConfirmModal (danger variant, wide) that lists all orphan variable paths in a scrollable monospace list before firing deletion. The actual deletion logic was extracted from the inline `onFix` closure into a `executeOrphanDeletion` useCallback that reads `localPaths` from `orphanConfirm` state.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1, ~L89, ~L221, ~L234, ~L842
+- **Learnings for future iterations:**
+  - When refactoring a closure-based action to require a confirmation modal, capture all closure variables (e.g. `localPaths`) into a state object (`orphanConfirm`) so the modal's `onConfirm` can access them without stale-closure risk.
+  - The `ConfirmModal` component already has `danger`, `wide`, and `children` props — use these for destructive previews rather than building a new modal from scratch.
+---

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Spinner } from './Spinner';
+import { ConfirmModal } from './ConfirmModal';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { useVariableSync } from '../hooks/useVariableSync';
@@ -87,6 +88,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [readinessError, setReadinessError] = useState<string | null>(null);
   const [orphansDeleting, setOrphansDeleting] = useState(false);
   const orphansPendingRef = useRef<Map<string, (count: number) => void>>(new Map());
+  // orphanConfirm holds the data needed to render the confirmation modal and execute deletion
+  const [orphanConfirm, setOrphanConfirm] = useState<{ orphanPaths: string[]; localPaths: Set<string> } | null>(null);
 
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -216,37 +219,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           status: orphans.length === 0 ? 'pass' : 'fail',
           count: orphans.length || undefined,
           fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
-          onFix: orphans.length > 0 ? async () => {
-            setOrphansDeleting(true);
-            setReadinessError(null);
-            const MAX_RETRIES = 2;
-            const TIMEOUTS = [10000, 20000, 30000];
-            let succeeded = false;
-            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-              try {
-                await new Promise<number>((resolve, reject) => {
-                  const cid = `orphans-${Date.now()}-${Math.random()}`;
-                  const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
-                  orphansPendingRef.current.set(cid, (count) => { clearTimeout(timeout); resolve(count); });
-                  parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
-                });
-                succeeded = true;
-                break;
-              } catch (err) {
-                const isTimeout = err instanceof Error && err.message === 'Timeout';
-                if (!isTimeout) {
-                  setOrphansDeleting(false);
-                  setReadinessError(describeError(err, 'Orphan deletion'));
-                  return;
-                }
-              }
-            }
-            setOrphansDeleting(false);
-            if (succeeded) {
-              runReadinessChecks();
-            } else {
-              setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');
-            }
+          onFix: orphans.length > 0 ? () => {
+            setOrphanConfirm({ orphanPaths: orphans.map(o => o.path), localPaths });
           } : undefined,
         },
       ];
@@ -257,6 +231,42 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       setReadinessLoading(false);
     }
   }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap]);
+
+  const executeOrphanDeletion = useCallback(async () => {
+    if (!orphanConfirm) return;
+    const { localPaths } = orphanConfirm;
+    setOrphanConfirm(null);
+    setOrphansDeleting(true);
+    setReadinessError(null);
+    const MAX_RETRIES = 2;
+    const TIMEOUTS = [10000, 20000, 30000];
+    let succeeded = false;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await new Promise<number>((resolve, reject) => {
+          const cid = `orphans-${Date.now()}-${Math.random()}`;
+          const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
+          orphansPendingRef.current.set(cid, (count) => { clearTimeout(timeout); resolve(count); });
+          parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
+        });
+        succeeded = true;
+        break;
+      } catch (err) {
+        const isTimeout = err instanceof Error && err.message === 'Timeout';
+        if (!isTimeout) {
+          setOrphansDeleting(false);
+          setReadinessError(describeError(err, 'Orphan deletion'));
+          return;
+        }
+      }
+    }
+    setOrphansDeleting(false);
+    if (succeeded) {
+      runReadinessChecks();
+    } else {
+      setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');
+    }
+  }, [orphanConfirm, collectionMap, runReadinessChecks]);
 
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
@@ -828,6 +838,25 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           await runPublishAll();
         }}
       />
+    )}
+    {orphanConfirm && (
+      <ConfirmModal
+        title={`Delete ${orphanConfirm.orphanPaths.length} orphan variable${orphanConfirm.orphanPaths.length !== 1 ? 's' : ''}?`}
+        description="These Figma variables have no matching token in the local token set. Deletion is permanent and may break references in other design files."
+        confirmLabel="Delete"
+        danger
+        wide
+        onCancel={() => setOrphanConfirm(null)}
+        onConfirm={executeOrphanDeletion}
+      >
+        <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {orphanConfirm.orphanPaths.map(p => (
+            <div key={p} className="px-3 py-1 text-[10px] font-mono text-[var(--color-figma-text)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={p}>
+              {p}
+            </div>
+          ))}
+        </div>
+      </ConfirmModal>
     )}
     </>
   );
