@@ -190,3 +190,10 @@ Already up to date.
   → [HIGH] AnalyticsPanel color analytics silently broken for all nested DTCG tokens — `load()` iterates `Object.entries(data.tokens)` one level deep, treating the nested DTCG tree as a flat map; only root-level entries are analyzed so `allColors`, `allFlatBySet`, `unifiedFlat`, and `allColorTokens` are empty for any real token file organized into groups (the common case), making the color palette, contrast matrix, and all color analytics show nothing; additionally `load().catch` only calls `setLoading(false)` without setting error state, so any token set fetch failure renders an empty panel with no explanation; fix: call `flattenTokenGroup` from `@tokenmanager/core` before building `allFlatBySet`, and add an error state in the catch (packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx ~L211-265)
   Worktree: /tmp/backlog-47616-mzbRtv
   Running agent… (started 14:14:40)
+
+  ✓ done: AnalyticsPanel color analytics silently broken for all nested DTCG tokens
+    Called flattenTokenGroup on nested DTCG response before building allFlatBySet; added loadError state for fetch failures; fixed pre-existing PublishPanel.tsx build error (broken JSX from prior code-pass)
+    66 turns · 692s · $2.21
+
+  Merging to main: AnalyticsPanel color analytics silently broken for all nested DTCG tokens
+Already up to date.

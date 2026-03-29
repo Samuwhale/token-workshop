@@ -397,3 +397,19 @@ Already up to date.
 
   Merging to main: Three GET routes in tokens.ts have no try/catch
 Already up to date.
+[main 4e58e6f9] chore(backlog): done – Three GET routes in tokens.ts have no try/catch
+ 6 files changed, 67 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Three GET routes in tokens.ts have no try/catch
+- Added try/catch + `handleRouteError` to `GET /tokens/search` (L31), `GET /tokens/:set` (L48), and `GET /tokens/:set/raw` (L602). All three now return structured error bodies consistent with every other route in the file.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L31, ~L48, ~L602
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  0 queued · 2 in-progress · last took 1m0s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 48303) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

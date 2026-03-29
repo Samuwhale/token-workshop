@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from './Spinner';
-import { normalizeHex } from '@tokenmanager/core';
+import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
@@ -69,6 +69,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [showLintConfig, setShowLintConfig] = useState(false);
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
   const [validateLoading, setValidateLoading] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
@@ -194,6 +195,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   useEffect(() => {
     if (!connected) { setLoading(false); return; }
     setLoading(true);
+    setLoadError(null);
 
     const controller = new AbortController();
 
@@ -208,10 +210,16 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
-          const data = await apiFetch<{ tokens?: Record<string, { $value: unknown; $type: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(name)}`, { signal: controller.signal });
-          const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
+          const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(name)}`, { signal: controller.signal });
+          const nestedTokens = data.tokens || {};
+          // Flatten nested DTCG group into a path→token map
+          const flatMap = flattenTokenGroup(nestedTokens as Parameters<typeof flattenTokenGroup>[0]);
+          const flat: Record<string, { $value: unknown; $type: string }> = {};
+          for (const [path, token] of flatMap) {
+            flat[path] = { $value: token.$value, $type: token.$type || 'unknown' };
+          }
           allFlatBySet[name] = flat;
-          const { total, byType } = countLeafNodes(data.tokens || {});
+          const { total, byType } = countLeafNodes(nestedTokens);
           for (const [p, t] of Object.entries(flat)) {
             if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(t.$value)) {
               allColors.push({ path: p, hex: t.$value });
@@ -260,7 +268,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     };
 
     load().catch((err) => {
-      if (err?.name !== 'AbortError') setLoading(false);
+      if (err?.name !== 'AbortError') {
+        setLoading(false);
+        setLoadError(err?.message || 'Failed to load analytics');
+      }
     });
 
     return () => controller.abort();
@@ -278,6 +289,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
         Loading analytics...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-error,#e85d4a)] text-[11px]">
+        {loadError}
       </div>
     );
   }
