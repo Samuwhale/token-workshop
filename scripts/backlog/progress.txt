@@ -301,3 +301,14 @@
   - The `onShowReferences(path)` prop navigates to "Apply → Dependencies" with that token pre-selected — use it as the navigation action for clickable token paths inside the editor.
   - `showPendingDependents` must be reset in all places that dismiss `pendingTypeChange` (both `applyTypeChange()` and the "Keep" button handler) to avoid stale open state if the dialog is re-triggered.
 ---
+
+## 2026-03-29 - No token type composition summary for a token set
+- Added type breakdown in two places: (1) AnalyticsPanel "By Set" section now shows colored dot + count + type name pills for each set below the progress bar (e.g. "● 42 color  ● 18 spacing  ● 5 typography"); (2) Set tab/sidebar tooltips (`title` attribute) now include a type breakdown line (e.g. "42 color · 18 spacing · 5 typography") after the set description.
+- `setByTypeCounts` memoized from `perSetFlat` in App.tsx; IIFE in `title` prop computes the breakdown string on the fly.
+- AnalyticsPanel already had `byType` in `SetStats` — just needed rendering. No data plumbing changes needed there.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L841, `packages/figma-plugin/src/ui/App.tsx` ~L496 (useMemo), ~L1208 (tab tooltip), ~L1485 (sidebar root tooltip), ~L1552 (sidebar folder tooltip)
+- **Learnings for future iterations:**
+  - `SetStats.byType` was already populated in AnalyticsPanel but unused in the "By Set" render — always check if the data shape already carries the needed info before adding new state.
+  - For plain-text tooltips that need multiple lines, `title` with `\n` separator works cross-browser.
+  - IIFE in JSX `title={(() => { ... })()}` keeps tooltip computation colocated with the element without extracting a helper function.
+---

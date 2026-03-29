@@ -493,6 +493,20 @@ export function App() {
   const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });
 
 
+  // Per-set type breakdown for tab tooltips
+  const setByTypeCounts = useMemo(() => {
+    const result: Record<string, Record<string, number>> = {};
+    for (const [setName, flatMap] of Object.entries(perSetFlat)) {
+      const byType: Record<string, number> = {};
+      for (const entry of Object.values(flatMap)) {
+        const t = (entry as { $type?: string }).$type || 'unknown';
+        byType[t] = (byType[t] || 0) + 1;
+      }
+      result[setName] = byType;
+    }
+    return result;
+  }, [perSetFlat]);
+
   // Sidebar mode: activate when any set has a '/' folder separator or there are many sets
   const useSidebar = sets.some(s => s.includes('/')) || sets.length >= 7;
   const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
@@ -1192,11 +1206,16 @@ export function App() {
                     <button
                       onClick={() => setActiveSet(set)}
                       onContextMenu={e => openSetMenu(set, e)}
-                      title={
-                        setThemeStatusMap[set]
-                          ? `${setDescriptions[set] || set} (theme: ${setThemeStatusMap[set]})`
-                          : setDescriptions[set] || set
-                      }
+                      title={(() => {
+                        const parts: string[] = [setDescriptions[set] || set];
+                        const byType = setByTypeCounts[set];
+                        if (byType) {
+                          const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
+                          if (breakdown) parts.push(breakdown);
+                        }
+                        if (setThemeStatusMap[set]) parts.push(`theme: ${setThemeStatusMap[set]}`);
+                        return parts.join('\n');
+                      })()}
                       className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
                         isActive
                           ? 'bg-[var(--color-figma-accent)] text-white font-medium'
@@ -1456,7 +1475,15 @@ export function App() {
                           <button
                             onClick={() => setActiveSet(set)}
                             onContextMenu={e => openSetMenu(set, e)}
-                            title={setDescriptions[set] || set}
+                            title={(() => {
+                              const parts: string[] = [setDescriptions[set] || set];
+                              const byType = setByTypeCounts[set];
+                              if (byType) {
+                                const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
+                                if (breakdown) parts.push(breakdown);
+                              }
+                              return parts.join('\n');
+                            })()}
                             data-active-set={activeSet === set}
                             className={`flex-1 min-w-0 flex items-center justify-between pl-2 pr-1 py-1 text-[10px] text-left transition-colors ${
                               activeSet === set
@@ -1523,7 +1550,15 @@ export function App() {
                               <button
                                 onClick={() => setActiveSet(set)}
                                 onContextMenu={e => openSetMenu(set, e)}
-                                title={setDescriptions[set] || leaf}
+                                title={(() => {
+                                  const parts: string[] = [setDescriptions[set] || leaf];
+                                  const byType = setByTypeCounts[set];
+                                  if (byType) {
+                                    const breakdown = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, c]) => `${c} ${t}`).join(' · ');
+                                    if (breakdown) parts.push(breakdown);
+                                  }
+                                  return parts.join('\n');
+                                })()}
                                 data-active-set={activeSet === set}
                                 className={`flex-1 min-w-0 flex items-center justify-between pl-5 pr-1 py-1 text-[10px] text-left transition-colors ${
                                   activeSet === set

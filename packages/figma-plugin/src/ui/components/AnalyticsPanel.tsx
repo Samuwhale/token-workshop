@@ -839,25 +839,44 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             By Set
           </div>
           <div className="divide-y divide-[var(--color-figma-border)]">
-            {stats.map((s) => (
-              <div key={s.name} className="flex items-center gap-3 px-3 py-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{s.name}</span>
+            {stats.map((s) => {
+              const sortedTypes = Object.entries(s.byType).sort((a, b) => b[1] - a[1]);
+              return (
+                <div key={s.name} className="px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{s.name}</span>
+                      </div>
+                      {s.description && (
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate mb-1">{s.description}</div>
+                      )}
+                      <div className="h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-figma-accent)]"
+                          style={{ width: totalTokens > 0 ? `${Math.round((s.total / totalTokens) * 100)}%` : '0%' }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right flex-shrink-0">{s.total}</span>
                   </div>
-                  {s.description && (
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate mb-1">{s.description}</div>
+                  {sortedTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
+                      {sortedTypes.map(([type, count]) => (
+                        <span key={type} className="flex items-center gap-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0 inline-block"
+                            style={{ backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK }}
+                            aria-hidden="true"
+                          />
+                          {count} {type}
+                        </span>
+                      ))}
+                    </div>
                   )}
-                  <div className="h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                      style={{ width: totalTokens > 0 ? `${Math.round((s.total / totalTokens) * 100)}%` : '0%' }}
-                    />
-                  </div>
                 </div>
-                <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right flex-shrink-0">{s.total}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
