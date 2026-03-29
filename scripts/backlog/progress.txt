@@ -381,3 +381,19 @@
   - Group paths can be derived cheaply from flat token paths by collecting all ancestor prefixes; sorting alphabetically gives a natural hierarchy
   - Using `isGroupQuery` flag to switch between group-only mode and mixed mode avoids complex qualifier parsing integration
 ---
+
+## 2026-03-29 - Git commit flow has no token-level diff preview
+- Replaced separate flat "Token-level preview" section with unified per-file expandable token diff inline in the file list
+- Auto-fetches token preview when uncommitted changes appear (no manual "Preview changes" button needed)
+- Each file row shows inline +N ~N -N token change badges; clicking expands to show individual token changes
+- Token changes include color swatches (DiffSwatch) for color tokens, before/after values with truncation
+- SVG chevron expand/collapse indicator per file row
+- Overall summary bar at bottom shows total added/modified/removed across all files
+- CommitPreviewModal also upgraded to per-file grouped view with expandable token changes per file
+- CommitPreviewModal now filters token changes to only selected files (was previously showing all)
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L2143 (TokenChangeRow component), ~L2195 (FileTokenDiffList component), ~L951 (inline usage replacing old sections), ~L1692 (CommitPreviewModal rewrite)
+- **Learnings for future iterations:**
+  - TokenChange.set maps to file as `set + '.tokens.json'` — this is the join key between git file list and token-level changes
+  - The old CommitPreviewModal had a TODO filter (`return true`) for token changes by selected files — now properly filters by converting selected file paths to set names
+  - Using useMemo to group changes by file avoids recomputation on every render when expand/collapse state changes
+---

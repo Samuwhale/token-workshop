@@ -948,143 +948,16 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
               )}
 
-              {/* Changed files */}
+              {/* Changed files with inline token-level diff */}
               {git.allChanges.length > 0 && (
-                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={git.allChanges.length > 0 && git.selectedFiles.size === git.allChanges.length}
-                        ref={el => { if (el) el.indeterminate = git.selectedFiles.size > 0 && git.selectedFiles.size < git.allChanges.length; }}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            git.setSelectedFiles(new Set(git.allChanges.map(c => c.file)));
-                          } else {
-                            git.setSelectedFiles(new Set());
-                          }
-                        }}
-                        className="w-3 h-3"
-                      />
-                      Uncommitted changes
-                    </label>
-                    <span className="text-[10px] opacity-60">{git.selectedFiles.size}/{git.allChanges.length} selected</span>
-                  </div>
-                  <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-                    {git.allChanges.map((change, i) => (
-                      <label key={i} className="flex items-center gap-2 px-3 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)]">
-                        <input
-                          type="checkbox"
-                          checked={git.selectedFiles.has(change.file)}
-                          onChange={e => {
-                            git.setSelectedFiles(prev => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(change.file); else next.delete(change.file);
-                              return next;
-                            });
-                          }}
-                          className="w-3 h-3 flex-shrink-0"
-                        />
-                        <span className={`text-[10px] font-mono font-bold w-3 flex-shrink-0 ${
-                          change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                          change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                          change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                          'text-[var(--color-figma-text-secondary)]'
-                        }`}>
-                          {change.status}
-                        </span>
-                        <span className="text-[10px] text-[var(--color-figma-text)] truncate">{change.file}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Token-level preview of uncommitted changes */}
-              {git.allChanges.length > 0 && (
-                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Token-level preview</span>
-                    <button
-                      onClick={git.tokenPreview !== null ? git.clearTokenPreview : git.fetchTokenPreview}
-                      disabled={git.tokenPreviewLoading}
-                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                    >
-                      {git.tokenPreviewLoading ? 'Loading\u2026' : git.tokenPreview !== null ? 'Hide preview' : 'Preview changes'}
-                    </button>
-                  </div>
-                  {git.tokenPreview !== null && (() => {
-                    const changes = git.tokenPreview;
-                    if (changes.length === 0) {
-                      return (
-                        <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
-                          No token value changes detected.
-                        </div>
-                      );
-                    }
-                    const added = changes.filter(c => c.status === 'added');
-                    const modified = changes.filter(c => c.status === 'modified');
-                    const removed = changes.filter(c => c.status === 'removed');
-                    return (
-                      <>
-                        <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length} added</span>}
-                          {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length} modified</span>}
-                          {removed.length > 0 && <span className="text-[var(--color-figma-error)]">-{removed.length} removed</span>}
-                        </div>
-                        <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-                          {changes.map((change, i) => {
-                            const statusColor =
-                              change.status === 'added' ? 'text-[var(--color-figma-success)]' :
-                              change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
-                              'text-[var(--color-figma-warning)]';
-                            const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
-                            const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
-                            return (
-                              <div key={i} className="px-3 py-1.5">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-                                  <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate" title={change.path}>{change.path}</span>
-                                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">{change.set}</span>
-                                </div>
-                                {change.status === 'modified' && (
-                                  <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
-                                    <div className="flex items-start gap-1">
-                                      <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                                      <span className="text-[var(--color-figma-text-secondary)] break-all">{valStr(change.before)}</span>
-                                    </div>
-                                    <div className="flex items-start gap-1">
-                                      <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                                      <span className="text-[var(--color-figma-text)] break-all">{valStr(change.after)}</span>
-                                    </div>
-                                  </div>
-                                )}
-                                {change.status === 'added' && change.after !== undefined && (
-                                  <div className="ml-4 mt-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] break-all">
-                                    {valStr(change.after)}
-                                  </div>
-                                )}
-                                {change.status === 'removed' && change.before !== undefined && (
-                                  <div className="ml-4 mt-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] line-through break-all">
-                                    {valStr(change.before)}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    );
-                  })()}
-                  {!git.tokenPreviewLoading && git.tokenPreview === null && (
-                    <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Click <strong className="font-medium text-[var(--color-figma-text)]">Preview changes</strong> to see token-level additions, modifications, and deletions before committing.
-                    </div>
-                  )}
-                </div>
+                <FileTokenDiffList
+                  allChanges={git.allChanges}
+                  selectedFiles={git.selectedFiles}
+                  setSelectedFiles={git.setSelectedFiles}
+                  tokenPreview={git.tokenPreview}
+                  tokenPreviewLoading={git.tokenPreviewLoading}
+                  fetchTokenPreview={git.fetchTokenPreview}
+                />
               )}
 
               {/* Commit */}
@@ -1836,6 +1709,7 @@ function CommitPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   // Auto-fetch token preview on mount if not already loaded
   useEffect(() => {
@@ -1855,14 +1729,35 @@ function CommitPreviewModal({
   const skippedCount = allChanges.length - stagedChanges.length;
 
   // Filter token preview to only show changes from selected files
-  const relevantTokenChanges = tokenPreview?.filter(c => {
-    // Token changes reference set names, not file paths — show all if token preview is available
-    return true;
-  }) ?? [];
+  const relevantTokenChanges = useMemo(() => {
+    if (!tokenPreview) return [];
+    const selectedSetNames = new Set(selectedFiles.map(f => f.replace('.tokens.json', '')));
+    return tokenPreview.filter(c => selectedSetNames.has(c.set));
+  }, [tokenPreview, selectedFiles]);
 
-  const added = relevantTokenChanges.filter(c => c.status === 'added');
-  const modified = relevantTokenChanges.filter(c => c.status === 'modified');
-  const removed = relevantTokenChanges.filter(c => c.status === 'removed');
+  // Group token changes by file
+  const changesByFile = useMemo(() => {
+    const map = new Map<string, import('../hooks/useGitDiff').TokenChange[]>();
+    for (const tc of relevantTokenChanges) {
+      const fileName = tc.set + '.tokens.json';
+      const arr = map.get(fileName);
+      if (arr) arr.push(tc);
+      else map.set(fileName, [tc]);
+    }
+    return map;
+  }, [relevantTokenChanges]);
+
+  const totalAdded = relevantTokenChanges.filter(c => c.status === 'added').length;
+  const totalModified = relevantTokenChanges.filter(c => c.status === 'modified').length;
+  const totalRemoved = relevantTokenChanges.filter(c => c.status === 'removed').length;
+
+  const toggleExpand = (file: string) => {
+    setExpandedFiles(prev => {
+      const next = new Set(prev);
+      if (next.has(file)) next.delete(file); else next.add(file);
+      return next;
+    });
+  };
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -1889,83 +1784,86 @@ function CommitPreviewModal({
             <div className="text-[11px] text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
           </div>
 
-          {/* File list */}
+          {/* File list with per-file token changes */}
           <div className="mb-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
-              {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to commit
-              {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 flex items-center justify-between">
+              <span>
+                {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to commit
+                {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
+              </span>
+              {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
+                <span className="flex gap-1.5 text-[9px] font-mono">
+                  {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded}</span>}
+                  {totalModified > 0 && <span className="text-[var(--color-figma-warning)]">~{totalModified}</span>}
+                  {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">&minus;{totalRemoved}</span>}
+                </span>
+              )}
             </div>
-            <div className="max-h-24 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-              {stagedChanges.map((change, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-2 py-1">
-                  <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${
-                    change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                    change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                    change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                    'text-[var(--color-figma-text-secondary)]'
-                  }`}>
-                    {change.status}
-                  </span>
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{change.file}</span>
+            <div className="max-h-52 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+              {tokenPreviewLoading && (
+                <div className="flex items-center gap-2 py-3 justify-center">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-figma-text-secondary)]/30 border-t-[var(--color-figma-text-secondary)] animate-spin" />
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading token changes\u2026</span>
                 </div>
-              ))}
+              )}
+              {stagedChanges.map((change, i) => {
+                const fileTokenChanges = changesByFile.get(change.file) ?? [];
+                const hasTokenChanges = fileTokenChanges.length > 0;
+                const isExpanded = expandedFiles.has(change.file);
+                const addedCount = fileTokenChanges.filter(c => c.status === 'added').length;
+                const modifiedCount = fileTokenChanges.filter(c => c.status === 'modified').length;
+                const removedCount = fileTokenChanges.filter(c => c.status === 'removed').length;
+
+                return (
+                  <div key={i}>
+                    <div
+                      className={`flex items-center gap-1.5 px-2 py-1 ${hasTokenChanges ? 'cursor-pointer hover:bg-[var(--color-figma-bg-hover)]' : ''}`}
+                      onClick={() => hasTokenChanges && toggleExpand(change.file)}
+                    >
+                      {/* Expand chevron */}
+                      <span className={`w-3 h-3 flex items-center justify-center shrink-0 ${hasTokenChanges ? '' : 'opacity-0'}`}>
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}>
+                          <path d="M2 1l4 3-4 3V1z" />
+                        </svg>
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${
+                        change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
+                        change.status === 'A' ? 'text-[var(--color-figma-success)]' :
+                        change.status === 'D' ? 'text-[var(--color-figma-error)]' :
+                        'text-[var(--color-figma-text-secondary)]'
+                      }`}>
+                        {change.status}
+                      </span>
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0">{change.file}</span>
+                      {/* Per-file token counts */}
+                      {hasTokenChanges && (
+                        <span className="flex gap-1.5 text-[9px] font-mono shrink-0">
+                          {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
+                          {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
+                          {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
+                        </span>
+                      )}
+                    </div>
+                    {isExpanded && hasTokenChanges && (
+                      <div className="bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+                        {fileTokenChanges.map((tc, j) => (
+                          <TokenChangeRow key={j} change={tc} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Token-level changes */}
-          {tokenPreviewLoading && (
-            <div className="flex items-center gap-2 py-3 justify-center">
-              <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-figma-text-secondary)]/30 border-t-[var(--color-figma-text-secondary)] animate-spin" />
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading token changes\u2026</span>
+          {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length === 0 && stagedChanges.some(c => c.file.endsWith('.tokens.json')) && (
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              No token value changes detected (formatting or metadata only).
             </div>
-          )}
-
-          {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
-                Token changes
-                <span className="flex gap-2 text-[10px] font-normal">
-                  {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
-                  {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length}</span>}
-                  {removed.length > 0 && <span className="text-[var(--color-figma-error)]">-{removed.length}</span>}
-                </span>
-              </div>
-              <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-                {relevantTokenChanges.map((change, i) => {
-                  const statusColor =
-                    change.status === 'added' ? 'text-[var(--color-figma-success)]' :
-                    change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
-                    'text-[var(--color-figma-warning)]';
-                  const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
-                  const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
-                  return (
-                    <div key={i} className="px-2 py-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-                        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">{change.set}</span>
-                      </div>
-                      {change.status === 'modified' && (
-                        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
-                          <div className="flex items-start gap-1">
-                            <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                            <span className="text-[var(--color-figma-text-secondary)] break-all">{valStr(change.before)}</span>
-                          </div>
-                          <div className="flex items-start gap-1">
-                            <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                            <span className="text-[var(--color-figma-text)] break-all">{valStr(change.after)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length === 0 && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1">No token-level changes detected (non-token files only).</div>
           )}
         </div>
 
@@ -2137,6 +2035,227 @@ function DiffSwatch({ hex }: { hex: string }) {
       style={{ backgroundColor: swatchBgColor(hex) }}
       aria-hidden="true"
     />
+  );
+}
+
+/* ── Inline token change row ────────────────────────────────────────────── */
+
+function TokenChangeRow({ change }: { change: import('../hooks/useGitDiff').TokenChange }) {
+  const statusColor =
+    change.status === 'added' ? 'text-[var(--color-figma-success)]' :
+    change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
+    'text-[var(--color-figma-warning)]';
+  const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
+  const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
+  const isColor = change.type === 'color';
+  const beforeStr = change.before != null ? valStr(change.before) : undefined;
+  const afterStr = change.after != null ? valStr(change.after) : undefined;
+
+  return (
+    <div className="px-3 py-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
+        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+      </div>
+      {change.status === 'modified' && (
+        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+            {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
+            <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr ?? '', 40)}</span>
+          </div>
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+            {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
+            <span className="text-[var(--color-figma-text)] truncate" title={afterStr}>{truncateValue(afterStr ?? '', 40)}</span>
+          </div>
+        </div>
+      )}
+      {change.status === 'added' && afterStr !== undefined && (
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+          {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
+          <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterStr}>{truncateValue(afterStr, 40)}</span>
+        </div>
+      )}
+      {change.status === 'removed' && beforeStr !== undefined && (
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+          {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
+          <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Per-file token diff list (unified file + token preview) ───────────── */
+
+function FileTokenDiffList({
+  allChanges,
+  selectedFiles,
+  setSelectedFiles,
+  tokenPreview,
+  tokenPreviewLoading,
+  fetchTokenPreview,
+}: {
+  allChanges: Array<{ file: string; status: string }>;
+  selectedFiles: Set<string>;
+  setSelectedFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
+  tokenPreview: import('../hooks/useGitDiff').TokenChange[] | null;
+  tokenPreviewLoading: boolean;
+  fetchTokenPreview: () => Promise<void>;
+}) {
+  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+
+  // Auto-fetch token preview when component mounts with changes
+  useEffect(() => {
+    if (tokenPreview === null && !tokenPreviewLoading && allChanges.length > 0) {
+      fetchTokenPreview();
+    }
+  }, [allChanges.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Group token changes by file
+  const changesByFile = useMemo(() => {
+    const map = new Map<string, import('../hooks/useGitDiff').TokenChange[]>();
+    if (!tokenPreview) return map;
+    for (const tc of tokenPreview) {
+      const fileName = tc.set + '.tokens.json';
+      const arr = map.get(fileName);
+      if (arr) arr.push(tc);
+      else map.set(fileName, [tc]);
+    }
+    return map;
+  }, [tokenPreview]);
+
+  const toggleExpand = (file: string) => {
+    setExpandedFiles(prev => {
+      const next = new Set(prev);
+      if (next.has(file)) next.delete(file); else next.add(file);
+      return next;
+    });
+  };
+
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
+        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={allChanges.length > 0 && selectedFiles.size === allChanges.length}
+            ref={el => { if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < allChanges.length; }}
+            onChange={e => {
+              if (e.target.checked) {
+                setSelectedFiles(new Set(allChanges.map(c => c.file)));
+              } else {
+                setSelectedFiles(new Set());
+              }
+            }}
+            className="w-3 h-3"
+          />
+          Uncommitted changes
+        </label>
+        <span className="text-[10px] opacity-60">
+          {selectedFiles.size}/{allChanges.length} selected
+          {tokenPreviewLoading && (
+            <span className="ml-1.5 inline-flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full border border-[var(--color-figma-text-secondary)]/30 border-t-[var(--color-figma-text-secondary)] animate-spin inline-block" />
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="max-h-64 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+        {allChanges.map((change, i) => {
+          const fileTokenChanges = changesByFile.get(change.file) ?? [];
+          const isTokenFile = change.file.endsWith('.tokens.json');
+          const hasTokenChanges = fileTokenChanges.length > 0;
+          const isExpanded = expandedFiles.has(change.file);
+          const addedCount = fileTokenChanges.filter(c => c.status === 'added').length;
+          const modifiedCount = fileTokenChanges.filter(c => c.status === 'modified').length;
+          const removedCount = fileTokenChanges.filter(c => c.status === 'removed').length;
+
+          return (
+            <div key={i}>
+              <div className="flex items-center gap-2 px-3 py-1 hover:bg-[var(--color-figma-bg-hover)] group">
+                {/* Expand chevron */}
+                <button
+                  onClick={() => hasTokenChanges && toggleExpand(change.file)}
+                  disabled={!hasTokenChanges}
+                  className="w-3 h-3 flex items-center justify-center shrink-0 disabled:opacity-0"
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}>
+                    <path d="M2 1l4 3-4 3V1z" />
+                  </svg>
+                </button>
+                {/* Checkbox */}
+                <label className="flex items-center cursor-pointer" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.has(change.file)}
+                    onChange={e => {
+                      setSelectedFiles(prev => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(change.file); else next.delete(change.file);
+                        return next;
+                      });
+                    }}
+                    className="w-3 h-3"
+                  />
+                </label>
+                {/* Status badge */}
+                <span className={`text-[10px] font-mono font-bold w-3 flex-shrink-0 ${
+                  change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
+                  change.status === 'A' ? 'text-[var(--color-figma-success)]' :
+                  change.status === 'D' ? 'text-[var(--color-figma-error)]' :
+                  'text-[var(--color-figma-text-secondary)]'
+                }`}>
+                  {change.status}
+                </span>
+                {/* File name — clickable to expand */}
+                <button
+                  onClick={() => hasTokenChanges && toggleExpand(change.file)}
+                  className="text-[10px] text-[var(--color-figma-text)] truncate text-left flex-1 min-w-0"
+                  disabled={!hasTokenChanges}
+                >
+                  {change.file}
+                </button>
+                {/* Per-file token change summary badges */}
+                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && hasTokenChanges && (
+                  <span className="flex gap-1.5 text-[9px] font-mono shrink-0 ml-auto">
+                    {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
+                    {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
+                    {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
+                  </span>
+                )}
+                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && !hasTokenChanges && change.status !== 'D' && (
+                  <span className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    no value changes
+                  </span>
+                )}
+              </div>
+              {/* Expanded token changes */}
+              {isExpanded && hasTokenChanges && (
+                <div className="bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+                  {fileTokenChanges.map((tc, j) => (
+                    <TokenChangeRow key={j} change={tc} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* Overall summary bar */}
+      {tokenPreview !== null && !tokenPreviewLoading && tokenPreview.length > 0 && (
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {tokenPreview.filter(c => c.status === 'added').length > 0 && <span className="text-[var(--color-figma-success)]">+{tokenPreview.filter(c => c.status === 'added').length} added</span>}
+          {tokenPreview.filter(c => c.status === 'modified').length > 0 && <span className="text-[var(--color-figma-warning)]">~{tokenPreview.filter(c => c.status === 'modified').length} modified</span>}
+          {tokenPreview.filter(c => c.status === 'removed').length > 0 && <span className="text-[var(--color-figma-error)]">&minus;{tokenPreview.filter(c => c.status === 'removed').length} removed</span>}
+        </div>
+      )}
+    </div>
   );
 }
 
