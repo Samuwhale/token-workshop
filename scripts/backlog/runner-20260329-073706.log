@@ -71,3 +71,18 @@ Already up to date.
 
   Merging to main: Free-text search does not match token description content
 Already up to date.
+[main 8024615] chore(backlog): done – Free-text search does not match token description content
+ 9 files changed, 51 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Free-text search does not match token description content
+- Added description matching to `searchTokens` free-text path: now matches path, leaf name, OR `$description`
+- Added `descs?: string[]` parameter to `searchTokens` with a `desc:` qualifier filter in the entry loop
+- Updated route `GET /api/tokens/search` to accept `desc` query param and pass `descs` to `searchTokens`
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  4 queued · 5 in-progress · last took 2m15s
+═══════════════════════════════════════════════════════════════
+  → No per-token history view — HistoryPanel.tsx shows full git commit and snapshot history but there is no way to filter by a specific token path to answer "what changed with `color.brand.primary` over time"; add a per-token history mode reachable from the token context menu ("View history") that filters the history timeline to only commits/snapshots that touched the selected token
+  Worktree: /tmp/backlog-68874-QrpMmH
+  Running agent… (started 07:49:56)

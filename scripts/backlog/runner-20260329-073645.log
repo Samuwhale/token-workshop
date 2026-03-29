@@ -87,3 +87,10 @@ Already up to date.
   → useVariableSync and useStyleSync share ~80% identical sync logic — both hooks implement the same pattern: fetch flat tokens, build local/figma maps, compute diff rows, filter push/pull, execute batch sync with progress tracking, and handle errors; the core diff-compute and batch-execute logic (~150 lines each) is nearly identical between useVariableSync.ts L77-183 and useStyleSync.ts L96-207; extract a shared `useTokenSyncBase` hook or utility that handles diff computation, push/pull separation, and progress tracking, with type-specific callbacks for the actual Figma API calls
   Worktree: /tmp/backlog-67697-QcoxW2
   Running agent… (started 07:47:33)
+
+  ✓ done: Extract shared useTokenSyncBase from useVariableSync and useStyleSync
+    Created useTokenSyncBase.ts generic hook (~210 lines) that handles shared state, diff computation, apply logic, and progress tracking. Rewrote useVariableSync (205→100 lines) and useStyleSync (228→120 lines) to delegate to the base hook via type-specific config callbacks. No consumer changes needed — external API preserved.
+    16 turns · 187s · $0.81
+
+  Merging to main: Extract shared useTokenSyncBase from useVariableSync and useStyleSync
+Already up to date.

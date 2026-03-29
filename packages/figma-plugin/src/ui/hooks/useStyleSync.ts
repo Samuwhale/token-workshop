@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
-import { describeError } from '../shared/utils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { useMemo } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
-import type { SyncProgress } from './useVariableSync';
+import { useTokenSyncBase, type SyncProgress } from './useTokenSyncBase';
+import type { DiffRowBase } from './useTokenSyncBase';
+
+export type { SyncProgress };
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
@@ -23,15 +23,11 @@ function summarizeStyleValue(value: any, type: string): string {
   return JSON.stringify(value).slice(0, 28);
 }
 
-export interface StyleDiffRow {
-  path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
+export interface StyleDiffRow extends DiffRowBase {
   localValue?: string;
   figmaValue?: string;
   localRaw?: any;
   figmaRaw?: any;
-  localType?: string;
-  figmaType?: string;
 }
 
 interface UseStyleSyncOptions {
@@ -48,14 +44,6 @@ const extractStyleApplyResult = (msg: any): { count: number; total: number; fail
 });
 
 export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
-  const [styleRows, setStyleRows] = useState<StyleDiffRow[]>([]);
-  const [styleDirs, setStyleDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
-  const [styleLoading, setStyleLoading] = useState(false);
-  const [styleSyncing, setStyleSyncing] = useState(false);
-  const [styleError, setStyleError] = useState<string | null>(null);
-  const [styleChecked, setStyleChecked] = useState(false);
-  const [styleProgress, setStyleProgress] = useState<SyncProgress | null>(null);
-
   const sendStyleRead = useFigmaMessage<any[]>({
     responseType: 'styles-read',
     errorType: 'styles-read-error',
@@ -70,159 +58,71 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     extractResponse: extractStyleApplyResult,
   });
 
-  // Listen for incremental progress messages from the plugin sandbox
-  useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'style-sync-progress') {
-        setStyleProgress({ current: msg.current as number, total: msg.total as number });
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+  const config = useMemo(() => ({
+    progressEventType: 'style-sync-progress',
+    readFigmaTokens: () => sendStyleRead('read-styles'),
 
-  const computeStyleDiff = useCallback(async () => {
-    if (!activeSet) return;
-    setStyleLoading(true);
-    setStyleError(null);
-    setStyleChecked(false);
-    try {
-      const figmaTokens = await sendStyleRead('read-styles');
+    buildFigmaMap: (tokens: any[]) =>
+      new Map(tokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }])),
 
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      const localTokens = flattenTokenGroup(data.tokens || {});
-
-      const figmaMap = new Map<string, { raw: any; type: string }>(
-        figmaTokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }])
-      );
-      const localMap = new Map<string, { raw: any; type: string }>();
-      for (const [path, token] of localTokens) {
+    buildLocalMap: (tokens: Map<string, any>) => {
+      const m = new Map<string, { raw: any; type: string }>();
+      for (const [path, token] of tokens) {
         const type = String(token.$type ?? 'string');
         if (STYLE_TYPES.has(type)) {
-          localMap.set(path, { raw: token.$value, type });
+          m.set(path, { raw: token.$value, type });
         }
       }
+      return m;
+    },
 
-      const rows: StyleDiffRow[] = [];
-      for (const [path, local] of localMap) {
-        const figmaEntry = figmaMap.get(path);
-        if (!figmaEntry) {
-          rows.push({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type });
-        } else if (JSON.stringify(figmaEntry.raw) !== JSON.stringify(local.raw)) {
-          rows.push({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figmaEntry.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), localType: local.type, figmaType: figmaEntry.type });
-        }
-      }
-      for (const [path, figmaEntry] of figmaMap) {
-        if (!localMap.has(path)) {
-          rows.push({ path, cat: 'figma-only', figmaRaw: figmaEntry.raw, figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), figmaType: figmaEntry.type });
-        }
-      }
+    buildLocalOnlyRow: (path: string, local: { raw: any; type: string }): StyleDiffRow =>
+      ({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type }),
 
-      setStyleRows(rows);
-      setStyleChecked(true);
-      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const r of rows) {
-        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
-      }
-      setStyleDirs(dirs);
-    } catch (err) {
-      setStyleError(describeError(err, 'Compare styles'));
-    } finally {
-      setStyleLoading(false);
-    }
-  }, [serverUrl, activeSet, sendStyleRead]);
+    buildFigmaOnlyRow: (path: string, figma: { raw: any; type: string }): StyleDiffRow =>
+      ({ path, cat: 'figma-only', figmaRaw: figma.raw, figmaValue: summarizeStyleValue(figma.raw, figma.type), figmaType: figma.type }),
 
-  const applyStyleDiff = useCallback(async () => {
-    const dirsSnapshot = styleDirs;
-    const rowsSnapshot = styleRows;
-    setStyleSyncing(true);
-    setStyleError(null);
-    setStyleProgress(null);
-    try {
-      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
-      const totalOps = pushRows.length + pullRows.length;
+    buildConflictRow: (path: string, local: { raw: any; type: string }, figma: { raw: any; type: string }): StyleDiffRow =>
+      ({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figma.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figma.raw, figma.type), localType: local.type, figmaType: figma.type }),
 
-      let pushResult: { count: number; total: number; failures: { path: string; error: string }[] } | null = null;
+    isConflict: (local: { raw: any }, figma: { raw: any }) =>
+      JSON.stringify(figma.raw) !== JSON.stringify(local.raw),
 
-      if (pushRows.length > 0) {
-        const tokens = pushRows.map(r => ({
-          path: r.path,
-          $type: r.localType ?? 'string',
-          $value: r.localRaw,
-        }));
-        pushResult = await sendStyleApply('apply-styles', { tokens });
-      }
+    executePush: async (rows: StyleDiffRow[]) => {
+      const tokens = rows.map(r => ({
+        path: r.path,
+        $type: r.localType ?? 'string',
+        $value: r.localRaw,
+      }));
+      const result = await sendStyleApply('apply-styles', { tokens });
+      return { failures: result.failures };
+    },
 
-      const pullFailures: { path: string; error: string }[] = [];
-      if (pullRows.length > 0) {
-        let pullDone = 0;
-        const pullBase = pushRows.length;
-        const results = await Promise.all(pullRows.map(async (r) => {
-          try {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
-            });
-            return null;
-          } catch (err) {
-            const msg = err instanceof ApiError ? `${err.status}: ${err.message}` : (err instanceof Error ? err.message : String(err));
-            return { path: r.path, error: msg };
-          } finally {
-            pullDone++;
-            setStyleProgress({ current: pullBase + pullDone, total: totalOps });
-          }
-        }));
-        for (const f of results) {
-          if (f) pullFailures.push(f);
-        }
-      }
+    buildPullPayload: (row: StyleDiffRow) => ({
+      $type: row.figmaType ?? 'string',
+      $value: row.figmaRaw,
+    }),
 
-      setStyleRows([]);
-      setStyleDirs({});
-      setStyleChecked(true);
+    successMessage: 'Style sync applied',
+    compareErrorLabel: 'Compare styles',
+    applyErrorLabel: 'Apply style sync',
+  }), [sendStyleRead, sendStyleApply]);
 
-      const pushFailed = pushResult ? pushResult.failures.length : 0;
-      if (pushFailed > 0 || pullFailures.length > 0) {
-        const parts: string[] = [];
-        if (pushResult && pushFailed > 0) {
-          parts.push(`Push: ${pushResult.count}/${pushResult.total} applied (failed: ${pushResult.failures.map(f => f.path).join(', ')})`);
-        }
-        if (pullFailures.length > 0) {
-          const pullOk = pullRows.length - pullFailures.length;
-          parts.push(`Pull: ${pullOk}/${pullRows.length} applied (failed: ${pullFailures.map(f => f.path).join(', ')})`);
-        }
-        setStyleError(parts.join('. '));
-      } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
-      }
-    } catch (err) {
-      setStyleError(describeError(err, 'Apply style sync'));
-    } finally {
-      setStyleSyncing(false);
-      setStyleProgress(null);
-    }
-  }, [serverUrl, activeSet, styleRows, styleDirs, sendStyleApply]);
-
-  const styleSyncCount = Object.values(styleDirs).filter(d => d !== 'skip').length;
-  const stylePushCount = Object.values(styleDirs).filter(d => d === 'push').length;
-  const stylePullCount = Object.values(styleDirs).filter(d => d === 'pull').length;
+  const base = useTokenSyncBase<StyleDiffRow>(serverUrl, activeSet, config);
 
   return {
-    styleRows,
-    styleDirs,
-    setStyleDirs,
-    styleLoading,
-    styleSyncing,
-    styleProgress,
-    styleError,
-    styleChecked,
-    computeStyleDiff,
-    applyStyleDiff,
-    styleSyncCount,
-    stylePushCount,
-    stylePullCount,
+    styleRows: base.rows,
+    styleDirs: base.dirs,
+    setStyleDirs: base.setDirs,
+    styleLoading: base.loading,
+    styleSyncing: base.syncing,
+    styleProgress: base.progress,
+    styleError: base.error,
+    styleChecked: base.checked,
+    computeStyleDiff: base.computeDiff,
+    applyStyleDiff: base.applyDiff,
+    styleSyncCount: base.syncCount,
+    stylePushCount: base.pushCount,
+    stylePullCount: base.pullCount,
   };
 }

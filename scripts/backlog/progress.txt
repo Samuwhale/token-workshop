@@ -395,3 +395,15 @@
   - The client-side `desc:` qualifier was already fully implemented in `tokenListUtils.ts`; only free-text and server-side were missing
   - Cross-set search URL params in `TokenList.tsx` must mirror all qualifiers supported by the server route
 ---
+
+## 2026-03-29 - Extract shared useTokenSyncBase from useVariableSync and useStyleSync
+- Created `useTokenSyncBase.ts` generic hook that handles: state management (rows, dirs, loading, syncing, error, checked, progress), progress listener effect, diff computation (fetch figma + local tokens, build maps, compute rows), apply logic (push/pull split, parallel pull with progress, error aggregation), and count computation
+- Rewrote `useVariableSync.ts` (~205→100 lines) to pass type-specific callbacks via config object to the base hook, re-exporting with original property names
+- Rewrote `useStyleSync.ts` (~228→120 lines) to use the same base hook pattern
+- No changes needed to `PublishPanel.tsx` — the external API (property names, types) is fully preserved
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` (new, ~210 lines), `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` (rewritten), `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` (rewritten)
+- **Learnings for future iterations:**
+  - The config object uses `useMemo` + `useRef` pattern: callers memoize config, base hook stores it in a ref so effects/callbacks don't re-register on every render
+  - Variable sync push is fire-and-forget via postMessage (no failure info), while style sync push awaits a response — the `executePush` callback abstracts this nicely
+  - Both hooks share the same pull logic (PATCH to server API) — only the payload shape differs, handled by `buildPullPayload`
+---

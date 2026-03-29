@@ -1,21 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
-import { describeError } from '../shared/utils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
+import { useTokenSyncBase, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
 
-export interface SyncProgress {
-  current: number;
-  total: number;
-}
+export type { SyncProgress };
 
-export interface VarDiffRow {
-  path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
+export interface VarDiffRow extends DiffRowBase {
   localValue?: string;
   figmaValue?: string;
-  localType?: string;
-  figmaType?: string;
 }
 
 interface UseVariableSyncOptions {
@@ -29,15 +20,6 @@ interface UseVariableSyncOptions {
 const extractTokens = (msg: any): any[] => msg.tokens ?? [];
 
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
-  const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
-  const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
-  const [varLoading, setVarLoading] = useState(false);
-  const [varSyncing, setVarSyncing] = useState(false);
-  const [varError, setVarError] = useState<string | null>(null);
-  const [varChecked, setVarChecked] = useState(false);
-  const [varProgress, setVarProgress] = useState<SyncProgress | null>(null);
-  const varProgressRef = useRef<SyncProgress | null>(null);
-
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
     timeout: 10000,
@@ -49,157 +31,77 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     [sendReadVariables],
   );
 
-  // Listen for incremental progress messages from the plugin sandbox
+  const config = useMemo(() => ({
+    progressEventType: 'variable-sync-progress',
+    readFigmaTokens: readFigmaVariables,
+
+    buildFigmaMap: (tokens: any[]) =>
+      new Map(tokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])),
+
+    buildLocalMap: (tokens: Map<string, any>) => {
+      const m = new Map<string, { value: string; type: string }>();
+      for (const [path, token] of tokens) {
+        m.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
+      }
+      return m;
+    },
+
+    buildLocalOnlyRow: (path: string, local: { value: string; type: string }): VarDiffRow =>
+      ({ path, cat: 'local-only', localValue: local.value, localType: local.type }),
+
+    buildFigmaOnlyRow: (path: string, figma: { value: string; type: string }): VarDiffRow =>
+      ({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type }),
+
+    buildConflictRow: (path: string, local: { value: string; type: string }, figma: { value: string; type: string }): VarDiffRow =>
+      ({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type }),
+
+    isConflict: (local: { value: string }, figma: { value: string }) =>
+      figma.value !== local.value,
+
+    executePush: async (rows: VarDiffRow[]) => {
+      const tokens = rows.map(r => ({
+        path: r.path,
+        $type: r.localType ?? 'string',
+        $value: r.localValue ?? '',
+        setName: activeSet,
+      }));
+      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
+      // Variable push is fire-and-forget via postMessage; no failure info returned
+      return { failures: [] };
+    },
+
+    buildPullPayload: (row: VarDiffRow) => ({
+      $type: row.figmaType ?? 'string',
+      $value: row.figmaValue ?? '',
+    }),
+
+    successMessage: 'Variable sync applied',
+    compareErrorLabel: 'Compare variables',
+    applyErrorLabel: 'Apply variable sync',
+  }), [readFigmaVariables, activeSet, collectionMap, modeMap]);
+
+  const base = useTokenSyncBase<VarDiffRow>(serverUrl, activeSet, config);
+
+  // Auto-compute on connect / set change
   useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variable-sync-progress') {
-        const p = { current: msg.current as number, total: msg.total as number };
-        varProgressRef.current = p;
-        setVarProgress(p);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+    if (connected && activeSet) base.computeDiff();
+  }, [connected, activeSet, base.computeDiff]);
 
-  const computeVarDiff = useCallback(async () => {
-    if (!activeSet) return;
-    setVarLoading(true);
-    setVarError(null);
-    setVarChecked(false);
-    try {
-      const figmaTokens = await readFigmaVariables();
-
-      const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      const localTokens = flattenTokenGroup(data.tokens || {});
-
-      const figmaMap = new Map<string, { value: string; type: string }>(
-        figmaTokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])
-      );
-      const localMap = new Map<string, { value: string; type: string }>();
-      for (const [path, token] of localTokens) {
-        localMap.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
-      }
-
-      const rows: VarDiffRow[] = [];
-      for (const [path, local] of localMap) {
-        const figma = figmaMap.get(path);
-        if (!figma) {
-          rows.push({ path, cat: 'local-only', localValue: local.value, localType: local.type });
-        } else if (figma.value !== local.value) {
-          rows.push({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type });
-        }
-      }
-      for (const [path, figma] of figmaMap) {
-        if (!localMap.has(path)) {
-          rows.push({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type });
-        }
-      }
-
-      setVarRows(rows);
-      setVarChecked(true);
-      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const r of rows) {
-        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
-      }
-      setVarDirs(dirs);
-    } catch (err) {
-      setVarError(describeError(err, 'Compare variables'));
-    } finally {
-      setVarLoading(false);
-    }
-  }, [serverUrl, activeSet, readFigmaVariables]);
-
-  useEffect(() => {
-    if (connected && activeSet) computeVarDiff();
-  }, [connected, activeSet, computeVarDiff]);
-
-  const applyVarDiff = useCallback(async () => {
-    const dirsSnapshot = varDirs;
-    const rowsSnapshot = varRows;
-    setVarSyncing(true);
-    setVarError(null);
-    setVarProgress(null);
-    varProgressRef.current = null;
-    try {
-      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
-      const totalOps = pushRows.length + pullRows.length;
-
-      if (pushRows.length > 0) {
-        // Progress for push operations is reported by the plugin sandbox
-        const tokens = pushRows.map(r => ({
-          path: r.path,
-          $type: r.localType ?? 'string',
-          $value: r.localValue ?? '',
-          setName: activeSet,
-        }));
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
-      }
-
-      const pullFailures: { path: string; error: string }[] = [];
-      if (pullRows.length > 0) {
-        let pullDone = 0;
-        const pullBase = pushRows.length; // offset by push count
-        const results = await Promise.all(pullRows.map(async (r) => {
-          try {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
-            });
-            return null;
-          } catch (err) {
-            const msg = err instanceof ApiError ? `${err.status}: ${err.message}` : (err instanceof Error ? err.message : String(err));
-            return { path: r.path, error: msg };
-          } finally {
-            pullDone++;
-            setVarProgress({ current: pullBase + pullDone, total: totalOps });
-          }
-        }));
-        for (const f of results) {
-          if (f) pullFailures.push(f);
-        }
-      }
-
-      setVarRows([]);
-      setVarDirs({});
-      setVarChecked(true);
-
-      if (pullFailures.length > 0) {
-        const ok = pullRows.length - pullFailures.length;
-        setVarError(`Pull: ${ok}/${pullRows.length} applied (failed: ${pullFailures.map(f => f.path).join(', ')})`);
-      } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
-      }
-    } catch (err) {
-      setVarError(describeError(err, 'Apply variable sync'));
-    } finally {
-      setVarSyncing(false);
-      setVarProgress(null);
-      varProgressRef.current = null;
-    }
-  }, [serverUrl, activeSet, varRows, varDirs, collectionMap, modeMap]);
-
-  const varSyncCount = Object.values(varDirs).filter(d => d !== 'skip').length;
-  const varPushCount = Object.values(varDirs).filter(d => d === 'push').length;
-  const varPullCount = Object.values(varDirs).filter(d => d === 'pull').length;
-
+  // Re-export with the original property names for backward compat in PublishPanel
   return {
-    varRows,
-    varDirs,
-    setVarDirs,
-    varLoading,
-    varSyncing,
-    varProgress,
-    varError,
-    varChecked,
-    computeVarDiff,
-    applyVarDiff,
-    varSyncCount,
-    varPushCount,
-    varPullCount,
+    varRows: base.rows,
+    varDirs: base.dirs,
+    setVarDirs: base.setDirs,
+    varLoading: base.loading,
+    varSyncing: base.syncing,
+    varProgress: base.progress,
+    varError: base.error,
+    varChecked: base.checked,
+    computeVarDiff: base.computeDiff,
+    applyVarDiff: base.applyDiff,
+    varSyncCount: base.syncCount,
+    varPushCount: base.pushCount,
+    varPullCount: base.pullCount,
     readFigmaVariables,
   };
 }
