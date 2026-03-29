@@ -419,3 +419,10 @@
   - The "extends" alias picker (TokenEditor.tsx) is separate from AliasPicker.tsx (the main alias value picker). Check both when a truncation issue is reported.
   - Splitting into `filteredAll` + sliced `filtered` keeps the count accurate without re-filtering.
 ---
+
+## 2026-03-29 - BatchEditor has no keyboard shortcut to submit
+- Added Cmd+Enter (Ctrl+Enter on non-Mac) global keydown handler to trigger Apply. Used stable callback ref pattern: `handleApplyRef` declared with other refs, assigned `handleApplyRef.current = handleApply` before `return`, and a single `useEffect` registers/unregisters the listener on `window`. The effect has an empty dep array since it always calls via the ref.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L96, ~L501
+- **Learnings for future iterations:**
+  - The stable callback ref pattern (assign `ref.current = fn` before `return`, listen via `ref.current(...)`) is the right approach for global keydown handlers in components with many state deps — avoids re-registering the listener on every render while always calling the latest version of the handler.
+---

@@ -94,6 +94,7 @@ export function BatchEditor({
   const [showScopes, setShowScopes] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
+  const handleApplyRef = useRef<() => void>(() => {});
 
   const selectedEntries = useMemo(() => (
     [...selectedPaths]
@@ -498,6 +499,21 @@ export function BatchEditor({
       setRenaming(false);
     }
   };
+
+  // Keep a stable ref to the current handleApply so the keydown listener doesn't
+  // need to be re-registered on every state change.
+  handleApplyRef.current = handleApply;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleApplyRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div className="px-2 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] space-y-1.5">
