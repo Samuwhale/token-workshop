@@ -587,3 +587,13 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: ConsistencyPanel and HeatmapPanel are two separate sub-tabs under Apply that both scan Figma layers for token-related issues with nearly identical card-based UIs — strong consolidation candidate; also useUndo's global Ctrl+Z listener fires even when typing in text inputs, hijacking browser undo
 ---
+
+## 2026-03-29 - useDragDrop silently stops on first failure during batch move
+- Removed `break` on first error in `handleDropOnGroup` — all planned moves are now attempted independently
+- Changed error reporting from generic "partial" message to detailed per-token failure list: each failed token's leaf name and specific reason (API error message or HTTP status) is shown
+- Error message formats: single failure shows `Move failed — "tokenName": reason`, partial shows `Moved N/M. Failed: "a": reason; "b": reason`, total failure shows `All N moves failed: ...`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L74-96
+- **Learnings for future iterations:**
+  - The batch moves in `handleDropOnGroup` are genuinely independent (each token → distinct new path), so `break` on first error was unnecessarily conservative
+  - Undo/redo logic already handled partial success correctly — only the error reporting needed fixing
+---

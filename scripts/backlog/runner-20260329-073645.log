@@ -198,3 +198,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67173) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  9 new item(s) available — continuing.
+  → Find-and-replace has no preview of skipped conflicts and no progress during bulk rename — useFindReplace.ts shows matched tokens but tokens that would conflict with existing paths are silently marked "will be skipped" with no summary count; during execution (`frBusy=true`) there is no progress indicator for large sets; the 30s timeout (L8) triggers a misleading "cancelled" error instead of "timed out"
+  Worktree: /tmp/backlog-67697-lXxRbP
+  Running agent… (started 08:00:46)

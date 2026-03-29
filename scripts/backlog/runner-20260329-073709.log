@@ -188,3 +188,14 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67173) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  8 new item(s) available — continuing.
+  → useDragDrop silently stops on first failure during batch move — useDragDrop.ts L89 `break`s on first error when moving multiple tokens, leaving remaining items unmoved; users see a generic "partial" error toast but aren't told which specific token failed or why, and can't retry just the failed items
+  Worktree: /tmp/backlog-69179-ofiqMQ
+  Running agent… (started 08:00:48)
+
+  ✓ done: useDragDrop silently stops on first failure during batch move
+    Removed break-on-first-error in handleDropOnGroup so all moves are attempted; replaced generic error toast with per-token failure details showing which token failed and why.
+    7 turns · 68s · $0.32
+
+  Merging to main: useDragDrop silently stops on first failure during batch move
+Already up to date.

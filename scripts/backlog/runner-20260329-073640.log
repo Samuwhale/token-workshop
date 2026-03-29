@@ -144,3 +144,13 @@ Already up to date.
   ✓ product pass: product-pass
     11 items written to inbox — consolidation (ConsistencyPanel+HeatmapPanel, lint config into Validation), workflow friction (find-replace progress, drag-drop partial failure, merge stale conflicts, table data loss, undo keyboard conflict), silent caps (heatmap scanner), missing features (rename impact preview, settings backup), performance (consistency scanner O(n*m))
 Already up to date.
+[main 897b77f] chore(backlog): product pass – product-pass
+ 11 files changed, 148 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

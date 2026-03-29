@@ -72,7 +72,7 @@ export function useDragDrop({
     if (planned.length === 0) return;
 
     const succeeded: Array<{ oldPath: string; newPath: string }> = [];
-    const failures: string[] = [];
+    const failures: Array<{ path: string; reason: string }> = [];
     for (const { oldPath, newPath } of planned) {
       try {
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
@@ -82,17 +82,19 @@ export function useDragDrop({
         });
         succeeded.push({ oldPath, newPath });
       } catch (err) {
-        const msg = err instanceof ApiError
-          ? (err.message || `Move "${oldPath}" failed (${err.status})`)
-          : `Move "${oldPath}" failed: network error`;
-        failures.push(msg);
-        break; // stop on first failure — later renames may depend on earlier ones
+        const reason = err instanceof ApiError
+          ? (err.message || `HTTP ${err.status}`)
+          : 'network error';
+        failures.push({ path: oldPath, reason });
       }
     }
     if (failures.length > 0) {
+      const failDetails = failures.map(f => `"${f.path.split('.').pop() ?? f.path}": ${f.reason}`).join('; ');
       const summary = succeeded.length > 0
-        ? `${failures[0]} (${succeeded.length}/${planned.length} moved)`
-        : failures[0];
+        ? `Moved ${succeeded.length}/${planned.length}. Failed: ${failDetails}`
+        : failures.length === 1
+          ? `Move failed — ${failDetails}`
+          : `All ${failures.length} moves failed: ${failDetails}`;
       onError?.(summary);
     }
     // Always push undo for whatever succeeded, so partially-moved tokens can be reverted

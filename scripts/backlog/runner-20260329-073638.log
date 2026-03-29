@@ -144,3 +144,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67173) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  7 new item(s) available — continuing.
+  → useSetMergeSplit has no conflict revalidation after target change — users can check conflicts (L70-99), then change the target set (L64-68) before confirming, which silently invalidates the conflict analysis; the merge executes against stale `mergeSrcFlat` data captured at check time; add a dirty flag or auto-recheck when target changes
+  Worktree: /tmp/backlog-66903-WQHUhR
+  Running agent… (started 08:00:51)

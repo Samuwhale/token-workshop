@@ -112,3 +112,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67173) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  10 new item(s) available — continuing.
+  → Move lint rule configuration from SettingsPanel into the Validation panel (AnalyticsPanel) — SettingsPanel.tsx L503-575 embeds full lint rule toggles, severity selectors, and pattern inputs via LintConfigPanel, but users must navigate to Settings to configure rules then to Ship > Validation to see violations; co-locating rule configuration with violation results in a single panel lets users iterate on rules and see impact immediately
+  Worktree: /tmp/backlog-67435-7BJ4gP
+  Running agent… (started 08:00:44)

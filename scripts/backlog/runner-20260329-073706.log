@@ -143,3 +143,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67173) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  11 new item(s) available — continuing.
+  → Merge ConsistencyPanel and HeatmapPanel into a single "Binding Audit" panel — both live under Apply as separate sub-tabs, both scan Figma layers for token-related issues (HeatmapPanel checks binding coverage, ConsistencyPanel finds hardcoded values that could be tokens), both have card-based expand/collapse UIs with batch-apply actions; merging them into one panel with a Coverage/Suggestions toggle reduces the Apply tab from 3 sub-tabs to 2 and eliminates the user's mental overhead of understanding two separate scanning concepts
+  Worktree: /tmp/backlog-68874-xOhEp1
+  Running agent… (started 08:00:39)
