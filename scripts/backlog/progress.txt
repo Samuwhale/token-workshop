@@ -403,3 +403,11 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: TokenReferences and TokenDependents are near-identical 400-line components (same props, same helpers, same layer scanning) that should be one component; PublishPanel and ExportPanel both have "Figma Variables" sections doing opposite things (sync vs extract) with no naming distinction; BatchEditor undo block references 3 undefined variables (crash on use)
 ---
+
+## 2026-03-29 - BatchEditor undo block references three undefined variables
+- Item is stale — already fixed. The undo/redo block at BatchEditor.tsx ~L379-388 now correctly uses `result.updated`, `result.operationId`, and `rollbackOperation(opId)` (defined at L280). The undefined variables `succeeded`, `results`, and `patchToken` referenced in the backlog item do not appear anywhere in the file.
+- Validation: tests pass, build passes, lint passes (3 errors at baseline).
+- Files changed: none
+- **Learnings for future iterations:**
+  - The product-pass agent identified this bug by reading the code at a point in time; a subsequent session likely fixed it. Always verify the current state before attempting a fix.
+---
