@@ -176,3 +176,11 @@ Already up to date.
 
   Merging to main: BatchEditor undo/redo block references three undefined variables and crashes at runtime
 Already up to date.
+[main 9d732c9] chore(backlog): done – BatchEditor undo/redo block references three undefined variables and crashes at runtime
+ 6 files changed, 44 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - BatchEditor undo/redo block references three undefined variables and crashes at runtime
+- Replaced broken undo/redo block in `handleApply` that referenced `succeeded` (undeclared), `results` (undeclared Promise.allSettled output), and `patchToken` (undefined) with the same `rollbackOperation(operationId)` pattern already used by `handleMove` and `handleRename`
+- Removed duplicate `onApply()` call (was called both inside the `if` block and unconditionally after it)
+- Now derives success from `result.updated` count returned by the batch API

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+import { apiFetch } from '../shared/apiFetch';
 import { PLATFORMS } from '../shared/platforms';
 
 // ---------------------------------------------------------------------------
@@ -174,6 +175,96 @@ export function SettingsPanel({
   });
   const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
   const [hideDeprecated, setHideDeprecated] = useState<boolean>(() => lsGet(STORAGE_KEYS.HIDE_DEPRECATED) === 'true');
+
+  // ---- Backup & Restore ----
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState(false);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+
+  const handleExportSettings = useCallback(() => {
+    // Keys that represent user-configurable preferences (not navigation or ephemeral state)
+    const preferenceKeys: string[] = [
+      STORAGE_KEYS.DENSITY,
+      STORAGE_KEYS.COLOR_FORMAT,
+      STORAGE_KEYS.ADVANCED_MODE,
+      STORAGE_KEYS.CONTRAST_BG,
+      STORAGE_KEYS.HIDE_DEPRECATED,
+      STORAGE_KEYS.SERVER_URL,
+      STORAGE_KEYS.EXPORT_PLATFORMS,
+      STORAGE_KEYS.EXPORT_CSS_SELECTOR,
+      STORAGE_KEYS.EXPORT_ZIP_FILENAME,
+      STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+      STORAGE_KEYS.UNDO_MAX_HISTORY,
+    ];
+
+    const out: Record<string, string> = {};
+
+    // Fixed preference keys
+    for (const key of preferenceKeys) {
+      try {
+        const val = localStorage.getItem(key);
+        if (val !== null) out[key] = val;
+      } catch { /* ignore */ }
+    }
+
+    // Dynamic per-set keys: token-sort:*, token-type-filter:*, tm_pinned:*
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (
+          k.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
+          k.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
+          k.startsWith('tm_pinned:')
+        ) {
+          const v = localStorage.getItem(k);
+          if (v !== null) out[k] = v;
+        }
+      }
+    } catch { /* ignore */ }
+
+    const payload = JSON.stringify({ _schemaVersion: 1, _exportedAt: new Date().toISOString(), ...out }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tokenmanager-settings.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleImportFile = useCallback((file: File) => {
+    setImportError(null);
+    setImportSuccess(false);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const raw = e.target?.result;
+        if (typeof raw !== 'string') throw new Error('Could not read file');
+        const data = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+          throw new Error('Invalid settings file: expected a JSON object');
+        }
+        let applied = 0;
+        for (const [key, value] of Object.entries(data)) {
+          if (key.startsWith('_')) continue; // skip metadata fields
+          if (typeof value !== 'string') continue; // all localStorage values are strings
+          try {
+            localStorage.setItem(key, value);
+            applied++;
+          } catch { /* ignore quota errors */ }
+        }
+        if (applied === 0) throw new Error('No settings found in file');
+        setImportSuccess(true);
+        // Reload after a short delay so the success message is visible
+        setTimeout(() => { window.location.reload(); }, 800);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : 'Failed to import settings');
+      }
+    };
+    reader.onerror = () => setImportError('Failed to read file');
+    reader.readAsText(file);
+  }, []);
 
   // ---- Export defaults (local state from localStorage) ----
   const [exportPlatforms, setExportPlatforms] = useState<Set<string>>(() => {
@@ -478,6 +569,54 @@ export function SettingsPanel({
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Number of undo actions to keep in history (1–200). Default is 20.
             </p>
+          </Section>
+
+          {/* ---- Backup & Restore ---- */}
+          <Section title="Backup & Restore" defaultOpen={false}>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              Export your UI preferences, export defaults, server URL, and per-set sort/filter settings to a JSON file.
+              Import on another machine or after clearing browser data to restore configuration.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportSettings}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Export settings
+              </button>
+              <button
+                onClick={() => { setImportError(null); setImportSuccess(false); importFileRef.current?.click(); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                Import settings
+              </button>
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImportFile(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+            {importSuccess && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                Settings imported — reloading…
+              </div>
+            )}
+            {importError && (
+              <p className="text-[10px] text-[var(--color-figma-error)]">{importError}</p>
+            )}
           </Section>
 
           {/* ---- Danger Zone ---- */}

@@ -395,3 +395,14 @@
   - When batch operations were migrated from per-token `Promise.allSettled` to single batch API calls, the undo block was not updated to match — always check undo/redo paths when refactoring the happy path
   - The `rollbackOperation(operationId)` pattern is the canonical way to implement undo for batch server operations; no need for client-side restore patches
 ---
+
+## 2026-03-29 - No backup/restore for plugin settings
+- Added "Backup & Restore" section to SettingsPanel with Export and Import buttons
+- Export: collects all user-configurable STORAGE_KEYS (density, color format, advanced mode, contrast bg, hide deprecated, server URL, export defaults, undo max history) plus dynamic per-set keys (token-sort:*, token-type-filter:*, tm_pinned:*) into a versioned JSON file downloaded as `tokenmanager-settings.json`
+- Import: file picker reads JSON, applies all non-metadata string values to localStorage, shows success message, then reloads the page after 800ms so all components pick up the new values
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1-80 (imports + handleExportSettings/handleImportFile), ~L695-750 (new Backup & Restore section in JSX)
+- **Learnings for future iterations:**
+  - Navigation state (active tab, collapsed folders, recent picks) is intentionally excluded from export — only user preferences that transfer meaningfully across machines
+  - `window.location.reload()` works reliably in the Figma plugin iframe to reinitialize all localStorage-driven state
+  - Exporting raw string values (not parsed JSON) simplifies import — each key value is stored exactly as localStorage expects it, requiring no format conversion
+---

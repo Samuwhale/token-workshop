@@ -177,3 +177,10 @@ Already up to date.
   → No backup/restore for plugin settings — SettingsPanel has 40+ localStorage keys across UI preferences, export config, navigation state, lint rules, and per-set sort/filter; there is no "Export settings" / "Import settings" action to transfer configuration between machines or recover after clearing browser data; add a JSON export/import for user-configurable settings
   Worktree: /tmp/backlog-68874-qJxtxI
   Running agent… (started 08:03:43)
+
+  ✓ done: No backup/restore for plugin settings
+    Added Backup & Restore section to SettingsPanel with JSON export (preferences + per-set sort/filter/pinned keys) and import (file picker → localStorage → reload)
+    11 turns · 142s · $0.46
+
+  Merging to main: No backup/restore for plugin settings
+Already up to date.
