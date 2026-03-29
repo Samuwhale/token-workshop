@@ -40,7 +40,7 @@ import { useDragDrop } from '../hooks/useDragDrop';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,

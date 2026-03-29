@@ -104,6 +104,7 @@ export interface TokenListActions {
   onTokenTouched?: (path: string) => void;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
+  onNavigateToGenerator?: (generatorId: string) => void;
 }
 
 export interface TokenListProps {

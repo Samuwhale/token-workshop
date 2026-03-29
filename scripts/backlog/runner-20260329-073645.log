@@ -258,3 +258,18 @@ Already up to date.
 
   Merging to main: Extract shared buildTokenDiff helper and fix unsafe git status parsing
 Already up to date.
+[main 54baf9a] chore(backlog): done – Extract shared buildTokenDiff helper and fix unsafe git status parsing
+ 8 files changed, 169 insertions(+), 256 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Extract shared buildTokenDiff helper and fix unsafe git status parsing
+- Extracted `buildTokenDiff(fileDiffs)` helper in `sync.ts` to replace 4 identical flatten→compare→diff blocks (~55 lines each → 1 function call each)
+- Added `normalizeGitStatus(raw)` and `parseStatusLine(line)` helpers in `git-sync.ts` to properly handle git rename (R), copy (C), type-change (T), and unmerged (U) statuses instead of unsafe `status.charAt(0) as 'A' | 'M' | 'D'` casts
+- `parseStatusLine` also handles R/C lines that have two tab-separated paths (old\tnew) by extracting the destination path
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  8 queued · 5 in-progress · last took 2m58s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel token path filter fires API requests on every keystroke without debounce — typing "color.brand" into the filter field triggers a separate server fetch for each character; should debounce 300ms before querying, matching the pattern used by the token search in TokenList (HistoryPanel.tsx ~L267-270)
+  Worktree: /tmp/backlog-67697-pRz1uc
+  Running agent… (started 08:10:18)
