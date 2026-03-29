@@ -257,6 +257,7 @@ export class GitSync {
       await this.git.commit('Merge remote changes (conflicts resolved)');
     } catch (err) {
       console.warn('[GitSync] Finalize merge commit failed:', err);
+      throw err;
     }
   }
 

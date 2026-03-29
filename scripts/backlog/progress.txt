@@ -433,3 +433,10 @@
 - **Learnings for future iterations:**
   - Check git log for recent completions before implementing — commit dff17ae already completed this item
 ---
+
+## 2026-03-29 - git-sync.ts finalizeMerge() silently swallows commit failure
+- Added `throw err` after `console.warn` in finalizeMerge's catch block so commit failures propagate to the route handler, which already returns a 500 with error detail to the UI
+- Files changed: `packages/server/src/services/git-sync.ts` ~L259
+- **Learnings for future iterations:**
+  - The route handler at `packages/server/src/routes/sync.ts` ~L130 already had proper error handling — the bug was purely in the service layer swallowing the error
+---

@@ -192,3 +192,10 @@ Already up to date.
   → git-sync.ts `finalizeMerge()` silently swallows commit failure, leaving repo in broken merge state — L256-260: if `git.commit()` throws (e.g., no staged files, hook failure), the error is caught and only `console.warn`'d; the caller and user believe the merge succeeded when the repo is still in an unfinished merge state; this is dangerous because subsequent git operations (pull, push, checkout) will fail with confusing errors; the error should be rethrown so the UI can show the failure and offer abort/retry
   Worktree: /tmp/backlog-66903-to5P2g
   Running agent… (started 08:06:32)
+
+  ✓ done: git-sync.ts finalizeMerge() silently swallows commit failure
+    Added `throw err` after console.warn in finalizeMerge catch block so commit failures propagate to the route handler and UI
+    9 turns · 50s · $0.38
+
+  Merging to main: git-sync.ts finalizeMerge() silently swallows commit failure
+Already up to date.
