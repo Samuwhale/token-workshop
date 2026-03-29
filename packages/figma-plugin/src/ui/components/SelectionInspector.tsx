@@ -8,6 +8,7 @@ import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMap
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { adaptShortcut } from '../shared/utils';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import {
   shouldShowGroup,
   getBindingForProperty,
@@ -183,7 +184,7 @@ export function SelectionInspector({
   // Inline bind-existing-token state
   const [bindingFromProp, setBindingFromProp] = useState<BindableProperty | null>(null);
   const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(null);
-  const [deepInspect, setDeepInspect] = useState(false);
+  const [deepInspect, setDeepInspect] = useState(() => lsGet(STORAGE_KEYS.DEEP_INSPECT) === 'true');
 
   // Remap bindings state
   const [showRemapPanel, setShowRemapPanel] = useState(false);
@@ -239,6 +240,7 @@ export function SelectionInspector({
         e.preventDefault();
         setDeepInspect(prev => {
           const next = !prev;
+          lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
           parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           return next;
         });
@@ -246,6 +248,14 @@ export function SelectionInspector({
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  // Sync controller with persisted deep inspect state on mount
+  useEffect(() => {
+    if (deepInspect) {
+      parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: true } }, '*');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cmd+T: open create-from-first-unbound-property
@@ -675,6 +685,7 @@ export function SelectionInspector({
           onClick={() => {
             const next = !deepInspect;
             setDeepInspect(next);
+            lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
             parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           }}
           title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut('⌘⇧D')})` : `Enable deep inspect to show nested children (${adaptShortcut('⌘⇧D')})`}

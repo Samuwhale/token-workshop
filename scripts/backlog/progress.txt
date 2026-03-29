@@ -441,3 +441,11 @@
 - **Learnings for future iterations:**
   - Before implementing, always grep for the handler name from the backlog description — feature may already exist.
 ---
+
+## 2026-03-29 - SelectionInspector deep inspect state resets on every panel remount
+- Persisted `deepInspect` toggle to localStorage using `STORAGE_KEYS.DEEP_INSPECT` ('tm_deep_inspect'). Initialized state via `lsGet` in `useState` lazy initializer. Added `lsSet` calls in both the button click handler and keyboard shortcut (Cmd+Shift+D) handler. Added a mount effect to sync `deepInspectEnabled` in the controller when the persisted value is `true` (controller resets to `false` on every load otherwise).
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L40, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L11, ~L187, ~L243, ~L252, ~L679
+- **Learnings for future iterations:**
+  - The plugin controller (`controller.ts`) holds its own in-memory state (`deepInspectEnabled`) that resets on every plugin load. Any UI toggle persisted to localStorage must also re-send a sync message to the controller on mount to keep both sides consistent.
+  - Use `useState(() => lsGet(STORAGE_KEYS.X) === 'true')` pattern for boolean localStorage initialization — avoids re-reads on every render.
+---

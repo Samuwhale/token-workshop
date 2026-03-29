@@ -38,6 +38,7 @@ export const STORAGE_KEYS = {
   ADVANCED_MODE:         'tm_advanced_mode',
   CONTRAST_BG:           'tm_contrast_bg',
   FIRST_RUN_DONE:        'tm_first_run_done',
+  DEEP_INSPECT:          'tm_deep_inspect',
 } as const;
 
 /** Per-set dynamic key builders */
