@@ -48,3 +48,11 @@
   - The old pattern conflated "lock state indicator" with "action trigger" into one button whose behavior flipped based on state — designers expect explicit affordances for each action.
   - Conditionally rendering the clear button (only when `isOverridden`) avoids the "what does this button do?" confusion entirely.
 ---
+
+## 2026-03-29 - Border radius preview shows bar charts instead of actual rounded corners
+- Added `BorderRadiusPreview` component to `BorderRadiusGenerator.tsx`. Each token row now shows a small SVG rectangle (44×24 viewBox) with `rx`/`ry` set directly from the token's px value, capped at 12 (half height) so large values like 9999px render as a pill. Updated `TokenGeneratorDialog.tsx` to import and use `BorderRadiusPreview` for `borderRadiusScale` instead of the shared `SpacingPreview`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/BorderRadiusGenerator.tsx` ~L1, ~L85; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L26, ~L622
+- **Learnings for future iterations:**
+  - SVG rx/ry in viewBox units map directly to px values for typical border-radius tokens (2–16px range), so no normalization is needed — just cap at `H/2` for the full-pill case.
+  - Splitting the shared `SpacingPreview` condition into two separate branches is cleaner than adding special-case logic inside the shared component.
+---

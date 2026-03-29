@@ -63,3 +63,10 @@ Already up to date.
   → Border radius preview shows bar charts instead of actual rounded corners — reuses SpacingPreview (horizontal bars) but should show a row of rectangles with increasing corner radii, which is instantly legible to a designer (BorderRadiusGenerator.tsx, SpacingScaleGenerator.tsx:70)
   Worktree: /tmp/backlog-48983-2ZP2n4
   Running agent… (started 13:39:34)
+
+  ✓ done: Border radius preview shows bar charts instead of actual rounded corners
+    Added BorderRadiusPreview component showing SVG rectangles with actual corner radii (rx mapped directly from px value, capped at half-height for pill), replacing the shared SpacingPreview bar-chart for borderRadiusScale
+    21 turns · 129s · $0.44
+
+  Merging to main: Border radius preview shows bar charts instead of actual rounded corners
+Already up to date.

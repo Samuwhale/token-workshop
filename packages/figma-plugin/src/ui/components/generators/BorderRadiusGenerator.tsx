@@ -1,4 +1,5 @@
-import type { BorderRadiusScaleConfig, BorderRadiusStep } from '../../hooks/useGenerators';
+import type { BorderRadiusScaleConfig, BorderRadiusStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -75,6 +76,45 @@ export function BorderRadiusConfigEditor({ config, onChange }: { config: BorderR
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Preview — shows rectangles with actual corner radii instead of bar charts
+// ---------------------------------------------------------------------------
+
+// ViewBox dimensions for the preview rect
+const PREVIEW_W = 44;
+const PREVIEW_H = 24;
+// Max rx in viewBox units — half the height gives a full pill
+const MAX_RX = PREVIEW_H / 2;
+
+export function BorderRadiusPreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
+  tokens: GeneratedTokenResult[];
+  overrides: Record<string, { value: unknown; locked: boolean }>;
+  onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
+  onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      {tokens.map((t) => {
+        const val = isDimensionLike(t.value) ? t.value.value : parseFloat(String(t.value)) || 0;
+        // Map the px value directly to SVG rx, capping at MAX_RX so large values become pills
+        const rx = Math.min(val, MAX_RX);
+        return (
+          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
+            <div className="flex-1 flex items-center pl-1">
+              <svg width={PREVIEW_W} height={PREVIEW_H} viewBox={`0 0 ${PREVIEW_W} ${PREVIEW_H}`} fill="none" aria-hidden="true">
+                <rect x="0" y="0" width={PREVIEW_W} height={PREVIEW_H} rx={rx} ry={rx}
+                  fill="var(--color-figma-accent)" fillOpacity="0.7" />
+              </svg>
+            </div>
+            <span className="w-14 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{formatValue(t.value)}</span>
+          </OverrideRow>
+        );
+      })}
     </div>
   );
 }

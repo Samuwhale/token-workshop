@@ -23,7 +23,7 @@ import { ColorRampConfigEditor, ColorSwatchPreview } from './generators/ColorRam
 import { TypeScaleConfigEditor, TypeScalePreview } from './generators/TypeScaleGenerator';
 import { SpacingScaleConfigEditor, SpacingPreview } from './generators/SpacingScaleGenerator';
 import { OpacityScaleConfigEditor, OpacityPreview } from './generators/OpacityScaleGenerator';
-import { BorderRadiusConfigEditor } from './generators/BorderRadiusGenerator';
+import { BorderRadiusConfigEditor, BorderRadiusPreview } from './generators/BorderRadiusGenerator';
 import { ZIndexConfigEditor } from './generators/ZIndexGenerator';
 import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/ContrastCheckGenerator';
@@ -619,8 +619,11 @@ export function TokenGeneratorDialog({
                 {selectedType === 'typeScale' && (
                   <TypeScalePreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
-                {(selectedType === 'spacingScale' || selectedType === 'borderRadiusScale') && (
+                {selectedType === 'spacingScale' && (
                   <SpacingPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
+                )}
+                {selectedType === 'borderRadiusScale' && (
+                  <BorderRadiusPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {selectedType === 'opacityScale' && (
                   <OpacityPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />

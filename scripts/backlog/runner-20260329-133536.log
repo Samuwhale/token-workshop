@@ -51,3 +51,18 @@ Already up to date.
 
   Merging to main: Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
 Already up to date.
+[main 47054903] chore(backlog): done – Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
+ 6 files changed, 60 insertions(+), 23 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state
+- Replaced the single dual-purpose lock button with two separate action buttons: a pencil icon (always visible, dims when no override) for editing, and an X icon (only shown when overridden) for clearing. The pencil is highlighted in accent color when an override is active. The X shows in error color on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L82-104
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  18 queued · 2 in-progress · last took 1m6s
+═══════════════════════════════════════════════════════════════
+  → No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
+  Worktree: /tmp/backlog-46928-SjLRx1
+  Running agent… (started 13:41:07)

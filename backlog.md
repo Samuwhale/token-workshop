@@ -86,9 +86,9 @@
 - [x] Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag (opacity: isDragging ? 0.8 : 0), not on hover; designers won't know the bars are interactive until they accidentally drag one (TypeScaleStaircaseEditor.tsx:226)
 - [x] Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width; should use viewBox with width="100%" for responsive sizing (TypeScaleStaircaseEditor.tsx:30,134)
 - [~] Border radius preview shows bar charts instead of actual rounded corners — reuses SpacingPreview (horizontal bars) but should show a row of rectangles with increasing corner radii, which is instantly legible to a designer (BorderRadiusGenerator.tsx, SpacingScaleGenerator.tsx:70)
-- [~] Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
+- [x] Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
 - [~] No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
-- [ ] No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
+- [~] No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
 
 ---
 
