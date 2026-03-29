@@ -1,5 +1,6 @@
 import type { TokenNode } from '../hooks/useTokens';
 import type { TokenMapEntry } from '../../shared/types';
+import type { TokenGenerator } from '../hooks/useGenerators';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 
@@ -22,12 +23,14 @@ export interface ParsedQuery {
   paths: string[];
   /** name:<substring> — search only the leaf name */
   names: string[];
+  /** generator:<name> — filter by generator that produced the token */
+  generators: string[];
 }
 
-const QUALIFIER_RE = /\b(type|has|value|desc|path|name):(\S+)/gi;
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generator|gen):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
-const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext']);
+const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext', 'generated', 'gen']);
 
 export function parseStructuredQuery(raw: string): ParsedQuery {
   const types: string[] = [];
@@ -36,6 +39,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
   const descs: string[] = [];
   const paths: string[] = [];
   const names: string[] = [];
+  const generators: string[] = [];
 
   const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
     const k = key.toLowerCase();
@@ -47,11 +51,12 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
       case 'desc': descs.push(v); break;
       case 'path': paths.push(v); break;
       case 'name': names.push(v); break;
+      case 'generator': case 'gen': generators.push(v); break;
     }
     return ''; // remove qualifier from text portion
   }).trim();
 
-  return { text, types, has, values, descs, paths, names };
+  return { text, types, has, values, descs, paths, names, generators };
 }
 
 /** Returns true when the raw query contains at least one recognized qualifier. */
@@ -68,10 +73,12 @@ export const QUERY_QUALIFIERS = [
   { qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: '' },
   { qualifier: 'has:description', desc: 'Only tokens with a description', example: '' },
   { qualifier: 'has:extension', desc: 'Only tokens with extensions', example: '' },
+  { qualifier: 'has:generated', desc: 'Only generator-produced tokens', example: '' },
   { qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000' },
   { qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary' },
   { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },
   { qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500' },
+  { qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -211,13 +218,15 @@ export function filterTokenNodes(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
+  derivedTokenPaths?: Map<string, TokenGenerator>,
 ): TokenNode[] {
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
-    || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0;
+    || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0
+    || parsed.generators.length > 0;
 
   if (hasQualifiers) {
-    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths);
+    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
   }
 
   // Fast path: plain text search (no qualifiers)
@@ -225,7 +234,7 @@ export function filterTokenNodes(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths);
+      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -247,12 +256,13 @@ function filterTokenNodesStructured(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
+  derivedTokenPaths?: Map<string, TokenGenerator>,
 ): TokenNode[] {
   const q = parsed.text.toLowerCase();
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths);
+      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
       // Free-text match (on path, name, or description)
@@ -274,6 +284,7 @@ function filterTokenNodesStructured(
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
+        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(node.path)) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;
 
@@ -305,6 +316,14 @@ function filterTokenNodesStructured(
       if (parsed.names.length > 0) {
         const ln = node.name.toLowerCase();
         if (!parsed.names.some(n => ln.includes(n))) continue;
+      }
+
+      // generator: qualifier — match by generator name
+      if (parsed.generators.length > 0) {
+        const gen = derivedTokenPaths?.get(node.path);
+        if (!gen) continue;
+        const gn = gen.name.toLowerCase();
+        if (!parsed.generators.some(g => gn === g || gn.includes(g))) continue;
       }
 
       result.push(node);

@@ -62,6 +62,7 @@ export interface TokenEntry {
   set?: string;
   isAlias?: boolean;
   description?: string;
+  generatorName?: string;
 }
 
 interface CommandPaletteProps {
@@ -101,6 +102,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if ((h === 'alias' || h === 'ref') && !t.isAlias) return false;
       if (h === 'direct' && t.isAlias) return false;
       if ((h === 'description' || h === 'desc') && !t.description) return false;
+      if ((h === 'generated' || h === 'gen') && !t.generatorName) return false;
     }
     // value: qualifier
     if (parsed.values.length > 0) {
@@ -116,6 +118,12 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
     if (parsed.names.length > 0) {
       const ln = leafName(t.path).toLowerCase();
       if (!parsed.names.some(n => ln.includes(n))) return false;
+    }
+    // generator: qualifier
+    if (parsed.generators.length > 0) {
+      if (!t.generatorName) return false;
+      const gn = t.generatorName.toLowerCase();
+      if (!parsed.generators.some(g => gn === g || gn.includes(g))) return false;
     }
     return true;
   });
@@ -146,7 +154,8 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
   const parsedTokenQuery = useMemo(() => parseStructuredQuery(tokenQuery), [tokenQuery]);
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
-    || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0;
+    || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
+    || parsedTokenQuery.generators.length > 0;
 
   const { filteredTokens, totalTokenMatches } = useMemo(() => {
     if (!isTokenMode || !tokens.length) return { filteredTokens: [], totalTokenMatches: 0 };

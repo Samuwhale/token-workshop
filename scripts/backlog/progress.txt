@@ -452,3 +452,18 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: themes.ts has a systematic bug where 7 of 9 mutation routes reference an undeclared `beforeDims` variable AND double-log operations — the mutation succeeds inside withThemeLock but the route returns 500 to the client because the second operationLog.record call throws ReferenceError
 ---
+
+## 2026-03-29 - No way to filter the token list by generator
+- Added `generator:name` (alias `gen:name`) search qualifier to `filterTokenNodes` and `filterTokenNodesStructured` in tokenListUtils.ts
+- Added `has:generated` (alias `has:gen`) qualifier to filter for any generator-produced token
+- Extended `ParsedQuery` interface with `generators: string[]` field, updated `QUALIFIER_RE` regex, `parseStructuredQuery`, and `QUERY_QUALIFIERS` hint list
+- `filterTokenNodesStructured` now accepts optional `derivedTokenPaths` param and matches generator name (exact or substring, case-insensitive)
+- TokenList.tsx passes `derivedTokenPaths` into `filterTokenNodes` call and adds it to useMemo deps
+- CommandPalette.tsx: added `generatorName` field to `TokenEntry`, filtering in `filterTokensStructured`, and updated `hasQualifiers` check
+- App.tsx: populates `generatorName` on `paletteTokens` from `derivedTokenPaths`
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L1-76,208-325, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L643,656, `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L58-65,92-122,147-149, `packages/figma-plugin/src/ui/App.tsx` ~L783-791
+- **Learnings for future iterations:**
+  - The qualifier system is cleanly extensible: add to regex, ParsedQuery, parseStructuredQuery switch, QUERY_QUALIFIERS, and the two filter functions (tokenListUtils + CommandPalette)
+  - `derivedTokenPaths` maps token path → TokenGenerator object with `.name` — available from useGenerators hook
+  - CommandPalette uses flat TokenEntry objects (no tree), so generator info needs to be baked in at the App level when building paletteTokens
+---

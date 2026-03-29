@@ -107,3 +107,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 69179) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  4 new item(s) available — continuing.
+  → Batch token mutation routes have no partial-failure rollback — `tokens.ts` batch-rename (L280-283), batch-move (L322-325), and batch-update (L240-242) all loop through items sequentially calling `renameToken`/`moveToken`/`updateToken` with no rollback if an iteration throws midway; the `before` snapshot is captured once upfront but if e.g. the 5th of 10 renames fails, the first 4 are already persisted to disk with no undo, and the operation log records neither a complete success nor the partial state, leaving the token set in an inconsistent state that the user can't undo via the operations panel
+  Worktree: /tmp/backlog-66493-ak7d4L
+  Running agent… (started 07:54:33)

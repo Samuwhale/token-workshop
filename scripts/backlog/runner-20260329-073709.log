@@ -106,3 +106,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: [HIGH] themes.ts double-logging + undeclared beforeDims ReferenceError (7 routes), batch token ops lack partial-failure rollback, plugin controller lacks message validation, color-parse.ts non-null assertions on nullable returns, resolver $extends merge type-unsafe
 Already up to date.
+[main 1e67b65] chore(backlog): code pass – code-pass
+ 6 files changed, 53 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → Priority item(s) appended (no existing [ ] items found)
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/server/src/routes/ (all 13 route files — themes.ts, tokens.ts, sets.ts, generators.ts, sync.ts, etc.), packages/figma-plugin/src/plugin/ (controller.ts, selectionHandling.ts, variableSync.ts, consistencyScanner.ts, heatmapScanning.ts), packages/core/src/ (resolver.ts, color-parse.ts, validator.ts, dtcg-resolver.ts, color-modifier.ts), packages/figma-plugin/src/ui/hooks/ (43 hooks — duplication patterns, closure deps)
+- Found 5 items — written to backlog-inbox.md
+- Notable: themes.ts has a systematic bug where 7 of 9 mutation routes reference an undeclared `beforeDims` variable AND double-log operations — the mutation succeeds inside withThemeLock but the route returns 500 to the client because the second operationLog.record call throws ReferenceError
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  5 queued · 5 in-progress · last took 10m29s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] themes.ts routes double-log operations and reference undeclared `beforeDims` — `withThemeLock()` (L111-135) already records an operation log entry, but 7 of 9 mutation routes (create/rename/delete dimension, upsert/rename/reorder/delete option) call `operationLog.record()` again after `withThemeLock` returns, doubling every theme operation in the log; worse, these second calls reference `beforeDims` which is only declared inside the reorder-dimensions route (L224), so all other routes throw ReferenceError at runtime — caught by the surrounding try/catch, returning 500 to the client even though the mutation already succeeded inside the lock, causing client to believe the operation failed while state was actually changed
+  Worktree: /tmp/backlog-69179-B8paZ7
+  Running agent… (started 07:54:33)

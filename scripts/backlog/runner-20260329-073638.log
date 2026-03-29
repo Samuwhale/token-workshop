@@ -65,3 +65,10 @@ Already up to date.
   → No way to filter the token list by generator — users can see which generator produced a token via the badge but cannot filter the list to show only tokens from a specific generator (e.g. "show all tokens from color-ramp-brand"); add a `generator:name` search qualifier that `filterTokenNodes` can evaluate against `derivedTokenPaths`, enabling focused review and bulk-editing of a generator's output
   Worktree: /tmp/backlog-66903-mfXlxM
   Running agent… (started 07:50:58)
+
+  ✓ done: No way to filter the token list by generator
+    Added generator:name (alias gen:name) search qualifier and has:generated qualifier to both TokenList and CommandPalette filtering, matching against derivedTokenPaths generator names
+    39 turns · 309s · $1.5
+
+  Merging to main: No way to filter the token list by generator
+Already up to date.

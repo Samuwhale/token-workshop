@@ -787,8 +787,9 @@ export function App() {
       value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
       set: pathToSet[path],
       isAlias: isAlias(entry.$value),
+      generatorName: derivedTokenPaths.get(path)?.name,
     }));
-  }, [allTokensFlat, pathToSet]);
+  }, [allTokensFlat, pathToSet, derivedTokenPaths]);
 
   return (
     <div className="relative flex flex-col h-screen">

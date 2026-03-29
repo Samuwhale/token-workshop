@@ -640,7 +640,7 @@ export function TokenList({
       const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
       baseTokens = zoomNode?.children ?? [];
     }
-    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths) : baseTokens;
+    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -653,7 +653,7 @@ export function TokenList({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths]);
+  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths, derivedTokenPaths]);
 
   // Auto-clear zoom if the zoomed group no longer exists in the tree
   useEffect(() => {
