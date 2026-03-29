@@ -439,3 +439,13 @@
   - Tab ID strings are only referenced in a few places: type union, TOP_TABS config, and render conditions — makes tab moves straightforward
   - The `panelKey` in `usePanelHelp` is an internal localStorage key, doesn't need to match the display label
 ---
+
+## 2026-03-29 - Merge TokenReferences and TokenDependents into a single component
+- TokenDependents was unused (never imported). TokenReferences was the superset with generator metadata and variable binding scanning.
+- Renamed TokenReferences.tsx → TokenUsages.tsx, renamed component/interface to TokenUsages/TokenUsagesProps, changed section header from "References" to "Usages"
+- Deleted TokenDependents.tsx (317 lines of duplicated code)
+- Updated TokenEditor.tsx import to use TokenUsages
+- Files changed: `packages/figma-plugin/src/ui/components/TokenUsages.tsx` (renamed from TokenReferences.tsx) ~L20,L73,L189; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L21,L1304; deleted `packages/figma-plugin/src/ui/components/TokenDependents.tsx`
+- **Learnings for future iterations:**
+  - TokenDependents was already dead code — never imported anywhere. The merge was essentially a rename of TokenReferences plus cleanup.
+---

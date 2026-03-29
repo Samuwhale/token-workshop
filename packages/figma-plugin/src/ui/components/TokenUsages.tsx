@@ -17,7 +17,7 @@ interface BoundVariable {
   resolvedType: string;
 }
 
-interface TokenReferencesProps {
+interface TokenUsagesProps {
   dependents: Array<{ path: string; setName: string }>;
   dependentsLoading: boolean;
   setName: string;
@@ -70,11 +70,11 @@ const GENERATOR_TYPE_STYLES: Record<string, { label: string; classes: string }> 
   opacityScale: { label: 'Opacity', classes: 'bg-orange-500/15 text-orange-600' },
 };
 
-export function TokenReferences({
+export function TokenUsages({
   dependents, dependentsLoading, setName, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, initialValue,
   producingGenerator, sourceGenerators,
-}: TokenReferencesProps) {
+}: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
   // Layers state
@@ -186,7 +186,7 @@ export function TokenReferences({
         className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
       >
         <span className="flex items-center gap-1.5">
-          References
+          Usages
           {dependentsLoading
             ? <svg className="animate-spin shrink-0 opacity-50" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
             : countLabel}

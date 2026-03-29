@@ -18,7 +18,7 @@ import { AliasPicker, resolveAliasChain } from './AliasPicker';
 import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
-import { TokenReferences } from './TokenReferences';
+import { TokenUsages } from './TokenUsages';
 import { MetadataEditor } from './MetadataEditor';
 import { PathAutocomplete } from './PathAutocomplete';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
@@ -1301,7 +1301,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
       {/* Token references: incoming aliases, variable bindings, generators, layers */}
       {!isCreateMode && (
-        <TokenReferences
+        <TokenUsages
           dependents={dependents}
           dependentsLoading={dependentsLoading}
           setName={setName}
