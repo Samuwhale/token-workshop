@@ -572,3 +572,14 @@
   - TokenEditor already had a dirty guard for Escape/Cancel but the drawer backdrop silently swallowed the click when dirty — the pattern of assigning `closeRef.current = handleBack` in render body (runs on every render, no effect needed) is a clean way to expose an always-fresh callback to a parent component.
   - 3-button "Save changes?" inline dialogs can't use ConfirmModal (2-button only) — writing an inline modal with the same visual classes is the right approach rather than generalizing ConfirmModal for a single use case.
 ---
+
+## 2026-03-29 - HistoryPanel restore gives no preview and no progress feedback
+- Added confirmation dialog before restore showing count of tokens to overwrite, broken down by status (modified/added/removed)
+- Added animated spinner progress indicator during restore operation (both "Restore all" and per-token restore buttons)
+- Added full-panel progress state with spinner and descriptive text while restore is in progress
+- Confirmation dialog uses `summarizeChanges` from existing `changeHelpers` and `statusColor` for consistent styling
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L228-240 (pendingRestore state), ~L362-390 (requestRestore/confirmRestore/cancelRestore callbacks), ~L437-460 (Restore all button with spinner), ~L510-530 (per-token restore button with spinner), ~L490-500 (full-panel progress state), ~L540-580 (confirmation dialog overlay)
+- **Learnings for future iterations:**
+  - The detail view already has all change data loaded in `detail.changes`, so building the confirmation summary requires no additional API call
+  - Using `absolute inset-0` overlay with `bg-black/30` backdrop on a `relative` parent container works well for modal dialogs in Figma plugin panels
+---

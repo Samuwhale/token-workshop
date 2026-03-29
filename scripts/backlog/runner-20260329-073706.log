@@ -221,3 +221,18 @@ Already up to date.
 
   Merging to main: TokenEditor silently discards edits when closed without saving
 Already up to date.
+[main 017699c] chore(backlog): done – TokenEditor silently discards edits when closed without saving
+ 7 files changed, 94 insertions(+), 23 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - TokenEditor silently discards edits when closed without saving
+- Changed the "Discard unsaved changes?" confirmation modal to a "Save changes?" dialog with three actions: [Save] (saves and closes), [Discard] (discards and closes), [Keep editing] (stays in editor). Save button only appears when the form is valid (`canSave && editPath non-empty for create mode`).
+- Added `closeRef?: MutableRefObject<() => void>` prop to TokenEditor; assigned `closeRef.current = handleBack` in the render body so parents always have the latest guarded-close function.
+- Fixed App.tsx drawer backdrop click: previously silently ignored clicks when dirty (`if (!editorIsDirtyRef.current) handleEditorClose()`). Now calls `editorCloseRef.current()` which triggers `handleBack()` → shows the "Save changes?" dialog when dirty.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  11 queued · 6 in-progress · last took 5m58s
+═══════════════════════════════════════════════════════════════
+  → No keyboard shortcut to quickly duplicate a selected token — duplicating a token requires: right-click → "More" submenu (if it exists) or manual create with the same type, then re-enter all fields; a `Cmd+D` shortcut on a selected token row that creates a copy with the name suffixed "-copy" and opens it for renaming would match standard tool behavior and save several clicks for tasks like creating a dark-mode variant of an existing token (TokenTreeNode.tsx context menu, useTokenTree keyboard handler)
+  Worktree: /tmp/backlog-68874-5Tt6DD
+  Running agent… (started 08:15:47)

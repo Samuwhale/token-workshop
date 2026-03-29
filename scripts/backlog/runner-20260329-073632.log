@@ -282,3 +282,10 @@ Already up to date.
   → HistoryPanel restore gives no preview and no progress feedback — clicking "Restore" on a commit begins a two-step server operation (fetch diffs, apply snapshot) with no indication of what tokens will be overwritten or how many; add a confirmation dialog showing the count of tokens that will be changed/reverted before executing, and show a progress indicator during the restore (HistoryPanel.tsx ~L330-362)
   Worktree: /tmp/backlog-66493-pq1oDv
   Running agent… (started 08:12:49)
+
+  ✓ done: HistoryPanel restore gives no preview and no progress feedback
+    Added confirmation dialog showing token count breakdown (modified/added/removed) before restore, and animated spinner progress indicators during the restore operation for both "Restore all" and per-token restore buttons.
+    22 turns · 188s · $1.12
+
+  Merging to main: HistoryPanel restore gives no preview and no progress feedback
+Already up to date.
