@@ -473,8 +473,8 @@ export function TokenFlowPanel({
             <circle cx="5" cy="12" r="3" /><circle cx="19" cy="6" r="3" /><circle cx="19" cy="18" r="3" />
             <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
           </svg>
-          <span className="text-xs font-semibold">Token Flow</span>
-          <PanelHelpIcon panelKey="token-flow" title="Token Flow" expanded={help.expanded} onToggle={help.toggle} />
+          <span className="text-xs font-semibold">Dependencies</span>
+          <PanelHelpIcon panelKey="token-flow" title="Dependencies" expanded={help.expanded} onToggle={help.toggle} />
           <span className="ml-auto text-[10px] opacity-40">
             {stats.totalTokens} tokens · {stats.aliasCount} aliases
           </span>
@@ -483,7 +483,7 @@ export function TokenFlowPanel({
       </div>
       {help.expanded && (
         <PanelHelpBanner
-          title="Token Flow"
+          title="Dependencies"
           description="Visualize alias reference chains. Search for any token to see what it references (left) and what depends on it (right). Click nodes to navigate the graph."
           onDismiss={help.dismiss}
         />

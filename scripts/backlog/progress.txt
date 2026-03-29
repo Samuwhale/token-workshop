@@ -426,3 +426,16 @@
   - Numeric count fields (`updated: N`, `renamed: N`, etc.) are meaningful batch data — keep them, just add `ok: true` alongside; the confusion is with boolean verb flags that duplicate the HTTP method semantics
   - `resolvers.ts` was already using `{ ok: true }` consistently — it was the only file that had already adopted the standard
 ---
+
+## 2026-03-29 - Rename "Token Flow" sub-tab to "Dependencies" and move it from Define to Apply
+- Moved `'flow'` sub-tab from Define to Apply tab group as `'dependencies'`
+- Renamed label from "Token Flow" to "Dependencies" in TOP_TABS config
+- Updated type definitions: removed `'flow'` from `DefineSubTab`, added `'dependencies'` to `ApplySubTab`
+- Updated rendering condition from `activeTopTab === 'define' && activeSubTab === 'flow'` to `activeTopTab === 'apply' && activeSubTab === 'dependencies'`
+- Updated error boundary reset to navigate to `('apply', 'inspect')` instead of `('define', 'tokens')`
+- Updated TokenFlowPanel.tsx header and help banner titles from "Token Flow" to "Dependencies"
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L167-168 (types), ~L207-217 (TOP_TABS), ~L1960-1961 (render condition); `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L476-477 (header), ~L486 (help banner)
+- **Learnings for future iterations:**
+  - Tab ID strings are only referenced in a few places: type union, TOP_TABS config, and render conditions — makes tab moves straightforward
+  - The `panelKey` in `usePanelHelp` is an internal localStorage key, doesn't need to match the display label
+---

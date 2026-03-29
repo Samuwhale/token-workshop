@@ -164,8 +164,8 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
-type ApplySubTab = 'inspect' | 'audit';
+type DefineSubTab = 'tokens' | 'themes' | 'generators';
+type ApplySubTab = 'inspect' | 'audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
@@ -209,11 +209,11 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
-    { id: 'flow', label: 'Token Flow' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
     { id: 'audit', label: 'Binding Audit' },
+    { id: 'dependencies', label: 'Dependencies' },
   ]},
   { id: 'ship', label: 'Ship', subTabs: [
     { id: 'publish', label: 'Publish' },
@@ -1957,8 +1957,8 @@ export function App() {
             />
             </ErrorBoundary>
           )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'flow' && (
-            <ErrorBoundary panelName="Token Flow" onReset={() => navigateTo('define', 'tokens')}>
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'dependencies' && (
+            <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('apply', 'inspect')}>
             <TokenFlowPanel
               allTokensFlat={themedAllTokensFlat}
               pathToSet={pathToSet}
