@@ -101,7 +101,7 @@ export function useFindReplace({
     const timer = setTimeout(() => { didTimeout = true; ac.abort(); }, BULK_RENAME_TIMEOUT_MS);
 
     try {
-      const data = await apiFetch<{ renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
+      const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),

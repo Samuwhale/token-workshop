@@ -271,7 +271,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       for (const gid of orphanIds) {
         totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
       }
-      return { deleted: totalDeleted };
+      return { ok: true, deleted: totalDeleted };
     });
   });
 
@@ -484,7 +484,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: after,
           });
         }
-        return { deleted: true, id: request.params.id, tokensDeleted };
+        return { ok: true, id: request.params.id, tokensDeleted };
       });
     },
   );

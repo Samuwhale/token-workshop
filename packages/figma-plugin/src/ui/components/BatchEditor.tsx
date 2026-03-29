@@ -367,7 +367,7 @@ export function BatchEditor({
 
     try {
       // Single batch API call — records one operation log entry for undo
-      const result = await apiFetch<{ updated: number; operationId: string }>(
+      const result = await apiFetch<{ ok: true; updated: number; operationId: string }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-update`,
         {
           method: 'POST',
@@ -420,7 +420,7 @@ export function BatchEditor({
     setFeedback(null);
     try {
       const paths = selectedEntries.map(e => e.path);
-      const result = await apiFetch<{ moved: number; operationId: string }>(
+      const result = await apiFetch<{ ok: true; moved: number; operationId: string }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`,
         {
           method: 'POST',
@@ -467,7 +467,7 @@ export function BatchEditor({
     setRenaming(true);
     setFeedback(null);
     try {
-      const result = await apiFetch<{ renamed: number; operationId: string }>(
+      const result = await apiFetch<{ ok: true; renamed: number; operationId: string }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`,
         {
           method: 'POST',

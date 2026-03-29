@@ -11,6 +11,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       const entry = await fastify.manualSnapshots.save(label, fastify.tokenStore);
       return reply.status(201).send({
+        ok: true,
         id: entry.id,
         label: entry.label,
         timestamp: entry.timestamp,
@@ -46,7 +47,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       return await withLock(async () => {
         const result = await fastify.manualSnapshots.restore(request.params.id, fastify.tokenStore);
-        return result;
+        return { ok: true, ...result };
       });
     } catch (err) {
       return handleRouteError(reply, err);

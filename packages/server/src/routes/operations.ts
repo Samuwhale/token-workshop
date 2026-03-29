@@ -19,7 +19,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
           resolverStore: fastify.resolverStore,
           generatorService: fastify.generatorService,
         });
-        return result;
+        return { ok: true, ...result };
       } catch (err) {
         return handleRouteError(reply, err);
       }

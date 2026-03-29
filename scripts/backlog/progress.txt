@@ -411,3 +411,18 @@
 - **Learnings for future iterations:**
   - The product-pass agent identified this bug by reading the code at a point in time; a subsequent session likely fixed it. Always verify the current state before attempting a fix.
 ---
+
+## 2026-03-29 - Server API response shapes are inconsistent across mutation endpoints
+- Standardized all mutation endpoint responses to include `ok: true` as the universal success indicator
+- Replaced verb-based boolean flags (`created: true`, `deleted: true`, `renamed: true`, `updated: true`, `reordered: true`, `pushed: true`, `pulled: true`, `initialized: true`, `resolved: true`, `aborted: true`, `moved: true`, `copied: true`, `cleared: true`, `replaced: true`) with `ok: true`
+- For passthrough routes that returned raw service results (`return result`), wrapped with `{ ok: true, ...result }` to preserve all existing fields while adding the envelope
+- For batch operations with numeric count fields (`updated: N`, `renamed: N`, `moved: N`), added `ok: true` alongside the existing numeric fields — these are semantically different from boolean action verbs
+- Removed `tokens` from the set-create 201 response (client never used it); kept `name`
+- Updated client-side type annotations in BatchEditor.tsx, HistoryPanel.tsx, useFindReplace.ts to include `ok: true`
+- Files changed: `packages/server/src/routes/sets.ts` ~L63,106,138,163,175,213; `packages/server/src/routes/themes.ts` ~L168,193,229,247,290,325,359,385; `packages/server/src/routes/sync.ts` ~L125,141,157,175,206,217,393,427,457,529; `packages/server/src/routes/tokens.ts` ~L83,100,121,143,160,181,213,251,290,330,468,489,510,549,616,653,722,791; `packages/server/src/routes/generators.ts` ~L275,487; `packages/server/src/routes/snapshots.ts` ~L13,48; `packages/server/src/routes/operations.ts` ~L22; `packages/server/src/routes/lint.ts` ~L22; `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L370,423,470; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L347; `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L104
+- **Learnings for future iterations:**
+  - Adding `ok: true` to server responses is backward-compatible — existing clients that don't check for it continue to work unchanged; only type annotations need updating
+  - The pattern `return { ok: true, ...serviceResult }` cleanly wraps passthrough routes without losing any domain-specific fields
+  - Numeric count fields (`updated: N`, `renamed: N`, etc.) are meaningful batch data — keep them, just add `ok: true` alongside; the confusion is with boolean verb flags that duplicate the HTTP method semantics
+  - `resolvers.ts` was already using `{ ok: true }` consistently — it was the only file that had already adopted the standard
+---

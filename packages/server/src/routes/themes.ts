@@ -165,7 +165,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         dimensions.push(dim);
         return { dims: dimensions, result: dim, description: `Create theme dimension "${name.trim()}"` };
       });
-      return reply.status(201).send({ dimension });
+      return reply.status(201).send({ ok: true, dimension });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to create dimension');
     }
@@ -188,7 +188,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         dimensions[idx] = { ...dimensions[idx], name: name.trim() };
         return { dims: dimensions, result: dimensions[idx], description: `Rename dimension "${oldName}" → "${name.trim()}"` };
       });
-      return { dimension };
+      return { ok: true, dimension };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to rename dimension');
     }
@@ -226,7 +226,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         afterSnapshot: {},
         metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
       });
-      return { dimensions: reordered };
+      return { ok: true, dimensions: reordered };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to reorder dimensions');
     }
@@ -244,7 +244,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const filtered = dimensions.filter(d => d.id !== id);
         return { dims: filtered, result: undefined, description: `Delete theme dimension "${dim.name}"` };
       });
-      return { deleted: true, id };
+      return { ok: true, id };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to delete dimension');
     }
@@ -287,7 +287,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
             description: `${isUpdate ? 'Update' : 'Add'} option "${trimmedName}" in dimension "${dim.name}"`,
           };
         });
-        return reply.status(status).send({ option });
+        return reply.status(status).send({ ok: true, option });
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to save option');
       }
@@ -321,7 +321,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
           return { dims: dimensions, result: dim.options[optIdx], description: `Rename option "${optionName}" → "${newName}" in dimension "${dim.name}"` };
         });
-        return { option };
+        return { ok: true, option };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to rename option');
       }
@@ -356,7 +356,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
           return { dims: dimensions, result: dimensions[dimIdx], description: `Reorder options in dimension "${dim.name}"` };
         });
-        return { dimension };
+        return { ok: true, dimension };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to reorder options');
       }
@@ -382,7 +382,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           dimensions[dimIdx] = { ...dim, options: filtered };
           return { dims: dimensions, result: undefined, description: `Delete option "${optionName}" from dimension "${dim.name}"` };
         });
-        return { deleted: true, id, optionName };
+        return { ok: true, id, optionName };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to delete option');
       }

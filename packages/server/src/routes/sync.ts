@@ -122,7 +122,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(409).send({ error: 'Git repository already initialized' });
       }
       await fastify.gitSync.init();
-      return { initialized: true };
+      return { ok: true };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to initialize git repo', detail: String(err) });
     }
@@ -137,7 +137,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       const commitHash = await fastify.gitSync.commit(message, files);
-      return { commit: commitHash, message };
+      return { ok: true, commit: commitHash, message };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to commit', detail: String(err) });
     }
@@ -154,7 +154,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       await fastify.gitSync.push();
-      return { pushed: true };
+      return { ok: true };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to push', detail: String(err) });
     }
@@ -172,9 +172,9 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       const result = await fastify.gitSync.pull();
       if (result.conflicts.length > 0) {
-        return { pulled: true, conflicts: result.conflicts };
+        return { ok: true, conflicts: result.conflicts };
       }
-      return { pulled: true, conflicts: [] };
+      return { ok: true, conflicts: [] };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
     }
@@ -204,7 +204,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       // Finalize merge if no conflicts remain
       await fastify.gitSync.finalizeMerge();
-      return { resolved: true };
+      return { ok: true };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to resolve conflicts', detail: String(err) });
     }
@@ -214,7 +214,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/sync/conflicts/abort', async (_request, reply) => {
     try {
       await fastify.gitSync.abortMerge();
-      return { aborted: true };
+      return { ok: true };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to abort merge', detail: String(err) });
     }
@@ -390,6 +390,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         });
 
         return {
+          ok: true,
           restored: toRestore.length,
           operationId: opEntry.id,
           paths: allPaths,
@@ -424,7 +425,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       await fastify.gitSync.setRemote(trimmed);
-      return { remote: trimmed };
+      return { ok: true, remote: trimmed };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
     }
@@ -454,7 +455,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       } else {
         await fastify.gitSync.checkout(branch);
       }
-      return { branch, created: !!create };
+      return { ok: true, branch, created: !!create };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
     }
@@ -526,7 +527,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           || result.pullCommitFailed
           || result.pushCommitFailed
           || result.pushFailed;
-        return { applied: !hasFailures, ...result };
+        return { ok: true, applied: !hasFailures, ...result };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
       }

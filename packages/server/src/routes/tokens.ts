@@ -77,7 +77,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: after,
           });
           await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
-          return result;
+          return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -97,7 +97,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
-          return result;
+          return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -117,7 +117,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
-          return result;
+          return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -137,7 +137,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
-          return { reordered: true };
+          return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -157,7 +157,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.tokenStore.createGroup(set, groupPath);
-          return reply.status(201).send({ groupPath, set });
+          return reply.status(201).send({ ok: true, groupPath, set });
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -178,7 +178,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
-        return { updated: true, groupPath, set };
+        return { ok: true, groupPath, set };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update group metadata');
       }
@@ -209,7 +209,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: after,
         });
         await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
-        return result;
+        return { ok: true, ...result };
       } catch (err) {
         return handleRouteError(reply, err);
       }
@@ -248,7 +248,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        return { updated: patches.length, operationId: entry.id };
+        return { ok: true, updated: patches.length, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch update tokens');
       }
@@ -287,7 +287,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: after,
         });
         await fastify.generatorService.updateTokenPaths(pathMap);
-        return { renamed: result.renamed, operationId: entry.id };
+        return { ok: true, renamed: result.renamed, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch rename tokens');
       }
@@ -328,7 +328,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        return { moved: result.moved, operationId: entry.id };
+        return { ok: true, moved: result.moved, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch move tokens');
       }
@@ -374,7 +374,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        return result;
+        return { ok: true, ...result };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch upsert tokens');
       }
@@ -466,7 +466,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: after,
           });
           await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
-          return result;
+          return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -486,7 +486,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
-          return { moved: true };
+          return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -506,7 +506,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.tokenStore.copyToken(set, tokenPath, targetSet);
-          return { copied: true };
+          return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -546,7 +546,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return { set, replaced: true };
+          return { ok: true, set };
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to replace token set');
         }
@@ -613,7 +613,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return reply.status(201).send({ path: tokenPath, set, token: body });
+          return reply.status(201).send({ ok: true, path: tokenPath, set, token: body });
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to create token');
         }
@@ -650,7 +650,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: after,
           });
           const updated = await fastify.tokenStore.getToken(set, tokenPath);
-          return { path: tokenPath, set, token: updated };
+          return { ok: true, path: tokenPath, set, token: updated };
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to update token');
         }
@@ -719,7 +719,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               afterSnapshot: after,
             });
           }
-          return { deleted: deleted.length, paths: deleted, set };
+          return { ok: true, deleted: deleted.length, paths: deleted, set };
         } catch (err) {
           return reply.status(500).send({ error: 'Failed to delete tokens', detail: String(err) });
         }
@@ -788,7 +788,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return { deleted: true, path: tokenPath, set };
+          return { ok: true, path: tokenPath, set };
         } catch (err) {
           return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
         }

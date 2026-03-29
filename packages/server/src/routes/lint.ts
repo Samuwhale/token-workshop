@@ -19,7 +19,8 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
 
   // PUT /api/lint/config — update lint configuration
   fastify.put<{ Body: Partial<LintConfig> }>('/lint/config', async (request) => {
-    return lintConfigStore.update(request.body ?? {});
+    const cfg = await lintConfigStore.update(request.body ?? {});
+    return { ok: true, ...cfg };
   });
 
   // POST /api/tokens/validate — validate all tokens across all sets

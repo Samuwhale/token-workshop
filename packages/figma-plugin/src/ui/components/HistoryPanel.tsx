@@ -344,7 +344,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
     const key = tokens && tokens.length === 1 ? tokens[0].path : 'all';
     setRestoring(key);
     try {
-      const result = await apiFetch<{ restored: number; operationId: string; paths: string[] }>(`${serverUrl}/api/sync/log/${hash}/restore`, {
+      const result = await apiFetch<{ ok: true; restored: number; operationId: string; paths: string[] }>(`${serverUrl}/api/sync/log/${hash}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens }),

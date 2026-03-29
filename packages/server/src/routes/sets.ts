@@ -60,7 +60,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: afterSnap,
           rollbackSteps: [{ action: 'delete-set', name }],
         });
-        return reply.status(201).send({ name: set.name, tokens: set.tokens });
+        return reply.status(201).send({ ok: true, name: set.name });
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
       }
@@ -103,7 +103,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             after: { description: afterDesc[name], collectionName: afterColl[name], modeName: afterMode[name] },
           },
         });
-        return { updated: true, name, description };
+        return { ok: true, name, description };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update metadata');
       }
@@ -135,7 +135,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: {},
           rollbackSteps: [{ action: 'rename-set', from: newName, to: name }],
         });
-        return { renamed: true, oldName: name, newName };
+        return { ok: true, oldName: name, newName };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to rename set');
       }
@@ -160,7 +160,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         afterSnapshot: {},
         rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
       });
-      return { reordered: true };
+      return { ok: true };
     });
   });
 
@@ -173,7 +173,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         await fastify.tokenStore.clearAll();
-        return { cleared: true };
+        return { ok: true };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to clear data', detail: String(err) });
       }
@@ -210,7 +210,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: {},
           rollbackSteps: [{ action: 'create-set', name }],
         });
-        return { deleted: true, name };
+        return { ok: true, name };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to delete set', detail: String(err) });
       }
