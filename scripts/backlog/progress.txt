@@ -323,3 +323,10 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: window.prompt() and window.confirm() are both blocked in Figma plugin sandbox — multi-mode color editing is completely non-functional inside Figma (silently fails), and the TokenGeneratorDialog's unsaved-changes guard never shows; both are [HIGH] priority bugs
 ---
+
+## 2026-03-29 - TokenGeneratorDialog uses window.confirm() for unsaved-changes guard
+- Replaced `window.confirm()` on handleClose with a `showDiscardConfirm` boolean state. When the dialog has unsaved changes and the user clicks close, the state flips true and a `<ConfirmModal>` renders with "Discard" / "Keep editing" options. Confirming calls `onClose()`; cancelling clears the state.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L225, ~L437
+- **Learnings for future iterations:**
+  - The `ConfirmModal` is already imported in the file (used for overwrite confirmation), so no new import was needed — just add state + render.
+---

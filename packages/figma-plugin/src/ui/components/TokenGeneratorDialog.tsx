@@ -224,9 +224,13 @@ export function TokenGeneratorDialog({
 
   const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const handleClose = () => {
-    if (isDirtyRef.current && !window.confirm('You have unsaved changes. Discard and close?')) return;
+    if (isDirtyRef.current) {
+      setShowDiscardConfirm(true);
+      return;
+    }
     onClose();
   };
 
@@ -436,6 +440,17 @@ export function TokenGeneratorDialog({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+      {showDiscardConfirm && (
+        <ConfirmModal
+          title="Discard unsaved changes?"
+          description="You have unsaved changes. They will be lost if you close."
+          confirmLabel="Discard"
+          cancelLabel="Keep editing"
+          danger
+          onConfirm={() => { setShowDiscardConfirm(false); onClose(); }}
+          onCancel={() => setShowDiscardConfirm(false)}
+        />
+      )}
       <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
 
         {/* Header */}
