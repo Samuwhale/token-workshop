@@ -246,7 +246,14 @@ async function loadSource(
     // Internal pointer
     if (ref.startsWith('#/')) {
       const target = resolveInternalPointer(ref, file);
-      if (!target || target.kind !== 'set') return new Map();
+      if (!target || target.kind !== 'set') {
+        console.warn(
+          `[dtcg-resolver] Internal pointer "${ref}" did not resolve to a set` +
+            (target ? ` (resolved to kind "${target.kind}")` : ' (not found)') +
+            '. Source will be skipped.',
+        );
+        return new Map();
+      }
       // Merge all sources from the referenced set
       const result = new Map<string, DTCGToken>();
       for (const s of target.value.sources) {

@@ -108,3 +108,10 @@ Already up to date.
   → dtcg-resolver loadSource silently returns empty Map for invalid internal pointers — no warning logged when a source reference doesn't resolve to a set, making misconfigured resolvers hard to debug (packages/core/src/dtcg-resolver.ts:248-249)
   Worktree: /tmp/backlog-47616-3vOOR3
   Running agent… (started 13:49:22)
+
+  ✓ done: dtcg-resolver loadSource silently returns empty Map for invalid internal pointers
+    Added console.warn in loadSource when an internal #/ pointer fails to resolve to a set, logging the ref, actual kind (if any), and a skip notice.
+    6 turns · 38s · $0.13
+
+  Merging to main: dtcg-resolver loadSource silently returns empty Map for invalid internal pointers
+Already up to date.
