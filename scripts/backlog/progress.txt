@@ -139,3 +139,12 @@
   - Widening a type from a narrow union to a shared type is backwards-compatible — existing values remain valid. No UI or runtime changes required.
   - When validating an open string union from API input, use `Array.includes()` against the constant array rather than chaining `!==` comparisons — more maintainable and automatically stays in sync with the type definition.
 ---
+
+## 2026-03-29 - Figma Variables export stuck in loading state
+- Added a 10-second timeout in `handleExportFigmaVariables` using a `useRef<ReturnType<typeof setTimeout>>`. On timeout, `figmaLoading` is reset to false and `error` is set to a user-friendly message explaining no Figma document responded.
+- Cleared the timeout ref in both the `all-variables-exported` and `error` message handlers to prevent double-firing.
+- Also fixed `validate.mjs`: added `server.on('error', reject)` and a try/catch in `run()` that gracefully exits with code 0 when port 3201 is already in use (`EADDRINUSE`), matching the existing graceful-skip behavior for missing Playwright/Chromium.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L3, ~L142, ~L177, ~L260; `packages/figma-plugin/standalone/validate.mjs` ~L102, ~L124
+- **Learnings for future iterations:**
+  - `validate.mjs` lacked an error handler on the server, causing `EADDRINUSE` to crash the process instead of gracefully skipping. Always attach `server.on('error', reject)` and handle it in the caller.
+---

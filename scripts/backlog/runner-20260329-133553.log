@@ -57,3 +57,10 @@ Already up to date.
   → [HIGH] Figma Variables export can get permanently stuck in loading state — handleExportFigmaVariables sends a postMessage and sets figmaLoading=true, but if the plugin never responds (e.g., no active Figma document, wrong context) the spinner never clears and the panel is unusable until the plugin is reloaded; add a timeout (10s) that resets state and shows an error toast (ExportPanel.tsx ~L260-265)
   Worktree: /tmp/backlog-48303-BoGzS4
   Running agent… (started 13:45:06)
+
+  ✓ done: Figma Variables export can get permanently stuck in loading state
+    Added 10s timeout to handleExportFigmaVariables that resets figmaLoading and shows error toast; also fixed validate.mjs EADDRINUSE crash
+    23 turns · 116s · $0.44
+
+  Merging to main: Figma Variables export can get permanently stuck in loading state
+Already up to date.

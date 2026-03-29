@@ -80,7 +80,7 @@ const MIME = {
 };
 
 function startServer() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
       const url = new URL(req.url, `http://localhost:${PORT}`);
       let filePath;
@@ -99,6 +99,7 @@ function startServer() {
       res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
       fs.createReadStream(filePath).pipe(res);
     });
+    server.on('error', reject);
     server.listen(PORT, () => resolve(server));
   });
 }
@@ -121,7 +122,16 @@ async function run() {
     process.exit(0);
   }
 
-  const server = await startServer();
+  let server;
+  try {
+    server = await startServer();
+  } catch (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${PORT} already in use — skipping headless UI validation.`);
+      process.exit(0);
+    }
+    throw err;
+  }
   const errors = [];
   let browser;
 

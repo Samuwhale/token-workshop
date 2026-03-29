@@ -1,6 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { PLATFORMS } from '../shared/platforms';
@@ -140,6 +140,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
+  const figmaLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [figmaCollections, setFigmaCollections] = useState<ExportedCollection[]>([]);
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
@@ -175,6 +176,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       if (!msg) return;
 
       if (msg.type === 'all-variables-exported') {
+        if (figmaLoadingTimeoutRef.current !== null) {
+          clearTimeout(figmaLoadingTimeoutRef.current);
+          figmaLoadingTimeoutRef.current = null;
+        }
         setFigmaCollections(msg.collections || []);
         setFigmaLoading(false);
         if (msg.collections?.length > 0) {
@@ -182,6 +187,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         }
       }
       if (msg.type === 'error' && figmaLoading) {
+        if (figmaLoadingTimeoutRef.current !== null) {
+          clearTimeout(figmaLoadingTimeoutRef.current);
+          figmaLoadingTimeoutRef.current = null;
+        }
         setError(msg.message);
         setFigmaLoading(false);
       }
@@ -261,6 +270,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setFigmaLoading(true);
     setFigmaCollections([]);
     setError(null);
+    if (figmaLoadingTimeoutRef.current !== null) {
+      clearTimeout(figmaLoadingTimeoutRef.current);
+    }
+    figmaLoadingTimeoutRef.current = setTimeout(() => {
+      figmaLoadingTimeoutRef.current = null;
+      setFigmaLoading(false);
+      setError('No response from Figma — make sure a Figma document is open and the plugin is running.');
+    }, 10000);
     parent.postMessage({ pluginMessage: { type: 'export-all-variables' } }, '*');
   };
 
