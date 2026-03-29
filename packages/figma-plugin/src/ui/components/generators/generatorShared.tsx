@@ -79,28 +79,35 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
           className="w-20 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none shrink-0"
         />
       ) : (
-        <button
-          onClick={isOverridden ? () => onOverrideClear(token.stepName) : handleStartEdit}
-          title={isOverridden ? 'Click to clear override' : 'Click to pin a custom value'}
-          aria-label={isOverridden ? 'Clear override' : 'Pin custom value'}
-          className={`shrink-0 p-0.5 rounded transition-colors ${
-            isLocked
-              ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'
-              : 'text-[var(--color-figma-text-secondary)] opacity-30 hover:opacity-100 hover:text-[var(--color-figma-accent)]'
-          }`}
-        >
-          {isLocked ? (
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="2" y="5" width="8" height="6" rx="1" />
-              <path d="M4 5V3.5a2 2 0 0 1 4 0V5" />
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={handleStartEdit}
+            title="Edit value"
+            aria-label="Edit value"
+            className={`p-0.5 rounded transition-colors ${
+              isOverridden
+                ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15'
+                : 'text-[var(--color-figma-text-secondary)] opacity-30 hover:opacity-100 hover:text-[var(--color-figma-accent)]'
+            }`}
+          >
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5 1 11l.5-2.5Z" />
             </svg>
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="2" y="5" width="8" height="6" rx="1" />
-              <path d="M4 5V3.5a2 2 0 0 1 4 0" strokeDasharray="2 1" />
-            </svg>
+          </button>
+          {isOverridden && (
+            <button
+              onClick={() => onOverrideClear(token.stepName)}
+              title="Clear override"
+              aria-label="Clear override"
+              className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+            >
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <line x1="2" y1="2" x2="10" y2="10" />
+                <line x1="10" y1="2" x2="2" y2="10" />
+              </svg>
+            </button>
           )}
-        </button>
+        </div>
       )}
     </div>
   );

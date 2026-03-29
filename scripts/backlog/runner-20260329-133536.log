@@ -44,3 +44,10 @@ Already up to date.
   → Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
   Worktree: /tmp/backlog-46928-hPv6F4
   Running agent… (started 13:40:01)
+
+  ✓ done: Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
+    Replaced single dual-purpose lock button with a pencil (edit) + X (clear, only shown when overridden) — explicit separate affordances for each action
+    8 turns · 59s · $0.18
+
+  Merging to main: Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
+Already up to date.

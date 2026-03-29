@@ -81,13 +81,13 @@
 ### UX
 
 - [x] [HIGH] Type scale preview is the weakest of all generators — renders "Ag" text clamped to 8–32px so all steps look nearly identical; a type scale's purpose is showing visual hierarchy but the preview actively hides it; replace with a stacked typography specimen rendering actual text ("Heading", "Subheading", "Body text", "Caption") at generated sizes with real line-height, remove the clamp, show computed px alongside token value (e.g. "1.563rem → 25px"), and add a visual scale ruler showing ratio relationships between consecutive steps (TypeScaleGenerator.tsx:89-112)
-- [~] Type scale staircase editor only appears when sourceValue exists — if the user enters an inline base value there's no staircase visualization; compute from inline value so the interactive editor is always available (TypeScaleGenerator.tsx:152-158)
+- [x] Type scale staircase editor only appears when sourceValue exists — if the user enters an inline base value there's no staircase visualization; compute from inline value so the interactive editor is always available (TypeScaleGenerator.tsx:152-158)
 - [x] Type scale has no inline step editing — spacing/opacity/z-index let you add/remove/rename steps inline, but type scale only offers 3 fixed presets with no customization; add the same collapsible "Edit steps" pattern so designers can create non-standard scales (e.g. skip 2xl, add "display") with custom exponents (TypeScaleGenerator.tsx:159-168)
 - [x] Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag (opacity: isDragging ? 0.8 : 0), not on hover; designers won't know the bars are interactive until they accidentally drag one (TypeScaleStaircaseEditor.tsx:226)
 - [x] Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width; should use viewBox with width="100%" for responsive sizing (TypeScaleStaircaseEditor.tsx:30,134)
 - [~] Border radius preview shows bar charts instead of actual rounded corners — reuses SpacingPreview (horizontal bars) but should show a row of rectangles with increasing corner radii, which is instantly legible to a designer (BorderRadiusGenerator.tsx, SpacingScaleGenerator.tsx:70)
 - [~] Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
-- [ ] No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
+- [~] No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
 - [ ] No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
 
 ---

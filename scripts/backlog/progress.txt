@@ -40,3 +40,11 @@
   - The staircase visualizes RATIOS between steps, not absolute sizes — a fallback of `1` (1rem) is sensible and produces realistic rem multipliers for the default config.
   - Lint baseline in `validate.sh` can drift over time; always verify actual error count before assuming the script is correct.
 ---
+
+## 2026-03-29 - Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state
+- Replaced the single dual-purpose lock button with two separate action buttons: a pencil icon (always visible, dims when no override) for editing, and an X icon (only shown when overridden) for clearing. The pencil is highlighted in accent color when an override is active. The X shows in error color on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L82-104
+- **Learnings for future iterations:**
+  - The old pattern conflated "lock state indicator" with "action trigger" into one button whose behavior flipped based on state — designers expect explicit affordances for each action.
+  - Conditionally rendering the clear button (only when `isOverridden`) avoids the "what does this button do?" confusion entirely.
+---
