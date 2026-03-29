@@ -45,3 +45,10 @@ Already up to date.
   → ComparePanel feature is undiscoverable — the multi-token comparison view (ComparePanel.tsx) only appears when 2+ tokens are selected, with no UI hint that this capability exists; add a "Compare" button to the token context menu or batch actions toolbar so users can discover side-by-side token comparison
   Worktree: /tmp/backlog-66493-emfQWa
   Running agent… (started 07:44:36)
+
+  ✓ done: ComparePanel feature is undiscoverable
+    Added "Compare with…" to token context menu that enters select mode with token pre-selected and opens ComparePanel with instructional prompt to select more tokens
+    33 turns · 242s · $1.28
+
+  Merging to main: ComparePanel feature is undiscoverable
+Already up to date.

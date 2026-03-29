@@ -89,3 +89,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 68874) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  6 new item(s) available — continuing.
+  → Heatmap scan is always limited to the current Figma page — `packages/figma-plugin/src/plugin/heatmapScanning.ts` L96 always walks `figma.currentPage.children` with no scope parameter; the consistency scanner (`consistencyScanner.ts` L49-55) already supports `scope: 'selection' | 'page'` as a pattern to follow; add "Scan all pages" and "Scan selection" scope options to HeatmapPanel so users working in multi-page files can see token coverage across the whole document
+  Worktree: /tmp/backlog-67173-C8cexa
+  Running agent… (started 07:48:06)

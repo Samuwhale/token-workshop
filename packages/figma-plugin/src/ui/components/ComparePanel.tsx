@@ -141,6 +141,25 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
     );
   }
 
+  if (tokens.length === 1) {
+    return (
+      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare tokens</span>
+          <button
+            onClick={onClose}
+            className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          >
+            Close
+          </button>
+        </div>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="font-medium text-[var(--color-figma-text)]">{tokens[0].name}</span> selected — click additional tokens to compare side by side.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] max-h-[280px] overflow-auto">
       {/* Header */}

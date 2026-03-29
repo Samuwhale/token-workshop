@@ -2134,6 +2134,14 @@ export function TokenList({
     return segments;
   }, [flatItems, rawStart, groupNameMap]);
 
+  // Enter select mode with a single token pre-selected and open ComparePanel
+  const handleCompareToken = useCallback((path: string) => {
+    setSelectMode(true);
+    setSelectedPaths(new Set([path]));
+    setShowCompare(true);
+    setShowBatchEditor(false);
+  }, []);
+
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
     density,
@@ -2188,6 +2196,7 @@ export function TokenList({
     onDetachFromGenerator: handleDetachFromGenerator,
     onToggleChain: handleToggleChain,
     onTogglePin: pinnedTokens.togglePin,
+    onCompareToken: handleCompareToken,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
     onDragOverGroup: handleDragOverGroup,
@@ -2214,7 +2223,7 @@ export function TokenList({
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
-    handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
+    handleCompareToken, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes,
@@ -2300,7 +2309,7 @@ export function TokenList({
         )}
 
         {/* Compare panel */}
-        {selectMode && showCompare && selectedPaths.size >= 2 && (
+        {selectMode && showCompare && selectedPaths.size >= 1 && (
           <ComparePanel
             selectedPaths={selectedPaths}
             allTokensFlat={allTokensFlat}

@@ -358,3 +358,14 @@
   - Variable binding scan uses same lazy-load pattern as layer scanning: only fires when References section is expanded, avoids perf hit on every token select
   - The existing "Derived groups" section in the editor still remains for creating/editing generators; References just adds the reverse view ("this token IS produced by generator X")
 ---
+
+## 2026-03-29 - ComparePanel feature is undiscoverable
+- Added "Compare with…" item to the token right-click context menu (TokenTreeNode.tsx). Clicking it enters select mode with that token pre-selected and opens ComparePanel, prompting the user to click more tokens to compare.
+- Added `onCompareToken` callback to `TokenTreeContextType` interface, wired through `TokenTreeContext` from `TokenList.tsx`.
+- ComparePanel now renders with 1 selected token (previously required 2) and shows an instructional prompt: "{name} selected — click additional tokens to compare side by side."
+- Relaxed rendering condition in TokenList.tsx from `selectedPaths.size >= 2` to `>= 1` for ComparePanel.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L209 (new callback type), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2137-2144 (handler + context wiring), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1623-1636 (context menu item), `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L135-155 (single-token prompt)
+- **Learnings for future iterations:**
+  - Context menu items flow through `TokenTreeContextType` → `useTokenTree()` hook → destructured in `TokenTreeNode.tsx`. Adding a new callback requires changes in 3 files: types, context assembly in TokenList, and usage in TokenTreeNode.
+  - The context menu only appears for non-group nodes (`!selectMode` guard needed to hide "Compare with…" when already in select mode since the toolbar already has the Compare button).
+---

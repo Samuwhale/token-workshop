@@ -129,7 +129,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
     onJumpToGroup, onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onDragStart, onDragEnd,
+    onToggleChain, onTogglePin, onCompareToken, onDragStart, onDragEnd,
     onDragOverGroup, onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
@@ -1630,6 +1630,18 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
             >
               Detach from generator
+            </button>
+          )}
+          {onCompareToken && !selectMode && (
+            <button
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onCompareToken(node.path);
+              }}
+            >
+              <span>Compare with…</span>
             </button>
           )}
           <div className="my-1 border-t border-[var(--color-figma-border)]" />

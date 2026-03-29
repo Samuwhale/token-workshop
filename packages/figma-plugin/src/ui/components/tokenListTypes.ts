@@ -206,6 +206,8 @@ export interface TokenTreeContextType {
   onDetachFromGenerator?: (path: string) => void;
   onToggleChain?: (path: string) => void;
   onTogglePin?: (path: string) => void;
+  /** Enter select mode with this token pre-selected and open ComparePanel */
+  onCompareToken?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;

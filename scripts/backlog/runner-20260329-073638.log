@@ -27,3 +27,19 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
 
   Merging to main: No "find usages" for tokens
 Already up to date.
+[main e6461ec] chore(backlog): done – No "find usages" for tokens
+ 10 files changed, 541 insertions(+), 13 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenReferences.tsx
+  ✓ Merged and marked done
+
+## 2026-03-29 - No "find usages" for tokens
+- Created `TokenReferences.tsx` replacing `TokenDependents.tsx` as unified References panel with four sub-sections: Incoming aliases (existing dependents), Figma variables (new scan), Generators (new — shows "Produced by" and "Source for"), and Bound layers (existing)
+- Added `scanTokenVariableBindings()` to `variableSync.ts` — scans local Figma variables matching the token's path (by pluginData or name convention), returns collection + name + resolved type
+- Registered `scan-token-variable-bindings` message handler in `controller.ts`
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  7 queued · 5 in-progress · last took 11m6s
+═══════════════════════════════════════════════════════════════
+  → Themes view has two separate entry points for Resolvers creating navigation confusion — App.tsx L2007 exposes a standalone "Resolvers" tab alongside "Manage" and "Compare", while ThemeManager already embeds ResolverPanel inside its "advanced mode" toggle (App.tsx L8 comment: "ResolverPanel is now embedded inside ThemeManager's advanced mode"); users encounter the same resolver UI from two different paths with no guidance; remove the standalone "Resolvers" tab and keep only the ThemeManager-embedded version, or remove the embedded version and keep only the standalone tab
+  Worktree: /tmp/backlog-66903-FfaXRJ
+  Running agent… (started 07:47:46)
