@@ -889,6 +889,50 @@ export function TokenList({
     handleDropOnGroup, handleDropReorder,
   } = dragDrop;
 
+  const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
+    if (!connected || !serverUrl || !setName) return;
+    const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
+    const siblings = siblingOrderMap.get(parentPath) ?? [];
+    const idx = siblings.indexOf(nodeName);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= siblings.length) return;
+    const newOrder = [...siblings];
+    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+    const prevOrder = [...siblings];
+    setOperationLoading('Reordering…');
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
+    });
+    if (onPushUndo) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      onPushUndo({
+        description: `Reorder "${nodeName}"`,
+        restore: async () => {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+    setOperationLoading(null);
+  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
+
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -1526,50 +1570,6 @@ export function TokenList({
     recentlyTouched.recordTouch(newPath);
     setPendingRenameToken(newPath);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched]);
-
-  const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
-    if (!connected || !serverUrl || !setName) return;
-    const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
-    const siblings = siblingOrderMap.get(parentPath) ?? [];
-    const idx = siblings.indexOf(nodeName);
-    if (idx < 0) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= siblings.length) return;
-    const newOrder = [...siblings];
-    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
-    const prevOrder = [...siblings];
-    setOperationLoading('Reordering…');
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-    });
-    if (onPushUndo) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      onPushUndo({
-        description: `Reorder "${nodeName}"`,
-        restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
