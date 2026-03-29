@@ -496,3 +496,10 @@
   - `moveTargetSet`/`copyTargetSet` can be independently duplicated in each hook since group-move and token-move dialogs are mutually exclusive (never open simultaneously)
   - All hooks follow the params-object pattern from `useTokenCreate.ts`: typed interface, flat return shape, all external deps passed as params
 ---
+
+## 2026-03-29 - AnalyticsPanel "Duplicate values" list doesn't show which set each duplicate lives in
+- Stale — already implemented. `t.set` is already rendered as a secondary-colored span next to each token path in the duplicate group list at `AnalyticsPanel.tsx` ~L1016. The data pipeline also already tags each token with its set name (built during the multi-set token load at ~L236-240). No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing a UI addition, verify the rendered JSX — the set label may already exist from a prior session that fixed the data loading pipeline.
+---
