@@ -169,6 +169,16 @@ export class GeneratorService {
   }
 
   /**
+   * Upsert a complete generator record by its existing id.
+   * Used during rollback to restore a previously captured generator state.
+   */
+  async write(generator: unknown): Promise<void> {
+    const gen = generator as TokenGenerator;
+    this.generators.set(gen.id, gen);
+    await this.saveGenerators();
+  }
+
+  /**
    * Update generator references when a token set is renamed.
    * Updates targetSet for any generator pointing at the old set name.
    * Returns the count of generators updated.

@@ -395,3 +395,12 @@
   - Pre-existing JSX structural bugs (mismatched/orphaned Section tags) silently break the build but don't surface until the build runs. When the build fails on an unrelated file, always check if the error was pre-existing before investigating.
   - Rolldown gives good diagnostics: `Expected corresponding JSX closing tag for 'Section'` with line pointer to where the element opened — follow that to find the mismatch.
 ---
+
+## 2026-03-29 - Generator CRUD operations silently discard structural state on rollback
+- Added `write-generator` and `delete-generator` to the `RollbackStep` union type. Expanded `RollbackContext.generatorService` interface to expose `getById`, `write`, and `delete` in addition to `updateSetName`. Added `write(generator)` upsert method to `GeneratorService`. Wired `rollbackSteps` into all three generator mutation routes: `generator-create` records `delete-generator`, `generator-update` records `write-generator` with the pre-update config, and `generator-delete` records `write-generator` with the deleted config (and now always records an operation, not only when tokens are also deleted). Added inverse step computation for both new step types. Also fixed a pre-existing JSX tag mismatch in `PublishPanel.tsx` that was blocking the build gate.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L15, ~L154, ~L202; `packages/server/src/services/generator-service.ts` ~L169; `packages/server/src/routes/generators.ts` ~L391, ~L506, ~L558; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L475, ~L684
+- **Learnings for future iterations:**
+  - Generator delete without token deletion previously recorded no operation at all — fixing requires always recording, not conditionally.
+  - The `write-generator` upsert pattern (analogous to `write-resolver`) is cleaner than separate `create-generator`/`update-generator` steps because rollback only needs to restore state, not replay the original action.
+  - Pre-existing build failures in unrelated files will block all backlog items — collateral fixes are necessary when the validate.sh build gate fails.
+---

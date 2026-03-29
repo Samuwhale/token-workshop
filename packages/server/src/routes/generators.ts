@@ -395,6 +395,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
           beforeSnapshot: before,
           afterSnapshot: after,
+          rollbackSteps: [{ action: 'delete-generator', id: generator.id }],
         });
         return reply.status(201).send(generator);
       } catch (err) {
@@ -505,6 +506,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const targetSet = updates.targetSet ?? existing.targetSet ?? '';
         const targetGroup = updates.targetGroup ?? existing.targetGroup ?? '';
         const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
+        const generatorBefore = { ...existing };
         const generator = await fastify.generatorService.update(
           request.params.id,
           updates,
@@ -520,6 +522,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
           beforeSnapshot: before,
           afterSnapshot: after,
+          rollbackSteps: [{ action: 'write-generator', generator: generatorBefore }],
         });
         return generator;
       } catch (err) {
@@ -556,19 +559,20 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         if (willDeleteTokens) {
           tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
         }
-        if (tokensDeleted > 0) {
-          const after = gen.targetSet && gen.targetGroup
-            ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
-            : {};
-          await fastify.operationLog.record({
-            type: 'generator-delete',
-            description: `Delete generator "${gen.name}" and ${tokensDeleted} tokens`,
-            setName: gen.targetSet,
-            affectedPaths: Object.keys(before),
-            beforeSnapshot: before,
-            afterSnapshot: after,
-          });
-        }
+        const after = gen.targetSet && gen.targetGroup
+          ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
+          : {};
+        await fastify.operationLog.record({
+          type: 'generator-delete',
+          description: tokensDeleted > 0
+            ? `Delete generator "${gen.name}" and ${tokensDeleted} tokens`
+            : `Delete generator "${gen.name}"`,
+          setName: gen.targetSet,
+          affectedPaths: Object.keys(before),
+          beforeSnapshot: before,
+          afterSnapshot: after,
+          rollbackSteps: [{ action: 'write-generator', generator: { ...gen } }],
+        });
         return { ok: true, id: request.params.id, tokensDeleted };
       });
     },

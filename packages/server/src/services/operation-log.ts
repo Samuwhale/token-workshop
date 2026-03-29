@@ -19,7 +19,9 @@ export type RollbackStep =
   | { action: 'reorder-sets'; order: string[] }
   | { action: 'write-themes'; dimensions: unknown }
   | { action: 'write-resolver'; name: string; file: unknown }
-  | { action: 'delete-resolver'; name: string };
+  | { action: 'delete-resolver'; name: string }
+  | { action: 'write-generator'; generator: unknown }
+  | { action: 'delete-generator'; id: string };
 
 /** Context required for rollback — provides access to all services that may need restoration. */
 export interface RollbackContext {
@@ -32,6 +34,9 @@ export interface RollbackContext {
   };
   generatorService?: {
     updateSetName(oldName: string, newName: string): Promise<void>;
+    getById(id: string): Promise<unknown>;
+    write(generator: unknown): Promise<void>;
+    delete(id: string): Promise<boolean>;
   };
 }
 
@@ -194,6 +199,29 @@ export class OperationLog {
           }
           break;
         }
+        case 'write-generator': {
+          if (ctx.generatorService) {
+            const id = (step.generator as { id?: string })?.id;
+            if (id) {
+              const current = await ctx.generatorService.getById(id);
+              if (current) {
+                inverse.push({ action: 'write-generator', generator: structuredClone(current) });
+              } else {
+                inverse.push({ action: 'delete-generator', id });
+              }
+            }
+          }
+          break;
+        }
+        case 'delete-generator': {
+          if (ctx.generatorService) {
+            const current = await ctx.generatorService.getById(step.id);
+            if (current) {
+              inverse.push({ action: 'write-generator', generator: structuredClone(current) });
+            }
+          }
+          break;
+        }
       }
     }
     return inverse;
@@ -234,6 +262,16 @@ export class OperationLog {
         case 'delete-resolver':
           if (ctx.resolverStore) {
             await ctx.resolverStore.delete(step.name);
+          }
+          break;
+        case 'write-generator':
+          if (ctx.generatorService) {
+            await ctx.generatorService.write(step.generator);
+          }
+          break;
+        case 'delete-generator':
+          if (ctx.generatorService) {
+            await ctx.generatorService.delete(step.id);
           }
           break;
       }
