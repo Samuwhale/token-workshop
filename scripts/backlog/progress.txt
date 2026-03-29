@@ -369,3 +369,16 @@
   - Context menu items flow through `TokenTreeContextType` → `useTokenTree()` hook → destructured in `TokenTreeNode.tsx`. Adding a new callback requires changes in 3 files: types, context assembly in TokenList, and usage in TokenTreeNode.
   - The context menu only appears for non-group nodes (`!selectMode` guard needed to hide "Compare with…" when already in select mode since the toolbar already has the Compare button).
 ---
+
+## 2026-03-29 - BatchEditor has no bulk metadata operations
+- Added bulk Figma scope editing to BatchEditor: collapsible scope checkbox section that shows applicable scopes based on selected token types (intersection when types are mixed)
+- Exported `FIGMA_SCOPES` from MetadataEditor.tsx so BatchEditor can reuse the same scope definitions
+- Scopes are applied via `$extensions['com.figma.scopes']` in the PATCH body, with undo support that restores old scopes
+- Updated `hasOp` check and hint text to include scopes; scopes reset on successful apply
+- Description field already existed in BatchEditor — the backlog item's claim it was missing was partially stale
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L7,93-94,113-127,218,298-300,370-377,396,538-580, `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L6 (export)
+- **Learnings for future iterations:**
+  - `TokenMapEntry.$scopes` exists for reading but `$extensions` must be used in PATCH body for writing scopes back
+  - Scope applicability depends on token type — when batch-selecting mixed types, intersect the available scopes
+  - The SVG chevron pattern works well for collapsible sections in the batch editor
+---

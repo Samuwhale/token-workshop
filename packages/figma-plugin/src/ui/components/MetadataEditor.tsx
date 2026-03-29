@@ -3,7 +3,7 @@ import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
 
-const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
+export const FIGMA_SCOPES: Record<string, { label: string; value: string; description: string }[]> = {
   color: [
     { label: 'Fill Color', value: 'FILL_COLOR', description: 'Background and shape fill colors' },
     { label: 'Stroke Color', value: 'STROKE_COLOR', description: 'Border and outline colors' },

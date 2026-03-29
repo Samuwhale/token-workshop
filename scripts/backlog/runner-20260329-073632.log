@@ -52,3 +52,18 @@ Already up to date.
 
   Merging to main: ComparePanel feature is undiscoverable
 Already up to date.
+[main 12361d8] chore(backlog): done – ComparePanel feature is undiscoverable
+ 10 files changed, 87 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ComparePanel feature is undiscoverable
+- Added "Compare with…" item to the token right-click context menu (TokenTreeNode.tsx). Clicking it enters select mode with that token pre-selected and opens ComparePanel, prompting the user to click more tokens to compare.
+- Added `onCompareToken` callback to `TokenTreeContextType` interface, wired through `TokenTreeContext` from `TokenList.tsx`.
+- ComparePanel now renders with 1 selected token (previously required 2) and shows an instructional prompt: "{name} selected — click additional tokens to compare side by side."
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  5 queued · 6 in-progress · last took 4m10s
+═══════════════════════════════════════════════════════════════
+  → Export panel has no preview of generated output — ExportPanel.tsx provides platform export (CSS variables, JSON, Tailwind config, etc.) but users must download the ZIP to see what the output looks like; add a live preview pane that renders the generated file content for the selected platform before download, similar to how the generator dialog shows a preview of tokens before saving
+  Worktree: /tmp/backlog-66493-ZxRxFl
+  Running agent… (started 07:48:46)

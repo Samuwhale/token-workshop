@@ -4,6 +4,7 @@ import type { Token } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 import { apiFetch } from '../shared/apiFetch';
+import { FIGMA_SCOPES } from './MetadataEditor';
 
 const typeValidator = new TokenValidator();
 
@@ -89,6 +90,8 @@ export function BatchEditor({
   const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
+  const [batchScopes, setBatchScopes] = useState<string[]>([]);
+  const [showScopes, setShowScopes] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
 
@@ -108,6 +111,23 @@ export function BatchEditor({
     selectedEntries.every(x => x.entry.$type === 'dimension' || x.entry.$type === 'number'),
     [selectedEntries]
   );
+
+  // Compute available Figma scopes based on the types of selected tokens.
+  // If all selected tokens share one type that has scopes, show those scopes.
+  // If types are mixed, show the intersection of available scopes.
+  const availableScopes = useMemo(() => {
+    if (selectedEntries.length === 0) return [];
+    const types = [...new Set(selectedEntries.map(x => x.entry.$type).filter(Boolean))];
+    if (types.length === 0) return [];
+    // Start with the scopes of the first type, intersect with the rest
+    const first = FIGMA_SCOPES[types[0]];
+    if (!first) return [];
+    if (types.length === 1) return first;
+    // Intersect: only keep scopes whose value exists in all types
+    return first.filter(scope =>
+      types.every(t => FIGMA_SCOPES[t]?.some(s => s.value === scope.value))
+    );
+  }, [selectedEntries]);
 
   // Collect scalable tokens whose values contain alias references (e.g. {spacing.base}).
   // scaleValue() returns null for these, so they are skipped during scaling.
@@ -199,6 +219,7 @@ export function BatchEditor({
 
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
+    batchScopes.length > 0 ||
     (allColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
     (allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
 
@@ -276,6 +297,10 @@ export function BatchEditor({
         patch.$description = description.trim();
       }
 
+      if (batchScopes.length > 0) {
+        patch.$extensions = { 'com.figma.scopes': batchScopes };
+      }
+
       if (newType !== '') {
         patch.$type = newType;
       }
@@ -329,29 +354,52 @@ export function BatchEditor({
         },
       );
 
-      if (onPushUndo) {
-        const opId = result.operationId;
-        onPushUndo({
-          description: `Batch edit ${ops.length} token${ops.length === 1 ? '' : 's'}`,
-          restore: async () => {
-            await rollbackOperation(opId);
-            onApply();
-          },
-        });
+      if (succeeded > 0) {
+        if (onPushUndo) {
+          const successOps = ops.filter((_, i) => results[i].status === 'fulfilled');
+          onPushUndo({
+            description: `Batch edit ${successOps.length} token${successOps.length === 1 ? '' : 's'}`,
+            restore: async () => {
+              await Promise.all(successOps.map(({ path, oldEntry }) => {
+                const restorePatch: Record<string, unknown> = { $type: oldEntry.$type, $value: oldEntry.$value };
+                if (batchScopes.length > 0) {
+                  // Restore old scopes (or clear if none were set)
+                  restorePatch.$extensions = { 'com.figma.scopes': oldEntry.$scopes ?? [] };
+                }
+                return patchToken(path, restorePatch);
+              }));
+              onApply();
+            },
+            redo: async () => {
+              await Promise.all(successOps.map(({ path, patch }) => patchToken(path, patch)));
+              onApply();
+            },
+          });
+        }
+        onApply();
       }
       onApply();
 
       const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       const skippedAliases = scalingActive ? scaleAliasCount : 0;
-      const skipNote = skippedAliases > 0
-        ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
-        : '';
-      setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}${skipNote}` });
-      setDescription('');
-      setOpacityPct('');
-      setScaleFactor('');
-      setNewType('');
-      setTimeout(() => descriptionRef.current?.focus(), 0);
+
+      if (failed === 0) {
+        const skipNote = skippedAliases > 0
+          ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+          : '';
+        setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}${skipNote}` });
+        setDescription('');
+        setOpacityPct('');
+        setScaleFactor('');
+        setNewType('');
+        setBatchScopes([]);
+        setShowScopes(false);
+        setTimeout(() => descriptionRef.current?.focus(), 0);
+      } else if (succeeded === 0) {
+        setFeedback({ ok: false, msg: `Failed to update all ${failed} token${failed === 1 ? '' : 's'}` });
+      } else {
+        setFeedback({ ok: false, msg: `${succeeded} updated, ${failed} failed` });
+      }
     } catch {
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
@@ -473,6 +521,56 @@ export function BatchEditor({
           ))}
         </select>
       </div>
+
+      {/* Figma variable scopes — when selected tokens have applicable scope options */}
+      {availableScopes.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowScopes(v => !v)}
+            className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-90' : ''}`}>
+              <path d="M2 1l4 3-4 3V1z" />
+            </svg>
+            <span>Figma scopes{batchScopes.length > 0 ? ` (${batchScopes.length} selected)` : ''}</span>
+          </button>
+          {showScopes && (
+            <div className="ml-[16px] mt-1 space-y-1">
+              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                Set scopes on all {selectedPaths.size} selected token{selectedPaths.size === 1 ? '' : 's'}. Empty = all scopes.
+              </p>
+              {availableScopes.map(scope => (
+                <label key={scope.value} className="flex items-start gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={batchScopes.includes(scope.value)}
+                    onChange={e => setBatchScopes(
+                      e.target.checked
+                        ? [...batchScopes, scope.value]
+                        : batchScopes.filter(s => s !== scope.value)
+                    )}
+                    className="w-3 h-3 rounded mt-0.5"
+                  />
+                  <span className="flex flex-col">
+                    <span className="text-[10px] text-[var(--color-figma-text)] leading-snug">{scope.label}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">{scope.description}</span>
+                  </span>
+                </label>
+              ))}
+              {batchScopes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setBatchScopes([])}
+                  className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
+                >
+                  Clear all scopes
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Opacity — only when all selected tokens are colors */}
       {allColors && (
@@ -664,7 +762,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${allColors ? ', or opacity' : allScalable ? ', or scale factor' : ''} to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${allColors ? ', or opacity' : allScalable ? ', or scale factor' : ''} to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">

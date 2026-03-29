@@ -87,3 +87,10 @@ Already up to date.
   → BatchEditor has no bulk metadata operations — BatchEditor.tsx supports type change, value scaling, move, rename, and delete, but cannot bulk-set description, Figma scopes, or extensions across selected tokens; adding bulk description and scope editing would save significant manual work for teams preparing tokens for Figma variable publishing
   Worktree: /tmp/backlog-69179-ljbCKV
   Running agent… (started 07:44:04)
+
+  ✓ done: BatchEditor has no bulk metadata operations
+    Added bulk Figma scope editing to BatchEditor with collapsible checkbox UI, type-aware scope intersection, $extensions PATCH support, and undo/redo. Description field already existed.
+    28 turns · 289s · $1.48
+
+  Merging to main: BatchEditor has no bulk metadata operations
+Already up to date.
