@@ -349,3 +349,12 @@
   - The two blocks were nearly identical but had swapped variable declaration order (`hasRemaining` vs the length check) — the helper normalises the order.
   - Early-return on `!overrides` in the helper keeps the call sites clean.
 ---
+
+## 2026-03-29 - Generator config validation skips formula syntax and step name uniqueness
+- Added `findDuplicateStepName` helper and `validateFormulaSyntax` function in `generators.ts`. Added duplicate step name checks to all six multi-step generators (typeScale, spacingScale, opacityScale, borderRadiusScale, zIndexScale, customScale). Added formula parse-time check for customScale by substituting all known variables (base, index, multiplier, prev) with dummy values and running evalExpr/substituteVars — if either throws, the 400 error is returned immediately with the parse error message.
+- Files changed: `packages/server/src/routes/generators.ts` ~L20, ~L48-74, ~L152, ~L170, ~L185, ~L200, ~L215, ~L228
+- **Learnings for future iterations:**
+  - `evalExpr` and `substituteVars` are both exported from `@tokenmanager/core` — import them directly on the server side for formula validation.
+  - The `prev` variable in customScale formulas depends on execution order, but a dummy value of 1 is fine for syntax checking since we only care that the expression parses, not that the result is meaningful.
+  - Duplicate step name detection is a simple pre-pass before building the clean validated object — much cheaper than waiting for generator execution to fail with ambiguous results.
+---

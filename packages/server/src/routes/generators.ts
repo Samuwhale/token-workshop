@@ -17,7 +17,7 @@ import type {
   TokenType,
   DimensionUnit,
 } from '@tokenmanager/core';
-import { DIMENSION_UNITS } from '@tokenmanager/core';
+import { DIMENSION_UNITS, evalExpr, substituteVars } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import { snapshotGroup } from '../services/operation-log.js';
 
@@ -43,6 +43,35 @@ const VALID_GENERATOR_TYPES: readonly string[] = [
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Returns a duplicate name from the steps array, or undefined if all are unique.
+ */
+function findDuplicateStepName(steps: Array<{ name: string }>): string | undefined {
+  const seen = new Set<string>();
+  for (const s of steps) {
+    if (seen.has(s.name)) return s.name;
+    seen.add(s.name);
+  }
+  return undefined;
+}
+
+/**
+ * Validates a customScale formula string by substituting all known variables
+ * with dummy values and running the expression evaluator. Returns an error
+ * string if the formula is syntactically invalid, or undefined if it parses.
+ */
+function validateFormulaSyntax(formula: string): string | undefined {
+  // Use dummy values that cover the full variable set available at runtime
+  const dummyVars: Record<string, number> = { base: 1, index: 1, multiplier: 1, prev: 1 };
+  try {
+    const substituted = substituteVars(formula, dummyVars);
+    evalExpr(substituted);
+    return undefined;
+  } catch (err) {
+    return `customScale formula syntax error: ${err instanceof Error ? err.message : String(err)}`;
+  }
 }
 
 type ConfigResult =
@@ -121,6 +150,8 @@ function validateGeneratorConfig(
     case 'typeScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.exponent === 'number'))
         return { error: 'typeScale config requires "steps" as Array<{name: string, exponent: number}>' };
+      const dupTypeScale = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupTypeScale !== undefined) return { error: `typeScale config has duplicate step name: "${dupTypeScale}"` };
       if (typeof c.ratio !== 'number') return { error: 'typeScale config requires "ratio" as number' };
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
@@ -137,6 +168,8 @@ function validateGeneratorConfig(
     case 'spacingScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
         return { error: 'spacingScale config requires "steps" as Array<{name: string, multiplier: number}>' };
+      const dupSpacing = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupSpacing !== undefined) return { error: `spacingScale config has duplicate step name: "${dupSpacing}"` };
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `spacingScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       const validated: SpacingScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, multiplier: s.multiplier as number })),
@@ -147,6 +180,8 @@ function validateGeneratorConfig(
     case 'opacityScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
         return { error: 'opacityScale config requires "steps" as Array<{name: string, value: number}>' };
+      const dupOpacity = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupOpacity !== undefined) return { error: `opacityScale config has duplicate step name: "${dupOpacity}"` };
       const validated: OpacityScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, value: s.value as number })),
       };
@@ -155,6 +190,8 @@ function validateGeneratorConfig(
     case 'borderRadiusScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
         return { error: 'borderRadiusScale config requires "steps" as Array<{name: string, multiplier: number}>' };
+      const dupBorderRadius = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupBorderRadius !== undefined) return { error: `borderRadiusScale config has duplicate step name: "${dupBorderRadius}"` };
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `borderRadiusScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       const validated: BorderRadiusScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
@@ -169,6 +206,8 @@ function validateGeneratorConfig(
     case 'zIndexScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
         return { error: 'zIndexScale config requires "steps" as Array<{name: string, value: number}>' };
+      const dupZIndex = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupZIndex !== undefined) return { error: `zIndexScale config has duplicate step name: "${dupZIndex}"` };
       const validated: ZIndexScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, value: s.value as number })),
       };
@@ -178,7 +217,11 @@ function validateGeneratorConfig(
       if (typeof c.outputType !== 'string') return { error: 'customScale config requires "outputType" as string' };
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.index === 'number'))
         return { error: 'customScale config requires "steps" as Array<{name: string, index: number}>' };
+      const dupCustom = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupCustom !== undefined) return { error: `customScale config has duplicate step name: "${dupCustom}"` };
       if (typeof c.formula !== 'string') return { error: 'customScale config requires "formula" as string' };
+      const formulaError = validateFormulaSyntax(c.formula);
+      if (formulaError !== undefined) return { error: formulaError };
       if (typeof c.roundTo !== 'number') return { error: 'customScale config requires "roundTo" as number' };
       const validated: CustomScaleConfig = {
         outputType: c.outputType as TokenType,

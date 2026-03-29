@@ -375,3 +375,18 @@ Already up to date.
 
   Merging to main: Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
 Already up to date.
+[main 7c449f3a] chore(backlog): done – Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
+ 5 files changed, 51 insertions(+), 31 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Override-cleaning logic duplicated between executeSingleBrand and executeGeneratorMultiBrand
+- Extracted the ~10-line override-cleaning block into a private `clearNonLockedOverrides(generator)` helper. Both `executeSingleBrand` (formerly L519-531) and `executeGeneratorMultiBrand` (formerly L608-620) now call the helper.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L509 (new helper), ~L522, ~L596
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  2 queued · 2 in-progress · last took 55s
+═══════════════════════════════════════════════════════════════
+  → Three GET routes in tokens.ts have no try/catch — `GET /tokens/search` (line 29), `GET /tokens/:set` (line 48), and `GET /tokens/:set/raw` (line 602) have no error handling; if `tokenStore.getSet()` or `tokenStore.searchTokens()` throws, Fastify's generic handler returns a plain 500 with no structured error body, inconsistent with every other route in the file which uses `handleRouteError`; this is the same pattern fixed for `PUT /api/sets/reorder` in sets.ts (packages/server/src/routes/tokens.ts:29,48,602)
+  Worktree: /tmp/backlog-46928-qVkdkv
+  Running agent… (started 14:24:57)

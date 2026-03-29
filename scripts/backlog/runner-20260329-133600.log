@@ -340,3 +340,10 @@ Already up to date.
   → Generator config validation skips formula syntax and step name uniqueness — customScale accepts any formula string with no parse-time check, so syntax errors only surface during execution; all multi-step generators (typeScale, spacingScale, opacityScale, borderRadiusScale, zIndexScale, customScale) allow duplicate step names, making override application ambiguous when two steps share a name (packages/server/src/routes/generators.ts:86-197)
   Worktree: /tmp/backlog-48983-nFg7v9
   Running agent… (started 14:23:21)
+
+  ✓ done: Generator config validation skips formula syntax and step name uniqueness
+    Added parse-time formula validation for customScale (evalExpr+substituteVars with dummy vars) and duplicate step name checks for all 6 multi-step generators; returns 400 with descriptive message before execution
+    21 turns · 125s · $0.51
+
+  Merging to main: Generator config validation skips formula syntax and step name uniqueness
+Already up to date.
