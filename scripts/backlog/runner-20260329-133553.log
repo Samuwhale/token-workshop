@@ -64,3 +64,18 @@ Already up to date.
 
   Merging to main: Figma Variables export can get permanently stuck in loading state
 Already up to date.
+[main 4666dc58] chore(backlog): done – Figma Variables export can get permanently stuck in loading state
+ 7 files changed, 57 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Figma Variables export stuck in loading state
+- Added a 10-second timeout in `handleExportFigmaVariables` using a `useRef<ReturnType<typeof setTimeout>>`. On timeout, `figmaLoading` is reset to false and `error` is set to a user-friendly message explaining no Figma document responded.
+- Cleared the timeout ref in both the `all-variables-exported` and `error` message handlers to prevent double-firing.
+- Also fixed `validate.mjs`: added `server.on('error', reject)` and a try/catch in `run()` that gracefully exits with code 0 when port 3201 is already in use (`EADDRINUSE`), matching the existing graceful-skip behavior for missing Playwright/Chromium.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  18 queued · 2 in-progress · last took 2m3s
+═══════════════════════════════════════════════════════════════
+  → PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response (packages/server/src/routes/sets.ts:145-165)
+  Worktree: /tmp/backlog-48303-pfhFb9
+  Running agent… (started 13:47:09)

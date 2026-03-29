@@ -345,6 +345,21 @@ export interface SearchLayersMessage {
   query: string;
 }
 
+// --- Scan token variable bindings ---
+
+export interface ScanTokenVariableBindingsMessage {
+  type: 'scan-token-variable-bindings';
+  tokenPath: string;
+}
+
+// --- Remove binding from node ---
+
+export interface RemoveBindingFromNodeMessage {
+  type: 'remove-binding-from-node';
+  nodeId: string;
+  property: string;
+}
+
 export interface LayerSearchResult {
   id: string;
   name: string;
@@ -433,9 +448,12 @@ export type PluginMessage =
   | GetActiveThemesMessage
   | SetActiveThemesMessage
   | ScanSingleTokenUsageMessage
+  | ScanTokenVariableBindingsMessage
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage
   | ScanConsistencyMessage
   | GetAvailableFontsMessage
   | FindPeersForPropertyMessage
-  | ApplyToNodesMessage;
+  | ApplyToNodesMessage
+  | RemoveBindingFromNodeMessage
+  | SearchLayersMessage;

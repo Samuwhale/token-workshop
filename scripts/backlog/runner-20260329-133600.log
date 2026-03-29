@@ -205,3 +205,10 @@ Already up to date.
   → Three plugin message types handled in controller.ts are missing from the PluginMessage union — `SearchLayersMessage` is defined at types.ts:343 but not in the union; `ScanTokenVariableBindingsMessage` and `RemoveBindingFromNodeMessage` have no interface at all; all three are dispatched from UI and handled in the switch but bypass compile-time type checking (packages/figma-plugin/src/shared/types.ts:409-441, src/plugin/controller.ts:298,319,332)
   Worktree: /tmp/backlog-48983-FCdSmL
   Running agent… (started 13:46:15)
+
+  ✓ done: Three plugin message types handled in controller.ts are missing from the PluginMessage union
+    Added ScanTokenVariableBindingsMessage and RemoveBindingFromNodeMessage interfaces; added all three (including SearchLayersMessage) to the PluginMessage union in types.ts
+    11 turns · 70s · $0.22
+
+  Merging to main: Three plugin message types handled in controller.ts are missing from the PluginMessage union
+Already up to date.

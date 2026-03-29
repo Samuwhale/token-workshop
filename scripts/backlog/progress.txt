@@ -148,3 +148,10 @@
 - **Learnings for future iterations:**
   - `validate.mjs` lacked an error handler on the server, causing `EADDRINUSE` to crash the process instead of gracefully skipping. Always attach `server.on('error', reject)` and handle it in the caller.
 ---
+
+## 2026-03-29 - Three plugin message types missing from PluginMessage union
+- Added `ScanTokenVariableBindingsMessage` interface (type: 'scan-token-variable-bindings', tokenPath: string) and `RemoveBindingFromNodeMessage` interface (type: 'remove-binding-from-node', nodeId: string, property: string) to types.ts. Added all three missing types (`SearchLayersMessage`, `ScanTokenVariableBindingsMessage`, `RemoveBindingFromNodeMessage`) to the `PluginMessage` discriminated union.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L341-365, ~L435-446
+- **Learnings for future iterations:**
+  - When a `switch` case accesses `msg.someProperty`, TypeScript infers the type from the union — if the message type is missing from the union, the access silently falls through as `any`. Always check that every `case` string in controller.ts has a corresponding entry in the `PluginMessage` union.
+---
