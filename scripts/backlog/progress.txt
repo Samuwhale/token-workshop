@@ -581,3 +581,9 @@
   - `batchRenameTokens` with `updateAliases=true` must snapshot ALL sets upfront (not just the primary set) because alias references can be in any set
   - The `beginBatch`/`endBatch` mechanism defers flat-token rebuilds, so batch methods should call `rebuildFlatTokens` once after all changes
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: SettingsPanel.tsx (settings organization, storage.ts keys), App.tsx (tab structure, panel overlap), ConsistencyPanel.tsx vs HeatmapPanel.tsx (redundant scanning UIs), AnalyticsPanel.tsx vs LintConfigPanel.tsx (split config/results), useFindReplace.ts (progress/conflict gaps), useDragDrop.ts (partial failure handling), useUndo.ts (keyboard conflict), useSetMergeSplit.ts (stale conflict data), useTableCreate.ts (data loss on close), usePinnedTokens.ts, useRecentlyTouched.ts, useTokenNavigation.ts, heatmapScanning.ts (silent caps), consistencyScanner.ts (performance), server routes (rename preview, batch validation)
+- Found 11 items — written to backlog-inbox.md
+- Notable: ConsistencyPanel and HeatmapPanel are two separate sub-tabs under Apply that both scan Figma layers for token-related issues with nearly identical card-based UIs — strong consolidation candidate; also useUndo's global Ctrl+Z listener fires even when typing in text inputs, hijacking browser undo
+---

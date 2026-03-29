@@ -118,3 +118,39 @@ Already up to date.
 
   Merging to main: Batch token mutation routes have no partial-failure rollback
 Already up to date.
+[main 09b4f4e] chore(backlog): done – Batch token mutation routes have no partial-failure rollback
+ 9 files changed, 219 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 835 done — pass skipped (runner PID 67173 already running one)
+
+## 2026-03-29 - Batch token mutation routes have no partial-failure rollback
+- Added three atomic batch methods to TokenStore: `batchUpdateTokens`, `batchRenameTokens`, `batchMoveTokens`
+- Each method validates all inputs upfront, snapshots affected sets, applies all in-memory changes, saves once, and rolls back everything on any error
+- Updated route handlers in `tokens.ts` to call the new batch methods instead of looping over individual `updateToken`/`renameToken`/`moveToken` calls
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  0 queued · 0
+0 in-progress · last took 5m24s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  0 queued · 0
+0 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  0 queued · 0
+0 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

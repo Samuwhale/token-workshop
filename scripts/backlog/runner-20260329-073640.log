@@ -141,3 +141,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — consolidation (ConsistencyPanel+HeatmapPanel, lint config into Validation), workflow friction (find-replace progress, drag-drop partial failure, merge stale conflicts, table data loss, undo keyboard conflict), silent caps (heatmap scanner), missing features (rename impact preview, settings backup), performance (consistency scanner O(n*m))
+Already up to date.
