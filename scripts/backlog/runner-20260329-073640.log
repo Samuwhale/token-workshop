@@ -191,3 +191,10 @@ Already up to date.
   → Bulk token creation table (useTableCreate) loses all work if dialog is closed — the table-create form has no auto-save or recovery; accidentally closing the dialog after entering 20 rows of token data loses everything; persist in-progress table state to sessionStorage and offer recovery on reopen
   Worktree: /tmp/backlog-67173-kKWF2t
   Running agent… (started 08:06:12)
+
+  ✓ done: Bulk token creation table (useTableCreate) loses all work if dialog is closed
+    Cancel now preserves draft in sessionStorage; reopening shows recovery banner. resetTableCreate (which clears draft) only runs after successful creation.
+    19 turns · 158s · $0.93
+
+  Merging to main: Bulk token creation table (useTableCreate) loses all work if dialog is closed
+Already up to date.

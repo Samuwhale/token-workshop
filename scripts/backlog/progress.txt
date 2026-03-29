@@ -478,3 +478,16 @@
 - **Learnings for future iterations:**
   - The chevron rotation was correct (`isDisabledCollapsed ? '' : 'rotate-90'`) but the content visibility was inverted — always verify both the indicator and the content toggle when fixing collapse bugs
 ---
+
+## 2026-03-29 - Bulk token creation table (useTableCreate) loses all work if dialog is closed
+- The sessionStorage draft persistence infrastructure already existed but was defeated by Cancel calling `resetTableCreate()` which clears the draft
+- Added `closeTableCreate()` — closes the dialog without clearing sessionStorage, so the draft survives
+- Changed Cancel button to use `closeTableCreate` instead of `resetTableCreate`
+- `openTableCreate` now always resets `dismissedRecovery` so closing and reopening shows the recovery banner
+- Removed unnecessary `resetTableCreate()` call from "New Token" button (which would wipe drafts when switching to single-create mode)
+- `resetTableCreate` (full clear including sessionStorage) is now only called after successful batch creation
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTableCreate.ts` ~L122-133 (new closeTableCreate), ~L155-170 (openTableCreate fix), ~L307 (export)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L843 (destructure), ~L3914 (Cancel button), ~L3928 (New Token button)
+- **Learnings for future iterations:**
+  - The draft persistence was already fully built but ineffective because the only close path (`resetTableCreate`) destroyed it — always trace all code paths that close a dialog to verify recovery works end-to-end
+---

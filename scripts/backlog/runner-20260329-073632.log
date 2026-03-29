@@ -232,3 +232,19 @@ Already up to date.
 
   Merging to main: ThemeManager disabled-sets section has inverted collapse/expand logic
 Already up to date.
+[main 6c0afda] chore(backlog): done – ThemeManager disabled-sets section has inverted collapse/expand logic
+ 7 files changed, 49 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ThemeManager disabled-sets section has inverted collapse/expand logic
+- Fixed inverted boolean: `{isDisabledCollapsed && disabledSets.map(...)}` → `{!isDisabledCollapsed && disabledSets.map(...)}`
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1567
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  0 queued · 3 in-progress · last took 51s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 68874) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

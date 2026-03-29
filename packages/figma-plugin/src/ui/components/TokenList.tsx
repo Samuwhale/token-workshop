@@ -840,7 +840,7 @@ export function TokenList({
     tableRows, rowErrors, createAllError, busy: tableCreateBusy,
     hasDraft: tableCreateHasDraft,
     addRow: addTableRow, removeRow: removeTableRow, updateRow: updateTableRow,
-    resetTableCreate, restoreDraft: restoreTableDraft, dismissDraft: dismissTableDraft,
+    closeTableCreate, resetTableCreate, restoreDraft: restoreTableDraft, dismissDraft: dismissTableDraft,
     openTableCreate, handleCreateAll,
     tableSuggestions,
   } = tableCreate;
@@ -3908,7 +3908,7 @@ export function TokenList({
                   : `Create ${tableRows.filter(r => r.name.trim()).length > 0 ? tableRows.filter(r => r.name.trim()).length + ' ' : ''}Token${tableRows.filter(r => r.name.trim()).length !== 1 ? 's' : ''}`}
               </button>
               <button
-                onClick={resetTableCreate}
+                onClick={closeTableCreate}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
@@ -3922,7 +3922,7 @@ export function TokenList({
       {!showCreateForm && !showTableCreate && (
         <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
           <button
-            onClick={() => { resetTableCreate(); onCreateNew ? onCreateNew() : setShowCreateForm(true); }}
+            onClick={() => { onCreateNew ? onCreateNew() : setShowCreateForm(true); }}
             disabled={!connected}
             title="Create a new token (N)"
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"

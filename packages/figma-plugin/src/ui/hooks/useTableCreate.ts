@@ -119,6 +119,16 @@ export function useTableCreate({
     setCreateAllError('');
   }, []);
 
+  // Close without clearing the draft — used by Cancel so work can be recovered
+  const closeTableCreate = useCallback(() => {
+    setShowTableCreate(false);
+    setRowErrors({});
+    setCreateAllError('');
+    setBusy(false);
+    // Don't clear hasDraft or dismissedRecovery — next open will detect the saved draft
+  }, []);
+
+  // Full reset — clears draft from sessionStorage. Used after successful creation.
   const resetTableCreate = useCallback(() => {
     setShowTableCreate(false);
     setTableGroup('');
@@ -151,10 +161,11 @@ export function useTableCreate({
     setRowErrors({});
     setCreateAllError('');
     setBusy(false);
+    dismissedRecovery.current = false;
 
     // Check for a saved draft to offer recovery
     const draft = loadDraft();
-    if (draft && !dismissedRecovery.current) {
+    if (draft) {
       setHasDraft(true);
       // Start with a fresh table; user can choose to restore
       setTableGroup(group);
@@ -303,6 +314,7 @@ export function useTableCreate({
     addRow,
     removeRow,
     updateRow,
+    closeTableCreate,
     resetTableCreate,
     restoreDraft,
     dismissDraft,
