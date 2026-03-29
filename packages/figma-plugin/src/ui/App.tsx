@@ -5,7 +5,7 @@ import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import { ThemeCompare } from './components/ThemeCompare';
-// ResolverPanel is now embedded inside ThemeManager's advanced mode
+// ResolverPanel is only accessible via ThemeManager's advanced mode toggle
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -337,7 +337,7 @@ export function App() {
   }, []);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const [themesView, setThemesView] = useState<'manage' | 'compare' | 'resolvers'>('manage');
+  const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
@@ -2019,7 +2019,7 @@ export function App() {
             <div className="flex flex-col h-full overflow-hidden">
               {/* Manage / Compare toggle */}
               <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {([{ id: 'manage', label: 'Manage' }, { id: 'compare', label: 'Compare' }, { id: 'resolvers', label: 'Resolvers' }] as const).map(v => (
+                {([{ id: 'manage', label: 'Manage' }, { id: 'compare', label: 'Compare' }] as const).map(v => (
                   <button
                     key={v.id}
                     onClick={() => setThemesView(v.id)}
@@ -2054,7 +2054,7 @@ export function App() {
                       deleteResolver: resolverState.deleteResolver,
                     }} />
                   </ErrorBoundary>
-                ) : themesView === 'compare' ? (
+                ) : (
                   <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
                     <ThemeCompare
                       dimensions={dimensions}
@@ -2066,26 +2066,6 @@ export function App() {
                         if (set !== activeSet) setActiveSet(set);
                         setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
                       }}
-                    />
-                  </ErrorBoundary>
-                ) : (
-                  <ErrorBoundary panelName="Resolvers" onReset={() => setThemesView('manage')}>
-                    <ResolverPanel
-                      serverUrl={serverUrl}
-                      connected={connected}
-                      sets={sets}
-                      resolvers={resolverState.resolvers}
-                      activeResolver={resolverState.activeResolver}
-                      setActiveResolver={resolverState.setActiveResolver}
-                      resolverInput={resolverState.resolverInput}
-                      setResolverInput={resolverState.setResolverInput}
-                      activeModifiers={resolverState.activeModifiers}
-                      resolvedTokens={resolverState.resolvedTokens}
-                      resolverError={resolverState.resolverError}
-                      loading={resolverState.loading}
-                      fetchResolvers={resolverState.fetchResolvers}
-                      convertFromThemes={resolverState.convertFromThemes}
-                      deleteResolver={resolverState.deleteResolver}
                     />
                   </ErrorBoundary>
                 )}

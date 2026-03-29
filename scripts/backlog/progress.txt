@@ -407,3 +407,15 @@
   - Variable sync push is fire-and-forget via postMessage (no failure info), while style sync push awaits a response — the `executePush` callback abstracts this nicely
   - Both hooks share the same pull logic (PATCH to server API) — only the payload shape differs, handled by `buildPullPayload`
 ---
+
+## 2026-03-29 - Themes view has two separate entry points for Resolvers creating navigation confusion
+- Removed the standalone "Resolvers" tab from the Themes sub-tab toggle bar (Manage/Compare/Resolvers → Manage/Compare)
+- Deleted the standalone `<ResolverPanel>` block that was rendered when `themesView === 'resolvers'`
+- Narrowed `themesView` state type from `'manage' | 'compare' | 'resolvers'` to `'manage' | 'compare'`
+- Resolvers are now only accessible via ThemeManager's built-in simple/advanced mode toggle
+- Updated stale comment at L8 to reflect the single entry point
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L8 (comment), ~L340 (state type), ~L2022 (toggle buttons), ~L2037-2091 (removed standalone ResolverPanel branch)
+- **Learnings for future iterations:**
+  - The standalone ResolverPanel was used at L2073 without an import (import was commented out at L8) — it was dead/broken code
+  - ThemeManager already had full resolver integration via `resolverState` prop and simple/advanced toggle
+---

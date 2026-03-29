@@ -43,3 +43,10 @@ Already up to date.
   → Themes view has two separate entry points for Resolvers creating navigation confusion — App.tsx L2007 exposes a standalone "Resolvers" tab alongside "Manage" and "Compare", while ThemeManager already embeds ResolverPanel inside its "advanced mode" toggle (App.tsx L8 comment: "ResolverPanel is now embedded inside ThemeManager's advanced mode"); users encounter the same resolver UI from two different paths with no guidance; remove the standalone "Resolvers" tab and keep only the ThemeManager-embedded version, or remove the embedded version and keep only the standalone tab
   Worktree: /tmp/backlog-66903-FfaXRJ
   Running agent… (started 07:47:46)
+
+  ✓ done: Themes view has two separate entry points for Resolvers creating navigation confusion
+    Removed standalone Resolvers tab from Themes toggle bar; resolvers now only accessible via ThemeManager's simple/advanced mode toggle
+    23 turns · 185s · $0.79
+
+  Merging to main: Themes view has two separate entry points for Resolvers creating navigation confusion
+Already up to date.
