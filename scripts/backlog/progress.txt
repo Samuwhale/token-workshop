@@ -251,3 +251,10 @@
   - Generator cards already had `serverUrl` in props, so the duplicate API call needed no new prop threading.
   - Appending `_copy` to `targetGroup` ensures the duplicate doesn't immediately conflict with the original's token paths; users can rename before re-running.
 ---
+
+## 2026-03-29 - Generator templates use jargon-heavy descriptions with no guidance
+- Added `whenToUse: string` field to `GraphTemplate` interface with plain-language "when to use" guidance for all 4 templates. Rendered as a small italic secondary line below the description in `TemplateCard`. Also included `whenToUse` in the template search filter so users can find templates by use-case keywords.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L24 (interface), ~L40 (material-color), ~L66 (tailwind-spacing), ~L104 (modular-type), ~L130 (full-semantic-color), ~L321 (TemplateCard render), ~L1047 (search filter)
+- **Learnings for future iterations:**
+  - The `whenToUse` field pattern (separate from `description`) is useful when `description` is already used for technical search/display and you want approachable guidance without replacing the existing content.
+---

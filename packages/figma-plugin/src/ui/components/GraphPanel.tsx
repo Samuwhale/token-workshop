@@ -26,6 +26,7 @@ interface GraphTemplate {
   id: string;
   label: string;
   description: string;
+  whenToUse: string;
   stages: string[];
   generatorType: GeneratorType;
   defaultPrefix: string;
@@ -39,6 +40,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     id: 'material-color',
     label: 'Material color palette',
     description: '11-step perceptual color ramp with semantic action map',
+    whenToUse: 'Use for brand primary or secondary colors — gives you action.default, action.hover, action.active, and action.disabled aliases out of the box.',
     stages: ['Source color', '11-step ramp', 'Semantic map'],
     generatorType: 'colorRamp',
     defaultPrefix: 'brand',
@@ -66,6 +68,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     id: 'tailwind-spacing',
     label: 'Tailwind spacing',
     description: 'Tailwind-style spacing scale with component spacing map',
+    whenToUse: 'Use when starting a new project or matching a Tailwind layout — generates semantic component.padding and component.gap aliases for small, medium, and large sizes.',
     stages: ['Base unit', 'Spacing scale', 'Component map'],
     generatorType: 'spacingScale',
     defaultPrefix: 'spacing',
@@ -104,6 +107,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     id: 'modular-type',
     label: 'Modular type scale',
     description: 'Base size × ratio (1.333) → 7-step type scale',
+    whenToUse: 'Use to create a harmonious type scale from a single base size — steps grow by a 4:3 ratio, giving you xs through 3xl for body copy, headings, and display text.',
     stages: ['Base size', 'Type scale ×1.333'],
     generatorType: 'typeScale',
     defaultPrefix: 'fontSize',
@@ -129,6 +133,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     id: 'full-semantic-color',
     label: 'Full semantic color system',
     description: 'Brand color → ramp → semantic surfaces, text, borders & actions',
+    whenToUse: 'Use when building a design system from scratch — generates a complete set of color.surface, color.text, color.border, and color.action tokens from one brand color.',
     stages: ['Brand color', 'Color ramp', 'Semantic layers'],
     generatorType: 'colorRamp',
     defaultPrefix: 'brand',
@@ -319,8 +324,11 @@ function TemplateCard({
               {stepCount}+{semanticCount}
             </span>
           </div>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2 leading-snug">
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 leading-snug">
             {template.description}
+          </p>
+          <p className="text-[9.5px] text-[var(--color-figma-text-tertiary,var(--color-figma-text-secondary))] mb-2 leading-snug italic opacity-80">
+            {template.whenToUse}
           </p>
           <PipelineStages stages={template.stages} />
         </div>
@@ -1069,6 +1077,7 @@ export function GraphPanel({
     ? GRAPH_TEMPLATES.filter(t =>
         t.label.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
+        t.whenToUse.toLowerCase().includes(q) ||
         t.generatorType.toLowerCase().includes(q),
       )
     : GRAPH_TEMPLATES;

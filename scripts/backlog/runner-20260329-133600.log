@@ -310,3 +310,10 @@ Already up to date.
 - Created `packages/figma-plugin/src/ui/components/Spinner.tsx` — a single SVG-based spinner using `currentColor` with `size` prop (`xs`/`sm`/`md`/`lg`/`xl` → 8/10/14/16/20px) and optional `className` for color/opacity overrides.
 - Replaced all 30+ inline spinner instances across 16 components: ConfirmModal, TokenList, TokenListModals, TokenUsages, PublishPanel (9×), HistoryPanel (4×), ImportPanel, ThemeManager, TokenEditor, GraphPanel, TokenGeneratorDialog, ExportPanel (6×), ColorPicker, AnalyticsPanel, HeatmapPanel, RecentActionsSource.
 - The git refresh icon in PublishPanel (conditionally spins on refresh) was intentionally left as-is since it's a custom arrows icon, not a spinner.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  10 queued · 1 in-progress · last took 10m3s
+═══════════════════════════════════════════════════════════════
+  → Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button; users must manually identify and re-import the failures with no tooling support (ImportPanel.tsx ~L870-874)
+  Worktree: /tmp/backlog-48983-8F3lmC
+  Running agent… (started 14:09:19)

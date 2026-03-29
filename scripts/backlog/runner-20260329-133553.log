@@ -172,3 +172,10 @@ Already up to date.
   → Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it (e.g., "Use this for brand primary/secondary colors with semantic aliases like action.hover") (GraphPanel.tsx GRAPH_TEMPLATES)
   Worktree: /tmp/backlog-48303-zlg2l5
   Running agent… (started 14:07:04)
+
+  ✓ done: Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it
+    Added `whenToUse` field to GraphTemplate with plain-language guidance for all 4 templates; rendered as italic secondary line in TemplateCard below the description; also included in search filter
+    19 turns · 146s · $0.38
+
+  Merging to main: Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it
+Already up to date.
