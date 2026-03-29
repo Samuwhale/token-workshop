@@ -289,3 +289,10 @@
   - The set filter uses null to mean "all sets included" — toggling to deselect-all requires setting `new Set()`, not null.
   - The platforms section at ~L594 uses an identical pattern and is a good reference for consistent toggle link behavior.
 ---
+
+## 2026-03-29 - HeatmapPanel status indicators have no legend or tooltips
+- Stale — already implemented. The compact legend exists at lines 262-279 of `HeatmapPanel.tsx`, rendered below the coverage bar inside the stats bar. It shows `StatusIcon + count + label` for each status (Fully bound, Partially bound, No bindings) as clickable filter buttons. Coverage bar segments have `title` tooltips; `StatusIcon` components have `aria-label` attributes. This was added in commit `5993214a` (HeatmapPanel color-only status indicators).
+- Files changed: none
+- **Learnings for future iterations:**
+  - The legend doubles as filter buttons — clicking a status filters the node list to that status only; clicking again clears the filter.
+---
