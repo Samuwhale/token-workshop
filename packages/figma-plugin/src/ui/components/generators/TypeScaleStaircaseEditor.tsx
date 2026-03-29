@@ -76,7 +76,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (draggingStep === null || !svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const sy = e.clientY - rect.top;
+    const sy = (e.clientY - rect.top) * (H / rect.height);
     const desiredValue = yToVal(sy);
     if (desiredValue <= 0) return;
 
@@ -134,8 +134,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
       </div>
       <svg
         ref={svgRef}
-        width={W}
-        height={H}
+        width="100%"
         viewBox={`0 0 ${W} ${H}`}
         className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded select-none"
         style={{ cursor: draggingStep !== null ? 'ns-resize' : 'default', touchAction: 'none' }}

@@ -17,3 +17,11 @@
   - The lint baseline in validate.sh (3) was stale — actual pre-existing error count was 5. Always verify the baseline with `git stash` before assuming new errors were introduced.
   - TypeScale steps use `exponent` (integer power) instead of `multiplier`, and have a `baseStep` config field that must be kept in sync when steps are renamed or removed.
 ---
+
+## 2026-03-29 - Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width
+- Changed SVG `width={W}` (240px) to `width="100%"` so the editor scales to fill its container. viewBox stays `0 0 240 140` so the internal coordinate system is unchanged.
+- Fixed pointer coordinate conversion in `handlePointerMove`: `sy = (e.clientY - rect.top) * (H / rect.height)` to map screen px to viewBox units when the rendered height differs from `H`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx` ~L135, ~L79
+- **Learnings for future iterations:**
+  - When making an SVG responsive with `width="100%"`, pointer event coordinates from `getBoundingClientRect` are in screen px but SVG math uses viewBox units — always scale by `(viewBoxDim / renderedDim)`.
+---
