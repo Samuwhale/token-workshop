@@ -373,3 +373,10 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: AnalyticsPanel.load() treats data.tokens (nested DTCG structure) as a flat map via Object.entries() — only root-level entries are analyzed, making the color palette and contrast matrix empty for all real token files with groups
 ---
+
+## 2026-03-29 - ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+- Changed `item.missingRef.split('.').join('/')` to `item.missingRef.split('.').map(encodeURIComponent).join('/')` so token path segments with special characters (spaces, `#`, `%`, etc.) are properly encoded in the fetch URL.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L660
+- **Learnings for future iterations:**
+  - Any token path split on `.` and joined as URL segments must use `.map(encodeURIComponent)` — this matches the pattern already used elsewhere in the codebase.
+---

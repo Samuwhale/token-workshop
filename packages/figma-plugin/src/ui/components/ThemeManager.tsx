@@ -657,7 +657,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const fillKey = `${dimId}:${optionName}:${item.path}`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
     try {
-      const tokenPath = item.missingRef.split('.').join('/');
+      const tokenPath = item.missingRef.split('.').map(encodeURIComponent).join('/');
       const body: Record<string, unknown> = { $value: item.fillValue };
       if (item.fillType) body.$type = item.fillType;
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {

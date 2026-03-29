@@ -362,3 +362,10 @@ Already up to date.
   → ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent — `const tokenPath = item.missingRef.split('.').join('/')` creates the URL path segment without encoding, so tokens with special characters in segment names (spaces, `#`, `%`, etc.) produce malformed fetch URLs and silently fail; every other URL path builder in the codebase uses `.split('.').map(encodeURIComponent).join('/')` (packages/figma-plugin/src/ui/components/ThemeManager.tsx ~L653)
   Worktree: /tmp/backlog-48983-sQKJhM
   Running agent… (started 14:25:34)
+
+  ✓ done: ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+    Added .map(encodeURIComponent) to the path segment join so special characters in token names produce valid fetch URLs
+    7 turns · 44s · $0.14
+
+  Merging to main: ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+Already up to date.
