@@ -57,6 +57,7 @@ export function TokenList({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
+  const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
@@ -1481,6 +1482,7 @@ export function TokenList({
     }
     onRefresh();
     recentlyTouched.recordTouch(newPath);
+    setPendingRenameToken(newPath);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched]);
 
   const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
@@ -2147,6 +2149,8 @@ export function TokenList({
     setShowBatchEditor(false);
   }, []);
 
+  const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), []);
+
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
     density,
@@ -2217,6 +2221,8 @@ export function TokenList({
     pathToSet,
     dimensions,
     activeThemes,
+    pendingRenameToken,
+    clearPendingRename: handleClearPendingRename,
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -2233,7 +2239,7 @@ export function TokenList({
     handleCompareToken, onViewTokenHistory, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
-    pathToSet, dimensions, activeThemes,
+    pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
   ]);
 
   return (

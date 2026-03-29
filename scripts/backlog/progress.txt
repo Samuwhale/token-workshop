@@ -301,3 +301,15 @@
   - The `TokenEntry` type in CommandPalette already carries `type` and `value` fields, so no data plumbing was needed
   - `swatchBgColor` handles both hex and CSS Color 4 strings, making it safe for all color token values
 ---
+
+## 2026-03-29 - No keyboard shortcut to quickly duplicate a selected token
+- The Cmd+D shortcut and `handleDuplicateToken` already existed; the missing piece was opening the duplicate for inline renaming after creation
+- Added `pendingRenameToken: string | null` and `clearPendingRename: () => void` to `TokenTreeContextType`
+- Added `pendingRenameToken` state to `TokenList.tsx`; `handleDuplicateToken` now sets it to `newPath` after creation
+- Added `handleClearPendingRename` useCallback and wired both into `treeCtx` useMemo
+- In `TokenTreeNode.tsx`, destructured `pendingRenameToken`/`clearPendingRename` from context and added a `useEffect` that activates inline rename mode when `node.path === pendingRenameToken`, then clears it
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L225, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L59, ~L1484, ~L2152, ~L2222, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L135, ~L193
+- **Learnings for future iterations:**
+  - Cmd+D was already bound in `TokenTreeNode.tsx` keydown handler; the duplicate logic was already in `TokenList.tsx` — only the post-duplicate UX was missing
+  - The `pendingRenameToken` context signal pattern (set on action, cleared by node on mount via useEffect) is a clean way to bridge async server operations with per-node UI state without lifting all rename state up
+---

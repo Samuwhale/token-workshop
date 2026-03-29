@@ -135,6 +135,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onMultiModeInlineSave,
     showResolvedValues,
     pathToSet, dimensions, activeThemes,
+    pendingRenameToken, clearPendingRename,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -189,6 +190,15 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       renameTokenInputRef.current.select();
     }
   }, [renamingToken]);
+
+  // When this token is the pending rename target (e.g. after Cmd+D duplicate), activate inline rename
+  useEffect(() => {
+    if (!node.isGroup && pendingRenameToken === node.path) {
+      setRenameTokenVal(node.name);
+      setRenamingToken(true);
+      clearPendingRename();
+    }
+  }, [pendingRenameToken, node.isGroup, node.path, node.name, clearPendingRename]);
 
   useEffect(() => {
     if (!groupMenuPos) return;

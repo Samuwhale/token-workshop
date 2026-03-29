@@ -318,3 +318,5 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 58)
+[main b25247ea] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 35 insertions(+), 347 deletions(-)

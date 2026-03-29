@@ -236,3 +236,9 @@ Already up to date.
   → No keyboard shortcut to quickly duplicate a selected token — duplicating a token requires: right-click → "More" submenu (if it exists) or manual create with the same type, then re-enter all fields; a `Cmd+D` shortcut on a selected token row that creates a copy with the name suffixed "-copy" and opens it for renaming would match standard tool behavior and save several clicks for tasks like creating a dark-mode variant of an existing token (TokenTreeNode.tsx context menu, useTokenTree keyboard handler)
   Worktree: /tmp/backlog-68874-5Tt6DD
   Running agent… (started 08:15:47)
+
+  ✓ done: No keyboard shortcut to quickly duplicate a selected token
+    Cmd+D already duplicated tokens; added pendingRenameToken context signal so the new copy automatically enters inline rename mode after duplication
+    40 turns · 244s · $1.04
+
+  Merging to main: No keyboard shortcut to quickly duplicate a selected token

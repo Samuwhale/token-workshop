@@ -251,3 +251,23 @@ Already up to date.
   → ResolverPanel is undiscoverable — it only appears inside ThemeManager behind an "Advanced" toggle; users who create themes and later want to configure DTCG resolvers have no indication this panel exists from any navigation path; either surface Resolvers as a dedicated sub-tab under Define (alongside Themes, Generators) or add a visible "Resolvers" link in the ThemeManager header that doesn't require toggling Advanced mode first (ResolverPanel.tsx, App.tsx tab structure)
   Worktree: /tmp/backlog-66903-1SU4PT
   Running agent… (started 08:15:26)
+
+  ✓ done: ResolverPanel is undiscoverable — hidden behind Advanced toggle in ThemeManager
+    Added Resolvers as a dedicated sub-tab under Define (between Themes and Generators), removed the Advanced mode toggle from ThemeManager entirely
+    33 turns · 230s · $1.13
+
+  Merging to main: ResolverPanel is undiscoverable — hidden behind Advanced toggle in ThemeManager
+ERROR: Could not acquire lock /Users/samuel/Documents/projects/TokenManager/.backlog-git.lock after 30s
+  ✗ Cherry-pick conflict — marked failed
+
+## 2026-03-29 - Command palette token search shows no color swatch or value preview
+- Added color swatch dot (12px rounded circle with `swatchBgColor`) for color-type tokens between the type badge and path
+- Added inline value preview (truncated to 20 chars) for non-color tokens with a value
+- Imported `swatchBgColor` from `colorUtils.ts` for wide-gamut color support
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  5 queued · 5 in-progress · last took 4m29s
+═══════════════════════════════════════════════════════════════
+  → No "navigate to group" from command palette — the command palette token search (`>`) only navigates to individual tokens; power users with deeply nested hierarchies want to jump directly to a group path like `color.brand` and have the tree expand and scroll to that group; add a `group:` qualifier or auto-detect group paths (CommandPalette.tsx token search mode)
+  Worktree: /tmp/backlog-66903-5fntR5
+  Running agent… (started 08:19:54)

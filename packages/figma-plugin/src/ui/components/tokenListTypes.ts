@@ -223,6 +223,10 @@ export interface TokenTreeContextType {
   onNavigateToGenerator?: (generatorId: string) => void;
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
+  /** Path of a token that should enter inline rename mode as soon as it renders */
+  pendingRenameToken: string | null;
+  /** Clear the pending rename (called by the node once it activates rename mode) */
+  clearPendingRename: () => void;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */
   themeCoverage?: Map<string, { themed: number; total: number }>;
   /** Maps token paths to their source set name — for resolution chain debugger */

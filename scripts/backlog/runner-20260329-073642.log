@@ -233,3 +233,23 @@ Already up to date.
   → No "Select all in group" action on group context menu — in multi-select mode, selecting all tokens in a group requires clicking each one individually; the group context menu should offer "Select children" to select all leaf tokens under the group in one click, matching standard tree-view selection behavior (TokenTreeNode.tsx group context menu ~L626-793)
   Worktree: /tmp/backlog-67435-FaCYZQ
   Running agent… (started 08:16:07)
+
+  ✓ done: No "Select all in group" action on group context menu
+    Added "Select children" menu item (accelerator A) to group context menu that enters select mode and selects all leaf tokens under the group via prefix matching on allTokensFlat
+    31 turns · 153s · $1
+
+  Merging to main: No "Select all in group" action on group context menu
+ERROR: Could not acquire lock /Users/samuel/Documents/projects/TokenManager/.backlog-git.lock after 30s
+  ✗ Cherry-pick conflict — marked failed
+
+## 2026-03-29 - Command palette token search shows no color swatch or value preview
+- Added color swatch dot (12px rounded circle with `swatchBgColor`) for color-type tokens between the type badge and path
+- Added inline value preview (truncated to 20 chars) for non-color tokens with a value
+- Imported `swatchBgColor` from `colorUtils.ts` for wide-gamut color support
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  6 queued · 5 in-progress · last took 3m11s
+═══════════════════════════════════════════════════════════════
+  → Git commit flow has no token-level diff preview — SyncPanel shows file-level changes for git commit but doesn't show which individual tokens changed within those .tokens.json files; users must mentally diff nested JSON to understand what they're committing; showing a token-level added/changed/removed summary per file would match the quality of the variable sync diff UI
+  Worktree: /tmp/backlog-67435-gYdVzl
+  Running agent… (started 08:19:18)

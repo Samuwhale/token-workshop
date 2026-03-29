@@ -248,3 +248,9 @@ Already up to date.
   → GraphPanel has no inline output preview before saving a generator — creating a generator requires configuring it, saving, then navigating to TokenList or TokenFlowPanel to see the output; this breaks the authoring feedback loop; add a live "Preview output" section within GraphPanel that renders the first N generated tokens in real time as parameters change, before the generator is saved (GraphPanel.tsx ~L400 lines, no preview section)
   Worktree: /tmp/backlog-67173-JI0SFO
   Running agent… (started 08:13:59)
+
+  ✓ done: GraphPanel has no inline output preview before saving a generator
+    Added expandable inline preview to GeneratorPipelineCard (click to toggle) that fetches tokens via /api/generators/preview and renders them using a new shared TokenPreviewStrip component supporting all generator types; also refactored ApplyForm to use the same shared component
+    27 turns · 323s · $1.78
+
+  Merging to main: GraphPanel has no inline output preview before saving a generator
