@@ -287,3 +287,25 @@ Already up to date.
 
   Merging to main: PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
 Already up to date.
+[main 8a7e1876] chore(backlog): done – PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
+ 5 files changed, 35 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
+- Replaced direct `store.withLock()` call with `withThemeLock()` in the dimensions-order route. This automatically captures `beforeDims`, records `rollbackSteps: [{ action: 'write-themes', dimensions: capturedBefore }]` in the operation log, and removes the manual `operationLog.record()` call that was recording no rollback info.
+- Files changed: `packages/server/src/routes/themes.ts` ~L197-233
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  7 queued · 2 in-progress · last took 1m14s
+═══════════════════════════════════════════════════════════════
+  → useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently — when fetchAllTokensFlat throws, the catch block restores syncGroupPending to its previous value but shows no error message; the UI displays a perpetually pending sync indicator with no feedback about why the sync failed (packages/figma-plugin/src/ui/hooks/useFigmaSync.ts:38-85)
+  Worktree: /tmp/backlog-46928-LyfmsT
+  Running agent… (started 14:18:42)
+
+  ✓ done: useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently
+    Added syncGroupError state; both catch blocks now call setError instead of restoring pending state, surfacing errors via the existing toast system
+    13 turns · 84s · $0.3
+
+  Merging to main: useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently
+Already up to date.

@@ -27,6 +27,7 @@ export function useFigmaSync(
   const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
   const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
   const [syncGroupStylesError, setSyncGroupStylesError] = useState<string | null>(null);
+  const [syncGroupError, setSyncGroupError] = useState<string | null>(null);
 
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
@@ -52,7 +53,7 @@ export function useFigmaSync(
       parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap: setCollectionNames, modeMap: setModeNames } }, '*');
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
-      setSyncGroupPending(saved);
+      setSyncGroupError(getErrorMessage(err, 'Failed to sync group to Figma'));
     }
   }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames]);
 
@@ -80,7 +81,7 @@ export function useFigmaSync(
       }
     } catch (err) {
       console.error('Failed to create styles from group:', err);
-      setSyncGroupStylesPending(saved);
+      setSyncGroupStylesError(getErrorMessage(err, 'Failed to create styles from group'));
     }
   }, [syncGroupStylesPending, connected, serverUrl, pathToSet, sendStyleApply]);
 
@@ -149,6 +150,7 @@ export function useFigmaSync(
     handleSyncGroup,
     handleSyncGroupStyles,
     syncGroupStylesError,
+    syncGroupError,
     handleApplyGroupScopes,
   };
 }

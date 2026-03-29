@@ -440,11 +440,15 @@ export function App() {
   const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
 
   // Group sync + scope state
-  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
+  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
 
   useEffect(() => {
     if (syncGroupStylesError) setErrorToast(syncGroupStylesError);
   }, [syncGroupStylesError]);
+
+  useEffect(() => {
+    if (syncGroupError) setErrorToast(syncGroupError);
+  }, [syncGroupError]);
 
   // Set management hooks
   const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, refreshTokens, setTabMenuOpen, onError: setErrorToast });
