@@ -17,7 +17,7 @@ import { AliasPicker, resolveAliasChain } from './AliasPicker';
 import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
-import { TokenDependents } from './TokenDependents';
+import { TokenReferences } from './TokenReferences';
 import { MetadataEditor } from './MetadataEditor';
 import { PathAutocomplete } from './PathAutocomplete';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
@@ -404,9 +404,11 @@ interface TokenEditorProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   /** Available font families from Figma for the font picker. */
   availableFonts?: string[];
+  /** Map of derived token paths to the generator that produces them. */
+  derivedTokenPaths?: Map<string, TokenGenerator>;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [] }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -1291,9 +1293,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         </div>
       )}
 
-      {/* Token dependents */}
+      {/* Token references: incoming aliases, variable bindings, generators, layers */}
       {!isCreateMode && (
-        <TokenDependents
+        <TokenReferences
           dependents={dependents}
           dependentsLoading={dependentsLoading}
           setName={setName}
@@ -1305,6 +1307,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           allTokensFlat={allTokensFlat}
           colorFlatMap={colorFlatMap}
           initialValue={initialRef.current?.value}
+          producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
+          sourceGenerators={existingGeneratorsForToken}
         />
       )}
 

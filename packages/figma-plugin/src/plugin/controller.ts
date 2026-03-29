@@ -1,7 +1,7 @@
 // This runs in Figma's sandbox (no DOM access)
 
 import type { PluginMessage } from '../shared/types.js';
-import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
+import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables, scanTokenVariableBindings } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
 import { getAvailableFontFamilies, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
@@ -195,6 +195,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         await scanTokenUsage(msg.tokenPath);
       } catch (e) {
         reportError('scan-single-token-usage', e);
+      }
+      break;
+    case 'scan-token-variable-bindings':
+      try {
+        await scanTokenVariableBindings(msg.tokenPath);
+      } catch (e) {
+        reportError('scan-token-variable-bindings', e);
       }
       break;
     case 'extract-tokens-from-selection':

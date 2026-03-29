@@ -1858,6 +1858,7 @@ export function App() {
                     perSetFlat={perSetFlat}
                     onRefresh={refreshAll}
                     availableFonts={availableFonts}
+                    derivedTokenPaths={derivedTokenPaths}
                   />
                   ) : previewingToken ? (
                   <TokenDetailPreview
@@ -2176,6 +2177,7 @@ export function App() {
                 perSetFlat={perSetFlat}
                 onRefresh={refreshAll}
                 availableFonts={availableFonts}
+                derivedTokenPaths={derivedTokenPaths}
               />
             </div>
           </div>

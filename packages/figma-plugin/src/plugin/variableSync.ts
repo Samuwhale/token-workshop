@@ -326,3 +326,42 @@ export async function exportAllVariables() {
     figma.ui.postMessage({ type: 'error', message: `Failed to export variables: ${String(error)}` });
   }
 }
+
+/** Scan local Figma variables to find ones bound to a specific token path. */
+export async function scanTokenVariableBindings(tokenPath: string) {
+  try {
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const figmaName = tokenPath.replace(/\./g, '/');
+
+    const results: Array<{ name: string; collection: string; resolvedType: string }> = [];
+
+    for (const variable of allVariables) {
+      const boundPath = variable.getPluginData('tokenPath');
+      if (boundPath === tokenPath || variable.name === figmaName) {
+        let collectionName = '(unknown)';
+        try {
+          const col = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+          if (col) collectionName = col.name;
+        } catch { /* ignore */ }
+
+        results.push({
+          name: variable.name,
+          collection: collectionName,
+          resolvedType: variable.resolvedType,
+        });
+      }
+    }
+
+    figma.ui.postMessage({
+      type: 'token-variable-bindings-result',
+      tokenPath,
+      variables: results,
+    });
+  } catch {
+    figma.ui.postMessage({
+      type: 'token-variable-bindings-result',
+      tokenPath,
+      variables: [],
+    });
+  }
+}

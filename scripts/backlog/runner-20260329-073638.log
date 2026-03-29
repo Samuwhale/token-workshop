@@ -20,3 +20,10 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
   → No "find usages" for tokens — there is no way to discover which other tokens alias a given token, which Figma variables bind to it, or which generators produce it; add a "References" section to the token editor panel showing incoming aliases, variable bindings, and generator sources so users understand the impact of changes before making them
   Worktree: /tmp/backlog-66903-pS7WP6
   Running agent… (started 07:36:39)
+
+  ✓ done: No "find usages" for tokens
+    Added unified References panel to token editor with 4 sections: incoming aliases, Figma variable bindings, generator sources (produced by / source for), and bound layers. New plugin message scan-token-variable-bindings finds Figma variables tied to a token path.
+    45 turns · 652s · $3.42
+
+  Merging to main: No "find usages" for tokens
+Already up to date.
