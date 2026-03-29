@@ -1,7 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import { isDimensionLike } from './generators/generatorShared';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
@@ -196,6 +196,52 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
       },
     ],
   },
+  {
+    id: 'dark-mode-palette',
+    label: 'Dark mode palette',
+    description: 'Perceptually invert a light-mode color into its dark-mode equivalent using OKLab lightness inversion',
+    whenToUse: 'Use when you already have a light-mode color token and need a matching dark-mode version — inversion preserves hue and chroma while flipping lightness, so the two palettes feel like a matched pair.',
+    stages: ['Light color', 'OKLab invert', 'Dark color'],
+    generatorType: 'darkModeInversion',
+    defaultPrefix: 'dark',
+    requiresSource: true,
+    config: {
+      stepName: 'inverted',
+      chromaBoost: 0.15,
+    } as DarkModeInversionConfig,
+    semanticLayers: [
+      {
+        prefix: 'theme.dark',
+        mappings: [
+          { semantic: 'surface.page', step: 'inverted', type: 'color' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'accessible-color-pair',
+    label: 'Accessible color pair',
+    description: 'WCAG AA foreground/background pair from a brand color — guaranteed 4.5:1 contrast ratio',
+    whenToUse: 'Use when you need a button, badge, or callout color with guaranteed legibility — generates a background and foreground color that meet WCAG AA contrast requirements.',
+    stages: ['Brand color', 'WCAG AA check', 'fg + bg'],
+    generatorType: 'accessibleColorPair',
+    defaultPrefix: 'accessible',
+    requiresSource: true,
+    config: {
+      contrastLevel: 'AA',
+      backgroundStep: 'bg',
+      foregroundStep: 'fg',
+    } as AccessibleColorPairConfig,
+    semanticLayers: [
+      {
+        prefix: 'semantic',
+        mappings: [
+          { semantic: 'text.onBrand', step: 'fg', type: 'color' },
+          { semantic: 'surface.brand', step: 'bg', type: 'color' },
+        ],
+      },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -309,6 +355,38 @@ function TemplateIcon({ id }: { id: string }) {
           </div>
         </div>
       );
+    case 'dark-mode-palette':
+      return (
+        <div className="flex items-center h-5 gap-0.5">
+          {/* Light half */}
+          <div className="flex gap-0.5 h-full">
+            {[97, 70, 40].map((l, i) => (
+              <div key={i} className="w-2 h-full rounded-sm" style={{ background: `hsl(220, 50%, ${l}%)` }} />
+            ))}
+          </div>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)] shrink-0 mx-0.5">
+            <path d="M2 1l4 3-4 3V1z" />
+          </svg>
+          {/* Dark half */}
+          <div className="flex gap-0.5 h-full">
+            {[8, 20, 50].map((l, i) => (
+              <div key={i} className="w-2 h-full rounded-sm" style={{ background: `hsl(220, 50%, ${l}%)` }} />
+            ))}
+          </div>
+        </div>
+      );
+    case 'accessible-color-pair':
+      return (
+        <div className="flex items-center gap-1 h-5">
+          <div className="w-5 h-full rounded-sm flex items-center justify-center" style={{ background: 'hsl(240, 55%, 40%)' }}>
+            <span className="text-[7px] font-bold text-white leading-none">Aa</span>
+          </div>
+          <div className="flex flex-col gap-0.5 justify-center h-full">
+            <div className="text-[7px] font-medium text-[var(--color-figma-text-secondary)] leading-none">4.5:1</div>
+            <div className="text-[6.5px] text-[var(--color-figma-text-tertiary)] leading-none">AA</div>
+          </div>
+        </div>
+      );
     default:
       return (
         <div className="flex items-center justify-center w-10 h-5 text-[var(--color-figma-text-tertiary)]">
@@ -329,6 +407,8 @@ function getRequiresSourceLabel(generatorType: GeneratorType): string {
     case 'colorRamp': return 'Requires a color token';
     case 'spacingScale': return 'Requires a spacing token';
     case 'typeScale': return 'Requires a font size token';
+    case 'darkModeInversion': return 'Requires a light-mode color token';
+    case 'accessibleColorPair': return 'Requires a color token';
     default: return 'Requires a source token';
   }
 }

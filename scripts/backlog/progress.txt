@@ -371,3 +371,11 @@
   - `ConfirmModal` accepts an async `onConfirm` and handles the spinner/error state internally — pass the async action directly rather than wrapping it.
   - The `confirmOp` state pattern (store the full operation object, not just its ID) makes it easy to render rich context (description, path count) in the modal body.
 ---
+
+## 2026-03-29 - No template in GraphPanel gallery for darkModeInversion or accessibleColorPair generator types
+- Added two new templates to `GRAPH_TEMPLATES`: "Dark mode palette" (`darkModeInversion`) and "Accessible color pair" (`accessibleColorPair`). Both include `TemplateIcon` visuals, `stages` pipeline labels, semantic layers, and `requiresSource` hints. Also added `getRequiresSourceLabel` cases for the two new generator types and imported `DarkModeInversionConfig` / `AccessibleColorPairConfig` types.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1, ~L199, ~L358, ~L405
+- **Learnings for future iterations:**
+  - `DarkModeInversionConfig` has `{ stepName, chromaBoost }` — no `steps` array, so `getTemplateStepCount` returns 0 for these templates; the badge shows `0+N` semantic aliases which is accurate.
+  - Templates for non-ramp generators (darkModeInversion, accessibleColorPair) still work fine with `requiresSource: true` — the ApplyForm just prompts for the source token path and passes `config` verbatim to the generator POST.
+---
