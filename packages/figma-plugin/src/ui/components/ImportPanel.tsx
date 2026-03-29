@@ -183,6 +183,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [existingPathsFetching, setExistingTokenMapFetching] = useState(false);
   const existingPathsCacheRef = useRef<{ set: string; tokens: Map<string, { $type: string; $value: unknown }> } | null>(null);
 
+  // Variables conflict preview state
+  const [varConflictPreview, setVarConflictPreview] = useState<{ newCount: number; overwriteCount: number } | null>(null);
+  const [checkingVarConflicts, setCheckingVarConflicts] = useState(false);
+  const varConflictFetchIdRef = useRef(0);
+
   // Rollback state: tracks the last import so it can be undone
   const [lastImport, setLastImport] = useState<{ entries: { setName: string; paths: string[] }[] } | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -256,6 +261,54 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       prefetchExistingPaths(targetSet);
     }
   }, [targetSet, tokens.length, prefetchExistingPaths]);
+
+  // Pre-fetch conflict counts for the Variables import preview
+  useEffect(() => {
+    if (collectionData.length === 0) {
+      setVarConflictPreview(null);
+      return;
+    }
+    const allModes = collectionData.flatMap(col =>
+      col.modes
+        .filter(m => modeEnabled[modeKey(col.name, m.modeId)])
+        .map(m => ({
+          mode: m,
+          setName: modeSetNames[modeKey(col.name, m.modeId)] || defaultSetName(col.name, m.modeName, col.modes.length),
+        }))
+    );
+    if (allModes.length === 0) {
+      setVarConflictPreview({ newCount: 0, overwriteCount: 0 });
+      return;
+    }
+    const setsToCheck = allModes.filter(({ setName }) => sets.includes(setName));
+    if (setsToCheck.length === 0) {
+      const totalTokens = allModes.reduce((acc, { mode }) => acc + mode.tokens.length, 0);
+      setVarConflictPreview({ newCount: totalTokens, overwriteCount: 0 });
+      return;
+    }
+    const fetchId = ++varConflictFetchIdRef.current;
+    setCheckingVarConflicts(true);
+    (async () => {
+      try {
+        let overwriteCount = 0;
+        for (const { mode, setName } of setsToCheck) {
+          if (fetchId !== varConflictFetchIdRef.current) return;
+          const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`);
+          if (fetchId !== varConflictFetchIdRef.current) return;
+          const flat = flattenTokenGroup(data.tokens ?? {});
+          const existingKeys = new Set(flat.keys());
+          overwriteCount += mode.tokens.filter(t => existingKeys.has(t.path)).length;
+        }
+        if (fetchId !== varConflictFetchIdRef.current) return;
+        const totalTokens = allModes.reduce((acc, { mode }) => acc + mode.tokens.length, 0);
+        setVarConflictPreview({ newCount: totalTokens - overwriteCount, overwriteCount });
+      } catch {
+        if (fetchId === varConflictFetchIdRef.current) setVarConflictPreview(null);
+      } finally {
+        if (fetchId === varConflictFetchIdRef.current) setCheckingVarConflicts(false);
+      }
+    })();
+  }, [collectionData, modeEnabled, modeSetNames, sets, serverUrl]);
 
   // Listen for messages from sandbox
   useEffect(() => {
@@ -575,7 +628,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     ? [...selectedTokens].filter(p => existingTokenMap.has(p)).length
     : null;
 
-  const handleImportVariables = async () => {
+  const handleImportVariables = async (strategy: 'overwrite' | 'skip' = 'overwrite') => {
     setImporting(true);
     setError(null);
     setFailedImportPaths([]);
@@ -620,7 +673,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                   tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: 'figma-variables' } };
                   return tok;
                 }),
-                strategy: 'overwrite',
+                strategy,
               }),
             },
           );
@@ -1330,17 +1383,70 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       {/* Footer: variables import button */}
       {collectionData.length > 0 && !loading && (
         <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
-          <button
-            onClick={handleImportVariables}
-            disabled={totalEnabledSets === 0 || importing}
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
-            {importing
-              ? importProgress
-                ? `Importing set ${importProgress.done}/${importProgress.total}…`
-                : 'Importing…'
-              : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
-          </button>
+          {/* Conflict preview summary */}
+          {(checkingVarConflicts || varConflictPreview !== null) && (
+            <div className="flex items-center gap-2 text-[10px] py-0.5">
+              {checkingVarConflicts ? (
+                <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+              ) : varConflictPreview && (
+                <>
+                  {varConflictPreview.newCount > 0 && (
+                    <span className="flex items-center gap-1 text-[var(--color-figma-success,#16a34a)]">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M4 1v6M1 4h6" />
+                      </svg>
+                      {varConflictPreview.newCount} new
+                    </span>
+                  )}
+                  {varConflictPreview.newCount > 0 && varConflictPreview.overwriteCount > 0 && (
+                    <span className="text-[var(--color-figma-border)]">·</span>
+                  )}
+                  {varConflictPreview.overwriteCount > 0 && (
+                    <span className="flex items-center gap-1 text-[var(--color-figma-warning,#e8a100)]">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M4 1v4M4 6.5v.5" />
+                      </svg>
+                      {varConflictPreview.overwriteCount} will overwrite
+                    </span>
+                  )}
+                  {varConflictPreview.newCount === 0 && varConflictPreview.overwriteCount === 0 && totalEnabledSets > 0 && (
+                    <span className="text-[var(--color-figma-text-secondary)]">No tokens selected</span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          {/* Import button(s) */}
+          {varConflictPreview !== null && varConflictPreview.overwriteCount > 0 && !importing ? (
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => handleImportVariables('overwrite')}
+                disabled={totalEnabledSets === 0}
+                className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+              >
+                Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
+              </button>
+              <button
+                onClick={() => handleImportVariables('skip')}
+                disabled={totalEnabledSets === 0}
+                className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+              >
+                Import & keep existing ({varConflictPreview.newCount} new only)
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleImportVariables('overwrite')}
+              disabled={totalEnabledSets === 0 || importing}
+              className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              {importing
+                ? importProgress
+                  ? `Importing set ${importProgress.done}/${importProgress.total}…`
+                  : 'Importing…'
+                : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
+            </button>
+          )}
           {importing && importProgress && importProgress.total > 0 && (
             <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
               <div
