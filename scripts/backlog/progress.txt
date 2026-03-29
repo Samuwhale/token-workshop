@@ -254,3 +254,9 @@
   - `ApiError` from `apiFetch.ts` has a `.status` field — use `err instanceof ApiError && err.status === 409` to branch on conflict vs other errors.
   - For overwrite flows, PATCH `/api/tokens/:set/*` accepts the same body fields as POST and updates in place.
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: ColorPicker.tsx (recent colors alpha), TokenList.tsx (viewMode persistence, filter state, JSON editor shortcuts), TokenEditor.tsx (dependents list), AliasAutocomplete.tsx (resolved value preview), AnalyticsPanel.tsx (unused token detection), ThemeManager.tsx (option diff counts), useServerEvents.ts (refresh feedback), BatchEditor.tsx (alias mode gap), GraphPanel.tsx (generator run overwrite)
+- Found 10 items — written to backlog-inbox.md
+- Notable: ColorPicker.tsx:54 strips alpha channel from ALL recent colors via `hex.slice(0, 7)` — any token with transparency is stored without alpha and will produce wrong color on re-select from recents; also, BatchEditor can scale/type-change/find-replace but has no "set all selected to alias reference" mode which is a key migration workflow
+---
