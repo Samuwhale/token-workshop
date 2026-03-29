@@ -322,6 +322,21 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       {/* ── Scrollable sections ────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
 
+        {/* ── All-synced banner ─────────────────────────────────────────── */}
+        {varSync.varChecked && varSync.varRows.length === 0 &&
+         styleSync.styleChecked && styleSync.styleRows.length === 0 &&
+         !git.gitLoading && git.gitStatus?.isRepo && git.mergeConflicts.length === 0 && git.allChanges.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-5 px-4 rounded-lg bg-[var(--color-figma-success)]/10 border border-[var(--color-figma-success)]/25">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <span className="text-[12px] font-semibold text-[var(--color-figma-success)]">Everything is synced</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+              Figma variables, styles, and Git are all up to date.
+            </span>
+          </div>
+        )}
+
         {/* ── Section: Figma Variables ──────────────────────────────────── */}
         <Section
           title="Figma Variables"

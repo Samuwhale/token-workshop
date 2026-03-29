@@ -538,3 +538,13 @@
   - The FIGMA_SCOPES constant already had human-readable labels from initial implementation; only descriptions were missing
   - Changed `items-center` to `items-start` on the label flex container so the checkbox aligns with the first line of the two-line text
 ---
+
+## 2026-03-29 - No "everything is synced" state in PublishPanel
+- Added a global "Everything is synced" banner at the top of the scrollable sections in PublishPanel, shown when: variables checked & 0 diffs, styles checked & 0 diffs, and git is a repo with 0 uncommitted changes and 0 conflicts
+- Banner has a green checkmark icon, "Everything is synced" heading, and descriptive subtitle, styled with success color background/border
+- Individual section badges and per-section "in sync" messages remain as-is for when only some sections are synced
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L394-410
+- **Learnings for future iterations:**
+  - The three sync systems have independent "checked" flags — the banner only appears after both Compare buttons have been clicked AND git status is loaded, so it won't show false positives
+  - Git section uses `git.gitStatus?.isRepo` as a prerequisite — the banner correctly excludes the no-repo case
+---
