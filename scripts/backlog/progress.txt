@@ -411,3 +411,19 @@
 - **Learnings for future iterations:**
   - Always check the most recent git commit message before starting — if the commit title matches the backlog item title, the work is done.
 ---
+- Found 4 items — written to backlog-inbox.md
+- Notable: AnalyticsPanel.load() treats data.tokens (nested DTCG structure) as a flat map via Object.entries() — only root-level entries are analyzed, making the color palette and contrast matrix empty for all real token files with groups
+---
+
+## 2026-03-29 - ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+- Changed `item.missingRef.split('.').join('/')` to `item.missingRef.split('.').map(encodeURIComponent).join('/')` so token path segments with special characters (spaces, `#`, `%`, etc.) are properly encoded in the fetch URL.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L660
+- **Learnings for future iterations:**
+  - Any token path split on `.` and joined as URL segments must use `.map(encodeURIComponent)` — this matches the pattern already used elsewhere in the codebase.
+---
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/server/src/routes/generators.ts, packages/server/src/services/operation-log.ts, packages/figma-plugin/src/ui/components/GraphPanel.tsx, packages/figma-plugin/src/ui/hooks/useServerEvents.ts, packages/server/src/routes/sse.ts, packages/server/src/routes/operations.ts, packages/server/src/routes/themes.ts, packages/figma-plugin/src/ui/components/TokenEditor.tsx, packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts, packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx, packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx, packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts, packages/core/src/generator-engine.ts, packages/core/src/eval-expr.ts, packages/core/src/resolver.ts
+- Found 2 items — written to backlog-inbox.md
+- Notable: Generator CRUD operations (create/delete/update) record before/after token snapshots in the operation log but add no structural `rollbackSteps`; rolling back a `generator-delete` restores generated tokens but permanently destroys the generator config (the `RollbackStep` union type has no generator actions at all)
+---

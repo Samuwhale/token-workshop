@@ -169,12 +169,11 @@ export class GeneratorService {
   }
 
   /**
-   * Upsert a complete generator record by its existing id.
-   * Used during rollback to restore a previously captured generator state.
+   * Restore (upsert) a generator from a full snapshot object.
+   * Used by rollback to re-create or revert a generator to a prior state.
    */
-  async write(generator: unknown): Promise<void> {
-    const gen = generator as TokenGenerator;
-    this.generators.set(gen.id, gen);
+  async restore(generator: TokenGenerator): Promise<void> {
+    this.generators.set(generator.id, generator);
     await this.saveGenerators();
   }
 

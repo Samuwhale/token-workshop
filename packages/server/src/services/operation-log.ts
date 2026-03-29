@@ -20,7 +20,7 @@ export type RollbackStep =
   | { action: 'write-themes'; dimensions: unknown }
   | { action: 'write-resolver'; name: string; file: unknown }
   | { action: 'delete-resolver'; name: string }
-  | { action: 'write-generator'; generator: unknown }
+  | { action: 'create-generator'; generator: unknown }
   | { action: 'delete-generator'; id: string };
 
 /** Context required for rollback — provides access to all services that may need restoration. */
@@ -35,7 +35,7 @@ export interface RollbackContext {
   generatorService?: {
     updateSetName(oldName: string, newName: string): Promise<void>;
     getById(id: string): Promise<unknown>;
-    write(generator: unknown): Promise<void>;
+    restore(generator: unknown): Promise<void>;
     delete(id: string): Promise<boolean>;
   };
 }
@@ -199,25 +199,16 @@ export class OperationLog {
           }
           break;
         }
-        case 'write-generator': {
-          if (ctx.generatorService) {
-            const id = (step.generator as { id?: string })?.id;
-            if (id) {
-              const current = await ctx.generatorService.getById(id);
-              if (current) {
-                inverse.push({ action: 'write-generator', generator: structuredClone(current) });
-              } else {
-                inverse.push({ action: 'delete-generator', id });
-              }
-            }
-          }
+        case 'create-generator':
+          // inverse: delete the generator that was just created
+          inverse.push({ action: 'delete-generator', id: (step.generator as { id: string }).id });
           break;
-        }
         case 'delete-generator': {
+          // inverse: re-create the generator — look up current state before it's deleted
           if (ctx.generatorService) {
             const current = await ctx.generatorService.getById(step.id);
             if (current) {
-              inverse.push({ action: 'write-generator', generator: structuredClone(current) });
+              inverse.push({ action: 'create-generator', generator: structuredClone(current) });
             }
           }
           break;
@@ -264,9 +255,9 @@ export class OperationLog {
             await ctx.resolverStore.delete(step.name);
           }
           break;
-        case 'write-generator':
+        case 'create-generator':
           if (ctx.generatorService) {
-            await ctx.generatorService.write(step.generator);
+            await ctx.generatorService.restore(step.generator);
           }
           break;
         case 'delete-generator':

@@ -522,7 +522,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
           beforeSnapshot: before,
           afterSnapshot: after,
-          rollbackSteps: [{ action: 'write-generator', generator: generatorBefore }],
+          rollbackSteps: [{ action: 'create-generator', generator: existing }],
         });
         return generator;
       } catch (err) {
@@ -559,7 +559,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         if (willDeleteTokens) {
           tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
         }
-        const after = gen.targetSet && gen.targetGroup
+        const after = tokensDeleted > 0 && gen.targetSet && gen.targetGroup
           ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
           : {};
         await fastify.operationLog.record({
@@ -571,7 +571,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: Object.keys(before),
           beforeSnapshot: before,
           afterSnapshot: after,
-          rollbackSteps: [{ action: 'write-generator', generator: { ...gen } }],
+          rollbackSteps: [{ action: 'create-generator', generator: gen }],
         });
         return { ok: true, id: request.params.id, tokensDeleted };
       });
