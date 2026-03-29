@@ -280,3 +280,18 @@ Already up to date.
 
   Merging to main: HistoryPanel token path filter fires API requests on every keystroke without debounce
 Already up to date.
+[main 3d9c26a] chore(backlog): done – HistoryPanel token path filter fires API requests on every keystroke without debounce
+ 6 files changed, 48 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - HistoryPanel token path filter fires API requests on every keystroke without debounce
+- Added 300ms debounce on `filterTokenPath` in `GitCommitsSource` before triggering the eager commit-detail fetch. Uses the same `useState` + `useEffect` + `setTimeout` pattern as `TokenList.tsx` L338-342.
+- Also shows "Searching history…" spinner while debounce timer is pending (not just during API fetch).
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L234-240 (debounce state/effect), ~L531 (loading condition includes debouncing)
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  6 queued · 5 in-progress · last took 2m39s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel live preview re-runs all format generators on every settings change without debounce — changing a single toggle (e.g., "include descriptions") synchronously rebuilds the full ZIP and all preview strings; for large token sets this causes visible jank; debounce the preview rebuild by 250ms, matching the pattern already used in search inputs across the app (ExportPanel.tsx ~L500-1000)
+  Worktree: /tmp/backlog-67697-EabRpj
+  Running agent… (started 08:12:57)

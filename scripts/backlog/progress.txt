@@ -534,3 +534,15 @@
 - **Learnings for future iterations:**
   - The filter is currently set as a complete path from token click (not keystroke-by-keystroke), but debouncing the API effect is still correct defensive practice and future-proofs against text input scenarios.
 ---
+
+## 2026-03-29 - BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
+- Changed `allColors`/`allScalable` (all-or-nothing) to `hasColors`/`hasScalable` (any-match) so opacity and scale controls appear for mixed-type selections
+- Added `skippedTypeIncompat` counter in `handleApply` that tracks tokens skipped because their type doesn't match the operation (e.g., non-color tokens when applying opacity)
+- Updated success toast to show combined skip info: "Applied to N tokens (M incompatible types, K reference values skipped)"
+- Added inline hints below opacity/scale controls for mixed selections showing "Applies to N color/numeric tokens — M non-color/non-numeric skipped"
+- Updated `scalePreview` and `skippedAliasTokens` to filter by type rather than relying on the `allScalable` gate
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L104-118 (new count memos), ~L134-145 (alias filter fix), ~L290-340 (handleApply skip tracking), ~L370-385 (toast message), ~L585-630 (opacity UI hint), ~L690-700 (scale UI hint), ~L755 (footer hint text)
+- **Learnings for future iterations:**
+  - When adding sibling JSX elements inside a conditional render `{flag && ( <div/> )}`, wrap in a fragment `<>...</>` — otherwise the parser sees `{ ... }` after the closing tag as a new expression and fails
+  - The skip-counting logic must avoid double-counting: only count a token as "skipped for incompatible type" when the type-specific operation (opacity/scale) is the sole value-changing operation for that token
+---

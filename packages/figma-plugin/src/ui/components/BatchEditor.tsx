@@ -101,16 +101,19 @@ export function BatchEditor({
       .filter((x): x is { path: string; entry: TokenMapEntry } => x.entry != null)
   ), [selectedPaths, allTokensFlat]);
 
-  const allColors = useMemo(() =>
-    selectedEntries.length > 0 && selectedEntries.every(x => x.entry.$type === 'color'),
+  const colorCount = useMemo(() =>
+    selectedEntries.filter(x => x.entry.$type === 'color').length,
     [selectedEntries]
   );
+  const hasColors = colorCount > 0;
+  const allColors = colorCount === selectedEntries.length && selectedEntries.length > 0;
 
-  const allScalable = useMemo(() =>
-    selectedEntries.length > 0 &&
-    selectedEntries.every(x => x.entry.$type === 'dimension' || x.entry.$type === 'number'),
+  const scalableCount = useMemo(() =>
+    selectedEntries.filter(x => x.entry.$type === 'dimension' || x.entry.$type === 'number').length,
     [selectedEntries]
   );
+  const hasScalable = scalableCount > 0;
+  const allScalable = scalableCount === selectedEntries.length && selectedEntries.length > 0;
 
   // Compute available Figma scopes based on the types of selected tokens.
   // If all selected tokens share one type that has scopes, show those scopes.
@@ -132,12 +135,13 @@ export function BatchEditor({
   // Collect scalable tokens whose values contain alias references (e.g. {spacing.base}).
   // scaleValue() returns null for these, so they are skipped during scaling.
   const skippedAliasTokens = useMemo(() => {
-    if (!allScalable) return [];
+    if (!hasScalable) return [];
     return selectedEntries.filter(({ entry }) => {
+      if (entry.$type !== 'dimension' && entry.$type !== 'number') return false;
       const v = entry.$value;
       return typeof v === 'string' && v.includes('{');
     });
-  }, [allScalable, selectedEntries]);
+  }, [hasScalable, selectedEntries]);
 
   const scaleAliasCount = skippedAliasTokens.length;
 
@@ -205,23 +209,24 @@ export function BatchEditor({
 
   // Dry-run: compute scaled values for preview
   const scalePreview = useMemo(() => {
-    if (!allScalable || !scaleFactor) return null;
+    if (!hasScalable || !scaleFactor) return null;
     const factor = parseFloat(scaleFactor);
     if (isNaN(factor) || factor <= 0) return null;
     return selectedEntries
+      .filter(({ entry }) => entry.$type === 'dimension' || entry.$type === 'number')
       .map(({ path, entry }) => {
         const scaled = scaleValue(entry.$value, factor);
         if (scaled === null) return null;
         return { path, from: entry.$value, to: scaled };
       })
       .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
-  }, [allScalable, scaleFactor, selectedEntries]);
+  }, [hasScalable, scaleFactor, selectedEntries]);
 
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
     batchScopes.length > 0 ||
-    (allColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
-    (allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
+    (hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
+    (hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
 
   const canMove = targetSet !== '' && !moving;
 
@@ -289,6 +294,10 @@ export function BatchEditor({
 
     type Op = { path: string; patch: Record<string, unknown>; oldEntry: TokenMapEntry };
     const ops: Op[] = [];
+    let skippedTypeIncompat = 0;
+
+    const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
+    const scalingActive = hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
 
     for (const { path, entry } of selectedEntries) {
       const patch: Record<string, unknown> = {};
@@ -305,25 +314,35 @@ export function BatchEditor({
         patch.$type = newType;
       }
 
-      if (allColors && opacityPct !== '') {
-        const pct = parseFloat(opacityPct);
-        if (!isNaN(pct)) {
-          const newColor = applyColorOpacity(entry.$value, pct);
-          if (newColor !== null) {
-            patch.$value = newColor;
-            patch.$type = entry.$type;
+      if (opacityActive) {
+        if (entry.$type === 'color') {
+          const pct = parseFloat(opacityPct);
+          if (!isNaN(pct)) {
+            const newColor = applyColorOpacity(entry.$value, pct);
+            if (newColor !== null) {
+              patch.$value = newColor;
+              patch.$type = entry.$type;
+            }
           }
+        } else if (!description.trim() && newType === '' && batchScopes.length === 0 && !scalingActive) {
+          // Only count as skipped if opacity is the sole value-changing operation for this token
+          skippedTypeIncompat++;
         }
       }
 
-      if (allScalable && scaleFactor !== '') {
-        const factor = parseFloat(scaleFactor);
-        if (!isNaN(factor) && factor > 0) {
-          const scaled = scaleValue(entry.$value, factor);
-          if (scaled !== null) {
-            patch.$value = scaled;
-            patch.$type = entry.$type;
+      if (scalingActive) {
+        if (entry.$type === 'dimension' || entry.$type === 'number') {
+          const factor = parseFloat(scaleFactor);
+          if (!isNaN(factor) && factor > 0) {
+            const scaled = scaleValue(entry.$value, factor);
+            if (scaled !== null) {
+              patch.$value = scaled;
+              patch.$type = entry.$type;
+            }
           }
+        } else if (!description.trim() && newType === '' && batchScopes.length === 0 && !opacityActive) {
+          // Only count as skipped if scaling is the sole value-changing operation for this token
+          skippedTypeIncompat++;
         }
       }
 
@@ -333,9 +352,12 @@ export function BatchEditor({
     }
 
     if (ops.length === 0) {
-      const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
-      if (scalingActive && scaleAliasCount === selectedEntries.length) {
+      if (scalingActive && scaleAliasCount === scalableCount) {
         setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use reference values' });
+      } else if (opacityActive && !hasColors) {
+        setFeedback({ ok: false, msg: 'No color tokens in selection — cannot apply opacity' });
+      } else if (scalingActive && !hasScalable) {
+        setFeedback({ ok: false, msg: 'No numeric tokens in selection — cannot scale' });
       }
       return;
     }
@@ -366,12 +388,19 @@ export function BatchEditor({
       }
       onApply();
 
-      const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       const skippedAliases = scalingActive ? scaleAliasCount : 0;
-      const skipNote = skippedAliases > 0
-        ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+      const totalSkipped = skippedAliases + skippedTypeIncompat;
+      const skipParts: string[] = [];
+      if (skippedAliases > 0) {
+        skipParts.push(`${skippedAliases} reference value${skippedAliases === 1 ? '' : 's'}`);
+      }
+      if (skippedTypeIncompat > 0) {
+        skipParts.push(`${skippedTypeIncompat} incompatible type${skippedTypeIncompat === 1 ? '' : 's'}`);
+      }
+      const skipNote = totalSkipped > 0
+        ? ` (${skipParts.join(', ')} skipped)`
         : '';
-      setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}${skipNote}` });
+      setFeedback({ ok: totalSkipped === 0, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}${skipNote}` });
       setDescription('');
       setOpacityPct('');
       setScaleFactor('');
@@ -552,47 +581,54 @@ export function BatchEditor({
         </div>
       )}
 
-      {/* Opacity — only when all selected tokens are colors */}
-      {allColors && (
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Opacity %</span>
-          <input
-            type="range"
-            aria-label="Opacity"
-            min="0"
-            max="100"
-            step="1"
-            value={opacityPct === '' ? 0 : Math.min(100, Math.max(0, Math.round(parseFloat(opacityPct) || 0)))}
-            onChange={e => setOpacityPct(e.target.value)}
-            className="flex-1 accent-[var(--color-figma-accent)]"
-          />
-          <input
-            type="number"
-            aria-label="Opacity value"
-            min="0"
-            max="100"
-            value={opacityPct}
-            onChange={e => setOpacityPct(e.target.value)}
-            onBlur={e => {
-              if (e.target.value === '') return;
-              const n = parseFloat(e.target.value);
-              if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
-            }}
-            placeholder="—"
-            className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none text-right ${
-              opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
-                ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
-                : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
-            }`}
-          />
-          {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
-            <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
+      {/* Opacity — when any selected token is a color */}
+      {hasColors && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Opacity %</span>
+            <input
+              type="range"
+              aria-label="Opacity"
+              min="0"
+              max="100"
+              step="1"
+              value={opacityPct === '' ? 0 : Math.min(100, Math.max(0, Math.round(parseFloat(opacityPct) || 0)))}
+              onChange={e => setOpacityPct(e.target.value)}
+              className="flex-1 accent-[var(--color-figma-accent)]"
+            />
+            <input
+              type="number"
+              aria-label="Opacity value"
+              min="0"
+              max="100"
+              value={opacityPct}
+              onChange={e => setOpacityPct(e.target.value)}
+              onBlur={e => {
+                if (e.target.value === '') return;
+                const n = parseFloat(e.target.value);
+                if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
+              }}
+              placeholder="—"
+              className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none text-right ${
+                opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
+                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+              }`}
+            />
+            {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
+              <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
+            )}
+          </div>
+          {!allColors && (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
+            </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* Scale — only when all selected tokens are dimension or number */}
-      {allScalable && (
+      {/* Scale — when any selected token is dimension or number */}
+      {hasScalable && (
         <>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Multiply by</span>
@@ -622,8 +658,8 @@ export function BatchEditor({
           {scaleAliasCount > 0 && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0 && (
             <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
               <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
-                {scaleAliasCount === selectedEntries.length
-                  ? 'All selected tokens use reference values and cannot be scaled:'
+                {scaleAliasCount === scalableCount
+                  ? 'All scalable tokens use reference values and cannot be scaled:'
                   : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be scaled):`}
               </span>
               {skippedAliasTokens.slice(0, PREVIEW_MAX).map(({ path, entry }) => (
@@ -650,6 +686,11 @@ export function BatchEditor({
               {scalePreview.length > PREVIEW_MAX && (
                 <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {scalePreview.length - PREVIEW_MAX} more…</div>
               )}
+            </div>
+          )}
+          {!allScalable && (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Applies to {scalableCount} numeric token{scalableCount === 1 ? '' : 's'} — {selectedEntries.length - scalableCount} non-numeric skipped
             </div>
           )}
         </>
@@ -742,7 +783,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${allColors ? ', or opacity' : allScalable ? ', or scale factor' : ''} to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${hasColors ? ', or opacity' : hasScalable ? ', or scale factor' : ''} to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">

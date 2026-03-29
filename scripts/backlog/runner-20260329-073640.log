@@ -226,3 +226,10 @@ Already up to date.
   → BatchEditor shows no indication of which tokens were skipped for type-incompatible operations — when applying opacity scaling or numeric transforms to a mixed selection containing non-numeric types, incompatible tokens are silently skipped; the success toast only shows "N tokens updated" with no mention of skipped tokens; add a secondary count "M tokens skipped (incompatible type)" to the result toast so users know their selection wasn't fully applied (BatchEditor.tsx ~L82-89)
   Worktree: /tmp/backlog-67173-IAIhtU
   Running agent… (started 08:09:58)
+
+  ✓ done: BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
+    Opacity/scale controls now appear for mixed-type selections; incompatible tokens are skipped with count shown in toast ("N incompatible types skipped") and inline hint below controls showing how many tokens will be affected vs skipped.
+    36 turns · 234s · $1.43
+
+  Merging to main: BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
+Already up to date.
