@@ -334,3 +334,14 @@
   - The existing `valuePlaceholderForType` already puts short hints in the input placeholder; the new format hints complement rather than replace those
   - Showing hints only when value is empty (`!newTokenValue.trim()`) keeps the form clean once the user starts entering data
 ---
+
+## 2026-03-29 - Token creation form doesn't remember last-used group
+- Persisted last-used group to localStorage (`tm_last_create_group`) on every successful token creation
+- When reopening the create form with an empty group, restores the last-used group from localStorage
+- After "Save & New" (⇧↵), triggers name auto-suggestion based on updated siblings (uses `pendingAutoSuggestRef` that fires when `siblingOrderMap` updates after refresh)
+- Renamed raw state setter to `setShowCreateFormRaw` and wrapped `setShowCreateForm` to inject localStorage restore logic on open
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L47-64 (state + wrapper), ~L186-200 (auto-suggest effect), ~L211 (resetCreateForm), ~L247-257 (persist + pending flag)
+- **Learnings for future iterations:**
+  - The `useCallback` wrapper for `setShowCreateForm` captures `showCreateForm` and `newTokenGroup` — be careful with stale closures; the wrapper only runs restore logic when transitioning from closed→open
+  - Using a ref (`pendingAutoSuggestRef`) to bridge async create→refresh→effect is cleaner than adding a state variable that would cause an extra render cycle
+---

@@ -44,9 +44,25 @@ export function useTokenCreate({
   onTokenCreated,
   onRecordTouch,
 }: UseTokenCreateParams) {
-  const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
+  const [showCreateForm, setShowCreateFormRaw] = useState(defaultCreateOpen ?? false);
   const [newTokenGroup, setNewTokenGroup] = useState('');
   const [newTokenName, setNewTokenName] = useState('');
+  const pendingAutoSuggestRef = useRef(false);
+
+  // Wrapper: when opening the create form fresh, restore last-used group
+  const setShowCreateForm = useCallback((open: boolean) => {
+    if (open && !showCreateForm) {
+      // Reopening — restore last-used group if current group is empty
+      if (!newTokenGroup) {
+        try {
+          const lastGroup = localStorage.getItem('tm_last_create_group') || '';
+          if (lastGroup) setNewTokenGroup(lastGroup);
+        } catch (e) { console.debug('[useTokenCreate] storage read failed:', e); }
+      }
+    }
+    setShowCreateFormRaw(open);
+  }, [showCreateForm, newTokenGroup]);
+
   const [newTokenType, setNewTokenTypeState] = useState(() => {
     try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch (e) { console.debug('[useTokenCreate] storage read failed:', e); return 'color'; }
   });
@@ -165,6 +181,24 @@ export function useTokenCreate({
     setShowCreateForm(true);
   }, [onCreateNew, siblingOrderMap, selectedNodes]);
 
+  // After Save & New, auto-fill name suggestion once siblings update
+  useEffect(() => {
+    if (!pendingAutoSuggestRef.current || !showCreateForm) return;
+    const groupPath = newTokenGroup.trim();
+    const siblings = siblingOrderMap.get(groupPath) ?? [];
+    const layerName = selectedNodes.length === 1 ? selectedNodes[0].name : null;
+    const suggestions = generateNameSuggestions(newTokenType, '', groupPath, siblings, layerName);
+    if (suggestions.length > 0) {
+      const first = suggestions[0];
+      const leafName = first.value.includes('.') ? first.value.slice(first.value.lastIndexOf('.') + 1) : first.value;
+      if (!first.value.endsWith('.') && leafName.length > 0) {
+        setNewTokenName(leafName);
+        setNameIsAutoSuggested(true);
+      }
+    }
+    pendingAutoSuggestRef.current = false;
+  }, [siblingOrderMap, showCreateForm, newTokenGroup, newTokenType, selectedNodes]);
+
   // Smart name suggestions for inline create form
   const nameSuggestions = useMemo(() => {
     if (!showCreateForm) return [];
@@ -175,13 +209,14 @@ export function useTokenCreate({
   }, [showCreateForm, newTokenGroup, siblingOrderMap, selectedNodes, newTokenType, newTokenValue]);
 
   const resetCreateForm = useCallback(() => {
-    setShowCreateForm(false);
+    setShowCreateFormRaw(false);
     setNewTokenGroup('');
     setNewTokenName('');
     setNewTokenValue('');
     setNewTokenDescription('');
     setCreateError('');
     setGroupDropdownOpen(false);
+    pendingAutoSuggestRef.current = false;
   }, []);
 
   const doCreate = useCallback(async (keepOpen: boolean) => {
@@ -209,6 +244,8 @@ export function useTokenCreate({
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
       const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
+      // Persist last-used group so reopening the form defaults to it
+      try { localStorage.setItem('tm_last_create_group', newTokenGroup.trim()); } catch (e) { console.debug('[useTokenCreate] storage write failed:', e); }
       if (keepOpen) {
         // Keep group, clear name for next token in same group
         setNewTokenName('');
@@ -216,6 +253,8 @@ export function useTokenCreate({
         setNewTokenDescription('');
         setTypeAutoInferred(false);
         setCreateError('');
+        // Trigger name auto-suggestion after refresh updates siblings
+        pendingAutoSuggestRef.current = true;
       } else {
         setShowCreateForm(false);
         setNewTokenGroup('');
