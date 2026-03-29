@@ -366,3 +366,11 @@
   - Absolutely positioned children do NOT extend the scroll height of an overflow-auto ancestor — they can be visually clipped. Always ensure minHeight accounts for elements positioned near the bottom.
   - Toggle pattern: `onClick={() => setState(v => !v)}` + conditional label is cleaner than separate expand/collapse handlers.
 ---
+
+## 2026-03-29 - OpIcon in RecentActionsSource renders every operation as a dot
+- Replaced bare-string switch cases (`'create'`, `'delete'`, etc.) with `includes`/prefix checks to match actual server type strings like `'token-create'`, `'group-rename'`, `'bulk-rename'`, `'generator-run'`, etc. Also added dedicated icons for `bulk-*` (three horizontal lines) and `generator-*`/`run` (play triangle) types that were previously unrepresented.
+- Files changed: `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L27-44
+- **Learnings for future iterations:**
+  - Server operation types are compound strings like `'token-create'`, `'group-rename'`, `'bulk-delete'` — `includes()` matching is more robust than exact-string switch cases for icon dispatch.
+  - When adding new operation categories, check `packages/server/src/routes/` for the full list of `type:` strings used in `logOperation` calls.
+---
