@@ -333,3 +333,11 @@
   - When a commit introduces both a valid feature AND a build-breaking structural error (misplaced JSX inside a map callback), fix the structural issue as collateral — don't let pre-existing build failures block otherwise-correct implementations.
   - Section accordion pattern: `openSections: Set<string>` + `toggleSection(id)` + a local `Section({ title, open, onToggle, badge, children })` component is the right pattern for collapsible panel groups in this plugin.
 ---
+
+## 2026-03-29 - ExtractTokensPanel has no timeout for plugin response
+- Added `EXTRACT_TIMEOUT_MS = 8000` constant and a `setTimeout` in the request effect. On timeout, `setLoading(false)` and `setError(...)` are called. Also added a new `!loading && tokens === null && error` UI state block that shows the error message and a Close button, so the panel is never stuck in an indefinite loading spinner.
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L56-86
+- **Learnings for future iterations:**
+  - The backlog item referenced "HeatmapPanel's SCAN_TIMEOUT_MS" as a style reference but that constant doesn't actually exist in HeatmapPanel — it was pointing to the general pattern of using a setTimeout in the request effect, not a literal import.
+  - The error state needs its own UI branch (not just the existing error div inside the token list section) because `tokens === null` means none of the token-list conditional sections render.
+---

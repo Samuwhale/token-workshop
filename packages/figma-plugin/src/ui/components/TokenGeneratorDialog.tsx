@@ -602,14 +602,11 @@ export function TokenGeneratorDialog({
               <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
             )}
 
-            {selectedType === 'contrastCheck' && (
-              <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
-                <ContrastCheckPreview tokens={previewTokens} config={currentConfig as ContrastCheckConfig} />
-              </div>
-            )}
-
-            {selectedType !== 'contrastCheck' && !previewError && previewTokens.length > 0 && (
+            {!previewError && previewTokens.length > 0 && (
               <div className={`border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)] transition-opacity duration-150 ${previewLoading ? 'opacity-40' : 'opacity-100'}`}>
+                {selectedType === 'contrastCheck' && (
+                  <ContrastCheckPreview tokens={previewTokens} config={currentConfig as ContrastCheckConfig} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
+                )}
                 {selectedType === 'colorRamp' && (
                   <ColorSwatchPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
@@ -628,6 +625,12 @@ export function TokenGeneratorDialog({
                 {(selectedType === 'zIndexScale' || selectedType === 'customScale') && (
                   <GenericPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
+              </div>
+            )}
+
+            {selectedType === 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && (
+              <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
+                <ContrastCheckPreview tokens={[]} config={currentConfig as ContrastCheckConfig} />
               </div>
             )}
 

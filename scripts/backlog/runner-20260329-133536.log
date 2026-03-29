@@ -346,3 +346,10 @@ Already up to date.
   → ContrastCheckGenerator is the only generator without per-step override support — every other generator preview (SpacingPreview, TypeScalePreview, OpacityPreview, BorderRadiusPreview) accepts overrides/onOverrideChange/onOverrideClear props and lets users pin individual step values; ContrastCheckPreview has no such parameters and is read-only; add override support to match the pattern (packages/figma-plugin/src/ui/components/generators/ContrastCheckGenerator.tsx:26)
   Worktree: /tmp/backlog-46928-vqOp9L
   Running agent… (started 14:21:34)
+
+  ✓ done: ContrastCheckGenerator is the only generator without per-step override support
+    Added override props to ContrastCheckPreview using OverrideRow; moved into main override-enabled block in TokenGeneratorDialog
+    16 turns · 141s · $0.43
+
+  Merging to main: ContrastCheckGenerator is the only generator without per-step override support
+Already up to date.

@@ -324,3 +324,19 @@ Already up to date.
 
   Merging to main: Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button
 Already up to date.
+[main 87ff45c4] chore(backlog): done – Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button
+ 7 files changed, 1594 insertions(+), 87 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 945 done — pass skipped (runner PID 48303 already running one)
+
+## 2026-03-29 - Import failed tokens have no recovery action
+- Added "Copy paths" and "Retry failed" buttons to the import failure section in `ImportPanel.tsx`. Added `failedImportBatches` state to preserve failed token data (not just paths) so retries can re-submit the exact batch payloads. "Retry failed" re-submits failed batches with the same strategy (overwrite/skip) and updates counts on success; any still-failing batches remain listed. "Copy paths" copies all failed paths to clipboard with 2-second feedback ("✓ Copied"). Also fixed a pre-existing build failure in `PublishPanel.tsx` (`acab42fa` had inserted variable diff content inside `SUB_TABS.map()` tab button code, leaving `<Section>` components undefined and mismatched JSX tags): added `openSections`/`toggleSection` state, defined a local `Section` accordion component, restructured the Figma Variables section as a proper inline Section (matching the Styles section pattern), fixed the Git section's broken "Initialize Repository" button, and wrapped all three Sections in a scroll div.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L164-169 (new state), ~L644 (batch tracking in import loop), ~L693-700 (track failed batches), ~L709 (save failed batches), ~L860-920 (handleRetryFailed + handleCopyFailedPaths), ~L1182-1250 (UI buttons); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L68-76 (openSections state), ~L432-580 (Variables Section fix), ~L788-808 (Git Section fix), ~L1716-1743 (Section component)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  4 queued · 2 in-progress · last took 14m2s
+═══════════════════════════════════════════════════════════════
+  → Generator config validation skips formula syntax and step name uniqueness — customScale accepts any formula string with no parse-time check, so syntax errors only surface during execution; all multi-step generators (typeScale, spacingScale, opacityScale, borderRadiusScale, zIndexScale, customScale) allow duplicate step names, making override application ambiguous when two steps share a name (packages/server/src/routes/generators.ts:86-197)
+  Worktree: /tmp/backlog-48983-nFg7v9
+  Running agent… (started 14:23:21)

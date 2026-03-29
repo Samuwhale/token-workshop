@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { ContrastCheckConfig, ContrastCheckStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { wcagContrast } from '../../shared/colorUtils';
+import { OverrideRow } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -23,7 +24,14 @@ const WCAG_AAA_NORMAL = 7;
 // Preview
 // ---------------------------------------------------------------------------
 
-export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult[]; config?: ContrastCheckConfig }) {
+export function ContrastCheckPreview({ tokens, config, overrides = {}, onOverrideChange, onOverrideClear, overwritePaths }: {
+  tokens: GeneratedTokenResult[];
+  config?: ContrastCheckConfig;
+  overrides?: Record<string, { value: unknown; locked: boolean }>;
+  onOverrideChange?: (stepName: string, value: string, locked: boolean) => void;
+  onOverrideClear?: (stepName: string) => void;
+  overwritePaths?: Set<string>;
+}) {
   const hexByName: Record<string, string> = {};
   if (config) {
     for (const s of config.steps) hexByName[s.name] = s.hex;
@@ -41,6 +49,8 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
   const failThreshold = enforcedLevels.includes('AAA') ? WCAG_AAA_NORMAL : WCAG_AA_NORMAL;
   const strictestLabel = enforcedLevels.includes('AAA') ? 'AAA' : 'AA';
   const failCount = tokens.filter(t => (t.value as number) < failThreshold).length;
+
+  const noop = () => {};
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -67,15 +77,20 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
         const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
         const passAAA = ratio !== null && ratio >= WCAG_AAA_NORMAL;
         const hex = hexByName[t.stepName];
-        const rowFails = ratio === null || ratio < failThreshold;
         return (
-          <div key={t.stepName} className={`flex items-center gap-2 px-1 py-0.5 rounded ${rowFails ? 'bg-amber-500/5' : ''}`}>
+          <OverrideRow
+            key={t.stepName}
+            token={t}
+            override={overrides[t.stepName]}
+            onOverrideChange={onOverrideChange ?? noop}
+            onOverrideClear={onOverrideClear ?? noop}
+            isOverwrite={overwritePaths?.has(t.path)}
+          >
             {hex ? (
               <span className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
             ) : (
               <span className="w-4 h-4 shrink-0" />
             )}
-            <span className="w-10 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
             <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)]">
               {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
             </span>
@@ -89,7 +104,7 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
                 AAA
               </span>
             )}
-          </div>
+          </OverrideRow>
         );
       })}
     </div>
