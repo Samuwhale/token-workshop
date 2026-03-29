@@ -315,3 +315,11 @@
   - When a catch block restores the "pending" state instead of surfacing an error, the UI appears perpetually stuck — never restore pending state without also showing an error message.
   - The `syncGroupStylesError` state already existed and was wired to toast — the bug was simply that the catch block never set it; always check whether an error state exists before adding a new one.
 ---
+
+## 2026-03-29 - ExtractTokensPanel has no timeout for plugin response
+- Added `EXTRACT_TIMEOUT_MS = 8000` constant and a `setTimeout` in the request effect. On timeout, `setLoading(false)` and `setError(...)` are called. Also added a new `!loading && tokens === null && error` UI state block that shows the error message and a Close button, so the panel is never stuck in an indefinite loading spinner.
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L56-86
+- **Learnings for future iterations:**
+  - The backlog item referenced "HeatmapPanel's SCAN_TIMEOUT_MS" as a style reference but that constant doesn't actually exist in HeatmapPanel — it was pointing to the general pattern of using a setTimeout in the request effect, not a literal import.
+  - The error state needs its own UI branch (not just the existing error div inside the token list section) because `tokens === null` means none of the token-list conditional sections render.
+---

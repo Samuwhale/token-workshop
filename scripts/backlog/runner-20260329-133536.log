@@ -309,3 +309,25 @@ Already up to date.
 
   Merging to main: useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently
 Already up to date.
+[main 4e917eb3] chore(backlog): done – useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently
+ 6 files changed, 42 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - useFigmaSync handleSyncGroup and handleSyncGroupStyles fail silently
+- Added `syncGroupError` state to `useFigmaSync`. In `handleSyncGroup` catch, replaced `setSyncGroupPending(saved)` with `setSyncGroupError(getErrorMessage(...))`. In `handleSyncGroupStyles` catch, replaced `setSyncGroupStylesPending(saved)` with `setSyncGroupStylesError(getErrorMessage(...))` — the styles error was already wired to `setErrorToast` in App.tsx. Added `syncGroupError` to hook return value and wired it to `setErrorToast` in App.tsx via a new `useEffect`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L30,53,83,136; `packages/figma-plugin/src/ui/App.tsx` ~L443,449
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  6 queued · 2 in-progress · last took 1m30s
+═══════════════════════════════════════════════════════════════
+  → ExtractTokensPanel has no timeout for plugin response — on mount it sends 'extract-tokens-from-selection' and sets loading=true, but if the plugin never responds (wrong selection, plugin crash, no context) the panel stays in a loading spinner indefinitely with no recovery path; add a timeout like HeatmapPanel's SCAN_TIMEOUT_MS (packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx:56-86)
+  Worktree: /tmp/backlog-46928-IS8atf
+  Running agent… (started 14:20:13)
+
+  ✓ done: ExtractTokensPanel has no timeout for plugin response
+    Added 8s timeout to the extract-tokens-from-selection request effect; on expiry clears loading and shows an actionable error with a Close button
+    13 turns · 75s · $0.3
+
+  Merging to main: ExtractTokensPanel has no timeout for plugin response
+Already up to date.

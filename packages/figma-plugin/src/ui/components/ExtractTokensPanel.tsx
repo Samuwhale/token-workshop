@@ -53,10 +53,19 @@ export function ExtractTokensPanel({
   const [done, setDone] = useState(false);
   const listenerRef = useRef(false);
 
-  // Request extraction on mount
+  const EXTRACT_TIMEOUT_MS = 8000;
+
+  // Request extraction on mount; cancel loading after timeout if no response
   useEffect(() => {
     setLoading(true);
     parent.postMessage({ pluginMessage: { type: 'extract-tokens-from-selection' } }, '*');
+
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setError('No response from Figma — make sure a layer is selected and try again.');
+    }, EXTRACT_TIMEOUT_MS);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Listen for extraction results
@@ -70,6 +79,7 @@ export function ExtractTokensPanel({
         const extracted = msg.tokens as ExtractedTokenEntry[];
         setTokens(extracted);
         setLoading(false);
+        setError('');
         // Select all by default
         setSelected(new Set(extracted.map((_, i) => i)));
         // Init names
@@ -194,6 +204,14 @@ export function ExtractTokensPanel({
       {loading && (
         <div className="px-3 py-6 text-center">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Reading selection...</span>
+        </div>
+      )}
+
+      {/* Timeout / error state (no response from plugin) */}
+      {!loading && tokens === null && error && (
+        <div className="px-3 py-6 text-center">
+          <p className="text-[10px] text-[var(--color-figma-error)] mb-2">{error}</p>
+          <button onClick={onClose} className="text-[10px] text-[var(--color-figma-accent)] hover:underline">Close</button>
         </div>
       )}
 
