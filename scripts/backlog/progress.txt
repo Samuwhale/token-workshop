@@ -429,3 +429,13 @@
   - `SemanticMapping.type` in GraphPanel was typed as `'color' | 'dimension' | 'number'` — needed to extend to include `'shadow'` for the new template's semantic aliases.
   - Standalone generators (no source token) must NOT appear in `VALUE_REQUIRED_TYPES` or the server's `needsSource` check — they should just be omitted (absence = standalone).
 ---
+
+## 2026-03-29 - Find-replace scoped to active set only
+- Added "Search scope: Active set / All sets" toggle to the Find & Replace modal. In "All sets" mode, preview groups renames by set name and execution calls the bulk-rename API once per set. Undo for all-sets mode pushes a single undo slot that reverses the rename across all affected sets.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` (full rewrite with `frScope`, `allSets`, `perSetFlat` params), `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L68 (props), ~L244 (destructure), ~L575 (scope toggle UI), ~L615 (preview render), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L880 (useFindReplace call), ~L4192 (props)
+- **Learnings for future iterations:**
+  - `frPreview` items now include `setName: string` always (not just in all-sets mode) — this is needed so the modal can reference which set each rename belongs to without branching.
+  - Per-set conflict detection is correct: a token path in set A that would collide in set A is a conflict, but the same path existing in set B is irrelevant to set A's rename.
+  - For all-sets preview, use `perSetFlat` (already loaded) rather than fetching each set — avoids N extra API calls on every keystroke.
+  - IIFE pattern (`{frPreview.length > 0 && (() => { ... })()}`) is useful in JSX when you need local variables and branching logic before rendering preview items.
+---

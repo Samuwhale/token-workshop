@@ -70,15 +70,17 @@ export interface TokenListModalsProps {
   frFind: string;
   frReplace: string;
   frIsRegex: boolean;
+  frScope: 'active' | 'all';
   frError: string;
   frBusy: boolean;
   frRegexError: string | null;
-  frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean }>;
+  frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean; setName: string }>;
   frConflictCount: number;
   frRenameCount: number;
   onSetFrFind: (v: string) => void;
   onSetFrReplace: (v: string) => void;
   onSetFrIsRegex: (v: boolean) => void;
+  onSetFrScope: (v: 'active' | 'all') => void;
   onSetFrError: (v: string) => void;
   onSetShowFindReplace: (v: boolean) => void;
   handleFindReplace: () => void;
@@ -243,6 +245,7 @@ export function TokenListModals(props: TokenListModalsProps) {
     frFind,
     frReplace,
     frIsRegex,
+    frScope,
     frError,
     frBusy,
     frRegexError,
@@ -252,6 +255,7 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetFrFind,
     onSetFrReplace,
     onSetFrIsRegex,
+    onSetFrScope,
     onSetFrError,
     onSetShowFindReplace,
     handleFindReplace,
@@ -553,7 +557,28 @@ export function TokenListModals(props: TokenListModalsProps) {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '80vh' }}>
             <div className="p-4 border-b border-[var(--color-figma-border)]">
               <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Find &amp; Replace Token Names</div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Replace path segments across all tokens in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                {frScope === 'active'
+                  ? <>Replace path segments across all tokens in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></>
+                  : <>Replace path segments across <span className="font-medium text-[var(--color-figma-text)]">all sets</span></>
+                }
+              </div>
+              {/* Scope toggle */}
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scope:</span>
+                <button
+                  onClick={() => { onSetFrScope('active'); onSetFrError(''); }}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${frScope === 'active' ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  Active set
+                </button>
+                <button
+                  onClick={() => { onSetFrScope('all'); onSetFrError(''); }}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${frScope === 'all' ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  All sets
+                </button>
+              </div>
             </div>
             <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
               <div className="flex flex-col gap-1">
@@ -592,50 +617,84 @@ export function TokenListModals(props: TokenListModalsProps) {
                 <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
               )}
               {frFind && !frRegexError && frPreview.length === 0 && (
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match.</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match{frScope === 'all' ? ' in any set' : ''}.</div>
               )}
-              {frPreview.length > 0 && (
-                <div className="flex flex-col gap-0.5">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-                    {frRenameCount} token{frRenameCount !== 1 ? 's' : ''} will be renamed{frConflictCount > 0 && (
-                      <span className="text-amber-600"> — {frConflictCount} skipped (conflict{frConflictCount !== 1 ? 's' : ''})</span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
-                    {frPreview.map(({ oldPath, newPath, conflict }) => {
-                      // Locate the matched segment in oldPath for highlighting
-                      let matchStart = -1, matchLen = 0;
-                      if (frIsRegex) {
-                        try {
-                          const m = new RegExp(frFind).exec(oldPath);
-                          if (m) { matchStart = m.index; matchLen = m[0].length; }
-                        } catch (e) { console.debug('[TokenListModals] regex compilation failed:', e); }
-                      } else {
-                        const idx = oldPath.indexOf(frFind);
-                        if (idx >= 0) { matchStart = idx; matchLen = frFind.length; }
-                      }
-                      const hi = matchStart >= 0;
-                      // For non-regex, also locate frReplace in newPath for green highlight
-                      const newIdx = (!frIsRegex && hi && frReplace !== '') ? newPath.indexOf(frReplace, matchStart) : -1;
-                      return (
-                        <div key={oldPath} className={`text-[10px] font-mono rounded px-2 py-1 ${conflict ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                          <div className="truncate text-[var(--color-figma-text-secondary)] line-through">
-                            {hi
-                              ? <>{oldPath.slice(0, matchStart)}<span className="bg-red-100/80 rounded-sm">{oldPath.slice(matchStart, matchStart + matchLen)}</span>{oldPath.slice(matchStart + matchLen)}</>
-                              : oldPath}
+              {frPreview.length > 0 && (() => {
+                const renderRenameItem = (oldPath: string, newPath: string, conflict: boolean, key: string) => {
+                  let matchStart = -1, matchLen = 0;
+                  if (frIsRegex) {
+                    try {
+                      const m = new RegExp(frFind).exec(oldPath);
+                      if (m) { matchStart = m.index; matchLen = m[0].length; }
+                    } catch (e) { console.debug('[TokenListModals] regex compilation failed:', e); }
+                  } else {
+                    const idx = oldPath.indexOf(frFind);
+                    if (idx >= 0) { matchStart = idx; matchLen = frFind.length; }
+                  }
+                  const hi = matchStart >= 0;
+                  const newIdx = (!frIsRegex && hi && frReplace !== '') ? newPath.indexOf(frReplace, matchStart) : -1;
+                  return (
+                    <div key={key} className={`text-[10px] font-mono rounded px-2 py-1 ${conflict ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+                      <div className="truncate text-[var(--color-figma-text-secondary)] line-through">
+                        {hi
+                          ? <>{oldPath.slice(0, matchStart)}<span className="bg-red-100/80 rounded-sm">{oldPath.slice(matchStart, matchStart + matchLen)}</span>{oldPath.slice(matchStart + matchLen)}</>
+                          : oldPath}
+                      </div>
+                      <div className="truncate text-[var(--color-figma-text)]">
+                        {newIdx >= 0
+                          ? <>{newPath.slice(0, newIdx)}<span className="bg-green-100/80 rounded-sm">{frReplace}</span>{newPath.slice(newIdx + frReplace.length)}</>
+                          : newPath}
+                      </div>
+                      {conflict && <div className="text-[10px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
+                    </div>
+                  );
+                };
+
+                if (frScope === 'active') {
+                  return (
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+                        {frRenameCount} token{frRenameCount !== 1 ? 's' : ''} will be renamed{frConflictCount > 0 && (
+                          <span className="text-amber-600"> — {frConflictCount} skipped (conflict{frConflictCount !== 1 ? 's' : ''})</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
+                        {frPreview.map(({ oldPath, newPath, conflict }) => renderRenameItem(oldPath, newPath, conflict, oldPath))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // All sets mode: group by setName
+                const setNames = [...new Set(frPreview.map(r => r.setName))];
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+                      {frRenameCount} token{frRenameCount !== 1 ? 's' : ''} across {setNames.length} set{setNames.length !== 1 ? 's' : ''} will be renamed{frConflictCount > 0 && (
+                        <span className="text-amber-600"> — {frConflictCount} skipped (conflict{frConflictCount !== 1 ? 's' : ''})</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '240px' }}>
+                      {setNames.map(sn => {
+                        const setRenames = frPreview.filter(r => r.setName === sn);
+                        const setRenameCount = setRenames.filter(r => !r.conflict).length;
+                        const setConflictCount = setRenames.filter(r => r.conflict).length;
+                        return (
+                          <div key={sn} className="flex flex-col gap-0.5">
+                            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] px-1 flex items-center gap-1">
+                              <span className="font-mono text-[var(--color-figma-text)]">{sn}</span>
+                              <span>— {setRenameCount} rename{setRenameCount !== 1 ? 's' : ''}{setConflictCount > 0 && <span className="text-amber-600">, {setConflictCount} skipped</span>}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {setRenames.map(({ oldPath, newPath, conflict }) => renderRenameItem(oldPath, newPath, conflict, `${sn}:${oldPath}`))}
+                            </div>
                           </div>
-                          <div className="truncate text-[var(--color-figma-text)]">
-                            {newIdx >= 0
-                              ? <>{newPath.slice(0, newIdx)}<span className="bg-green-100/80 rounded-sm">{frReplace}</span>{newPath.slice(newIdx + frReplace.length)}</>
-                              : newPath}
-                          </div>
-                          {conflict && <div className="text-[10px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {frBusy && (
                 <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)] py-1">

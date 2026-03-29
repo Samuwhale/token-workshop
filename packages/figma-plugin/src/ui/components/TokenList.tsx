@@ -882,13 +882,15 @@ export function TokenList({
     serverUrl,
     setName,
     tokens,
+    allSets: sets,
+    perSetFlat,
     onRefresh,
     onPushUndo,
   });
   const {
     showFindReplace, setShowFindReplace,
     frFind, setFrFind, frReplace, setFrReplace,
-    frIsRegex, setFrIsRegex, frError, setFrError, frBusy,
+    frIsRegex, setFrIsRegex, frScope, setFrScope, frError, setFrError, frBusy,
     frRegexError, frPreview, frConflictCount, frRenameCount, handleFindReplace, cancelFindReplace,
   } = findReplace;
 
@@ -4191,6 +4193,7 @@ export function TokenList({
         frFind={frFind}
         frReplace={frReplace}
         frIsRegex={frIsRegex}
+        frScope={frScope}
         frError={frError}
         frBusy={frBusy}
         frRegexError={frRegexError}
@@ -4200,6 +4203,7 @@ export function TokenList({
         onSetFrFind={setFrFind}
         onSetFrReplace={setFrReplace}
         onSetFrIsRegex={setFrIsRegex}
+        onSetFrScope={setFrScope}
         onSetFrError={setFrError}
         onSetShowFindReplace={setShowFindReplace}
         handleFindReplace={handleFindReplace}
