@@ -452,6 +452,25 @@ export function App() {
     return themeOnlyTokensFlat;
   }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
 
+  // Compute per-set theme status from active dimension options (enabled > source > disabled)
+  const setThemeStatusMap = useMemo((): Record<string, 'enabled' | 'source' | 'disabled'> => {
+    const result: Record<string, 'enabled' | 'source' | 'disabled'> = {};
+    if (dimensions.length === 0) return result;
+    for (const dim of dimensions) {
+      const activeOptionName = activeThemes[dim.id];
+      if (!activeOptionName) continue;
+      const option = dim.options.find(o => o.name === activeOptionName);
+      if (!option) continue;
+      for (const [setName, status] of Object.entries(option.sets)) {
+        const existing = result[setName];
+        if (!existing || status === 'enabled' || (status === 'source' && existing === 'disabled')) {
+          result[setName] = status as 'enabled' | 'source' | 'disabled';
+        }
+      }
+    }
+    return result;
+  }, [dimensions, activeThemes]);
+
   // Set tab management (drag, context menu, overflow, new-set form)
   const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
 
@@ -1173,13 +1192,28 @@ export function App() {
                     <button
                       onClick={() => setActiveSet(set)}
                       onContextMenu={e => openSetMenu(set, e)}
-                      title={setDescriptions[set] || set}
+                      title={
+                        setThemeStatusMap[set]
+                          ? `${setDescriptions[set] || set} (theme: ${setThemeStatusMap[set]})`
+                          : setDescriptions[set] || set
+                      }
                       className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
                         isActive
                           ? 'bg-[var(--color-figma-accent)] text-white font-medium'
                           : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                       }`}
                     >
+                      {setThemeStatusMap[set] && (
+                        <span
+                          className={`mr-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                            setThemeStatusMap[set] === 'enabled'
+                              ? isActive ? 'bg-green-300' : 'bg-green-500'
+                              : setThemeStatusMap[set] === 'source'
+                              ? isActive ? 'bg-sky-300' : 'bg-sky-500'
+                              : isActive ? 'bg-white/30' : 'bg-gray-400/50'
+                          }`}
+                        />
+                      )}
                       {set}
                       {setTokenCounts[set] !== undefined && (
                         <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>

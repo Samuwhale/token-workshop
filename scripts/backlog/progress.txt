@@ -379,3 +379,11 @@
   - `DarkModeInversionConfig` has `{ stepName, chromaBoost }` — no `steps` array, so `getTemplateStepCount` returns 0 for these templates; the badge shows `0+N` semantic aliases which is accurate.
   - Templates for non-ramp generators (darkModeInversion, accessibleColorPair) still work fine with `requiresSource: true` — the ApplyForm just prompts for the source token path and passes `config` verbatim to the generator POST.
 ---
+
+## 2026-03-29 - Set tabs theme status indicator
+- Added colored dot indicators on set tabs showing each set's status in the active theme context: green for `enabled`, blue for `source`, muted gray for `disabled`, no dot when no themes are active. Computed via a `setThemeStatusMap` useMemo that iterates active dimension options (priority: enabled > source > disabled for sets appearing in multiple dimensions). Dot color adjusts for the active-tab accent background (lighter tones). Tooltip on the button augmented to include `(theme: enabled/source/disabled)` when a theme status applies.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L454 (useMemo), ~L1202 (dot JSX)
+- **Learnings for future iterations:**
+  - `setThemeStatusMap` is now a ready-made per-set status lookup — any other UI that needs to know a set's role in active themes can use the same pattern.
+  - When a set appears in multiple active dimensions with different statuses, the priority order (enabled > source > disabled) ensures the most meaningful status wins.
+---
