@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
 import { apiFetch } from '../shared/apiFetch';
 import { PLATFORMS } from '../shared/platforms';
+import { useLintConfig } from '../hooks/useLintConfig';
+import { LintConfigPanel } from './LintConfigPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -163,6 +165,9 @@ export function SettingsPanel({
   clearing,
   onClose,
 }: SettingsPanelProps) {
+  // ---- Lint / Validation config ----
+  const { config: lintConfig, saving: lintSaving, updateRule: lintUpdateRule, resetToDefaults: lintResetDefaults } = useLintConfig(serverUrl, connected);
+
   // ---- UI Preferences (local state from localStorage) ----
   const [density, setDensity] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
@@ -616,6 +621,25 @@ export function SettingsPanel({
             )}
             {importError && (
               <p className="text-[10px] text-[var(--color-figma-error)]">{importError}</p>
+            )}
+          </Section>
+
+          {/* ---- Validation ---- */}
+          <Section title="Validation" defaultOpen={false}>
+            {!connected ? (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Connect to the local server to configure lint rules.
+              </p>
+            ) : !lintConfig ? (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] animate-pulse">Loading lint config…</p>
+            ) : (
+              <LintConfigPanel
+                config={lintConfig}
+                saving={lintSaving}
+                onUpdateRule={lintUpdateRule}
+                onReset={lintResetDefaults}
+                onLintRefresh={() => {}}
+              />
             )}
           </Section>
 

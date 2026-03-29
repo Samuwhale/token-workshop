@@ -396,3 +396,11 @@
   - `ConfirmModal` already has a `children` prop and `wide` prop — use them to inject extra content into confirmation dialogs without modifying the modal component itself.
   - Passing `pathList` through `modalProps` (rather than as a separate prop) keeps the modal interface cohesive and avoids adding new props to `TokenListModalsProps`.
 ---
+
+## 2026-03-29 - Lint rule configuration is hidden inside AnalyticsPanel, unreachable from Settings
+- Moved lint rule configuration from AnalyticsPanel to SettingsPanel under a new "Validation" section. Added `useLintConfig` and `LintConfigPanel` imports to SettingsPanel; the hook is called directly inside the component using the existing `serverUrl` and `connected` props. Shows a "connect to server" message when disconnected, a loading state while fetching, and renders `LintConfigPanel` once loaded. Removed `useLintConfig`, `LintConfigPanel`, `showLintConfig` state, and the "Configure Rules" collapsible UI from AnalyticsPanel.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1 (imports), ~L170 (hook call), ~L638 (Validation section); `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L8 (removed imports), ~L68 (removed hook call), ~L506 (removed UI section)
+- **Learnings for future iterations:**
+  - `onLintRefresh` is required in `LintConfigPanelProps` but only meaningful in a validation context; pass `() => {}` as a noop when used outside AnalyticsPanel.
+  - SettingsPanel already receives `serverUrl` and `connected` as props, so no prop-threading needed for hooks that depend on server connection.
+---
