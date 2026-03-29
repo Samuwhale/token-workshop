@@ -310,3 +310,10 @@ Already up to date.
   → ThemeManager coverage gap view is a raw token list with no visual status hierarchy — the "Missing coverage" section shows uncovered tokens as a flat indented list with no color coding or severity grouping; for a theme with 50 uncovered tokens the list is overwhelming; add green/yellow/red status chips per token (analogous to HeatmapPanel's coverage indicators) and a "Fill with source set" batch action that auto-creates override entries for all gaps in one click (ThemeManager.tsx ~L88-92)
   Worktree: /tmp/backlog-69179-ec1BT8
   Running agent… (started 08:14:16)
+
+  ✓ done: ThemeManager coverage gap view is a raw token list with no visual status hierarchy
+    Replaced flat token list with severity-grouped display: red "Manual" chips for unfillable tokens shown first under "Needs attention", green "Fillable" chips for auto-fillable tokens under "Auto-fillable", with summary counts and renamed "Fill from source" batch button
+    20 turns · 227s · $0.96
+
+  Merging to main: ThemeManager coverage gap view is a raw token list with no visual status hierarchy
+Already up to date.

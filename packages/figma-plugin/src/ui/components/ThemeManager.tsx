@@ -1580,77 +1580,106 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {/* Coverage gaps */}
                         {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (() => {
                           const uncoveredItems = coverage[dim.id][selectedOpt].uncovered;
-                          const isFilteringMissing = showMissingOnly.has(covKey);
-                          const displayItems = isFilteringMissing
-                            ? uncoveredItems.filter(i => i.missingRef && i.fillValue === undefined)
-                            : uncoveredItems;
-                          const fillableCount = uncoveredItems.filter(i => i.missingRef && i.fillValue !== undefined).length;
-                          const unfillableCount = uncoveredItems.length - fillableCount;
+                          const fillableItems = uncoveredItems.filter(i => i.missingRef && i.fillValue !== undefined);
+                          const unfillableItems = uncoveredItems.filter(i => !i.missingRef || i.fillValue === undefined);
                           const isFillAllInProgress = fillingKeys.has(`${dim.id}:${selectedOpt}:__all__`);
-                          return (
-                          <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
-                                  Missing values ({uncoveredItems.length})
-                                </div>
-                                {unfillableCount > 0 && unfillableCount < uncoveredItems.length && (
+
+                          const renderCoverageRow = (item: CoverageToken, canFill: boolean) => {
+                            const isFilling = fillingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
+                            return (
+                              <div key={item.path} className="flex items-center gap-1.5 group/fill py-0.5" role="listitem">
+                                {/* Status chip */}
+                                {canFill ? (
+                                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold bg-emerald-500/15 text-emerald-600" title="Can be auto-filled from another set">
+                                    <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 5.5l2.5 2.5L8 3" /></svg>
+                                    Fillable
+                                  </span>
+                                ) : (
+                                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold bg-red-500/15 text-red-600" title="No fill value available — requires manual fix">
+                                    <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" /></svg>
+                                    Manual
+                                  </span>
+                                )}
+                                {onNavigateToToken && item.set ? (
                                   <button
-                                    onClick={() => setShowMissingOnly(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                    className={`text-[9px] px-1 py-0.5 rounded transition-colors ${
-                                      isFilteringMissing
-                                        ? 'bg-[var(--color-figma-warning)]/25 text-[var(--color-figma-warning)] font-medium'
-                                        : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                                    }`}
-                                    title={isFilteringMissing ? 'Show all gaps' : `Show only ${unfillableCount} unfillable gaps`}
+                                    onClick={() => onNavigateToToken(item.set, item.path)}
+                                    className="flex-1 text-left text-[10px] text-[var(--color-figma-text)] font-mono truncate hover:underline cursor-pointer"
+                                    title={`Navigate to ${item.path} in set "${item.set}"${item.missingRef ? `\nMissing: {${item.missingRef}}` : ''}`}
                                   >
-                                    {isFilteringMissing ? `Unfillable only (${unfillableCount})` : 'Show unfillable only'}
+                                    {item.path}
+                                  </button>
+                                ) : (
+                                  <div className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={item.missingRef ? `Missing: {${item.missingRef}}` : undefined}>{item.path}</div>
+                                )}
+                                {canFill && (
+                                  <button
+                                    onClick={() => handleAutoFillSingle(dim.id, selectedOpt, item)}
+                                    disabled={isFilling}
+                                    className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
+                                    title={`Create ${item.missingRef} in override set`}
+                                  >
+                                    {isFilling ? '…' : 'Fill'}
                                   </button>
                                 )}
                               </div>
-                              {fillableCount > 0 && (
+                            );
+                          };
+
+                          return (
+                          <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5 px-3 py-2">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
+                                Missing values ({uncoveredItems.length})
+                              </div>
+                              {fillableItems.length > 0 && (
                                 <button
                                   onClick={() => handleAutoFillAll(dim.id, selectedOpt)}
                                   disabled={isFillAllInProgress}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
-                                  title={`Auto-fill ${fillableCount} token${fillableCount !== 1 ? 's' : ''} from other sets into the override set`}
+                                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                  title={`Auto-fill ${fillableItems.length} token${fillableItems.length !== 1 ? 's' : ''} from source sets into the override set`}
                                 >
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                                  {isFillAllInProgress ? 'Filling…' : `Fill all (${fillableCount})`}
+                                  {isFillAllInProgress ? 'Filling…' : `Fill from source (${fillableItems.length})`}
                                 </button>
                               )}
                             </div>
-                            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can&apos;t be resolved within the active sets.</p>
-                            <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
-                              {displayItems.map(item => {
-                                const canFill = !!(item.missingRef && item.fillValue !== undefined);
-                                const isFilling = fillingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
-                                return (
-                                <div key={item.path} className="flex items-center gap-1 group/fill" role="listitem">
-                                  {onNavigateToToken && item.set ? (
-                                    <button
-                                      onClick={() => onNavigateToToken(item.set, item.path)}
-                                      className="flex-1 text-left text-[10px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
-                                      title={`Navigate to ${item.path} in set "${item.set}"${item.missingRef ? `\nMissing: {${item.missingRef}}` : ''}`}
-                                    >
-                                      {item.path}
-                                    </button>
-                                  ) : (
-                                    <div className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={item.missingRef ? `Missing: {${item.missingRef}}` : undefined}>{item.path}</div>
+
+                            {/* Summary chips */}
+                            <div className="flex items-center gap-2 mb-1.5">
+                              {fillableItems.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600">
+                                  <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 5.5l2.5 2.5L8 3" /></svg>
+                                  {fillableItems.length} fillable
+                                </span>
+                              )}
+                              {unfillableItems.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-medium text-red-600">
+                                  <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" /></svg>
+                                  {unfillableItems.length} need manual fix
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-0 max-h-48 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
+                              {/* Unfillable tokens first (most urgent) */}
+                              {unfillableItems.length > 0 && (
+                                <>
+                                  {fillableItems.length > 0 && (
+                                    <div className="text-[9px] font-semibold text-red-600 uppercase tracking-wider pt-1 pb-0.5">Needs attention</div>
                                   )}
-                                  {canFill && (
-                                    <button
-                                      onClick={() => handleAutoFillSingle(dim.id, selectedOpt, item)}
-                                      disabled={isFilling}
-                                      className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
-                                      title={`Create ${item.missingRef} in override set`}
-                                    >
-                                      {isFilling ? '…' : 'Fill'}
-                                    </button>
+                                  {unfillableItems.map(item => renderCoverageRow(item, false))}
+                                </>
+                              )}
+                              {/* Fillable tokens */}
+                              {fillableItems.length > 0 && (
+                                <>
+                                  {unfillableItems.length > 0 && (
+                                    <div className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider pt-1.5 pb-0.5">Auto-fillable</div>
                                   )}
-                                </div>
-                                );
-                              })}
+                                  {fillableItems.map(item => renderCoverageRow(item, true))}
+                                </>
+                              )}
                             </div>
                           </div>
                           );

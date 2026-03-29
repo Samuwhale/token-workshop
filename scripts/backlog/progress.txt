@@ -596,3 +596,16 @@
   - The existing SyncPreviewModal already had comprehensive diff categorization logic — extending it with onConfirm was cleaner than building a new modal
   - The git token preview (`fetchTokenPreview`) was already wired up in the panel but only used for the inline preview section; reusing it in the commit confirmation modal required no new API calls
 ---
+
+## 2026-03-29 - ThemeManager coverage gap view is a raw token list with no visual status hierarchy
+- Replaced flat indented coverage token list with severity-grouped display: unfillable tokens ("Needs attention" section with red X chips) shown first, followed by fillable tokens ("Auto-fillable" section with green checkmark chips)
+- Added per-token status chips: green "Fillable" chip (checkmark icon) for tokens with available fill values, red "Manual" chip (X icon) for tokens requiring manual intervention
+- Added summary line with fillable/unfillable counts using colored icons
+- Renamed "Fill all" button to "Fill from source" with green styling to better communicate the action
+- Increased max-height from 40 to 48 for better readability with grouped layout
+- Removed the "Show unfillable only" toggle filter — the severity grouping makes it unnecessary since unfillable items are always shown first and visually distinct
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1580-1660
+- **Learnings for future iterations:**
+  - The HeatmapPanel StatusIcon pattern (distinct shape + color per status) is reusable for any coverage/status indicator — checkmark for good, dash for partial, X for bad
+  - Grouping by severity with section headers is more effective than flat lists with inline filters when the list can be large
+---

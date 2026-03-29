@@ -218,3 +218,18 @@ Already up to date.
 
   Merging to main: PublishPanel has no dry-run mode before syncing
 Already up to date.
+[main 95df8b81] chore(backlog): done – PublishPanel has no dry-run mode before syncing
+ 6 files changed, 432 insertions(+), 71 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - PublishPanel has no dry-run mode before syncing
+- Upgraded `SyncPreviewModal` to accept optional `onConfirm`/`confirmLabel` props, turning it into a preview-then-confirm modal when provided
+- Replaced basic `ConfirmModal` + `SyncDiffSummary` for variable and style apply actions with the full `SyncPreviewModal` (shows categorized add/update/remove/skip sections with color swatches and before/after values) plus a "Apply N changes" confirm button
+- Added `CommitPreviewModal` for git commits: shows commit message, staged file list with status indicators, and auto-fetches token-level preview (added/modified/removed tokens with before/after values) — previously the commit button executed immediately with no confirmation
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  9 queued · 6 in-progress · last took 6m38s
+═══════════════════════════════════════════════════════════════
+  → No "Select all in group" action on group context menu — in multi-select mode, selecting all tokens in a group requires clicking each one individually; the group context menu should offer "Select children" to select all leaf tokens under the group in one click, matching standard tree-view selection behavior (TokenTreeNode.tsx group context menu ~L626-793)
+  Worktree: /tmp/backlog-67435-FaCYZQ
+  Running agent… (started 08:16:07)
