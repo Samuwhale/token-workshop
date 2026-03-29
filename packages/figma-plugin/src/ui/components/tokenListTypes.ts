@@ -108,6 +108,8 @@ export interface TokenListActions {
   onNavigateToGenerator?: (generatorId: string) => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
+  /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
+  onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
 }
 
 export interface TokenListProps {
@@ -117,6 +119,8 @@ export interface TokenListProps {
   defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   showIssuesOnly?: boolean;
+  /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */
+  editingTokenPath?: string | null;
 }
 
 export type DeleteConfirm =

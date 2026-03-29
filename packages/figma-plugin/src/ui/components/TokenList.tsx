@@ -44,10 +44,11 @@ import { useTokenCrud } from '../hooks/useTokenCrud';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
+  editingTokenPath,
 }: TokenListProps) {
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [applying, setApplying] = useState(false);
@@ -665,6 +666,9 @@ export function TokenList({
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
   displayedLeafNodesRef.current = displayedLeafNodes;
 
+  // Notify parent when the visible leaf list changes (used for editor drawer navigation)
+  useEffect(() => { onDisplayedLeafNodesChange?.(displayedLeafNodes); }, [displayedLeafNodes, onDisplayedLeafNodesChange]);
+
   // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
   const pinnedDisplayedNodes = useMemo(() => {
     if (pinnedTokens.count === 0 || showPinnedOnly) return [];
@@ -1037,6 +1041,18 @@ export function TokenList({
           }
         }
       }
+    }
+
+    // Cmd/Ctrl+] / Cmd/Ctrl+[: navigate to next/previous token in the editor (works from list when side panel is visible)
+    if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && editingTokenPath) {
+      e.preventDefault();
+      const nodes = displayedLeafNodesRef.current;
+      const idx = nodes.findIndex(n => n.path === editingTokenPath);
+      if (idx !== -1) {
+        const next = e.key === ']' ? nodes[idx + 1] : nodes[idx - 1];
+        if (next) onEdit(next.path, next.name);
+      }
+      return;
     }
 
     // Don't handle shortcuts when typing in a form field

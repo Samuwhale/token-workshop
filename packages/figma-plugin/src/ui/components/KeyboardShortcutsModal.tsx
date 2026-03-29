@@ -60,6 +60,8 @@ const SECTIONS: ShortcutSection[] = [
   {
     header: 'Token Editor',
     shortcuts: [
+      { keys: ['⌘]'], label: 'Next token' },
+      { keys: ['⌘['], label: 'Previous token' },
       { keys: ['⌘L'], label: 'Toggle reference mode' },
       { keys: ['⌘↵'], label: 'Save token' },
       { keys: ['⌘⇧↵'], label: 'Save and create another' },

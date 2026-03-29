@@ -35,6 +35,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
+import type { TokenNode } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
@@ -359,6 +360,20 @@ export function App() {
   const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, []);
   const editorIsDirtyRef = useRef(false);
   const editorCloseRef = useRef<() => void>(() => { if (!editorIsDirtyRef.current) handleEditorClose(); });
+  // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
+  const displayedLeafNodesRef = useRef<TokenNode[]>([]);
+  // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
+  const handleEditorNavigate = useCallback((direction: 1 | -1) => {
+    if (!editingToken) return;
+    const nodes = displayedLeafNodesRef.current;
+    const idx = nodes.findIndex(n => n.path === editingToken.path);
+    if (idx === -1) return;
+    const next = nodes[idx + direction];
+    if (next) {
+      setEditingToken({ path: next.path, name: next.name, set: editingToken.set });
+      setHighlightedToken(next.path);
+    }
+  }, [editingToken, setHighlightedToken]);
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
@@ -1855,13 +1870,22 @@ export function App() {
                   <TokenList
                     ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                     data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                    actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); } }}
+                    actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; } }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                     showIssuesOnly={showIssuesOnly}
+                    editingTokenPath={editingToken?.path}
                   />
                 </div>
-                <div className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden">
+                <div
+                  className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden"
+                  onKeyDown={(e) => {
+                    if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+                      e.preventDefault();
+                      handleEditorNavigate(e.key === ']' ? 1 : -1);
+                    }
+                  }}
+                >
                   {editingToken ? (
                   <TokenEditor
                     tokenPath={editingToken.path}
@@ -1908,10 +1932,11 @@ export function App() {
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                 data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); } }}
+                actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; } }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
                 showIssuesOnly={showIssuesOnly}
+                editingTokenPath={editingToken?.path}
               />
             )
           )}
@@ -1921,10 +1946,11 @@ export function App() {
                 <TokenList
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                  actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); } }}
+                  actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }, onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('define', 'flow'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; } }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={highlightedToken}
                   showIssuesOnly={showIssuesOnly}
+                  editingTokenPath={editingToken?.path}
                 />
               </div>
               <div
@@ -2151,7 +2177,15 @@ export function App() {
 
       {/* Token editor drawer (narrow windows only; wide windows use side panel) */}
       {editingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+        <div
+          className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
+          onKeyDown={(e) => {
+            if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+              e.preventDefault();
+              handleEditorNavigate(e.key === ']' ? 1 : -1);
+            }
+          }}
+        >
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
             onClick={() => editorCloseRef.current()}

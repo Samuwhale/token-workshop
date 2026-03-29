@@ -306,3 +306,14 @@
 - **Learnings for future iterations:**
   - Template literal interpolation of object properties with no null check silently produces `"undefined_copy"` — always guard or use nullish coalescing when constructing derived names from optional fields.
 ---
+
+## 2026-03-29 - Token editor drawer has no keyboard shortcut to navigate to the next/previous token
+- Added Cmd+] / Cmd+[ keyboard shortcuts to advance to next/previous token in the editor without closing it. Works both in the overlay drawer (narrow windows) and the side panel (wide windows). The shortcut intercepts at the drawer container div so it fires even when an input inside has focus.
+- Architecture: TokenList tracks its visible/filtered leaf nodes and reports them upward via new `onDisplayedLeafNodesChange` action callback; App.tsx stores them in `displayedLeafNodesRef`. A `handleEditorNavigate(direction)` callback in App.tsx finds the current token in that list and calls `setEditingToken` with the adjacent token. TokenList also handles the shortcut directly in `handleListKeyDown` for the side-panel case where list container has focus.
+- Added the new shortcuts to `KeyboardShortcutsModal.tsx` under the Token Editor section.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L110, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L47,~L670,~L1047, `packages/figma-plugin/src/ui/App.tsx` ~L38,~L363,~L1873,~L1935,~L1949,~L2169, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L62
+- **Learnings for future iterations:**
+  - Keyboard shortcuts that must fire from within editor inputs need an `onKeyDown` on the containing div, not inside `handleListKeyDown` (which only fires when list has focus).
+  - Passing a "leaf nodes change" callback from parent→child is the clean way to expose internal filtered list state without lifting all filter state up.
+  - The three TokenList instances in App.tsx (side-panel, narrow-no-split, narrow-split) all need to be updated when adding new actions/props.
+---
