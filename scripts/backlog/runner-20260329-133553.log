@@ -179,3 +179,18 @@ Already up to date.
 
   Merging to main: Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it
 Already up to date.
+[main 9713af52] chore(backlog): done – Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it
+ 7 files changed, 50 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Generator templates use jargon-heavy descriptions with no guidance
+- Added `whenToUse: string` field to `GraphTemplate` interface with plain-language "when to use" guidance for all 4 templates. Rendered as a small italic secondary line below the description in `TemplateCard`. Also included `whenToUse` in the template search filter so users can find templates by use-case keywords.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L24 (interface), ~L40 (material-color), ~L66 (tailwind-spacing), ~L104 (modular-type), ~L130 (full-semantic-color), ~L321 (TemplateCard render), ~L1047 (search filter)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  8 queued · 2 in-progress · last took 2m33s
+═══════════════════════════════════════════════════════════════
+  → Command palette qualifier hint chips disappear after any input is entered — chips showing available qualifiers (type:, set:, alias:) vanish once the user starts typing, making it impossible to discover additional qualifiers mid-query; render the chips persistently as a scrollable reference row below the input (CommandPalette.tsx ~L395)
+  Worktree: /tmp/backlog-48303-xkUDyo
+  Running agent… (started 14:09:37)
