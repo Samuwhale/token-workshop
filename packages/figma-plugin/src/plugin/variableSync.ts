@@ -112,52 +112,67 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
     figma.ui.postMessage({ type: 'variables-applied', count: tokens.length, correlationId });
   } catch (error) {
     // Attempt to roll back all changes made before the failure
-    let rolledBack = false;
-    try {
-      // Restore all original state for variables that existed before this operation
-      for (const [varId, snapshot] of variableSnapshots) {
-        const v = await figma.variables.getVariableByIdAsync(varId);
-        if (v) {
-          // Restore values
-          for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
-            try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { console.warn('[variableSync] rollback: setValueForMode failed:', e); }
-          }
-          // Restore name
-          try { v.name = snapshot.name; } catch (e) { console.warn('[variableSync] rollback: restore name failed:', e); }
-          // Restore description
-          try { v.description = snapshot.description; } catch (e) { console.warn('[variableSync] rollback: restore description failed:', e); }
-          // Restore hiddenFromPublishing
-          try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { console.warn('[variableSync] rollback: restore hiddenFromPublishing failed:', e); }
-          // Restore scopes
-          try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { console.warn('[variableSync] rollback: restore scopes failed:', e); }
-          // Restore plugin data
-          try {
-            v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
-            v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
-          } catch (e) { console.warn('[variableSync] rollback: restore pluginData failed:', e); }
-        }
+    const rollbackFailures: string[] = [];
+
+    // Restore all original state for variables that existed before this operation — run in parallel
+    const restoreTasks = Array.from(variableSnapshots.entries()).map(async ([varId, snapshot]) => {
+      const v = await figma.variables.getVariableByIdAsync(varId);
+      if (!v) return;
+      const errs: string[] = [];
+      for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
+        try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { errs.push(`setValueForMode(${modeId}): ${e}`); }
       }
-      // Delete variables created during this operation (reverse order)
-      for (const varId of [...createdVariableIds].reverse()) {
-        const v = await figma.variables.getVariableByIdAsync(varId);
-        if (v) { try { v.remove(); } catch (e) { console.warn('[variableSync] rollback: remove variable failed:', e); } }
-      }
-      // Delete collections created during this operation if they are now empty
-      for (const colId of [...createdCollectionIds].reverse()) {
-        const cols = await figma.variables.getLocalVariableCollectionsAsync();
-        const col = cols.find(c => c.id === colId);
-        if (col) {
-          const allVars = await figma.variables.getLocalVariablesAsync();
-          const hasVars = allVars.some(v => v.variableCollectionId === colId);
-          if (!hasVars) { try { col.remove(); } catch (e) { console.warn('[variableSync] rollback: remove collection failed:', e); } }
-        }
-      }
-      rolledBack = true;
-    } catch (rollbackError) {
-      console.error('[applyVariables] rollback failed:', rollbackError);
+      try { v.name = snapshot.name; } catch (e) { errs.push(`name: ${e}`); }
+      try { v.description = snapshot.description; } catch (e) { errs.push(`description: ${e}`); }
+      try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { errs.push(`hiddenFromPublishing: ${e}`); }
+      try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { errs.push(`scopes: ${e}`); }
+      try {
+        v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
+        v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
+      } catch (e) { errs.push(`pluginData: ${e}`); }
+      if (errs.length > 0) throw new Error(`var ${varId}: ${errs.join('; ')}`);
+    });
+    const restoreResults = await Promise.allSettled(restoreTasks);
+    for (const r of restoreResults) {
+      if (r.status === 'rejected') rollbackFailures.push(`restore: ${r.reason}`);
     }
 
-    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack, rollbackError: rolledBack ? undefined : 'Rollback failed — partial changes may persist. Check console for details.' });
+    // Delete variables created during this operation (reverse order) — run in parallel
+    const deleteTasks = [...createdVariableIds].reverse().map(async (varId) => {
+      const v = await figma.variables.getVariableByIdAsync(varId);
+      if (v) v.remove();
+    });
+    const deleteResults = await Promise.allSettled(deleteTasks);
+    for (const r of deleteResults) {
+      if (r.status === 'rejected') rollbackFailures.push(`delete variable: ${r.reason}`);
+    }
+
+    // Delete collections created during this operation if they are now empty
+    // Fetch once (not per-iteration) to avoid O(n²) re-fetching
+    try {
+      const [colsAfter, allVarsAfter] = await Promise.all([
+        figma.variables.getLocalVariableCollectionsAsync(),
+        figma.variables.getLocalVariablesAsync(),
+      ]);
+      const colsById = new Map(colsAfter.map(c => [c.id, c]));
+      for (const colId of [...createdCollectionIds].reverse()) {
+        const col = colsById.get(colId);
+        if (col) {
+          const hasVars = allVarsAfter.some(v => v.variableCollectionId === colId);
+          if (!hasVars) { try { col.remove(); } catch (e) { rollbackFailures.push(`delete collection ${colId}: ${e}`); } }
+        }
+      }
+    } catch (e) {
+      rollbackFailures.push(`collection cleanup fetch failed: ${e}`);
+    }
+
+    const rolledBack = rollbackFailures.length === 0;
+    const rollbackError = rolledBack
+      ? undefined
+      : `Partial rollback — ${rollbackFailures.length} step(s) failed: ${rollbackFailures.join('; ')}`;
+    if (!rolledBack) console.error('[applyVariables] partial rollback failures:', rollbackFailures);
+
+    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack, rollbackError });
   }
 }
 

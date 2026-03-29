@@ -342,3 +342,15 @@
   - When a flat list is used for keyboard navigation, it must be built from the same source as the visual rendering order — never from a parallel data structure
   - `Array.indexOf` with object references fails for duplicates (same object in multiple sections); use a running counter instead
 ---
+
+## 2026-03-29 - variableSync rollback is fragile: sequential failures silently leave partial Figma state and collection cleanup is O(n²)
+- Replaced sequential try/catch rollback loop with `Promise.allSettled` for variable restore tasks and variable delete tasks, running both phases in parallel
+- Changed collection cleanup from O(n²) (calling `getLocalVariableCollectionsAsync` + `getLocalVariablesAsync` per iteration) to O(1) fetches — now calls both once with `Promise.all`, builds a `Map<id, collection>`, then checks `allVarsAfter` synchronously per collection
+- Removed the outer try/catch that set `rolledBack = true` regardless of inner failures — now tracks `rollbackFailures: string[]` and sets `rolledBack = rollbackFailures.length === 0`
+- `rollbackError` message now includes count and list of specific step failures when partial
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L113-160
+- **Learnings for future iterations:**
+  - `Promise.allSettled` is ideal for rollback phases where you want all attempts to run but need to aggregate failures — never swallow errors into a single `rolledBack = true`
+  - Per-variable restore errors should still be granular (collect inner errs[] then throw once at the end) so allSettled gets one rejection per variable, not per property
+  - Collection/variable list fetches are expensive — always fetch once and build a Map before iterating
+---

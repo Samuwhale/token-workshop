@@ -520,3 +520,11 @@ Already up to date.
 - Added 3 missing dependencies to the `treeCtx` useMemo in TokenList.tsx: `handleRequestCopyToken`, `setNewGroupDialogParent`, and `onNavigateToGenerator`
 - The backlog item claimed 10+ missing handlers but careful audit found exactly 3 missing; most handlers were already correctly listed
 - `handleRequestCopyToken` (useCallback with [sets, setName] deps) and `onNavigateToGenerator` (prop) were genuine stale closure risks; `setNewGroupDialogParent` (useState setter) is stable but included for correctness
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  0 queued · 4 in-progress · last took 1m56s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67697) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
