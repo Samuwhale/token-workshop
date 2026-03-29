@@ -455,3 +455,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: ConsistencyPanel scans only 5 visual properties (fill/stroke/cornerRadius/spacing/opacity) and misses all typography properties — fontFamily, fontSize, fontWeight, lineHeight, letterSpacing — making it useless for text-heavy UIs where typography tokens are the most inconsistent
 ---
+
+## 2026-03-29 - HistoryPanel has no filtering or search
+- Added type filter dropdown and path search input to `RecentActionsSource`. The filter bar appears above the server operations list when there are entries. Type dropdown only renders when >1 distinct op type exists. Search matches against `description`, `setName`, and any entry in `affectedPaths` (case-insensitive). The header count shows `filtered/total` when filters are active. A clear-filters X button appears when either filter is set.
+- Files changed: `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L47-95, ~L148-220
+- **Learnings for future iterations:**
+  - Filtering a list that renders inside a collapsible section: put the filter controls inside the collapsed content area so they don't take up space when collapsed.
+  - `Array.from(new Set(...)).sort()` is the simplest pattern for deriving unique sorted values for a filter dropdown from a list of records.
+---

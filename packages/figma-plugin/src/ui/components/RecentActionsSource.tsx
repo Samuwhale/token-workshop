@@ -48,6 +48,8 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
   const [rollingBack, setRollingBack] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(true);
   const [serverOpen, setServerOpen] = useState(true);
+  const [filterType, setFilterType] = useState('');
+  const [searchPath, setSearchPath] = useState('');
 
   const handleRollback = useCallback(async (opId: string) => {
     setRollingBack(opId);
@@ -57,6 +59,22 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
       setRollingBack(null);
     }
   }, [onRollback]);
+
+  // Derive unique op types for the dropdown
+  const opTypes = Array.from(new Set(recentOperations.map(op => op.type))).sort();
+
+  // Apply filters to server operations
+  const filteredOperations = recentOperations.filter(op => {
+    if (filterType && op.type !== filterType) return false;
+    if (searchPath) {
+      const needle = searchPath.toLowerCase();
+      const matchesDesc = op.description.toLowerCase().includes(needle);
+      const matchesSet = op.setName.toLowerCase().includes(needle);
+      const matchesPath = op.affectedPaths.some(p => p.toLowerCase().includes(needle));
+      if (!matchesDesc && !matchesSet && !matchesPath) return false;
+    }
+    return true;
+  });
 
   const hasLocal = undoDescriptions.length > 0;
   const hasServer = recentOperations.length > 0;
@@ -143,12 +161,63 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
               Server operations
             </span>
             <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              ({recentOperations.length})
+              ({filteredOperations.length}{filteredOperations.length !== recentOperations.length ? `/${recentOperations.length}` : ''})
             </span>
           </button>
           {serverOpen && (
             <div className="pb-1">
-              {recentOperations.map(op => (
+              {/* Filter bar */}
+              <div className="flex items-center gap-1.5 px-3 pb-1.5 pt-0.5">
+                <div className="relative flex-1 min-w-0">
+                  <svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchPath}
+                    onChange={e => setSearchPath(e.target.value)}
+                    placeholder="Search by path…"
+                    className="w-full pl-5 pr-1.5 py-1 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                </div>
+                {opTypes.length > 1 && (
+                  <select
+                    value={filterType}
+                    onChange={e => setFilterType(e.target.value)}
+                    className="shrink-0 py-1 pl-1.5 pr-4 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] appearance-none"
+                    style={{ backgroundImage: 'none' }}
+                    aria-label="Filter by operation type"
+                  >
+                    <option value="">All types</option>
+                    {opTypes.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                )}
+                {(filterType || searchPath) && (
+                  <button
+                    onClick={() => { setFilterType(''); setSearchPath(''); }}
+                    className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    title="Clear filters"
+                    aria-label="Clear filters"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {filteredOperations.length === 0 && (
+                <p className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
+                  No operations match the current filters.
+                </p>
+              )}
+              {filteredOperations.map(op => (
                 <div key={op.id} className="flex items-start gap-2 px-3 py-1.5 group hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                   <div className="mt-0.5">
                     <OpIcon type={op.type} />
