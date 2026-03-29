@@ -226,7 +226,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           filterTokenPath={filterTokenPath ?? undefined}
         />
       ) : (
-        <SnapshotsSource serverUrl={serverUrl} filterTokenPath={filterTokenPath ?? undefined} />
+        <SnapshotsSource serverUrl={serverUrl} onPushUndo={onPushUndo} onRefreshTokens={onRefreshTokens} filterTokenPath={filterTokenPath ?? undefined} />
       )}
     </div>
   );
@@ -762,7 +762,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
    Snapshots source
    ══════════════════════════════════════════════════════════════════════════ */
 
-function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; filterTokenPath?: string }) {
+function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath }: { serverUrl: string; onPushUndo?: (slot: UndoSlot) => void; onRefreshTokens?: () => void; filterTokenPath?: string }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -854,7 +854,23 @@ function SnapshotsSource({ serverUrl, filterTokenPath }: { serverUrl: string; fi
     setReverting(true);
     setError(null);
     try {
-      await apiFetch(`${serverUrl}/api/snapshots/${comparing}/restore`, { method: 'POST' });
+      const result = await apiFetch<{ ok: true; restoredSets: string[]; operationId?: string }>(
+        `${serverUrl}/api/snapshots/${comparing}/restore`,
+        { method: 'POST' },
+      );
+
+      if (onPushUndo && result.operationId) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Revert to snapshot`,
+          restore: async () => {
+            await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
+            onRefreshTokens?.();
+          },
+        });
+      }
+
+      onRefreshTokens?.();
       showSuccess('Reverted to saved state');
       setComparing(null);
       setChanges(null);

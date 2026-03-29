@@ -413,3 +413,12 @@
   - `useGitSync` already exposes `mergeConflicts` array — conflict state is readily available, just needs to be checked before multi-step flows
   - Multi-step publish flows need defense-in-depth: disable UI entry points AND add runtime guards, since state can change between user clicking and execution starting
 ---
+
+## 2026-03-29 - Snapshot restore doesn't create an undo slot
+- Server: Updated `/api/snapshots/:id/restore` route to snapshot current state before restoring, record an operation log entry (type `snapshot-restore`), and return `operationId` in the response — matching the pattern used by `/api/sync/log/:hash/restore`
+- UI: Passed `onPushUndo` and `onRefreshTokens` props through to `SnapshotsSource` component; updated `handleRevert` to use the returned `operationId` to push an undo slot and call `onRefreshTokens` after restore
+- Files changed: `packages/server/src/routes/snapshots.ts` ~L45-85, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L229, ~L765, ~L852-882
+- **Learnings for future iterations:**
+  - The `SnapshotsSource` component was missing `onPushUndo`/`onRefreshTokens` props entirely — when adding undo support to a feature, check that the callback props are actually threaded through the component hierarchy
+  - `snapshotSet` from operation-log.ts is the right helper for capturing full-set before/after state; `snapshotPaths` is for targeted token-level snapshots
+---
