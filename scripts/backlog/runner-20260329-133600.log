@@ -369,3 +369,47 @@ Already up to date.
 
   Merging to main: ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
 Already up to date.
+[main 856024c8] chore(backlog): done – ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+ 6 files changed, 34 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent
+- Changed `item.missingRef.split('.').join('/')` to `item.missingRef.split('.').map(encodeURIComponent).join('/')` so token path segments with special characters (spaces, `#`, `%`, etc.) are properly encoded in the fetch URL.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L660
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  0 queued · 0
+0 in-progress · last took 52s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 48303) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  0 queued · 0
+0 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 48303) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  0 queued · 0
+0 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 48303) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  0 queued · 0
+0 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 48303) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
