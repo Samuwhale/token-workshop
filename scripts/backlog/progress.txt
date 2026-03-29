@@ -358,3 +358,10 @@
   - The `prev` variable in customScale formulas depends on execution order, but a dummy value of 1 is fine for syntax checking since we only care that the expression parses, not that the result is meaningful.
   - Duplicate step name detection is a simple pre-pass before building the clean validated object — much cheaper than waiting for generator execution to fail with ambiguous results.
 ---
+
+## 2026-03-29 - Three GET routes in tokens.ts have no try/catch
+- Added try/catch + `handleRouteError` to `GET /tokens/search` (L31), `GET /tokens/:set` (L48), and `GET /tokens/:set/raw` (L602). All three now return structured error bodies consistent with every other route in the file.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L31, ~L48, ~L602
+- **Learnings for future iterations:**
+  - Async Fastify handlers without try/catch let unhandled rejections bubble to Fastify's generic handler, which returns an unstructured 500. Wrapping with `handleRouteError` ensures consistent `{ error, detail }` shape.
+---

@@ -390,3 +390,10 @@ Already up to date.
   → Three GET routes in tokens.ts have no try/catch — `GET /tokens/search` (line 29), `GET /tokens/:set` (line 48), and `GET /tokens/:set/raw` (line 602) have no error handling; if `tokenStore.getSet()` or `tokenStore.searchTokens()` throws, Fastify's generic handler returns a plain 500 with no structured error body, inconsistent with every other route in the file which uses `handleRouteError`; this is the same pattern fixed for `PUT /api/sets/reorder` in sets.ts (packages/server/src/routes/tokens.ts:29,48,602)
   Worktree: /tmp/backlog-46928-qVkdkv
   Running agent… (started 14:24:57)
+
+  ✓ done: Three GET routes in tokens.ts have no try/catch
+    Added try/catch + handleRouteError to GET /tokens/search, GET /tokens/:set, and GET /tokens/:set/raw; all gates pass
+    9 turns · 52s · $0.2
+
+  Merging to main: Three GET routes in tokens.ts have no try/catch
+Already up to date.

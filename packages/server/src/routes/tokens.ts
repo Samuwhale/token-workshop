@@ -28,30 +28,38 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/tokens/search — search tokens across all sets
   fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string } }>(
     '/tokens/search',
-    async (request) => {
-      const { q, type, has, value, desc, path: pathQ, name: nameQ, limit } = request.query;
-      const results = fastify.tokenStore.searchTokens({
-        q: q || undefined,
-        types: type ? type.split(',') : undefined,
-        has: has ? has.split(',') : undefined,
-        values: value ? value.split(',') : undefined,
-        descs: desc ? desc.split(',') : undefined,
-        paths: pathQ ? pathQ.split(',') : undefined,
-        names: nameQ ? nameQ.split(',') : undefined,
-        limit: limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200,
-      });
-      return { results };
+    async (request, reply) => {
+      try {
+        const { q, type, has, value, desc, path: pathQ, name: nameQ, limit } = request.query;
+        const results = fastify.tokenStore.searchTokens({
+          q: q || undefined,
+          types: type ? type.split(',') : undefined,
+          has: has ? has.split(',') : undefined,
+          values: value ? value.split(',') : undefined,
+          descs: desc ? desc.split(',') : undefined,
+          paths: pathQ ? pathQ.split(',') : undefined,
+          names: nameQ ? nameQ.split(',') : undefined,
+          limit: limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200,
+        });
+        return { results };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to search tokens');
+      }
     },
   );
 
   // GET /api/tokens/:set — get all tokens in a set (flat list with paths)
   fastify.get<{ Params: { set: string } }>('/tokens/:set', async (request, reply) => {
-    const { set } = request.params;
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    try {
+      const { set } = request.params;
+      const tokenSet = await fastify.tokenStore.getSet(set);
+      if (!tokenSet) {
+        return reply.status(404).send({ error: `Token set "${set}" not found` });
+      }
+      return { set: set, tokens: tokenSet.tokens };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get token set');
     }
-    return { set: set, tokens: tokenSet.tokens };
   });
 
   // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
@@ -600,12 +608,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/tokens/:set/raw — get the raw nested DTCG token group for a set
   fastify.get<{ Params: { set: string } }>('/tokens/:set/raw', async (request, reply) => {
-    const { set } = request.params;
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    try {
+      const { set } = request.params;
+      const tokenSet = await fastify.tokenStore.getSet(set);
+      if (!tokenSet) {
+        return reply.status(404).send({ error: `Token set "${set}" not found` });
+      }
+      return tokenSet.tokens;
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get raw token set');
     }
-    return tokenSet.tokens;
   });
 
   // PUT /api/tokens/:set — replace all tokens in a set with a new nested DTCG token group

@@ -347,3 +347,18 @@ Already up to date.
 
   Merging to main: Generator config validation skips formula syntax and step name uniqueness
 Already up to date.
+[main 5e2b432a] chore(backlog): done – Generator config validation skips formula syntax and step name uniqueness
+ 6 files changed, 78 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Generator config validation skips formula syntax and step name uniqueness
+- Added `findDuplicateStepName` helper and `validateFormulaSyntax` function in `generators.ts`. Added duplicate step name checks to all six multi-step generators (typeScale, spacingScale, opacityScale, borderRadiusScale, zIndexScale, customScale). Added formula parse-time check for customScale by substituting all known variables (base, index, multiplier, prev) with dummy values and running evalExpr/substituteVars — if either throws, the 400 error is returned immediately with the parse error message.
+- Files changed: `packages/server/src/routes/generators.ts` ~L20, ~L48-74, ~L152, ~L170, ~L185, ~L200, ~L215, ~L228
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  1 queued · 2 in-progress · last took 2m12s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager handleAutoFillSingle builds token URL path without encodeURIComponent — `const tokenPath = item.missingRef.split('.').join('/')` creates the URL path segment without encoding, so tokens with special characters in segment names (spaces, `#`, `%`, etc.) produce malformed fetch URLs and silently fail; every other URL path builder in the codebase uses `.split('.').map(encodeURIComponent).join('/')` (packages/figma-plugin/src/ui/components/ThemeManager.tsx ~L653)
+  Worktree: /tmp/backlog-48983-sQKJhM
+  Running agent… (started 14:25:34)
