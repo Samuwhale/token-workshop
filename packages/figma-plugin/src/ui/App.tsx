@@ -58,7 +58,7 @@ import { useTokenDataLoading } from './hooks/useTokenDataLoading';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
 import { useLintConfig } from './hooks/useLintConfig';
-import type { SyncCompleteMessage } from '../shared/types';
+import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { adaptShortcut } from './shared/utils';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
@@ -348,7 +348,46 @@ export function App() {
   const lintConfig = useLintConfig(serverUrl, connected);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
-  useServerEvents(serverUrl, connected, onGeneratorError, refreshAll);
+
+  // Track external file change refreshes so we can show a diff toast
+  const externalRefreshPendingRef = useRef(false);
+  const prevAllTokensFlatRef = useRef<Record<string, TokenMapEntry>>({});
+  const refreshAllExternal = useCallback(() => {
+    prevAllTokensFlatRef.current = allTokensFlat;
+    externalRefreshPendingRef.current = true;
+    refreshAll();
+  }, [refreshAll, allTokensFlat]);
+  useServerEvents(serverUrl, connected, onGeneratorError, refreshAllExternal);
+
+  // Show a change-summary toast after an external file change triggers a refresh
+  useEffect(() => {
+    if (!externalRefreshPendingRef.current) return;
+    externalRefreshPendingRef.current = false;
+    const prev = prevAllTokensFlatRef.current;
+    const curr = allTokensFlat;
+    // Skip if there was no prior state (initial load)
+    if (Object.keys(prev).length === 0) return;
+    let added = 0, removed = 0, changed = 0;
+    const prevKeys = new Set(Object.keys(prev));
+    for (const key of Object.keys(curr)) {
+      if (!prevKeys.has(key)) {
+        added++;
+      } else {
+        const p = prev[key], c = curr[key];
+        if (p.$type !== c.$type || JSON.stringify(p.$value) !== JSON.stringify(c.$value)) changed++;
+      }
+    }
+    for (const key of prevKeys) {
+      if (!(key in curr)) removed++;
+    }
+    const total = added + removed + changed;
+    if (total === 0) return;
+    const parts: string[] = [];
+    if (changed > 0) parts.push(`${changed} updated`);
+    if (added > 0) parts.push(`${added} added`);
+    if (removed > 0) parts.push(`${removed} removed`);
+    setSuccessToast(`External change: ${parts.join(', ')}`);
+  }, [allTokensFlat, setSuccessToast]);
 
   // Server-side operation log for undo/rollback
   const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });

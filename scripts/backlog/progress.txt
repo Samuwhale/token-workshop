@@ -327,3 +327,12 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: TokenEditor has no unsaved-changes guard — closing the drawer with dirty state silently discards edits with no confirmation; and HistoryPanel's three sub-tabs (Recent Actions / Git Commits / Snapshots) serve the same goal but use different mental models, suggesting a unified timeline would be cleaner
 ---
+
+## 2026-03-29 - External token file changes trigger a silent full refresh with no change summary
+- Added a change-summary toast shown after an external SSE-triggered file refresh. In `App.tsx`, introduced `refreshAllExternal` (used by `useServerEvents` instead of `refreshAll`) that snapshots `allTokensFlat` into `prevAllTokensFlatRef` and sets `externalRefreshPendingRef` before calling `refreshAll()`. A new `useEffect` watching `allTokensFlat` checks the flag, computes added/removed/changed counts by comparing prev and curr flat maps, and calls `setSuccessToast("External change: N updated, N added, N removed")` when any tokens differ.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L351–L391
+- **Learnings for future iterations:**
+  - The "snapshot before / effect after" pattern works cleanly for post-refresh diffing: store state in a ref before triggering the refresh, then consume it in a `useEffect` that fires when the state actually updates. No changes to data-loading hooks or useServerEvents are needed.
+  - `externalRefreshPendingRef` acts as a single-use flag: the effect checks it on every `allTokensFlat` change and only runs the diff logic when the flag is set, ignoring changes from user-initiated operations.
+  - Skip diffing when `prev` is empty (`Object.keys(prev).length === 0`) to avoid a spurious toast on the initial data load when the SSE connection is first established.
+---
