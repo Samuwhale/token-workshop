@@ -218,7 +218,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           const { total, byType } = countLeafNodes(nestedTokens);
           for (const [p, t] of Object.entries(flat)) {
             if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(t.$value)) {
-              allColors.push({ path: p, hex: t.$value });
+              allColors.push({ path: p, hex: normalizeHex(t.$value) });
             }
           }
           return { name, description: descriptions[name], total, byType };

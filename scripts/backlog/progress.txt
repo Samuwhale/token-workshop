@@ -292,3 +292,10 @@
   - `Promise.race([asyncCall(), timeoutPromise])` is the idiomatic way to add a timeout to an existing Promise without modifying the callee; the timeout promise only needs to reject, not resolve.
   - The existing `catch`/`finally` in `runReadinessChecks` already handles the timeout rejection correctly — no extra error-state wiring needed.
 ---
+
+## 2026-03-29 - AnalyticsPanel.tsx contrast matrix uses non-normalized hex values
+- Applied `normalizeHex()` to `t.$value` in the `allColors.push()` call at L221, matching what `allColorTokens` already does at L258. 3-char hex values like `#FFF` are now expanded to `#FFFFFF` before being passed to `hexToLuminance` and `wcagContrast`.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L221
+- **Learnings for future iterations:**
+  - When two parallel arrays are built from the same raw token data but only one calls `normalizeHex`, search for the other and fix it too — the bug is always the one that skips normalization.
+---
