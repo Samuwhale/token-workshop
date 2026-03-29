@@ -20,3 +20,10 @@ NOTE: 6 [~] item(s) found — skipping reset (19 other runner(s) active)
   → QuickStart wizard is inaccessible after initial setup — the guided 3-step wizard (QuickStartWizard.tsx) only appears from the EmptyState when zero tokens exist; once tokens are created there is no way to re-run it from settings, help, or command palette; add a "Run guided setup" entry in settings or the command palette
   Worktree: /tmp/backlog-69179-wO2LrN
   Running agent… (started 07:37:09)
+
+  ✓ done: QuickStart wizard is inaccessible after initial setup
+    stale — already done. Command palette has unconditional 'Guided Setup' entry (App.tsx L752-758) accessible via Cmd+K at any time.
+    13 turns · 180s · $0.56
+
+  Merging to main: QuickStart wizard is inaccessible after initial setup
+Already up to date.

@@ -27,3 +27,19 @@ NOTE: 5 [~] item(s) found — skipping reset (16 other runner(s) active)
 
   Merging to main: Tab number shortcuts (Cmd+1/2/3) reference pre-refactor navigation
 Already up to date.
+[main 7323d8c] chore(backlog): done – Tab number shortcuts (Cmd+1/2/3) reference pre-refactor navigation
+ 11 files changed, 180 insertions(+), 11 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260329-073632.log
+ create mode 100644 scripts/backlog/runner-20260329-073638.log
+ create mode 100644 scripts/backlog/runner-20260329-073640.log
+ create mode 100644 scripts/backlog/runner-20260329-073642.log
+ create mode 100644 scripts/backlog/runner-20260329-073645.log
+ create mode 100644 scripts/backlog/runner-20260329-073706.log
+ create mode 100644 scripts/backlog/runner-20260329-073709.log
+  ✓ Merged and marked done
+
+  Milestone: 805 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
