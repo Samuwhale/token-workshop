@@ -218,6 +218,9 @@ export function TokenGeneratorDialog({
     [overwrittenEntries],
   );
 
+  const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
+
   const handleClose = () => {
     if (isDirtyRef.current && !window.confirm('You have unsaved changes. Discard and close?')) return;
     onClose();
@@ -398,9 +401,6 @@ export function TokenGeneratorDialog({
       </>
     );
   }
-
-  const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
 
   // Effective source value for config editors (from bound token or inline input)
   const effectiveSourceHex = typeof sourceTokenValue === 'string' ? sourceTokenValue : typeof inlineValue === 'string' ? inlineValue : undefined;

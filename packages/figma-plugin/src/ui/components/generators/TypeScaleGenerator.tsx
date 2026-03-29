@@ -86,6 +86,15 @@ const TYPE_STEP_PRESETS = [
 // Preview
 // ---------------------------------------------------------------------------
 
+// Specimen text labels assigned from largest step down
+const SPECIMEN_LABELS = ['Display', 'Heading', 'Subheading', 'Body Large', 'Body text', 'Small text', 'Caption', 'Fine print'];
+
+function toPx(t: GeneratedTokenResult): number {
+  const numVal = isDimensionLike(t.value) ? t.value.value : parseFloat(formatValue(t.value)) || 0;
+  const unit = isDimensionLike(t.value) ? t.value.unit : '';
+  return numVal * (unit === 'rem' ? 16 : 1);
+}
+
 export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
@@ -93,20 +102,64 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
   onOverrideClear: (stepName: string) => void;
   overwritePaths?: Set<string>;
 }) {
+  const pxValues = tokens.map(toPx);
+  const maxPx = Math.max(...pxValues, 1);
+
+  // Sort descending by px (largest first) for both ruler and specimen
+  const sorted = tokens
+    .map((t, i) => ({ t, px: pxValues[i] }))
+    .sort((a, b) => b.px - a.px);
+
   return (
-    <div className="flex flex-col gap-1">
-      {tokens.map((t) => {
-        const valStr = formatValue(t.value);
-        const numVal = isDimensionLike(t.value) ? t.value.value : parseFloat(valStr) || 0;
-        const unit = isDimensionLike(t.value) ? t.value.unit : '';
-        const displayPx = Math.max(8, Math.min(32, numVal * (unit === 'rem' ? 16 : 1)));
-        return (
-          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
-            <span className="text-[var(--color-figma-text)] leading-none font-medium" style={{ fontSize: `${displayPx}px` }}>Ag</span>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 ml-auto">{valStr}</span>
-          </OverrideRow>
-        );
-      })}
+    <div className="flex flex-col gap-2">
+      {/* Scale ruler */}
+      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+        <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Scale ruler</div>
+        <div className="flex flex-col gap-1">
+          {sorted.map(({ t, px }, rank) => {
+            const barWidth = (px / maxPx) * 100;
+            const prevPx = rank > 0 ? sorted[rank - 1].px : null;
+            const ratio = prevPx ? (prevPx / px).toFixed(3) : null;
+            return (
+              <div key={t.stepName} className="flex items-center gap-1.5">
+                <span className="w-8 text-right text-[9px] font-mono text-[var(--color-figma-text-secondary)] shrink-0">{t.stepName}</span>
+                <div className="flex-1 flex items-center min-w-0">
+                  <div className="h-2 rounded-sm bg-[var(--color-figma-accent)]/50" style={{ width: `${barWidth}%`, minWidth: 2 }} />
+                </div>
+                <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] shrink-0 w-[88px] text-right">
+                  {formatValue(t.value)} → {Math.round(px)}px
+                </span>
+                <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50 shrink-0 w-9 text-right">
+                  {ratio ? `÷${ratio}` : ''}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Typography specimen */}
+      <div className="flex flex-col gap-0.5">
+        {sorted.map(({ t, px }, rank) => {
+          const label = SPECIMEN_LABELS[Math.min(rank, SPECIMEN_LABELS.length - 1)];
+          // Show hierarchy without clamping to 32px — cap only at 52px to prevent extreme overflow
+          const displayPx = Math.min(Math.max(px, 9), 52);
+          const lineHeight = displayPx >= 24 ? 1.15 : 1.3;
+          return (
+            <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
+              <span
+                className="flex-1 text-[var(--color-figma-text)] font-medium truncate"
+                style={{ fontSize: `${displayPx}px`, lineHeight }}
+              >
+                {label}
+              </span>
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono shrink-0 ml-2 whitespace-nowrap">
+                {formatValue(t.value)} → {Math.round(px)}px
+              </span>
+            </OverrideRow>
+          );
+        })}
+      </div>
     </div>
   );
 }

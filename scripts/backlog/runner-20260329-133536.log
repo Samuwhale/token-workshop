@@ -22,3 +22,10 @@
   → [HIGH] Type scale preview is the weakest of all generators — renders "Ag" text clamped to 8–32px so all steps look nearly identical; a type scale's purpose is showing visual hierarchy but the preview actively hides it; replace with a stacked typography specimen rendering actual text ("Heading", "Subheading", "Body text", "Caption") at generated sizes with real line-height, remove the clamp, show computed px alongside token value (e.g. "1.563rem → 25px"), and add a visual scale ruler showing ratio relationships between consecutive steps (TypeScaleGenerator.tsx:89-112)
   Worktree: /tmp/backlog-46928-InjcHT
   Running agent… (started 13:35:37)
+
+  ✓ done: Type scale preview is the weakest of all generators
+    Replaced "Ag" clamped preview with a scale ruler (proportional bars + ratio labels) and typography specimen (contextual labels at actual sizes, "1.563rem → 25px" annotations). Also fixed pre-existing useState-after-return lint errors in TokenGeneratorDialog.tsx.
+    23 turns · 257s · $0.73
+
+  Merging to main: Type scale preview is the weakest of all generators
+Already up to date.

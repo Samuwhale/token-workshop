@@ -25,3 +25,11 @@
 - **Learnings for future iterations:**
   - When making an SVG responsive with `width="100%"`, pointer event coordinates from `getBoundingClientRect` are in screen px but SVG math uses viewBox units — always scale by `(viewBoxDim / renderedDim)`.
 ---
+## 2026-03-29 - Type scale preview is the weakest of all generators
+- Replaced the "Ag" clamped (8–32px) preview with a two-section layout: (1) a scale ruler showing proportional horizontal bars with step name, token value → px, and ratio-to-previous-step labels; (2) a typography specimen with contextual text labels ("Display", "Heading", "Subheading", "Body text", etc.) rendered at actual sizes (capped at 52px to prevent extreme overflow). Both sections sort steps largest-to-smallest to emphasize hierarchy. The `formatValue() → Npx` annotation appears in both sections.
+- Also fixed a pre-existing lint violation in `TokenGeneratorDialog.tsx` where two `useState` hooks were declared after an early `return` block, causing "hooks called conditionally" errors that bumped lint count from 3 to 5.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L89-112, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L216-403
+- **Learnings for future iterations:**
+  - The validate script baseline lint check hardcodes `3` — sessions that introduce hooks-after-return errors silently accumulate; catch these early by running eslint on modified files before the full validate.
+  - Type scale previews benefit most from sorting steps by computed px value (largest-first) and showing `tokenValue → Npx` rather than just the raw token value.
+---

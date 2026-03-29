@@ -48,3 +48,18 @@ Already up to date.
 
   Merging to main: Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width; should use viewBox with width="100%" for responsive sizing
 Already up to date.
+[main de9312ce] chore(backlog): done – Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width; should use viewBox with width="100%" for responsive sizing
+ 6 files changed, 28 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Staircase editor has fixed 240px width — doesn't adapt to the plugin panel width
+- Changed SVG `width={W}` (240px) to `width="100%"` so the editor scales to fill its container. viewBox stays `0 0 240 140` so the internal coordinate system is unchanged.
+- Fixed pointer coordinate conversion in `handlePointerMove`: `sy = (e.clientY - rect.top) * (H / rect.height)` to map screen px to viewBox units when the rendered height differs from `H`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx` ~L135, ~L79
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  21 queued · 2 in-progress · last took 1m8s
+═══════════════════════════════════════════════════════════════
+  → Border radius preview shows bar charts instead of actual rounded corners — reuses SpacingPreview (horizontal bars) but should show a row of rectangles with increasing corner radii, which is instantly legible to a designer (BorderRadiusGenerator.tsx, SpacingScaleGenerator.tsx:70)
+  Worktree: /tmp/backlog-48983-2ZP2n4
+  Running agent… (started 13:39:34)
