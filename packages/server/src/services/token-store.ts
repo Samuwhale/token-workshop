@@ -514,9 +514,11 @@ export class TokenStore {
   private async _createSetNoRebuild(name: string, tokens: TokenGroup = {}): Promise<TokenSet> {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);
+    const tmpPath = filePath + '.tmp';
     await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(tmpPath, JSON.stringify(tokens, null, 2));
     this._startWriteGuard(filePath);
-    await fs.writeFile(filePath, JSON.stringify(tokens, null, 2));
+    await fs.rename(tmpPath, filePath);
     const set: TokenSet = { name, tokens, filePath };
     this.sets.set(name, set);
     return set;
@@ -1674,9 +1676,11 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) return;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
+    const tmpPath = filePath + '.tmp';
     await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(tmpPath, JSON.stringify(set.tokens, null, 2));
     this._startWriteGuard(filePath);
-    await fs.writeFile(filePath, JSON.stringify(set.tokens, null, 2));
+    await fs.rename(tmpPath, filePath);
   }
 
   // ----- SSE support -----

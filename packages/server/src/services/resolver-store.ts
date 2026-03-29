@@ -129,11 +129,12 @@ export class ResolverStore {
   async delete(name: string): Promise<boolean> {
     if (!this.resolvers.has(name)) return false;
     const filePath = this.nameToPath(name);
-    this._startWriteGuard(filePath);
     try {
+      this._startWriteGuard(filePath);
       await fs.unlink(filePath);
     } catch {
-      // File may already be gone
+      // File may already be gone — clear guard since watcher won't fire
+      this._clearWriteGuard(filePath);
     }
     this.resolvers.delete(name);
     return true;
@@ -199,18 +200,33 @@ export class ResolverStore {
     return rel.slice(0, -'.resolver.json'.length);
   }
 
+  /**
+   * Write JSON to disk atomically: write to a .tmp file first, then rename.
+   * fs.rename is atomic on the same filesystem, so the watcher never sees
+   * a partially-written file. The write guard starts just before the
+   * (instantaneous) rename, not before the (slow) writeFile.
+   */
   private async writeToDisk(name: string, file: ResolverFile): Promise<void> {
     const filePath = this.nameToPath(name);
+    const tmpPath = filePath + '.tmp';
     const dir = path.dirname(filePath);
     await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(tmpPath, JSON.stringify(file, null, 2));
     this._startWriteGuard(filePath);
-    await fs.writeFile(filePath, JSON.stringify(file, null, 2));
+    await fs.rename(tmpPath, filePath);
   }
 
   private _startWriteGuard(filePath: string): void {
     const existing = this._writingFiles.get(filePath);
     if (existing) clearTimeout(existing);
-    this._writingFiles.set(filePath, setTimeout(() => this._writingFiles.delete(filePath), 500));
+    // Fallback timeout only for memory-leak prevention — the watcher callback clears the guard first
+    this._writingFiles.set(filePath, setTimeout(() => this._writingFiles.delete(filePath), 30_000));
+  }
+
+  private _clearWriteGuard(filePath: string): void {
+    const timer = this._writingFiles.get(filePath);
+    if (timer) clearTimeout(timer);
+    this._writingFiles.delete(filePath);
   }
 
   private async loadAll(): Promise<void> {
@@ -271,13 +287,13 @@ export class ResolverStore {
 
   private async onFileChange(filePath: string): Promise<void> {
     if (!filePath.endsWith('.resolver.json')) return;
-    if (this._writingFiles.has(filePath)) return;
+    if (this._writingFiles.has(filePath)) { this._clearWriteGuard(filePath); return; }
     await this.loadFile(filePath);
   }
 
   private onFileRemove(filePath: string): void {
     if (!filePath.endsWith('.resolver.json')) return;
-    if (this._writingFiles.has(filePath)) return;
+    if (this._writingFiles.has(filePath)) { this._clearWriteGuard(filePath); return; }
     const name = this.pathToName(filePath);
     if (name) this.resolvers.delete(name);
   }

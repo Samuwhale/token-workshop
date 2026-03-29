@@ -214,3 +214,10 @@ Already up to date.
   → resolver-store.ts write guard starts BEFORE the actual file write, creating a race window for partial reads — L206-207: `_startWriteGuard(filePath)` is called before `fs.writeFile()`, so the 500ms ignore window starts ticking during the write; if the write takes >500ms (large file, slow disk), the guard expires and the file watcher reads a partially-written JSON file, corrupting in-memory state; also, any external edit within the 500ms window after our write (L272-275) is silently dropped; fix by starting the guard after writeFile resolves, or use atomic write (write to .tmp then rename)
   Worktree: /tmp/backlog-66903-RUyKpG
   Running agent… (started 08:07:30)
+
+  ✓ done: resolver-store.ts write guard starts BEFORE the actual file write
+    Switched to atomic writes (tmp+rename) in both resolver-store.ts and token-store.ts; guard now starts before instantaneous rename instead of slow writeFile; added _clearWriteGuard and increased timeout to 30s in resolver-store to match token-store
+    22 turns · 150s · $0.76
+
+  Merging to main: resolver-store.ts write guard starts BEFORE the actual file write
+Already up to date.
