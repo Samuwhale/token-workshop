@@ -481,3 +481,15 @@
   - The `onError` handler in `useTokenCrud` was correctly implemented but never connected at the call site — confirms the pattern that prop wiring bugs are hard to spot since TS only checks the type is optional, not that it should be provided.
   - All three TokenList usages in App.tsx share the same long `actions` inline object; if adding a new action callback, update all three.
 ---
+
+## 2026-03-29 - Token create-from-selection gives no feedback on conflict/success
+- On success: added `parent.postMessage({ type: 'notify', message: 'Token "X" created' })` call before `onTokenCreated` in `handleCreateToken` — surfaces a Figma native notification confirming creation.
+- On 409 conflict: instead of showing a small red error string, now sets `conflictExists` state and renders an inline "Token already exists. [Overwrite?]" message. The "Overwrite?" button calls `handleOverwriteToken` which PATCHes the existing token and shows a "Token overwritten" notification on success.
+- Reset `conflictExists` whenever the name input changes so the conflict message clears as soon as the user edits the path.
+- Imported `ApiError` from `apiFetch.ts` to reliably detect 409 vs other errors.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L8, ~L83, ~L153, ~L513
+- **Learnings for future iterations:**
+  - `parent.postMessage({ pluginMessage: { type: 'notify', message } }, '*')` works from any UI component — no need to thread toast callbacks through props from App.tsx.
+  - `ApiError` from `apiFetch.ts` has a `.status` field — use `err instanceof ApiError && err.status === 409` to branch on conflict vs other errors.
+  - For overwrite flows, PATCH `/api/tokens/:set/*` accepts the same body fields as POST and updates in place.
+---

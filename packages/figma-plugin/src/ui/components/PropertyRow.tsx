@@ -5,7 +5,7 @@ import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import {
   getBindingForProperty,
@@ -81,6 +81,7 @@ export function PropertyRow({
 }: PropertyRowProps) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [conflictExists, setConflictExists] = useState(false);
   const [bindQuery, setBindQuery] = useState('');
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
 
@@ -155,6 +156,7 @@ export function PropertyRow({
     const pathTrimmed = newTokenName.trim();
     if (!/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/.test(pathTrimmed)) {
       setCreateError('Path must be dot-separated segments of letters, numbers, - and _');
+      setConflictExists(false);
       return;
     }
     const currentValue = getCurrentValue(selectedNodes, prop);
@@ -174,10 +176,49 @@ export function PropertyRow({
           $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
         }),
       });
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" created` } }, '*');
       onTokenCreated(tokenPath, prop, tokenType, tokenValue);
       setCreateError('');
+      setConflictExists(false);
     } catch (err) {
-      setCreateError(getErrorMessage(err, 'Network request failed'));
+      if (err instanceof ApiError && err.status === 409) {
+        setConflictExists(true);
+        setCreateError('');
+      } else {
+        setConflictExists(false);
+        setCreateError(getErrorMessage(err, 'Network request failed'));
+      }
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleOverwriteToken = async () => {
+    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !activeSet) return;
+    const currentValue = getCurrentValue(selectedNodes, prop);
+    const tokenType = getTokenTypeForProperty(prop);
+    const tokenValue = getTokenValueFromProp(prop, currentValue);
+    const tokenPath = newTokenName.trim();
+    const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+
+    setCreating(true);
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          $type: tokenType,
+          $value: tokenValue,
+          $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+        }),
+      });
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" overwritten` } }, '*');
+      onTokenCreated(tokenPath, prop, tokenType, tokenValue);
+      setCreateError('');
+      setConflictExists(false);
+    } catch (err) {
+      setConflictExists(false);
+      setCreateError(getErrorMessage(err, 'Failed to overwrite token'));
     } finally {
       setCreating(false);
     }
@@ -502,7 +543,7 @@ export function PropertyRow({
               <input
                 ref={nameInputRef}
                 value={newTokenName}
-                onChange={e => { onNewTokenNameChange(e.target.value); setCreateError(''); }}
+                onChange={e => { onNewTokenNameChange(e.target.value); setCreateError(''); setConflictExists(false); }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleCreateToken();
                   if (e.key === 'Escape') onCancelCreate();
@@ -510,7 +551,19 @@ export function PropertyRow({
                 placeholder="group.token-name"
                 className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               />
-              {createError && <div className="text-[10px] text-[var(--color-figma-error)]">{createError}</div>}
+              {conflictExists && (
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="text-[var(--color-figma-text-secondary)]">Token already exists.</span>
+                  <button
+                    onClick={handleOverwriteToken}
+                    disabled={creating}
+                    className="text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+                  >
+                    Overwrite?
+                  </button>
+                </div>
+              )}
+              {!conflictExists && createError && <div className="text-[10px] text-[var(--color-figma-error)]">{createError}</div>}
             </div>
             <div className="flex gap-1.5 justify-end">
               <button
