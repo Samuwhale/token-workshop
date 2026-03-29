@@ -194,3 +194,10 @@ Already up to date.
   → Command palette qualifier hint chips disappear after any input is entered — chips showing available qualifiers (type:, set:, alias:) vanish once the user starts typing, making it impossible to discover additional qualifiers mid-query; render the chips persistently as a scrollable reference row below the input (CommandPalette.tsx ~L395)
   Worktree: /tmp/backlog-48303-xkUDyo
   Running agent… (started 14:09:37)
+
+  ✓ done: Command palette qualifier hint chips disappear after any input is entered
+    Chips now render persistently as a compact scrollable reference row whenever in token mode; also fixed pre-existing PublishPanel.tsx build breakage from prior session
+    39 turns · 397s · $1.21
+
+  Merging to main: Command palette qualifier hint chips disappear after any input is entered
+Already up to date.

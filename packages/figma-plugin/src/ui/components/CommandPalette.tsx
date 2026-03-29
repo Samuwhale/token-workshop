@@ -397,13 +397,14 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
           </kbd>
         </div>
 
-        {/* Qualifier hint chips */}
-        {isTokenMode && !hasQualifiers && !parsedTokenQuery.text && (
-          <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] flex flex-wrap gap-1.5">
+        {/* Qualifier hint chips — persistent reference row */}
+        {isTokenMode && (
+          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 overflow-x-auto scrollbar-none">
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
             {QUERY_QUALIFIERS.filter(q => q.example || q.qualifier.includes(':')).slice(0, 6).map(q => (
               <button
                 key={q.qualifier}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
                 onClick={() => setQuery('>' + q.qualifier + (q.qualifier.endsWith(':') ? '' : ' '))}
                 title={q.desc}
               >

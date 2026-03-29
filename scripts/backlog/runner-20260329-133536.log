@@ -243,3 +243,18 @@ Already up to date.
 
   Merging to main: generator-service.ts saveGenerators() writes non-atomically, risking config corruption on crash
 Already up to date.
+[main 0e661dc0] chore(backlog): done – generator-service.ts saveGenerators() writes non-atomically, risking config corruption on crash
+ 5 files changed, 36 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - generator-service.ts saveGenerators() writes non-atomically, risking config corruption on crash
+- Replaced direct `fs.writeFile` in `saveGenerators()` with atomic `.tmp` + `fs.rename` pattern, matching `token-store.ts` and `resolver-store.ts`.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L117
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  9 queued · 3 in-progress · last took 42s
+═══════════════════════════════════════════════════════════════
+  → Generator templates that require a source token give no upfront signal — templates like "colorRamp" need the user to have a base color token, but this constraint is only surfaced after the user tries to proceed; show a "Requires a color token" badge on template cards at selection time so users know what they need before clicking (GraphPanel.tsx requiresSource property)
+  Worktree: /tmp/backlog-46928-ioVwl2
+  Running agent… (started 14:15:43)

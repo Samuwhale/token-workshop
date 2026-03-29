@@ -281,3 +281,13 @@
   - A server crash mid-write to `$generators.json` would leave truncated JSON, blocking all future server starts.
   - The fix is a two-liner: write to `.tmp` first, then rename atomically.
 ---
+
+## 2026-03-29 - Command palette qualifier hint chips disappear after any input is entered
+- Removed the `!hasQualifiers && !parsedTokenQuery.text` condition from the qualifier chips row in CommandPalette.tsx. Chips now render persistently whenever in token mode (`isTokenMode`), displayed as a single-line horizontally scrollable reference row with a "filters:" label prefix. The `flex-wrap` was replaced with `overflow-x-auto` and `shrink-0` on each chip to keep the row compact.
+- Also fixed a pre-existing build-breaking regression in PublishPanel.tsx introduced by the `acab42fa` spinner refactor commit, which accidentally left ~400 lines of misplaced/duplicate JSX inside the sub-tab map callback instead of the correct sub-panel structure.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L394, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (restored to pre-commit structure + Spinner import)
+- **Learnings for future iterations:**
+  - When a chip/hint row is meant to be "discoverable", hiding it on input defeats the purpose — always visible as a compact scrollable row is better UX.
+  - Pre-existing build failures from prior sessions can block validation; check `git stash` test before assuming your change caused a failure.
+  - Large JSX insertions via diff should be verified structurally — the acab42fa commit inserted content inside a `.map()` return that was supposed to replace the return value, leaving orphaned `</Section>` tags and duplicate sub-panel code.
+---
