@@ -36,6 +36,10 @@ const PROPERTY_LABELS: Record<string, string> = {
   paddingLeft: 'Padding Left',
   itemSpacing: 'Item Spacing',
   opacity: 'Opacity',
+  fontSize: 'Font Size',
+  fontWeight: 'Font Weight',
+  lineHeight: 'Line Height',
+  letterSpacing: 'Letter Spacing',
 };
 
 const NODE_TYPE_LABELS: Record<string, string> = {
@@ -195,10 +199,10 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     setError(null);
     setSnappedKeys(new Set());
 
-    // Build a flat resolved token map (only color, dimension, number)
+    // Build a flat resolved token map (color, dimension, number, fontWeight)
     const tokenMap: Record<string, { $value: any; $type: string }> = {};
     for (const [path, entry] of Object.entries(availableTokens)) {
-      if (['color', 'dimension', 'number'].includes(entry.$type)) {
+      if (['color', 'dimension', 'number', 'fontWeight'].includes(entry.$type)) {
         tokenMap[path] = { $value: entry.$value, $type: entry.$type };
       }
     }
@@ -306,7 +310,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
             </svg>
             <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Find near-matches</p>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] max-w-48">
-              Scans for colors, spacing, and other values that are close to — but not exactly — a design token.
+              Scans for colors, spacing, typography, and other values that are close to — but not exactly — a design token.
             </p>
           </div>
         )}

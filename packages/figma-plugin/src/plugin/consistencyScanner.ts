@@ -170,15 +170,20 @@ export async function scanConsistency(
     const colorTokens: [string, { $value: any }][] = [];
     const dimTokens: [string, { $value: any }][] = [];
     const numTokens: [string, { $value: any }][] = [];
+    const fontWeightTokens: [string, { $value: any }][] = [];
     for (const [path, entry] of Object.entries(tokenMap)) {
       if (entry.$type === 'color') colorTokens.push([path, entry]);
       else if (entry.$type === 'dimension') dimTokens.push([path, entry]);
       else if (entry.$type === 'number') numTokens.push([path, entry]);
+      else if (entry.$type === 'fontWeight') fontWeightTokens.push([path, entry]);
     }
 
     const colorIndex = buildColorIndex(colorTokens);
     const dimIndex = buildSortedNumericIndex(dimTokens, (v) => parseDimValue(v));
     const numIndex = buildSortedNumericIndex(numTokens, (v) =>
+      typeof v === 'number' ? v : parseFloat(String(v)),
+    );
+    const fontWeightIndex = buildSortedNumericIndex(fontWeightTokens, (v) =>
       typeof v === 'number' ? v : parseFloat(String(v)),
     );
 
@@ -282,6 +287,69 @@ export async function scanConsistency(
               nodeId: node.id, nodeName: node.name, nodeType: node.type,
               property: 'opacity', actualValue: val, tokenValue: hit.num,
             });
+          }
+        }
+      }
+
+      // --- Typography properties (TEXT nodes only) ---
+      if (node.type === 'TEXT') {
+        // Font size
+        if (!bound.has('fontSize') && 'fontSize' in node) {
+          const val = n['fontSize'];
+          if (typeof val === 'number' && val > 0) {
+            for (const hit of queryNumericIndex(dimIndex, val, DIM_NEAR_MAX)) {
+              addMatch(hit.path, 'dimension', hit.rawValue, 'fontSize', {
+                nodeId: node.id, nodeName: node.name, nodeType: node.type,
+                property: 'fontSize', actualValue: val, tokenValue: hit.num,
+              });
+            }
+          }
+        }
+
+        // Font weight
+        if (!bound.has('fontWeight') && 'fontWeight' in node) {
+          const val = n['fontWeight'];
+          if (typeof val === 'number' && val > 0) {
+            // Font weight values are multiples of 100; threshold of 50 covers rounding
+            for (const hit of queryNumericIndex(fontWeightIndex, val, 50)) {
+              addMatch(hit.path, 'fontWeight', hit.rawValue, 'fontWeight', {
+                nodeId: node.id, nodeName: node.name, nodeType: node.type,
+                property: 'fontWeight', actualValue: val, tokenValue: hit.num,
+              });
+            }
+          }
+        }
+
+        // Line height (pixels only)
+        if (!bound.has('lineHeight') && 'lineHeight' in node) {
+          const lh = n['lineHeight'];
+          if (lh && typeof lh === 'object' && !Array.isArray(lh)) {
+            const lineHeight = lh as { unit: string; value?: number };
+            if (lineHeight.unit === 'PIXELS' && typeof lineHeight.value === 'number' && lineHeight.value > 0) {
+              for (const hit of queryNumericIndex(dimIndex, lineHeight.value, DIM_NEAR_MAX)) {
+                addMatch(hit.path, 'dimension', hit.rawValue, 'lineHeight', {
+                  nodeId: node.id, nodeName: node.name, nodeType: node.type,
+                  property: 'lineHeight', actualValue: lineHeight.value, tokenValue: hit.num,
+                });
+              }
+            }
+          }
+        }
+
+        // Letter spacing (pixels only)
+        if (!bound.has('letterSpacing') && 'letterSpacing' in node) {
+          const ls = n['letterSpacing'];
+          if (ls && typeof ls === 'object' && !Array.isArray(ls)) {
+            const letterSpacing = ls as { unit: string; value: number };
+            if (letterSpacing.unit === 'PIXELS' && typeof letterSpacing.value === 'number' && letterSpacing.value !== 0) {
+              const absVal = Math.abs(letterSpacing.value);
+              for (const hit of queryNumericIndex(dimIndex, absVal, DIM_NEAR_MAX)) {
+                addMatch(hit.path, 'dimension', hit.rawValue, 'letterSpacing', {
+                  nodeId: node.id, nodeName: node.name, nodeType: node.type,
+                  property: 'letterSpacing', actualValue: letterSpacing.value, tokenValue: hit.num,
+                });
+              }
+            }
           }
         }
       }
