@@ -372,3 +372,16 @@
   - The `useLintConfig` hook handles all fetch/update/reset logic cleanly, making integration trivial
   - LintConfigPanel's `onLintRefresh` callback is a natural hook to trigger re-validation after rule changes
 ---
+
+## 2026-03-29 - Consistency scanner has quadratic time complexity on large pages
+- Replaced O(nodes × tokens) linear scan with reverse-index lookups built once upfront:
+  - **Color tokens**: Spatial hash (3D grid with bucket size = COLOR_NEAR_MAX=10) enables O(1) avg lookup by checking only 27 neighboring buckets instead of all color tokens
+  - **Dimension tokens**: Sorted array + binary search for range queries → O(log n) per lookup
+  - **Number/opacity tokens**: Same sorted-array approach → O(log n) per lookup
+- Overall complexity reduced from O(nodes × tokens) to O(nodes × log(tokens)) for numeric properties and O(nodes × k) for colors where k is the avg bucket population (typically 1-3 tokens)
+- Files changed: `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L36-128 (new index builders + query functions), ~L130-278 (refactored scanConsistency to use indexes)
+- **Learnings for future iterations:**
+  - The existing code already pre-bucketed tokens by type (color/dim/number) but still did linear scan within each bucket
+  - `parseHexRaw` returns 0-1 RGB values, must scale to 0-255 for Euclidean distance — this is already noted in the original code but easy to forget
+  - Spatial hashing with 3×3×3 neighbor search is a good general pattern for near-match color lookups with small thresholds
+---

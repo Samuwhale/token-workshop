@@ -44,6 +44,114 @@ function colorDist(hex1: string, hex2: string): number {
   return Math.sqrt(dr ** 2 + dg ** 2 + db ** 2);
 }
 
+// ---------------------------------------------------------------------------
+// Reverse-index helpers — reduce per-node lookup from O(tokens) to O(1) avg
+// ---------------------------------------------------------------------------
+
+/** Spatial hash for color tokens. Buckets by quantized RGB (bucket size = COLOR_NEAR_MAX). */
+interface ColorEntry { path: string; hex: string; r: number; g: number; b: number }
+
+const COLOR_BUCKET_SIZE = COLOR_NEAR_MAX; // 10
+
+function buildColorIndex(colorTokens: [string, { $value: any }][]) {
+  const buckets = new Map<string, ColorEntry[]>();
+
+  for (const [path, entry] of colorTokens) {
+    const hex = typeof entry.$value === 'string' ? entry.$value : null;
+    if (!hex) continue;
+    const c = parseHexRaw(hex.replace('#', ''));
+    if (!c) continue;
+    const r = c.rgb.r * 255, g = c.rgb.g * 255, b = c.rgb.b * 255;
+    const bk = bucketKey(r, g, b);
+    let arr = buckets.get(bk);
+    if (!arr) { arr = []; buckets.set(bk, arr); }
+    arr.push({ path, hex, r, g, b });
+  }
+
+  return { buckets };
+}
+
+function bucketKey(r: number, g: number, b: number): string {
+  return `${Math.floor(r / COLOR_BUCKET_SIZE)},${Math.floor(g / COLOR_BUCKET_SIZE)},${Math.floor(b / COLOR_BUCKET_SIZE)}`;
+}
+
+/** Return all color tokens within COLOR_NEAR_MAX of the given hex (excluding exact matches). */
+function queryColorIndex(
+  index: { buckets: Map<string, ColorEntry[]> },
+  hex: string,
+): ColorEntry[] {
+  const c = parseHexRaw(hex.replace('#', ''));
+  if (!c) return [];
+  const r = c.rgb.r * 255, g = c.rgb.g * 255, b = c.rgb.b * 255;
+  const br = Math.floor(r / COLOR_BUCKET_SIZE);
+  const bg = Math.floor(g / COLOR_BUCKET_SIZE);
+  const bb = Math.floor(b / COLOR_BUCKET_SIZE);
+  const results: ColorEntry[] = [];
+
+  // Check 3×3×3 neighboring buckets to cover the distance threshold
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dg = -1; dg <= 1; dg++) {
+      for (let db = -1; db <= 1; db++) {
+        const key = `${br + dr},${bg + dg},${bb + db}`;
+        const entries = index.buckets.get(key);
+        if (!entries) continue;
+        for (const e of entries) {
+          const dist = Math.sqrt((r - e.r) ** 2 + (g - e.g) ** 2 + (b - e.b) ** 2);
+          if (dist > COLOR_EXACT_MAX && dist <= COLOR_NEAR_MAX) {
+            results.push(e);
+          }
+        }
+      }
+    }
+  }
+  return results;
+}
+
+/** Sorted numeric index for dimension/number tokens — supports range queries via binary search. */
+interface NumericEntry { path: string; rawValue: any; num: number }
+
+function buildSortedNumericIndex(
+  tokens: [string, { $value: any }][],
+  parseValue: (v: any) => number,
+): NumericEntry[] {
+  const entries: NumericEntry[] = [];
+  for (const [path, entry] of tokens) {
+    const num = parseValue(entry.$value);
+    if (Number.isNaN(num) || num <= 0) continue;
+    entries.push({ path, rawValue: entry.$value, num });
+  }
+  entries.sort((a, b) => a.num - b.num);
+  return entries;
+}
+
+/** Binary search: index of first entry with num >= target. */
+function lowerBound(arr: NumericEntry[], target: number): number {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid].num < target) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
+/** Return all entries within (0, threshold] of val. */
+function queryNumericIndex(
+  sorted: NumericEntry[],
+  val: number,
+  threshold: number,
+): NumericEntry[] {
+  const lo = lowerBound(sorted, val - threshold);
+  const hi = lowerBound(sorted, val + threshold + 1e-9); // +epsilon to include boundary
+  const results: NumericEntry[] = [];
+  for (let i = lo; i < hi; i++) {
+    const diff = Math.abs(val - sorted[i].num);
+    if (diff > 0 && diff <= threshold) results.push(sorted[i]);
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+
 export async function scanConsistency(
   tokenMap: Record<string, { $value: any; $type: string }>,
   scope: 'selection' | 'page',
@@ -58,15 +166,21 @@ export async function scanConsistency(
       nodes.push(node);
     }
 
-    // Pre-bucket tokens by type
-    const colorTokens: [string, { $value: any; $type: string }][] = [];
-    const dimTokens: [string, { $value: any; $type: string }][] = [];
-    const numTokens: [string, { $value: any; $type: string }][] = [];
+    // Build reverse indexes upfront — O(tokens) once, then O(1) or O(log tokens) per lookup
+    const colorTokens: [string, { $value: any }][] = [];
+    const dimTokens: [string, { $value: any }][] = [];
+    const numTokens: [string, { $value: any }][] = [];
     for (const [path, entry] of Object.entries(tokenMap)) {
       if (entry.$type === 'color') colorTokens.push([path, entry]);
       else if (entry.$type === 'dimension') dimTokens.push([path, entry]);
       else if (entry.$type === 'number') numTokens.push([path, entry]);
     }
+
+    const colorIndex = buildColorIndex(colorTokens);
+    const dimIndex = buildSortedNumericIndex(dimTokens, (v) => parseDimValue(v));
+    const numIndex = buildSortedNumericIndex(numTokens, (v) =>
+      typeof v === 'number' ? v : parseFloat(String(v)),
+    );
 
     // key = `${tokenPath}::${property}`
     const suggestionMap = new Map<string, ConsistencySuggestion>();
@@ -108,45 +222,35 @@ export async function scanConsistency(
         }
       }
 
-      // --- Fill color ---
+      // --- Fill color (spatial hash lookup) ---
       if (!bound.has('fill') && !bound.has('fills') && 'fills' in node) {
         const fills = n['fills'];
         if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
           const hex = rgbToHex(fills[0].color as RGB, fills[0].opacity ?? 1);
-          for (const [tokenPath, entry] of colorTokens) {
-            const tokenHex = typeof entry.$value === 'string' ? entry.$value : null;
-            if (!tokenHex) continue;
-            const dist = colorDist(hex, tokenHex);
-            if (dist > COLOR_EXACT_MAX && dist <= COLOR_NEAR_MAX) {
-              addMatch(tokenPath, 'color', tokenHex, 'fill', {
-                nodeId: node.id, nodeName: node.name, nodeType: node.type,
-                property: 'fill', actualValue: hex, tokenValue: tokenHex,
-              });
-            }
+          for (const hit of queryColorIndex(colorIndex, hex)) {
+            addMatch(hit.path, 'color', hit.hex, 'fill', {
+              nodeId: node.id, nodeName: node.name, nodeType: node.type,
+              property: 'fill', actualValue: hex, tokenValue: hit.hex,
+            });
           }
         }
       }
 
-      // --- Stroke color ---
+      // --- Stroke color (spatial hash lookup) ---
       if (!bound.has('stroke') && !bound.has('strokes') && 'strokes' in node) {
         const strokes = n['strokes'];
         if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
           const hex = rgbToHex(strokes[0].color as RGB, strokes[0].opacity ?? 1);
-          for (const [tokenPath, entry] of colorTokens) {
-            const tokenHex = typeof entry.$value === 'string' ? entry.$value : null;
-            if (!tokenHex) continue;
-            const dist = colorDist(hex, tokenHex);
-            if (dist > COLOR_EXACT_MAX && dist <= COLOR_NEAR_MAX) {
-              addMatch(tokenPath, 'color', tokenHex, 'stroke', {
-                nodeId: node.id, nodeName: node.name, nodeType: node.type,
-                property: 'stroke', actualValue: hex, tokenValue: tokenHex,
-              });
-            }
+          for (const hit of queryColorIndex(colorIndex, hex)) {
+            addMatch(hit.path, 'color', hit.hex, 'stroke', {
+              nodeId: node.id, nodeName: node.name, nodeType: node.type,
+              property: 'stroke', actualValue: hex, tokenValue: hit.hex,
+            });
           }
         }
       }
 
-      // --- Numeric dimension properties ---
+      // --- Numeric dimension properties (binary search lookup) ---
       const dimBindProps: { figmaProp: string; bindKey: string }[] = [
         { figmaProp: 'cornerRadius', bindKey: 'cornerRadius' },
         { figmaProp: 'strokeWeight', bindKey: 'strokeWeight' },
@@ -161,36 +265,23 @@ export async function scanConsistency(
         if (!(figmaProp in node)) continue;
         const val = n[figmaProp];
         if (typeof val !== 'number' || val <= 0) continue;
-        // Skip Figma's "mixed" symbol (which is a Symbol, not a number)
-        for (const [tokenPath, entry] of dimTokens) {
-          const tokenNum = parseDimValue(entry.$value);
-          if (tokenNum <= 0) continue;
-          const diff = Math.abs(val - tokenNum);
-          if (diff > 0 && diff <= DIM_NEAR_MAX) {
-            addMatch(tokenPath, 'dimension', entry.$value, bindKey, {
-              nodeId: node.id, nodeName: node.name, nodeType: node.type,
-              property: bindKey, actualValue: val, tokenValue: tokenNum,
-            });
-          }
+        for (const hit of queryNumericIndex(dimIndex, val, DIM_NEAR_MAX)) {
+          addMatch(hit.path, 'dimension', hit.rawValue, bindKey, {
+            nodeId: node.id, nodeName: node.name, nodeType: node.type,
+            property: bindKey, actualValue: val, tokenValue: hit.num,
+          });
         }
       }
 
-      // --- Opacity ---
+      // --- Opacity (binary search lookup) ---
       if (!bound.has('opacity') && 'opacity' in node) {
         const val = n['opacity'];
         if (typeof val === 'number' && val < 1) {
-          for (const [tokenPath, entry] of numTokens) {
-            const tokenNum = typeof entry.$value === 'number'
-              ? entry.$value
-              : parseFloat(String(entry.$value));
-            if (Number.isNaN(tokenNum)) continue;
-            const diff = Math.abs(val - tokenNum);
-            if (diff > 0 && diff <= OPACITY_NEAR_MAX) {
-              addMatch(tokenPath, 'number', entry.$value, 'opacity', {
-                nodeId: node.id, nodeName: node.name, nodeType: node.type,
-                property: 'opacity', actualValue: val, tokenValue: tokenNum,
-              });
-            }
+          for (const hit of queryNumericIndex(numIndex, val, OPACITY_NEAR_MAX)) {
+            addMatch(hit.path, 'number', hit.rawValue, 'opacity', {
+              nodeId: node.id, nodeName: node.name, nodeType: node.type,
+              property: 'opacity', actualValue: val, tokenValue: hit.num,
+            });
           }
         }
       }

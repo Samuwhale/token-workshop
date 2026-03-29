@@ -180,3 +180,10 @@ Already up to date.
   → Consistency scanner has quadratic time complexity on large pages — consistencyScanner.ts iterates all tokens for each scanned node (O(nodes * tokens)); for a page with 5,000 nodes and 1,000 tokens this causes multi-second hangs; build a reverse index (value -> token path) upfront to reduce to O(nodes * log(tokens))
   Worktree: /tmp/backlog-66493-DcpGDC
   Running agent… (started 08:03:36)
+
+  ✓ done: Consistency scanner has quadratic time complexity on large pages
+    Built reverse indexes (spatial hash for colors, sorted arrays + binary search for dimensions/numbers) reducing per-node lookup from O(tokens) to O(log tokens) or O(1) avg
+    10 turns · 144s · $0.62
+
+  Merging to main: Consistency scanner has quadratic time complexity on large pages
+Already up to date.
