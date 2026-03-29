@@ -950,11 +950,12 @@ export class TokenStore {
     types?: string[];
     has?: string[];
     values?: string[];
+    descs?: string[];
     paths?: string[];
     names?: string[];
     limit?: number;
   }): Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> {
-    const { q, types, has, values, paths, names, limit = 200 } = opts;
+    const { q, types, has, values, descs, paths, names, limit = 200 } = opts;
     const qLower = q?.toLowerCase();
     const results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> = [];
 
@@ -964,9 +965,6 @@ export class TokenStore {
       const leafName = tokenPath.includes('.') ? tokenPath.slice(tokenPath.lastIndexOf('.') + 1) : tokenPath;
       const ln = leafName.toLowerCase();
 
-      // Free text: match against path or leaf name
-      if (qLower && !lp.includes(qLower) && !ln.includes(qLower)) continue;
-
       // path: qualifier
       if (paths && paths.length > 0 && !paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
 
@@ -975,6 +973,12 @@ export class TokenStore {
 
       for (const entry of entries) {
         if (results.length >= limit) break;
+
+        // Free text: match against path, leaf name, or description
+        if (qLower) {
+          const ld = (entry.token.$description || '').toLowerCase();
+          if (!lp.includes(qLower) && !ln.includes(qLower) && !ld.includes(qLower)) continue;
+        }
 
         // type: qualifier
         if (types && types.length > 0) {
@@ -998,6 +1002,12 @@ export class TokenStore {
         if (values && values.length > 0) {
           const sv = JSON.stringify(entry.token.$value).toLowerCase();
           if (!values.some(v => sv.includes(v))) continue;
+        }
+
+        // desc: qualifier — match $description
+        if (descs && descs.length > 0) {
+          const ld = (entry.token.$description || '').toLowerCase();
+          if (!descs.some(d => ld.includes(d))) continue;
         }
 
         results.push({

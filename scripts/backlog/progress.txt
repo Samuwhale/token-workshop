@@ -382,3 +382,16 @@
   - Scope applicability depends on token type — when batch-selecting mixed types, intersect the available scopes
   - The SVG chevron pattern works well for collapsible sections in the batch editor
 ---
+
+## 2026-03-29 - Free-text search does not match token description content
+- Added description matching to `searchTokens` free-text path: now matches path, leaf name, OR `$description`
+- Added `descs?: string[]` parameter to `searchTokens` with a `desc:` qualifier filter in the entry loop
+- Updated route `GET /api/tokens/search` to accept `desc` query param and pass `descs` to `searchTokens`
+- Updated TokenList.tsx cross-set search URL builder to include `desc:` qualifier terms
+- Updated client-side `filterTokenNodesStructured` free-text check to also match `node.$description`
+- Files changed: `packages/server/src/services/token-store.ts` ~L947-1020, `packages/server/src/routes/tokens.ts` ~L29-44, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L700-706, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L259
+- **Learnings for future iterations:**
+  - The `searchTokens` outer loop iterates per-path, but `$description` is on the per-entry token object — moving the free-text check into the inner entry loop is required to access description without two passes
+  - The client-side `desc:` qualifier was already fully implemented in `tokenListUtils.ts`; only free-text and server-side were missing
+  - Cross-set search URL params in `TokenList.tsx` must mirror all qualifiers supported by the server route
+---

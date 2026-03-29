@@ -255,8 +255,8 @@ function filterTokenNodesStructured(
       const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
-      // Free-text match (on path + name)
-      if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q)) continue;
+      // Free-text match (on path, name, or description)
+      if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
 
       // type: qualifier (OR within multiple type: values)
       if (parsed.types.length > 0) {

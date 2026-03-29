@@ -64,3 +64,10 @@ Already up to date.
   → Free-text search does not match token description content — `searchTokens` in `packages/server/src/services/token-store.ts` L936-938 only matches against path and leaf name (`lp.includes(qLower) || ln.includes(qLower)`); tokens with useful descriptions (e.g. "spacing used for card padding") cannot be found by description text; add description matching to the free-text search path, and consider adding a `desc:` qualifier for targeted description search
   Worktree: /tmp/backlog-68874-S7Hthz
   Running agent… (started 07:47:41)
+
+  ✓ done: Free-text search does not match token description content
+    Added description matching to both free-text search (server + client) and a new desc: qualifier on the server; cross-set search URL builder updated to forward desc: terms
+    23 turns · 128s · $0.51
+
+  Merging to main: Free-text search does not match token description content
+Already up to date.

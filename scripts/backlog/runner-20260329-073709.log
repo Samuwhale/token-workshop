@@ -94,3 +94,12 @@ Already up to date.
 
   Merging to main: BatchEditor has no bulk metadata operations
 Already up to date.
+[main 9a2b96a] chore(backlog): done – BatchEditor has no bulk metadata operations
+ 7 files changed, 156 insertions(+), 23 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 820 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

@@ -701,6 +701,7 @@ export function TokenList({
     if (parsed.types.length) params.set('type', parsed.types.join(','));
     if (parsed.has.length) params.set('has', parsed.has.join(','));
     if (parsed.values.length) params.set('value', parsed.values.join(','));
+    if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
     if (parsed.paths.length) params.set('path', parsed.paths.join(','));
     if (parsed.names.length) params.set('name', parsed.names.join(','));
     params.set('limit', '200');

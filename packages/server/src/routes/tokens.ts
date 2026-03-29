@@ -26,15 +26,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/tokens/search — search tokens across all sets
-  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; path?: string; name?: string; limit?: string } }>(
+  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string } }>(
     '/tokens/search',
     async (request) => {
-      const { q, type, has, value, path: pathQ, name: nameQ, limit } = request.query;
+      const { q, type, has, value, desc, path: pathQ, name: nameQ, limit } = request.query;
       const results = fastify.tokenStore.searchTokens({
         q: q || undefined,
         types: type ? type.split(',') : undefined,
         has: has ? has.split(',') : undefined,
         values: value ? value.split(',') : undefined,
+        descs: desc ? desc.split(',') : undefined,
         paths: pathQ ? pathQ.split(',') : undefined,
         names: nameQ ? nameQ.split(',') : undefined,
         limit: limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200,
