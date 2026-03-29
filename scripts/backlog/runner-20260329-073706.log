@@ -162,3 +162,18 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 58)
+[main 6b1cf4e] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 36 insertions(+), 329 deletions(-)
+  Milestone: 840 done — pass skipped (runner PID 67173 already running one)
+
+## 2026-03-29 - Merge ConsistencyPanel and HeatmapPanel into a single "Binding Audit" panel
+- Created `BindingAuditPanel.tsx` wrapping both panels with an internal "Coverage" / "Suggestions" toggle rendered as underline tabs
+- Updated `App.tsx`: replaced `HeatmapPanel`+`ConsistencyPanel` imports with `BindingAuditPanel`; narrowed `ApplySubTab` from `'inspect' | 'heatmap' | 'consistency'` to `'inspect' | 'audit'`; replaced two Apply sub-tabs with single `'audit'` sub-tab labeled "Binding Audit"; merged two panel rendering blocks into one `BindingAuditPanel` block; updated toolbar heatmap button and command palette entry to use `'audit'`
+- Files changed: `packages/figma-plugin/src/ui/components/BindingAuditPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L28-29 (imports), ~L170 (type), ~L218-219 (tab config), ~L692 (command palette), ~L927-941 (toolbar button), ~L1075 (sub-tab click), ~L2100-2130 (panel render)
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  1 queued · 5 in-progress · last took 3m34s
+═══════════════════════════════════════════════════════════════
+  → No backup/restore for plugin settings — SettingsPanel has 40+ localStorage keys across UI preferences, export config, navigation state, lint rules, and per-set sort/filter; there is no "Export settings" / "Import settings" action to transfer configuration between machines or recover after clearing browser data; add a JSON export/import for user-configurable settings
+  Worktree: /tmp/backlog-68874-qJxtxI
+  Running agent… (started 08:03:43)

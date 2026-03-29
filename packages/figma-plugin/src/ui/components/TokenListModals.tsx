@@ -73,6 +73,8 @@ export interface TokenListModalsProps {
   frBusy: boolean;
   frRegexError: string | null;
   frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean }>;
+  frConflictCount: number;
+  frRenameCount: number;
   onSetFrFind: (v: string) => void;
   onSetFrReplace: (v: string) => void;
   onSetFrIsRegex: (v: boolean) => void;
@@ -224,6 +226,8 @@ export function TokenListModals(props: TokenListModalsProps) {
     frBusy,
     frRegexError,
     frPreview,
+    frConflictCount,
+    frRenameCount,
     onSetFrFind,
     onSetFrReplace,
     onSetFrIsRegex,
@@ -544,7 +548,11 @@ export function TokenListModals(props: TokenListModalsProps) {
               )}
               {frPreview.length > 0 && (
                 <div className="flex flex-col gap-0.5">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">{frPreview.length} token{frPreview.length !== 1 ? 's' : ''} will change:</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+                    {frRenameCount} token{frRenameCount !== 1 ? 's' : ''} will be renamed{frConflictCount > 0 && (
+                      <span className="text-amber-600"> — {frConflictCount} skipped (conflict{frConflictCount !== 1 ? 's' : ''})</span>
+                    )}
+                  </div>
                   <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
                     {frPreview.map(({ oldPath, newPath, conflict }) => {
                       // Locate the matched segment in oldPath for highlighting
@@ -581,6 +589,14 @@ export function TokenListModals(props: TokenListModalsProps) {
                 </div>
               )}
 
+              {frBusy && (
+                <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)] py-1">
+                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
+                  </svg>
+                  Renaming {frRenameCount} token{frRenameCount !== 1 ? 's' : ''}…
+                </div>
+              )}
               {frError && <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
               {!frError && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">

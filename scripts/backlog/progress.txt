@@ -340,3 +340,14 @@
   - When merging panels that have different prop sources (one gets all props from App state, the other is self-contained), a thin wrapper component that accepts all props and routes them to the appropriate child is cleaner than inlining both into App
   - The toolbar toggle button used `activeSubTab === 'heatmap'` in both the click handler and the aria-pressed/className — all three references must be updated together
 ---
+
+## 2026-03-29 - Find-and-replace has no preview of skipped conflicts and no progress during bulk rename
+- Added `frConflictCount` and `frRenameCount` computed values to `useFindReplace` hook
+- Preview header now shows "N tokens will be renamed — M skipped (conflicts)" instead of just total count
+- Added spinner with descriptive text ("Renaming N tokens…") during `frBusy` state
+- Fixed 30s timeout error message: now says "Bulk rename timed out after 30s — try a narrower search pattern" instead of misleading "Bulk rename was cancelled" by tracking a `didTimeout` flag
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L100 (timeout flag), ~L148 (error message), ~L162-163 (new computed values); `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L75-76 (props), ~L229-230 (destructure), ~L547-549 (summary header), ~L583-590 (spinner); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L865 (destructure), ~L3990-3991 (props)
+- **Learnings for future iterations:**
+  - `AbortController.abort()` from both user cancel and `setTimeout` both set `signal.aborted = true` — need a separate flag to distinguish timeout from user cancel
+  - The existing spinner pattern in this codebase uses `<svg className="animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>`
+---

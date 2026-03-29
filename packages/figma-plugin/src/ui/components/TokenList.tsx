@@ -864,7 +864,7 @@ export function TokenList({
     showFindReplace, setShowFindReplace,
     frFind, setFrFind, frReplace, setFrReplace,
     frIsRegex, setFrIsRegex, frError, setFrError, frBusy,
-    frRegexError, frPreview, handleFindReplace, cancelFindReplace,
+    frRegexError, frPreview, frConflictCount, frRenameCount, handleFindReplace, cancelFindReplace,
   } = findReplace;
 
   const dragDrop = useDragDrop({
@@ -4008,6 +4008,8 @@ export function TokenList({
         frBusy={frBusy}
         frRegexError={frRegexError}
         frPreview={frPreview}
+        frConflictCount={frConflictCount}
+        frRenameCount={frRenameCount}
         onSetFrFind={setFrFind}
         onSetFrReplace={setFrReplace}
         onSetFrIsRegex={setFrIsRegex}

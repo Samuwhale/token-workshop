@@ -97,7 +97,8 @@ export function useFindReplace({
 
     const ac = new AbortController();
     abortRef.current = ac;
-    const timer = setTimeout(() => ac.abort(), BULK_RENAME_TIMEOUT_MS);
+    let didTimeout = false;
+    const timer = setTimeout(() => { didTimeout = true; ac.abort(); }, BULK_RENAME_TIMEOUT_MS);
 
     try {
       const data = await apiFetch<{ renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
@@ -145,7 +146,7 @@ export function useFindReplace({
       onRefresh();
     } catch (err) {
       if (ac.signal.aborted) {
-        setFrError('Bulk rename was cancelled');
+        setFrError(didTimeout ? `Bulk rename timed out after ${BULK_RENAME_TIMEOUT_MS / 1000}s — try a narrower search pattern` : 'Bulk rename was cancelled');
       } else if (err instanceof ApiError) {
         setFrError(err.message);
       } else {
@@ -157,6 +158,9 @@ export function useFindReplace({
       setFrBusy(false);
     }
   }, [frFind, frReplace, frIsRegex, frBusy, frPreview, serverUrl, setName, onRefresh, onPushUndo]);
+
+  const frConflictCount = useMemo(() => frPreview.filter(r => r.conflict).length, [frPreview]);
+  const frRenameCount = useMemo(() => frPreview.filter(r => !r.conflict).length, [frPreview]);
 
   return {
     showFindReplace,
@@ -172,6 +176,8 @@ export function useFindReplace({
     frBusy,
     frRegexError,
     frPreview,
+    frConflictCount,
+    frRenameCount,
     handleFindReplace,
     cancelFindReplace,
   };
