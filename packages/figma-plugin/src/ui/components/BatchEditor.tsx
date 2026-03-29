@@ -354,29 +354,15 @@ export function BatchEditor({
         },
       );
 
-      if (succeeded > 0) {
-        if (onPushUndo) {
-          const successOps = ops.filter((_, i) => results[i].status === 'fulfilled');
-          onPushUndo({
-            description: `Batch edit ${successOps.length} token${successOps.length === 1 ? '' : 's'}`,
-            restore: async () => {
-              await Promise.all(successOps.map(({ path, oldEntry }) => {
-                const restorePatch: Record<string, unknown> = { $type: oldEntry.$type, $value: oldEntry.$value };
-                if (batchScopes.length > 0) {
-                  // Restore old scopes (or clear if none were set)
-                  restorePatch.$extensions = { 'com.figma.scopes': oldEntry.$scopes ?? [] };
-                }
-                return patchToken(path, restorePatch);
-              }));
-              onApply();
-            },
-            redo: async () => {
-              await Promise.all(successOps.map(({ path, patch }) => patchToken(path, patch)));
-              onApply();
-            },
-          });
-        }
-        onApply();
+      if (onPushUndo && result.updated > 0) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Batch edit ${result.updated} token${result.updated === 1 ? '' : 's'}`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
       }
       onApply();
 

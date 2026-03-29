@@ -187,3 +187,18 @@ Already up to date.
 
   Merging to main: Consistency scanner has quadratic time complexity on large pages
 Already up to date.
+[main 9755f6c] chore(backlog): done – Consistency scanner has quadratic time complexity on large pages
+ 6 files changed, 180 insertions(+), 54 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Consistency scanner has quadratic time complexity on large pages
+- Replaced O(nodes × tokens) linear scan with reverse-index lookups built once upfront:
+  - **Color tokens**: Spatial hash (3D grid with bucket size = COLOR_NEAR_MAX=10) enables O(1) avg lookup by checking only 27 neighboring buckets instead of all color tokens
+  - **Dimension tokens**: Sorted array + binary search for range queries → O(log n) per lookup
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  7 queued · 6 in-progress · last took 2m32s
+═══════════════════════════════════════════════════════════════
+  → useSetMergeSplit has no conflict revalidation after target change — users can check conflicts (L70-99), then change the target set (L64-68) before confirming, which silently invalidates the conflict analysis; the merge executes against stale `mergeSrcFlat` data captured at check time; add a dirty flag or auto-recheck when target changes
+  Worktree: /tmp/backlog-66493-fNVXNX
+  Running agent… (started 08:06:08)

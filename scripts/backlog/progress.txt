@@ -385,3 +385,13 @@
   - `parseHexRaw` returns 0-1 RGB values, must scale to 0-255 for Euclidean distance — this is already noted in the original code but easy to forget
   - Spatial hashing with 3×3×3 neighbor search is a good general pattern for near-match color lookups with small thresholds
 ---
+
+## 2026-03-29 - BatchEditor undo/redo block references three undefined variables and crashes at runtime
+- Replaced broken undo/redo block in `handleApply` that referenced `succeeded` (undeclared), `results` (undeclared Promise.allSettled output), and `patchToken` (undefined) with the same `rollbackOperation(operationId)` pattern already used by `handleMove` and `handleRename`
+- Removed duplicate `onApply()` call (was called both inside the `if` block and unconditionally after it)
+- Now derives success from `result.updated` count returned by the batch API
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L357-381
+- **Learnings for future iterations:**
+  - When batch operations were migrated from per-token `Promise.allSettled` to single batch API calls, the undo block was not updated to match — always check undo/redo paths when refactoring the happy path
+  - The `rollbackOperation(operationId)` pattern is the canonical way to implement undo for batch server operations; no need for client-side restore patches
+---
