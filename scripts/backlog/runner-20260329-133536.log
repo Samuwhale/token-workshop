@@ -66,3 +66,10 @@ Already up to date.
   → No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
   Worktree: /tmp/backlog-46928-SjLRx1
   Running agent… (started 13:41:07)
+
+  ✓ done: No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
+    Moved setPreviewLoading(true) before setTimeout in useGeneratorPreview.ts and GraphPanel.tsx so spinner shows immediately on input change; added opacity-40 dimming to stale preview content during loading
+    23 turns · 126s · $0.45
+
+  Merging to main: No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
+Already up to date.

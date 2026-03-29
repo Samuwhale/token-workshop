@@ -374,11 +374,11 @@ function ApplyForm({
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setPreviewLoading(true);
     debounceRef.current = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      setPreviewLoading(true);
       setPreviewError('');
       try {
         const body = {
@@ -620,7 +620,7 @@ function ApplyForm({
               <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
             )}
             {!previewError && previewTokens.length > 0 && (
-              <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)]">
+              <div className={`border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)] transition-opacity duration-150 ${previewLoading ? 'opacity-40' : 'opacity-100'}`}>
                 {template.generatorType === 'colorRamp' && (
                   <div>
                     <div className="flex gap-0.5 rounded overflow-hidden h-6">

@@ -63,3 +63,11 @@
 - **Learnings for future iterations:**
   - Verified zero imports before deletion via grep pattern `from.*utils` in the server src directory.
 ---
+
+## 2026-03-29 - No skeleton/loading state during 300ms preview debounce
+- Moved `setPreviewLoading(true)` from inside the `setTimeout` callback to immediately before it in both `useGeneratorPreview.ts` and `GraphPanel.tsx`. The spinner now appears as soon as inputs change (during the debounce wait), not after. Also added `opacity-40` with `transition-opacity duration-150` to the stale preview content area while loading, so the old data visually dims, making it clear a refresh is pending.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L73-78, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L614, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L376-381, ~L622
+- **Learnings for future iterations:**
+  - `setPreviewLoading(true)` inside `setTimeout` is a common mistake — loading state only shows after the debounce fires (wasted 300ms). Always set loading state before the timer starts, clear it in `finally` as before.
+  - Dimming stale content (`opacity-40`) is more informative than just showing a spinner in the header — the user can see what's stale AND that a refresh is pending.
+---

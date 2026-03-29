@@ -98,3 +98,19 @@ Already up to date.
 
   Merging to main: getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code
 Already up to date.
+[main 8b3c1c2c] chore(backlog): done – getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code
+ 4 files changed, 30 insertions(+), 5 deletions(-)
+ delete mode 100644 packages/server/src/utils.ts
+  ✓ Merged and marked done
+
+## 2026-03-29 - getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts
+- Deleted `packages/server/src/utils.ts` — the file contained only a `getErrorMessage` function identical to the one in `errors.ts`, and was never imported anywhere (confirmed with grep). Dead code removed entirely.
+- Files changed: `packages/server/src/utils.ts` (deleted)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  16 queued · 2 in-progress · last took 57s
+═══════════════════════════════════════════════════════════════
+  → resolvers.ts uses `reply.code()` (13 occurrences) while every other route file uses `reply.status()` — functionally identical Fastify aliases but inconsistent across the codebase (packages/server/src/routes/resolvers.ts)
+  Worktree: /tmp/backlog-48983-cqdjWP
+  Running agent… (started 13:42:48)

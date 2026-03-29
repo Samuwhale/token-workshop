@@ -71,11 +71,11 @@ export function useGeneratorPreview({
       return;
     }
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    setPreviewLoading(true);
     debounceTimerRef.current = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      setPreviewLoading(true);
       setPreviewError('');
       try {
         const body: Record<string, unknown> = {

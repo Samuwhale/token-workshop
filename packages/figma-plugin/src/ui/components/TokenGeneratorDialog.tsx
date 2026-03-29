@@ -612,7 +612,7 @@ export function TokenGeneratorDialog({
             )}
 
             {selectedType !== 'contrastCheck' && !previewError && previewTokens.length > 0 && (
-              <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
+              <div className={`border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)] transition-opacity duration-150 ${previewLoading ? 'opacity-40' : 'opacity-100'}`}>
                 {selectedType === 'colorRamp' && (
                   <ColorSwatchPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
