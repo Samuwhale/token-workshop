@@ -20,6 +20,8 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const flatFetchGenRef = useRef(0);
+  const allTokensFlatRef = useRef(allTokensFlat);
+  allTokensFlatRef.current = allTokensFlat;
 
   // Fetch flat tokens on connect / token-change
   useEffect(() => {
@@ -44,7 +46,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
       const msg = e.data?.pluginMessage;
       if (msg?.type === 'variables-applied') {
         const snap: Record<string, string> = {};
-        for (const [path, entry] of Object.entries(allTokensFlat)) {
+        for (const [path, entry] of Object.entries(allTokensFlatRef.current)) {
           snap[path] = stableStringify(entry.$value);
         }
         setSyncSnapshot(snap);
@@ -52,7 +54,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [allTokensFlat]);
+  }, []);
 
   return {
     allTokensFlat,

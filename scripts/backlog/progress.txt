@@ -585,3 +585,10 @@
   - Returning `operationId` from mutation endpoints enables client-side undo via server rollback, which is simpler and more reliable than replaying patches
   - `moveToken` calls `saveSet` on both source and target sets, so batch-move snapshots need to track tokens in both sets
 ---
+
+## 2026-03-29 - useTokenDataLoading stale-closure bug in variables-applied listener
+- Fixed stale-closure bug: added `allTokensFlatRef` (useRef) that tracks `allTokensFlat` on every render. The `variables-applied` message handler now reads from the ref instead of closing over the state value. The effect dependency array is now `[]` so the listener is registered once and never torn down/re-added, eliminating the race window where duplicate listeners could fire.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L22-55
+- **Learnings for future iterations:**
+  - This is a textbook "stable callback ref" pattern already documented in codebase patterns
+---

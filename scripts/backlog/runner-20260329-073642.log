@@ -27,3 +27,25 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: No batch undo — batch operations record as individual API calls
 Already up to date.
+[main 578af76] chore(backlog): done – No batch undo — batch operations record as individual API calls
+ 7 files changed, 255 insertions(+), 145 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No batch undo — batch operations record as individual API calls
+- Added three new server endpoints: `POST /api/tokens/:set/batch-update` (partial patches), `POST /api/tokens/:set/batch-rename-paths` (rename specific paths), `POST /api/tokens/:set/batch-move` (move multiple tokens) — each records a single operation log entry
+- Refactored BatchEditor `handleApply`, `handleRename`, and `handleMove` to use single batch API calls instead of looping individual calls
+- Client-side undo now calls `POST /api/operations/:id/rollback` using the `operationId` returned by batch endpoints, so one Ctrl+Z undoes the entire batch
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  3 queued · 5 in-progress · last took 9m4s
+═══════════════════════════════════════════════════════════════
+  → useTokenDataLoading stale-closure bug in variables-applied listener — useTokenDataLoading.ts L42-55 registers a message event listener that captures `allTokensFlat` in its closure with `[allTokensFlat]` as the dependency array; every time tokens are fetched the old listener is removed and a new one is added, but between registration and removal there's a window where both fire; more critically, the snapshot computed on L47-49 uses whatever `allTokensFlat` was at registration time, not the latest; use a ref to hold the current value and read from it inside the handler
+  Worktree: /tmp/backlog-67435-yqk0YG
+  Running agent… (started 07:45:46)
+
+  ✓ done: useTokenDataLoading stale-closure bug in variables-applied listener
+    Added allTokensFlatRef to hold current value; handler reads from ref instead of closure; effect registered once with empty deps, eliminating race window and stale snapshot.
+    7 turns · 55s · $0.37
+
+  Merging to main: useTokenDataLoading stale-closure bug in variables-applied listener
+Already up to date.
