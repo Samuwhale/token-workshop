@@ -17,6 +17,7 @@ import { DEFAULT_BORDER_RADIUS_CONFIG } from './BorderRadiusGenerator';
 import { DEFAULT_Z_INDEX_CONFIG } from './ZIndexGenerator';
 import { DEFAULT_CUSTOM_CONFIG } from './CustomScaleGenerator';
 import { DEFAULT_CONTRAST_CHECK_CONFIG } from './ContrastCheckGenerator';
+import { DEFAULT_SHADOW_SCALE_CONFIG } from './ShadowScaleGenerator';
 
 // ---------------------------------------------------------------------------
 // Auto-detect helper
@@ -56,6 +57,7 @@ export function autoName(sourceTokenPath: string | undefined, type: GeneratorTyp
     opacityScale: 'Opacity Scale',
     borderRadiusScale: 'Border Radius',
     zIndexScale: 'Z-Index',
+    shadowScale: 'Shadow Scale',
     customScale: 'Custom Scale',
     accessibleColorPair: 'Accessible Pair',
     darkModeInversion: 'Dark Mode',
@@ -78,6 +80,7 @@ export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
     case 'opacityScale': return { steps: DEFAULT_OPACITY_SCALE_CONFIG.steps.map(s => ({ ...s })) };
     case 'borderRadiusScale': return { ...DEFAULT_BORDER_RADIUS_CONFIG, steps: DEFAULT_BORDER_RADIUS_CONFIG.steps.map(s => ({ ...s })) };
     case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
+    case 'shadowScale': return { ...DEFAULT_SHADOW_SCALE_CONFIG, steps: DEFAULT_SHADOW_SCALE_CONFIG.steps.map(s => ({ ...s })) };
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
     case 'accessibleColorPair': return { contrastLevel: 'AA' as const, backgroundStep: 'bg', foregroundStep: 'fg' };
     case 'darkModeInversion': return { stepName: 'inverted', chromaBoost: 0 };
@@ -89,7 +92,7 @@ export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
 /** Types that need a value (from source token OR inline input) */
 export const VALUE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'accessibleColorPair', 'darkModeInversion'];
 // Types that work standalone (no value at all)
-export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
+export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'shadowScale', 'contrastCheck'];
 // Types that work either way
 export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
@@ -99,7 +102,7 @@ export const SOURCE_REQUIRED_TYPES = VALUE_REQUIRED_TYPES;
 /** Primary generator types shown by default */
 export const PRIMARY_TYPES: GeneratorType[] = [
   'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
-  'opacityScale', 'zIndexScale', 'customScale',
+  'opacityScale', 'zIndexScale', 'shadowScale', 'customScale',
 ];
 /** Advanced/niche generator types shown in a collapsible section */
 export const ADVANCED_TYPES: GeneratorType[] = [

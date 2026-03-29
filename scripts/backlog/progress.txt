@@ -413,3 +413,19 @@
   - The switcher deliberately navigates to define/tokens on selection so the newly selected set's tokens are immediately visible; callers that want different behaviour can pass a no-op navigate.
   - `Cmd+Shift+S` was free (no conflict with existing shortcuts); always check KeyboardShortcutsModal for the current list before picking a new binding.
 ---
+
+## 2026-03-29 - No shadow/elevation scale generator
+- Added a full `shadowScale` generator type end-to-end: core types + engine, server execution, plugin UI.
+- **Core (`packages/core/src/`)**: Added `ShadowScaleStep` and `ShadowScaleConfig` interfaces to `generator-types.ts`, added `DEFAULT_SHADOW_SCALE_CONFIG` (5-step Tailwind-style scale: sm→2xl), extended `GeneratorType` union, `GeneratorConfig` union; added `runShadowScaleGenerator` to `generator-engine.ts` which emits DTCG `shadow` tokens with `#RRGGBBAA` color encoding; exported everything from `index.ts`.
+- **Server (`packages/server/src/services/generator-service.ts`)**: Added `shadowScale` to `VALID_GENERATOR_TYPES`, imported `ShadowScaleConfig` and `runShadowScaleGenerator`, added `case 'shadowScale'` to `computeResultsWithValue` switch (standalone — no source token).
+- **Plugin types (`packages/figma-plugin/src/ui/hooks/useGenerators.ts`)**: Added `shadowScale` to `GeneratorType`, added `ShadowScaleStep` and `ShadowScaleConfig`, extended `GeneratorConfig` union.
+- **UI component (`packages/figma-plugin/src/ui/components/generators/ShadowScaleGenerator.tsx`)**: New file — `ShadowPreview` (shows swatch with live box-shadow + step description), `ShadowScaleConfigEditor` (preset buttons: Tailwind 5, Material 5, Subtle 3; base color picker; expandable step editor with offsetX/offsetY/blur/spread/opacity columns).
+- **generatorUtils.ts**: Added `shadowScale` to `autoName` labels, `defaultConfigForType`, `STANDALONE_TYPES`, and `PRIMARY_TYPES`.
+- **TokenGeneratorDialog.tsx**: Added `ShadowScaleConfig` import, `shadowScale: 'Shadow Scale'` to `TYPE_LABELS`, config editor branch, and preview branch.
+- **GraphPanel.tsx**: Added `shadowScale` to `getGeneratorTypeLabel`, extended `SemanticMapping.type` union to include `'shadow'`, added `elevation-shadow` graph template (5-step scale + component.card/modal/dropdown semantic aliases).
+- Files changed: `packages/core/src/generator-types.ts`, `packages/core/src/generator-engine.ts`, `packages/core/src/index.ts`, `packages/server/src/services/generator-service.ts`, `packages/figma-plugin/src/ui/hooks/useGenerators.ts`, `packages/figma-plugin/src/ui/components/generators/ShadowScaleGenerator.tsx` (new), `packages/figma-plugin/src/ui/components/generators/generatorUtils.ts`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/components/GraphPanel.tsx`
+- **Learnings for future iterations:**
+  - Shadow color with per-step alpha is encoded as `#RRGGBBAA` 8-char hex (using `Math.round(opacity * 255).toString(16).padStart(2,'0')`). `setHexAlpha(hex, alpha0to255)` in `color-math.ts` does the same thing — could use that instead.
+  - `SemanticMapping.type` in GraphPanel was typed as `'color' | 'dimension' | 'number'` — needed to extend to include `'shadow'` for the new template's semantic aliases.
+  - Standalone generators (no source token) must NOT appear in `VALUE_REQUIRED_TYPES` or the server's `needsSource` check — they should just be omitted (absence = standalone).
+---

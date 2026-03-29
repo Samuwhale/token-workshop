@@ -12,6 +12,7 @@ import type {
   OpacityScaleConfig,
   BorderRadiusScaleConfig,
   ZIndexScaleConfig,
+  ShadowScaleConfig,
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
@@ -24,6 +25,7 @@ import {
   runOpacityScaleGenerator,
   runBorderRadiusScaleGenerator,
   runZIndexScaleGenerator,
+  runShadowScaleGenerator,
   runCustomScaleGenerator,
   runAccessibleColorPairGenerator,
   runDarkModeInversionGenerator,
@@ -41,7 +43,7 @@ interface GeneratorsFile {
 
 const VALID_GENERATOR_TYPES: ReadonlySet<string> = new Set([
   'colorRamp', 'typeScale', 'spacingScale', 'opacityScale',
-  'borderRadiusScale', 'zIndexScale', 'customScale',
+  'borderRadiusScale', 'zIndexScale', 'shadowScale', 'customScale',
   'accessibleColorPair', 'darkModeInversion', 'contrastCheck',
 ]);
 
@@ -671,6 +673,10 @@ export class GeneratorService {
       }
       case 'zIndexScale': {
         results = runZIndexScaleGenerator(config as ZIndexScaleConfig, targetGroup);
+        break;
+      }
+      case 'shadowScale': {
+        results = runShadowScaleGenerator(config as ShadowScaleConfig, targetGroup);
         break;
       }
       case 'customScale': {

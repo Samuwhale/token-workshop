@@ -9,6 +9,7 @@ import type {
   OpacityScaleConfig,
   BorderRadiusScaleConfig,
   ZIndexScaleConfig,
+  ShadowScaleConfig,
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
@@ -299,6 +300,50 @@ export function runZIndexScaleGenerator(
     type: 'number',
     value: step.value,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Shadow Scale
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate an elevation/shadow scale (standalone, no source token).
+ *
+ * Each step produces a DTCG `shadow` token. The shadow color is the
+ * configured base color with the step's opacity applied as alpha.
+ */
+export function runShadowScaleGenerator(
+  config: ShadowScaleConfig,
+  targetGroup: string,
+): GeneratedTokenResult[] {
+  const { steps, color } = config;
+
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
+
+  // Strip '#' and take first 6 hex digits as base color
+  const base6 = color.replace('#', '').slice(0, 6).padStart(6, '0');
+
+  return steps.map(step => {
+    const alpha = Math.round(Math.max(0, Math.min(1, step.opacity)) * 255);
+    const alphaHex = alpha.toString(16).padStart(2, '0');
+    const shadowColor = `#${base6}${alphaHex}`;
+
+    return {
+      stepName: step.name,
+      path: `${targetGroup}.${step.name}`,
+      type: 'shadow' as const,
+      value: {
+        color: shadowColor,
+        offsetX: { value: step.offsetX, unit: 'px' },
+        offsetY: { value: step.offsetY, unit: 'px' },
+        blur:    { value: step.blur,    unit: 'px' },
+        spread:  { value: step.spread,  unit: 'px' },
+      },
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import type {
   OpacityScaleConfig,
   BorderRadiusScaleConfig,
   ZIndexScaleConfig,
+  ShadowScaleConfig,
   CustomScaleConfig,
   ContrastCheckConfig,
   GeneratorTemplate,
@@ -24,6 +25,7 @@ import { ColorRampConfigEditor, ColorSwatchPreview } from './generators/ColorRam
 import { TypeScaleConfigEditor, TypeScalePreview } from './generators/TypeScaleGenerator';
 import { SpacingScaleConfigEditor, SpacingPreview } from './generators/SpacingScaleGenerator';
 import { OpacityScaleConfigEditor, OpacityPreview } from './generators/OpacityScaleGenerator';
+import { ShadowScaleConfigEditor, ShadowPreview } from './generators/ShadowScaleGenerator';
 import { BorderRadiusConfigEditor, BorderRadiusPreview } from './generators/BorderRadiusGenerator';
 import { ZIndexConfigEditor } from './generators/ZIndexGenerator';
 import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
@@ -62,6 +64,7 @@ export const TYPE_LABELS: Record<GeneratorType, string> = {
   opacityScale: 'Opacity Scale',
   borderRadiusScale: 'Border Radius',
   zIndexScale: 'Z-Index',
+  shadowScale: 'Shadow Scale',
   customScale: 'Custom',
   accessibleColorPair: 'Accessible Pair',
   darkModeInversion: 'Dark Mode',
@@ -569,6 +572,7 @@ export function TokenGeneratorDialog({
             {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => handleConfigChange('typeScale', cfg)} sourceValue={effectiveSourceDim} />}
             {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => handleConfigChange('spacingScale', cfg)} />}
             {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => handleConfigChange('opacityScale', cfg)} />}
+            {selectedType === 'shadowScale' && <ShadowScaleConfigEditor config={currentConfig as ShadowScaleConfig} onChange={cfg => handleConfigChange('shadowScale', cfg)} />}
             {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => handleConfigChange('borderRadiusScale', cfg)} />}
             {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => handleConfigChange('zIndexScale', cfg)} />}
             {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => handleConfigChange('customScale', cfg)} />}
@@ -621,6 +625,9 @@ export function TokenGeneratorDialog({
                 )}
                 {selectedType === 'opacityScale' && (
                   <OpacityPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
+                )}
+                {selectedType === 'shadowScale' && (
+                  <ShadowPreview tokens={previewTokens} config={currentConfig as ShadowScaleConfig} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {(selectedType === 'zIndexScale' || selectedType === 'customScale') && (
                   <GenericPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />

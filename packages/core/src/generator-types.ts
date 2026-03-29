@@ -17,6 +17,7 @@ export type GeneratorType =
   | 'opacityScale'
   | 'borderRadiusScale'
   | 'zIndexScale'
+  | 'shadowScale'
   | 'customScale'
   | 'accessibleColorPair'
   | 'darkModeInversion'
@@ -133,6 +134,31 @@ export interface ZIndexScaleConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Shadow Scale
+// ---------------------------------------------------------------------------
+
+export interface ShadowScaleStep {
+  /** Human-readable name, e.g. "sm", "md", "lg", "xl", "2xl" */
+  name: string;
+  /** Horizontal offset in px (typically 0 for elevation shadows) */
+  offsetX: number;
+  /** Vertical offset in px */
+  offsetY: number;
+  /** Blur radius in px */
+  blur: number;
+  /** Spread radius in px (can be negative) */
+  spread: number;
+  /** Alpha opacity of the shadow color (0–1) */
+  opacity: number;
+}
+
+export interface ShadowScaleConfig {
+  steps: ShadowScaleStep[];
+  /** Base shadow color as a 6-char hex (without alpha), e.g. "#000000". Default: "#000000" */
+  color: string;
+}
+
+// ---------------------------------------------------------------------------
 // Custom Scale
 // ---------------------------------------------------------------------------
 
@@ -222,6 +248,7 @@ export type GeneratorConfig =
   | OpacityScaleConfig
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
+  | ShadowScaleConfig
   | CustomScaleConfig
   | AccessibleColorPairConfig
   | DarkModeInversionConfig
@@ -483,5 +510,16 @@ export const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {
   backgroundHex: '#ffffff',
   steps: [],
   levels: ['AA', 'AAA'],
+};
+
+export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {
+  color: '#000000',
+  steps: [
+    { name: 'sm',  offsetX: 0, offsetY: 1,  blur: 2,  spread: 0,  opacity: 0.05 },
+    { name: 'md',  offsetX: 0, offsetY: 4,  blur: 6,  spread: -1, opacity: 0.1  },
+    { name: 'lg',  offsetX: 0, offsetY: 10, blur: 15, spread: -3, opacity: 0.1  },
+    { name: 'xl',  offsetX: 0, offsetY: 20, blur: 25, spread: -5, opacity: 0.1  },
+    { name: '2xl', offsetX: 0, offsetY: 25, blur: 50, spread: -12, opacity: 0.25 },
+  ],
 };
 

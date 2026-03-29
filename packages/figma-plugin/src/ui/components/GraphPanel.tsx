@@ -1,7 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import { isDimensionLike } from './generators/generatorShared';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
@@ -14,7 +14,7 @@ import { apiFetch } from '../shared/apiFetch';
 interface SemanticMapping {
   semantic: string;
   step: string;
-  type: 'color' | 'dimension' | 'number';
+  type: 'color' | 'dimension' | 'number' | 'shadow';
 }
 
 interface SemanticLayer {
@@ -130,6 +130,36 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     semanticLayers: [],
   },
   {
+    id: 'elevation-shadow',
+    label: 'Elevation shadow scale',
+    description: '5-step shadow scale (sm → 2xl) with semantic component aliases',
+    whenToUse: 'Use to add consistent depth to cards, modals, and dropdowns — generates semantic component.card, component.modal, and component.dropdown shadow aliases.',
+    stages: ['Shadow config', '5-step scale', 'Component map'],
+    generatorType: 'shadowScale',
+    defaultPrefix: 'shadow',
+    requiresSource: false,
+    config: {
+      color: '#000000',
+      steps: [
+        { name: 'sm',  offsetX: 0, offsetY: 1,  blur: 2,  spread: 0,  opacity: 0.05 },
+        { name: 'md',  offsetX: 0, offsetY: 4,  blur: 6,  spread: -1, opacity: 0.1  },
+        { name: 'lg',  offsetX: 0, offsetY: 10, blur: 15, spread: -3, opacity: 0.1  },
+        { name: 'xl',  offsetX: 0, offsetY: 20, blur: 25, spread: -5, opacity: 0.1  },
+        { name: '2xl', offsetX: 0, offsetY: 25, blur: 50, spread: -12, opacity: 0.25 },
+      ],
+    } as ShadowScaleConfig,
+    semanticLayers: [
+      {
+        prefix: 'component',
+        mappings: [
+          { semantic: 'card', step: 'md', type: 'shadow' },
+          { semantic: 'modal', step: 'xl', type: 'shadow' },
+          { semantic: 'dropdown', step: 'lg', type: 'shadow' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'full-semantic-color',
     label: 'Full semantic color system',
     description: 'Brand color → ramp → semantic surfaces, text, borders & actions',
@@ -187,6 +217,7 @@ function getGeneratorTypeLabel(type: GeneratorType): string {
     case 'opacityScale': return 'Opacity scale';
     case 'borderRadiusScale': return 'Border radius';
     case 'zIndexScale': return 'Z-index scale';
+    case 'shadowScale': return 'Shadow scale';
     case 'customScale': return 'Custom scale';
     case 'contrastCheck': return 'Contrast check';
     case 'accessibleColorPair': return 'Accessible color pair';

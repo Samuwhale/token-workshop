@@ -12,6 +12,7 @@ export type GeneratorType =
   | 'opacityScale'
   | 'borderRadiusScale'
   | 'zIndexScale'
+  | 'shadowScale'
   | 'customScale'
   | 'accessibleColorPair'
   | 'darkModeInversion'
@@ -69,6 +70,20 @@ export interface ZIndexScaleConfig {
   steps: Array<{ name: string; value: number }>;
 }
 
+export interface ShadowScaleStep {
+  name: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+  opacity: number;
+}
+
+export interface ShadowScaleConfig {
+  steps: ShadowScaleStep[];
+  color: string;
+}
+
 export interface CustomScaleStep {
   name: string;
   index: number;
@@ -112,6 +127,7 @@ export type GeneratorConfig =
   | OpacityScaleConfig
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
+  | ShadowScaleConfig
   | CustomScaleConfig
   | AccessibleColorPairConfig
   | DarkModeInversionConfig
