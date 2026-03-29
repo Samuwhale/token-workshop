@@ -474,3 +474,12 @@
   - The Variables import maps to multiple sets (one per mode), making per-token accept/reject impractical. A strategy-level choice (overwrite vs skip) with aggregate counts gives users the key information and control they need without the complexity of multi-set per-token conflict UI
   - Use a fetch-id counter ref rather than AbortController when cancelling async loops: increment the ref, check `if (fetchId !== varConflictFetchIdRef.current) return` at each await point
 ---
+
+## 2026-03-29 - TokenUsages component has no empty state
+- Added 5-second timeouts on layer scan and variable binding scan effects so that if Figma plugin messages never come back (e.g., standalone mode), the scans mark as complete and `nothingFound` becomes true
+- Improved the empty state from a plain text line to a centered layout with a search icon, "No usages found" heading, and descriptive subtitle
+- Files changed: `packages/figma-plugin/src/ui/components/TokenUsages.tsx` ~L94-140 (scan timeouts), ~L441-452 (empty state UI)
+- **Learnings for future iterations:**
+  - Effects that wait for postMessage responses from the Figma sandbox should always have a timeout fallback — standalone mode and headless validation don't have a plugin runtime to respond
+  - The `nothingFound` condition depends on all async scans completing; without timeouts, it can stay false forever, leaving a blank expanded section
+---

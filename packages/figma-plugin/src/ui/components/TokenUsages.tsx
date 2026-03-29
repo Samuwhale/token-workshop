@@ -109,7 +109,16 @@ export function TokenUsages({
     window.addEventListener('message', handleMessage);
     parent.postMessage({ pluginMessage: { type: 'scan-single-token-usage', tokenPath } }, '*');
 
-    return () => window.removeEventListener('message', handleMessage);
+    // Timeout: if no response after 5s, mark scan as complete with no results
+    const timeout = setTimeout(() => {
+      setLayersLoading(false);
+      setLayersScanned(true);
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearTimeout(timeout);
+    };
   }, [expanded, layersScanned, tokenPath]);
 
   // Scan for variable bindings when section is expanded
@@ -129,7 +138,16 @@ export function TokenUsages({
     window.addEventListener('message', handleMessage);
     parent.postMessage({ pluginMessage: { type: 'scan-token-variable-bindings', tokenPath } }, '*');
 
-    return () => window.removeEventListener('message', handleMessage);
+    // Timeout: if no response after 5s, mark scan as complete with no results
+    const timeout = setTimeout(() => {
+      setVariablesLoading(false);
+      setVariablesScanned(true);
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearTimeout(timeout);
+    };
   }, [expanded, variablesScanned, tokenPath]);
 
   // Reset scans when token path changes
@@ -433,7 +451,13 @@ export function TokenUsages({
 
           {/* Empty state */}
           {nothingFound && (
-            <p className="px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">Not referenced by any token, variable, or layer.</p>
+            <div className="px-3 py-4 flex flex-col items-center gap-1 text-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-text-secondary)] opacity-40">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generator, or layer.</p>
+            </div>
           )}
         </div>
       )}
