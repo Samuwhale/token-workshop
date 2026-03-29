@@ -105,6 +105,16 @@ export interface TokenListModalsProps {
   onSetCopyTargetSet: (v: string) => void;
   onSetCopyingToken: (v: string | null) => void;
   handleConfirmCopyToken: () => void;
+
+  // Move selected tokens to group modal
+  showMoveToGroup: boolean;
+  moveToGroupTarget: string;
+  moveToGroupError: string;
+  selectedMoveCount: number;
+  onSetShowMoveToGroup: (v: boolean) => void;
+  onSetMoveToGroupTarget: (v: string) => void;
+  onSetMoveToGroupError: (v: string) => void;
+  handleBatchMoveToGroup: () => void;
 }
 
 function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm, onCancel }: {
@@ -259,6 +269,14 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetCopyTargetSet,
     onSetCopyingToken,
     handleConfirmCopyToken,
+    showMoveToGroup,
+    moveToGroupTarget,
+    moveToGroupError,
+    selectedMoveCount,
+    onSetShowMoveToGroup,
+    onSetMoveToGroupTarget,
+    onSetMoveToGroupError,
+    handleBatchMoveToGroup,
   } = props;
 
   return (
@@ -812,6 +830,50 @@ export function TokenListModals(props: TokenListModalsProps) {
               <button
                 onClick={handleConfirmMoveGroup}
                 disabled={!moveTargetSet}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move selected tokens to group modal */}
+      {showMoveToGroup && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
+        >
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Enter the target group path. Token names are preserved.
+            </div>
+            <input
+              type="text"
+              placeholder="e.g. colors.brand"
+              value={moveToGroupTarget}
+              onChange={e => { onSetMoveToGroupTarget(e.target.value); onSetMoveToGroupError(''); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && moveToGroupTarget.trim()) handleBatchMoveToGroup();
+                if (e.key === 'Escape') { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }
+              }}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] ${moveToGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              aria-label="Target group path"
+              autoFocus
+            />
+            {moveToGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{moveToGroupError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchMoveToGroup}
+                disabled={!moveToGroupTarget.trim()}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Move

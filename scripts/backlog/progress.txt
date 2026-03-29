@@ -199,3 +199,11 @@
 - **Learnings for future iterations:**
   - Internal pointer resolution failures are a silent no-op by design in the original code; adding warn-level logging at all silent fallback points is the correct defensive pattern.
 ---
+
+## 2026-03-29 - Multi-selected tokens batch move to group
+- Added "Move to group…" button in the multi-select toolbar. Clicking it opens a modal dialog with a text input for the target group path. On confirm, calls `POST /api/tokens/:set/batch-rename-paths` with all selected tokens renamed to `targetGroup.tokenLeafName` in a single server call (aliases updated automatically). Clears selection on success. Validates for duplicate leaf names among selected tokens before submitting.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L77, ~L1736, ~L2360, ~L4095; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L109, ~L272, ~L841
+- **Learnings for future iterations:**
+  - `POST /api/tokens/:set/batch-rename-paths` with `{ renames: [{oldPath, newPath}], updateAliases: true }` is the correct single-call endpoint for bulk renames within a set — no need to add a new endpoint.
+  - Token "move to group" within a set is just a rename: `newPath = targetGroup + '.' + leafName`.
+---

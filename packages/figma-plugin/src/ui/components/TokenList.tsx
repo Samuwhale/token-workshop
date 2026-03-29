@@ -75,6 +75,9 @@ export function TokenList({
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupError, setNewGroupError] = useState('');
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [showMoveToGroup, setShowMoveToGroup] = useState(false);
+  const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
+  const [moveToGroupError, setMoveToGroupError] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
@@ -1730,6 +1733,41 @@ export function TokenList({
     setDeleteConfirm({ type: 'group', path, name, tokenCount });
   }, [connected]);
 
+  const handleBatchMoveToGroup = useCallback(async () => {
+    const target = moveToGroupTarget.trim();
+    if (!target || selectedPaths.size === 0 || !connected) return;
+
+    const renames = [...selectedPaths].map(oldPath => {
+      const name = oldPath.split('.').pop()!;
+      const newPath = `${target}.${name}`;
+      return { oldPath, newPath };
+    });
+
+    // Check for duplicate names among the selected tokens
+    const newPaths = renames.map(r => r.newPath);
+    if (new Set(newPaths).size !== newPaths.length) {
+      setMoveToGroupError('Some selected tokens have the same name — resolve conflicts before moving');
+      return;
+    }
+
+    setShowMoveToGroup(false);
+    setMoveToGroupError('');
+    setOperationLoading(`Moving ${selectedPaths.size} token${selectedPaths.size !== 1 ? 's' : ''}…`);
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renames, updateAliases: true }),
+      });
+      setSelectedPaths(new Set());
+      setSelectMode(false);
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Move failed: network error');
+    }
+    setOperationLoading(null);
+    onRefresh();
+  }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
+
   const requestBulkDelete = useCallback(() => {
     if (!connected || selectedPaths.size === 0) return;
     const paths = [...selectedPaths];
@@ -2323,6 +2361,13 @@ export function TokenList({
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Link to tokens
+                </button>
+                <button
+                  onClick={() => { setMoveToGroupTarget(''); setMoveToGroupError(''); setShowMoveToGroup(true); }}
+                  disabled={!!operationLoading}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Move to group…
                 </button>
                 <button
                   onClick={() => {
@@ -4084,6 +4129,14 @@ export function TokenList({
         onSetCopyTargetSet={setCopyTargetSet}
         onSetCopyingToken={setCopyingToken}
         handleConfirmCopyToken={handleConfirmCopyToken}
+        showMoveToGroup={showMoveToGroup}
+        moveToGroupTarget={moveToGroupTarget}
+        moveToGroupError={moveToGroupError}
+        selectedMoveCount={selectedPaths.size}
+        onSetShowMoveToGroup={setShowMoveToGroup}
+        onSetMoveToGroupTarget={setMoveToGroupTarget}
+        onSetMoveToGroupError={setMoveToGroupError}
+        handleBatchMoveToGroup={handleBatchMoveToGroup}
       />
     </div>
   );

@@ -115,3 +115,25 @@ Already up to date.
 
   Merging to main: dtcg-resolver loadSource silently returns empty Map for invalid internal pointers
 Already up to date.
+[main b26fd3ea] chore(backlog): done – dtcg-resolver loadSource silently returns empty Map for invalid internal pointers
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - dtcg-resolver loadSource silently returns empty Map for invalid internal pointers
+- Added `console.warn` in `loadSource` when an internal pointer (`#/...`) doesn't resolve to a set — logs the ref, the actual kind (if found), and a note that the source will be skipped.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L249
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  11 queued · 2 in-progress · last took 45s
+═══════════════════════════════════════════════════════════════
+  → Multi-selected tokens can't be batch-moved to a different group — selecting 5 tokens and relocating them all requires 5 individual move operations; add a "Move to group…" action in the multi-select toolbar that accepts a target path and moves all selected tokens in a single server call (TokenList.tsx multi-select toolbar, PUT /api/tokens/:path)
+  Worktree: /tmp/backlog-47616-EMmk7o
+  Running agent… (started 13:50:07)
+
+  ✓ done: Multi-selected tokens batch move to group
+    Added "Move to group…" button in multi-select toolbar; modal accepts target group path and moves all selected tokens via a single batch-rename-paths API call
+    38 turns · 364s · $1.26
+
+  Merging to main: Multi-selected tokens batch move to group
+Already up to date.

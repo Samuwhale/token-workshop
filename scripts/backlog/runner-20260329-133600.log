@@ -264,3 +264,10 @@ Already up to date.
 - Added `validateInputTable(raw: unknown): InputTableResult` function that fully validates row structure: each row must have a non-empty `brand` string and an `inputs` plain object. Returns a clean, typed `InputTable` on success or an error string on failure. PATCH route now calls it and returns 400 on malformed input instead of silently passing a type assertion. Also fixed the POST route which had the same cast-without-validation issue (`inputTable as InputTable | undefined`).
 - Files changed: `packages/server/src/routes/generators.ts` ~L48 (new helper), ~L440 (PATCH fix), ~L333 (POST fix)
 - **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  12 queued · 1 in-progress · last took 1m39s
+═══════════════════════════════════════════════════════════════
+  → No shared loading spinner component — each component (TokenList, ConfirmModal, PublishPanel, HeatmapPanel) implements its own spinner with different markup, sizes, and animation styles; extract a shared Spinner component for visual consistency across the plugin (scattered across 6+ components)
+  Worktree: /tmp/backlog-48983-X3cNjf
+  Running agent… (started 13:50:05)
