@@ -383,3 +383,20 @@ Already up to date.
 
   Merging to main: No way to reorder tokens within a group from the keyboard
 Already up to date.
+[main cafc5ff1] chore(backlog): done – No way to reorder tokens within a group from the keyboard
+ 6 files changed, 42 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 875 done — pass skipped (runner PID 66493 already running one)
+
+## 2026-03-29 - No way to reorder tokens within a group from the keyboard
+- Added Alt+Up / Alt+Down keyboard shortcuts to move a focused token or group up/down within its parent group
+- Added `data-node-name` attributes to both group and token row elements in TokenTreeNode so the keyboard handler can identify the node name
+- The shortcut only fires when sort order is "default" and the server is connected (same guard as the existing move buttons)
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  0 queued · 3 in-progress · last took 3m1s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 66493) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

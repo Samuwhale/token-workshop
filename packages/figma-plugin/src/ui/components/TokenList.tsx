@@ -186,21 +186,22 @@ export function TokenList({
 
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
-  // Expand ancestor groups when navigating to a highlighted token
+  // Expand ancestor groups (and the target itself if it's a group) when navigating to a highlighted token
   useEffect(() => {
     if (!highlightedToken) return;
     const parts = highlightedToken.split('.');
-    const ancestors: string[] = [];
+    const toExpand: string[] = [];
     for (let i = 1; i < parts.length; i++) {
-      ancestors.push(parts.slice(0, i).join('.'));
+      toExpand.push(parts.slice(0, i).join('.'));
     }
-    if (ancestors.length > 0) {
-      setExpandedPaths(prev => {
-        const next = new Set(prev);
-        ancestors.forEach(a => next.add(a));
-        return next;
-      });
-    }
+    // Also expand the target path itself — this is a no-op for leaf tokens
+    // but expands groups so their children are visible when navigated to
+    toExpand.push(highlightedToken);
+    setExpandedPaths(prev => {
+      const next = new Set(prev);
+      toExpand.forEach(a => next.add(a));
+      return next;
+    });
     const timer = setTimeout(() => onClearHighlight?.(), 3000);
     return () => clearTimeout(timer);
   }, [highlightedToken, onClearHighlight]);

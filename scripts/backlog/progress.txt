@@ -368,3 +368,16 @@
   - Row elements only had `data-token-path` / `data-group-path` — no `data-node-name`. Since node names can contain dots, extracting the name from the path alone requires knowing the parent path (which requires the name — circular). Adding `data-node-name` is the cleanest solution.
   - The `handleMoveTokenInGroup` callback already handles undo/redo and API calls, so the keyboard shortcut just needs to call it with the right args.
 ---
+
+## 2026-03-29 - No "navigate to group" from command palette
+- Derived group entries from token paths in CommandPalette; groups show with folder icon, "group" badge, and child token count
+- Added `group:` qualifier for explicit group-only search; auto-detects group matches (top 5) alongside token results for free-text queries
+- Added `onGoToGroup` callback prop and handler in App.tsx that navigates to the Define > Tokens tab and highlights the group
+- Modified TokenList.tsx expand-on-highlight effect to also expand the target path itself (no-op for leaf tokens, expands groups)
+- Added `group:` to QUERY_QUALIFIERS in tokenListUtils.ts for hint chips
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L59-77 (GroupEntry type, props), ~L152-210 (group derivation, group query detection, group filtering), ~L220-230 (flatList with groups), ~L240-250 (executeGroup, keyboard handler), ~L350-420 (group result rows), ~L530 (footer hints); `packages/figma-plugin/src/ui/App.tsx` ~L2520-2525 (onGoToGroup handler); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L188-205 (expand target path); `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L82 (group: qualifier)
+- **Learnings for future iterations:**
+  - The highlight expand effect using `parts.slice(0, i)` for `i < parts.length` intentionally excludes the target path — adding the target path to the expand set is harmless for leaf tokens (no children to expand) but enables group expansion
+  - Group paths can be derived cheaply from flat token paths by collecting all ancestor prefixes; sorting alphabetically gives a natural hierarchy
+  - Using `isGroupQuery` flag to switch between group-only mode and mixed mode avoids complex qualifier parsing integration
+---

@@ -66,10 +66,17 @@ export interface TokenEntry {
   generatorName?: string;
 }
 
+export interface GroupEntry {
+  path: string;
+  childCount: number;
+  sets: string[];
+}
+
 interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
+  onGoToGroup?: (path: string) => void;
   onCopyTokenPath?: (path: string) => void;
   onCopyTokenCssVar?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
@@ -134,7 +141,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -151,6 +158,26 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
 
   const MAX_TOKEN_BROWSE = 100;
 
+  // Derive unique group paths from tokens
+  const groups: GroupEntry[] = useMemo(() => {
+    if (!tokens.length) return [];
+    const groupMap = new Map<string, { count: number; sets: Set<string> }>();
+    for (const t of tokens) {
+      const parts = t.path.split('.');
+      // Build every ancestor group path (all but the leaf)
+      for (let i = 1; i < parts.length; i++) {
+        const gp = parts.slice(0, i).join('.');
+        let entry = groupMap.get(gp);
+        if (!entry) { entry = { count: 0, sets: new Set() }; groupMap.set(gp, entry); }
+        entry.count++;
+        if (t.set) entry.sets.add(t.set);
+      }
+    }
+    return Array.from(groupMap.entries())
+      .map(([path, { count, sets }]) => ({ path, childCount: count, sets: Array.from(sets) }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [tokens]);
+
   // Parse structured qualifiers from the token query
   const parsedTokenQuery = useMemo(() => parseStructuredQuery(tokenQuery), [tokenQuery]);
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
@@ -158,8 +185,12 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
     || parsedTokenQuery.generators.length > 0;
 
+  // Check if query uses a group: qualifier
+  const isGroupQuery = tokenQuery.toLowerCase().startsWith('group:');
+  const groupQueryText = isGroupQuery ? tokenQuery.slice(6).trim().toLowerCase() : '';
+
   const { filteredTokens, totalTokenMatches } = useMemo(() => {
-    if (!isTokenMode || !tokens.length) return { filteredTokens: [], totalTokenMatches: 0 };
+    if (!isTokenMode || !tokens.length || isGroupQuery) return { filteredTokens: [], totalTokenMatches: 0 };
 
     // Apply structural qualifiers first
     const base = hasQualifiers ? filterTokensStructured(tokens, parsedTokenQuery) : tokens;
@@ -180,7 +211,34 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
     return { filteredTokens: matched.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: matched.length };
-  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers]);
+  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers, isGroupQuery]);
+
+  // Group search results
+  const { filteredGroups, totalGroupMatches } = useMemo(() => {
+    if (!isTokenMode || !groups.length) return { filteredGroups: [], totalGroupMatches: 0 };
+
+    if (isGroupQuery) {
+      // Explicit group: qualifier — filter groups only
+      if (!groupQueryText) return { filteredGroups: groups.slice(0, MAX_TOKEN_BROWSE), totalGroupMatches: groups.length };
+      const matched = groups
+        .map(g => ({ g, score: fuzzyScore(groupQueryText, g.path) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ g }) => g);
+      return { filteredGroups: matched.slice(0, MAX_TOKEN_BROWSE), totalGroupMatches: matched.length };
+    }
+
+    // Auto-detect: when free text matches groups, include top matches alongside tokens
+    const freeText = parsedTokenQuery.text;
+    if (!freeText || hasQualifiers) return { filteredGroups: [], totalGroupMatches: 0 };
+    const matched = groups
+      .map(g => ({ g, score: fuzzyScore(freeText, g.path) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score);
+    // Show up to 5 group matches at the top when not using explicit group: qualifier
+    const top = matched.slice(0, 5).map(({ g }) => g);
+    return { filteredGroups: top, totalGroupMatches: matched.length };
+  }, [isTokenMode, groups, isGroupQuery, groupQueryText, parsedTokenQuery.text, hasQualifiers]);
 
   // Normal command search
   const filteredCommands = useMemo(() => {
@@ -201,12 +259,16 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
   }, [query, commands, isTokenMode]);
 
   // Flat list for keyboard nav
-  const flatList: Array<{ kind: 'command'; cmd: Command } | { kind: 'token'; token: TokenEntry }> = useMemo(() => {
+  type FlatItem = { kind: 'command'; cmd: Command } | { kind: 'token'; token: TokenEntry } | { kind: 'group'; group: GroupEntry };
+  const flatList: FlatItem[] = useMemo(() => {
     if (isTokenMode) {
-      return filteredTokens.map(t => ({ kind: 'token' as const, token: t }));
+      const items: FlatItem[] = [];
+      for (const g of filteredGroups) items.push({ kind: 'group', group: g });
+      for (const t of filteredTokens) items.push({ kind: 'token', token: t });
+      return items;
     }
     return filteredCommands.map(cmd => ({ kind: 'command' as const, cmd }));
-  }, [isTokenMode, filteredTokens, filteredCommands]);
+  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -223,6 +285,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
     onClose();
   };
 
+  const executeGroup = (group: GroupEntry) => {
+    onGoToGroup?.(group.path);
+    onClose();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
     if (e.key === 'ArrowDown') {
@@ -236,6 +303,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
       const item = flatList[activeIdx];
       if (!item) return;
       if (item.kind === 'command') executeCommand(item.cmd);
+      else if (item.kind === 'group') executeGroup(item.group);
       else executeToken(item.token);
     }
   };
@@ -341,26 +409,68 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
           {/* Token search mode */}
           {isTokenMode && (
             <>
-              {(hasQualifiers || parsedTokenQuery.text) && filteredTokens.length > 0 && (
+              {(hasQualifiers || parsedTokenQuery.text || isGroupQuery) && (filteredTokens.length > 0 || filteredGroups.length > 0) && (
                 <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-                  {totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched
+                  {isGroupQuery
+                    ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
+                    : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
+                  }
                 </div>
               )}
-              {filteredTokens.length === 0 && (
+              {filteredTokens.length === 0 && filteredGroups.length === 0 && (
                 <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
-                  {tokenQuery ? `No tokens match "${tokenQuery}"` : 'Type a token path to search'}
+                  {tokenQuery ? `No tokens or groups match "${tokenQuery}"` : 'Type a token path to search (or group: for groups)'}
                 </div>
               )}
-              {filteredTokens.map((token, idx) => (
+              {/* Group results */}
+              {filteredGroups.length > 0 && !isGroupQuery && (
+                <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                  Groups
+                </div>
+              )}
+              {filteredGroups.map((group, idx) => {
+                const flatIdx = idx; // groups come first in flatList
+                return (
+                  <button
+                    key={'g:' + group.path}
+                    role="option"
+                    aria-selected={flatIdx === activeIdx}
+                    data-palette-item
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onMouseEnter={() => setActiveIdx(flatIdx)}
+                    onClick={() => executeGroup(group)}
+                  >
+                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      group
+                    </span>
+                    <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                    </svg>
+                    <span className="text-[11px] font-mono truncate">{group.path}</span>
+                    <span className={`text-[10px] shrink-0 ml-auto ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                      {group.childCount} token{group.childCount !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* Token results */}
+              {filteredTokens.length > 0 && filteredGroups.length > 0 && !isGroupQuery && (
+                <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                  Tokens
+                </div>
+              )}
+              {filteredTokens.map((token, idx) => {
+                const flatIdx = filteredGroups.length + idx; // tokens come after groups
+                return (
                 <div key={token.path} className="flex items-center gap-0" data-palette-item>
                   <button
                     role="option"
-                    aria-selected={idx === activeIdx}
-                    className={`flex-1 text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                    onMouseEnter={() => setActiveIdx(idx)}
+                    aria-selected={flatIdx === activeIdx}
+                    className={`flex-1 text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${idx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     {token.type === 'color' && typeof token.value === 'string' && token.value ? (
@@ -370,13 +480,13 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                         title={token.value}
                       />
                     ) : token.value != null && token.value !== '' && token.type !== 'color' ? (
-                      <span className={`text-[10px] shrink-0 font-mono ${idx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
+                      <span className={`text-[10px] shrink-0 font-mono ${flatIdx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
                         {token.value.length > 20 ? token.value.slice(0, 20) + '…' : token.value}
                       </span>
                     ) : null}
                     <span className="text-[11px] font-mono truncate">{token.path}</span>
                     {token.set && (
-                      <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${idx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
                       </span>
                     )}
@@ -385,7 +495,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <button
                       tabIndex={-1}
                       title={`Copy path: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onCopyTokenPath(token.path); onClose(); }}
                     >
                       Path
@@ -395,7 +505,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <button
                       tabIndex={-1}
                       title={`Copy raw value: ${token.value}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onCopyTokenValue(token.value!); onClose(); }}
                     >
                       Val
@@ -405,17 +515,18 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <button
                       tabIndex={-1}
                       title={`Copy CSS var: ${tokenCssVar(token.path)}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onCopyTokenCssVar(token.path); onClose(); }}
                     >
                       CSS
                     </button>
                   )}
                 </div>
-              ))}
-              {totalTokenMatches > MAX_TOKEN_BROWSE && (
+                );
+              })}
+              {(isGroupQuery ? totalGroupMatches : totalTokenMatches) > MAX_TOKEN_BROWSE && (
                 <div className="px-3 py-2 text-center text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                  {MAX_TOKEN_BROWSE} of {totalTokenMatches} shown — refine your search
+                  {MAX_TOKEN_BROWSE} of {isGroupQuery ? totalGroupMatches : totalTokenMatches} shown — refine your search
                 </div>
               )}
             </>
@@ -498,8 +609,8 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
           {isTokenMode ? (
             <>
               <span>↑↓ navigate</span>
-              <span>↵ go to token</span>
-              <span className="opacity-60">type: has: value: path: name:</span>
+              <span>↵ go to token/group</span>
+              <span className="opacity-60">type: has: value: path: name: group:</span>
               <span>ESC close</span>
             </>
           ) : (

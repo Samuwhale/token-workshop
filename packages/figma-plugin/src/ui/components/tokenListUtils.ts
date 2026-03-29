@@ -79,6 +79,7 @@ export const QUERY_QUALIFIERS = [
   { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },
   { qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500' },
   { qualifier: 'generator:', desc: 'Filter by generator name', example: 'generator:color-ramp' },
+  { qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand' },
 ];
 
 // ---------------------------------------------------------------------------

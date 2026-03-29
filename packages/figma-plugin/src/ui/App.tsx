@@ -2520,6 +2520,11 @@ export function App() {
               setHighlightedToken(path);
             }
           }}
+          onGoToGroup={(groupPath) => {
+            navigateTo('define', 'tokens');
+            setEditingToken(null);
+            setHighlightedToken(groupPath);
+          }}
           onCopyTokenPath={(path) => {
             navigator.clipboard.writeText(path).catch((err) => { console.warn('[App] clipboard write failed for token path:', err); });
           }}
