@@ -1,9 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { Token, TokenGroup, ThemeDimension, ResolverFile } from '@tokenmanager/core';
+import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
-import type { ResolverStore } from './resolver-store.js';
 import { NotFoundError, ConflictError } from '../errors.js';
 
 /** A snapshot of a single token path — null means the token did not exist. */
@@ -311,80 +310,6 @@ export class OperationLog {
     return { restoredPaths: Object.keys(entry.beforeSnapshot) };
   }
 
-  /** Roll back a structural (metadata-based) operation. */
-  private async rollbackStructural(
-    entry: OperationEntry,
-    tokenStore: TokenStore,
-    options?: {
-      dimensionsStore?: { load(): Promise<ThemeDimension[]>; save(dims: ThemeDimension[]): Promise<void> };
-      resolverStore?: ResolverStore;
-    },
-  ): Promise<void> {
-    const meta = entry.metadata!;
-    switch (meta.kind) {
-      case 'set-create':
-        await tokenStore.deleteSet(meta.name);
-        break;
-      case 'set-delete':
-        await tokenStore.createSet(meta.name, meta.tokens);
-        if (meta.description) await tokenStore.updateSetDescription(meta.name, meta.description);
-        if (meta.collectionName) await tokenStore.updateSetCollectionName(meta.name, meta.collectionName);
-        if (meta.modeName) await tokenStore.updateSetModeName(meta.name, meta.modeName);
-        break;
-      case 'set-rename':
-        await tokenStore.renameSet(meta.newName, meta.oldName);
-        break;
-      case 'set-reorder':
-        tokenStore.reorderSets(meta.previousOrder);
-        break;
-      case 'set-metadata': {
-        if (meta.before.description !== undefined) await tokenStore.updateSetDescription(meta.name, meta.before.description);
-        if (meta.before.collectionName !== undefined) await tokenStore.updateSetCollectionName(meta.name, meta.before.collectionName);
-        if (meta.before.modeName !== undefined) await tokenStore.updateSetModeName(meta.name, meta.before.modeName);
-        break;
-      }
-      case 'theme-dimensions':
-        if (!options?.dimensionsStore) throw new Error('Cannot rollback theme operation: dimensionsStore not provided');
-        await options.dimensionsStore.save(meta.before);
-        break;
-      case 'resolver-create':
-        if (!options?.resolverStore) throw new Error('Cannot rollback resolver operation: resolverStore not provided');
-        await options.resolverStore.delete(meta.name);
-        break;
-      case 'resolver-update':
-        if (!options?.resolverStore) throw new Error('Cannot rollback resolver operation: resolverStore not provided');
-        await options.resolverStore.update(meta.name, meta.before);
-        break;
-      case 'resolver-delete':
-        if (!options?.resolverStore) throw new Error('Cannot rollback resolver operation: resolverStore not provided');
-        await options.resolverStore.create(meta.name, meta.file);
-        break;
-    }
-  }
-
-  /** Build the inverse metadata entry for a rollback record. */
-  private invertMetadata(meta: OperationMetadata): OperationMetadata {
-    switch (meta.kind) {
-      case 'set-create':
-        return { kind: 'set-delete', name: meta.name, tokens: meta.tokens };
-      case 'set-delete':
-        return { kind: 'set-create', name: meta.name, tokens: meta.tokens };
-      case 'set-rename':
-        return { kind: 'set-rename', oldName: meta.newName, newName: meta.oldName };
-      case 'set-reorder':
-        return { kind: 'set-reorder', previousOrder: meta.newOrder, newOrder: meta.previousOrder };
-      case 'set-metadata':
-        return { kind: 'set-metadata', name: meta.name, before: meta.after, after: meta.before };
-      case 'theme-dimensions':
-        return { kind: 'theme-dimensions', before: meta.after, after: meta.before };
-      case 'resolver-create':
-        return { kind: 'resolver-delete', name: meta.name, file: meta.file };
-      case 'resolver-update':
-        return { kind: 'resolver-update', name: meta.name, before: meta.after, after: meta.before };
-      case 'resolver-delete':
-        return { kind: 'resolver-create', name: meta.name, file: meta.file };
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------

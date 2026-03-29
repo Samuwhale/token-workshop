@@ -96,7 +96,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
+          const beforeSource = await snapshotGroup(fastify.tokenStore, set, groupPath);
+          const beforeTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
           const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
+          const afterSource = await snapshotGroup(fastify.tokenStore, set, groupPath);
+          const afterTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
+          const before = { ...beforeSource, ...Object.fromEntries(
+            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          )};
+          const after = { ...afterSource, ...Object.fromEntries(
+            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          )};
+          await fastify.operationLog.record({
+            type: 'group-move',
+            description: `Move group "${groupPath}" from ${set} to ${targetSet}`,
+            setName: set,
+            affectedPaths: [...Object.keys(beforeSource), ...Object.keys(afterTarget)],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
           return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
@@ -117,6 +135,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
+          const after = await snapshotGroup(fastify.tokenStore, set, result.newGroupPath);
+          await fastify.operationLog.record({
+            type: 'group-duplicate',
+            description: `Duplicate group "${groupPath}" as "${result.newGroupPath}" in ${set}`,
+            setName: set,
+            affectedPaths: Object.keys(after),
+            beforeSnapshot: {},
+            afterSnapshot: after,
+          });
           return { ok: true, ...result };
         } catch (err) {
           return handleRouteError(reply, err);
@@ -136,7 +163,18 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
+          const prefix = groupPath ? groupPath + '.' : '';
+          const before = await snapshotSet(fastify.tokenStore, set);
           await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
+          const after = await snapshotSet(fastify.tokenStore, set);
+          await fastify.operationLog.record({
+            type: 'group-reorder',
+            description: `Reorder children of "${groupPath || '(root)'}" in ${set}`,
+            setName: set,
+            affectedPaths: orderedKeys.map(k => prefix + k),
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
           return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
@@ -157,6 +195,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.tokenStore.createGroup(set, groupPath);
+          await fastify.operationLog.record({
+            type: 'group-create',
+            description: `Create empty group "${groupPath}" in ${set}`,
+            setName: set,
+            affectedPaths: [groupPath],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+          });
           return reply.status(201).send({ ok: true, groupPath, set });
         } catch (err) {
           return handleRouteError(reply, err);
@@ -177,7 +223,17 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
+        const before = await snapshotGroup(fastify.tokenStore, set, groupPath || '__root__');
         await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
+        const after = await snapshotGroup(fastify.tokenStore, set, groupPath || '__root__');
+        await fastify.operationLog.record({
+          type: 'group-meta-update',
+          description: `Update metadata on "${groupPath || '(root)'}" in ${set}`,
+          setName: set,
+          affectedPaths: [groupPath || '(root)'],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
         return { ok: true, groupPath, set };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update group metadata');
@@ -485,7 +541,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
+          const beforeSource = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
           await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
+          const afterSource = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
+          const before = { ...beforeSource, ...Object.fromEntries(
+            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          )};
+          const after = { ...afterSource, ...Object.fromEntries(
+            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          )};
+          await fastify.operationLog.record({
+            type: 'token-move',
+            description: `Move token "${tokenPath}" from ${set} to ${targetSet}`,
+            setName: set,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
           return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);
@@ -505,7 +579,17 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return withLock(async () => {
         try {
+          const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
           await fastify.tokenStore.copyToken(set, tokenPath, targetSet);
+          const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, [tokenPath]);
+          await fastify.operationLog.record({
+            type: 'token-copy',
+            description: `Copy token "${tokenPath}" from ${set} to ${targetSet}`,
+            setName: targetSet,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: beforeTarget,
+            afterSnapshot: afterTarget,
+          });
           return { ok: true };
         } catch (err) {
           return handleRouteError(reply, err);

@@ -354,3 +354,20 @@
   - Per-variable restore errors should still be granular (collect inner errs[] then throw once at the end) so allSettled gets one rejection per variable, not per property
   - Collection/variable list fetches are expensive — always fetch once and build a Map before iterating
 ---
+
+## 2026-03-29 - Operation log has major coverage gaps and dead rollback code
+- Removed dead code: `rollbackStructural()` and `invertMetadata()` (operation-log.ts L314-387) which referenced non-existent `OperationMetadata` type and `entry.metadata` field — leftovers from an incomplete refactor. Also removed unused imports (`ThemeDimension`, `ResolverFile`, `ResolverStore`).
+- Added `operationLog.record()` calls to 7 destructive endpoints that were missing them:
+  1. `POST /tokens/:set/groups/move` — snapshots source+target groups before/after
+  2. `POST /tokens/:set/groups/duplicate` — snapshots the new group after duplication
+  3. `POST /tokens/:set/groups/reorder` — snapshots full set before/after reorder
+  4. `POST /tokens/:set/groups/create` — records empty group creation
+  5. `PATCH /tokens/:set/groups/meta` — snapshots group tokens before/after metadata update
+  6. `POST /tokens/:set/tokens/move` — snapshots source+target token before/after
+  7. `POST /tokens/:set/tokens/copy` — snapshots target token before/after copy
+- Files changed: `packages/server/src/services/operation-log.ts` ~L4 (removed unused imports), ~L314-387 (removed dead code); `packages/server/src/routes/tokens.ts` ~L88-106, ~L108-126, ~L128-146, ~L148-166, ~L168-186, ~L477-495, ~L497-515 (added operation logging)
+- **Learnings for future iterations:**
+  - Cross-set operations (move, copy) use `key@setName` convention in snapshot keys to distinguish same-path tokens in different sets — consistent with existing `batch-move` pattern
+  - Group create and group metadata updates don't have meaningful token snapshots (they modify group-level `$type`/`$description`, not leaf tokens) but still benefit from operation log entries for undo support
+  - The existing `rollback()` method with `rollbackSteps` is the correct/live system; the dead `rollbackStructural`/`invertMetadata` was from a prior design that was never completed
+---
