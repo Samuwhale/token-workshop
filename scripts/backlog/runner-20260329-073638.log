@@ -1,0 +1,22 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    66903
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073638.log
+
+  Queue:    17 ready · 1 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  17 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → No "find usages" for tokens — there is no way to discover which other tokens alias a given token, which Figma variables bind to it, or which generators produce it; add a "References" section to the token editor panel showing incoming aliases, variable bindings, and generator sources so users understand the impact of changes before making them
+  Worktree: /tmp/backlog-66903-pS7WP6
+  Running agent… (started 07:36:39)

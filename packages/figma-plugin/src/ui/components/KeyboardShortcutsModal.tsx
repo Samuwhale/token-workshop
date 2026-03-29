@@ -19,10 +19,9 @@ const SECTIONS: ShortcutSection[] = [
   {
     header: 'Navigation',
     shortcuts: [
-      { keys: ['⌘1'], label: 'Go to Tokens' },
-      { keys: ['⌘2'], label: 'Go to Inspect' },
-      { keys: ['⌘3'], label: 'Go to Generators' },
-      { keys: ['⌘4'], label: 'Go to Publish' },
+      { keys: ['⌘1'], label: 'Go to Define' },
+      { keys: ['⌘2'], label: 'Go to Apply' },
+      { keys: ['⌘3'], label: 'Go to Ship' },
     ],
   },
   {

@@ -1,0 +1,22 @@
+NOTE: 6 [~] item(s) found — skipping reset (19 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    69179
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073709.log
+
+  Queue:    12 ready · 6 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  12 queued · 6 in-progress
+═══════════════════════════════════════════════════════════════
+  → QuickStart wizard is inaccessible after initial setup — the guided 3-step wizard (QuickStartWizard.tsx) only appears from the EmptyState when zero tokens exist; once tokens are created there is no way to re-run it from settings, help, or command palette; add a "Run guided setup" entry in settings or the command palette
+  Worktree: /tmp/backlog-69179-wO2LrN
+  Running agent… (started 07:37:09)

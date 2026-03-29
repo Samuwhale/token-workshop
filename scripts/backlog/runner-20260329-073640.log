@@ -1,0 +1,22 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    67173
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073640.log
+
+  Queue:    16 ready · 2 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  16 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → SSE connection has no event replay on reconnect — if the SSE connection drops and the client reconnects, missed events are lost; the client must do a full data refetch; add a simple event sequence counter so the client can request missed events on reconnect, or at minimum detect staleness and trigger an automatic refresh
+  Worktree: /tmp/backlog-67173-u4m8t9
+  Running agent… (started 07:36:41)

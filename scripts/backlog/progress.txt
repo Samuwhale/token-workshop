@@ -482,3 +482,10 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: TokenStore mutation methods (renameToken, deleteToken, renameGroup, moveGroup, updateGroupMetadata) all mutate in-memory state before saveSet() with no rollback on disk write failure — this is a systematic pattern affecting 5+ methods and could cause permanent in-memory/disk divergence
 ---
+
+## 2026-03-29 - Tab number shortcuts (Cmd+1/2/3) reference pre-refactor navigation
+- App.tsx keydown handler was already correct (maps Cmd+1/2/3 to TOP_TABS[0,1,2].id = Define/Apply/Ship). The only stale reference was in KeyboardShortcutsModal.tsx which still listed old labels (Tokens/Inspect/Generators/Publish) and included a ⌘4 shortcut that no longer exists. Updated Navigation section to show ⌘1→Define, ⌘2→Apply, ⌘3→Ship and removed the stale ⌘4→Publish entry.
+- Files changed: `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L22-25
+- **Learnings for future iterations:**
+  - When backlog items say "keydown handler" is wrong, always check both the handler AND the documentation (KeyboardShortcutsModal). The handler may already be correct from a prior refactor while the modal still shows stale labels.
+---

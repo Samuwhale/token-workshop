@@ -1,0 +1,25 @@
+./scripts/backlog/backlog.sh: line 217: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    66493
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073632.log
+
+  Queue:    18 ready · 0
+0 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  18 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenStore mutation methods corrupt in-memory state when saveSet() fails — renameToken (L1074-1076), deleteToken (L745-748), renameGroup (L1050-1060), updateGroupMetadata (L1370-1378), and moveGroup (L1091+) all mutate the in-memory token tree before calling saveSet(); if the disk write throws, the in-memory state diverges permanently from disk with no rollback; bulkRename (L1284-1311) has a catch block but rebuilds flatTokens before the circular reference check, so a check failure leaves flatTokens in the post-rename state until the error handler re-rebuilds; wrap all mutation+save sequences in try/catch with revert logic (as bulkRename partially does), or adopt a copy-on-write approach where in-memory state is only swapped after successful persistence
+  Worktree: /tmp/backlog-66493-DSkRyY
+  Running agent… (started 07:36:33)

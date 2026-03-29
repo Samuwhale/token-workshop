@@ -1,0 +1,22 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    67435
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073642.log
+
+  Queue:    15 ready · 3 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  15 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → No batch undo — batch operations (bulk delete, bulk rename, scale values) via BatchEditor execute as individual API calls with no compound undo entry; undoing a batch of 50 token edits requires pressing Ctrl+Z 50 times; record batch operations as a single compound entry in the operation log
+  Worktree: /tmp/backlog-67435-XRLVLp
+  Running agent… (started 07:36:43)

@@ -1,0 +1,22 @@
+NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    67697
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-073645.log
+
+  Queue:    14 ready · 4 in-progress · 0
+0 failed
+  Done:     804 total (next code pass in 6, product pass in 1)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  14 queued · 4 in-progress
+═══════════════════════════════════════════════════════════════
+  → Export sub-tab duplicates Publish panel's File Export section — ExportPanel.tsx and the "File Export" collapsible section inside PublishPanel.tsx offer identical platform export functionality (same platform list, same API call, same ZIP download); users must guess which one to use; remove the standalone Export sub-tab and keep export only within the Publish workflow, or vice versa
+  Worktree: /tmp/backlog-67697-MvXypf
+  Running agent… (started 07:36:45)
