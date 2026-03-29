@@ -260,3 +260,13 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: ColorPicker.tsx:54 strips alpha channel from ALL recent colors via `hex.slice(0, 7)` — any token with transparency is stored without alpha and will produce wrong color on re-select from recents; also, BatchEditor can scale/type-change/find-replace but has no "set all selected to alias reference" mode which is a key migration workflow
 ---
+
+## 2026-03-29 - Color picker recent colors silently strip alpha channel
+- Fixed `pushRecentColor` in `ColorPicker.tsx` to preserve 8-char `#RRGGBBAA` values instead of slicing to 7 chars. Regex updated to accept both 6- and 8-char hex. Fully-opaque suffix (`ff`) is normalized away so `#rrggbbff` dedupes with `#rrggbb`.
+- Fixed `closeAndSave` to pass `applyAlpha(hslToHex(...), alpha)` so the alpha channel is included when storing to recents.
+- Fixed the recent-color swatch `onClick` to call `setAlpha(parseAlpha(c))` so clicking a semi-transparent recent color restores the alpha value.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L53, ~L337, ~L896
+- **Learnings for future iterations:**
+  - Three places must all be updated together for recent-color alpha to work end-to-end: the save function (pushRecentColor), the close handler (closeAndSave), and the swatch click handler. Missing any one of them leaves partial alpha support.
+  - CSS `backgroundColor` accepts `#RRGGBBAA` natively — no conversion needed for swatch display.
+---

@@ -51,8 +51,11 @@ function getRecentColors(): string[] {
 }
 
 function pushRecentColor(hex: string): void {
-  const color = hex.slice(0, 7).toLowerCase();
-  if (!/^#[0-9a-f]{6}$/.test(color)) return;
+  const clean = hex.toLowerCase();
+  // Accept 6-char (#rrggbb) or 8-char (#rrggbbaa) hex strings
+  if (!/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(clean)) return;
+  // Normalise: drop fully-opaque alpha suffix so #rrggbbff dedupes with #rrggbb
+  const color = clean.length === 9 && clean.slice(7) === 'ff' ? clean.slice(0, 7) : clean;
   const recent = getRecentColors().filter(c => c !== color);
   recent.unshift(color);
   lsSetJson(STORAGE_KEYS.RECENT_COLORS, recent.slice(0, MAX_RECENT));
@@ -331,9 +334,9 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
   // Persist recent color on close
   const closeAndSave = useCallback(() => {
-    pushRecentColor(hslToHex(hue, sat, lit));
+    pushRecentColor(applyAlpha(hslToHex(hue, sat, lit), alpha));
     onClose();
-  }, [hue, sat, lit, onClose]);
+  }, [hue, sat, lit, alpha, onClose]);
 
   // Recent colors state
   const [recentColors, setRecentColors] = useState(getRecentColors);
@@ -891,7 +894,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                 title={c}
                 onClick={() => {
                   const hsl = hexToHsl(c);
-                  if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
+                  if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); setAlpha(parseAlpha(c)); }
                 }}
                 className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors"
                 style={{ backgroundColor: c }}
