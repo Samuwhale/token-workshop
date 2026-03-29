@@ -189,3 +189,19 @@ Already up to date.
 
   Merging to main: package-lock.json coexists with pnpm-lock.yaml
 Already up to date.
+[main 660fbdd1] chore(backlog): done – package-lock.json coexists with pnpm-lock.yaml
+ 6 files changed, 32 insertions(+), 1608 deletions(-)
+ delete mode 100644 package-lock.json
+  ✓ Merged and marked done
+
+## 2026-03-29 - package-lock.json coexists with pnpm-lock.yaml
+- Deleted root `package-lock.json`. The project declares `"packageManager": "pnpm@9.15.0"` in package.json and uses `pnpm-lock.yaml` as its canonical lock file; the npm lock file was stale and risked dependency drift.
+- Files changed: `package-lock.json` (deleted)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  20 queued · 3 in-progress · last took 45s
+═══════════════════════════════════════════════════════════════
+  → Three plugin message types handled in controller.ts are missing from the PluginMessage union — `SearchLayersMessage` is defined at types.ts:343 but not in the union; `ScanTokenVariableBindingsMessage` and `RemoveBindingFromNodeMessage` have no interface at all; all three are dispatched from UI and handled in the switch but bypass compile-time type checking (packages/figma-plugin/src/shared/types.ts:409-441, src/plugin/controller.ts:298,319,332)
+  Worktree: /tmp/backlog-48983-FCdSmL
+  Running agent… (started 13:46:15)

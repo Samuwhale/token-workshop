@@ -63,3 +63,10 @@ Already up to date.
   → DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units — runtime constants support `vw`, `vh`, `ch`, `cap`, `dvw`, etc. but the type rejects them; DimensionValue should use `DimensionUnit` from constants.ts (packages/core/src/types.ts:20, packages/core/src/constants.ts:56-58)
   Worktree: /tmp/backlog-47616-qhr6M1
   Running agent… (started 13:45:38)
+
+  ✓ done: DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units
+    Changed DimensionValue.unit from 'px'|'rem'|'em'|'%' to DimensionUnit imported from constants.ts, aligning the type with the 20-unit runtime constant.
+    8 turns · 43s · $0.16
+
+  Merging to main: DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units
+Already up to date.

@@ -5,7 +5,7 @@
  * TokenManager — from file I/O to the in-memory resolved graph.
  */
 
-import { TOKEN_TYPES } from './constants.js';
+import { TOKEN_TYPES, DimensionUnit } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // Primitive / Composite Token Value Types
@@ -17,7 +17,7 @@ export type TokenLifecycle = 'draft' | 'published' | 'deprecated';
 /** Hex (#RGB, #RRGGBB, #RRGGBBAA) or CSS color string. */
 export type ColorValue = string;
 
-export type DimensionValue = { value: number; unit: 'px' | 'rem' | 'em' | '%' };
+export type DimensionValue = { value: number; unit: DimensionUnit };
 
 export type FontFamilyValue = string | string[];
 

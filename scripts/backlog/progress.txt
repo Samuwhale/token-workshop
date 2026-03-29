@@ -121,3 +121,11 @@
 - **Learnings for future iterations:**
   - No code changes needed — pure file deletion. Validate still passes since no build or test logic depends on package-lock.json.
 ---
+
+## 2026-03-29 - DimensionValue type uses hardcoded 4-unit union instead of DimensionUnit
+- Updated `DimensionValue` in `packages/core/src/types.ts` to use `DimensionUnit` from `constants.ts`, replacing the hardcoded `'px' | 'rem' | 'em' | '%'` union with the full 20-unit type.
+- Added `DimensionUnit` to the import from `./constants.js`.
+- Files changed: `packages/core/src/types.ts` ~L8, ~L20
+- **Learnings for future iterations:**
+  - Type/runtime divergence like this is a common source of silent bugs — when constants define a set of valid values, the corresponding type should always derive from them via `(typeof ARRAY)[number]`.
+---
