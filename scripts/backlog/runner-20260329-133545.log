@@ -137,3 +137,18 @@ Already up to date.
 
   Merging to main: Multi-selected tokens batch move to group
 Already up to date.
+[main c03e46e9] chore(backlog): done – Multi-selected tokens batch move to group
+ 7 files changed, 156 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Multi-selected tokens batch move to group
+- Added "Move to group…" button in the multi-select toolbar. Clicking it opens a modal dialog with a text input for the target group path. On confirm, calls `POST /api/tokens/:set/batch-rename-paths` with all selected tokens renamed to `targetGroup.tokenLeafName` in a single server call (aliases updated automatically). Clears selection on success. Validates for duplicate leaf names among selected tokens before submitting.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L77, ~L1736, ~L2360, ~L4095; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L109, ~L272, ~L841
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  10 queued · 2 in-progress · last took 6m11s
+═══════════════════════════════════════════════════════════════
+  → Token sets have no description or annotation field — designers managing 10+ sets (light, dark, brand, platform overrides) have no way to record why a set exists or what it covers; add an optional description shown as a tooltip in the set picker and editable from the sets management view (sets.ts, SetsPicker component)
+  Worktree: /tmp/backlog-47616-NzbXeg
+  Running agent… (started 13:56:19)
