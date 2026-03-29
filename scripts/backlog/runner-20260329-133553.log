@@ -150,3 +150,9 @@ Already up to date.
   → Color ramp generator has no per-step WCAG contrast preview — after generating a ramp, users can't see which step pairs pass AA (4.5:1) or AAA (7:1) against white/black without leaving the generator and using the contrast matrix; show a compact contrast grid or pass/fail badges on each step within the generator's preview area (ColorRampGenerator.tsx)
   Worktree: /tmp/backlog-48303-X1u550
   Running agent… (started 14:03:06)
+
+  ✓ done: Color ramp generator has no per-step WCAG contrast preview
+    Added two compact rows of per-step WCAG badges (AAA/AA/—) below the swatch strip in ColorSwatchPreview, showing contrast vs white and black with exact ratios on hover
+    22 turns · 231s · $0.66
+
+  Merging to main: Color ramp generator has no per-step WCAG contrast preview

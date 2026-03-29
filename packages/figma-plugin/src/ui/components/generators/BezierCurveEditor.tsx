@@ -46,7 +46,8 @@ const CURVE_PRESETS: { label: string; curve: [number, number, number, number] }[
   { label: 'Linear', curve: [0, 0, 1, 1] },
   { label: 'Ease-in', curve: [0.42, 0, 1, 1] },
   { label: 'Ease-out', curve: [0, 0, 0.58, 1] },
-  { label: 'Perceptual', curve: [0.42, 0, 0.58, 1] },
+  { label: 'Ease-in-out', curve: [0.42, 0, 0.58, 1] },
+  { label: 'Spring', curve: [0.34, 1.56, 0.64, 1] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -101,8 +102,8 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
     const sy = e.clientY - rect.top;
     const [nx, ny] = fromSvg(sx, sy);
     const clampedX = Math.max(0, Math.min(1, nx));
-    // Allow y to go slightly beyond 0..1 for overshoot curves
-    const clampedY = Math.max(-0.2, Math.min(1.2, ny));
+    // Allow y to go beyond 0..1 for overshoot/spring curves
+    const clampedY = Math.max(-0.5, Math.min(1.8, ny));
     const newCurve: [number, number, number, number] = [...curve];
     if (dragging === 0) {
       newCurve[0] = Math.round(clampedX * 100) / 100;
@@ -159,32 +160,33 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Lightness curve</span>
-        <div className="flex gap-1">
-          {CURVE_PRESETS.map(p => {
-            const isActive = p.curve.every((v, i) => Math.abs(v - curve[i]) < 0.01);
-            return (
-              <button
-                key={p.label}
-                onClick={() => onChange([...p.curve])}
-                className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
-                  isActive
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {CURVE_PRESETS.map(p => {
+          const isActive = p.curve.every((v, i) => Math.abs(v - curve[i]) < 0.01);
+          return (
+            <button
+              key={p.label}
+              onClick={() => onChange([...p.curve])}
+              title={`cubic-bezier(${p.curve.join(', ')})`}
+              className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                isActive
+                  ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                  : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
       <svg
         ref={svgRef}
         width={W}
         height={H}
         viewBox={`0 0 ${W} ${H}`}
-        className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded select-none"
-        style={{ cursor: dragging !== null ? 'grabbing' : 'default', touchAction: 'none' }}
+        className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded select-none overflow-visible"
+        style={{ cursor: dragging !== null ? 'grabbing' : 'default', touchAction: 'none', overflow: 'visible' }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
