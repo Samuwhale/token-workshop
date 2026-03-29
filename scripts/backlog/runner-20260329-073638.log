@@ -177,3 +177,18 @@ Already up to date.
 
   Merging to main: Heatmap and consistency scanner results are silently capped with no indication
 Already up to date.
+[main 4a3e10b] chore(backlog): done – Heatmap and consistency scanner results are silently capped with no indication
+ 9 files changed, 58 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Heatmap and consistency scanner results are silently capped with no indication
+- Added `totalUntokenized` field to `component-coverage-result` plugin message so UI knows true count before slicing
+- AnalyticsPanel: shows "100 of N shown" badge when untokenized components list is truncated; stats grid now shows true total instead of capped array length
+- HeatmapPanel: shows "300 of N shown" banner when node list is truncated (leverages existing `result.total` which already had the true count)
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  4 queued · 5 in-progress · last took 3m27s
+═══════════════════════════════════════════════════════════════
+  → git-sync.ts `finalizeMerge()` silently swallows commit failure, leaving repo in broken merge state — L256-260: if `git.commit()` throws (e.g., no staged files, hook failure), the error is caught and only `console.warn`'d; the caller and user believe the merge succeeded when the repo is still in an unfinished merge state; this is dangerous because subsequent git operations (pull, push, checkout) will fail with confusing errors; the error should be rethrown so the UI can show the failure and offer abort/retry
+  Worktree: /tmp/backlog-66903-to5P2g
+  Running agent… (started 08:06:32)
