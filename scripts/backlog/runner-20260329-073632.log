@@ -74,3 +74,36 @@ Already up to date.
 
   Merging to main: Export panel has no preview of generated output
 Already up to date.
+[main b8a0560] chore(backlog): done – Export panel has no preview of generated output
+ 6 files changed, 134 insertions(+), 83 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 825 done — pass skipped (runner PID 69179 already running one)
+
+## 2026-03-29 - Export panel has no preview of generated output
+- Replaced the accordion-style expandable file list with a tabbed preview pane
+- File tabs display as a horizontal scrollable tab bar with platform badge + filename
+- Active file content shown in a code preview area with line numbers (table-based layout)
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  0 queued · 5 in-progress · last took 4m17s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 69179) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  0 queued · 5 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 69179) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  0 queued · 5 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 69179) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

@@ -103,3 +103,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: [HIGH] themes.ts double-logging + undeclared beforeDims ReferenceError (7 routes), batch token ops lack partial-failure rollback, plugin controller lacks message validation, color-parse.ts non-null assertions on nullable returns, resolver $extends merge type-unsafe
+Already up to date.
