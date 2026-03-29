@@ -209,3 +209,19 @@ Already up to date.
 
   Merging to main: Find-and-replace has no preview of skipped conflicts and no progress during bulk rename
 Already up to date.
+[main a626130] chore(backlog): done – Find-and-replace has no preview of skipped conflicts and no progress during bulk rename
+ 7 files changed, 62 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Find-and-replace has no preview of skipped conflicts and no progress during bulk rename
+- Added `frConflictCount` and `frRenameCount` computed values to `useFindReplace` hook
+- Preview header now shows "N tokens will be renamed — M skipped (conflicts)" instead of just total count
+- Added spinner with descriptive text ("Renaming N tokens…") during `frBusy` state
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  0 queued · 5 in-progress · last took 4m23s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
