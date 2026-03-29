@@ -221,3 +221,18 @@ Already up to date.
 
   Merging to main: useUndo keyboard shortcut fires even when a text input has focus
 Already up to date.
+[main 5b64074] chore(backlog): done – useUndo keyboard shortcut fires even when a text input has focus
+ 6 files changed, 36 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - useUndo keyboard shortcut fires even when a text input has focus
+- Added `isTyping` guard to the global keydown handler in `useUndo.ts` — checks `e.target.tagName` for INPUT/TEXTAREA/SELECT and returns early, matching the pattern already used in TokenList.tsx L891
+- This prevents Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y from triggering server undo/redo when the user is typing in form fields (find-replace, token editor, etc.)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L83-85
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  3 queued · 5 in-progress · last took 1m8s
+═══════════════════════════════════════════════════════════════
+  → Rename/move token has no impact preview showing affected aliases — `POST /api/tokens/:set/tokens/rename` has `updateAliases` flag but no preview endpoint showing which tokens would be updated; users can't assess the blast radius of a rename before committing; add a preview/dry-run mode that returns the list of aliases that would be rewritten
+  Worktree: /tmp/backlog-69179-rG3rLw
+  Running agent… (started 08:03:11)

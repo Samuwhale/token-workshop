@@ -616,3 +616,15 @@
   - Global keyboard shortcut hooks on `window` should always guard against text input focus — this is a common source of shortcut/native-behavior conflicts
   - The established pattern in this codebase is `const tag = (e.target as HTMLElement)?.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;`
 ---
+
+## 2026-03-29 - Bulk token creation table (useTableCreate) loses all work if dialog is closed
+- Added sessionStorage auto-save for table-create draft (group + rows) on every state change
+- On reopen, if a draft with content exists, shows a recovery banner with Restore/Discard buttons
+- Draft is cleared on successful creation (resetTableCreate) or explicit discard
+- Only saves when rows have meaningful content (name or value filled in)
+- Re-assigns row IDs on restore to avoid counter collisions
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTableCreate.ts` ~L1-65 (storage helpers), ~L85 (hasDraft state), ~L92 (auto-save effect), ~L107-120 (reset clears draft), ~L122-136 (restoreDraft/dismissDraft), ~L138-155 (openTableCreate checks draft); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L842 (destructure new values), ~L3735-3755 (recovery banner JSX)
+- **Learnings for future iterations:**
+  - sessionStorage is ideal for form recovery — survives page reloads within the session but not across browser sessions (appropriate for draft data)
+  - Using a `dismissedRecovery` ref prevents the banner from reappearing after the user dismisses it within the same dialog open/close cycle
+---

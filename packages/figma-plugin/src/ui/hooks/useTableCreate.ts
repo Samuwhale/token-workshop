@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
@@ -16,6 +16,45 @@ let rowCounter = 0;
 function newRowId() { return `trow-${++rowCounter}`; }
 function makeRow(type = 'color'): TableRow {
   return { id: newRowId(), name: '', type, value: '' };
+}
+
+// --- sessionStorage persistence for table-create recovery ---
+const STORAGE_KEY = 'tokenmanager:table-create-draft';
+
+interface TableDraft {
+  group: string;
+  rows: TableRow[];
+}
+
+function saveDraft(group: string, rows: TableRow[]): void {
+  // Only save if there's meaningful data (at least one row with content)
+  const hasContent = rows.some(r => r.name.trim() || r.value.trim());
+  if (!hasContent) {
+    sessionStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ group, rows }));
+  } catch { /* quota exceeded — silently ignore */ }
+}
+
+function loadDraft(): TableDraft | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as TableDraft;
+    if (!Array.isArray(draft.rows) || draft.rows.length === 0) return null;
+    // Re-assign IDs to avoid collisions with current counter
+    draft.rows = draft.rows.map(r => ({ ...r, id: newRowId() }));
+    return draft;
+  } catch {
+    sessionStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
+
+function clearDraft(): void {
+  sessionStorage.removeItem(STORAGE_KEY);
 }
 
 export interface UseTableCreateParams {
@@ -45,6 +84,17 @@ export function useTableCreate({
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [createAllError, setCreateAllError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // Track whether user has dismissed the recovery banner this session
+  const dismissedRecovery = useRef(false);
+
+  // Auto-save draft to sessionStorage whenever rows or group change
+  useEffect(() => {
+    if (showTableCreate) {
+      saveDraft(tableGroup, tableRows);
+    }
+  }, [showTableCreate, tableGroup, tableRows]);
 
   const addRow = useCallback((inheritType?: string) => {
     setTableRows(prev => {
@@ -76,14 +126,45 @@ export function useTableCreate({
     setRowErrors({});
     setCreateAllError('');
     setBusy(false);
+    setHasDraft(false);
+    dismissedRecovery.current = false;
+    clearDraft();
+  }, []);
+
+  const restoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      setTableGroup(draft.group);
+      setTableRows(draft.rows);
+      setHasDraft(false);
+      dismissedRecovery.current = true;
+    }
+  }, []);
+
+  const dismissDraft = useCallback(() => {
+    setHasDraft(false);
+    dismissedRecovery.current = true;
+    clearDraft();
   }, []);
 
   const openTableCreate = useCallback((group = '') => {
-    setTableGroup(group);
-    setTableRows([makeRow()]);
     setRowErrors({});
     setCreateAllError('');
     setBusy(false);
+
+    // Check for a saved draft to offer recovery
+    const draft = loadDraft();
+    if (draft && !dismissedRecovery.current) {
+      setHasDraft(true);
+      // Start with a fresh table; user can choose to restore
+      setTableGroup(group);
+      setTableRows([makeRow()]);
+    } else {
+      setHasDraft(false);
+      setTableGroup(group);
+      setTableRows([makeRow()]);
+    }
+
     setShowTableCreate(true);
   }, []);
 
@@ -218,10 +299,13 @@ export function useTableCreate({
     rowErrors,
     createAllError,
     busy,
+    hasDraft,
     addRow,
     removeRow,
     updateRow,
     resetTableCreate,
+    restoreDraft,
+    dismissDraft,
     openTableCreate,
     handleCreateAll,
     tableSuggestions,

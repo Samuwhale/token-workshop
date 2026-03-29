@@ -838,8 +838,10 @@ export function TokenList({
     showTableCreate,
     tableGroup, setTableGroup,
     tableRows, rowErrors, createAllError, busy: tableCreateBusy,
+    hasDraft: tableCreateHasDraft,
     addRow: addTableRow, removeRow: removeTableRow, updateRow: updateTableRow,
-    resetTableCreate, openTableCreate, handleCreateAll,
+    resetTableCreate, restoreDraft: restoreTableDraft, dismissDraft: dismissTableDraft,
+    openTableCreate, handleCreateAll,
     tableSuggestions,
   } = tableCreate;
 
@@ -3722,6 +3724,26 @@ export function TokenList({
       {showTableCreate && (
         <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
+            {/* Draft recovery banner */}
+            {tableCreateHasDraft && (
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[11px]">
+                <span className="flex-1 text-[var(--color-figma-text)]">You have unsaved bulk-create data. Restore it?</span>
+                <button
+                  type="button"
+                  onClick={restoreTableDraft}
+                  className="px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                >
+                  Restore
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissTableDraft}
+                  className="px-2 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Discard
+                </button>
+              </div>
+            )}
             {/* Active set indicator */}
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
