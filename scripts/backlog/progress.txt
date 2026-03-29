@@ -263,3 +263,15 @@
   - `wcagContrast` in `colorUtils.ts` handles both hex and CSS Color 4 strings — safe to use for ramp token values.
   - Alignment between the swatch strip and contrast rows is close but not pixel-perfect (18px label offset). This is acceptable for the compact indicator pattern; tooltip shows exact values.
 ---
+
+## 2026-03-29 - No shared loading spinner component
+- Created `packages/figma-plugin/src/ui/components/Spinner.tsx` — a single SVG-based spinner using `currentColor` with `size` prop (`xs`/`sm`/`md`/`lg`/`xl` → 8/10/14/16/20px) and optional `className` for color/opacity overrides.
+- Replaced all 30+ inline spinner instances across 16 components: ConfirmModal, TokenList, TokenListModals, TokenUsages, PublishPanel (9×), HistoryPanel (4×), ImportPanel, ThemeManager, TokenEditor, GraphPanel, TokenGeneratorDialog, ExportPanel (6×), ColorPicker, AnalyticsPanel, HeatmapPanel, RecentActionsSource.
+- The git refresh icon in PublishPanel (conditionally spins on refresh) was intentionally left as-is since it's a custom arrows icon, not a spinner.
+- Canonical pattern: `<Spinner />` (default sm/10px), `<Spinner size="xl" className="text-[var(--color-figma-accent)]" />` for large colored variants.
+- Files changed: `packages/figma-plugin/src/ui/components/Spinner.tsx` (new), all 16 component files above (~L1 import, spinner sites).
+- **Learnings for future iterations:**
+  - When replace_all only catches some instances (different indentation levels), read the remaining matches and do targeted edits.
+  - `shrink-0` is already baked into the Spinner className, so callers don't need to add it.
+  - Leaving a stray `</svg>` after partial string match replacement — always check the first replaced instance before using replace_all.
+---

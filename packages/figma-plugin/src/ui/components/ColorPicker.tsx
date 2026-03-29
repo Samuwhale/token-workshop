@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Spinner } from './Spinner';
 import { hexToRgb, rgbToHex } from '@tokenmanager/core';
 import {
   hslToRgb,
@@ -867,9 +868,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <path d="M20 6L9 17l-5-5" />
             </svg>
           ) : eyedropperState === 'waiting' ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="animate-spin">
-              <circle cx="12" cy="12" r="10" strokeDasharray="31.4" strokeDashoffset="10" />
-            </svg>
+            <Spinner size="sm" />
           ) : (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />

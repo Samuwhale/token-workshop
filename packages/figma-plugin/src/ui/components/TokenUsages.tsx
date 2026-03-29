@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from '../hooks/useGenerators';
@@ -206,7 +207,7 @@ export function TokenUsages({
         <span className="flex items-center gap-1.5">
           Usages
           {dependentsLoading
-            ? <svg className="animate-spin shrink-0 opacity-50" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+            ? <Spinner className="opacity-50" />
             : countLabel}
         </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${expanded ? 'rotate-90' : ''}`} aria-hidden="true">
@@ -288,7 +289,7 @@ export function TokenUsages({
           {/* Incoming aliases (dependent tokens) */}
           {dependentsLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+              <Spinner />
               Finding references…
             </div>
           ) : dependents.length > 0 ? (
@@ -334,7 +335,7 @@ export function TokenUsages({
           {/* Figma variable bindings */}
           {variablesLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+              <Spinner />
               Scanning variables…
             </div>
           ) : variablesScanned && variables.length > 0 ? (
@@ -407,7 +408,7 @@ export function TokenUsages({
           {/* Bound layers section */}
           {layersLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+              <Spinner />
               Scanning layers…
             </div>
           ) : layersScanned && layers.length > 0 ? (

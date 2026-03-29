@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -90,7 +91,7 @@ export function ConfirmModal({
             }`}
           >
             {busy && (
-              <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />
+              <Spinner size="sm" className="text-white" />
             )}
             {busy ? `${confirmLabel}…` : confirmLabel}
           </button>

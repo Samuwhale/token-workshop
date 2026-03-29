@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Spinner } from './Spinner';
 import { formatRelativeTime } from '../shared/changeHelpers';
 
 interface OperationEntry {
@@ -183,7 +184,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       >
                         {rollingBack === op.id ? (
                           <span className="flex items-center gap-1">
-                            <svg className="animate-spin" width="8" height="8" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" fill="none" /></svg>
+                            <Spinner size="xs" />
                             Rolling back…
                           </span>
                         ) : 'Rollback'}

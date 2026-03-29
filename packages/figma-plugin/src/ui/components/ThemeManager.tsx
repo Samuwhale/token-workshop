@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -1067,7 +1068,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
-        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
+        <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading themes...
       </div>
     );

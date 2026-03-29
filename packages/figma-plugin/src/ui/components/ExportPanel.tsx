@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
@@ -878,9 +879,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           <>
             {figmaLoading && (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] animate-spin" aria-hidden="true">
-                  <path d="M21 12a9 9 0 11-6.219-8.56" />
-                </svg>
+                <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
                 <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
                   Reading Figma variables...
                 </div>
@@ -1192,9 +1191,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             >
               {exporting ? (
                 <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                    <path d="M21 12a9 9 0 11-6.219-8.56" />
-                  </svg>
+                  <Spinner />
                   Exporting…
                 </>
               ) : 'Re-export'}
@@ -1209,9 +1206,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           >
             {exporting ? (
               <>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                  <path d="M21 12a9 9 0 11-6.219-8.56" />
-                </svg>
+                <Spinner />
                 Exporting…
               </>
             ) : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
@@ -1225,9 +1220,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           >
             {figmaLoading ? (
               <>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                  <path d="M21 12a9 9 0 11-6.219-8.56" />
-                </svg>
+                <Spinner />
                 Reading Variables…
               </>
             ) : (
@@ -1266,9 +1259,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             >
               {savePhase === 'preview-loading' ? (
                 <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                    <path d="M21 12a9 9 0 11-6.219-8.56" />
-                  </svg>
+                  <Spinner />
                   Checking…
                 </>
               ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server…'}
@@ -1304,9 +1295,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             disabled
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium opacity-70 flex items-center justify-center gap-1.5"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-              <path d="M21 12a9 9 0 11-6.219-8.56" />
-            </svg>
+            <Spinner />
             Saving…
           </button>
         )}

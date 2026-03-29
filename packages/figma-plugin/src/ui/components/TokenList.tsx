@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
+import { Spinner } from './Spinner';
 import type { TokenNode } from '../hooks/useTokens';
 import { isAlias, resolveTokenValue, resolveAllAliases } from '../../shared/resolveAlias';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
@@ -3042,7 +3043,7 @@ export function TokenList({
       {/* Operation loading banner */}
       {operationLoading && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text-secondary)]">
-          <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+          <Spinner size="sm" />
           <span>{operationLoading}</span>
         </div>
       )}

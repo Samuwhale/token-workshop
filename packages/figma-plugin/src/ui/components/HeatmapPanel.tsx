@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Spinner } from './Spinner';
 import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type HeatmapScope } from '../../shared/types';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
@@ -289,10 +290,7 @@ export function HeatmapPanel({ result, loading, error, scope, onScopeChange, onR
       {/* Loading state */}
       {loading && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--color-figma-text-secondary)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin opacity-60" aria-hidden="true">
-            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.3"/>
-            <path d="M21 12a9 9 0 00-9-9"/>
-          </svg>
+          <Spinner size="xl" className="opacity-60" />
           <span className="text-[11px]">Scanning {scope === 'all-pages' ? 'all pages' : scope === 'selection' ? 'selection' : 'current page'}…</span>
           {onCancel && (
             <button

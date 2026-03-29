@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { QuickStartDialog } from './QuickStartDialog';
 import { ValuePreview } from './ValuePreview';
@@ -616,9 +617,7 @@ export function TokenListModals(props: TokenListModalsProps) {
 
               {frBusy && (
                 <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)] py-1">
-                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-                  </svg>
+                  <Spinner size="sm" />
                   Renaming {frRenameCount} token{frRenameCount !== 1 ? 's' : ''}…
                 </div>
               )}

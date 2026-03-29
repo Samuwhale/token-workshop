@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
@@ -592,10 +593,7 @@ export function TokenGeneratorDialog({
                   </button>
                 )}
                 {previewLoading && (
-                  <svg className="w-3 h-3 animate-spin text-[var(--color-figma-text-secondary)]" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
+                  <Spinner size="sm" className="text-[var(--color-figma-text-secondary)]" />
                 )}
               </div>
             </div>

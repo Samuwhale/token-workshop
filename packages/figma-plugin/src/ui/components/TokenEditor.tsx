@@ -1,4 +1,5 @@
 import { getErrorMessage, adaptShortcut } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { apiFetch } from '../shared/apiFetch';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
@@ -870,7 +871,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
-        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
+        <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading token...
       </div>
     );

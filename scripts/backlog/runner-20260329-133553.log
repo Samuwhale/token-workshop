@@ -157,3 +157,18 @@ Already up to date.
 
   Merging to main: Color ramp generator has no per-step WCAG contrast preview
 Already up to date.
+[main 75cb26e8] chore(backlog): done – Color ramp generator has no per-step WCAG contrast preview
+ 6 files changed, 83 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Color ramp generator has no per-step WCAG contrast preview
+- Added `ContrastBadgeRow` component and `wcagLevel` helper to `ColorRampGenerator.tsx`. Two rows of per-step badges rendered below the swatch strip inside `ColorSwatchPreview`: "on ◻" (vs #ffffff) and "on ◼" (vs #000000). Each badge shows "AAA" (green, ≥7:1), "AA" (amber, ≥4.5:1), or "—" (grey, fail). Hovering shows the exact ratio and pass/fail in a tooltip. Imported `wcagContrast` from `../../shared/colorUtils`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L1-5, ~L43-155
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  11 queued · 2 in-progress · last took 3m58s
+═══════════════════════════════════════════════════════════════
+  → Generator templates use jargon-heavy descriptions with no guidance — titles like "11-step perceptual color ramp with semantic action map" assume prior knowledge; add a subtitle or tooltip to each template card explaining when to use it (e.g., "Use this for brand primary/secondary colors with semantic aliases like action.hover") (GraphPanel.tsx GRAPH_TEMPLATES)
+  Worktree: /tmp/backlog-48303-zlg2l5
+  Running agent… (started 14:07:04)

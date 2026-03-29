@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Spinner } from './Spinner';
 import { ValueDiff } from './ValueDiff';
 import { RecentActionsSource } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
@@ -506,9 +507,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
                   title="Revert all token changes in this commit"
                 >
                   {restoring === 'all' ? (
-                    <svg className="animate-spin" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-                    </svg>
+                    <Spinner />
                   ) : (
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -544,9 +543,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
             </div>
           ) : detail && restoring ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <svg className="animate-spin text-[var(--color-figma-accent)]" width="20" height="20" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-              </svg>
+              <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                 Restoring {restoring === 'all' ? 'all tokens' : restoring}…
               </p>
@@ -586,9 +583,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
                             >
                               {restoring === change.path ? (
                                 <span className="flex items-center gap-1">
-                                  <svg className="animate-spin" width="8" height="8" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-                                  </svg>
+                                  <Spinner size="xs" />
                                   Restoring…
                                 </span>
                               ) : 'Restore'}
@@ -659,9 +654,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   if (filterTokenPath && (filterLoading || debouncing)) {
     return (
       <div className="flex items-center justify-center flex-1 gap-2">
-        <svg className="animate-spin text-[var(--color-figma-accent)]" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-        </svg>
+        <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Searching history…</p>
       </div>
     );

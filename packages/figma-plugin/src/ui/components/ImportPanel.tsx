@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -1142,9 +1143,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
-            <svg className="animate-spin shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
-            </svg>
+            <Spinner size="md" />
             {source === 'variables' ? 'Reading variables from Figma…' : 'Reading styles from Figma…'}
           </div>
         )}

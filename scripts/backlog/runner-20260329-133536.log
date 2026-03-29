@@ -185,3 +185,10 @@ Already up to date.
 - Renamed "Perceptual" preset to "Ease-in-out" (values [0.42,0,0.58,1] already matched CSS ease-in-out). Added "Spring" preset with [0.34,1.56,0.64,1] overshoot values. Extended drag clamp from ±1.2 to ±1.8 to accommodate spring handle. Added `overflow: visible` to SVG so spring control point handle renders above graph area. Moved presets from inline with label to their own wrapping flex row to fit all 5 buttons without overflow. Added `title` tooltip showing cubic-bezier() values on hover.
 - Files changed: `packages/figma-plugin/src/ui/components/generators/BezierCurveEditor.tsx` ~L44-51, ~L105, ~L159-181, ~L182
 - **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  12 queued · 1 in-progress · last took 2m18s
+═══════════════════════════════════════════════════════════════
+  → Generators can't be duplicated — creating a second color ramp that's similar to an existing one requires configuring from scratch or starting from a generic template; add a "Duplicate" action on generator cards in GraphPanel so users can clone an existing generator's config as a starting point (GraphPanel.tsx)
+  Worktree: /tmp/backlog-46928-nQAEId
+  Running agent… (started 14:07:03)

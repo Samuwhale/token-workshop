@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { Spinner } from './Spinner';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import { isDimensionLike } from './generators/generatorShared';
@@ -610,10 +611,7 @@ function ApplyForm({
                 {previewTokens.length > 0 && <span className="ml-1 normal-case text-[var(--color-figma-text)]">({previewTokens.length} tokens)</span>}
               </span>
               {previewLoading && (
-                <svg className="w-3 h-3 animate-spin text-[var(--color-figma-text-secondary)]" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
+                <Spinner size="sm" className="text-[var(--color-figma-text-secondary)]" />
               )}
             </div>
             {previewError && (
