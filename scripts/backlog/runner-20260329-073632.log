@@ -209,3 +209,12 @@ Already up to date.
 
   Merging to main: useSetMergeSplit has no conflict revalidation after target change
 Already up to date.
+[main b4fba20] chore(backlog): done – useSetMergeSplit has no conflict revalidation after target change
+ 6 files changed, 36 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 850 done — pass skipped (runner PID 68874 already running one)
+
+## 2026-03-29 - useSetMergeSplit has no conflict revalidation after target change
+- The fix was already mostly in place: `changeMergeTarget` (L67-73) already resets `mergeChecked`, `mergeConflicts`, `mergeResolutions`, and `mergeSrcFlat` when the target changes, and the UI only shows the "Merge" button when `mergeChecked` is true
+- Added a defensive guard in `handleConfirmMerge` to bail out if `mergeChecked` is false, preventing any edge case where the confirm handler could fire against stale data
+- The `mergeCheckTargetRef` (L42) already handles the race where an in-flight conflict check completes after the target changed — stale async results are discarded at L86

@@ -450,3 +450,11 @@
   - Check existing code thoroughly before implementing — the fix may already be present from prior work
   - Backlog line number references can be stale; always read current source
 ---
+
+## 2026-03-29 - useUndo keyboard shortcut fires even when a text input has focus
+- Changed `useUndo.ts` keydown handler to use `document.activeElement` instead of `e.target` for more reliable focus detection on window-level listeners, and added `isContentEditable` check to match the guard pattern used in App.tsx
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L82-85
+- **Learnings for future iterations:**
+  - Window-level keydown handlers should use `document.activeElement` rather than `e.target` for focus detection — `e.target` can differ from the focused element in edge cases
+  - Always include `isContentEditable` in typing guards alongside INPUT/TEXTAREA/SELECT checks
+---

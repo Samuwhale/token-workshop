@@ -81,8 +81,9 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY, onError?: (mes
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
       if (e.key === 'z' && !e.shiftKey) {
         if (pastRef.current.length > 0) {
           e.preventDefault();

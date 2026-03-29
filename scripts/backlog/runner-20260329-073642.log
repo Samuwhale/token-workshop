@@ -160,3 +160,10 @@ Already up to date.
   → useUndo keyboard shortcut fires even when a text input has focus — useUndo.ts L84-94 listens for Ctrl+Z globally on `window`; if a user is typing in the find-replace input or token editor and presses Ctrl+Z, the hook fires the server undo instead of the browser's native text undo; add an `isTyping` guard matching the pattern already used in TokenList.tsx L915
   Worktree: /tmp/backlog-67435-bVGkgE
   Running agent… (started 08:06:16)
+
+  ✓ done: useUndo keyboard shortcut fires even when a text input has focus
+    Changed useUndo.ts keydown handler to use document.activeElement instead of e.target and added isContentEditable check, preventing server undo from hijacking Ctrl+Z in text inputs
+    11 turns · 95s · $0.41
+
+  Merging to main: useUndo keyboard shortcut fires even when a text input has focus
+Already up to date.
