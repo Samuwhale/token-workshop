@@ -26,12 +26,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/tokens/search — search tokens across all sets
-  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string } }>(
+  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string; offset?: string } }>(
     '/tokens/search',
     async (request, reply) => {
       try {
-        const { q, type, has, value, desc, path: pathQ, name: nameQ, limit } = request.query;
-        const results = fastify.tokenStore.searchTokens({
+        const { q, type, has, value, desc, path: pathQ, name: nameQ, limit, offset } = request.query;
+        const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,
           has: has ? has.split(',') : undefined,
@@ -40,8 +40,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           paths: pathQ ? pathQ.split(',') : undefined,
           names: nameQ ? nameQ.split(',') : undefined,
           limit: limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200,
+          offset: offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0,
         });
-        return { results };
+        return { results, total };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to search tokens');
       }

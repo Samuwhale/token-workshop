@@ -698,10 +698,20 @@ export function TokenList({
 
   // Cross-set search: debounced server-side search across all sets
   const [crossSetResults, setCrossSetResults] = useState<Array<{ setName: string; path: string; entry: TokenMapEntry }> | null>(null);
+  const [crossSetTotal, setCrossSetTotal] = useState<number>(0);
+  const [crossSetOffset, setCrossSetOffset] = useState<number>(0);
   const crossSetAbortRef = useRef<AbortController | null>(null);
+  const CROSS_SET_PAGE_SIZE = 200;
+
+  // Reset offset when query changes
+  useEffect(() => {
+    setCrossSetOffset(0);
+  }, [crossSetSearch, searchQuery]);
+
   useEffect(() => {
     if (!crossSetSearch || !searchQuery.trim()) {
       setCrossSetResults(crossSetSearch ? [] : null);
+      setCrossSetTotal(0);
       return;
     }
     const parsed = parseStructuredQuery(searchQuery);
@@ -713,20 +723,27 @@ export function TokenList({
     if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
     if (parsed.paths.length) params.set('path', parsed.paths.join(','));
     if (parsed.names.length) params.set('name', parsed.names.join(','));
-    params.set('limit', '200');
+    params.set('limit', String(CROSS_SET_PAGE_SIZE));
+    if (crossSetOffset > 0) params.set('offset', String(crossSetOffset));
 
     crossSetAbortRef.current?.abort();
     const ctrl = new AbortController();
     crossSetAbortRef.current = ctrl;
 
     const timer = setTimeout(() => {
-      apiFetch<{ results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
+      apiFetch<{ results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
         .then(data => {
-          setCrossSetResults(data.results.map(r => ({
+          const mapped = data.results.map(r => ({
             setName: r.setName,
             path: r.path,
             entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
-          })));
+          }));
+          setCrossSetTotal(data.total);
+          if (crossSetOffset > 0) {
+            setCrossSetResults(prev => [...(prev ?? []), ...mapped]);
+          } else {
+            setCrossSetResults(mapped);
+          }
         })
         .catch(err => {
           if (err instanceof Error && err.name === 'AbortError') return;
@@ -735,7 +752,7 @@ export function TokenList({
     }, 150);
 
     return () => { clearTimeout(timer); ctrl.abort(); };
-  }, [crossSetSearch, searchQuery, serverUrl]);
+  }, [crossSetSearch, searchQuery, serverUrl, crossSetOffset]);
 
   // Report filtered leaf count to parent so set tabs can show "X / Y"
   useEffect(() => {
@@ -3209,6 +3226,19 @@ export function TokenList({
                     </div>
                   );
                 })}
+              {crossSetTotal > crossSetResults.length && (
+                <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {crossSetResults.length} of {crossSetTotal} shown
+                  </span>
+                  <button
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                    onClick={() => setCrossSetOffset(crossSetResults.length)}
+                  >
+                    Load {Math.min(CROSS_SET_PAGE_SIZE, crossSetTotal - crossSetResults.length)} more
+                  </button>
+                </div>
+              )}
             </div>
           )
         ) : inspectMode && selectedNodes.length === 0 ? (

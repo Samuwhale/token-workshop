@@ -333,3 +333,12 @@
 - **Learnings for future iterations:**
   - Error handling was added to these routes in a prior session; no changes needed
 ---
+
+## 2026-03-29 - Token search API has no pagination
+- Added `offset` query param to `GET /api/tokens/search` and updated `searchTokens` in token-store to collect all matches first then slice, returning `{ results, total }` instead of just a flat array. The route now accepts `offset` (default 0) and returns `total` alongside `results`.
+- In `TokenList.tsx` cross-set search: added `crossSetTotal` and `crossSetOffset` state. When `crossSetOffset > 0`, new page results are appended to existing results. Added "Load N more" button with count indicator at the bottom of cross-set results when `crossSetTotal > crossSetResults.length`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L955, `packages/server/src/routes/tokens.ts` ~L29, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L699
+- **Learnings for future iterations:**
+  - The `searchTokens` early-break pattern (`if (results.length >= limit) break`) can't support offset without collecting all results first. Removing the early break is acceptable for a design tool — token counts are bounded.
+  - When adding pagination to an appending pattern, reset `offset` to 0 in a separate `useEffect` keyed on the query/mode, not inside the fetch effect, to avoid stale-closure issues with the offset value.
+---

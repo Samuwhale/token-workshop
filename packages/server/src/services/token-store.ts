@@ -961,13 +961,13 @@ export class TokenStore {
     paths?: string[];
     names?: string[];
     limit?: number;
-  }): Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> {
-    const { q, types, has, values, descs, paths, names, limit = 200 } = opts;
+    offset?: number;
+  }): { results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number } {
+    const { q, types, has, values, descs, paths, names, limit = 200, offset = 0 } = opts;
     const qLower = q?.toLowerCase();
-    const results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> = [];
+    const all: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> = [];
 
     for (const [tokenPath, entries] of this.flatTokens) {
-      if (results.length >= limit) break;
       const lp = tokenPath.toLowerCase();
       const leafName = tokenPath.includes('.') ? tokenPath.slice(tokenPath.lastIndexOf('.') + 1) : tokenPath;
       const ln = leafName.toLowerCase();
@@ -979,8 +979,6 @@ export class TokenStore {
       if (names && names.length > 0 && !names.some(n => ln.includes(n))) continue;
 
       for (const entry of entries) {
-        if (results.length >= limit) break;
-
         // Free text: match against path, leaf name, or description
         if (qLower) {
           const ld = (entry.token.$description || '').toLowerCase();
@@ -1017,7 +1015,7 @@ export class TokenStore {
           if (!descs.some(d => ld.includes(d))) continue;
         }
 
-        results.push({
+        all.push({
           setName: entry.setName,
           path: tokenPath,
           name: leafName,
@@ -1028,7 +1026,7 @@ export class TokenStore {
       }
     }
 
-    return results;
+    return { results: all.slice(offset, offset + limit), total: all.length };
   }
 
   /** Get all tokens that reference the given token path, with their set names. */
