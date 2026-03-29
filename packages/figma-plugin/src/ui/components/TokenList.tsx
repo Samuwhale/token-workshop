@@ -2705,6 +2705,27 @@ export function TokenList({
                   setJsonBrokenRefs([]);
                 }
               }}
+              onKeyDown={async e => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                  e.preventDefault();
+                  if (jsonError || jsonSaving || !connected || !jsonText.trim()) return;
+                  setJsonSaving(true);
+                  try {
+                    const parsed = JSON.parse(jsonText);
+                    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(parsed),
+                    });
+                    setJsonDirty(false);
+                    onRefresh();
+                  } catch (err) {
+                    setJsonError(err instanceof ApiError ? err.message : 'Invalid JSON — cannot save');
+                  } finally {
+                    setJsonSaving(false);
+                  }
+                }
+              }}
               placeholder={'{\n  "color": {\n    "primary": {\n      "$value": "#3b82f6",\n      "$type": "color"\n    }\n  }\n}'}
               spellCheck={false}
               className="flex-1 p-3 font-mono text-[10px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none resize-none leading-relaxed placeholder:text-[var(--color-figma-text-tertiary)]"

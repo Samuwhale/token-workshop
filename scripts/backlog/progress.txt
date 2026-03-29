@@ -277,3 +277,11 @@
 - **Learnings for future iterations:**
   - The `useEffect([setName])` + `lsGet` + `useCallback` wrapper is the established per-set persistence pattern; follow it exactly (same as `tokenSort` and `tokenTypeFilter`).
 ---
+
+## 2026-03-29 - JSON editor view has no Cmd+S keyboard shortcut
+- Added `onKeyDown` handler to the JSON editor textarea that intercepts `Cmd+S` (and `Ctrl+S`) and runs the same save logic as the Save button: parse JSON, PUT to API, clear dirty flag, call onRefresh. Disabled when jsonError, jsonSaving, not connected, or empty text.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2695
+- **Learnings for future iterations:**
+  - For textarea keyboard shortcuts in the plugin, use `onKeyDown` with `e.metaKey || e.ctrlKey` check and `e.preventDefault()` to avoid browser save dialog.
+  - The save logic is duplicated between the button's onClick and the onKeyDown handler — both are small enough that extracting a callback is optional, but future refactors could extract a `saveJson` callback.
+---
