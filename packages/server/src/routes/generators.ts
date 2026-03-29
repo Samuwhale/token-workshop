@@ -49,6 +49,41 @@ type ConfigResult =
   | { validated: GeneratorConfig; error?: undefined }
   | { validated?: undefined; error: string };
 
+type InputTableResult =
+  | { validated: InputTable; error?: undefined }
+  | { validated?: undefined; error: string };
+
+/**
+ * Validates and cleans an InputTable from untrusted request body data.
+ * Each row must have a non-empty `brand` string and an `inputs` object.
+ */
+function validateInputTable(raw: unknown): InputTableResult {
+  if (!isObj(raw)) {
+    return { error: 'inputTable must be an object' };
+  }
+  if (typeof raw.inputKey !== 'string' || raw.inputKey === '') {
+    return { error: 'inputTable.inputKey must be a non-empty string' };
+  }
+  if (!Array.isArray(raw.rows)) {
+    return { error: 'inputTable.rows must be an array' };
+  }
+  const rows: InputTable['rows'] = [];
+  for (let i = 0; i < raw.rows.length; i++) {
+    const row = raw.rows[i];
+    if (!isObj(row)) {
+      return { error: `inputTable.rows[${i}] must be an object` };
+    }
+    if (typeof row.brand !== 'string' || row.brand === '') {
+      return { error: `inputTable.rows[${i}].brand must be a non-empty string` };
+    }
+    if (!isObj(row.inputs)) {
+      return { error: `inputTable.rows[${i}].inputs must be an object` };
+    }
+    rows.push({ brand: row.brand, inputs: row.inputs });
+  }
+  return { validated: { inputKey: raw.inputKey, rows } };
+}
+
 /**
  * Validates that the provided config object has the required shape for the
  * given generator type. Returns a *clean* config containing only known fields
@@ -284,6 +319,14 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     if (configResult.error) {
       return reply.status(400).send({ error: configResult.error });
     }
+    let validatedInputTable: InputTable | undefined;
+    if (inputTable !== undefined) {
+      const inputTableResult = validateInputTable(inputTable);
+      if (inputTableResult.error) {
+        return reply.status(400).send({ error: inputTableResult.error });
+      }
+      validatedInputTable = inputTableResult.validated;
+    }
     return withLock(async () => {
       try {
         const before = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
@@ -296,7 +339,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
           config: configResult.validated,
           overrides,
-          inputTable: inputTable as InputTable | undefined,
+          inputTable: validatedInputTable,
           targetSetTemplate: targetSetTemplate ?? undefined,
         });
         // Run immediately so tokens exist right away
@@ -398,8 +441,12 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           }
           updates.overrides = overrides;
         }
-        if (isObj(body.inputTable) && typeof body.inputTable.inputKey === 'string' && Array.isArray(body.inputTable.rows)) {
-          updates.inputTable = body.inputTable as InputTable;
+        if (body.inputTable !== undefined) {
+          const inputTableResult = validateInputTable(body.inputTable);
+          if (inputTableResult.error) {
+            return reply.status(400).send({ error: inputTableResult.error });
+          }
+          updates.inputTable = inputTableResult.validated;
         }
 
         // Validate config if provided — use the effective type (updated or existing)

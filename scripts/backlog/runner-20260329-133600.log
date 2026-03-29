@@ -249,3 +249,10 @@ Already up to date.
   → Generator PATCH route casts body.inputTable to InputTable after shallow validation — only checks for `inputKey` string and `rows` array existence, doesn't validate row structure; malformed rows pass type assertion (packages/server/src/routes/generators.ts:405-408)
   Worktree: /tmp/backlog-48983-cW8AVZ
   Running agent… (started 13:48:26)
+
+  ✓ done: Generator PATCH route casts body.inputTable to InputTable after shallow validation — only checks for `inputKey` string and `rows` array existence, doesn't validate row structure; malformed rows pass type assertion (packages/server/src/routes/generators.ts:405-408)
+    Added validateInputTable helper that validates each row's brand/inputs structure; PATCH now returns 400 on malformed rows; also fixed identical cast-without-validation in POST route
+    18 turns · 92s · $0.34
+
+  Merging to main: Generator PATCH route casts body.inputTable to InputTable after shallow validation — only checks for `inputKey` string and `rows` array existence, doesn't validate row structure; malformed rows pass type assertion (packages/server/src/routes/generators.ts:405-408)
+Already up to date.

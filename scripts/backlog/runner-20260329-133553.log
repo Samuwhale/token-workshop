@@ -108,3 +108,18 @@ Already up to date.
 
   Merging to main: ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message
 Already up to date.
+[main ff381f48] chore(backlog): done – ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message
+ 6 files changed, 48 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ImportPanel conflict-detection failure is invisible
+- Added `existingTokenMapError` state to track fetch failures. In `.catch()`, now calls `setExistingTokenMapError(message)` alongside `setExistingTokenMap(null)`. Error is cleared on new fetch start and on cache-hit path. Updated the preview summary JSX to show "Conflict detection unavailable" warning (with the error message as a `title` tooltip) when `existingTokenMapError !== null`, and updated the visibility condition to include the error state so the warning area renders even when `previewNewCount` is null.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L182, ~L211, ~L224, ~L1537
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  13 queued · 2 in-progress · last took 1m47s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel is a 2316-line monolith mixing three unrelated workflows — Variable sync, Style sync, and Git operations serve different user goals but are crammed into one scrollable panel with collapsible sections; decompose into three focused sub-panels (or sub-tabs within Ship > Publish) so users don't scroll past Git conflict resolution to find Figma sync (PublishPanel.tsx)
+  Worktree: /tmp/backlog-48303-jipvCj
+  Running agent… (started 13:49:49)

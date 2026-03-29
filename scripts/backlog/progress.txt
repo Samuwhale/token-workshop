@@ -184,3 +184,11 @@
 - **Learnings for future iterations:**
   - `null` is overloaded here: it means both "not yet fetched" and "fetch failed". Adding a separate error state makes the two cases distinguishable without changing the null semantics used elsewhere.
 ---
+
+## 2026-03-29 - Generator PATCH route casts body.inputTable to InputTable after shallow validation
+- Added `validateInputTable(raw: unknown): InputTableResult` function that fully validates row structure: each row must have a non-empty `brand` string and an `inputs` plain object. Returns a clean, typed `InputTable` on success or an error string on failure. PATCH route now calls it and returns 400 on malformed input instead of silently passing a type assertion. Also fixed the POST route which had the same cast-without-validation issue (`inputTable as InputTable | undefined`).
+- Files changed: `packages/server/src/routes/generators.ts` ~L48 (new helper), ~L440 (PATCH fix), ~L333 (POST fix)
+- **Learnings for future iterations:**
+  - Pattern: when a route validates one field with a result-object helper (`validateGeneratorConfig`), check all other complex fields for the same pattern — they often have the same shallow-cast problem.
+  - The POST route shared the exact same unsafe cast even though the backlog item only mentioned PATCH — always scan sibling routes for the same bug.
+---
