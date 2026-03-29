@@ -2,6 +2,7 @@ import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { OverrideRow, OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
+import { wcagContrast } from '../../shared/colorUtils';
 
 /** Convert a Lab L* value to a neutral-gray hex swatch color. */
 function lstarToSwatchHex(Lstar: number): string {
@@ -36,6 +37,62 @@ const COLOR_STEP_PRESETS = [
   { label: 'Material (10)', description: '10 steps (50–900) matching the Material Design color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
   { label: 'Compact (5)', description: '5 steps (100, 300, 500, 700, 900) — minimal palette for simple use cases', steps: [100, 300, 500, 700, 900] },
 ];
+
+// ---------------------------------------------------------------------------
+// Contrast preview
+// ---------------------------------------------------------------------------
+
+/** WCAG level: "AAA" ≥7:1, "AA" ≥4.5:1, null = fail */
+function wcagLevel(ratio: number | null): 'AAA' | 'AA' | null {
+  if (ratio === null) return null;
+  if (ratio >= 7) return 'AAA';
+  if (ratio >= 4.5) return 'AA';
+  return null;
+}
+
+/** One row of contrast badges (vs white or vs black) aligned with the swatch columns. */
+function ContrastBadgeRow({ tokens, bg, label }: {
+  tokens: GeneratedTokenResult[];
+  bg: '#ffffff' | '#000000';
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <span className="w-[18px] shrink-0 text-[7px] text-[var(--color-figma-text-secondary)] leading-none select-none">{label}</span>
+      <div className="flex gap-0.5 flex-1 min-w-0">
+        {tokens.map((t) => {
+          const hex = String(t.value);
+          const ratio = wcagContrast(hex, bg);
+          const level = wcagLevel(ratio);
+          const ratioStr = ratio !== null ? `${ratio.toFixed(1)}:1` : 'n/a';
+          const bgLabel = bg === '#ffffff' ? 'white' : 'black';
+          return (
+            <div
+              key={t.stepName}
+              className="flex-1 min-w-0 flex items-center justify-center"
+              style={{ height: '13px' }}
+              title={`${t.stepName} on ${bgLabel}: ${ratioStr}${level ? ` (${level})` : ' (fail AA)'}`}
+            >
+              {level ? (
+                <span
+                  className={`text-[6px] font-bold leading-none px-[2px] rounded-sm ${
+                    level === 'AAA'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-amber-400 text-white'
+                  }`}
+                >
+                  {level}
+                </span>
+              ) : (
+                <span className="text-[7px] text-[var(--color-figma-text-secondary)]/40 leading-none" aria-hidden="true">—</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Preview
@@ -79,6 +136,13 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
           );
         })}
       </div>
+      {/* WCAG contrast badges: green=AAA (≥7:1), amber=AA (≥4.5:1), dash=fail */}
+      {tokens.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          <ContrastBadgeRow tokens={tokens} bg="#ffffff" label="on ◻" />
+          <ContrastBadgeRow tokens={tokens} bg="#000000" label="on ◼" />
+        </div>
+      )}
       <OverrideTable tokens={tokens} overrides={overrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} overwritePaths={overwritePaths} />
     </div>
   );

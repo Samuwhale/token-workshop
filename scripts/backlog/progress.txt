@@ -255,3 +255,11 @@
   - SVG `overflow: visible` (via inline style, not just Tailwind class) allows control point handles to render outside the SVG bounding box — essential for spring/overshoot curves.
   - Spring cubic-bezier [0.34, 1.56, 0.64, 1] is a common approximation; cy values > 1 require expanded drag clamp and SVG overflow.
 ---
+
+## 2026-03-29 - Color ramp generator has no per-step WCAG contrast preview
+- Added `ContrastBadgeRow` component and `wcagLevel` helper to `ColorRampGenerator.tsx`. Two rows of per-step badges rendered below the swatch strip inside `ColorSwatchPreview`: "on ◻" (vs #ffffff) and "on ◼" (vs #000000). Each badge shows "AAA" (green, ≥7:1), "AA" (amber, ≥4.5:1), or "—" (grey, fail). Hovering shows the exact ratio and pass/fail in a tooltip. Imported `wcagContrast` from `../../shared/colorUtils`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L1-5, ~L43-155
+- **Learnings for future iterations:**
+  - `wcagContrast` in `colorUtils.ts` handles both hex and CSS Color 4 strings — safe to use for ramp token values.
+  - Alignment between the swatch strip and contrast rows is close but not pixel-perfect (18px label offset). This is acceptable for the compact indicator pattern; tooltip shows exact values.
+---
