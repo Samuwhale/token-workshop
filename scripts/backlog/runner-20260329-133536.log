@@ -148,3 +148,10 @@ Already up to date.
   → Theme options have no side-by-side resolved value comparison — verifying a light/dark theme requires switching active option, memorizing values, switching again, and comparing mentally; add a "Compare two options" view in ThemeManager that resolves both options and shows token path / option-A value / option-B value in a diff table (ThemeManager.tsx)
   Worktree: /tmp/backlog-46928-Ivv7wh
   Running agent… (started 13:58:40)
+
+  ✓ done: Theme options have no side-by-side resolved value comparison — verifying a light/dark theme requires switching active option, memorizing values, switching again, and comparing mentally; add a "Compare two options" view in ThemeManager that resolves both options and shows token path / option-A value / option-B value in a diff table (ThemeManager.tsx)
+    Added Compare panel with two option dropdowns, diff table (token path / A value / B value), diffs-only toggle, and search filter; auto-selects first two options on open; mutually exclusive with Preview panel
+    29 turns · 358s · $1.21
+
+  Merging to main: Theme options have no side-by-side resolved value comparison — verifying a light/dark theme requires switching active option, memorizing values, switching again, and comparing mentally; add a "Compare two options" view in ThemeManager that resolves both options and shows token path / option-A value / option-B value in a diff table (ThemeManager.tsx)
+Already up to date.

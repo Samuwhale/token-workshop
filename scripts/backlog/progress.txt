@@ -236,3 +236,14 @@
   - Sub-tab status badges in the tab strip (showing "In sync", "N conflicts", "Clean") let users quickly triage which workflow needs attention without navigating to each tab.
   - The diff filter input is shown in the tab bar area only for variable/style tabs (where it applies), hidden for git tab to avoid confusion.
 ---
+
+## 2026-03-29 - Theme options have no side-by-side resolved value comparison
+- Added "Compare two options" view in ThemeManager.tsx. Added a "Compare" button (next to "Preview") in the Layer Stack header. Clicking it opens a panel with: two `<select>` dropdowns (grouped by dimension via `<optgroup>`) to pick Option A and Option B; a search input; a "Diffs only" toggle (defaults on); and a diff table showing token path / A value / B value with red/green tint on changed cells.
+- Resolution per option replicates the source→enabled merge logic inline within `compareRows` useMemo. Auto-selects sensible defaults (first two options of the first dimension with 2+ options) when Compare is opened for the first time.
+- Compare and Preview panels are mutually exclusive (opening one closes the other).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L129, ~L935, ~L1255, ~L1910
+- **Learnings for future iterations:**
+  - ThemeManager already contains inline token resolution logic (coverage check, preview) — compare logic fits naturally as another `useMemo` reusing `setTokenValues` which is already fetched and cached.
+  - Using `JSON.stringify(a) !== JSON.stringify(b)` is sufficient for diff detection here; tokens are primitives or simple objects.
+  - `<optgroup>` is the right pattern for grouping options across multiple dimensions in a native `<select>`.
+---
