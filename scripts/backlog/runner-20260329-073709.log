@@ -49,3 +49,18 @@ Already up to date.
 
   Merging to main: Paste import sends one API request per token instead of using batch endpoint
 Already up to date.
+[main 9054222] chore(backlog): done – Paste import sends one API request per token instead of using batch endpoint
+ 6 files changed, 48 insertions(+), 50 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Paste import sends one API request per token instead of using batch endpoint
+- Replaced N sequential POST/PATCH requests in `handleConfirm` with a single `POST /api/tokens/:set/batch` call using `strategy: 'overwrite'`
+- Removed per-token progress bar (no longer meaningful for a single request); button shows "Saving…" during the request
+- Removed unused `progress` state variable
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  9 queued · 5 in-progress · last took 2m23s
+═══════════════════════════════════════════════════════════════
+  → Figma scope labels in MetadataEditor are raw API names — MetadataEditor.tsx shows scope checkboxes with labels like "FILL_COLOR", "STROKE_FLOAT", "WIDTH_HEIGHT" which are Figma's internal API names; replace with human-readable labels (e.g., "Fill color", "Stroke width", "Width & Height") and add brief descriptions of what each scope controls
+  Worktree: /tmp/backlog-69179-ATK8e5
+  Running agent… (started 07:42:39)

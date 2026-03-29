@@ -20,3 +20,10 @@ NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
   → Export sub-tab duplicates Publish panel's File Export section — ExportPanel.tsx and the "File Export" collapsible section inside PublishPanel.tsx offer identical platform export functionality (same platform list, same API call, same ZIP download); users must guess which one to use; remove the standalone Export sub-tab and keep export only within the Publish workflow, or vice versa
   Worktree: /tmp/backlog-67697-MvXypf
   Running agent… (started 07:36:45)
+
+  ✓ done: Export sub-tab duplicates Publish panel's File Export section
+    Removed duplicate File Export section from PublishPanel.tsx (~270 lines: JSX, state, callbacks, imports); ExportPanel sub-tab remains as the single export location with all advanced features.
+    37 turns · 392s · $1.56
+
+  Merging to main: Export sub-tab duplicates Publish panel's File Export section
+Already up to date.

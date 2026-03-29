@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { swatchBgColor } from '../shared/colorUtils';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
-import { PLATFORMS } from '../shared/platforms';
-import type { Platform } from '../shared/platforms';
 import { useVariableSync } from '../hooks/useVariableSync';
 import type { VarDiffRow } from '../hooks/useVariableSync';
 import { useStyleSync } from '../hooks/useStyleSync';
@@ -80,7 +78,7 @@ function Section({ title, open, onToggle, badge, children }: {
 
 export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {} }: PublishPanelProps) {
   // ── Section collapse ──
-  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['figma-variables', 'git', 'file-export']));
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['figma-variables', 'git']));
   const toggleSection = (id: string) => {
     setOpenSections(prev => {
       const next = new Set(prev);
@@ -103,14 +101,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [readinessError, setReadinessError] = useState<string | null>(null);
   const [orphansDeleting, setOrphansDeleting] = useState(false);
   const orphansPendingRef = useRef<Map<string, (count: number) => void>>(new Map());
-
-  // ── Export state ──
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['css']));
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const [exportResults, setExportResults] = useState<{ platform: string; path: string; content: string }[]>([]);
-  const [expandedFile, setExpandedFile] = useState<string | null>(null);
-  const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -232,65 +222,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     }
   }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap]);
 
-  /* ── Export callbacks ───────────────────────────────────────────────────── */
-
-  const togglePlatform = (id: string) => {
-    setSelectedPlatforms(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const handleExport = async () => {
-    if (selectedPlatforms.size === 0 || !connected) return;
-    setExporting(true);
-    setExportError(null);
-    setExportResults([]);
-    try {
-      const data = await apiFetch<{ results?: Array<{ platform: string; files?: Array<{ path: string; content: string }> }> }>(`${serverUrl}/api/export`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platforms: Array.from(selectedPlatforms) }),
-      });
-      const flatFiles: { platform: string; path: string; content: string }[] = [];
-      for (const result of data.results || []) {
-        for (const file of result.files || []) {
-          flatFiles.push({ platform: result.platform, path: file.path, content: file.content });
-        }
-      }
-      setExportResults(flatFiles);
-      if (flatFiles.length > 0) setExpandedFile(flatFiles[0].path);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
-    } catch (err) {
-      setExportError(describeError(err, 'Export'));
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleDownloadFile = (file: { path: string; content: string }) => {
-    const blob = new Blob([file.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.path.split('/').pop() || 'tokens.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCopyFile = (file: { path: string; content: string }) => {
-    navigator.clipboard.writeText(file.content);
-    setCopiedFile(file.path);
-    setTimeout(() => setCopiedFile(null), 1500);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
-  };
-
-  const handleCopyAllPlatformResults = () => {
-    const allContent = exportResults.map(f => `/* ${f.platform}: ${f.path} */\n${f.content}`).join('\n\n');
-    navigator.clipboard.writeText(allContent);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${exportResults.length} file(s) to clipboard` } }, '*');
-  };
 
   /* ── Computed values ───────────────────────────────────────────────────── */
 
@@ -1244,211 +1175,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               )}
             </div>
           )}
-        </Section>
-
-        {/* ── Section: File Export ──────────────────────────────────────── */}
-        <Section
-          title="File Export"
-          open={openSections.has('file-export')}
-          onToggle={() => toggleSection('file-export')}
-          badge={
-            exportResults.length > 0
-              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium">{exportResults.length} file{exportResults.length !== 1 ? 's' : ''}</span>
-              : null
-          }
-        >
-          <div className="p-3 flex flex-col gap-3">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Generate platform-specific code files from the token server \u2014 CSS variables, Dart, Swift, Android, or W3C JSON.
-            </div>
-
-            {exportError && (
-              <div role="alert" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                {exportError}
-              </div>
-            )}
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Target Platforms
-                </div>
-                <button
-                  onClick={() => {
-                    if (selectedPlatforms.size === PLATFORMS.length) {
-                      setSelectedPlatforms(new Set());
-                    } else {
-                      setSelectedPlatforms(new Set(PLATFORMS.map(p => p.id)));
-                    }
-                  }}
-                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                >
-                  {selectedPlatforms.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
-                </button>
-              </div>
-              <div className="flex flex-col gap-1">
-                {PLATFORMS.map(platform => {
-                  const isSelected = selectedPlatforms.has(platform.id);
-                  return (
-                    <label
-                      key={platform.id}
-                      className={`group flex items-start gap-2.5 px-3 py-2 rounded-md border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                          : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        isSelected
-                          ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                          : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-                      }`}>
-                        {isSelected && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => togglePlatform(platform.id)}
-                        className="sr-only"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
-                        {isSelected && (
-                          <div className="mt-1 text-[8px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
-                            {platform.example}
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {exportResults.length === 0 && (
-              <button
-                onClick={handleExport}
-                disabled={selectedPlatforms.size === 0 || exporting}
-                className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-              >
-                {exporting ? 'Exporting\u2026' : selectedPlatforms.size === 0 ? 'Select a platform to export' : `Export ${selectedPlatforms.size} Platform${selectedPlatforms.size !== 1 ? 's' : ''}`}
-              </button>
-            )}
-
-            {exportResults.length > 0 && (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                    Generated Files
-                  </div>
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    {exportResults.length} file{exportResults.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {exportResults.map((file, i) => (
-                    <div key={i} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
-                      <button
-                        onClick={() => setExpandedFile(expandedFile === file.path ? null : file.path)}
-                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase shrink-0">
-                            {file.platform}
-                          </span>
-                          <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate">{file.path}</span>
-                        </div>
-                        <svg
-                          width="8" height="8" viewBox="0 0 8 8"
-                          className={`transition-transform shrink-0 ml-2 ${expandedFile === file.path ? 'rotate-90' : ''}`}
-                          fill="currentColor"
-                        >
-                          <path d="M2 1l4 3-4 3V1z" />
-                        </svg>
-                      </button>
-                      {expandedFile === file.path && (
-                        <div className="border-t border-[var(--color-figma-border)]">
-                          <pre className="p-3 text-[10px] font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] overflow-auto max-h-48 whitespace-pre-wrap break-all">
-                            {file.content}
-                          </pre>
-                          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                              {file.content.split('\n').length} lines
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleDownloadFile(file)}
-                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                                title="Download file"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                                  <polyline points="7 10 12 15 17 10" />
-                                  <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                Download
-                              </button>
-                              <button
-                                onClick={() => handleCopyFile(file)}
-                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                                title="Copy to clipboard"
-                              >
-                                {copiedFile === file.path ? (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M20 6L9 17l-5-5" />
-                                    </svg>
-                                    Copied
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                                    </svg>
-                                    Copy
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={handleCopyAllPlatformResults}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                    </svg>
-                    Copy All
-                  </button>
-                  <button
-                    onClick={handleExport}
-                    disabled={selectedPlatforms.size === 0 || exporting}
-                    className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                  >
-                    {exporting ? 'Exporting\u2026' : 'Re-export'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </Section>
       </div>
     </div>

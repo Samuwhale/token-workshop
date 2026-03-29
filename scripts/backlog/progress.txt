@@ -519,3 +519,12 @@
   - The batch endpoint accepts `strategy: 'overwrite'` which handles both creates and updates in one call — no need to separate them
   - PasteTokensModal already pre-classifies tokens into toCreate/toUpdate/skipped, so the batch payload is just `[...toCreate, ...toUpdate]`
 ---
+
+## 2026-03-29 - Export sub-tab duplicates Publish panel's File Export section
+- Removed the duplicate "File Export" collapsible section from PublishPanel.tsx, keeping the standalone ExportPanel sub-tab (Ship > Export) as the single export location. ExportPanel has all the advanced features (CSS selector, set filtering, ZIP download, Figma variables export) that PublishPanel's simpler copy lacked.
+- Removed: File Export section JSX (~200 lines), 7 export state variables, 5 export callback functions (togglePlatform, handleExport, handleDownloadFile, handleCopyFile, handleCopyAllPlatformResults), unused PLATFORMS/Platform imports, 'file-export' from default open sections.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (net -270 lines)
+- **Learnings for future iterations:**
+  - ExportPanel is the full-featured export with CSS selector, set filtering, ZIP, and Figma variables modes; PublishPanel had a subset — when deduplicating, keep the richer version
+  - The `\u2014` in the file is a literal escape sequence, not an em dash — large block replacements via Edit tool can fail on special characters; use sed for line-range deletions instead
+---
