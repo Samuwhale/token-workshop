@@ -427,3 +427,9 @@
 - Found 2 items — written to backlog-inbox.md
 - Notable: Generator CRUD operations (create/delete/update) record before/after token snapshots in the operation log but add no structural `rollbackSteps`; rolling back a `generator-delete` restores generated tokens but permanently destroys the generator config (the `RollbackStep` union type has no generator actions at all)
 ---
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/server/src/routes/themes.ts, packages/server/src/services/operation-log.ts, packages/server/src/services/token-store.ts (renameSet), packages/server/src/routes/generators.ts, packages/server/src/routes/resolvers.ts, packages/server/src/routes/sets.ts, packages/server/src/routes/snapshots.ts, packages/figma-plugin/src/ui/components/GraphPanel.tsx (GeneratorPipelineCard), packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/App.tsx, packages/figma-plugin/src/ui/shared/apiFetch.ts
+- Found 4 items — written to backlog-inbox.md
+- Notable: Both $themes.json and the operation log use non-atomic fs.writeFile() — only token files and generator config use the safe .tmp+rename pattern; a server crash mid-write corrupts theme config or destroys undo history
+---
