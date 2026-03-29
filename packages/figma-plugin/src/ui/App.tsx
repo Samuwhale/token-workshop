@@ -22,6 +22,7 @@ import { WelcomePrompt } from './components/WelcomePrompt';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
+import { SetSwitcher } from './components/SetSwitcher';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -322,7 +323,7 @@ export function App() {
   const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias, handleNavigateBack, navHistory } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
-  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply } = useModalVisibility();
+  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
@@ -559,6 +560,10 @@ export function App() {
       e.preventDefault();
       setShowQuickApply(v => !v);
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
+      e.preventDefault();
+      setShowSetSwitcher(v => !v);
+    }
     if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       setShowKeyboardShortcuts(v => !v);
@@ -614,6 +619,14 @@ export function App() {
         category: 'Tokens',
         shortcut: adaptShortcut('⌘T'),
         handler: () => { goToTokens(); },
+      },
+      {
+        id: 'switch-set',
+        label: 'Switch set\u2026',
+        description: `${sets.length} set${sets.length !== 1 ? 's' : ''} available`,
+        category: 'Sets',
+        shortcut: adaptShortcut('⌘⇧S'),
+        handler: () => setShowSetSwitcher(true),
       },
       {
         id: 'paste-tokens',
@@ -2512,6 +2525,19 @@ export function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Set Switcher */}
+      {showSetSwitcher && (
+        <SetSwitcher
+          sets={sets}
+          activeSet={activeSet}
+          onSelect={(set) => {
+            setActiveSet(set);
+            navigateTo('define', 'tokens');
+          }}
+          onClose={() => setShowSetSwitcher(false)}
+        />
       )}
 
       {/* Command Palette */}

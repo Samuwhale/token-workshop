@@ -404,3 +404,12 @@
   - `onLintRefresh` is required in `LintConfigPanelProps` but only meaningful in a validation context; pass `() => {}` as a noop when used outside AnalyticsPanel.
   - SettingsPanel already receives `serverUrl` and `connected` as props, so no prop-threading needed for hooks that depend on server connection.
 ---
+
+## 2026-03-29 - Set tab bar has no search or quick-switch when there are many sets
+- Added a keyboard-triggered quick-switcher (Cmd+Shift+S) for set navigation. Created `SetSwitcher.tsx` component with fuzzy filtering, arrow key navigation, and active-set highlighting. Added `showSetSwitcher` state to `useModalVisibility`. Registered shortcut in App.tsx keyboard handler. Added "Switch set…" command to command palette commands array. Added shortcut entry to `KeyboardShortcutsModal` under Navigation. Selecting a set navigates to define/tokens tab automatically.
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` (new), `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L11, `packages/figma-plugin/src/ui/App.tsx` ~L24 (import), ~L326 (destructure), ~L558 (shortcut), ~L620 (command), ~L2530 (render), `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L25
+- **Learnings for future iterations:**
+  - SetSwitcher initializes `activeIdx` to the current set's index so the active set is pre-highlighted when the modal opens — good UX for quick confirmation via Enter with no query.
+  - The switcher deliberately navigates to define/tokens on selection so the newly selected set's tokens are immediately visible; callers that want different behaviour can pass a no-op navigate.
+  - `Cmd+Shift+S` was free (no conflict with existing shortcuts); always check KeyboardShortcutsModal for the current list before picking a new binding.
+---

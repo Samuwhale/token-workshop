@@ -22,6 +22,7 @@ const SECTIONS: ShortcutSection[] = [
       { keys: ['⌘1'], label: 'Go to Define' },
       { keys: ['⌘2'], label: 'Go to Apply' },
       { keys: ['⌘3'], label: 'Go to Ship' },
+      { keys: ['⌘⇧S'], label: 'Quick-switch token set' },
     ],
   },
   {
