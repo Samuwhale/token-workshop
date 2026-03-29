@@ -319,3 +319,10 @@
 - **Learnings for future iterations:**
   - None — item was fully implemented before this session.
 ---
+
+## 2026-03-29 - $themes.json and operation log use non-atomic writes
+- Stale — all three write sites already use the atomic `.tmp + fs.rename()` pattern: `themes.ts` save() at L53-55, `token-store.ts` renameSet at L607-609, and `operation-log.ts` persist() at L95-97.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The atomic write pattern was already applied; backlog item was outdated.
+---
