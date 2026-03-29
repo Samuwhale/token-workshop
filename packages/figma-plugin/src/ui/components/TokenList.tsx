@@ -990,6 +990,25 @@ export function TokenList({
       return;
     }
 
+    // Alt+↑/↓: move focused token/group up or down within its parent group
+    if (e.altKey && !e.metaKey && !e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      const activeEl = document.activeElement as HTMLElement;
+      const nodePath = activeEl?.dataset?.tokenPath ?? activeEl?.dataset?.groupPath;
+      const nodeName = activeEl?.dataset?.nodeName;
+      if (nodePath && nodeName && sortOrder === 'default' && connected) {
+        const direction = e.key === 'ArrowUp' ? 'up' : 'down';
+        const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
+        const siblings = siblingOrderMap.get(parentPath) ?? [];
+        const idx = siblings.indexOf(nodeName);
+        const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (idx >= 0 && newIdx >= 0 && newIdx < siblings.length) {
+          e.preventDefault();
+          handleMoveTokenInGroup(nodePath, nodeName, direction);
+        }
+      }
+      return;
+    }
+
     // ↑/↓: navigate between visible token and group rows
     // Shift+↑/↓ in select mode: extend/shrink range selection
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -1097,7 +1116,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleTokenSelect]);
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {

@@ -472,6 +472,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
+          data-node-name={node.name}
           className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
@@ -964,6 +965,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
+      data-node-name={node.name}
       draggable={!selectMode || isSelected}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';

@@ -357,3 +357,14 @@
   - The existing `handleTokenSelect` already handles shift-range logic using `lastSelectedPathRef` as anchor and `orderedPaths` for the visible leaf order — reusing it avoids duplicating range computation
   - Groups rows (data-group-path) are navigable but won't be added to selection since they're filtered out of `orderedPaths` — this is correct behavior since only tokens are selectable
 ---
+
+## 2026-03-29 - No way to reorder tokens within a group from the keyboard
+- Added Alt+Up / Alt+Down keyboard shortcuts to move a focused token or group up/down within its parent group
+- Added `data-node-name` attributes to both group and token row elements in TokenTreeNode so the keyboard handler can identify the node name
+- The shortcut only fires when sort order is "default" and the server is connected (same guard as the existing move buttons)
+- Boundary-safe: does nothing when the token is already at the top/bottom of its sibling list
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L474, ~L967 (data-node-name attributes); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L993-1010 (Alt+Arrow handler), ~L1097 (deps array)
+- **Learnings for future iterations:**
+  - Row elements only had `data-token-path` / `data-group-path` — no `data-node-name`. Since node names can contain dots, extracting the name from the path alone requires knowing the parent path (which requires the name — circular). Adding `data-node-name` is the cleanest solution.
+  - The `handleMoveTokenInGroup` callback already handles undo/redo and API calls, so the keyboard shortcut just needs to call it with the right args.
+---

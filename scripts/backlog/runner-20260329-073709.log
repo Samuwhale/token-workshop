@@ -376,3 +376,10 @@ Already up to date.
   → No way to reorder tokens within a group from the keyboard — tokens can be reordered via drag-and-drop but there's no Alt+Up/Alt+Down keyboard shortcut to move a selected token up or down within its group; this is a standard accessibility and power-user expectation for ordered lists (TokenTreeNode.tsx, TokenList.tsx keyboard handler)
   Worktree: /tmp/backlog-69179-muaqvX
   Running agent… (started 08:22:00)
+
+  ✓ done: No way to reorder tokens within a group from the keyboard
+    Added Alt+Up/Alt+Down keyboard shortcuts to move focused token/group within its parent group; added data-node-name attributes to row elements for keyboard handler identification
+    23 turns · 173s · $0.84
+
+  Merging to main: No way to reorder tokens within a group from the keyboard
+Already up to date.
