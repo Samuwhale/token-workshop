@@ -51,3 +51,18 @@ Already up to date.
 
   Merging to main: No "everything is synced" state in PublishPanel
 Already up to date.
+[main bf4c471] chore(backlog): done – No "everything is synced" state in PublishPanel
+ 6 files changed, 51 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No "everything is synced" state in PublishPanel
+- Added a global "Everything is synced" banner at the top of the scrollable sections in PublishPanel, shown when: variables checked & 0 diffs, styles checked & 0 diffs, and git is a repo with 0 uncommitted changes and 0 conflicts
+- Banner has a green checkmark icon, "Everything is synced" heading, and descriptive subtitle, styled with success color background/border
+- Individual section badges and per-section "in sync" messages remain as-is for when only some sections are synced
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  6 queued · 5 in-progress · last took 1m59s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel elements don't link back to token definitions — clicking a color swatch or type scale item in PreviewPanel.tsx copies the CSS variable value but doesn't offer navigation to the source token in the token list; add a "Go to token" action on preview elements so users can quickly edit the token they're previewing
+  Worktree: /tmp/backlog-67173-F2BaX1
+  Running agent… (started 07:44:12)

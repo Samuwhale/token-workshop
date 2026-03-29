@@ -548,3 +548,16 @@
   - The three sync systems have independent "checked" flags — the banner only appears after both Compare buttons have been clicked AND git status is loaded, so it won't show false positives
   - Git section uses `git.gitStatus?.isRepo` as a prerequisite — the banner correctly excludes the no-repo case
 ---
+
+## 2026-03-29 - TokenStore mutation methods corrupt in-memory state when saveSet() fails
+- Added `snapshotSets()` and `restoreSnapshots()` private helpers that use `structuredClone` to capture/restore `set.tokens` state
+- Wrapped all 15 mutation methods with try/catch rollback: `deleteToken`, `deleteTokens`, `createToken`, `updateToken`, `batchUpsertTokens`, `restoreSnapshot`, `renameGroup`, `renameToken`, `moveGroup`, `moveToken`, `copyToken`, `duplicateGroup`, `createGroup`, `updateGroup`, `bulkRename`
+- For multi-set operations (renameToken, renameGroup with alias updates, moveGroup, moveToken, bulkRename), all potentially-modified sets are snapshotted before any mutation
+- Replaced bulkRename's manual per-token reversal with cleaner snapshot-based rollback
+- Files changed: `packages/server/src/services/token-store.ts` ~L1381 (helpers), ~L742-1460 (all mutation methods)
+- **Learnings for future iterations:**
+  - `structuredClone` on TokenGroup is safe and fast for typical token sets — no circular references in DTCG data
+  - For methods that touch multiple sets during alias updates, snapshot ALL sets upfront rather than tracking which ones changed
+  - The `beginBatch()`/`endBatch()` pattern defers `rebuildFlatTokens()` but doesn't provide rollback — snapshot-restore is orthogonal to batching
+  - `bulkRename` previously did manual per-token reversal which was fragile; snapshot-based rollback is simpler and handles partial save failures correctly
+---

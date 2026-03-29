@@ -650,8 +650,14 @@ export class TokenStore {
     if (!set) {
       set = await this._createSetNoRebuild(setName);
     }
+    const snapshot = this.snapshotSets(setName);
     setTokenAtPath(set.tokens, tokenPath, token);
-    await this.saveSet(setName);
+    try {
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    }
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName, tokenPath });
   }
@@ -675,11 +681,17 @@ export class TokenStore {
     }
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
+    const snapshot = this.snapshotSets(setName);
     if ('$value' in token) existing.$value = token.$value!;
     if ('$type' in token) existing.$type = token.$type;
     if ('$description' in token) existing.$description = token.$description;
     if ('$extensions' in token) existing.$extensions = token.$extensions;
-    await this.saveSet(setName);
+    try {
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    }
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName, tokenPath });
   }
@@ -709,6 +721,7 @@ export class TokenStore {
     if (changes.length > 0) {
       this.checkCircularReferences(changes);
     }
+    const snapshot = this.snapshotSets(setName);
     this.beginBatch();
     let imported = 0;
     let skipped = 0;
@@ -732,6 +745,9 @@ export class TokenStore {
         }
       }
       await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -742,9 +758,15 @@ export class TokenStore {
   async deleteToken(setName: string, tokenPath: string): Promise<boolean> {
     const set = this.sets.get(setName);
     if (!set) return false;
+    const snapshot = this.snapshotSets(setName);
     const deleted = deleteTokenAtPath(set.tokens, tokenPath);
     if (deleted) {
-      await this.saveSet(setName);
+      try {
+        await this.saveSet(setName);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
+      }
       this.rebuildFlatTokens();
       this.emit({ type: 'token-updated', setName, tokenPath });
     }
@@ -755,6 +777,7 @@ export class TokenStore {
   async deleteTokens(setName: string, tokenPaths: string[]): Promise<string[]> {
     const set = this.sets.get(setName);
     if (!set) return [];
+    const snapshot = this.snapshotSets(setName);
     const deleted: string[] = [];
     this.beginBatch();
     try {
@@ -766,6 +789,9 @@ export class TokenStore {
       if (deleted.length > 0) {
         await this.saveSet(setName);
       }
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -784,6 +810,7 @@ export class TokenStore {
   async restoreSnapshot(setName: string, items: Array<{ path: string; token: Token | null }>): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const snapshot = this.snapshotSets(setName);
     this.beginBatch();
     try {
       for (const { path: tokenPath, token } of items) {
@@ -794,6 +821,9 @@ export class TokenStore {
         }
       }
       await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -1025,6 +1055,9 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const leafTokens = collectGroupLeafTokens(set.tokens, oldGroupPath);
+    // Snapshot all sets that may be modified (primary + any alias-bearing sets)
+    const allSetNames = [setName, ...[...this.sets.keys()].filter(n => n !== setName)];
+    const snapshot = updateAliases ? this.snapshotSets(...allSetNames) : this.snapshotSets(setName);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
@@ -1059,6 +1092,10 @@ export class TokenStore {
       }
       this.rebuildFlatTokens();
       return { renamedCount: leafTokens.length, aliasesUpdated };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -1071,21 +1108,30 @@ export class TokenStore {
     const token = getTokenAtPath(set.tokens, oldPath);
     if (!token) throw new NotFoundError(`Token "${oldPath}" not found in set "${setName}"`);
     if (getTokenAtPath(set.tokens, newPath)) throw new ConflictError(`Token "${newPath}" already exists`);
+    // Snapshot all sets that may be modified (primary + any alias-bearing sets)
+    const allSetNames = [setName, ...[...this.sets.keys()].filter(n => n !== setName)];
+    const snapshot = updateAliases ? this.snapshotSets(...allSetNames) : this.snapshotSets(setName);
     setTokenAtPath(set.tokens, newPath, token);
     deleteTokenAtPath(set.tokens, oldPath);
-    await this.saveSet(setName);
-    let aliasesUpdated = 0;
-    if (updateAliases) {
-      const pathMap = new Map([[oldPath, newPath]]);
-      const setsToSave = new Set<string>();
-      for (const [sName, s] of this.sets) {
-        const changed = updateBulkAliasRefs(s.tokens, pathMap);
-        if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+    try {
+      await this.saveSet(setName);
+      let aliasesUpdated = 0;
+      if (updateAliases) {
+        const pathMap = new Map([[oldPath, newPath]]);
+        const setsToSave = new Set<string>();
+        for (const [sName, s] of this.sets) {
+          const changed = updateBulkAliasRefs(s.tokens, pathMap);
+          if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+        }
+        for (const sName of setsToSave) await this.saveSet(sName);
       }
-      for (const sName of setsToSave) await this.saveSet(sName);
+      this.rebuildFlatTokens();
+      return { aliasesUpdated };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
     }
-    this.rebuildFlatTokens();
-    return { aliasesUpdated };
   }
 
   async moveGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ movedCount: number }> {
@@ -1095,6 +1141,7 @@ export class TokenStore {
     const target = this.sets.get(toSet);
     if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
     const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
+    const snapshot = this.snapshotSets(fromSet, toSet);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
@@ -1124,6 +1171,10 @@ export class TokenStore {
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
       return { movedCount: leafTokens.length };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -1138,6 +1189,7 @@ export class TokenStore {
     const token = getTokenAtPath(source.tokens, tokenPath);
     if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
     if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+    const snapshot = this.snapshotSets(fromSet, toSet);
     this.beginBatch();
     try {
       setTokenAtPath(target.tokens, tokenPath, token);
@@ -1145,6 +1197,10 @@ export class TokenStore {
       await this.saveSet(fromSet);
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -1159,11 +1215,15 @@ export class TokenStore {
     const token = getTokenAtPath(source.tokens, tokenPath);
     if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
     if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+    const snapshot = this.snapshotSets(toSet);
     this.beginBatch();
     try {
       setTokenAtPath(target.tokens, tokenPath, structuredClone(token));
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
     } finally {
       this.endBatch();
     }
@@ -1172,6 +1232,7 @@ export class TokenStore {
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const snapshot = this.snapshotSets(setName);
     const leafTokens = collectGroupLeafTokens(set.tokens, groupPath);
     if (leafTokens.length === 0) {
       const groupObj = getObjectAtPath(set.tokens, groupPath);
@@ -1186,7 +1247,12 @@ export class TokenStore {
         newEmptyPath = makeNewPath0(`${baseName0}-copy-${attempt0++}`);
       }
       setGroupAtPath(set.tokens, newEmptyPath, JSON.parse(JSON.stringify(groupObj)));
-      await this.saveSet(setName);
+      try {
+        await this.saveSet(setName);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
+      }
       this.rebuildFlatTokens();
       return { newGroupPath: newEmptyPath, count: 0 };
     }
@@ -1202,7 +1268,12 @@ export class TokenStore {
     for (const { relativePath, token } of leafTokens) {
       setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, JSON.parse(JSON.stringify(token)));
     }
-    await this.saveSet(setName);
+    try {
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    }
     this.rebuildFlatTokens();
     return { newGroupPath, count: leafTokens.length };
   }
@@ -1258,7 +1329,9 @@ export class TokenStore {
     }
 
     const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
-    const aliasModifiedSets = new Set<string>();
+
+    // Snapshot all sets before mutation so we can restore atomically on failure
+    const snapshot = this.snapshotSets(...this.sets.keys());
 
     this.beginBatch();
     try {
@@ -1272,6 +1345,7 @@ export class TokenStore {
 
       // Update alias references across all sets
       let aliasesUpdated = 0;
+      const aliasModifiedSets = new Set<string>();
       for (const [sName, s] of this.sets) {
         const changed = updateBulkAliasRefs(s.tokens, pathMap);
         if (changed > 0) {
@@ -1296,17 +1370,7 @@ export class TokenStore {
 
       return { renamed: filteredRenames.length, skipped, aliasesUpdated };
     } catch (err) {
-      // Revert in-memory mutations: restore renamed set
-      for (const { oldPath, newPath, token } of filteredRenames) {
-        setTokenAtPath(set.tokens, oldPath, token);
-        deleteTokenAtPath(set.tokens, newPath);
-      }
-      // Revert alias reference updates across other sets
-      const reversePathMap = new Map(filteredRenames.map(r => [r.newPath, r.oldPath]));
-      for (const sName of aliasModifiedSets) {
-        const s = this.sets.get(sName);
-        if (s) updateBulkAliasRefs(s.tokens, reversePathMap);
-      }
+      this.restoreSnapshots(snapshot);
       this.rebuildFlatTokens();
       throw err;
     } finally {
@@ -1344,8 +1408,14 @@ export class TokenStore {
     if (pathExistsAt(set.tokens, groupPath)) {
       throw new ConflictError(`Path "${groupPath}" already exists`);
     }
+    const snapshot = this.snapshotSets(setName);
     setGroupAtPath(set.tokens, groupPath, {});
-    await this.saveSet(setName);
+    try {
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    }
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName });
   }
@@ -1365,6 +1435,7 @@ export class TokenStore {
       if (!found) throw new NotFoundError(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     }
+    const snapshot = this.snapshotSets(setName);
     if ('$type' in meta) {
       if (meta.$type == null) delete group.$type;
       else group.$type = meta.$type;
@@ -1373,9 +1444,35 @@ export class TokenStore {
       if (meta.$description == null || meta.$description === '') delete group.$description;
       else group.$description = meta.$description;
     }
-    await this.saveSet(setName);
+    try {
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    }
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName, tokenPath: groupPath });
+  }
+
+  /**
+   * Snapshot the tokens for one or more sets so they can be restored on failure.
+   * Returns a Map of setName → cloned TokenGroup.
+   */
+  private snapshotSets(...names: string[]): Map<string, TokenGroup> {
+    const snapshots = new Map<string, TokenGroup>();
+    for (const name of names) {
+      const set = this.sets.get(name);
+      if (set) snapshots.set(name, structuredClone(set.tokens));
+    }
+    return snapshots;
+  }
+
+  /** Restore in-memory tokens from snapshots (used on saveSet failure). */
+  private restoreSnapshots(snapshots: Map<string, TokenGroup>): void {
+    for (const [name, tokens] of snapshots) {
+      const set = this.sets.get(name);
+      if (set) set.tokens = tokens;
+    }
   }
 
   private async saveSet(name: string): Promise<void> {

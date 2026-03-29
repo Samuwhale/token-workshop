@@ -23,3 +23,10 @@
   → [HIGH] TokenStore mutation methods corrupt in-memory state when saveSet() fails — renameToken (L1074-1076), deleteToken (L745-748), renameGroup (L1050-1060), updateGroupMetadata (L1370-1378), and moveGroup (L1091+) all mutate the in-memory token tree before calling saveSet(); if the disk write throws, the in-memory state diverges permanently from disk with no rollback; bulkRename (L1284-1311) has a catch block but rebuilds flatTokens before the circular reference check, so a check failure leaves flatTokens in the post-rename state until the error handler re-rebuilds; wrap all mutation+save sequences in try/catch with revert logic (as bulkRename partially does), or adopt a copy-on-write approach where in-memory state is only swapped after successful persistence
   Worktree: /tmp/backlog-66493-DSkRyY
   Running agent… (started 07:36:33)
+
+  ✓ done: TokenStore mutation methods corrupt in-memory state when saveSet() fails
+    Added snapshotSets/restoreSnapshots helpers and wrapped all 15 mutation methods with try/catch rollback using structuredClone snapshots, ensuring in-memory state is restored if disk write fails
+    53 turns · 472s · $2.53
+
+  Merging to main: TokenStore mutation methods corrupt in-memory state when saveSet() fails
+Already up to date.
