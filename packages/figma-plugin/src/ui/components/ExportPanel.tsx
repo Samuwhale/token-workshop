@@ -685,10 +685,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     Token Sets
                   </div>
                   <button
-                    onClick={() => setSelectedSets(null)}
+                    onClick={() => {
+                      if (selectedSets === null) {
+                        setSelectedSets(new Set());
+                      } else {
+                        setSelectedSets(null);
+                      }
+                    }}
                     className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                   >
-                    {selectedSets === null ? `All (${availableSets.length})` : `${(selectedSets).size} of ${availableSets.length} — reset`}
+                    {selectedSets === null ? `Deselect all` : `Select all (${availableSets.length})`}
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">

@@ -281,3 +281,11 @@
   - The `try { await } finally { clearLoading() }` pattern is subtly wrong when there are post-await state resets (dialog close, refresh) — they must be inside `try`, not after `finally`, or they run even on error.
   - Always add `onError` to `useCallback` dependency arrays when adding error handling to existing callbacks that previously didn't use it.
 ---
+
+## 2026-03-29 - ExportPanel set-filter has no select-all / deselect-all shortcut
+- Replaced the "All (N)" / "N of N — reset" toggle button in the Token Sets header with "Select all (N)" / "Deselect all" links, matching the existing platforms section pattern. When all sets are selected (selectedSets === null), the button reads "Deselect all" and sets selectedSets to an empty Set. When any are deselected, it reads "Select all (N)" and resets selectedSets to null (all included).
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L687
+- **Learnings for future iterations:**
+  - The set filter uses null to mean "all sets included" — toggling to deselect-all requires setting `new Set()`, not null.
+  - The platforms section at ~L594 uses an identical pattern and is a good reference for consistent toggle link behavior.
+---
