@@ -95,3 +95,19 @@ Already up to date.
 
   Merging to main: `components/editorStyles.ts` is dead code — `inputClass` and `labelClass` were migrated to `shared/editorClasses.ts`; the old file at `packages/figma-plugin/src/ui/components/editorStyles.ts` has no importers and can be deleted
 Already up to date.
+[main 96dcf5b3] chore(backlog): done – `components/editorStyles.ts` is dead code — `inputClass` and `labelClass` were migrated to `shared/editorClasses.ts`; the old file at `packages/figma-plugin/src/ui/components/editorStyles.ts` has no importers and can be deleted
+ 6 files changed, 32 insertions(+), 5 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/editorStyles.ts
+  ✓ Merged and marked done
+
+## 2026-03-29 - `components/editorStyles.ts` is dead code
+- Deleted `packages/figma-plugin/src/ui/components/editorStyles.ts` — file had no importers; its `inputClass`/`labelClass` exports were already migrated to `shared/editorClasses.ts`.
+- Files changed: `packages/figma-plugin/src/ui/components/editorStyles.ts` (deleted)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  13 queued · 2 in-progress · last took 52s
+═══════════════════════════════════════════════════════════════
+  → Generator config types have inconsistent unit unions — TypeScaleConfig, SpacingScaleConfig, BorderRadiusScaleConfig allow `'px' | 'rem'`; CustomScaleConfig allows `'px' | 'rem' | 'em' | '%'`; none use the shared `DimensionUnit` type from core/constants (packages/core/src/generator-types.ts)
+  Worktree: /tmp/backlog-46928-7qieCT
+  Running agent… (started 13:44:13)

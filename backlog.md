@@ -109,9 +109,9 @@
 
 - [x] getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code (packages/server/src/utils.ts, packages/server/src/errors.ts:56-58)
 - [x] resolvers.ts uses `reply.code()` (13 occurrences) while every other route file uses `reply.status()` — functionally identical Fastify aliases but inconsistent across the codebase (packages/server/src/routes/resolvers.ts)
-- [~] `components/editorStyles.ts` is dead code — `inputClass` and `labelClass` were migrated to `shared/editorClasses.ts`; the old file at `packages/figma-plugin/src/ui/components/editorStyles.ts` has no importers and can be deleted
+- [x] `components/editorStyles.ts` is dead code — `inputClass` and `labelClass` were migrated to `shared/editorClasses.ts`; the old file at `packages/figma-plugin/src/ui/components/editorStyles.ts` has no importers and can be deleted
 - [~] `overwritePaths` useMemo is shadowed and unused in the confirmation branch of TokenGeneratorDialog — the memo at line 216 produces a Set used in the main render (lines 617-630), but the `showConfirmation` branch at line 241 creates an identical `new Set(overwrittenEntries.map(...))` that shadows it; the memo is dead in that branch (packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx:216,241)
-- [ ] Generator config types have inconsistent unit unions — TypeScaleConfig, SpacingScaleConfig, BorderRadiusScaleConfig allow `'px' | 'rem'`; CustomScaleConfig allows `'px' | 'rem' | 'em' | '%'`; none use the shared `DimensionUnit` type from core/constants (packages/core/src/generator-types.ts)
+- [~] Generator config types have inconsistent unit unions — TypeScaleConfig, SpacingScaleConfig, BorderRadiusScaleConfig allow `'px' | 'rem'`; CustomScaleConfig allows `'px' | 'rem' | 'em' | '%'`; none use the shared `DimensionUnit` type from core/constants (packages/core/src/generator-types.ts)
 - [ ] Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh (packages/server/scripts/backlog/validate.sh)
 - [ ] package-lock.json coexists with pnpm-lock.yaml — project declares `"packageManager": "pnpm@9.15.0"` but an npm lock file exists and is newer; should be deleted to prevent dependency drift (root package-lock.json)
 

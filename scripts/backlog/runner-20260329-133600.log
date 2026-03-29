@@ -136,3 +136,10 @@ Already up to date.
   → `overwritePaths` useMemo is shadowed and unused in the confirmation branch of TokenGeneratorDialog — the memo at line 216 produces a Set used in the main render (lines 617-630), but the `showConfirmation` branch at line 241 creates an identical `new Set(overwrittenEntries.map(...))` that shadows it; the memo is dead in that branch (packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx:216,241)
   Worktree: /tmp/backlog-48983-oYwJ1g
   Running agent… (started 13:43:38)
+
+  ✓ done: overwritePaths useMemo is shadowed and unused in the confirmation branch of TokenGeneratorDialog
+    Removed redundant inner `const overwritePaths` at line 244 inside the showConfirmation branch; the memo at line 216 now flows through to both branches.
+    7 turns · 44s · $0.15
+
+  Merging to main: overwritePaths useMemo is shadowed and unused in the confirmation branch of TokenGeneratorDialog
+Already up to date.

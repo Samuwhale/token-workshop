@@ -85,3 +85,10 @@
 - **Learnings for future iterations:**
   - No special considerations — pure dead-file removal. Grep for importers first, then delete.
 ---
+
+## 2026-03-29 - overwritePaths useMemo shadowed in confirmation branch of TokenGeneratorDialog
+- Removed the redundant `const overwritePaths = new Set(overwrittenEntries.map(e => e.path))` at line 244 inside the `showConfirmation` branch. The memo declared at line 216 is now used directly by both the confirmation branch and the main render.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L244
+- **Learnings for future iterations:**
+  - Block-scoped `const` inside an `if` branch silently shadows outer `useMemo` values — TypeScript won't warn because the variable is valid in its own scope. The fix is simply to delete the inner declaration and let the memo flow through.
+---

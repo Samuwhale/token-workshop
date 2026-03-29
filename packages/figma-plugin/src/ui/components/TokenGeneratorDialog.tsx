@@ -241,7 +241,6 @@ export function TokenGeneratorDialog({
   }
 
   if (showConfirmation) {
-    const overwritePaths = new Set(overwrittenEntries.map(e => e.path));
     const newTokens = previewTokens.filter(pt => !overwritePaths.has(pt.path));
     // For multi-brand, we don't have previewTokens — show a summary instead
     const hasPreview = previewTokens.length > 0;
