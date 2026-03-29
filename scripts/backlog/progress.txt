@@ -445,3 +445,14 @@
   - The switcher deliberately navigates to define/tokens on selection so the newly selected set's tokens are immediately visible; callers that want different behaviour can pass a no-op navigate.
   - `Cmd+Shift+S` was free (no conflict with existing shortcuts); always check KeyboardShortcutsModal for the current list before picking a new binding.
 ---
+
+## 2026-03-29 - operation-log.ts rollback has three correctness bugs
+- Fixed all three bugs in `packages/server/src/services/operation-log.ts`:
+  1. Added `await` to `ctx.tokenStore.reorderSets()` call at L239 (was fire-and-forget, subsequent steps could execute before reorder completed)
+  2. Changed `writeThemesFile()` at L149 to use atomic `.tmp` + `fs.rename()` pattern instead of direct `fs.writeFile()` (prevents partial writes on server crash)
+  3. Changed `create-generator` and `delete-generator` cases in `executeSteps()` to throw an Error when `ctx.generatorService` is absent, instead of silently skipping (rollback now fails loudly rather than leaving generators in inconsistent state)
+- Files changed: `packages/server/src/services/operation-log.ts` ~L149 (writeThemesFile), ~L239 (reorder-sets), ~L261-270 (generator steps)
+- **Learnings for future iterations:**
+  - Silent skips in switch cases for missing optional services are a correctness hazard — rollback steps that cannot be executed should throw, not silently no-op
+  - `await` on a synchronous `void` function is a TypeScript-safe no-op, so adding `await` to future-proof sync methods that may go async is harmless
+---

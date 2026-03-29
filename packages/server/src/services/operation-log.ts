@@ -148,10 +148,10 @@ export class OperationLog {
 
   private async writeThemesFile(dimensions: unknown): Promise<void> {
     const data = { $themes: dimensions };
-    await fs.writeFile(
-      path.join(this.tokenDir, '$themes.json'),
-      JSON.stringify(data, null, 2),
-    );
+    const dest = path.join(this.tokenDir, '$themes.json');
+    const tmp = `${dest}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+    await fs.rename(tmp, dest);
   }
 
   // ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ export class OperationLog {
           }
           break;
         case 'reorder-sets':
-          ctx.tokenStore.reorderSets(step.order as string[]);
+          await ctx.tokenStore.reorderSets(step.order as string[]);
           break;
         case 'write-themes':
           await this.writeThemesFile(step.dimensions);
@@ -258,14 +258,16 @@ export class OperationLog {
           }
           break;
         case 'create-generator':
-          if (ctx.generatorService) {
-            await ctx.generatorService.restore(step.generator);
+          if (!ctx.generatorService) {
+            throw new Error(`Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`);
           }
+          await ctx.generatorService.restore(step.generator);
           break;
         case 'delete-generator':
-          if (ctx.generatorService) {
-            await ctx.generatorService.delete(step.id);
+          if (!ctx.generatorService) {
+            throw new Error(`Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`);
           }
+          await ctx.generatorService.delete(step.id);
           break;
       }
     }
