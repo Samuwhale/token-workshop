@@ -607,3 +607,12 @@
   - The UI already gated the Merge button behind `mergeChecked`, so the race was the real bug: async check completing after target change would set `mergeChecked=true` with stale data
   - Pattern: capture mutable state into a local const before an async operation, then compare against a ref after the await to detect staleness
 ---
+
+## 2026-03-29 - useUndo keyboard shortcut fires even when a text input has focus
+- Added `isTyping` guard to the global keydown handler in `useUndo.ts` — checks `e.target.tagName` for INPUT/TEXTAREA/SELECT and returns early, matching the pattern already used in TokenList.tsx L891
+- This prevents Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y from triggering server undo/redo when the user is typing in form fields (find-replace, token editor, etc.)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L83-85
+- **Learnings for future iterations:**
+  - Global keyboard shortcut hooks on `window` should always guard against text input focus — this is a common source of shortcut/native-behavior conflicts
+  - The established pattern in this codebase is `const tag = (e.target as HTMLElement)?.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;`
+---
