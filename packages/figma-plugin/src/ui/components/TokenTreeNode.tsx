@@ -129,7 +129,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
     onJumpToGroup, onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onDragStart, onDragEnd,
+    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onDragStart, onDragEnd,
     onDragOverGroup, onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
@@ -1680,6 +1680,18 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
             >
               <span>Show references</span>
+            </button>
+          )}
+          {onCompareAcrossThemes && !selectMode && (
+            <button
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onCompareAcrossThemes(node.path);
+              }}
+            >
+              <span>Compare across themes</span>
             </button>
           )}
           <div className="my-1 border-t border-[var(--color-figma-border)]" />

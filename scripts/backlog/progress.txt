@@ -249,3 +249,12 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: 5 async handlers in TokenList.tsx share the same missing-try/catch pattern — root cause is the 4,100-line monolith making error handling easy to forget; OpIcon has never worked (all icons show as dots) because switch cases don't match the compound type strings the server actually emits
 ---
+
+## 2026-03-29 - No cross-theme token comparison view
+- Added "Compare across themes" to the token right-click context menu. Clicking it opens a new `CrossThemeComparePanel` inline below the toolbar showing, per theme dimension, how the selected token resolves for each option. The panel groups results by dimension, highlights identical/missing states, shows color swatches for color tokens, and includes a copy-to-clipboard button for the table. The menu item is only shown when theme dimensions exist (guarded by `dimensions.length > 0`).
+- Files changed: `packages/figma-plugin/src/ui/components/CrossThemeComparePanel.tsx` (new), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L219, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L132 and ~L1673, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L8, ~L68, ~L2230, ~L2299, ~L2415
+- **Learnings for future iterations:**
+  - The resolution logic in `useThemeSwitcher.ts` (base layer → source sets → enabled sets → resolveAllAliases) is the canonical per-option resolution algorithm; replicate it exactly for any per-theme computation outside the hook.
+  - Use `unthemedAllTokensFlat ?? allTokensFlat` as fallback in TokenList since it may be undefined for older call sites that don't pass it.
+  - Context menu items guarded by a callback (e.g. `onCompareAcrossThemes && !selectMode`) only appear when the feature is relevant — pass `undefined` from the parent when dimensions are absent to auto-hide the menu item.
+---

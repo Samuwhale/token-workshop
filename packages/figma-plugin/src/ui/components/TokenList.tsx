@@ -6,6 +6,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
+import { CrossThemeComparePanel } from './CrossThemeComparePanel';
 import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -66,6 +67,7 @@ export function TokenList({
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [compareAcrossThemesPath, setCompareAcrossThemesPath] = useState<string | null>(null);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
@@ -2230,6 +2232,10 @@ export function TokenList({
     setShowBatchEditor(false);
   }, []);
 
+  const handleCompareAcrossThemes = useCallback((path: string) => {
+    setCompareAcrossThemesPath(path);
+  }, []);
+
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), []);
 
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
@@ -2290,6 +2296,7 @@ export function TokenList({
     onCompareToken: handleCompareToken,
     onViewTokenHistory,
     onShowReferences,
+    onCompareAcrossThemes: dimensions.length > 0 ? handleCompareAcrossThemes : undefined,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
     onDragOverGroup: handleDragOverGroup,
@@ -2319,7 +2326,7 @@ export function TokenList({
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
-    handleCompareToken, onViewTokenHistory, onShowReferences, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
+    handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
@@ -2417,6 +2424,17 @@ export function TokenList({
             selectedPaths={selectedPaths}
             allTokensFlat={allTokensFlat}
             onClose={() => setShowCompare(false)}
+          />
+        )}
+
+        {/* Cross-theme compare panel */}
+        {compareAcrossThemesPath && (
+          <CrossThemeComparePanel
+            tokenPath={compareAcrossThemesPath}
+            allTokensFlat={unthemedAllTokensFlat ?? allTokensFlat}
+            pathToSet={pathToSet}
+            dimensions={dimensions}
+            onClose={() => setCompareAcrossThemesPath(null)}
           />
         )}
 

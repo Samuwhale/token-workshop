@@ -217,6 +217,8 @@ export interface TokenTreeContextType {
   onViewTokenHistory?: (path: string) => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
+  /** Open cross-theme comparison panel for this token */
+  onCompareAcrossThemes?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
