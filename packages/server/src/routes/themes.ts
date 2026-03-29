@@ -201,9 +201,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'dimensionIds must be an array of dimension id strings' });
     }
     try {
-      let beforeDims: ThemeDimension[] = [];
-      const reordered = await store.withLock(async (dimensions) => {
-        beforeDims = structuredClone(dimensions);
+      const reordered = await withThemeLock('theme-dimensions-reorder', async (dimensions) => {
         const byId = new Map(dimensions.map(d => [d.id, d]));
         for (const id of dimensionIds) {
           if (!byId.has(id)) {
@@ -214,17 +212,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           throw Object.assign(new Error('dimensionIds must list every dimension id exactly once'), { statusCode: 400 });
         }
         const newOrder = dimensionIds.map(id => byId.get(id)!);
-        return { dims: newOrder, result: newOrder };
-      });
-      const afterDims = await store.load();
-      await fastify.operationLog.record({
-        type: 'theme-dimensions-reorder',
-        description: 'Reorder theme dimensions',
-        setName: '',
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
+        return { dims: newOrder, result: newOrder, description: 'Reorder theme dimensions' };
       });
       return { ok: true, dimensions: reordered };
     } catch (err) {

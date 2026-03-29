@@ -299,3 +299,11 @@
   - `requiresSource` was already a boolean on the `GraphTemplate` interface — just needed to be surfaced in the card UI.
   - Placing the badge below `<PipelineStages>` keeps the card hierarchy clean: label → description → when-to-use → pipeline → constraint badge.
 ---
+
+## 2026-03-29 - PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
+- Replaced direct `store.withLock()` call with `withThemeLock()` in the dimensions-order route. This automatically captures `beforeDims`, records `rollbackSteps: [{ action: 'write-themes', dimensions: capturedBefore }]` in the operation log, and removes the manual `operationLog.record()` call that was recording no rollback info.
+- Files changed: `packages/server/src/routes/themes.ts` ~L197-233
+- **Learnings for future iterations:**
+  - The `withThemeLock` helper encapsulates the before-capture + rollbackSteps pattern; any route that mutates theme dimensions should use it instead of `store.withLock` directly.
+  - The old manual `operationLog.record()` call was recording `metadata` but no `rollbackSteps`, making undo a no-op for this operation.
+---

@@ -265,3 +265,25 @@ Already up to date.
 
   Merging to main: Generator templates that require a source token give no upfront signal
 Already up to date.
+[main 47acbbbf] chore(backlog): done – Generator templates that require a source token give no upfront signal
+ 6 files changed, 45 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Generator templates that require a source token give no upfront signal
+- Added a `getRequiresSourceLabel(generatorType)` helper and a "requires" badge at the bottom of each `TemplateCard` when `template.requiresSource` is true. The badge shows an info SVG icon and a label like "Requires a color token", "Requires a spacing token", or "Requires a font size token" based on the generator type.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L292
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  8 queued · 2 in-progress · last took 1m45s
+═══════════════════════════════════════════════════════════════
+  → PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps — every other theme mutation route uses the withThemeLock helper which automatically adds `rollbackSteps: [{ action: 'write-themes', dimensions: capturedBefore }]`, but the reorder endpoint calls store.withLock() directly and passes no rollbackSteps; undoing a dimension reorder via the operations panel is a no-op (packages/server/src/routes/themes.ts:197-233)
+  Worktree: /tmp/backlog-46928-kSsfd1
+  Running agent… (started 14:17:28)
+
+  ✓ done: PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
+    Replaced store.withLock() with withThemeLock() so the reorder endpoint now captures before-state and records rollbackSteps automatically
+    10 turns · 67s · $0.21
+
+  Merging to main: PUT /api/themes/dimensions-order bypasses withThemeLock() and records no rollbackSteps
+Already up to date.
