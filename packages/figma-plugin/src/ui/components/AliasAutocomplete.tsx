@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -46,10 +47,22 @@ export function AliasAutocomplete({
 
   const { entries, totalCount } = useMemo(() => {
     const q = query.trim();
+    type Entry = [string, TokenMapEntry, TokenMapEntry];
+    const resolve = (entry: TokenMapEntry): TokenMapEntry => {
+      if (!isAlias(entry.$value)) return entry;
+      const result = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+      if (result.value != null) {
+        return { ...entry, $value: result.value, $type: result.$type };
+      }
+      return entry;
+    };
     if (!q) {
       const all = Object.entries(allTokensFlat)
         .filter(([, entry]) => !filterType || entry.$type === filterType);
-      return { entries: all.slice(0, MAX_RESULTS), totalCount: all.length };
+      return {
+        entries: all.slice(0, MAX_RESULTS).map(([p, e]) => [p, e, resolve(e)] as Entry),
+        totalCount: all.length,
+      };
     }
     const scored: [string, TokenMapEntry, number][] = [];
     for (const [path, entry] of Object.entries(allTokensFlat)) {
@@ -59,7 +72,7 @@ export function AliasAutocomplete({
     }
     scored.sort((a, b) => b[2] - a[2]);
     return {
-      entries: scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e] as [string, TokenMapEntry]),
+      entries: scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e, resolve(e)] as Entry),
       totalCount: scored.length,
     };
   }, [allTokensFlat, query, filterType]);
@@ -106,7 +119,11 @@ export function AliasAutocomplete({
       ref={listRef}
       className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
     >
-      {entries.map(([path, entry], idx) => (
+      {entries.map(([path, entry, resolved], idx) => {
+        const isAliasToken = isAlias(entry.$value);
+        const previewValue = formatValuePreview(resolved.$value);
+        const rawPreview = isAliasToken ? formatValuePreview(entry.$value) : '';
+        return (
         <button
           key={path}
           data-idx={idx}
@@ -114,11 +131,11 @@ export function AliasAutocomplete({
           onMouseEnter={() => setActiveIdx(idx)}
           className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
         >
-          {/* Value preview */}
-          {entry.$type === 'color' && typeof entry.$value === 'string' ? (
+          {/* Value preview swatch — use resolved color */}
+          {resolved.$type === 'color' && typeof resolved.$value === 'string' ? (
             <div
               className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-              style={{ backgroundColor: entry.$value }}
+              style={{ backgroundColor: resolved.$value }}
             />
           ) : (
             <div className="w-3 h-3 shrink-0" />
@@ -127,10 +144,16 @@ export function AliasAutocomplete({
           {/* Path */}
           <span className={`flex-1 text-[10px] text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
 
-          {/* Resolved value */}
-          {formatValuePreview(entry.$value) && (
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0" title={formatValuePreview(entry.$value)}>
-              {formatValuePreview(entry.$value)}
+          {/* Resolved value — show final value; if it's an alias show alias source in muted text */}
+          {previewValue && (
+            <span
+              className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0"
+              title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
+            >
+              {isAliasToken && rawPreview !== previewValue ? (
+                <span className="opacity-50">{rawPreview.replace(/^\{|\}$/g, '')}&nbsp;→&nbsp;</span>
+              ) : null}
+              {previewValue}
             </span>
           )}
 
@@ -154,7 +177,8 @@ export function AliasAutocomplete({
             </span>
           )}
         </button>
-      ))}
+        );
+      })}
       {totalCount > MAX_RESULTS && (
         <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
           Showing {MAX_RESULTS} of {totalCount} matches — refine your search
