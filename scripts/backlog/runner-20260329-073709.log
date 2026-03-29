@@ -332,3 +332,10 @@ Already up to date.
   → Theme dimension set-status labels are confusing non-standard terminology — ThemeManager uses "Foundation"/"Override"/"Not included" as labels for set states (STATE_LABELS at ThemeManager.tsx:10-14) which don't match the API terms (source/enabled/disabled) or standard DTCG terminology; users must read the tooltip to understand the stacking model; rename to clearer terms like "Base"/"Override"/"Excluded" or add visible inline help explaining the layer priority
   Worktree: /tmp/backlog-69179-MQkGNh
   Running agent… (started 08:18:11)
+
+  ✓ done: Theme dimension set-status labels are confusing non-standard terminology
+    Renamed labels to Base/Override/Excluded (from Foundation/Override/Not included), updated descriptions and all hardcoded references throughout ThemeManager.tsx
+    22 turns · 125s · $0.64
+
+  Merging to main: Theme dimension set-status labels are confusing non-standard terminology
+Already up to date.

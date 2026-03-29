@@ -313,3 +313,13 @@
   - Cmd+D was already bound in `TokenTreeNode.tsx` keydown handler; the duplicate logic was already in `TokenList.tsx` — only the post-duplicate UX was missing
   - The `pendingRenameToken` context signal pattern (set on action, cleared by node on mount via useEffect) is a clean way to bridge async server operations with per-node UI state without lifting all rename state up
 ---
+
+## 2026-03-29 - Theme dimension set-status labels are confusing non-standard terminology
+- Renamed STATE_LABELS: "Foundation" → "Base", "Not included" → "Excluded", kept "Override"
+- Updated STATE_DESCRIPTIONS to use clearer wording that explains priority without referencing old labels
+- Updated all hardcoded string references: section headers, empty-state hints, layer labels in resolved token preview, comments
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L10-19 (STATE_LABELS/DESCRIPTIONS), ~L877-893 (layer labels), ~L1541-1574 (section headers and hints), ~L1753 (empty state message)
+- **Learnings for future iterations:**
+  - The terms "Base"/"Override"/"Excluded" map directly to the API's source/enabled/disabled — clearer than the previous non-standard "Foundation"/"Not included"
+  - Section headers already had inline helper text ("highest priority", "base defaults") which were also updated for consistency
+---

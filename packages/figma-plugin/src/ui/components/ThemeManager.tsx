@@ -8,15 +8,15 @@ import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
 
 const STATE_LABELS: Record<string, string> = {
-  disabled: 'Not included',
-  source: 'Foundation',
+  disabled: 'Excluded',
+  source: 'Base',
   enabled: 'Override',
 };
 
 const STATE_DESCRIPTIONS: Record<string, string> = {
   disabled: 'Tokens from this set are not used in this option',
-  source: 'Base layer — provides default tokens that can be overridden',
-  enabled: 'Top layer — these tokens take priority over Foundation sets',
+  source: 'Provides default token values — overridden by Override sets',
+  enabled: 'Highest priority — these tokens override Base set values',
 };
 
 interface ThemeManagerProps {
@@ -122,7 +122,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
-  // Collapsed "Not included" sections per dimension
+  // Collapsed "Excluded" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
   // Dimension/option search filter
   const [dimSearch, setDimSearch] = useState('');
@@ -874,13 +874,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       const opt = dim.options.find(o => o.name === optName);
       if (!opt) continue;
 
-      // Foundation sets first (can be overridden)
+      // Base sets first (can be overridden)
       for (const [setName, status] of Object.entries(opt.sets)) {
         if (status !== 'source') continue;
         const tokens = setTokenValues[setName];
         if (!tokens) continue;
         for (const [path, value] of Object.entries(tokens)) {
-          merged[path] = { value, set: setName, layer: `${dim.name} / Foundation` };
+          merged[path] = { value, set: setName, layer: `${dim.name} / Base` };
         }
       }
       // Override sets (take priority)
@@ -1538,19 +1538,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </div>
                             )}
 
-                            {/* Foundation section */}
+                            {/* Base section */}
                             {foundationSets.length > 0 && (
                               <div>
                                 <div className="px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" /></svg>
-                                  Foundation ({foundationSets.length})
-                                  <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">base defaults</span>
+                                  Base ({foundationSets.length})
+                                  <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">default values</span>
                                 </div>
                                 {foundationSets.map(s => renderSetRow(dim, opt, s, 'source'))}
                               </div>
                             )}
 
-                            {/* Not included section — collapsed by default */}
+                            {/* Excluded section — collapsed by default */}
                             {disabledSets.length > 0 && (
                               <div>
                                 <button
@@ -1562,7 +1562,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   className="w-full px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
                                 >
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                                  Not included ({disabledSets.length})
+                                  Excluded ({disabledSets.length})
                                 </button>
                                 {!isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
                               </div>
@@ -1571,7 +1571,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             {/* All sets are in one group — show empty hint */}
                             {overrideSets.length === 0 && foundationSets.length === 0 && disabledSets.length > 0 && !isDisabledCollapsed && (
                               <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
-                                No sets assigned yet. Expand &ldquo;Not included&rdquo; and assign sets as Foundation or Override.
+                                No sets assigned yet. Expand &ldquo;Excluded&rdquo; and assign sets as Base or Override.
                               </div>
                             )}
                           </div>
@@ -1750,7 +1750,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             const opt = d.options.find(o => o.name === selectedOptions[d.id]);
                             return !opt || Object.values(opt.sets).every(s => s === 'disabled');
                           })
-                        ? 'Assign sets as Foundation or Override to see resolved tokens'
+                        ? 'Assign sets as Base or Override to see resolved tokens'
                         : previewSearch
                         ? 'No matching tokens'
                         : 'No tokens resolved with current selections'}
