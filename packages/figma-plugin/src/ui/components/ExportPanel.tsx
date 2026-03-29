@@ -110,7 +110,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ platform: string; path: string; content: string }[]>([]);
-  const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [previewFileIndex, setPreviewFileIndex] = useState<number>(0);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
   // CSS selector option
@@ -235,7 +235,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         }
       }
       setResults(flatFiles);
-      if (flatFiles.length > 0) setExpandedFile(flatFiles[0].path);
+      if (flatFiles.length > 0) setPreviewFileIndex(0);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -723,90 +723,105 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               </div>
             )}
 
-            {results.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                    Generated Files
-                  </div>
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    {results.length} file{results.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {results.map((file, i) => (
-                    <div key={i} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
-                      <button
-                        onClick={() => setExpandedFile(expandedFile === file.path ? null : file.path)}
-                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase shrink-0">
-                            {file.platform}
-                          </span>
-                          <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate">{file.path}</span>
-                        </div>
-                        <svg
-                          width="8" height="8" viewBox="0 0 8 8"
-                          className={`transition-transform shrink-0 ml-2 ${expandedFile === file.path ? 'rotate-90' : ''}`}
-                          fill="currentColor"
-                        >
-                          <path d="M2 1l4 3-4 3V1z" />
-                        </svg>
-                      </button>
-                      {expandedFile === file.path && (
-                        <div className="border-t border-[var(--color-figma-border)]">
-                          <pre className="p-3 text-[10px] font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] overflow-auto max-h-48 whitespace-pre-wrap break-all">
-                            {file.content}
-                          </pre>
-                          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                              {file.content.split('\n').length} lines
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleDownloadFile(file)}
-                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                                title="Download file"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                                  <polyline points="7 10 12 15 17 10" />
-                                  <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                Download
-                              </button>
-                              <button
-                                onClick={() => handleCopyFile(file)}
-                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                                title="Copy to clipboard"
-                              >
-                                {copiedFile === file.path ? (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M20 6L9 17l-5-5" />
-                                    </svg>
-                                    Copied
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                                    </svg>
-                                    Copy
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+            {results.length > 0 && (() => {
+              const activeFile = results[previewFileIndex] ?? results[0];
+              const lines = activeFile.content.split('\n');
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                      Preview
                     </div>
-                  ))}
+                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      {results.length} file{results.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+
+                  {/* File tabs */}
+                  <div className="flex gap-0.5 overflow-x-auto pb-1 mb-1 scrollbar-thin">
+                    {results.map((file, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPreviewFileIndex(i)}
+                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-t-md text-[10px] font-mono whitespace-nowrap shrink-0 transition-colors border border-b-0 ${
+                          i === previewFileIndex
+                            ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] border-[var(--color-figma-border)]'
+                            : 'bg-transparent text-[var(--color-figma-text-tertiary)] border-transparent hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                        }`}
+                      >
+                        <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase font-sans">
+                          {file.platform}
+                        </span>
+                        {file.path}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Code preview */}
+                  <div className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
+                    <div className="overflow-auto max-h-64 bg-[var(--color-figma-bg)]">
+                      <table className="w-full border-collapse">
+                        <tbody>
+                          {lines.map((line, lineIdx) => (
+                            <tr key={lineIdx} className="hover:bg-[var(--color-figma-bg-hover)]/50">
+                              <td className="px-2 py-0 text-[9px] font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                                {lineIdx + 1}
+                              </td>
+                              <td className="px-3 py-0 text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre break-all">
+                                {line || '\u00A0'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Preview footer */}
+                    <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        {lines.length} line{lines.length !== 1 ? 's' : ''}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDownloadFile(activeFile)}
+                          className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                          title="Download file"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          Download
+                        </button>
+                        <button
+                          onClick={() => handleCopyFile(activeFile)}
+                          className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          {copiedFile === activeFile.path ? (
+                            <>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                              </svg>
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </>
         )}
 

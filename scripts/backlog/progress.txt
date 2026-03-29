@@ -432,3 +432,17 @@
   - `figma.root.children` gives all pages — each page's `.children` are the top-level frames
   - When `onRescan` signature changes from `() => void` to `(scope?) => void`, wrap `onClick={onRescan}` as `onClick={() => onRescan()}` to avoid passing the click event as the scope arg
 ---
+
+## 2026-03-29 - Export panel has no preview of generated output
+- Replaced the accordion-style expandable file list with a tabbed preview pane
+- File tabs display as a horizontal scrollable tab bar with platform badge + filename
+- Active file content shown in a code preview area with line numbers (table-based layout)
+- Preview footer shows line count with per-file Download and Copy actions
+- First generated file auto-selected after export
+- State changed from `expandedFile` (string path) to `previewFileIndex` (number) for simpler tab switching
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L113 (state), ~L237 (auto-select), ~L726-830 (new preview pane replacing accordion)
+- **Learnings for future iterations:**
+  - The existing results display already had expand/preview per-file — the UX issue was discoverability (collapsed by default, one-at-a-time expansion)
+  - Using a table with line-number column for code preview is more readable than a plain `<pre>` block and matches IDE conventions
+  - Index-based tab selection is simpler than path-based for ordered file lists where duplicates are impossible
+---

@@ -67,3 +67,10 @@ Already up to date.
   → Export panel has no preview of generated output — ExportPanel.tsx provides platform export (CSS variables, JSON, Tailwind config, etc.) but users must download the ZIP to see what the output looks like; add a live preview pane that renders the generated file content for the selected platform before download, similar to how the generator dialog shows a preview of tokens before saving
   Worktree: /tmp/backlog-66493-ZxRxFl
   Running agent… (started 07:48:46)
+
+  ✓ done: Export panel has no preview of generated output
+    Replaced accordion file list with tabbed preview pane showing line-numbered code, horizontal file tabs with platform badges, and per-file copy/download actions
+    22 turns · 250s · $1.34
+
+  Merging to main: Export panel has no preview of generated output
+Already up to date.

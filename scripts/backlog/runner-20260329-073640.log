@@ -100,3 +100,18 @@ Already up to date.
 
   Merging to main: Heatmap scan scope options (all pages, selection, current page)
 Already up to date.
+[main 470f8d3] chore(backlog): done – Heatmap scan scope options (all pages, selection, current page)
+ 10 files changed, 109 insertions(+), 22 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Heatmap scan scope options (all pages, selection, current page)
+- Added `HeatmapScope` type (`'page' | 'selection' | 'all-pages'`) and scope parameter to `scanCanvasHeatmap()` in `heatmapScanning.ts`
+- For `all-pages` scope, iterates `figma.root.children` (all pages); for `selection`, uses `figma.currentPage.selection`; `page` keeps existing behavior
+- Added scope selector dropdown to HeatmapPanel in both the initial empty state and the results stats bar
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  1 queued · 5 in-progress · last took 4m30s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel requires three separate "Apply" actions to fully sync to Figma and git — users who regularly push all changes (variables + styles + git commit) must click Apply in three independent sections; add a "Publish all" summary action button that checks all three sections for pending changes and applies them in sequence with a single confirmation, reducing a common 6-click flow to 2 clicks
+  Worktree: /tmp/backlog-67173-4fEnxz
+  Running agent… (started 07:52:05)
