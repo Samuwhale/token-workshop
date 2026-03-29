@@ -213,3 +213,10 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: PUT /api/themes/dimensions-order is the only theme mutation that bypasses withThemeLock(), so rollback of dimension reorders is a no-op despite the operations log recording the action
 ---
+
+## 2026-03-29 - Token sets have no description or annotation field
+- Already fully implemented. The feature exists end-to-end: `$description` field in `TokenGroup`, `getSetDescriptions()`/`updateSetDescription()` in `TokenStore`, `PATCH /api/sets/:name/metadata` API endpoint, `useSetMetadata` hook, `setDescriptions` state in `useTokens`, `title={setDescriptions[set] || set}` tooltip on set tab buttons and sidebar buttons, and a full "Edit set info" dialog with description textarea accessible from the context menu.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Before implementing, verify the full stack: data model → server API → UI state → rendered tooltip + edit dialog. The description feature was quietly complete at every layer.
+---

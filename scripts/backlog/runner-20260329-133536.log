@@ -130,3 +130,21 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox
 Already up to date.
+[main 71d22dc0] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/server/src/routes/themes.ts, packages/figma-plugin/src/ui/hooks/useFigmaSync.ts, packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx, packages/server/src/services/generator-service.ts, packages/server/src/routes/generators.ts, packages/figma-plugin/src/ui/components/generators/ (all), packages/figma-plugin/src/ui/hooks/useTokens.ts, packages/figma-plugin/src/ui/components/ThemeManager.tsx
+- Found 6 items — written to backlog-inbox.md
+- Notable: PUT /api/themes/dimensions-order is the only theme mutation that bypasses withThemeLock(), so rollback of dimension reorders is a no-op despite the operations log recording the action
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  15 queued · 3 in-progress · last took 14m27s
+═══════════════════════════════════════════════════════════════
+  → Theme options have no side-by-side resolved value comparison — verifying a light/dark theme requires switching active option, memorizing values, switching again, and comparing mentally; add a "Compare two options" view in ThemeManager that resolves both options and shows token path / option-A value / option-B value in a diff table (ThemeManager.tsx)
+  Worktree: /tmp/backlog-46928-Ivv7wh
+  Running agent… (started 13:58:40)

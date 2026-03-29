@@ -271,3 +271,19 @@ Already up to date.
   → No shared loading spinner component — each component (TokenList, ConfirmModal, PublishPanel, HeatmapPanel) implements its own spinner with different markup, sizes, and animation styles; extract a shared Spinner component for visual consistency across the plugin (scattered across 6+ components)
   Worktree: /tmp/backlog-48983-X3cNjf
   Running agent… (started 13:50:05)
+
+  · unknown
+    101 turns · 546s · $2.63
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/server/src/routes/themes.ts, packages/figma-plugin/src/ui/hooks/useFigmaSync.ts, packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx, packages/server/src/services/generator-service.ts, packages/server/src/routes/generators.ts, packages/figma-plugin/src/ui/components/generators/ (all), packages/figma-plugin/src/ui/hooks/useTokens.ts, packages/figma-plugin/src/ui/components/ThemeManager.tsx
+- Found 6 items — written to backlog-inbox.md
+- Notable: PUT /api/themes/dimensions-order is the only theme mutation that bypasses withThemeLock(), so rollback of dimension reorders is a no-op despite the operations log recording the action
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  15 queued · 3 in-progress · last took 9m11s
+═══════════════════════════════════════════════════════════════
+  → No shared loading spinner component — each component (TokenList, ConfirmModal, PublishPanel, HeatmapPanel) implements its own spinner with different markup, sizes, and animation styles; extract a shared Spinner component for visual consistency across the plugin (scattered across 6+ components)
+  Worktree: /tmp/backlog-48983-iJPufn
+  Running agent… (started 13:59:16)

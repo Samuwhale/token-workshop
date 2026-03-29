@@ -152,3 +152,10 @@ Already up to date.
   → Token sets have no description or annotation field — designers managing 10+ sets (light, dark, brand, platform overrides) have no way to record why a set exists or what it covers; add an optional description shown as a tooltip in the set picker and editable from the sets management view (sets.ts, SetsPicker component)
   Worktree: /tmp/backlog-47616-NzbXeg
   Running agent… (started 13:56:19)
+
+  ✓ done: Token sets have no description or annotation field
+    stale — already done; description field exists in data model, server API, useTokens hook, and is shown as title tooltip on set tabs with an editable "Edit set info" dialog
+    11 turns · 203s · $0.61
+
+  Merging to main: Token sets have no description or annotation field
+Already up to date.
