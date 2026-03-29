@@ -371,3 +371,13 @@
   - Group create and group metadata updates don't have meaningful token snapshots (they modify group-level `$type`/`$description`, not leaf tokens) but still benefit from operation log entries for undo support
   - The existing `rollback()` method with `rollbackSteps` is the correct/live system; the dead `rollbackStructural`/`invertMetadata` was from a prior design that was never completed
 ---
+
+## 2026-03-29 - Server token route handlers have TOCTOU races between existence checks and mutations
+- Already fixed: all mutating route handlers in `tokens.ts` wrap their entire multi-step sequences (existence check + snapshot + mutation + snapshot) inside a single `withLock` call
+- The `TokenLock` is a promise-chain mutex (single instance via Fastify decorator) that serializes all concurrent mutations
+- Verified all 18 mutating routes: POST create (L597), PATCH update (L639), DELETE (L742), bulk-delete (L671), group rename/move/duplicate/reorder/create (L66-164), groups/meta (L178), bulk-rename (L198), batch-update (L237), batch-rename-paths (L273), batch-move (L310), batch upsert (L359), token rename/move/copy (L455-514), PUT replace (L536) — all inside withLock
+- Files checked: `packages/server/src/routes/tokens.ts`, `packages/server/src/services/token-lock.ts`
+- **Learnings for future iterations:**
+  - When verifying TOCTOU claims, carefully check indentation to confirm whether code is inside a callback — the withLock wraps the entire handler body as a callback argument, so all code inside the `try` block is serialized
+  - Subagent analysis of code structure can be unreliable for determining nesting/scope — always verify manually
+---
