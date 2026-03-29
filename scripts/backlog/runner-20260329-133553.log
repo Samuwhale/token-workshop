@@ -38,3 +38,22 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — highlights: Figma Variables export permanent stuck-spinner (HIGH), batch-move multi-select tokens, theme side-by-side comparison, color ramp WCAG per-step preview, bezier preset library, generator clone action, command palette qualifier chips/100-token cap, set description field, generator requiresSource upfront badge
 Already up to date.
+[main 1cfbbd0b] chore(backlog): product pass – product-pass
+ 6 files changed, 52 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-29 - product-pass
+- Areas explored: App.tsx (tab structure), TokenList.tsx, ThemeManager.tsx, GraphPanel.tsx, ColorRampGenerator.tsx, BezierCurveEditor.tsx, ExportPanel.tsx, ImportPanel.tsx, CommandPalette.tsx, HistoryPanel.tsx, PublishPanel.tsx, backlog.md (full), backlog-inbox.md, packages/server/src/routes/
+- Found 12 items — written to backlog-inbox.md
+- Notable: Figma Variables export can permanently lock the ExportPanel if the plugin context doesn't respond — no timeout or error recovery. Also, color ramp generators produce steps with no WCAG contrast preview, forcing users to leave the generator and use the analytics panel separately.
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  23 queued · 3 in-progress · last took 9m13s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Figma Variables export can get permanently stuck in loading state — handleExportFigmaVariables sends a postMessage and sets figmaLoading=true, but if the plugin never responds (e.g., no active Figma document, wrong context) the spinner never clears and the panel is unusable until the plugin is reloaded; add a timeout (10s) that resets state and shows an error toast (ExportPanel.tsx ~L260-265)
+  Worktree: /tmp/backlog-48303-BoGzS4
+  Running agent… (started 13:45:06)

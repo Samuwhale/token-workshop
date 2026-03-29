@@ -159,3 +159,10 @@ Already up to date.
   → Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh (packages/server/scripts/backlog/validate.sh)
   Worktree: /tmp/backlog-48983-QfTnPS
   Running agent… (started 13:44:30)
+
+  ✓ done: Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh
+    Deleted the stale duplicate (had old baseline=3) and removed now-empty parent directories.
+    11 turns · 54s · $0.18
+
+  Merging to main: Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh
+Already up to date.

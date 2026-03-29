@@ -98,3 +98,10 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: Figma Variables export can permanently lock the ExportPanel if the plugin context doesn't respond — no timeout or error recovery. Also, color ramp generators produce steps with no WCAG contrast preview, forcing users to leave the generator and use the analytics panel separately.
 ---
+
+## 2026-03-29 - Orphaned validate.sh duplicate
+- Deleted `packages/server/scripts/backlog/validate.sh` (stale copy with old baseline=3 vs root baseline=5) and removed the now-empty `packages/server/scripts/backlog/` and `packages/server/scripts/` directories.
+- Files changed: deleted `packages/server/scripts/backlog/validate.sh`
+- **Learnings for future iterations:**
+  - The server-side duplicate had drifted (baseline 3 vs root 5), confirming it was never being maintained as a true copy — safe to delete.
+---
