@@ -294,3 +294,19 @@ Already up to date.
 
   Merging to main: PublishPanel diff filter text resets when switching sections
 Already up to date.
+[main 93def24] chore(backlog): done – PublishPanel diff filter text resets when switching sections
+ 6 files changed, 92 insertions(+), 40 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 860 done — pass skipped (runner PID 66903 already running one)
+
+## 2026-03-29 - PublishPanel diff filter text resets when switching sections
+- Lifted the diff filter input from inside the Git section to above all three sections (Variables, Styles, Git), so it's always visible when any section has diff rows
+- Applied the shared `diffFilter` state to filter Variables rows by token path, Styles rows by token path, and Git files by filename
+- Removed the duplicate inline filter input from the Git section; added "N of M match filter" indicators to all three sections when the filter is active
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  4 queued · 5 in-progress · last took 4m33s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager coverage gap view is a raw token list with no visual status hierarchy — the "Missing coverage" section shows uncovered tokens as a flat indented list with no color coding or severity grouping; for a theme with 50 uncovered tokens the list is overwhelming; add green/yellow/red status chips per token (analogous to HeatmapPanel's coverage indicators) and a "Fill with source set" batch action that auto-creates override entries for all gaps in one click (ThemeManager.tsx ~L88-92)
+  Worktree: /tmp/backlog-69179-ec1BT8
+  Running agent… (started 08:14:16)

@@ -556,3 +556,9 @@
   - The `Section` component in `changeHelpers.tsx` uses `{open && children}` which unmounts children when collapsed — any filter input inside a section disappears on collapse even if state is in the parent
   - When multiple sections share a filter namespace, place the filter input outside all sections so it stays visible regardless of which sections are open/closed
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: CommandPalette.tsx (token search mode, result rendering), ImportPanel.tsx (conflict resolution UI), SettingsPanel.tsx (settings organization), SelectionInspector.tsx (deep inspect, binding editing), TokenEditor.tsx (composite types, alias handling), GraphPanel.tsx (generator authoring, live preview, templates), TokenTreeNode.tsx (group context menu, drag-drop, multi-select), ThemeManager.tsx (dimension labels, coverage gaps), useVariableSync.ts + useGitSync.ts (sync flows, preview), server routes (response consistency), KeyboardShortcutsModal.tsx (shortcut coverage)
+- Found 10 items — written to backlog-inbox.md
+- Notable: command palette token search has no visual value preview (color swatches, dimension values) making it hard to distinguish similarly-named tokens; also no "select all children" on group context menu makes multi-select tedious for large groups; theme dimension labels use confusing non-standard terminology ("Foundation"/"Override") that doesn't match API terms or DTCG spec
+---
