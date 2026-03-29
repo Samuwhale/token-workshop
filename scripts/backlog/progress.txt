@@ -323,3 +323,14 @@
   - The terms "Base"/"Override"/"Excluded" map directly to the API's source/enabled/disabled — clearer than the previous non-standard "Foundation"/"Not included"
   - Section headers already had inline helper text ("highest priority", "base defaults") which were also updated for consistency
 ---
+
+## 2026-03-29 - Token creation form has no per-type value format hints
+- Added `valueFormatHint(type)` function in `tokenListHelpers.tsx` returning detailed DTCG format descriptions for all 12 token types
+- Hint text appears below the value input when the field is empty, changes dynamically based on selected type
+- Hints cover complex types (typography JSON object fields, shadow array syntax, border style options, stroke style object format) and simple types (dimension units, duration units, color syntaxes)
+- Hidden once the user starts typing to avoid clutter
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L418-445 (VALUE_FORMAT_HINTS map + valueFormatHint function); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L26 (import), ~L3648-3650 (hint paragraph)
+- **Learnings for future iterations:**
+  - The existing `valuePlaceholderForType` already puts short hints in the input placeholder; the new format hints complement rather than replace those
+  - Showing hints only when value is empty (`!newTokenValue.trim()`) keeps the form clean once the user starts entering data
+---

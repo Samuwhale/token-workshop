@@ -23,7 +23,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType } from './tokenListHelpers';
+import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
@@ -3645,6 +3645,9 @@ export function TokenList({
                 onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
               />
             </div>
+            {!newTokenValue.trim() && valueFormatHint(newTokenType) && (
+              <p className="text-[9px] leading-snug text-[var(--color-figma-text-tertiary)] -mt-0.5 px-0.5">{valueFormatHint(newTokenType)}</p>
+            )}
             {aliasSuggestion && (
               <button
                 type="button"

@@ -339,3 +339,25 @@ Already up to date.
 
   Merging to main: Theme dimension set-status labels are confusing non-standard terminology
 Already up to date.
+[main f3caa8f7] chore(backlog): done – Theme dimension set-status labels are confusing non-standard terminology
+ 5 files changed, 34 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Theme dimension set-status labels are confusing non-standard terminology
+- Renamed STATE_LABELS: "Foundation" → "Base", "Not included" → "Excluded", kept "Override"
+- Updated STATE_DESCRIPTIONS to use clearer wording that explains priority without referencing old labels
+- Updated all hardcoded string references: section headers, empty-state hints, layer labels in resolved token preview, comments
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  2 queued · 5 in-progress · last took 2m12s
+═══════════════════════════════════════════════════════════════
+  → Token creation form has no per-type value format hints — the value input shows a generic placeholder but doesn't explain what format each type expects; entering a border value, typography object, or shadow array requires prior knowledge of the DTCG spec; add a small "expected format" hint or example below the value input that changes based on the selected type (TokenList.tsx create form ~L3620-3651)
+  Worktree: /tmp/backlog-69179-JgEVXM
+  Running agent… (started 08:20:24)
+
+  ✓ done: Token creation form has no per-type value format hints
+    Added per-type format hint text below the value input in the create form — covers all 12 DTCG types with detailed format descriptions; hidden once user starts typing.
+    14 turns · 90s · $0.45
+
+  Merging to main: Token creation form has no per-type value format hints
+Already up to date.

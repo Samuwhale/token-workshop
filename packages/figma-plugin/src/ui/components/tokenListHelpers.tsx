@@ -415,3 +415,26 @@ export function valuePlaceholderForType(type: string): string {
   const hint = VALUE_PLACEHOLDERS[type];
   return hint ? `Value (optional) — ${hint}` : 'Value (optional)';
 }
+
+// ---------------------------------------------------------------------------
+// Per-type format hints shown below the value input for complex types
+// ---------------------------------------------------------------------------
+
+const VALUE_FORMAT_HINTS: Record<string, string> = {
+  color: '#RRGGBB, #RRGGBBAA, rgb(r g b), oklch(L C H), color(display-p3 r g b)',
+  typography: 'JSON object: { "fontFamily": "Inter", "fontSize": "16px", "fontWeight": 400, "lineHeight": "1.5", "letterSpacing": "0.01em" }',
+  shadow: 'JSON object or array: { "offsetX": "0px", "offsetY": "4px", "blur": "8px", "spread": "0px", "color": "#00000040" } — use [ ] for multiple shadows',
+  border: 'JSON object: { "color": "#000000", "width": "1px", "style": "solid" } — style: solid | dashed | dotted',
+  gradient: 'CSS gradient string, e.g. linear-gradient(180deg, #000 0%, #fff 100%)',
+  strokeStyle: 'String ("solid", "dashed", "dotted") or JSON object: { "dashArray": ["2px","4px"], "lineCap": "round" }',
+  dimension: 'Number with unit: 16px, 1rem, 0.5em',
+  duration: 'Number with unit: 200ms, 0.3s',
+  fontFamily: 'Font name or comma-separated list: Inter, Arial, sans-serif',
+  fontWeight: 'Number (100–900) or name: 400, bold, semi-bold',
+  number: 'Plain number: 1.5, 4, 100',
+  boolean: 'true or false',
+};
+
+export function valueFormatHint(type: string): string | null {
+  return VALUE_FORMAT_HINTS[type] ?? null;
+}
