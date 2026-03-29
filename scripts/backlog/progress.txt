@@ -330,3 +330,11 @@
 - **Learnings for future iterations:**
   - The `ConfirmModal` is already imported in the file (used for overwrite confirmation), so no new import was needed — just add state + render.
 ---
+
+## 2026-03-29 - Multi-mode cell color editing uses window.prompt() which is blocked in Figma plugin sandbox
+- Replaced `window.prompt()` in `MultiModeCell` color swatch click handler with a hidden `<input type="color">` using the inline color picker trigger pattern. The swatch click now calls `colorInputRef.current?.click()`. The hidden input uses `key={colorHexBase}` and `defaultValue={colorHexBase}` for reset behavior, saves on `onBlur`, and preserves any 8-char `#RRGGBBAA` alpha suffix by extracting it before the picker and re-appending on change.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L25 (`MultiModeCell` component)
+- **Learnings for future iterations:**
+  - When switching from a single element to a fragment (`<>`) in a ternary, always use `</>` to close — not `/>`. JSX fragments do not self-close.
+  - For 8-char hex colors (`#RRGGBBAA`), `colorHex.length === 9` is the correct check (1 + 8 = 9 chars including `#`).
+---

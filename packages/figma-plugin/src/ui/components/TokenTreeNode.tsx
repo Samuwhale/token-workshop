@@ -35,6 +35,7 @@ function MultiModeCell({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const escapedRef = useRef(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAlias(value?.$value);
 
@@ -51,6 +52,11 @@ function MultiModeCell({
   const displayVal = value ? formatValue(value.$type, value.$value) : '—';
   const isColor = tokenType === 'color' && value && typeof value.$value === 'string';
 
+  // For <input type="color">, extract 6-char hex and preserve any alpha suffix
+  const colorHex = isColor ? (value!.$value as string) : '';
+  const colorHexBase = colorHex.startsWith('#') ? colorHex.slice(0, 7) : '#000000';
+  const colorAlphaSuffix = colorHex.startsWith('#') && colorHex.length === 9 ? colorHex.slice(7) : '';
+
   return (
     <div
       className="w-[80px] shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
@@ -59,18 +65,31 @@ function MultiModeCell({
       {!value ? (
         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">—</span>
       ) : isColor ? (
-        <span
-          className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? 'cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]' : ''}`}
-          style={{ backgroundColor: value.$value as string }}
-          onClick={canEdit ? (e) => {
-            e.stopPropagation();
-            // For color, open a prompt-style edit (simplified — full color picker in cell would be too complex)
-            const result = prompt(`Edit color for "${optionName}":`, value.$value as string);
-            if (result && result !== value.$value) {
-              onSave!(tokenPath, 'color', result, targetSet!);
-            }
-          } : undefined}
-        />
+        <>
+          <span
+            className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? 'cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]' : ''}`}
+            style={{ backgroundColor: value.$value as string }}
+            onClick={canEdit ? (e) => {
+              e.stopPropagation();
+              colorInputRef.current?.click();
+            } : undefined}
+          />
+          {canEdit && (
+            <input
+              type="color"
+              ref={colorInputRef}
+              key={colorHexBase}
+              defaultValue={colorHexBase}
+              className="sr-only"
+              onBlur={(e) => {
+                const newHex = e.target.value + colorAlphaSuffix;
+                if (newHex !== colorHex) {
+                  onSave!(tokenPath, 'color', newHex, targetSet!);
+                }
+              }}
+            />
+          )}
+        </>
       ) : editing ? (
         <input
           type="text"
