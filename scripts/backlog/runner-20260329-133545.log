@@ -41,3 +41,10 @@ Already up to date.
   → No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
   Worktree: /tmp/backlog-47616-AGo21n
   Running agent… (started 13:40:57)
+
+  ✓ done: No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
+    Added A/B compare mode to TypeScaleConfigEditor: toggle shows two-column ratio pickers + side-by-side staircase editors; 'Use B' commits the alternate ratio.
+    16 turns · 275s · $0.76
+
+  Merging to main: No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
+Already up to date.

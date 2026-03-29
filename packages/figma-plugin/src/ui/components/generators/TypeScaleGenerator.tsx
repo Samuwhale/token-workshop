@@ -172,7 +172,17 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareRatio, setCompareRatio] = useState<number>(() => {
+    // Default B to the next preset up from the current ratio
+    const idx = TYPE_RATIO_PRESETS.findIndex(p => Math.abs(p.value - config.ratio) < 0.0001);
+    return TYPE_RATIO_PRESETS[(idx + 1) % TYPE_RATIO_PRESETS.length]?.value ?? 1.333;
+  });
+  const [isCustomCompareRatio, setIsCustomCompareRatio] = useState(false);
+  const [customCompareRatio, setCustomCompareRatio] = useState('');
+
   const activePresetRatio = TYPE_RATIO_PRESETS.find(p => Math.abs(p.value - config.ratio) < 0.0001);
+  const activeComparePresetRatio = TYPE_RATIO_PRESETS.find(p => Math.abs(p.value - compareRatio) < 0.0001);
   const activeStepPresetIdx = TYPE_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s.name === config.steps[i]?.name)
   );
@@ -180,6 +190,23 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
   const handleCustomRatioCommit = () => {
     const val = parseFloat(customRatio);
     if (!isNaN(val) && val > 1) onChange({ ...config, ratio: Math.round(val * 1000) / 1000 });
+  };
+  const handleCompareRatioPreset = (val: number) => { setIsCustomCompareRatio(false); setCompareRatio(val); };
+  const handleCustomCompareRatioCommit = () => {
+    const val = parseFloat(customCompareRatio);
+    if (!isNaN(val) && val > 1) setCompareRatio(Math.round(val * 1000) / 1000);
+  };
+  const applyCompareRatio = () => {
+    onChange({ ...config, ratio: compareRatio });
+    setIsCustomRatio(false);
+    setCompareMode(false);
+  };
+  const swapAB = () => {
+    const prevA = config.ratio;
+    onChange({ ...config, ratio: compareRatio });
+    setCompareRatio(prevA);
+    setIsCustomRatio(false);
+    setIsCustomCompareRatio(false);
   };
   const updateStep = (idx: number, updates: Partial<TypeScaleStep>) => {
     const steps = config.steps.map((s, i) => i === idx ? { ...s, ...updates } : s);
@@ -201,33 +228,150 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
     onChange({ ...config, steps, baseStep });
   };
   const setBaseStep = (name: string) => onChange({ ...config, baseStep: name });
+
+  const effectiveSourceValue = sourceValue !== undefined && sourceValue > 0 ? sourceValue : 1;
+  const compareConfig: TypeScaleConfig = { ...config, ratio: compareRatio };
+
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Scale ratio</label>
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-1 flex-wrap">
-            {TYPE_RATIO_PRESETS.map(preset => (
-              <button key={preset.value} title={`${preset.label} — ${preset.description}`} onClick={() => handleRatioPreset(preset.value)}
-                className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-              >{preset.label.split(' ')[0]} ({preset.value})</button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Custom:</span>
-            <input type="number" min="1.001" max="4" step="0.001" value={isCustomRatio ? customRatio : config.ratio}
-              onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
-              onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
-              aria-label="Custom scale ratio"
-              className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]" />
-          </div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Scale ratio</label>
+          <button
+            onClick={() => setCompareMode(v => !v)}
+            title="Compare two ratios side by side before committing"
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-medium border transition-colors ${compareMode ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+              <rect x="0.5" y="2" width="3.5" height="6" rx="0.5" />
+              <rect x="6" y="2" width="3.5" height="6" rx="0.5" />
+              <line x1="4.75" y1="5" x2="5.25" y2="5" strokeWidth="1" />
+            </svg>
+            A/B
+          </button>
         </div>
+
+        {compareMode ? (
+          /* ── Compare mode: A and B columns ── */
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              {/* Config A */}
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30">A</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono">{config.ratio}</span>
+                  {activePresetRatio && <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-60 truncate">{activePresetRatio.label}</span>}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {TYPE_RATIO_PRESETS.map(preset => (
+                    <button key={preset.value} title={`${preset.label} — ${preset.description}`}
+                      onClick={() => handleRatioPreset(preset.value)}
+                      className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors text-left truncate ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    >{preset.label} <span className="font-mono opacity-70">({preset.value})</span></button>
+                  ))}
+                  <input type="number" min="1.001" max="4" step="0.001"
+                    value={isCustomRatio ? customRatio : config.ratio}
+                    onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
+                    onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
+                    aria-label="Custom scale ratio A"
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                </div>
+              </div>
+
+              {/* Config B */}
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">B</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono">{compareRatio}</span>
+                  {activeComparePresetRatio && <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-60 truncate">{activeComparePresetRatio.label}</span>}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {TYPE_RATIO_PRESETS.map(preset => (
+                    <button key={preset.value} title={`${preset.label} — ${preset.description}`}
+                      onClick={() => handleCompareRatioPreset(preset.value)}
+                      className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors text-left truncate ${!isCustomCompareRatio && activeComparePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    >{preset.label} <span className="font-mono opacity-70">({preset.value})</span></button>
+                  ))}
+                  <input type="number" min="1.001" max="4" step="0.001"
+                    value={isCustomCompareRatio ? customCompareRatio : compareRatio}
+                    onChange={e => { setIsCustomCompareRatio(true); setCustomCompareRatio(e.target.value); }}
+                    onBlur={handleCustomCompareRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomCompareRatioCommit()}
+                    aria-label="Custom scale ratio B"
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Side-by-side staircase previews */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="text-[8px] font-bold text-[var(--color-figma-accent)]">A</span>
+                  <span className="text-[8px] text-[var(--color-figma-text-secondary)]">ratio: {config.ratio}</span>
+                </div>
+                <TypeScaleStaircaseEditor
+                  config={config}
+                  sourceValue={effectiveSourceValue}
+                  onChange={c => { setIsCustomRatio(false); onChange(c); }}
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="text-[8px] font-bold text-[var(--color-figma-text-secondary)]">B</span>
+                  <span className="text-[8px] text-[var(--color-figma-text-secondary)]">ratio: {compareRatio}</span>
+                </div>
+                <TypeScaleStaircaseEditor
+                  config={compareConfig}
+                  sourceValue={effectiveSourceValue}
+                  onChange={c => { setIsCustomCompareRatio(false); setCompareRatio(c.ratio); }}
+                />
+              </div>
+            </div>
+
+            {/* Action row */}
+            <div className="flex items-center gap-1.5">
+              <button onClick={applyCompareRatio}
+                className="flex-1 px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+              >Use B ({compareRatio})</button>
+              <button onClick={swapAB}
+                title="Swap A and B ratios"
+                className="px-2 py-1 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M1 3h8M7 1l2 2-2 2" />
+                  <path d="M11 7H3M5 5l-2 2 2 2" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Normal mode ── */
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-1 flex-wrap">
+              {TYPE_RATIO_PRESETS.map(preset => (
+                <button key={preset.value} title={`${preset.label} — ${preset.description}`} onClick={() => handleRatioPreset(preset.value)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >{preset.label.split(' ')[0]} ({preset.value})</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Custom:</span>
+              <input type="number" min="1.001" max="4" step="0.001" value={isCustomRatio ? customRatio : config.ratio}
+                onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
+                onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
+                aria-label="Custom scale ratio"
+                className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]" />
+            </div>
+          </div>
+        )}
       </div>
-      <TypeScaleStaircaseEditor
-        config={config}
-        sourceValue={sourceValue !== undefined && sourceValue > 0 ? sourceValue : 1}
-        onChange={c => { setIsCustomRatio(false); onChange(c); }}
-      />
+      {!compareMode && (
+        <TypeScaleStaircaseEditor
+          config={config}
+          sourceValue={effectiveSourceValue}
+          onChange={c => { setIsCustomRatio(false); onChange(c); }}
+        />
+      )}
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">

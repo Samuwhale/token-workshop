@@ -105,3 +105,12 @@
 - **Learnings for future iterations:**
   - The server-side duplicate had drifted (baseline 3 vs root 5), confirming it was never being maintained as a true copy — safe to delete.
 ---
+
+## 2026-03-29 - No generator configuration comparison
+- Added A/B compare mode to `TypeScaleConfigEditor`. A toggle button labeled "A/B" appears next to the "Scale ratio" label. When enabled, a two-column layout shows Config A (current) and Config B (alternate) with full ratio preset lists and custom inputs in each column, plus side-by-side staircase editors for visual comparison. "Use B (ratio)" applies B's ratio and exits compare mode. A swap button (⇄) exchanges A and B ratios. Compare mode is purely local — no state leaks to the parent; only "Use B" triggers `onChange`. Initializes B to the next preset above A's current ratio for an immediately useful comparison.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L171
+- **Learnings for future iterations:**
+  - A/B compare state is fully self-contained inside the config editor. Compare ratio lives in a `useState` initialized lazily from the current config, so it defaults to the next musical interval up.
+  - The two staircase editors share the same steps/unit/baseStep — only ratio differs. The B editor's `onChange` only updates `compareRatio` (not the full config), keeping the live config unaffected until "Use B" is clicked.
+  - Side-by-side SVG staircases (each `width="100%"` in a `grid-cols-2`) render fine at ~50% width; the responsive SVG with fixed viewBox scales all content proportionally.
+---

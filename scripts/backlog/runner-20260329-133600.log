@@ -166,3 +166,19 @@ Already up to date.
 
   Merging to main: Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh
 Already up to date.
+[main 2da867a0] chore(backlog): done – Orphaned validate.sh duplicate — identical copy of scripts/backlog/validate.sh exists at packages/server/scripts/backlog/validate.sh
+ 6 files changed, 45 insertions(+), 110 deletions(-)
+ delete mode 100755 packages/server/scripts/backlog/validate.sh
+  ✓ Merged and marked done
+
+## 2026-03-29 - Orphaned validate.sh duplicate
+- Deleted `packages/server/scripts/backlog/validate.sh` (stale copy with old baseline=3 vs root baseline=5) and removed the now-empty `packages/server/scripts/backlog/` and `packages/server/scripts/` directories.
+- Files changed: deleted `packages/server/scripts/backlog/validate.sh`
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  22 queued · 3 in-progress · last took 1m1s
+═══════════════════════════════════════════════════════════════
+  → package-lock.json coexists with pnpm-lock.yaml — project declares `"packageManager": "pnpm@9.15.0"` but an npm lock file exists and is newer; should be deleted to prevent dependency drift (root package-lock.json)
+  Worktree: /tmp/backlog-48983-CVq3Pw
+  Running agent… (started 13:45:30)
