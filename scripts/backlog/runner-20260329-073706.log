@@ -154,3 +154,11 @@ Already up to date.
 
   Merging to main: Merge ConsistencyPanel and HeatmapPanel into a single "Binding Audit" panel
 Already up to date.
+[main dff17ae] chore(backlog): done – Merge ConsistencyPanel and HeatmapPanel into a single "Binding Audit" panel
+ 7 files changed, 146 insertions(+), 33 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/BindingAuditPanel.tsx
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 58)
