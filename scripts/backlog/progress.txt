@@ -520,3 +520,15 @@
   - Dynamic conflict detection using `new Map<slug, count>` computed inline in the JSX IIFE keeps the conflict state always current as user renames slugs
   - Separate `savePhase` state machine is cleaner than `exporting` boolean for multi-step async flows
 ---
+
+## 2026-03-29 - Consolidate QuickStartDialog and QuickStartWizard into a single onboarding flow
+- Exported `TemplateIcon`, `getTemplateStepNames`, `getTokenCount`, `formatStepPreview` from QuickStartDialog so they can be reused
+- Rewrote QuickStartWizard to inline the template picker directly as step 1 content (within the wizard modal shell with stepper visible) instead of launching QuickStartDialog as a separate overlay modal
+- Eliminated the `showGeneratorFlow` intermediary state; step 1 now shows templates immediately
+- Step 2 (SemanticMappingDialog) also no longer renders a wizard shell underneath — just the dialog itself, eliminating the double-backdrop
+- QuickStartDialog remains as a standalone component for its independent uses in App.tsx (showScaffoldWizard) and TokenListModals.tsx (showScaffold)
+- Files changed: `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L142-164 (exported helpers + TemplateIcon), `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` (full rewrite — removed QuickStartDialog import, inlined template list as step 1, extracted TemplateButton sub-component)
+- **Learnings for future iterations:**
+  - When a sub-dialog has its own `fixed inset-0 bg-black/40` backdrop, rendering it from within another modal creates double-backdrop issues. Either pass a "no wrapper" prop or return early from the parent so only one backdrop renders at a time.
+  - Exporting small helper functions and presentational sub-components from the original file is cleaner than duplicating them — keeps templates/icons as single source of truth.
+---

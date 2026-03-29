@@ -1,7 +1,14 @@
 import { useState, useCallback } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
-import { QuickStartDialog } from './QuickStartDialog';
+import type { GeneratedTokenResult, GeneratorType, GeneratorTemplate } from '../hooks/useGenerators';
+import {
+  QUICK_START_TEMPLATES,
+  TemplateIcon,
+  getTemplateStepNames,
+  getTokenCount,
+  formatStepPreview,
+} from './QuickStartDialog';
+import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -230,6 +237,51 @@ function StepperBar({ currentStep, completedSteps, onStepClick }: {
 }
 
 // ---------------------------------------------------------------------------
+// Template list for step 1 (inlined from QuickStartDialog)
+// ---------------------------------------------------------------------------
+
+function TemplateButton({ template, onClick }: { template: GeneratorTemplate; onClick: () => void }) {
+  const count = getTokenCount(template);
+  const stepNames = getTemplateStepNames(template);
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+    >
+      <div className="flex items-center gap-3">
+        <div className="shrink-0 w-14">
+          <TemplateIcon id={template.id} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
+            {count > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
+                {count} tokens
+              </span>
+            )}
+          </div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+              {template.defaultPrefix}.*
+            </span>
+            {stepNames.length > 0 && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
+                {formatStepPreview(stepNames)}
+              </span>
+            )}
+          </div>
+        </div>
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+          <path d="M4.5 2.5L8 6l-3.5 3.5" />
+        </svg>
+      </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Wizard
 // ---------------------------------------------------------------------------
 
@@ -247,8 +299,8 @@ export function QuickStartWizard({
   // Data passed from step 1 → step 2
   const [semanticData, setSemanticData] = useState<SemanticData | null>(null);
 
-  // Step 1: showing the template/generator dialog
-  const [showGeneratorFlow, setShowGeneratorFlow] = useState(false);
+  // Step 1: selected template for generator dialog
+  const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
 
   const markCompleted = useCallback((step: WizardStep) => {
     setCompletedSteps(prev => new Set([...prev, step]));
@@ -260,7 +312,6 @@ export function QuickStartWizard({
 
   // Jump to any step directly (from StepperBar click)
   const handleStepClick = useCallback((step: WizardStep) => {
-    // Mark all earlier steps as completed when jumping forward
     setCompletedSteps(prev => {
       const next = new Set(prev);
       for (let s = 1 as WizardStep; s < step; s = (s + 1) as WizardStep) {
@@ -268,21 +319,17 @@ export function QuickStartWizard({
       }
       return next;
     });
-    setShowGeneratorFlow(false);
+    setSelectedTemplate(null);
     setCurrentStep(step);
   }, []);
 
   // Step 1 handlers
-  const handleStartStep1 = () => {
-    setShowGeneratorFlow(true);
-  };
-
   const handleStep1InterceptSemantic = useCallback((data: SemanticData) => {
     setSemanticData(data);
   }, []);
 
   const handleStep1Complete = useCallback(() => {
-    setShowGeneratorFlow(false);
+    setSelectedTemplate(null);
     markCompleted(1);
     if (semanticData) {
       advanceTo(2);
@@ -319,58 +366,48 @@ export function QuickStartWizard({
     onComplete();
   };
 
-  // If the QuickStartDialog (step 1 generator flow) is showing, render it as overlay
-  if (showGeneratorFlow) {
+  // If a template is selected in step 1, show TokenGeneratorDialog as overlay
+  if (selectedTemplate) {
+    const stepNames = getTemplateStepNames(selectedTemplate);
     return (
-      <QuickStartDialog
+      <TokenGeneratorDialog
         serverUrl={serverUrl}
         activeSet={activeSet}
         allSets={allSets}
-        onClose={() => { setShowGeneratorFlow(false); }}
-        onConfirm={() => { handleStep1Complete(); }}
+        template={selectedTemplate}
+        onBack={() => setSelectedTemplate(null)}
+        onClose={onClose}
         onInterceptSemanticMapping={handleStep1InterceptSemantic}
+        onSaved={(info) => {
+          const firstStep = stepNames[0];
+          const _firstPath = info?.targetGroup && firstStep
+            ? `${info.targetGroup}.${firstStep}`
+            : undefined;
+          handleStep1Complete();
+        }}
       />
     );
   }
 
-  // Step 2: show SemanticMappingDialog
+  // Step 2: show SemanticMappingDialog as overlay
   if (currentStep === 2 && semanticData) {
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
-          {/* Stepper header */}
-          <StepperBar currentStep={2} completedSteps={completedSteps} onStepClick={handleStepClick} />
-          <div className="border-t border-[var(--color-figma-border)]" />
-
-          {/* Step description with skip */}
-          <div className="px-4 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Create semantic reference tokens that point to your generated <span className="font-mono text-[var(--color-figma-accent)]">{semanticData.targetGroup}.*</span> primitives.
-            </p>
-            <button
-              onClick={handleStep2Skip}
-              className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            >
-              Skip
-            </button>
-          </div>
-        </div>
-
-        {/* Render SemanticMappingDialog as a sub-overlay */}
-        <SemanticMappingDialog
-          serverUrl={serverUrl}
-          generatedTokens={semanticData.tokens}
-          generatorType={semanticData.generatorType}
-          targetGroup={semanticData.targetGroup}
-          targetSet={semanticData.targetSet}
-          onClose={handleStep2Skip}
-          onCreated={handleStep2Created}
-        />
-      </div>
+      <SemanticMappingDialog
+        serverUrl={serverUrl}
+        generatedTokens={semanticData.tokens}
+        generatorType={semanticData.generatorType}
+        targetGroup={semanticData.targetGroup}
+        targetSet={semanticData.targetSet}
+        onClose={handleStep2Skip}
+        onCreated={handleStep2Created}
+      />
     );
   }
 
-  // Main wizard shell (step 1 intro, step 2 without data, step 3)
+  // Main wizard shell
+  const sourceTemplates = QUICK_START_TEMPLATES.filter(t => t.requiresSource);
+  const standaloneTemplates = QUICK_START_TEMPLATES.filter(t => !t.requiresSource);
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
@@ -393,43 +430,48 @@ export function QuickStartWizard({
         <div className="border-t border-[var(--color-figma-border)]" />
 
         {/* Step content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto">
           {currentStep === 1 && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-                  </svg>
-                </div>
+            <>
+              {/* Template list — inlined directly as step 1 */}
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Generate Primitives</p>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    Pick a template to generate your foundational tokens — color ramps, spacing scales, type scales, and more.
-                  </p>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Derived from a source token</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Pick a base token, then generate a scale from it</div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-1">
+              {sourceTemplates.map(template => (
+                <TemplateButton
+                  key={template.id}
+                  template={template}
+                  onClick={() => connected && setSelectedTemplate(template)}
+                />
+              ))}
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Standalone</div>
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Ready to use — no source token needed</div>
+              </div>
+              {standaloneTemplates.map(template => (
+                <TemplateButton
+                  key={template.id}
+                  template={template}
+                  onClick={() => connected && setSelectedTemplate(template)}
+                />
+              ))}
+              {/* Skip button at bottom */}
+              <div className="px-4 py-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
                 <button
                   onClick={handleStep1Skip}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  Skip
-                </button>
-                <button
-                  onClick={handleStartStep1}
-                  disabled={!connected}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                >
-                  Choose Template
+                  Skip — I'll add tokens manually
                 </button>
               </div>
-            </div>
+            </>
           )}
 
           {currentStep === 2 && !semanticData && (
-            <div className="flex flex-col gap-3">
+            <div className="p-4 flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-bg-secondary)] flex items-center justify-center shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -455,7 +497,7 @@ export function QuickStartWizard({
           )}
 
           {currentStep === 3 && (
-            <div className="flex flex-col gap-3">
+            <div className="p-4 flex flex-col gap-3">
               <div className="flex items-start gap-3 mb-1">
                 <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

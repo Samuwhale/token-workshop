@@ -139,20 +139,20 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
 // Helpers: token count + step preview for each template
 // ---------------------------------------------------------------------------
 
-function getTemplateStepNames(t: GeneratorTemplate): string[] {
+export function getTemplateStepNames(t: GeneratorTemplate): string[] {
   const cfg = t.config as Record<string, unknown>;
   const steps = cfg.steps as Array<Record<string, unknown>> | undefined;
   if (!steps) return [];
   return steps.map(s => String(s.name ?? s.value ?? ''));
 }
 
-function getTokenCount(t: GeneratorTemplate): number {
+export function getTokenCount(t: GeneratorTemplate): number {
   const names = getTemplateStepNames(t);
   return names.length || 0;
 }
 
 /** Abbreviate step names: show first 3, ellipsis, last 1 if > 5 */
-function formatStepPreview(names: string[]): string {
+export function formatStepPreview(names: string[]): string {
   if (names.length <= 5) return names.join(' · ');
   return `${names.slice(0, 3).join(' · ')} … ${names[names.length - 1]}`;
 }
@@ -161,7 +161,7 @@ function formatStepPreview(names: string[]): string {
 // Template icons
 // ---------------------------------------------------------------------------
 
-function TemplateIcon({ id }: { id: string }) {
+export function TemplateIcon({ id }: { id: string }) {
   switch (id) {
     case 'color-ramp':
       return (
