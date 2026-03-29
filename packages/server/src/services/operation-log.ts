@@ -114,16 +114,20 @@ export class OperationLog {
     return full;
   }
 
-  /** Get the N most recent entries (newest first), as lightweight summaries. */
-  async getRecent(limit = 5): Promise<OperationSummary[]> {
+  /** Get recent entries (newest first) as lightweight summaries, with total count. */
+  async getRecent(limit = 5, offset = 0): Promise<{ entries: OperationSummary[]; total: number }> {
     await this.ensureLoaded();
-    const start = Math.max(0, this.entries.length - limit);
-    return this.entries
-      .slice(start)
+    const total = this.entries.length;
+    // entries stored oldest-first; slice from the newest end using offset
+    const end = Math.max(0, total - offset);
+    const start = Math.max(0, end - limit);
+    const entries = this.entries
+      .slice(start, end)
       .reverse()
       .map(({ id, timestamp, type, description, setName, affectedPaths, rolledBack }) => ({
         id, timestamp, type, description, setName, affectedPaths, rolledBack,
       }));
+    return { entries, total };
   }
 
   /** Get a full entry by ID. */

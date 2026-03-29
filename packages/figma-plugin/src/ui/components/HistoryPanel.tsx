@@ -147,13 +147,19 @@ interface HistoryPanelProps {
   onClearFilter?: () => void;
   /** Server operation log entries */
   recentOperations?: OperationEntry[];
+  /** Total number of server operations (may exceed loaded count) */
+  totalOperations?: number;
+  /** Whether more server operations can be loaded */
+  hasMoreOperations?: boolean;
+  /** Load the next batch of server operations */
+  onLoadMoreOperations?: () => void;
   /** Rollback a server operation by ID */
   onRollback?: (opId: string) => void;
   /** Descriptions of local undo stack entries (most recent last) */
   undoDescriptions?: string[];
 }
 
-export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, onRollback, undoDescriptions }: HistoryPanelProps) {
+export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions }: HistoryPanelProps) {
   const [source, setSource] = useState<HistorySource>('actions');
 
   if (!connected) {
@@ -218,6 +224,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           onRollback={onRollback ?? (() => {})}
           undoDescriptions={undoDescriptions ?? []}
           onSwitchTab={setSource}
+          total={totalOperations}
+          hasMore={hasMoreOperations}
+          onLoadMore={onLoadMoreOperations}
         />
       ) : source === 'commits' ? (
         <GitCommitsSource

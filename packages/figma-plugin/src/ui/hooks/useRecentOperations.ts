@@ -22,22 +22,35 @@ interface UseRecentOperationsParams {
   setErrorToast: (msg: string) => void;
 }
 
+const INITIAL_LIMIT = 10;
+const BATCH_SIZE = 10;
+
 export function useRecentOperations({
   serverUrl, connected, lintKey,
   refreshAll, setSuccessToast, setErrorToast,
 }: UseRecentOperationsParams) {
   const [recentOperations, setRecentOperations] = useState<OperationEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loadedCount, setLoadedCount] = useState(INITIAL_LIMIT);
 
-  const fetchRecentOps = useCallback(async () => {
+  const hasMore = total > recentOperations.length;
+
+  const fetchRecentOps = useCallback(async (limit?: number) => {
     if (!connected) return;
+    const effectiveLimit = limit ?? loadedCount;
     try {
-      const data = await apiFetch<{ operations: OperationEntry[] }>(`${serverUrl}/api/operations?limit=10`);
+      const data = await apiFetch<{ operations: OperationEntry[]; total: number }>(`${serverUrl}/api/operations?limit=${effectiveLimit}`);
       setRecentOperations(data.operations);
+      setTotal(data.total);
     } catch (err) { console.warn('[useRecentOperations] fetch failed:', err); }
-  }, [serverUrl, connected]);
+  }, [serverUrl, connected, loadedCount]);
 
-  // Refresh operations list whenever tokens refresh
+  // Refresh operations list whenever tokens refresh or loadedCount changes
   useEffect(() => { fetchRecentOps(); }, [fetchRecentOps, lintKey]);
+
+  const loadMore = useCallback(() => {
+    setLoadedCount(prev => prev + BATCH_SIZE);
+  }, []);
 
   const handleRollback = useCallback(async (opId: string) => {
     try {
@@ -52,6 +65,9 @@ export function useRecentOperations({
 
   return {
     recentOperations,
+    total,
+    hasMore,
+    loadMore,
     fetchRecentOps,
     handleRollback,
   };

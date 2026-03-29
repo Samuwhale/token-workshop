@@ -18,6 +18,12 @@ interface RecentActionsSourceProps {
   onRollback: (opId: string) => void;
   undoDescriptions: string[];
   onSwitchTab: (tab: 'commits' | 'snapshots') => void;
+  /** Total number of operations on the server (may exceed loaded count) */
+  total?: number;
+  /** Whether more operations can be loaded */
+  hasMore?: boolean;
+  /** Load the next batch of operations */
+  onLoadMore?: () => void;
 }
 
 /** Icon for each operation type */
@@ -49,7 +55,7 @@ function OpIcon({ type }: { type: string }) {
   return <svg {...props}><circle cx="12" cy="12" r="3" /></svg>;
 }
 
-export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab }: RecentActionsSourceProps) {
+export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab, total, hasMore, onLoadMore }: RecentActionsSourceProps) {
   const [rollingBack, setRollingBack] = useState<string | null>(null);
   const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
   const [localOpen, setLocalOpen] = useState(true);
@@ -179,7 +185,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
               Server operations
             </span>
             <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              ({filteredOperations.length}{filteredOperations.length !== recentOperations.length ? `/${recentOperations.length}` : ''})
+              ({filteredOperations.length}{filteredOperations.length !== recentOperations.length ? `/${recentOperations.length}` : ''}{total != null && total > recentOperations.length ? ` of ${total}` : ''})
             </span>
           </button>
           {serverOpen && (
@@ -280,6 +286,16 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   </div>
                 </div>
               ))}
+              {hasMore && onLoadMore && (
+                <div className="px-3 py-1.5">
+                  <button
+                    onClick={onLoadMore}
+                    className="w-full text-[10px] py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  >
+                    Load more{total != null ? ` (${total - recentOperations.length} remaining)` : ''}
+                  </button>
+                </div>
+              )}
               <p className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
                 Server operations persist across sessions and can be rolled back.
               </p>

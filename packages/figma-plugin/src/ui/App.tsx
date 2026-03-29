@@ -351,7 +351,7 @@ export function App() {
   useServerEvents(serverUrl, connected, onGeneratorError, refreshAll);
 
   // Server-side operation log for undo/rollback
-  const { recentOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
+  const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
 
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const handlePreviewEdit = useCallback(() => {
@@ -2178,7 +2178,7 @@ export function App() {
           {/* History sub-tab (Ship > History) — git commits + snapshots */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} />
+              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} totalOperations={totalOperations} hasMoreOperations={hasMoreOperations} onLoadMoreOperations={loadMoreOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} />
               </ErrorBoundary>
           )}
 
