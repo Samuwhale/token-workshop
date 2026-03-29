@@ -71,11 +71,12 @@ function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, 
       .filter(([p, e]) => e.$type === tokenType && p !== currentPath)
       .map(([p]) => p);
   }, [allTokensFlat, tokenType, currentPath]);
-  const filtered = useMemo(() => {
-    if (!search) return candidates.slice(0, 50);
+  const filteredAll = useMemo(() => {
+    if (!search) return candidates;
     const q = search.toLowerCase();
-    return candidates.filter(p => p.toLowerCase().includes(q)).slice(0, 50);
+    return candidates.filter(p => p.toLowerCase().includes(q));
   }, [candidates, search]);
+  const filtered = useMemo(() => filteredAll.slice(0, 50), [filteredAll]);
 
   if (!open) {
     return (
@@ -107,6 +108,11 @@ function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, 
           className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >Cancel</button>
       </div>
+      {filteredAll.length > 50 && (
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-0.5">
+          Showing 50 of {filteredAll.length} — refine search to narrow results
+        </p>
+      )}
       <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         {filtered.length === 0 && (
           <p className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">No matching {tokenType} tokens</p>

@@ -411,3 +411,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: PublishPanel "Delete orphan variables" button fires immediately with no confirmation — this permanently removes Figma variables that other design files may reference, making it the highest-risk unguarded destructive action found; also, SelectionInspector deep inspect state is a plain useState that resets on every panel remount (not persisted to localStorage), which is annoying for anyone debugging complex component structures
 ---
+
+## 2026-03-29 - Alias picker in TokenEditor silently truncates search results to 50 with no indicator
+- Split `filtered` into `filteredAll` (all matches, no limit) and `filtered` (first 50). Added a "Showing 50 of N — refine search to narrow results" hint above the results list that only appears when `filteredAll.length > 50`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L74-L131
+- **Learnings for future iterations:**
+  - The "extends" alias picker (TokenEditor.tsx) is separate from AliasPicker.tsx (the main alias value picker). Check both when a truncation issue is reported.
+  - Splitting into `filteredAll` + sliced `filtered` keeps the count accurate without re-filtering.
+---
