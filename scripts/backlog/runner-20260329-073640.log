@@ -157,3 +157,15 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: BatchEditor undo crash (HIGH - undefined vars), git-sync finalizeMerge swallows errors, sync.ts 3x copy-pasted diff logic + unsafe git status cast, resolver-store write guard race condition, ThemeManager inverted collapse logic
 Already up to date.
+[main f28acc5] chore(backlog): code pass – code-pass
+ 6 files changed, 43 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 duplicate item(s) skipped
+  → Priority item(s) appended (no existing [ ] items found)
+  → 9 normal item(s) appended to bottom
+--- Inbox drained ---
+  10 new item(s) available — continuing.
+  → [HIGH] BatchEditor undo/redo block references three undefined variables and crashes at runtime — BatchEditor.tsx L357-374: `succeeded` (never declared), `results` (never declared, expects Promise.allSettled output that doesn't exist since L348 uses a single batch API call), and `patchToken` (never imported or defined) are all referenced in the undo/redo code path; any batch edit that triggers this block throws ReferenceError; additionally `onApply()` is called twice (L379 inside the if-block and L381 unconditionally), causing a double refresh; fix by deriving success from the batch API response's `updated` count and using `apiFetch` for individual token patches in undo/redo
+  Worktree: /tmp/backlog-67173-6aUPIp
+  Running agent… (started 08:04:53)

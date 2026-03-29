@@ -116,3 +116,10 @@ Already up to date.
   → Move lint rule configuration from SettingsPanel into the Validation panel (AnalyticsPanel) — SettingsPanel.tsx L503-575 embeds full lint rule toggles, severity selectors, and pattern inputs via LintConfigPanel, but users must navigate to Settings to configure rules then to Ship > Validation to see violations; co-locating rule configuration with violation results in a single panel lets users iterate on rules and see impact immediately
   Worktree: /tmp/backlog-67435-7BJ4gP
   Running agent… (started 08:00:44)
+
+  ✓ done: Move lint rule configuration from SettingsPanel into Validation panel
+    Moved lint config into AnalyticsPanel using existing useLintConfig hook and LintConfigPanel component; collapsible "Configure Rules" section sits alongside validation results with auto-revalidation on rule changes; removed ~75 lines of inline lint config from SettingsPanel
+    46 turns · 271s · $1.84
+
+  Merging to main: Move lint rule configuration from SettingsPanel into Validation panel
+Already up to date.

@@ -357,3 +357,18 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: BatchEditor.tsx undo/redo block (L357-374) references three completely undefined variables (`succeeded`, `results`, `patchToken`) — appears to be leftover from a refactor that switched from per-token Promise.allSettled to a single batch API call but never updated the undo logic; any successful batch edit crashes at runtime when hitting this code path
 ---
+
+## 2026-03-29 - Move lint rule configuration from SettingsPanel into Validation panel
+- Moved lint rule configuration from SettingsPanel into AnalyticsPanel (Ship > Validation) so users can configure rules and see violations in the same panel
+- Used existing `useLintConfig` hook and `LintConfigPanel` component (previously unused) in AnalyticsPanel
+- Added collapsible "Configure Rules" toggle in the validation panel, placed between the validate button and results
+- Wired `onLintRefresh` to `runValidate` so changing a rule immediately re-validates
+- Removed all lint state, types, constants, and UI from SettingsPanel (~75 lines of inline lint config code)
+- Removed unused `apiFetch` and `useCallback` imports from SettingsPanel
+- Removed unused `LintConfigPanel` import from App.tsx
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L1-8 (imports), ~L67-68 (hook+state), ~L487-510 (LintConfigPanel JSX); `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1-12 (imports cleanup), ~L186-245 (state+callbacks removed), ~L416-488 (Lint Rules Section removed); `packages/figma-plugin/src/ui/App.tsx` ~L59 (unused import removed)
+- **Learnings for future iterations:**
+  - `LintConfigPanel` component and `useLintConfig` hook already existed but were unused — SettingsPanel had its own inline implementation instead
+  - The `useLintConfig` hook handles all fetch/update/reset logic cleanly, making integration trivial
+  - LintConfigPanel's `onLintRefresh` callback is a natural hook to trigger re-validation after rule changes
+---

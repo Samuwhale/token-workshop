@@ -55,7 +55,6 @@ import { useTokenDataLoading } from './hooks/useTokenDataLoading';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
 import { useLintConfig } from './hooks/useLintConfig';
-import { LintConfigPanel } from './components/LintConfigPanel';
 import type { SyncCompleteMessage } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { adaptShortcut } from './shared/utils';

@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
-import { apiFetch } from '../shared/apiFetch';
 import { PLATFORMS } from '../shared/platforms';
 
 // ---------------------------------------------------------------------------
@@ -9,23 +8,6 @@ import { PLATFORMS } from '../shared/platforms';
 
 type Density = 'compact' | 'default' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
-type Severity = 'error' | 'warning' | 'info';
-
-interface LintRuleConfig {
-  enabled: boolean;
-  severity?: Severity;
-  options?: Record<string, unknown>;
-}
-
-interface LintConfig {
-  lintRules: {
-    'no-raw-color'?: LintRuleConfig;
-    'require-description'?: LintRuleConfig;
-    'path-pattern'?: LintRuleConfig;
-    'max-alias-depth'?: LintRuleConfig;
-    'no-duplicate-values'?: LintRuleConfig;
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Custom event for cross-component settings sync
@@ -50,17 +32,6 @@ export function useSettingsListener(key: string): number {
   return rev;
 }
 
-// ---------------------------------------------------------------------------
-// Lint rule metadata
-// ---------------------------------------------------------------------------
-
-const LINT_RULES: { id: keyof LintConfig['lintRules']; label: string; description: string; hasPattern?: boolean; hasMaxDepth?: boolean }[] = [
-  { id: 'no-raw-color', label: 'No raw colors', description: 'Require color tokens instead of raw hex/rgb values' },
-  { id: 'require-description', label: 'Require description', description: 'Every token must have a $description' },
-  { id: 'path-pattern', label: 'Path naming pattern', description: 'Token paths must match a regex pattern', hasPattern: true },
-  { id: 'max-alias-depth', label: 'Max alias depth', description: 'Limit how deep alias chains can go', hasMaxDepth: true },
-  { id: 'no-duplicate-values', label: 'No duplicate values', description: 'Warn when multiple tokens share the same resolved value' },
-];
 
 // ---------------------------------------------------------------------------
 // Section component
@@ -210,67 +181,6 @@ export function SettingsPanel({
     return Array.isArray(parsed) && parsed.length > 0 ? new Set(parsed) : new Set(['css']);
   });
   const [cssSelector, setCssSelector] = useState<string>(() => lsGet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, ':root') ?? ':root');
-
-  // ---- Lint config (fetched from server) ----
-  const [lintConfig, setLintConfig] = useState<LintConfig | null>(null);
-  const [lintLoading, setLintLoading] = useState(false);
-  const [lintError, setLintError] = useState<string | null>(null);
-
-  const fetchLintConfig = useCallback(async () => {
-    if (!connected) return;
-    setLintLoading(true);
-    setLintError(null);
-    try {
-      const config = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`);
-      setLintConfig(config);
-    } catch (err) {
-      setLintError(err instanceof Error ? err.message : 'Failed to load lint config');
-    } finally {
-      setLintLoading(false);
-    }
-  }, [serverUrl, connected]);
-
-  useEffect(() => {
-    if (connected) fetchLintConfig();
-  }, [connected, fetchLintConfig]);
-
-  const updateLintRule = useCallback(async (ruleId: keyof LintConfig['lintRules'], updates: Partial<LintRuleConfig>) => {
-    if (!lintConfig) return;
-    const current = lintConfig.lintRules[ruleId] ?? { enabled: false, severity: 'warning' as Severity };
-    const updated: LintConfig = {
-      lintRules: {
-        ...lintConfig.lintRules,
-        [ruleId]: { ...current, ...updates },
-      },
-    };
-    setLintConfig(updated);
-    try {
-      await apiFetch(`${serverUrl}/api/lint/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-    } catch (err) {
-      console.warn('[SettingsPanel] failed to save lint config:', err);
-      // revert on failure
-      fetchLintConfig();
-    }
-  }, [lintConfig, serverUrl, fetchLintConfig]);
-
-  const resetLintDefaults = useCallback(async () => {
-    try {
-      const defaults = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config/default`);
-      await apiFetch(`${serverUrl}/api/lint/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(defaults),
-      });
-      setLintConfig(defaults);
-    } catch (err) {
-      console.warn('[SettingsPanel] failed to reset lint defaults:', err);
-      fetchLintConfig();
-    }
-  }, [serverUrl, fetchLintConfig]);
 
   // ---- Handlers ----
   const handleDensityChange = (d: Density) => {
@@ -500,80 +410,6 @@ export function SettingsPanel({
                 {checking ? 'Connecting\u2026' : 'Save & Connect'}
               </button>
             </div>
-          </Section>
-
-          {/* ---- Lint Rules ---- */}
-          <Section title="Lint Rules" defaultOpen={false}>
-            {!connected ? (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] italic">
-                Connect to a server to manage lint rules.
-              </p>
-            ) : lintLoading ? (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] animate-pulse">Loading lint config\u2026</p>
-            ) : lintError ? (
-              <div className="flex flex-col gap-1">
-                <p className="text-[10px] text-[var(--color-figma-error)]">{lintError}</p>
-                <button onClick={fetchLintConfig} className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors self-start">
-                  Retry
-                </button>
-              </div>
-            ) : lintConfig ? (
-              <>
-                {LINT_RULES.map(rule => {
-                  const cfg = lintConfig.lintRules[rule.id] ?? { enabled: false, severity: 'warning' as Severity };
-                  return (
-                    <div key={rule.id} className="flex flex-col gap-1.5 pb-2 border-b border-[var(--color-figma-border)] last:border-b-0 last:pb-0">
-                      <div className="flex items-start gap-2">
-                        <Toggle
-                          checked={cfg.enabled}
-                          onChange={v => updateLintRule(rule.id, { enabled: v })}
-                          label={rule.label}
-                          description={rule.description}
-                        />
-                        <select
-                          value={cfg.severity ?? 'warning'}
-                          onChange={e => updateLintRule(rule.id, { severity: e.target.value as Severity })}
-                          disabled={!cfg.enabled}
-                          className="shrink-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none disabled:opacity-40"
-                        >
-                          <option value="error">Error</option>
-                          <option value="warning">Warning</option>
-                          <option value="info">Info</option>
-                        </select>
-                      </div>
-                      {rule.hasPattern && cfg.enabled && (
-                        <input
-                          type="text"
-                          value={(cfg.options?.pattern as string) ?? ''}
-                          onChange={e => updateLintRule(rule.id, { options: { ...cfg.options, pattern: e.target.value } })}
-                          placeholder="^[a-z][a-z0-9]*([.-][a-z0-9]+)*$"
-                          className="ml-9 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
-                        />
-                      )}
-                      {rule.hasMaxDepth && cfg.enabled && (
-                        <label className="ml-9 flex items-center gap-2">
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Max depth:</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={20}
-                            value={(cfg.options?.maxDepth as number) ?? 3}
-                            onChange={e => updateLintRule(rule.id, { options: { ...cfg.options, maxDepth: Math.max(1, Math.min(20, Number(e.target.value) || 3)) } })}
-                            className="w-12 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]"
-                          />
-                        </label>
-                      )}
-                    </div>
-                  );
-                })}
-                <button
-                  onClick={resetLintDefaults}
-                  className="self-start text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors mt-1"
-                >
-                  Reset to defaults
-                </button>
-              </>
-            ) : null}
           </Section>
 
           {/* ---- Export Defaults ---- */}

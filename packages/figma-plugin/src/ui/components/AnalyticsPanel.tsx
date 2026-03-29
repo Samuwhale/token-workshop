@@ -4,6 +4,8 @@ import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 import { apiFetch } from '../shared/apiFetch';
+import { useLintConfig } from '../hooks/useLintConfig';
+import { LintConfigPanel } from './LintConfigPanel';
 
 interface ValidationIssue {
   rule: string;
@@ -62,6 +64,8 @@ const TYPE_COLORS: Record<string, string> = {
 const TYPE_COLOR_FALLBACK = '#8888aa';
 
 export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
+  const { config: lintConfig, saving: lintSaving, updateRule: lintUpdateRule, resetToDefaults: lintResetDefaults, refetch: lintRefetch } = useLintConfig(serverUrl, connected);
+  const [showLintConfig, setShowLintConfig] = useState(false);
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
@@ -477,6 +481,37 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           {validateError}
         </div>
       )}
+
+      {/* Lint rule configuration — collapsible */}
+      <div>
+        <button
+          onClick={() => setShowLintConfig(v => !v)}
+          className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+        >
+          <svg
+            width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+            className={`transition-transform ${showLintConfig ? 'rotate-90' : ''}`}
+            aria-hidden="true"
+          >
+            <path d="M2 1l4 3-4 3V1z" />
+          </svg>
+          Configure Rules
+        </button>
+        {showLintConfig && lintConfig && (
+          <div className="mt-2">
+            <LintConfigPanel
+              config={lintConfig}
+              saving={lintSaving}
+              onUpdateRule={lintUpdateRule}
+              onReset={lintResetDefaults}
+              onLintRefresh={runValidate}
+            />
+          </div>
+        )}
+        {showLintConfig && !lintConfig && connected && (
+          <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)] animate-pulse">Loading lint config…</p>
+        )}
+      </div>
 
       {/* Validation results */}
       {validateResults !== null && (
