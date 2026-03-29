@@ -258,3 +258,10 @@ Already up to date.
   → Generator templates that require a source token give no upfront signal — templates like "colorRamp" need the user to have a base color token, but this constraint is only surfaced after the user tries to proceed; show a "Requires a color token" badge on template cards at selection time so users know what they need before clicking (GraphPanel.tsx requiresSource property)
   Worktree: /tmp/backlog-46928-ioVwl2
   Running agent… (started 14:15:43)
+
+  ✓ done: Generator templates that require a source token give no upfront signal
+    Added info badge to TemplateCard showing "Requires a color/spacing/font size token" below the pipeline stages when requiresSource is true
+    13 turns · 97s · $0.29
+
+  Merging to main: Generator templates that require a source token give no upfront signal
+Already up to date.

@@ -291,3 +291,11 @@
   - Pre-existing build failures from prior sessions can block validation; check `git stash` test before assuming your change caused a failure.
   - Large JSX insertions via diff should be verified structurally — the acab42fa commit inserted content inside a `.map()` return that was supposed to replace the return value, leaving orphaned `</Section>` tags and duplicate sub-panel code.
 ---
+
+## 2026-03-29 - Generator templates that require a source token give no upfront signal
+- Added a `getRequiresSourceLabel(generatorType)` helper and a "requires" badge at the bottom of each `TemplateCard` when `template.requiresSource` is true. The badge shows an info SVG icon and a label like "Requires a color token", "Requires a spacing token", or "Requires a font size token" based on the generator type.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L292
+- **Learnings for future iterations:**
+  - `requiresSource` was already a boolean on the `GraphTemplate` interface — just needed to be surfaced in the card UI.
+  - Placing the badge below `<PipelineStages>` keeps the card hierarchy clean: label → description → when-to-use → pipeline → constraint badge.
+---

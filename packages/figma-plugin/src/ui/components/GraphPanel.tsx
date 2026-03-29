@@ -293,6 +293,15 @@ function TemplateIcon({ id }: { id: string }) {
 // Template card
 // ---------------------------------------------------------------------------
 
+function getRequiresSourceLabel(generatorType: GeneratorType): string {
+  switch (generatorType) {
+    case 'colorRamp': return 'Requires a color token';
+    case 'spacingScale': return 'Requires a spacing token';
+    case 'typeScale': return 'Requires a font size token';
+    default: return 'Requires a source token';
+  }
+}
+
 function TemplateCard({
   template,
   onSelect,
@@ -331,6 +340,16 @@ function TemplateCard({
             {template.whenToUse}
           </p>
           <PipelineStages stages={template.stages} />
+          {template.requiresSource && (
+            <div className="mt-2 flex items-center gap-1">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-70" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span className="text-[9.5px] text-[var(--color-figma-text-secondary)] opacity-80">
+                {getRequiresSourceLabel(template.generatorType)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </button>
