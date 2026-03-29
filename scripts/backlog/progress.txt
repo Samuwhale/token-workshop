@@ -169,3 +169,11 @@
 - **Learnings for future iterations:**
   - The original `console.warn + proceed` pattern was intentional as a "best-effort" check, but the item correctly identifies it as a data-loss risk — always fail-closed on pre-save safety checks.
 ---
+
+## 2026-03-29 - ScanCanvasHeatmapMessage type definition missing optional `scope` property
+- Added `export type HeatmapScope = 'page' | 'selection' | 'all-pages'` to `shared/types.ts` and added `scope?: HeatmapScope` to `ScanCanvasHeatmapMessage`. Removed the duplicate `HeatmapScope` definition from `heatmapScanning.ts` (importing from shared instead) and replaced the local definition in `HeatmapPanel.tsx` with a re-export from shared types.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L305, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L1,L90, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L2,L14
+- **Learnings for future iterations:**
+  - When a shared message type is missing a field that both sender and handler use, move the field's type to `shared/types.ts` and remove duplicate local definitions across plugin and UI code.
+  - `export type { X }` re-export in the UI component preserves the existing import chains for downstream consumers (e.g. `useHeatmap.ts`, `BindingAuditPanel.tsx`) without requiring them to update their imports.
+---

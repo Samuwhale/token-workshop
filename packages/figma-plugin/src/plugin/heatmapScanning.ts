@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type HeatmapScope } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
@@ -87,8 +87,6 @@ export function selectNextSibling() {
 }
 
 // Scan visual nodes for token/variable binding coverage
-export type HeatmapScope = 'page' | 'selection' | 'all-pages';
-
 export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
   try {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];

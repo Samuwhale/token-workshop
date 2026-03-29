@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
-import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry } from '../../shared/types';
+import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type HeatmapScope } from '../../shared/types';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+
+export type { HeatmapScope };
 
 interface HeatmapNode {
   id: string;
@@ -10,8 +12,6 @@ interface HeatmapNode {
   boundCount: number;
   totalCheckable: number;
 }
-
-export type HeatmapScope = 'page' | 'selection' | 'all-pages';
 
 export interface HeatmapResult {
   total: number;

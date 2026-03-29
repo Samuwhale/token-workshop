@@ -85,3 +85,10 @@ Already up to date.
   → ScanCanvasHeatmapMessage type definition missing optional `scope` property — handler reads `msg.scope ?? 'page'` but the interface has no scope field, so the property access is untyped (packages/figma-plugin/src/shared/types.ts, src/plugin/controller.ts:272)
   Worktree: /tmp/backlog-47616-L3r0tQ
   Running agent… (started 13:46:28)
+
+  ✓ done: ScanCanvasHeatmapMessage type definition missing optional `scope` property
+    Added `HeatmapScope` type to shared/types.ts, added `scope?: HeatmapScope` to `ScanCanvasHeatmapMessage`, and deduplicated the type definition from heatmapScanning.ts and HeatmapPanel.tsx
+    32 turns · 166s · $0.51
+
+  Merging to main: ScanCanvasHeatmapMessage type definition missing optional `scope` property
+Already up to date.

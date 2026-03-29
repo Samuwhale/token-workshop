@@ -234,3 +234,18 @@ Already up to date.
 
   Merging to main: useGeneratorSave overwrite-check failure silently proceeds to commit
 Already up to date.
+[main 4e0ff9f3] chore(backlog): done – useGeneratorSave overwrite-check failure silently proceeds to commit
+ 6 files changed, 35 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - useGeneratorSave overwrite-check failure silently proceeds to commit
+- Changed the catch block in `handleConfirmSave` (L167-169) to surface an error to the user instead of silently calling `commitSave()`. When `POST /api/generators/:id/check-overwrites` throws (e.g. server unavailable), `setSaveError` is now called with a message including the underlying error detail, and the function returns early without committing.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L167-170
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  15 queued · 2 in-progress · last took 54s
+═══════════════════════════════════════════════════════════════
+  → Generator PATCH route casts body.inputTable to InputTable after shallow validation — only checks for `inputKey` string and `rows` array existence, doesn't validate row structure; malformed rows pass type assertion (packages/server/src/routes/generators.ts:405-408)
+  Worktree: /tmp/backlog-48983-cW8AVZ
+  Running agent… (started 13:48:26)
