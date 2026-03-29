@@ -991,20 +991,42 @@ export function TokenList({
     }
 
     // ↑/↓: navigate between visible token and group rows
+    // Shift+↑/↓ in select mode: extend/shrink range selection
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
       if (rows.length === 0) return;
       const currentIndex = rows.findIndex(el => el === document.activeElement);
+      let targetRow: HTMLElement | undefined;
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const prev = currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
-        prev?.focus();
-        prev?.scrollIntoView({ block: 'nearest' });
+        targetRow = currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
       } else {
         e.preventDefault();
-        const next = currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
-        next?.focus();
-        next?.scrollIntoView({ block: 'nearest' });
+        targetRow = currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
+      }
+      targetRow?.focus();
+      targetRow?.scrollIntoView({ block: 'nearest' });
+
+      // Shift+Arrow: extend/shrink range selection (auto-enters select mode)
+      if (e.shiftKey && targetRow) {
+        const targetPath = targetRow.dataset.tokenPath || targetRow.dataset.groupPath;
+        if (targetPath) {
+          if (!selectMode) setSelectMode(true);
+          // Set anchor on first shift-arrow if none exists
+          if (lastSelectedPathRef.current === null) {
+            const currentRow = currentIndex >= 0 ? rows[currentIndex] : undefined;
+            const currentPath = currentRow?.dataset.tokenPath || currentRow?.dataset.groupPath;
+            if (currentPath) {
+              lastSelectedPathRef.current = currentPath;
+              setSelectedPaths(prev => {
+                const next = new Set(prev);
+                next.add(currentPath);
+                return next;
+              });
+            }
+          }
+          handleTokenSelect(targetPath, { shift: true, ctrl: false });
+        }
       }
     }
 
@@ -1075,7 +1097,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack]);
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleTokenSelect]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {

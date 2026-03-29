@@ -345,3 +345,15 @@
   - The `useCallback` wrapper for `setShowCreateForm` captures `showCreateForm` and `newTokenGroup` — be careful with stale closures; the wrapper only runs restore logic when transitioning from closed→open
   - Using a ref (`pendingAutoSuggestRef`) to bridge async create→refresh→effect is cleaner than adding a state variable that would cause an extra render cycle
 ---
+
+## 2026-03-29 - Keyboard-driven multi-select doesn't support Shift+Arrow range selection
+- Added Shift+Up/Down arrow support in `handleListKeyDown` to extend/shrink selection range
+- Shift+Arrow auto-enters select mode (like Ctrl+Click already does) for a seamless experience
+- On first Shift+Arrow, sets the current row as anchor and selects it, then range-selects to the target row
+- Reuses existing `handleTokenSelect` with `{ shift: true }` for consistent range-selection behavior
+- Added `handleTokenSelect` to `handleListKeyDown` dependency array
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L992-1030 (arrow key handler), ~L1099 (useCallback deps)
+- **Learnings for future iterations:**
+  - The existing `handleTokenSelect` already handles shift-range logic using `lastSelectedPathRef` as anchor and `orderedPaths` for the visible leaf order — reusing it avoids duplicating range computation
+  - Groups rows (data-group-path) are navigable but won't be added to selection since they're filtered out of `orderedPaths` — this is correct behavior since only tokens are selectable
+---
