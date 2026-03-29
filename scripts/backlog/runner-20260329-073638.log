@@ -170,3 +170,10 @@ Already up to date.
   → Heatmap and consistency scanner results are silently capped with no indication — heatmapScanning.ts caps results at 100 untokenized components (L43), 300 heatmap nodes (L187), and 200 usage layers (L261) via `.slice()` with no UI indication that results were truncated; users with large pages think compliance is higher than it actually is; show "300 of N shown" badges and allow expanding or paginating
   Worktree: /tmp/backlog-66903-yiDxRG
   Running agent… (started 08:03:05)
+
+  ✓ done: Heatmap and consistency scanner results are silently capped with no indication
+    Added totalUntokenized to plugin message; added truncation badges ("N of M shown") to AnalyticsPanel (untokenized components), HeatmapPanel (heatmap nodes), and TokenReferences (usage layers)
+    25 turns · 189s · $1.27
+
+  Merging to main: Heatmap and consistency scanner results are silently capped with no indication
+Already up to date.

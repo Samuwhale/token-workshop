@@ -409,6 +409,11 @@ export function HeatmapPanel({ result, loading, error, scope, onScopeChange, onR
 
       {!loading && result && result.total > 0 && (
         <div className="flex-1 overflow-y-auto">
+          {result.nodes.length < result.total && (
+            <div className="px-3 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+              {result.nodes.length} of {result.total} layers shown
+            </div>
+          )}
           {filter === 'all' ? (
             /* Grouped view */
             groups.map(({ status, nodes }) => {

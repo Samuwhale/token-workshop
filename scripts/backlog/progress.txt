@@ -413,3 +413,14 @@
 - **Learnings for future iterations:**
   - The `handleDropOnGroup` function was previously refactored to remove the `break` and add detailed error reporting; this backlog item is outdated
 ---
+
+## 2026-03-29 - Heatmap and consistency scanner results are silently capped with no indication
+- Added `totalUntokenized` field to `component-coverage-result` plugin message so UI knows true count before slicing
+- AnalyticsPanel: shows "100 of N shown" badge when untokenized components list is truncated; stats grid now shows true total instead of capped array length
+- HeatmapPanel: shows "300 of N shown" banner when node list is truncated (leverages existing `result.total` which already had the true count)
+- TokenReferences: split the "Layers (N, showing M)" into separate header + truncation badge for consistency with other panels
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L39-45, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L96-100,~L1138,~L1152-1170, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L411-416, `packages/figma-plugin/src/ui/components/TokenReferences.tsx` ~L397-403
+- **Learnings for future iterations:**
+  - The heatmap plugin message already sent `total` (true node count) separate from the sliced `nodes` array — only coverage was missing the pre-slice total
+  - TokenReferences already had partial truncation indication but it was buried in the section header parenthetical
+---

@@ -101,6 +101,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     totalComponents: number;
     tokenizedComponents: number;
     untokenized: { id: string; name: string; hardcodedCount: number }[];
+    totalUntokenized: number;
   } | null>(null);
   const [coverageLoading, setCoverageLoading] = useState(false);
   const [coverageError, setCoverageError] = useState<string | null>(null);
@@ -1170,7 +1171,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
               </div>
               <div className="px-2 py-3 text-center">
-                <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.untokenized.length}</div>
+                <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.totalUntokenized}</div>
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
               </div>
               <div className="px-2 py-3 text-center">
@@ -1182,17 +1183,22 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Coverage</div>
               </div>
             </div>
-            {coverageResult.untokenized.length > 0 && (
+            {coverageResult.totalUntokenized > 0 && (
               <>
                 <button
                   onClick={() => setShowCoverage(v => !v)}
                   className="w-full px-3 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  <span>Untokenized components ({coverageResult.untokenized.length})</span>
+                  <span>Untokenized components ({coverageResult.totalUntokenized})</span>
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showCoverage ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                 </button>
                 {showCoverage && (
                   <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                    {coverageResult.totalUntokenized > coverageResult.untokenized.length && (
+                      <div className="px-3 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]">
+                        {coverageResult.untokenized.length} of {coverageResult.totalUntokenized} shown
+                      </div>
+                    )}
                     {coverageResult.untokenized.map(comp => (
                       <button
                         key={comp.id}

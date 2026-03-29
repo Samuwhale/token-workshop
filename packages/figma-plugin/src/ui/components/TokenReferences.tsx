@@ -395,8 +395,13 @@ export function TokenReferences({
           ) : layersScanned && layers.length > 0 ? (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Layers ({layersTotal}{layersTotal > layers.length ? `, showing ${layers.length}` : ''})
+                Layers ({layersTotal})
               </div>
+              {layersTotal > layers.length && (
+                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+                  {layers.length} of {layersTotal} shown
+                </div>
+              )}
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
                 {layers.map(layer => (
                   <button

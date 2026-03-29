@@ -40,7 +40,8 @@ export async function scanComponentCoverage(correlationId?: string) {
       type: 'component-coverage-result',
       totalComponents: components.length,
       tokenizedComponents: tokenized,
-      untokenized: untokenized.slice(0, 100), // cap list size
+      untokenized: untokenized.slice(0, 100),
+      totalUntokenized: untokenized.length,
       correlationId,
     });
   } catch (error) {
