@@ -398,3 +398,10 @@
   - When `navigateTo(topTab, subTab)` is called with a subTab that doesn't exist in the topTab's subTabs array, it silently falls back to the default sub-tab (e.g. 'tokens' for 'define'). No error is thrown, making this easy to ship unnoticed.
   - Always verify the (topTab, subTab) pair against the TOP_TABS constant when writing navigation calls.
 ---
+
+## 2026-03-29 - Multi-select toolbar has no "Select all visible" button
+- Already implemented: "Select all" / "Deselect all" button exists at TokenList.tsx ~L1831, `displayedLeafPaths` (computed from filtered/searched leaf nodes) at ~L1463, and `handleSelectAll` toggle at ~L1475.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Verify before implementing — this item was already done in a prior session.
+---
