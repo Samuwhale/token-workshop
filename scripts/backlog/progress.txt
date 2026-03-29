@@ -293,3 +293,11 @@
   - `resolveTokenValue(entry.$value, entry.$type, allTokensFlat)` is the right one-liner to walk the full chain — it handles cycles and missing targets gracefully, returning `result.value = null` on error.
   - Carrying `[path, rawEntry, resolvedEntry]` in the memo tuple avoids a second pass over entries at render time and keeps the raw entry available for lifecycle badges/type badge (which should reflect declared type, not resolved type).
 ---
+
+## 2026-03-29 - Dependent tokens in TokenEditor are displayed as an unclickable count
+- Changed the static "N dependent tokens reference this token and may break" warning in the `pendingTypeChange` confirmation dialog into a collapsible, clickable list. Added `showPendingDependents` state. The count line is now a toggle button with a chevron arrow. When expanded, shows up to 20 dependent token paths in a scrollable area with an "and N more…" overflow line. When `onShowReferences` is available, each path is a button that closes the type-change dialog and opens the dependency graph for that token; otherwise paths render as static text. Set badges are shown for cross-set dependents. `showPendingDependents` is reset in `applyTypeChange()` and in the "Keep" button handler.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L470, ~L702, ~L1038–1097
+- **Learnings for future iterations:**
+  - The `onShowReferences(path)` prop navigates to "Apply → Dependencies" with that token pre-selected — use it as the navigation action for clickable token paths inside the editor.
+  - `showPendingDependents` must be reset in all places that dismiss `pendingTypeChange` (both `applyTypeChange()` and the "Keep" button handler) to avoid stale open state if the dialog is re-triggered.
+---

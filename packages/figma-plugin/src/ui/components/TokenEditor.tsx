@@ -467,6 +467,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [duplicateTemplate, setDuplicateTemplate] = useState<import('../hooks/useGenerators').GeneratorTemplate | undefined>(undefined);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
+  const [showPendingDependents, setShowPendingDependents] = useState(false);
   const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
   const [dependentsLoading, setDependentsLoading] = useState(false);
   const [modeValues, setModeValues] = useState<Record<string, any>>({});
@@ -699,6 +700,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setAliasMode(false);
     setShowAutocomplete(false);
     setPendingTypeChange(null);
+    setShowPendingDependents(false);
     setExtendsPath('');
   };
 
@@ -1034,14 +1036,65 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             <p className="text-[var(--color-figma-text)] mb-2">
               Switch to <strong>{pendingTypeChange}</strong>? This will reset the current value.
               {dependents.length > 0 && (
-                <span className="block mt-1 text-amber-400">
-                  {dependents.length} dependent token{dependents.length !== 1 ? 's' : ''} reference this token and may break.
+                <span className="block mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPendingDependents(v => !v)}
+                    className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${showPendingDependents ? 'rotate-90' : ''}`} aria-hidden="true">
+                      <path d="M2 1l4 3-4 3V1z"/>
+                    </svg>
+                    {dependents.length} dependent token{dependents.length !== 1 ? 's' : ''} reference this token and may break.
+                  </button>
+                  {showPendingDependents && (
+                    <span className="mt-1 flex flex-col gap-0.5 max-h-28 overflow-y-auto">
+                      {dependents.slice(0, 20).map(dep => (
+                        onShowReferences ? (
+                          <button
+                            key={dep.path}
+                            type="button"
+                            onClick={() => { setPendingTypeChange(null); onShowReferences(dep.path); }}
+                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[9px] text-[var(--color-figma-text)] hover:bg-amber-500/20 hover:text-amber-300 transition-colors text-left w-full"
+                            title={`Open ${dep.path} in dependency graph`}
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
+                              <circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>
+                            </svg>
+                            <span className="truncate">{dep.path}</span>
+                            {dep.setName !== setName && (
+                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
+                                {dep.setName}
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          <span
+                            key={dep.path}
+                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-[9px] text-[var(--color-figma-text)]"
+                          >
+                            <span className="truncate">{dep.path}</span>
+                            {dep.setName !== setName && (
+                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
+                                {dep.setName}
+                              </span>
+                            )}
+                          </span>
+                        )
+                      ))}
+                      {dependents.length > 20 && (
+                        <span className="px-1 py-0.5 text-[9px] text-amber-400/70 italic">
+                          and {dependents.length - 20} more…
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </span>
               )}
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setPendingTypeChange(null)}
+                onClick={() => { setPendingTypeChange(null); setShowPendingDependents(false); }}
                 className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Keep {tokenType}
