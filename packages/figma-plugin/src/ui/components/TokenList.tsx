@@ -438,7 +438,17 @@ export function TokenList({
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'json'>('tree');
+  const [viewMode, setViewModeState] = useState<'tree' | 'table' | 'json'>('tree');
+
+  useEffect(() => {
+    const stored = lsGet(STORAGE_KEY.tokenViewMode(setName));
+    setViewModeState((stored === 'table' || stored === 'json') ? stored : 'tree');
+  }, [setName]);
+
+  const setViewMode = useCallback((mode: 'tree' | 'table' | 'json') => {
+    setViewModeState(mode);
+    lsSet(STORAGE_KEY.tokenViewMode(setName), mode);
+  }, [setName]);
   const [density, setDensityState] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
     return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';

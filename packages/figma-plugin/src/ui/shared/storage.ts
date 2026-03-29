@@ -46,6 +46,7 @@ export const STORAGE_KEY = {
   tokenSort:       (setName: string) => `token-sort:${setName}`,
   tokenTypeFilter: (setName: string) => `token-type-filter:${setName}`,
   pinnedTokens:    (setName: string) => `tm_pinned:${setName}`,
+  tokenViewMode:   (setName: string) => `tm_view-mode:${setName}`,
 };
 
 /** Key prefix strings used for bulk-delete operations */

@@ -270,3 +270,10 @@
   - Three places must all be updated together for recent-color alpha to work end-to-end: the save function (pushRecentColor), the close handler (closeAndSave), and the swatch click handler. Missing any one of them leaves partial alpha support.
   - CSS `backgroundColor` accepts `#RRGGBBAA` natively — no conversion needed for swatch display.
 ---
+
+## 2026-03-29 - TokenList view mode (tree / table / JSON editor) is not persisted per set
+- Added `tokenViewMode` key builder to `STORAGE_KEY` in `storage.ts`. Renamed the raw useState setter to `setViewModeState` and added a `useEffect` that loads the stored value on `setName` change, plus a `setViewMode` `useCallback` wrapper that persists on every change. Existing call site at ~L1967 (view mode toggle buttons) automatically picks up the new wrapper.
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L48, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L441
+- **Learnings for future iterations:**
+  - The `useEffect([setName])` + `lsGet` + `useCallback` wrapper is the established per-set persistence pattern; follow it exactly (same as `tokenSort` and `tokenTypeFilter`).
+---
