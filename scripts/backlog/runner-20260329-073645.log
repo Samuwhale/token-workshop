@@ -64,3 +64,10 @@ Already up to date.
   → HistoryPanel and PublishPanel duplicate Section component, formatRelativeTime, ColorSwatch, statusColor/statusLabel/summarizeChanges helpers, and ChangeSummaryBadges — HistoryPanel.tsx L21-103 and PublishPanel.tsx L43-77 contain near-identical implementations of Section (collapsible wrapper) and formatRelativeTime (date formatting), plus HistoryPanel has statusColor, statusLabel, summarizeChanges, formatTokenValue, ColorSwatch, ChangeSummaryBadges that are also used/duplicated in PublishPanel's SyncDiffSummary and GitPreviewModal; extract these into a shared UI utility module (e.g., `shared/changeHelpers.tsx`) to eliminate ~150 lines of duplication
   Worktree: /tmp/backlog-67697-liF4rp
   Running agent… (started 07:45:21)
+
+  ✓ done: HistoryPanel and PublishPanel duplicate shared helpers
+    Extracted Section, formatRelativeTime, statusColor, statusLabel, summarizeChanges, formatTokenValue, ColorSwatch, ChangeSummaryBadges, ChangeStatus, and TokenChange into shared/changeHelpers.tsx; updated both panels to import from it, eliminating ~135 lines of duplication
+    19 turns · 125s · $0.66
+
+  Merging to main: HistoryPanel and PublishPanel duplicate shared helpers
+Already up to date.

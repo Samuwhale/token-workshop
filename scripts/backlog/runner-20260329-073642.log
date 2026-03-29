@@ -56,3 +56,18 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 55)
+[main 14ff727] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 36 insertions(+), 302 deletions(-)
+  Milestone: 815 done — pass skipped (runner PID 68874 already running one)
+
+## 2026-03-29 - useTokenDataLoading stale-closure bug in variables-applied listener
+- Fixed stale-closure bug: added `allTokensFlatRef` (useRef) that tracks `allTokensFlat` on every render. The `variables-applied` message handler now reads from the ref instead of closing over the state value. The effect dependency array is now `[]` so the listener is registered once and never torn down/re-added, eliminating the race window where duplicate listeners could fire.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L22-55
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  2 queued · 5 in-progress · last took 1m3s
+═══════════════════════════════════════════════════════════════
+  → 95 bare `catch {}` blocks across 33 UI files silently swallow errors — TokenList.tsx alone has 14 empty catch blocks (localStorage reads, API calls, JSON parsing); hooks like useGitConflicts.ts L47, useGitStatus.ts L58, useLintConfig.ts (3 instances), and useSetTabs.ts (2 instances) catch and discard errors with no logging or user feedback; audit all 95 `catch {}` occurrences and add at minimum console.warn for debugging, and toast/inline error state for user-facing operations like API calls and sync actions
+  Worktree: /tmp/backlog-67435-e9FiFl
+  Running agent… (started 07:46:49)
