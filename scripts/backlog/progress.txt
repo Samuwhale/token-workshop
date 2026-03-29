@@ -380,3 +380,11 @@
 - Found 8 items — written to backlog-inbox.md
 - Notable: Lint rule configuration (`useLintConfig`) is only reachable via AnalyticsPanel behind a toggle — SettingsPanel.tsx has zero references to lint; users looking for validation settings in Settings will never find them
 ---
+
+## 2026-03-29 - ExportPanel error handler captures stale `figmaLoading` in a closure
+- Added `figmaLoadingRef = useRef(false)` and assigned `figmaLoadingRef.current = figmaLoading` on every render. Changed the error branch in the plugin message handler from `figmaLoading` (captured closure value) to `figmaLoadingRef.current` (always current). Removed `figmaLoading` from the effect dependency array so the listener is registered once and never re-registered.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L143-202
+- **Learnings for future iterations:**
+  - The "assign ref on every render" pattern (`ref.current = stateValue` inline after the state declaration) is the canonical way to keep a ref in sync with state without additional effects or call-site changes.
+  - Removing the stale dep from the effect dep array is the other half of the fix — keeping it would just re-register the listener (and thus create a new closure) on every state change anyway.
+---

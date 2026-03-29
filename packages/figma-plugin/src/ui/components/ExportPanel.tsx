@@ -141,6 +141,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
+  const figmaLoadingRef = useRef(false);
+  figmaLoadingRef.current = figmaLoading;
   const figmaLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [figmaCollections, setFigmaCollections] = useState<ExportedCollection[]>([]);
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
@@ -187,7 +189,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           setExpandedCollection(msg.collections[0].name);
         }
       }
-      if (msg.type === 'error' && figmaLoading) {
+      if (msg.type === 'error' && figmaLoadingRef.current) {
         if (figmaLoadingTimeoutRef.current !== null) {
           clearTimeout(figmaLoadingTimeoutRef.current);
           figmaLoadingTimeoutRef.current = null;
@@ -198,7 +200,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [figmaLoading]);
+  }, []);
 
   // Fetch available sets when connected
   useEffect(() => {
