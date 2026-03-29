@@ -302,3 +302,11 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 34)
+[main 1d568df6] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 36 insertions(+), 61 deletions(-)
+  Milestone: 935 done — pass skipped (runner PID 47616 already running one)
+
+## 2026-03-29 - No shared loading spinner component
+- Created `packages/figma-plugin/src/ui/components/Spinner.tsx` — a single SVG-based spinner using `currentColor` with `size` prop (`xs`/`sm`/`md`/`lg`/`xl` → 8/10/14/16/20px) and optional `className` for color/opacity overrides.
+- Replaced all 30+ inline spinner instances across 16 components: ConfirmModal, TokenList, TokenListModals, TokenUsages, PublishPanel (9×), HistoryPanel (4×), ImportPanel, ThemeManager, TokenEditor, GraphPanel, TokenGeneratorDialog, ExportPanel (6×), ColorPicker, AnalyticsPanel, HeatmapPanel, RecentActionsSource.
+- The git refresh icon in PublishPanel (conditionally spins on refresh) was intentionally left as-is since it's a custom arrows icon, not a spinner.

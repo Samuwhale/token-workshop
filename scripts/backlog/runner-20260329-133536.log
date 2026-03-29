@@ -192,3 +192,10 @@ Already up to date.
   → Generators can't be duplicated — creating a second color ramp that's similar to an existing one requires configuring from scratch or starting from a generic template; add a "Duplicate" action on generator cards in GraphPanel so users can clone an existing generator's config as a starting point (GraphPanel.tsx)
   Worktree: /tmp/backlog-46928-nQAEId
   Running agent… (started 14:07:03)
+
+  ✓ done: Generators can't be duplicated — add a "Duplicate" action on generator cards in GraphPanel
+    Added Duplicate button to GeneratorPipelineCard that POSTs a clone with name '(copy)' suffix and targetGroup '_copy' suffix, then refreshes
+    20 turns · 131s · $0.53
+
+  Merging to main: Generators can't be duplicated — add a "Duplicate" action on generator cards in GraphPanel
+Already up to date.

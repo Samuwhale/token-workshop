@@ -756,6 +756,7 @@ function ApplyForm({
 function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; onRefresh: () => void }) {
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
@@ -770,6 +771,32 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
       console.error('Failed to re-run generator:', err);
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      const body = {
+        type: generator.type,
+        name: `${generator.name} (copy)`,
+        sourceToken: generator.sourceToken,
+        inlineValue: generator.inlineValue,
+        targetSet: generator.targetSet,
+        targetGroup: `${generator.targetGroup}_copy`,
+        config: generator.config,
+        overrides: generator.overrides,
+      };
+      await fetch(`${serverUrl}/api/generators`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to duplicate generator:', err);
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -849,6 +876,14 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
           className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors disabled:opacity-50"
         >
           {running ? 'Running…' : 'Re-run'}
+        </button>
+        <button
+          onClick={handleDuplicate}
+          disabled={duplicating}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
+          title="Duplicate this generator as a starting point"
+        >
+          {duplicating ? 'Duplicating…' : 'Duplicate'}
         </button>
         {!showDeleteConfirm ? (
           <button
