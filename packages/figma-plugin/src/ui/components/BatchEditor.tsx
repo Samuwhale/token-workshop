@@ -88,7 +88,6 @@ export function BatchEditor({
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
@@ -251,15 +250,9 @@ export function BatchEditor({
 
   const canRename = findText !== '' && renamePreview > 0 && !renaming && !regexError;
 
-  const encodedPath = (path: string) =>
-    path.split('.').map(encodeURIComponent).join('/');
-
-  const patchToken = async (path: string, body: Record<string, unknown>) => {
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+  /** Rollback a server operation by ID — used for single-entry undo of batch operations. */
+  const rollbackOperation = async (operationId: string) => {
+    await apiFetch(`${serverUrl}/api/operations/${operationId}/rollback`, { method: 'POST' });
   };
 
   const handleApply = async () => {
@@ -306,7 +299,6 @@ export function BatchEditor({
             patch.$value = scaled;
             patch.$type = entry.$type;
           }
-          // If scaled is null and the value contains an alias, we'll report it below.
         }
       }
 
@@ -316,7 +308,6 @@ export function BatchEditor({
     }
 
     if (ops.length === 0) {
-      // If scale is the only op and all tokens have alias values, explain why nothing happened.
       const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       if (scalingActive && scaleAliasCount === selectedEntries.length) {
         setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use reference values' });
@@ -326,68 +317,45 @@ export function BatchEditor({
 
     setApplying(true);
     setFeedback(null);
-    setProgress({ current: 0, total: ops.length });
 
     try {
-      let succeeded = 0;
-      let failed = 0;
-      const results: PromiseSettledResult<void>[] = [];
-      for (let i = 0; i < ops.length; i++) {
-        try {
-          await patchToken(ops[i].path, ops[i].patch);
-          results.push({ status: 'fulfilled', value: undefined });
-          succeeded++;
-        } catch (e) {
-          results.push({ status: 'rejected', reason: e });
-          failed++;
-        }
-        setProgress({ current: i + 1, total: ops.length });
-      }
+      // Single batch API call — records one operation log entry for undo
+      const result = await apiFetch<{ updated: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-update`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patches: ops.map(({ path, patch }) => ({ path, patch })) }),
+        },
+      );
 
-      if (succeeded > 0) {
-        if (onPushUndo) {
-          const successOps = ops.filter((_, i) => results[i].status === 'fulfilled');
-          onPushUndo({
-            description: `Batch edit ${successOps.length} token${successOps.length === 1 ? '' : 's'}`,
-            restore: async () => {
-              await Promise.all(successOps.map(({ path, oldEntry }) =>
-                patchToken(path, { $type: oldEntry.$type, $value: oldEntry.$value })
-              ));
-              onApply();
-            },
-            redo: async () => {
-              await Promise.all(successOps.map(({ path, patch }) => patchToken(path, patch)));
-              onApply();
-            },
-          });
-        }
-        onApply();
+      if (onPushUndo) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Batch edit ${ops.length} token${ops.length === 1 ? '' : 's'}`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
       }
+      onApply();
 
-      // When scaling, alias-valued tokens produce no patch entry and are not in ops at all.
       const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       const skippedAliases = scalingActive ? scaleAliasCount : 0;
-
-      if (failed === 0) {
-        const skipNote = skippedAliases > 0
-          ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
-          : '';
-        setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}${skipNote}` });
-        setDescription('');
-        setOpacityPct('');
-        setScaleFactor('');
-        setNewType('');
-        setTimeout(() => descriptionRef.current?.focus(), 0);
-      } else if (succeeded === 0) {
-        setFeedback({ ok: false, msg: `Failed to update all ${failed} token${failed === 1 ? '' : 's'}` });
-      } else {
-        setFeedback({ ok: false, msg: `${succeeded} updated, ${failed} failed` });
-      }
+      const skipNote = skippedAliases > 0
+        ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+        : '';
+      setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}${skipNote}` });
+      setDescription('');
+      setOpacityPct('');
+      setScaleFactor('');
+      setNewType('');
+      setTimeout(() => descriptionRef.current?.focus(), 0);
     } catch {
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
       setApplying(false);
-      setProgress(null);
     }
   };
 
@@ -395,94 +363,82 @@ export function BatchEditor({
     if (!connected || !canMove) return;
     setMoving(true);
     setFeedback(null);
-    setProgress({ current: 0, total: selectedEntries.length });
     try {
-      let succeeded = 0;
-      let failed = 0;
-      for (let i = 0; i < selectedEntries.length; i++) {
-        try {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokenPath: selectedEntries[i].path, targetSet }),
-          });
-          succeeded++;
-        } catch {
-          failed++;
-        }
-        setProgress({ current: i + 1, total: selectedEntries.length });
-      }
+      const paths = selectedEntries.map(e => e.path);
+      const result = await apiFetch<{ moved: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths, targetSet }),
+        },
+      );
 
-      if (succeeded > 0) onApply();
-
-      if (failed === 0) {
-        setFeedback({ ok: true, msg: `Moved ${succeeded} token${succeeded === 1 ? '' : 's'} to "${targetSet}"` });
-        setTargetSet('');
-      } else if (succeeded === 0) {
-        setFeedback({ ok: false, msg: `Failed to move all ${failed} token${failed === 1 ? '' : 's'}` });
-      } else {
-        setFeedback({ ok: false, msg: `${succeeded} moved, ${failed} failed` });
+      if (onPushUndo) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Move ${result.moved} token${result.moved === 1 ? '' : 's'} to "${targetSet}"`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
       }
+      onApply();
+      setFeedback({ ok: true, msg: `Moved ${result.moved} token${result.moved === 1 ? '' : 's'} to "${targetSet}"` });
+      setTargetSet('');
     } catch {
       setFeedback({ ok: false, msg: 'Move failed — check server connection' });
     } finally {
       setMoving(false);
-      setProgress(null);
     }
   };
 
   const handleRename = async () => {
     if (!connected || !canRename) return;
-    const toRename = useRegex && parsedRegex
-      ? selectedEntries.filter(({ path }) => path.search(parsedRegex) >= 0)
-      : selectedEntries.filter(({ path }) => path.includes(findText));
+    // Build rename pairs from selected entries
+    const renames: Array<{ oldPath: string; newPath: string }> = [];
+    for (const { path } of selectedEntries) {
+      const newPath = useRegex && parsedRegex
+        ? path.replace(parsedRegex, replaceText)
+        : path.split(findText).join(replaceText);
+      if (newPath !== path) {
+        renames.push({ oldPath: path, newPath });
+      }
+    }
+    if (renames.length === 0) return;
+
     setRenaming(true);
     setFeedback(null);
-    setProgress({ current: 0, total: toRename.length });
     try {
-      // Rename sequentially to avoid conflicts when paths share prefixes
-      let succeeded = 0;
-      let failed = 0;
-      let done = 0;
-      for (const { path } of toRename) {
-        const newPath = useRegex && parsedRegex
-          ? path.replace(parsedRegex, replaceText)
-          : path.split(findText).join(replaceText);
-        if (newPath !== path) {
-          try {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ oldPath: path, newPath }),
-            });
-            succeeded++;
-          } catch {
-            failed++;
-          }
-        } else {
-          succeeded++; // no-op rename counts as success
-        }
-        done++;
-        setProgress({ current: done, total: toRename.length });
-      }
+      const result = await apiFetch<{ renamed: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ renames }),
+        },
+      );
 
-      if (succeeded > 0) onApply();
-
-      if (failed === 0) {
-        setFeedback({ ok: true, msg: `Renamed ${succeeded} token${succeeded === 1 ? '' : 's'}` });
-        setFindText('');
-        setReplaceText('');
-        setTimeout(() => findTextRef.current?.focus(), 0);
-      } else if (succeeded === 0) {
-        setFeedback({ ok: false, msg: `Failed to rename all ${failed} token${failed === 1 ? '' : 's'}` });
-      } else {
-        setFeedback({ ok: false, msg: `${succeeded} renamed, ${failed} failed` });
+      if (onPushUndo) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Rename ${result.renamed} token${result.renamed === 1 ? '' : 's'}`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
       }
+      onApply();
+      setFeedback({ ok: true, msg: `Renamed ${result.renamed} token${result.renamed === 1 ? '' : 's'}` });
+      setFindText('');
+      setReplaceText('');
+      setTimeout(() => findTextRef.current?.focus(), 0);
     } catch {
       setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
     } finally {
       setRenaming(false);
-      setProgress(null);
     }
   };
 
@@ -696,18 +652,10 @@ export function BatchEditor({
 
       {/* Footer: feedback + Apply button */}
       <div className="flex items-center justify-between pt-0.5">
-        {progress ? (
-          <div className="flex items-center gap-2 flex-1 mr-2">
-            <div className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-secondary)] overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[var(--color-figma-accent)] transition-[width] duration-150"
-                style={{ width: `${Math.round((progress.current / progress.total) * 100)}%` }}
-              />
-            </div>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">
-              {progress.current}/{progress.total}
-            </span>
-          </div>
+        {(applying || moving || renaming) ? (
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {applying ? 'Applying…' : moving ? 'Moving…' : 'Renaming…'}
+          </span>
         ) : feedback ? (
           <span className={`text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
             {feedback.msg}

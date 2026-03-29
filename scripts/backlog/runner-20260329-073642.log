@@ -20,3 +20,10 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
   → No batch undo — batch operations (bulk delete, bulk rename, scale values) via BatchEditor execute as individual API calls with no compound undo entry; undoing a batch of 50 token edits requires pressing Ctrl+Z 50 times; record batch operations as a single compound entry in the operation log
   Worktree: /tmp/backlog-67435-XRLVLp
   Running agent… (started 07:36:43)
+
+  ✓ done: No batch undo — batch operations record as individual API calls
+    Added 3 server batch endpoints (batch-update, batch-rename-paths, batch-move) each recording a single operation log entry; refactored BatchEditor to use them with server-side rollback for one-press Ctrl+Z undo of entire batches
+    38 turns · 519s · $2.72
+
+  Merging to main: No batch undo — batch operations record as individual API calls
+Already up to date.

@@ -215,6 +215,134 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // POST /api/tokens/:set/batch-update — apply partial patches to multiple tokens (single operation log entry)
+  fastify.post<{
+    Params: { set: string };
+    Body: { patches: Array<{ path: string; patch: Record<string, unknown> }> };
+  }>('/tokens/:set/batch-update', async (request, reply) => {
+    const { set } = request.params;
+    const { patches } = request.body ?? {};
+    if (!Array.isArray(patches) || patches.length === 0) {
+      return reply.status(400).send({ error: 'patches must be a non-empty array' });
+    }
+    for (const p of patches) {
+      if (!p.path || !p.patch || typeof p.patch !== 'object') {
+        return reply.status(400).send({ error: 'Each entry must have a path and patch object' });
+      }
+      if (!validateTokenBody(p.patch)) {
+        return reply.status(400).send({ error: `Invalid patch for "${p.path}": $type must be a valid DTCG token type` });
+      }
+    }
+    return withLock(async () => {
+      try {
+        const paths = patches.map(p => p.path);
+        const before = await snapshotPaths(fastify.tokenStore, set, paths);
+        for (const { path: tokenPath, patch } of patches) {
+          await fastify.tokenStore.updateToken(set, tokenPath, patch);
+        }
+        const after = await snapshotPaths(fastify.tokenStore, set, paths);
+        const entry = await fastify.operationLog.record({
+          type: 'batch-update',
+          description: `Batch update ${patches.length} token${patches.length === 1 ? '' : 's'} in ${set}`,
+          setName: set,
+          affectedPaths: paths,
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return { updated: patches.length, operationId: entry.id };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to batch update tokens');
+      }
+    });
+  });
+
+  // POST /api/tokens/:set/batch-rename-paths — rename specific token paths (single operation log entry)
+  fastify.post<{
+    Params: { set: string };
+    Body: { renames: Array<{ oldPath: string; newPath: string }>; updateAliases?: boolean };
+  }>('/tokens/:set/batch-rename-paths', async (request, reply) => {
+    const { set } = request.params;
+    const { renames, updateAliases } = request.body ?? {};
+    if (!Array.isArray(renames) || renames.length === 0) {
+      return reply.status(400).send({ error: 'renames must be a non-empty array' });
+    }
+    for (const r of renames) {
+      if (!r.oldPath || !r.newPath) {
+        return reply.status(400).send({ error: 'Each rename must have oldPath and newPath' });
+      }
+    }
+    return withLock(async () => {
+      try {
+        const allOldPaths = renames.map(r => r.oldPath);
+        const allNewPaths = renames.map(r => r.newPath);
+        const before = await snapshotPaths(fastify.tokenStore, set, allOldPaths);
+        const pathMap = new Map<string, string>();
+        for (const { oldPath, newPath } of renames) {
+          await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
+          pathMap.set(oldPath, newPath);
+        }
+        const after = await snapshotPaths(fastify.tokenStore, set, allNewPaths);
+        const entry = await fastify.operationLog.record({
+          type: 'batch-rename',
+          description: `Batch rename ${renames.length} token${renames.length === 1 ? '' : 's'} in ${set}`,
+          setName: set,
+          affectedPaths: [...allOldPaths, ...allNewPaths],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        await fastify.generatorService.updateTokenPaths(pathMap);
+        return { renamed: renames.length, operationId: entry.id };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to batch rename tokens');
+      }
+    });
+  });
+
+  // POST /api/tokens/:set/batch-move — move multiple tokens to another set (single operation log entry)
+  fastify.post<{
+    Params: { set: string };
+    Body: { paths: string[]; targetSet: string };
+  }>('/tokens/:set/batch-move', async (request, reply) => {
+    const { set } = request.params;
+    const { paths, targetSet } = request.body ?? {};
+    if (!Array.isArray(paths) || paths.length === 0) {
+      return reply.status(400).send({ error: 'paths must be a non-empty array' });
+    }
+    if (!targetSet) {
+      return reply.status(400).send({ error: 'targetSet is required' });
+    }
+    return withLock(async () => {
+      try {
+        const beforeSource = await snapshotPaths(fastify.tokenStore, set, paths);
+        const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
+        const before = { ...beforeSource, ...Object.fromEntries(
+          Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+        )};
+        let moved = 0;
+        for (const tokenPath of paths) {
+          await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
+          moved++;
+        }
+        const afterSource = await snapshotPaths(fastify.tokenStore, set, paths);
+        const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
+        const after = { ...afterSource, ...Object.fromEntries(
+          Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+        )};
+        const entry = await fastify.operationLog.record({
+          type: 'batch-move',
+          description: `Move ${moved} token${moved === 1 ? '' : 's'} from ${set} to ${targetSet}`,
+          setName: set,
+          affectedPaths: paths,
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return { moved, operationId: entry.id };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to batch move tokens');
+      }
+    });
+  });
+
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
   fastify.post<{
     Params: { set: string };

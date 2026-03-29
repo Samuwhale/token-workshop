@@ -573,3 +573,15 @@
   - The graph area is already in a scrollable container, so expanding to show all nodes works naturally without additional scroll handling
   - Using a separate `visibleData` memo layer between `graphData` and `layout` keeps the BFS and display concerns cleanly separated
 ---
+
+## 2026-03-29 - No batch undo — batch operations record as individual API calls
+- Added three new server endpoints: `POST /api/tokens/:set/batch-update` (partial patches), `POST /api/tokens/:set/batch-rename-paths` (rename specific paths), `POST /api/tokens/:set/batch-move` (move multiple tokens) — each records a single operation log entry
+- Refactored BatchEditor `handleApply`, `handleRename`, and `handleMove` to use single batch API calls instead of looping individual calls
+- Client-side undo now calls `POST /api/operations/:id/rollback` using the `operationId` returned by batch endpoints, so one Ctrl+Z undoes the entire batch
+- Removed per-token progress bar (no longer needed — single API call per operation)
+- Files changed: `packages/server/src/routes/tokens.ts` ~L218-344 (3 new endpoints), `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L253-430 (handleApply, handleRename, handleMove rewritten)
+- **Learnings for future iterations:**
+  - The existing `batch` (upsert) and `bulk-rename` endpoints operate on entire sets, not selections — creating targeted `batch-update` and `batch-rename-paths` endpoints was necessary for BatchEditor's selected-token-only semantics
+  - Returning `operationId` from mutation endpoints enables client-side undo via server rollback, which is simpler and more reliable than replaying patches
+  - `moveToken` calls `saveSet` on both source and target sets, so batch-move snapshots need to track tokens in both sets
+---
