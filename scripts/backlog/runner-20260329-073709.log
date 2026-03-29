@@ -623,3 +623,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 67697) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  10 new item(s) available — continuing.
+  → Variable push to Figma is fire-and-forget with no success or failure feedback — useVariableSync sends a postMessage to push variables but never reports whether the operation succeeded or how many were updated, unlike Style sync which returns detailed result metrics; users have no way to know if their push worked (useVariableSync.ts ~L60-70, PublishPanel.tsx)
+  Worktree: /tmp/backlog-69179-m63cGg
+  Running agent… (started 08:44:01)

@@ -401,3 +401,15 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: PublishPanel combines three fundamentally different workflows (Figma variable sync, style sync, git operations) in one 2316-line scrollable panel; variable push is fire-and-forget with no success/failure feedback while style sync gets detailed metrics — inconsistency in the same panel
 ---
+
+## 2026-03-29 - PublishPanel "Publish all" flow silently skips merge conflicts
+- Added merge conflict pre-flight check to `runPublishAll` — aborts with clear error message before any steps execute
+- Disabled the "Publish all" button when merge conflicts exist, with tooltip explaining the blocker
+- Added inline conflict warning banner inside the Publish All card when conflicts are detected
+- Added `mergeConflictCount` prop to `PublishAllPreviewModal` — shows a prominent warning banner and disables the confirm button with "Resolve conflicts first" label
+- Three layers of protection: button disabled, modal warning + disabled confirm, runtime guard in `runPublishAll`
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L104-132 (pre-flight check), ~L382-395 (button disable + warning banner), ~L1275-1293 (modal prop), ~L1907-1940 (modal signature), ~L1967-1978 (modal warning), ~L2030-2034 (modal confirm disable)
+- **Learnings for future iterations:**
+  - `useGitSync` already exposes `mergeConflicts` array — conflict state is readily available, just needs to be checked before multi-step flows
+  - Multi-step publish flows need defense-in-depth: disable UI entry points AND add runtime guards, since state can change between user clicking and execution starting
+---

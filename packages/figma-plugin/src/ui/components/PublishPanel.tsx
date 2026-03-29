@@ -101,12 +101,21 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     [git.diffChoices],
   );
   const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
+  const hasMergeConflicts = git.mergeConflicts.length > 0;
   const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (hasGitDiffChanges ? 1 : 0);
   const publishAllAvailable = publishAllSections >= 2;
   const publishAllBusy = publishAllStep !== null;
+  const publishAllBlocked = hasMergeConflicts;
 
   const runPublishAll = useCallback(async () => {
     setPublishAllError(null);
+
+    // Pre-flight: check for merge conflicts before starting any work
+    if (git.mergeConflicts.length > 0) {
+      setPublishAllError(`Cannot publish: ${git.mergeConflicts.length} merge conflict${git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved first`);
+      return;
+    }
+
     try {
       if (hasVarChanges) {
         setPublishAllStep('variables');
@@ -371,10 +380,20 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
                 <button
                   onClick={() => setConfirmAction('publish-all')}
+                  disabled={publishAllBlocked}
+                  title={publishAllBlocked ? `Resolve ${git.mergeConflicts.length} merge conflict${git.mergeConflicts.length !== 1 ? 's' : ''} before publishing` : undefined}
                   className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   Publish all
                 </button>
+              </div>
+            )}
+            {publishAllBlocked && !publishAllBusy && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+                </svg>
+                Resolve {git.mergeConflicts.length} merge conflict{git.mergeConflicts.length !== 1 ? 's' : ''} in the Git section before publishing
               </div>
             )}
           </div>
@@ -1272,6 +1291,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         stylePushCount={styleSync.stylePushCount}
         stylePullCount={styleSync.stylePullCount}
         gitDiffChoices={git.diffChoices}
+        mergeConflictCount={git.mergeConflicts.length}
         onCancel={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
@@ -1904,6 +1924,7 @@ function PublishAllPreviewModal({
   stylePushCount,
   stylePullCount,
   gitDiffChoices,
+  mergeConflictCount,
   onCancel,
   onConfirm,
 }: {
@@ -1919,6 +1940,7 @@ function PublishAllPreviewModal({
   stylePushCount: number;
   stylePullCount: number;
   gitDiffChoices: Record<string, 'push' | 'pull' | 'skip'>;
+  mergeConflictCount: number;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 }) {
@@ -1952,6 +1974,17 @@ function PublishAllPreviewModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
+          {mergeConflictCount > 0 && (
+            <div className="flex items-start gap-2 px-3 py-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-0.5 text-[var(--color-figma-error)]">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+              </svg>
+              <div className="text-[10px] text-[var(--color-figma-error)]">
+                <span className="font-medium">{mergeConflictCount} merge conflict{mergeConflictCount !== 1 ? 's' : ''}</span> must be resolved before publishing. Open the Git section to resolve conflicts.
+              </div>
+            </div>
+          )}
+
           {/* Variables section */}
           {hasVarChanges && (
             <div>
@@ -2010,11 +2043,11 @@ function PublishAllPreviewModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={busy}
+            disabled={busy || mergeConflictCount > 0}
             className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
-            {busy ? 'Publishing\u2026' : 'Publish all'}
+            {busy ? 'Publishing\u2026' : mergeConflictCount > 0 ? 'Resolve conflicts first' : 'Publish all'}
           </button>
         </div>
       </div>
