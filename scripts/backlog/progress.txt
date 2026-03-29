@@ -434,3 +434,10 @@
   - When refactoring a closure-based action to require a confirmation modal, capture all closure variables (e.g. `localPaths`) into a state object (`orphanConfirm`) so the modal's `onConfirm` can access them without stale-closure risk.
   - The `ConfirmModal` component already has `danger`, `wide`, and `children` props — use these for destructive previews rather than building a new modal from scratch.
 ---
+
+## 2026-03-29 - Set tab order keyboard reordering (Move left / Move right)
+- Already implemented: "← Move left" and "Move right →" buttons exist in the set tab context menu (App.tsx L1289–1306), backed by `handleReorderSet` in `useSetTabs.ts` L161–182 which does optimistic reorder + API PUT /api/sets/reorder + menu close. Disabled state is correctly applied (first/last tab).
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Before implementing, always grep for the handler name from the backlog description — feature may already exist.
+---
