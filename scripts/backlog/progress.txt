@@ -342,3 +342,10 @@
   - The `searchTokens` early-break pattern (`if (results.length >= limit) break`) can't support offset without collecting all results first. Removing the early break is acceptable for a design tool — token counts are bounded.
   - When adding pagination to an appending pattern, reset `offset` to 0 in a separate `useEffect` keyed on the query/mode, not inside the fetch effect, to avoid stale-closure issues with the offset value.
 ---
+
+## 2026-03-29 - Multiple server route handlers lack try/catch
+- Stale — all five handlers already have try/catch with handleRouteError: DELETE /resolvers/:name (resolvers.ts:143), POST /snapshots (snapshots.ts:22), DELETE /generators/:id (generators.ts:586), GET /generators (generators.ts:321), GET /generators/:id (generators.ts:453)
+- Files changed: none
+- **Learnings for future iterations:**
+  - Error handling was added to these routes in a prior session; no changes needed
+---
