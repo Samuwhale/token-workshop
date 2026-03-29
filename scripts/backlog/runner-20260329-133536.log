@@ -29,3 +29,18 @@
 
   Merging to main: Type scale preview is the weakest of all generators
 Already up to date.
+[main 4ff369de] chore(backlog): done – Type scale preview is the weakest of all generators
+ 7 files changed, 102 insertions(+), 19 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Type scale preview is the weakest of all generators
+- Replaced the "Ag" clamped (8–32px) preview with a two-section layout: (1) a scale ruler showing proportional horizontal bars with step name, token value → px, and ratio-to-previous-step labels; (2) a typography specimen with contextual text labels ("Display", "Heading", "Subheading", "Body text", etc.) rendered at actual sizes (capped at 52px to prevent extreme overflow). Both sections sort steps largest-to-smallest to emphasize hierarchy. The `formatValue() → Npx` annotation appears in both sections.
+- Also fixed a pre-existing lint violation in `TokenGeneratorDialog.tsx` where two `useState` hooks were declared after an early `return` block, causing "hooks called conditionally" errors that bumped lint count from 3 to 5.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L89-112, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L216-403
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  20 queued · 2 in-progress · last took 4m25s
+═══════════════════════════════════════════════════════════════
+  → Override row UX is confusing — single click on the lock icon either clears the override or opens edit depending on state; designers expect separate "edit" and "remove" actions; split into a pencil icon for edit and an X for clear (generatorShared.tsx:82-84)
+  Worktree: /tmp/backlog-46928-hPv6F4
+  Running agent… (started 13:40:01)

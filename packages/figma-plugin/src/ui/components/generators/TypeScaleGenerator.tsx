@@ -223,13 +223,11 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
           </div>
         </div>
       </div>
-      {sourceValue !== undefined && sourceValue > 0 && (
-        <TypeScaleStaircaseEditor
-          config={config}
-          sourceValue={sourceValue}
-          onChange={c => { setIsCustomRatio(false); onChange(c); }}
-        />
-      )}
+      <TypeScaleStaircaseEditor
+        config={config}
+        sourceValue={sourceValue !== undefined && sourceValue > 0 ? sourceValue : 1}
+        onChange={c => { setIsCustomRatio(false); onChange(c); }}
+      />
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
