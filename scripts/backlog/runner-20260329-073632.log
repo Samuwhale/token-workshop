@@ -311,3 +311,10 @@ Already up to date.
 
   Merging to main: Command palette token search shows no color swatch or value preview
 Already up to date.
+[main 0c240ca1] chore(backlog): done – Command palette token search shows no color swatch or value preview
+ 6 files changed, 47 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 58)
