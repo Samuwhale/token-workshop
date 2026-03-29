@@ -73,3 +73,19 @@ Already up to date.
 
   Merging to main: PreviewPanel elements don't link back to token definitions
 Already up to date.
+[main de2765d] chore(backlog): done – PreviewPanel elements don't link back to token definitions
+ 7 files changed, 82 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - PreviewPanel elements don't link back to token definitions
+- Added `onNavigateToToken` prop to PreviewPanel, threaded through ColorsTemplate → ColorGroup → SwatchCell and TypeScaleTemplate
+- Color swatches show a small arrow badge on hover that navigates to the token in the token list
+- Type scale rows show a "Go to" button alongside existing copy buttons on hover
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  0 queued · 5 in-progress · last took 3m23s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 68874) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
