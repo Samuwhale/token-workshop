@@ -354,3 +354,13 @@
   - `ConfirmModal` accepts an async `onConfirm` and handles the spinner/error state internally — pass the async action directly rather than wrapping it.
   - The `confirmOp` state pattern (store the full operation object, not just its ID) makes it easy to render rich context (description, path count) in the modal body.
 ---
+
+## 2026-03-29 - accessibleColorPair and darkModeInversion config editors
+- Created `AccessiblePairConfigEditor` in `packages/figma-plugin/src/ui/components/generators/AccessiblePairGenerator.tsx`: exposes `contrastLevel` (AA/AAA toggle buttons) and `backgroundStep`/`foregroundStep` text inputs with descriptive hints.
+- Created `DarkModeInversionConfigEditor` in `packages/figma-plugin/src/ui/components/generators/DarkModeInversionGenerator.tsx`: exposes `stepName` text input and `chromaBoost` slider (0–2, with 0=gray, 1=preserve, 2=boost labels) plus a numeric fallback input.
+- Wired both editors into `TokenGeneratorDialog.tsx`: imported `AccessibleColorPairConfig` and `DarkModeInversionConfig` types, imported the two new components, and added `{selectedType === 'accessibleColorPair' && ...}` / `{selectedType === 'darkModeInversion' && ...}` rendering in the config section alongside existing editors.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/AccessiblePairGenerator.tsx` (new), `packages/figma-plugin/src/ui/components/generators/DarkModeInversionGenerator.tsx` (new), `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L7, ~L33, ~L596
+- **Learnings for future iterations:**
+  - New generator type editors follow the same pattern: one file per type, export `DEFAULT_*_CONFIG` + a `*ConfigEditor` component; wire into TokenGeneratorDialog at the config-section conditional block (~L586-595) and import the config type from `useGenerators`.
+  - The `chromaBoost` default in `generatorUtils.ts` is `0` (produces gray), not `1` (preserve saturation) — match it in any new default exports to stay consistent.
+---

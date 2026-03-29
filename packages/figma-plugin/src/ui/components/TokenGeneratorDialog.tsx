@@ -16,6 +16,8 @@ import type {
   ShadowScaleConfig,
   CustomScaleConfig,
   ContrastCheckConfig,
+  AccessibleColorPairConfig,
+  DarkModeInversionConfig,
   GeneratorTemplate,
   InputTable,
   InputTableRow,
@@ -30,6 +32,8 @@ import { BorderRadiusConfigEditor, BorderRadiusPreview } from './generators/Bord
 import { ZIndexConfigEditor } from './generators/ZIndexGenerator';
 import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/ContrastCheckGenerator';
+import { AccessiblePairConfigEditor } from './generators/AccessiblePairGenerator';
+import { DarkModeInversionConfigEditor } from './generators/DarkModeInversionGenerator';
 import { GenericPreview } from './generators/generatorShared';
 import { PRIMARY_TYPES, ADVANCED_TYPES, VALUE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
@@ -592,6 +596,8 @@ export function TokenGeneratorDialog({
             {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => handleConfigChange('zIndexScale', cfg)} />}
             {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => handleConfigChange('customScale', cfg)} />}
             {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => handleConfigChange('contrastCheck', cfg)} />}
+            {selectedType === 'accessibleColorPair' && <AccessiblePairConfigEditor config={currentConfig as AccessibleColorPairConfig} onChange={cfg => handleConfigChange('accessibleColorPair', cfg)} />}
+            {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => handleConfigChange('darkModeInversion', cfg)} />}
           </div>
 
           {/* Preview */}
