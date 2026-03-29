@@ -304,3 +304,10 @@ Already up to date.
   → Command palette token search shows no color swatch or value preview — searching tokens via `>` in the command palette (⌘K) shows a type badge and path but no visual preview; color tokens should show a small colored dot, dimension tokens should show the resolved value inline, so users can visually distinguish `color.brand.primary` from `color.brand.secondary` without navigating to each one (CommandPalette.tsx ~L353-370)
   Worktree: /tmp/backlog-66493-3d5vUj
   Running agent… (started 08:16:04)
+
+  ✓ done: Command palette token search shows no color swatch or value preview
+    Added color swatch dot for color tokens and inline value preview for dimension/other tokens in CommandPalette token search results
+    18 turns · 125s · $0.55
+
+  Merging to main: Command palette token search shows no color swatch or value preview
+Already up to date.

@@ -317,3 +317,18 @@ Already up to date.
 
   Merging to main: ThemeManager coverage gap view is a raw token list with no visual status hierarchy
 Already up to date.
+[main 1a5f8ab3] chore(backlog): done – ThemeManager coverage gap view is a raw token list with no visual status hierarchy
+ 7 files changed, 124 insertions(+), 58 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - ThemeManager coverage gap view is a raw token list with no visual status hierarchy
+- Replaced flat indented coverage token list with severity-grouped display: unfillable tokens ("Needs attention" section with red X chips) shown first, followed by fillable tokens ("Auto-fillable" section with green checkmark chips)
+- Added per-token status chips: green "Fillable" chip (checkmark icon) for tokens with available fill values, red "Manual" chip (X icon) for tokens requiring manual intervention
+- Added summary line with fillable/unfillable counts using colored icons
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  8 queued · 6 in-progress · last took 3m55s
+═══════════════════════════════════════════════════════════════
+  → Theme dimension set-status labels are confusing non-standard terminology — ThemeManager uses "Foundation"/"Override"/"Not included" as labels for set states (STATE_LABELS at ThemeManager.tsx:10-14) which don't match the API terms (source/enabled/disabled) or standard DTCG terminology; users must read the tooltip to understand the stacking model; rename to clearer terms like "Base"/"Override"/"Excluded" or add visible inline help explaining the layer priority
+  Worktree: /tmp/backlog-69179-MQkGNh
+  Running agent… (started 08:18:11)

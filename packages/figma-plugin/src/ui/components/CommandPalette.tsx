@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
+import { swatchBgColor } from '../shared/colorUtils';
 import { parseStructuredQuery, QUERY_QUALIFIERS } from './tokenListUtils';
 import type { ParsedQuery } from './tokenListUtils';
 
@@ -362,6 +363,17 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${idx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
+                    {token.type === 'color' && typeof token.value === 'string' && token.value ? (
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0 border border-black/10"
+                        style={{ backgroundColor: swatchBgColor(token.value) }}
+                        title={token.value}
+                      />
+                    ) : token.value != null && token.value !== '' && token.type !== 'color' ? (
+                      <span className={`text-[10px] shrink-0 font-mono ${idx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
+                        {token.value.length > 20 ? token.value.slice(0, 20) + '…' : token.value}
+                      </span>
+                    ) : null}
                     <span className="text-[11px] font-mono truncate">{token.path}</span>
                     {token.set && (
                       <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${idx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>

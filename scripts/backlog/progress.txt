@@ -609,3 +609,13 @@
   - The HeatmapPanel StatusIcon pattern (distinct shape + color per status) is reusable for any coverage/status indicator — checkmark for good, dash for partial, X for bad
   - Grouping by severity with section headers is more effective than flat lists with inline filters when the list can be large
 ---
+
+## 2026-03-29 - Command palette token search shows no color swatch or value preview
+- Added color swatch dot (12px rounded circle with `swatchBgColor`) for color-type tokens between the type badge and path
+- Added inline value preview (truncated to 20 chars) for non-color tokens with a value
+- Imported `swatchBgColor` from `colorUtils.ts` for wide-gamut color support
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L1 (import), ~L362-373 (swatch + value preview)
+- **Learnings for future iterations:**
+  - The `TokenEntry` type in CommandPalette already carries `type` and `value` fields, so no data plumbing was needed
+  - `swatchBgColor` handles both hex and CSS Color 4 strings, making it safe for all color token values
+---
