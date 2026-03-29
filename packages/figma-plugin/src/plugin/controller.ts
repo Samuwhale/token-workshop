@@ -25,8 +25,102 @@ function reportError(handler: string, e: unknown): void {
   figma.ui.postMessage({ type: 'error', message, handler });
 }
 
+// ---------------------------------------------------------------------------
+// Runtime message validation
+// ---------------------------------------------------------------------------
+// TypeScript's discriminated union only guarantees types at compile time.
+// A malformed postMessage (e.g. from a stale UI build or a third-party
+// integration) can arrive with missing or wrong-typed properties, causing
+// silent misbehaviour or crashes (especially figma.ui.resize with non-numbers).
+//
+// Each entry maps a message type to an array of [propertyName, expectedType]
+// checks.  "object" also passes arrays; use "array" for strict array checks.
+// ---------------------------------------------------------------------------
+
+type Check = [prop: string, expected: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function'];
+
+const MESSAGE_SCHEMA: Record<string, Check[]> = {
+  'apply-variables':            [['tokens', 'array']],
+  'apply-styles':               [['tokens', 'array']],
+  'read-variables':             [],
+  'read-styles':                [],
+  'export-all-variables':       [],
+  'apply-to-selection':         [['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'get-selection':              [],
+  'set-deep-inspect':           [['enabled', 'boolean']],
+  'remove-binding':             [['property', 'string']],
+  'clear-all-bindings':         [],
+  'sync-bindings':              [['tokenMap', 'object'], ['scope', 'string']],
+  'remap-bindings':             [['remapMap', 'object'], ['scope', 'string']],
+  'highlight-layer-by-token':   [['tokenPath', 'string']],
+  'notify':                     [['message', 'string']],
+  'resize':                     [['width', 'number'], ['height', 'number']],
+  'delete-orphan-variables':    [['knownPaths', 'array']],
+  'scan-token-usage':           [],
+  'scan-component-coverage':    [],
+  'select-node':                [['nodeId', 'string']],
+  'select-next-sibling':        [],
+  'scan-canvas-heatmap':        [],
+  'select-heatmap-nodes':       [['nodeIds', 'array']],
+  'batch-bind-heatmap-nodes':   [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'scan-single-token-usage':    [['tokenPath', 'string']],
+  'scan-token-variable-bindings': [['tokenPath', 'string']],
+  'extract-tokens-from-selection': [],
+  'scan-consistency':           [['tokenMap', 'object'], ['scope', 'string']],
+  'search-layers':              [['query', 'string']],
+  'find-peers-for-property':    [['nodeId', 'string'], ['property', 'string']],
+  'apply-to-nodes':             [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'remove-binding-from-node':   [['nodeId', 'string'], ['property', 'string']],
+  'get-available-fonts':        [],
+  'eyedropper':                 [],
+  'get-active-themes':          [],
+  'set-active-themes':          [['themes', 'object']],
+};
+
+/**
+ * Validate a plugin message against its schema.
+ * Returns null if valid, or a human-readable error string.
+ */
+function validateMessage(msg: Record<string, unknown>): string | null {
+  if (msg == null || typeof msg !== 'object') {
+    return 'Message is not an object';
+  }
+  const type = msg.type;
+  if (typeof type !== 'string') {
+    return 'Message has no "type" string property';
+  }
+  const checks = MESSAGE_SCHEMA[type];
+  if (!checks) {
+    // Unknown message type — not necessarily an error (could be from a newer UI),
+    // but we can't dispatch it so treat it as a no-op.
+    return `Unknown message type "${type}"`;
+  }
+  for (const [prop, expected] of checks) {
+    const val = msg[prop];
+    if (val === undefined || val === null) {
+      return `${type}: missing required property "${prop}"`;
+    }
+    if (expected === 'array') {
+      if (!Array.isArray(val)) {
+        return `${type}: "${prop}" must be an array, got ${typeof val}`;
+      }
+    } else if (typeof val !== expected) {
+      return `${type}: "${prop}" must be ${expected}, got ${typeof val}`;
+    }
+  }
+  return null;
+}
+
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
+  // Runtime validation — catch malformed messages before dispatch
+  const validationError = validateMessage(msg as unknown as Record<string, unknown>);
+  if (validationError) {
+    console.error(`[controller] Invalid message:`, validationError, msg);
+    figma.ui.postMessage({ type: 'error', message: validationError, handler: 'validation' });
+    return;
+  }
+
   switch (msg.type) {
     case 'apply-variables':
       try {

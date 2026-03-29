@@ -93,3 +93,19 @@ Already up to date.
 
   Merging to main: No per-token history view
 Already up to date.
+[main 1519b28] chore(backlog): done – No per-token history view
+ 10 files changed, 230 insertions(+), 46 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No per-token history view
+- Added "View history" context menu item to token rows in TokenTreeNode.tsx
+- Added `onViewTokenHistory` callback to TokenTreeContextType and TokenListActions
+- Wired callback through TokenList.tsx context to TokenTreeNode.tsx
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  0 queued · 4 in-progress · last took 8m13s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

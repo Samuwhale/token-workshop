@@ -530,3 +530,16 @@
   - Filter state (historyFilterPath) lives in App.tsx because it needs to survive navigation; clear it when the user clicks ✕ in the banner
   - The TokenListActions interface is the right place for App-level navigation callbacks (like onViewTokenHistory) vs TokenTreeContextType for within-TokenList callbacks
 ---
+
+## 2026-03-29 - Plugin sandbox controller.ts lacks message property validation before dispatch
+- Added a runtime message validation layer at the controller entry point (`figma.ui.onmessage`)
+- `MESSAGE_SCHEMA` maps each message type to required property checks: `[propertyName, expectedType]`
+- `validateMessage()` checks: msg is object, has string `type`, type is known, all required props exist with correct types
+- Special handling for `'array'` type check (since `typeof []` is `'object'`)
+- Malformed messages are rejected early with an error posted back to the UI and a console.error log
+- This prevents: `figma.ui.resize` crash from non-numeric width/height, silent failures from missing tokenPath/tokenType/tokenMap, and undefined property destructuring errors
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L28-109 (MESSAGE_SCHEMA + validateMessage + entry guard)
+- **Learnings for future iterations:**
+  - The PluginMessage discriminated union provides compile-time safety but no runtime guarantees — postMessage payloads arrive as plain objects
+  - Some message types used in controller.ts (scan-token-variable-bindings, remove-binding-from-node) were missing from the PluginMessage union type — the schema covers them anyway since validation works on raw objects
+---

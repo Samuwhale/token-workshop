@@ -87,3 +87,10 @@ Already up to date.
   → Plugin sandbox controller.ts lacks message property validation before dispatch — `controller.ts` switch-cases directly destructure message properties (L80: `msg.tokenPath`, `msg.tokenType`; L116: `msg.tokenMap`; L139: `msg.width`/`msg.height`; L181: `msg.nodeIds`) with no checks that these properties exist or have correct types; a malformed message (e.g., `msg.width` as string) causes silent misbehaviour or plugin crashes, and `figma.ui.resize(msg.width, msg.height)` will throw if values are non-numeric; add a validation layer or type guards at the controller entry point rather than trusting every message shape
   Worktree: /tmp/backlog-66903-WRJLGu
   Running agent… (started 07:56:14)
+
+  ✓ done: Plugin sandbox controller.ts lacks message property validation before dispatch
+    Added MESSAGE_SCHEMA + validateMessage() runtime validation layer at controller entry point — checks type string, required properties, and correct types (including array vs object) before dispatch; rejects malformed messages with error posted to UI
+    13 turns · 103s · $0.63
+
+  Merging to main: Plugin sandbox controller.ts lacks message property validation before dispatch
+Already up to date.
