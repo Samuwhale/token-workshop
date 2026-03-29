@@ -92,3 +92,19 @@ Already up to date.
 
   Merging to main: ScanCanvasHeatmapMessage type definition missing optional `scope` property
 Already up to date.
+[main 8fbe30aa] chore(backlog): done – ScanCanvasHeatmapMessage type definition missing optional `scope` property
+ 8 files changed, 40 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 925 done — pass skipped (runner PID 46928 already running one)
+
+## 2026-03-29 - ScanCanvasHeatmapMessage type definition missing optional `scope` property
+- Added `export type HeatmapScope = 'page' | 'selection' | 'all-pages'` to `shared/types.ts` and added `scope?: HeatmapScope` to `ScanCanvasHeatmapMessage`. Removed the duplicate `HeatmapScope` definition from `heatmapScanning.ts` (importing from shared instead) and replaced the local definition in `HeatmapPanel.tsx` with a re-export from shared types.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L305, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L1,L90, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L2,L14
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  14 queued · 2 in-progress · last took 2m54s
+═══════════════════════════════════════════════════════════════
+  → dtcg-resolver loadSource silently returns empty Map for invalid internal pointers — no warning logged when a source reference doesn't resolve to a set, making misconfigured resolvers hard to debug (packages/core/src/dtcg-resolver.ts:248-249)
+  Worktree: /tmp/backlog-47616-3vOOR3
+  Running agent… (started 13:49:22)

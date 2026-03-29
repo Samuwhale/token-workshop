@@ -181,6 +181,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const targetSetRef = useRef(targetSet);
   const [existingTokenMap, setExistingTokenMap] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
   const [existingPathsFetching, setExistingTokenMapFetching] = useState(false);
+  const [existingTokenMapError, setExistingTokenMapError] = useState<string | null>(null);
   const existingPathsCacheRef = useRef<{ set: string; tokens: Map<string, { $type: string; $value: unknown }> } | null>(null);
 
   // Variables conflict preview state
@@ -205,9 +206,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const prefetchExistingPaths = useCallback((setName: string) => {
     if (existingPathsCacheRef.current?.set === setName) {
       setExistingTokenMap(existingPathsCacheRef.current.tokens);
+      setExistingTokenMapError(null);
       return;
     }
     setExistingTokenMapFetching(true);
+    setExistingTokenMapError(null);
     apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
       .then(data => {
         const flat = flattenTokenGroup(data.tokens ?? {});
@@ -221,7 +224,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         existingPathsCacheRef.current = { set: setName, tokens };
         setExistingTokenMap(tokens);
       })
-      .catch(() => setExistingTokenMap(null))
+      .catch(err => {
+        setExistingTokenMap(null);
+        setExistingTokenMapError(err instanceof Error ? err.message : 'Failed to load existing tokens');
+      })
       .finally(() => setExistingTokenMapFetching(false));
   }, [serverUrl]);
 
@@ -1532,10 +1538,17 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           )}
 
           {/* Import preview summary */}
-          {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null) && (
+          {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (
             <div className="flex items-center gap-2 text-[10px] py-0.5">
               {existingPathsFetching ? (
                 <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+              ) : existingTokenMapError !== null ? (
+                <span className="flex items-center gap-1 text-[var(--color-figma-warning,#e8a100)]" title={existingTokenMapError}>
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M4 1v4M4 6.5v.5" />
+                  </svg>
+                  Conflict detection unavailable
+                </span>
               ) : previewNewCount !== null && previewOverwriteCount !== null && (
                 <>
                   {previewNewCount > 0 && (

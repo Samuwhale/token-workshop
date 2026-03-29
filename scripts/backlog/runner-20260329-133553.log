@@ -101,3 +101,10 @@ Already up to date.
   → ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message; the import panel shows missing conflict counts but gives no indication that the server fetch failed and conflict detection is down (packages/figma-plugin/src/ui/components/ImportPanel.tsx:224)
   Worktree: /tmp/backlog-48303-krjiin
   Running agent… (started 13:48:02)
+
+  ✓ done: ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message
+    Added existingTokenMapError state; catch handler now sets it with the error message; preview section shows "Conflict detection unavailable" warning badge when fetch fails
+    17 turns · 100s · $0.36
+
+  Merging to main: ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message
+Already up to date.
