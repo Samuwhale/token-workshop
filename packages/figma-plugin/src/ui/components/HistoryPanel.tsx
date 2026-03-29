@@ -231,6 +231,14 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   const [tokenFilterMap, setTokenFilterMap] = useState<Map<string, TokenChange> | null>(null);
   const [filterLoading, setFilterLoading] = useState(false);
 
+  // Debounce filterTokenPath so rapid changes (e.g. keystroke-by-keystroke input)
+  // don't fire a separate batch of API requests for each intermediate value.
+  const [debouncedFilterPath, setDebouncedFilterPath] = useState(filterTokenPath);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilterPath(filterTokenPath), 300);
+    return () => clearTimeout(timer);
+  }, [filterTokenPath]);
+
   const fetchCommits = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -253,9 +261,9 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
     return () => { abortRef.current?.abort(); };
   }, [fetchCommits]);
 
-  // When filterTokenPath changes, eagerly fetch all commit details to build filter map
+  // When debouncedFilterPath changes, eagerly fetch all commit details to build filter map
   useEffect(() => {
-    if (!filterTokenPath || commits.length === 0) {
+    if (!debouncedFilterPath || commits.length === 0) {
       setTokenFilterMap(null);
       return;
     }
@@ -265,7 +273,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
       commits.map(async (commit) => {
         try {
           const data = await apiFetch<{ changes?: TokenChange[] }>(`${serverUrl}/api/sync/log/${commit.hash}/tokens`);
-          const match = (data.changes ?? []).find(c => c.path === filterTokenPath);
+          const match = (data.changes ?? []).find(c => c.path === debouncedFilterPath);
           return { hash: commit.hash, change: match ?? null };
         } catch {
           return { hash: commit.hash, change: null };
@@ -281,7 +289,7 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
       setFilterLoading(false);
     });
     return () => { cancelled = true; };
-  }, [filterTokenPath, commits, serverUrl]);
+  }, [debouncedFilterPath, commits, serverUrl]);
 
   const fetchDetail = useCallback(async (hash: string) => {
     setDetailLoading(true);
@@ -519,8 +527,9 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
     );
   }
 
-  // Per-token filter mode: loading state while eagerly fetching diffs
-  if (filterTokenPath && filterLoading) {
+  // Per-token filter mode: loading state while debouncing or eagerly fetching diffs
+  const debouncing = filterTokenPath !== debouncedFilterPath;
+  if (filterTokenPath && (filterLoading || debouncing)) {
     return (
       <div className="flex items-center justify-center flex-1 gap-2">
         <svg className="animate-spin text-[var(--color-figma-accent)]" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

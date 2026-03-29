@@ -273,3 +273,10 @@ Already up to date.
   → HistoryPanel token path filter fires API requests on every keystroke without debounce — typing "color.brand" into the filter field triggers a separate server fetch for each character; should debounce 300ms before querying, matching the pattern used by the token search in TokenList (HistoryPanel.tsx ~L267-270)
   Worktree: /tmp/backlog-67697-pRz1uc
   Running agent… (started 08:10:18)
+
+  ✓ done: HistoryPanel token path filter fires API requests on every keystroke without debounce
+    Added 300ms debounce on filterTokenPath in GitCommitsSource before triggering eager commit-detail API fetches, matching the TokenList debounce pattern
+    26 turns · 153s · $0.83
+
+  Merging to main: HistoryPanel token path filter fires API requests on every keystroke without debounce
+Already up to date.
