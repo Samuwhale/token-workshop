@@ -4,6 +4,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { PLATFORMS } from '../shared/platforms';
 import { useLintConfig } from '../hooks/useLintConfig';
 import { LintConfigPanel } from './LintConfigPanel';
+import { formatHexAs } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -380,6 +381,12 @@ export function SettingsPanel({
                 value={colorFormat}
                 onChange={handleColorFormatChange}
               />
+            </div>
+            {/* Sample output preview */}
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-tertiary,var(--color-figma-bg-secondary))] border border-[var(--color-figma-border)]">
+              <div className="w-3 h-3 rounded-sm flex-shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: '#3B82F6' }} />
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-shrink-0">Sample:</span>
+              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate select-all">{formatHexAs('#3B82F6', colorFormat)}</span>
             </div>
 
             {/* Advanced mode */}

@@ -465,3 +465,11 @@
 - **Learnings for future iterations:**
   - Expand/collapse hint rows pair well with `flex-wrap` layout — the row stays compact by default while revealing the full list on demand without requiring horizontal scroll.
 ---
+
+## 2026-03-29 - SettingsPanel color format preference change has no live preview
+- Added an inline "Sample output" preview block immediately below the color format SegmentedControl. It shows a fixed representative blue (#3B82F6) formatted via `formatHexAs()` in the currently selected format, updating instantly on selection change. The swatch provides a color reference and the monospace value string is selectable for easy copying.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1 (import), ~L383 (sample block)
+- **Learnings for future iterations:**
+  - `formatHexAs` from `colorUtils.ts` can be called synchronously inline in JSX for settings previews — no async needed for sRGB hex inputs since the hex/rgb/hsl paths are pure JS; only oklch/p3 use `require('@tokenmanager/core')` which is already bundled.
+  - `select-all` Tailwind class on a span makes the formatted value easy to copy without a copy button.
+---
