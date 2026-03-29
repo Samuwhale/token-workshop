@@ -346,3 +346,11 @@
   - `ImportToken` interface uses `_warning` (underscore prefix) as a convention for UI-only runtime annotations — these must never be included in POST bodies sent to the server.
   - The JSON/CSS/Tailwind file import paths (L464, L502, L533) do not currently pass `$description` from parsed tokens either — that's a separate gap (ImportToken interface lacks `$description`).
 ---
+
+## 2026-03-29 - Rollback button in Recent Actions fires immediately with no confirmation
+- Added a `ConfirmModal` before executing rollback: clicking "Rollback" now opens a modal showing the operation description and affected paths count; the actual API call only fires after the user confirms.
+- Files changed: `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L1, ~L52, ~L58, ~L253
+- **Learnings for future iterations:**
+  - `ConfirmModal` accepts an async `onConfirm` and handles the spinner/error state internally — pass the async action directly rather than wrapping it.
+  - The `confirmOp` state pattern (store the full operation object, not just its ID) makes it easy to render rich context (description, path count) in the modal body.
+---

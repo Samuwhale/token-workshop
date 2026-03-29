@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Spinner } from './Spinner';
+import { ConfirmModal } from './ConfirmModal';
 import { formatRelativeTime } from '../shared/changeHelpers';
 
 interface OperationEntry {
@@ -50,6 +51,7 @@ function OpIcon({ type }: { type: string }) {
 
 export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab }: RecentActionsSourceProps) {
   const [rollingBack, setRollingBack] = useState<string | null>(null);
+  const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
   const [localOpen, setLocalOpen] = useState(true);
   const [serverOpen, setServerOpen] = useState(true);
   const [filterType, setFilterType] = useState('');
@@ -57,6 +59,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
 
   const handleRollback = useCallback(async (opId: string) => {
     setRollingBack(opId);
+    setConfirmOp(null);
     try {
       await onRollback(opId);
     } finally {
@@ -85,6 +88,17 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
   const isEmpty = !hasLocal && !hasServer;
 
   return (
+    <>
+    {confirmOp && (
+      <ConfirmModal
+        title="Roll back operation?"
+        description={`"${confirmOp.description}" affected ${confirmOp.affectedPaths.length} path${confirmOp.affectedPaths.length !== 1 ? 's' : ''}. This will restore tokens to their state before this operation.`}
+        confirmLabel="Roll Back"
+        danger
+        onConfirm={() => handleRollback(confirmOp.id)}
+        onCancel={() => setConfirmOp(null)}
+      />
+    )}
     <div className="flex-1 overflow-y-auto">
       {isEmpty && (
         <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
@@ -251,7 +265,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleRollback(op.id)}
+                        onClick={() => setConfirmOp(op)}
                         disabled={rollingBack !== null}
                         className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
@@ -298,5 +312,6 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
         </div>
       </div>
     </div>
+    </>
   );
 }
