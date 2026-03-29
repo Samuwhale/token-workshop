@@ -479,3 +479,13 @@
   - GraphPanel has two view modes: SVG node graph and list. Scroll-to-card only works in list view, so the focus effect switches to list view automatically.
   - GeneratorPipelineCard is a display-only component with no existing edit dialog — "open the generator's edit dialog" in the backlog item was aspirational; navigating to the tab and highlighting the card is the actionable equivalent.
 ---
+
+## 2026-03-29 - themes.ts routes double-log operations and reference undeclared beforeDims
+- Removed duplicate `operationLog.record()` calls from 7 of 9 theme mutation routes that already use `withThemeLock()` (which records its own log entry)
+- These duplicate calls referenced `beforeDims` which was only declared in the reorder-dimensions route, causing ReferenceError at runtime in all other routes
+- The reorder-dimensions route (`PUT /themes/dimensions-order`) correctly uses `store.withLock` directly with its own `beforeDims` declaration and logging — left unchanged
+- Files changed: `packages/server/src/routes/themes.ts` — removed ~70 lines of duplicate logging from routes: create dimension (~L168), rename dimension (~L201), delete dimension (~L267), upsert option (~L320), rename option (~L364), reorder options (~L409), delete option (~L445)
+- **Learnings for future iterations:**
+  - `withThemeLock()` already handles operation logging with rollback steps — routes using it should NOT add their own `operationLog.record()` call
+  - The reorder-dimensions route is the only one using `store.withLock` directly (not `withThemeLock`), so it correctly has its own logging
+---

@@ -117,3 +117,18 @@ Already up to date.
 
   Merging to main: Generator badge on derived tokens is not actionable
 Already up to date.
+[main 13b61c2] chore(backlog): done – Generator badge on derived tokens is not actionable
+ 10 files changed, 78 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Generator badge on derived tokens is not actionable
+- Changed generator-name badge on derived tokens from a static `<span>` to a clickable `<button>` that navigates to the Generators tab and highlights the source generator
+- Added `onNavigateToGenerator` callback through the full chain: `TokenListActions` → `TokenList` → `TokenTreeContext` → `TokenTreeNode`
+- Badge shows hover state (accent color) and tooltip "click to open generator"
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  2 queued · 6 in-progress · last took 5m36s
+═══════════════════════════════════════════════════════════════
+  → core color-parse.ts uses non-null assertions on nullable `parseRawNum()` creating silent wrong-value bugs — L434-436 (rgb), L463 (oklch %), L472 (oklab %) use `parseRawNum(...)!` but `parseRawNum` returns `null` for unparseable strings; in JS `null / 255` evaluates to `0` (not NaN), so an unparseable rgb channel silently becomes 0 instead of returning null to indicate parse failure; the oklch case is worse: `parseRawNum(...)! / 100` yields 0, then `L === null` check at L466 passes (0 !== null), returning `{coords: [0, C, H]}` — a valid-looking but wrong color; replace all `!` assertions with explicit null checks before division
+  Worktree: /tmp/backlog-67697-hr5r2g
+  Running agent… (started 07:56:23)

@@ -165,16 +165,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         dimensions.push(dim);
         return { dims: dimensions, result: dim, description: `Create theme dimension "${name.trim()}"` };
       });
-      const afterDims = await store.load();
-      await fastify.operationLog.record({
-        type: 'theme-dimension-create',
-        description: `Create theme dimension "${name.trim()}"`,
-        setName: '',
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
-      });
       return reply.status(201).send({ dimension });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to create dimension');
@@ -197,16 +187,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const oldName = dimensions[idx].name;
         dimensions[idx] = { ...dimensions[idx], name: name.trim() };
         return { dims: dimensions, result: dimensions[idx], description: `Rename dimension "${oldName}" → "${name.trim()}"` };
-      });
-      const afterDims = await store.load();
-      await fastify.operationLog.record({
-        type: 'theme-dimension-rename',
-        description: `Rename theme dimension "${id}" to "${name.trim()}"`,
-        setName: '',
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
       });
       return { dimension };
     } catch (err) {
@@ -264,16 +244,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const filtered = dimensions.filter(d => d.id !== id);
         return { dims: filtered, result: undefined, description: `Delete theme dimension "${dim.name}"` };
       });
-      const afterDims = await store.load();
-      await fastify.operationLog.record({
-        type: 'theme-dimension-delete',
-        description: `Delete theme dimension "${id}"`,
-        setName: '',
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
-      });
       return { deleted: true, id };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to delete dimension');
@@ -317,16 +287,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
             description: `${isUpdate ? 'Update' : 'Add'} option "${trimmedName}" in dimension "${dim.name}"`,
           };
         });
-        const afterDims = await store.load();
-        await fastify.operationLog.record({
-          type: status === 201 ? 'theme-option-create' : 'theme-option-update',
-          description: `${status === 201 ? 'Add' : 'Update'} option "${trimmedName}" in dimension "${id}"`,
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
-        });
         return reply.status(status).send({ option });
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to save option');
@@ -360,16 +320,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           }
           dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
           return { dims: dimensions, result: dim.options[optIdx], description: `Rename option "${optionName}" → "${newName}" in dimension "${dim.name}"` };
-        });
-        const afterDims = await store.load();
-        await fastify.operationLog.record({
-          type: 'theme-option-rename',
-          description: `Rename option "${optionName}" to "${newName}" in dimension "${id}"`,
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
         });
         return { option };
       } catch (err) {
@@ -406,16 +356,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
           return { dims: dimensions, result: dimensions[dimIdx], description: `Reorder options in dimension "${dim.name}"` };
         });
-        const afterDims = await store.load();
-        await fastify.operationLog.record({
-          type: 'theme-options-reorder',
-          description: `Reorder options in dimension "${id}"`,
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
-        });
         return { dimension };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to reorder options');
@@ -441,16 +381,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           }
           dimensions[dimIdx] = { ...dim, options: filtered };
           return { dims: dimensions, result: undefined, description: `Delete option "${optionName}" from dimension "${dim.name}"` };
-        });
-        const afterDims = await store.load();
-        await fastify.operationLog.record({
-          type: 'theme-option-delete',
-          description: `Delete option "${optionName}" from dimension "${id}"`,
-          setName: '',
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
         });
         return { deleted: true, id, optionName };
       } catch (err) {
