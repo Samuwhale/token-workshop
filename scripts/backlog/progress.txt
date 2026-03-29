@@ -162,3 +162,10 @@
 - **Learnings for future iterations:**
   - The `withLock` helper does not catch exceptions internally — callers must wrap it in try/catch if they want structured error responses.
 ---
+
+## 2026-03-29 - useGeneratorSave overwrite-check failure silently proceeds to commit
+- Changed the catch block in `handleConfirmSave` (L167-169) to surface an error to the user instead of silently calling `commitSave()`. When `POST /api/generators/:id/check-overwrites` throws (e.g. server unavailable), `setSaveError` is now called with a message including the underlying error detail, and the function returns early without committing.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L167-170
+- **Learnings for future iterations:**
+  - The original `console.warn + proceed` pattern was intentional as a "best-effort" check, but the item correctly identifies it as a data-loss risk — always fail-closed on pre-save safety checks.
+---

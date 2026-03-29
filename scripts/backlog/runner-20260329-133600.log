@@ -227,3 +227,10 @@ Already up to date.
   → useGeneratorSave overwrite-check failure silently proceeds to commit — when POST /api/generators/:id/check-overwrites errors, line 168 logs a warning and calls commitSave() without notifying the user; if the server is unavailable during the pre-save check, tokens that were manually edited after generation will be silently overwritten with no warning (packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts:167-169)
   Worktree: /tmp/backlog-48983-jPXn6N
   Running agent… (started 13:47:32)
+
+  ✓ done: useGeneratorSave overwrite-check failure silently proceeds to commit
+    Changed catch block in handleConfirmSave to surface error and return early instead of silently calling commitSave() when check-overwrites request fails
+    6 turns · 47s · $0.15
+
+  Merging to main: useGeneratorSave overwrite-check failure silently proceeds to commit
+Already up to date.

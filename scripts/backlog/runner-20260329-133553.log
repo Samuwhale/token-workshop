@@ -86,3 +86,18 @@ Already up to date.
 
   Merging to main: PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response
 Already up to date.
+[main 75702659] chore(backlog): done – PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response
+ 6 files changed, 49 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - PUT /api/sets/reorder has no try/catch
+- Wrapped the `withLock(...)` call in a try/catch with `handleRouteError(reply, err, 'Failed to reorder sets')` to match the error handling pattern used by every other set mutation endpoint.
+- Files changed: `packages/server/src/routes/sets.ts` ~L151
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  16 queued · 2 in-progress · last took 53s
+═══════════════════════════════════════════════════════════════
+  → ImportPanel conflict-detection failure is invisible — when fetchExistingTokenMap errors, line 224 calls setExistingTokenMap(null) with no user-visible message; the import panel shows missing conflict counts but gives no indication that the server fetch failed and conflict detection is down (packages/figma-plugin/src/ui/components/ImportPanel.tsx:224)
+  Worktree: /tmp/backlog-48303-krjiin
+  Running agent… (started 13:48:02)

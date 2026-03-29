@@ -165,7 +165,9 @@ export function useGeneratorSave({
           return;
         }
       } catch (err) {
-        console.warn('[useGeneratorSave] overwrite check failed, proceeding without warning:', err);
+        setSaveError(`Could not verify manually-edited tokens: ${getErrorMessage(err)}. Please retry.`);
+        setSaving(false);
+        return;
       }
       setSaving(false);
     }
