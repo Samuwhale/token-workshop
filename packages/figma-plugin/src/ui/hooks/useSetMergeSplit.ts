@@ -110,7 +110,7 @@ export function useSetMergeSplit({
   };
 
   const handleConfirmMerge = async () => {
-    if (!mergingSet || !mergeTargetSet || !connected) return;
+    if (!mergingSet || !mergeTargetSet || !connected || !mergeChecked) return;
     setMergeLoading(true);
     try {
       const tgtData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
