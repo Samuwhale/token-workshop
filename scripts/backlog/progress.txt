@@ -473,3 +473,11 @@
   - `formatHexAs` from `colorUtils.ts` can be called synchronously inline in JSX for settings previews — no async needed for sRGB hex inputs since the hex/rgb/hsl paths are pure JS; only oklch/p3 use `require('@tokenmanager/core')` which is already bundled.
   - `select-all` Tailwind class on a span makes the formatted value easy to copy without a copy button.
 ---
+
+## 2026-03-29 - TokenTableView inline description edits fail silently on error
+- Root cause: `onError` prop in `TokenListProps` was never wired up in App.tsx — all three `<TokenList>` usages omitted it from their `actions` object, so `handleDescriptionSave` and `handleInlineSave` called `onError?.()` as a no-op when saves failed. Added `onError: setErrorToast` to all three `actions` objects.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1907, ~L1969, ~L1983
+- **Learnings for future iterations:**
+  - The `onError` handler in `useTokenCrud` was correctly implemented but never connected at the call site — confirms the pattern that prop wiring bugs are hard to spot since TS only checks the type is optional, not that it should be provided.
+  - All three TokenList usages in App.tsx share the same long `actions` inline object; if adding a new action callback, update all three.
+---
