@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
+import { ConfirmModal } from './ConfirmModal';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -43,6 +44,11 @@ type CoverageToken = {
   fillType?: string;
 };
 type CoverageMap = Record<string, Record<string, { uncovered: CoverageToken[] }>>;
+
+type AutoFillPendingItem = { path: string; $value: unknown; $type?: string };
+type AutoFillPreview =
+  | { mode: 'single-option'; dimId: string; optionName: string; targetSet: string; tokens: AutoFillPendingItem[] }
+  | { mode: 'all-options'; dimId: string; perSetBatch: Record<string, AutoFillPendingItem[]>; totalCount: number };
 
 
 function slugify(name: string): string {
@@ -121,6 +127,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const setTokenTypesRef = useRef<Record<string, Record<string, string>>>({});
   // Auto-fill in-progress state
   const [fillingKeys, setFillingKeys] = useState<Set<string>>(new Set());
+  // Auto-fill confirmation preview
+  const [autoFillPreview, setAutoFillPreview] = useState<AutoFillPreview | null>(null);
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
@@ -673,8 +681,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
-  /** Auto-fill all uncovered tokens that have a known fill value */
-  const handleAutoFillAll = async (dimId: string, optionName: string) => {
+  /** Auto-fill all uncovered tokens that have a known fill value — shows a preview modal first */
+  const handleAutoFillAll = (dimId: string, optionName: string) => {
     const items = coverage[dimId]?.[optionName]?.uncovered ?? [];
     const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
     if (fillable.length === 0) return;
@@ -685,24 +693,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
     // De-duplicate by missingRef — multiple tokens may reference the same missing path
     const seen = new Set<string>();
-    const uniqueFillable: CoverageToken[] = [];
+    const tokens: Array<{ path: string; $value: unknown; $type?: string }> = [];
     for (const item of fillable) {
       if (!item.missingRef || seen.has(item.missingRef)) continue;
       seen.add(item.missingRef);
-      uniqueFillable.push(item);
+      const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
+      if (item.fillType) t.$type = item.fillType;
+      tokens.push(t);
     }
+    setAutoFillPreview({ mode: 'single-option', dimId, optionName, targetSet, tokens });
+  };
+
+  /** Execute the auto-fill for a single option after confirmation */
+  const executeAutoFillAll = async (preview: Extract<AutoFillPreview, { mode: 'single-option' }>) => {
+    const { dimId, optionName, targetSet, tokens } = preview;
     const fillKey = `${dimId}:${optionName}:__all__`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    setAutoFillPreview(null);
     try {
-      const batchTokens = uniqueFillable.map(item => {
-        const t: Record<string, unknown> = { path: item.missingRef!, $value: item.fillValue };
-        if (item.fillType) t.$type = item.fillType;
-        return t;
-      });
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: batchTokens, strategy: 'skip' }),
+        body: JSON.stringify({ tokens, strategy: 'skip' }),
       });
       debouncedFetchDimensions();
     } catch (err) {
@@ -712,8 +724,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
-  /** Auto-fill all uncovered tokens across ALL options within a dimension */
-  const handleAutoFillAllOptions = async (dimId: string) => {
+  /** Auto-fill all uncovered tokens across ALL options within a dimension — shows a preview modal first */
+  const handleAutoFillAllOptions = (dimId: string) => {
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const dimCov = coverage[dimId];
@@ -721,7 +733,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
     // Collect per-set batch payloads: { targetSet -> token[] }
     const perSetBatch: Record<string, Array<{ path: string; $value: unknown; $type?: string }>> = {};
-    let anyFillable = false;
+    let totalCount = 0;
     for (const opt of dim.options) {
       const items = dimCov[opt.name]?.uncovered ?? [];
       const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
@@ -737,16 +749,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
         if (item.fillType) t.$type = item.fillType;
         perSetBatch[targetSet].push(t);
-        anyFillable = true;
+        totalCount++;
       }
     }
-    if (!anyFillable) {
+    if (totalCount === 0) {
       setError('No override sets available. Assign sets as Override first.');
       return;
     }
+    setAutoFillPreview({ mode: 'all-options', dimId, perSetBatch, totalCount });
+  };
 
+  /** Execute the auto-fill for all options after confirmation */
+  const executeAutoFillAllOptions = async (preview: Extract<AutoFillPreview, { mode: 'all-options' }>) => {
+    const { dimId, perSetBatch } = preview;
     const fillKey = `${dimId}:__all_options__`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    setAutoFillPreview(null);
     try {
       await Promise.all(
         Object.entries(perSetBatch).map(([targetSet, tokens]) =>
@@ -2126,6 +2144,87 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </button>
         )}
       </div>
+
+      {/* Auto-fill confirmation modal */}
+      {autoFillPreview && (() => {
+        const dimName = dimensions.find(d => d.id === autoFillPreview.dimId)?.name ?? autoFillPreview.dimId;
+        if (autoFillPreview.mode === 'single-option') {
+          const { optionName, targetSet, tokens } = autoFillPreview;
+          return (
+            <ConfirmModal
+              title={`Auto-fill ${tokens.length} token${tokens.length !== 1 ? 's' : ''}?`}
+              wide
+              confirmLabel="Fill tokens"
+              onCancel={() => setAutoFillPreview(null)}
+              onConfirm={() => executeAutoFillAll(autoFillPreview)}
+            >
+              <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Writing to <span className="font-mono font-medium text-[var(--color-figma-text)]">{targetSet}</span> (override set for <strong>{optionName}</strong> in <strong>{dimName}</strong>).
+              </p>
+              <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="text-left bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] sticky top-0">
+                      <th className="px-2 py-1 font-medium">Token path</th>
+                      <th className="px-2 py-1 font-medium">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-figma-border)]">
+                    {tokens.map(t => (
+                      <tr key={t.path}>
+                        <td className="px-2 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[140px]" title={t.path}>{t.path}</td>
+                        <td className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] truncate max-w-[100px]" title={String(t.$value)}>
+                          {t.$type && <span className="mr-1 text-[var(--color-figma-text-tertiary)]">{t.$type}</span>}
+                          {typeof t.$value === 'object' ? JSON.stringify(t.$value) : String(t.$value)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </ConfirmModal>
+          );
+        } else {
+          const { perSetBatch, totalCount } = autoFillPreview;
+          const setEntries = Object.entries(perSetBatch);
+          return (
+            <ConfirmModal
+              title={`Auto-fill ${totalCount} token${totalCount !== 1 ? 's' : ''} across all options?`}
+              wide
+              confirmLabel="Fill all options"
+              onCancel={() => setAutoFillPreview(null)}
+              onConfirm={() => executeAutoFillAllOptions(autoFillPreview)}
+            >
+              <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Writing to {setEntries.length} set{setEntries.length !== 1 ? 's' : ''} across all options in <strong>{dimName}</strong>.
+              </p>
+              <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
+                {setEntries.map(([targetSet, tokens]) => (
+                  <div key={targetSet}>
+                    <div className="sticky top-0 bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                      <span className="font-mono text-[var(--color-figma-text)]">{targetSet}</span>
+                      <span className="ml-1 text-[var(--color-figma-text-tertiary)]">({tokens.length} token{tokens.length !== 1 ? 's' : ''})</span>
+                    </div>
+                    <table className="w-full text-[10px]">
+                      <tbody className="divide-y divide-[var(--color-figma-border)]">
+                        {tokens.map(t => (
+                          <tr key={t.path}>
+                            <td className="px-2 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[140px]" title={t.path}>{t.path}</td>
+                            <td className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] truncate max-w-[100px]" title={String(t.$value)}>
+                              {t.$type && <span className="mr-1 text-[var(--color-figma-text-tertiary)]">{t.$type}</span>}
+                              {typeof t.$value === 'object' ? JSON.stringify(t.$value) : String(t.$value)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </ConfirmModal>
+          );
+        }
+      })()}
 
       {/* Bulk set-status context menu */}
       {bulkMenu && (

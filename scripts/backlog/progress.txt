@@ -304,3 +304,11 @@
   - `maxPx` was already computed above the render loop, so the proportional scaling needed no new state or computation.
   - Anchoring at 48px (not the raw max) keeps the preview compact while showing true ratios — a reasonable cap for a narrow plugin panel.
 ---
+
+## 2026-03-29 - ThemeManager auto-fill has no preview step
+- Added a confirmation modal for both `handleAutoFillAll` (single option) and `handleAutoFillAllOptions` (all options). Both handlers now build the token list and set `autoFillPreview` state instead of executing immediately. The modal lists the target set(s), token count, each token path, type, and value. Execution was moved to `executeAutoFillAll` / `executeAutoFillAllOptions`, called from `onConfirm`. `handleAutoFillSingle` (single token) was left as-is — single-token writes are low risk. The `AutoFillPreview` discriminated union type was added at module level.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L47 (type), ~L130 (state), ~L683 (handler), ~L708 (execute), ~L733 (handler), ~L763 (execute), ~L2135 (modal render)
+- **Learnings for future iterations:**
+  - Type aliases defined inside a component function body can't be used as generic type params in the same function (TypeScript doesn't re-scope them correctly for `Extract<>`). Move discriminated union types to module level.
+  - `handleAutoFillSingle` (single-token fill) was intentionally excluded from confirmation — per-item fills are low-blast-radius and already require individual user interaction.
+---
