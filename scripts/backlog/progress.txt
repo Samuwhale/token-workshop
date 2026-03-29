@@ -449,3 +449,9 @@
   - `withLock` callbacks that throw will bubble up as unhandled promise rejections — always wrap `withLock(async () => { try { ... } catch (err) { return handleRouteError(reply, err); } })` when there's async work inside.
   - A route file missing the `handleRouteError` import is a signal it has no error handling — always check imports when auditing bare async handlers.
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: HistoryPanel.tsx, ConsistencyPanel.tsx, TokenFlowPanel.tsx, HeatmapPanel.tsx, ExportPanel.tsx (set filter), TypeScaleGenerator.tsx (specimen clamping), ThemeManager.tsx (auto-fill), App.tsx (tab nav), SelectionInspector.tsx, packages/server/src/routes/tokens.ts (search pagination), TokenList.tsx (copy/move between sets)
+- Found 10 items — written to backlog-inbox.md
+- Notable: ConsistencyPanel scans only 5 visual properties (fill/stroke/cornerRadius/spacing/opacity) and misses all typography properties — fontFamily, fontSize, fontWeight, lineHeight, letterSpacing — making it useless for text-heavy UIs where typography tokens are the most inconsistent
+---
