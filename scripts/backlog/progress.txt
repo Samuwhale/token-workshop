@@ -273,3 +273,11 @@
   - `copyTargetSet` state is shared between `copyingToken` and `copyingGroup` modals — safe since only one can be open at a time
   - `copyGroup` implementation omits save of `fromSet` (unlike `moveGroup`) since the source is not modified
 ---
+
+## 2026-03-29 - TokenList.tsx async handlers with missing error handling
+- Fixed all 5 async handlers: `handleMoveTokenInGroup` (no try/catch → spinner stuck), `handleConfirmPromote` (no catch → silent partial failure), `handleConfirmMoveGroup` (post-finally resets on success path only), `handleDuplicateToken` (same pattern), `handleUpdateGroupMeta` (no try/catch at all). All now use try/catch/finally with `onError?.()` on failure and state resets correctly inside `try` so they only run on success.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L907, ~L1440, ~L1520, ~L1565, ~L2070
+- **Learnings for future iterations:**
+  - The `try { await } finally { clearLoading() }` pattern is subtly wrong when there are post-await state resets (dialog close, refresh) — they must be inside `try`, not after `finally`, or they run even on error.
+  - Always add `onError` to `useCallback` dependency arrays when adding error handling to existing callbacks that previously didn't use it.
+---

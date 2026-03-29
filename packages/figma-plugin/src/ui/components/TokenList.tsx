@@ -907,37 +907,42 @@ export function TokenList({
     [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
     const prevOrder = [...siblings];
     setOperationLoading('Reordering…');
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-    });
-    if (onPushUndo) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      onPushUndo({
-        description: `Reorder "${nodeName}"`,
-        restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-          });
-          onRefresh();
-        },
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
       });
+      if (onPushUndo) {
+        const capturedSet = setName;
+        const capturedUrl = serverUrl;
+        onPushUndo({
+          description: `Reorder "${nodeName}"`,
+          restore: async () => {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
+            });
+            onRefresh();
+          },
+          redo: async () => {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
+            });
+            onRefresh();
+          },
+        });
+      }
+      onRefresh();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Reorder failed: network error');
+    } finally {
+      setOperationLoading(null);
     }
-    onRefresh();
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
+  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError]);
 
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1446,12 +1451,14 @@ export function TokenList({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
       });
+      setMovingGroup(null);
+      onRefresh();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Move group failed: network error');
     } finally {
       setOperationLoading(null);
     }
-    setMovingGroup(null);
-    onRefresh();
-  }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh]);
+  }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
 
   const handleRequestCopyGroup = useCallback((groupPath: string) => {
     const otherSets = sets.filter(s => s !== setName);
@@ -1548,13 +1555,17 @@ export function TokenList({
     meta: { $type?: string | null; $description?: string | null },
   ) => {
     if (!connected) return;
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath, ...meta }),
-    });
-    onRefresh();
-  }, [connected, serverUrl, setName, onRefresh]);
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath, ...meta }),
+      });
+      onRefresh();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Update group failed: network error');
+    }
+  }, [connected, serverUrl, setName, onRefresh, onError]);
 
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
@@ -1595,13 +1606,15 @@ export function TokenList({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
       });
+      onRefresh();
+      recentlyTouched.recordTouch(newPath);
+      setPendingRenameToken(newPath);
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Duplicate failed: network error');
     } finally {
       setOperationLoading(null);
     }
-    onRefresh();
-    recentlyTouched.recordTouch(newPath);
-    setPendingRenameToken(newPath);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched]);
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched, onError]);
 
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
@@ -2109,6 +2122,8 @@ export function TokenList({
       setSelectMode(false);
       setSelectedPaths(new Set());
       onRefresh();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Promote to alias failed: network error');
     } finally {
       setPromoteBusy(false);
     }
