@@ -211,3 +211,10 @@ Already up to date.
   → PublishPanel has no dry-run mode before syncing — clicking "Sync Variables", "Publish Styles", or "Commit to Git" executes immediately with no preview of what will change; given that a sync can create, update, and delete hundreds of variables, this is a high-stakes one-click operation; add a "Preview" step that shows a diff of what will be created/updated/deleted before the user confirms (PublishPanel.tsx)
   Worktree: /tmp/backlog-67435-DQV3Bv
   Running agent… (started 08:09:59)
+
+  ✓ done: PublishPanel has no dry-run mode before syncing
+    All destructive actions now route through preview modals: variable/style Apply shows full categorized diff with confirm button, git Commit shows file list + token-level preview before executing, Publish All shows combined preview across all sections.
+    30 turns · 361s · $2.32
+
+  Merging to main: PublishPanel has no dry-run mode before syncing
+Already up to date.

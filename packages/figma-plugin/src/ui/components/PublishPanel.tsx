@@ -11,7 +11,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { apiFetch } from '../shared/apiFetch';
 import { formatRelativeTime, Section } from '../shared/changeHelpers';
 
-type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'apply-diff' | 'publish-all' | null;
+type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | 'publish-all' | null;
 
 type PublishAllStep = 'variables' | 'styles' | 'git' | null;
 
@@ -1102,11 +1102,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       aria-label="Commit message"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                       onKeyDown={e => {
-                        if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] }).then(() => git.setCommitMsg(''));
+                        if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) setConfirmAction('git-commit');
                       }}
                     />
                     <button
-                      onClick={() => git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] }).then(() => git.setCommitMsg(''))}
+                      onClick={() => setConfirmAction('git-commit')}
                       disabled={!git.commitMsg.trim() || git.selectedFiles.size === 0 || git.actionLoading !== null}
                       className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
@@ -1283,33 +1283,31 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     )}
 
     {confirmAction === 'apply-vars' && (
-      <ConfirmModal
-        title="Apply variable sync?"
-        confirmLabel="Apply"
-        wide
-        onCancel={() => setConfirmAction(null)}
+      <SyncPreviewModal
+        title="Apply variable sync"
+        rows={varSync.varRows}
+        dirs={varSync.varDirs}
+        onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
           await varSync.applyVarDiff();
         }}
-      >
-        <SyncDiffSummary rows={varSync.varRows} dirs={varSync.varDirs} />
-      </ConfirmModal>
+        confirmLabel={`Apply ${varSync.varSyncCount} change${varSync.varSyncCount !== 1 ? 's' : ''}`}
+      />
     )}
 
     {confirmAction === 'apply-styles' && (
-      <ConfirmModal
-        title="Apply style sync?"
-        confirmLabel="Apply"
-        wide
-        onCancel={() => setConfirmAction(null)}
+      <SyncPreviewModal
+        title="Apply style sync"
+        rows={styleSync.styleRows}
+        dirs={styleSync.styleDirs}
+        onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
           await styleSync.applyStyleDiff();
         }}
-      >
-        <SyncDiffSummary rows={styleSync.styleRows} dirs={styleSync.styleDirs} />
-      </ConfirmModal>
+        confirmLabel={`Apply ${styleSync.styleSyncCount} change${styleSync.styleSyncCount !== 1 ? 's' : ''}`}
+      />
     )}
 
     {confirmAction === 'git-pull' && (
@@ -1346,6 +1344,23 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       />
     )}
 
+    {confirmAction === 'git-commit' && (
+      <CommitPreviewModal
+        selectedFiles={[...git.selectedFiles]}
+        allChanges={git.allChanges}
+        commitMsg={git.commitMsg}
+        tokenPreview={git.tokenPreview}
+        tokenPreviewLoading={git.tokenPreviewLoading}
+        fetchTokenPreview={git.fetchTokenPreview}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] });
+          git.setCommitMsg('');
+        }}
+      />
+    )}
+
     {confirmAction === 'apply-diff' && (
       <ConfirmModal
         title="Apply file diff?"
@@ -1361,8 +1376,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             const pushCount = Object.values(git.diffChoices).filter(c => c === 'push').length;
             const pullCount = Object.values(git.diffChoices).filter(c => c === 'pull').length;
             return [
-              pushCount > 0 ? `↑ ${pushCount} file${pushCount !== 1 ? 's' : ''} pushed to remote` : null,
-              pullCount > 0 ? `↓ ${pullCount} file${pullCount !== 1 ? 's' : ''} pulled to local` : null,
+              pushCount > 0 ? `\u2191 ${pushCount} file${pushCount !== 1 ? 's' : ''} pushed to remote` : null,
+              pullCount > 0 ? `\u2193 ${pullCount} file${pullCount !== 1 ? 's' : ''} pulled to local` : null,
             ].filter(Boolean).join(', ');
           })()}
           . This will overwrite the target files.
@@ -1371,50 +1386,25 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     )}
 
     {confirmAction === 'publish-all' && (
-      <ConfirmModal
-        title="Publish all changes?"
-        confirmLabel="Publish all"
-        wide
+      <PublishAllPreviewModal
+        hasVarChanges={hasVarChanges}
+        hasStyleChanges={hasStyleChanges}
+        hasGitDiffChanges={hasGitDiffChanges}
+        varRows={varSync.varRows}
+        varDirs={varSync.varDirs}
+        varPushCount={varSync.varPushCount}
+        varPullCount={varSync.varPullCount}
+        styleRows={styleSync.styleRows}
+        styleDirs={styleSync.styleDirs}
+        stylePushCount={styleSync.stylePushCount}
+        stylePullCount={styleSync.stylePullCount}
+        gitDiffChoices={git.diffChoices}
         onCancel={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
           await runPublishAll();
         }}
-      >
-        <div className="flex flex-col gap-1.5 mt-1">
-          {hasVarChanges && (
-            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              <strong className="font-medium text-[var(--color-figma-text)]">Variables:</strong>{' '}
-              {[
-                varSync.varPushCount > 0 ? `${varSync.varPushCount} pushed to Figma` : null,
-                varSync.varPullCount > 0 ? `${varSync.varPullCount} pulled to local` : null,
-              ].filter(Boolean).join(', ')}
-            </div>
-          )}
-          {hasStyleChanges && (
-            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              <strong className="font-medium text-[var(--color-figma-text)]">Styles:</strong>{' '}
-              {[
-                styleSync.stylePushCount > 0 ? `${styleSync.stylePushCount} pushed to Figma` : null,
-                styleSync.stylePullCount > 0 ? `${styleSync.stylePullCount} pulled to local` : null,
-              ].filter(Boolean).join(', ')}
-            </div>
-          )}
-          {hasGitDiffChanges && (
-            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              <strong className="font-medium text-[var(--color-figma-text)]">Git:</strong>{' '}
-              {(() => {
-                const pushCount = Object.values(git.diffChoices).filter(c => c === 'push').length;
-                const pullCount = Object.values(git.diffChoices).filter(c => c === 'pull').length;
-                return [
-                  pushCount > 0 ? `${pushCount} file${pushCount !== 1 ? 's' : ''} pushed` : null,
-                  pullCount > 0 ? `${pullCount} file${pullCount !== 1 ? 's' : ''} pulled` : null,
-                ].filter(Boolean).join(', ');
-              })()}
-            </div>
-          )}
-        </div>
-      </ConfirmModal>
+      />
     )}
     </>
   );
@@ -1504,12 +1494,17 @@ function SyncPreviewModal({
   rows,
   dirs,
   onClose,
+  onConfirm,
+  confirmLabel,
 }: {
   title: string;
   rows: PreviewRow[];
   dirs: Record<string, 'push' | 'pull' | 'skip'>;
   onClose: () => void;
+  onConfirm?: () => void | Promise<void>;
+  confirmLabel?: string;
 }) {
+  const [busy, setBusy] = useState(false);
   const pushAdds = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'local-only');
   const pushUpdates = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'conflict');
   const pullAdds = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'figma-only');
@@ -1543,7 +1538,7 @@ function SyncPreviewModal({
         <div className="px-4 pt-4 pb-2">
           <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Dry run — no changes will be written.
+            {onConfirm ? 'Review changes before applying.' : 'Dry run \u2014 no changes will be written.'}
           </p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
@@ -1610,13 +1605,36 @@ function SyncPreviewModal({
             ))
           )}
         </div>
-        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)]">
-          <button
-            onClick={onClose}
-            className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            Close
-          </button>
+        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+          {onConfirm ? (
+            <>
+              <button
+                onClick={onClose}
+                disabled={busy}
+                className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setBusy(true);
+                  try { await onConfirm(); } finally { setBusy(false); }
+                }}
+                disabled={busy || sections.length === 0}
+                className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
+                {busy ? 'Applying\u2026' : (confirmLabel ?? 'Apply')}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -1789,6 +1807,316 @@ function GitPreviewModal({
           >
             {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
             {busy ? `${confirmLabel}…` : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CommitPreviewModal ─────────────────────────────────────────────────── */
+
+function CommitPreviewModal({
+  selectedFiles,
+  allChanges,
+  commitMsg,
+  tokenPreview,
+  tokenPreviewLoading,
+  fetchTokenPreview,
+  onCancel,
+  onConfirm,
+}: {
+  selectedFiles: string[];
+  allChanges: { file: string; status: string }[];
+  commitMsg: string;
+  tokenPreview: import('../hooks/useGitDiff').TokenChange[] | null;
+  tokenPreviewLoading: boolean;
+  fetchTokenPreview: () => Promise<void>;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  // Auto-fetch token preview on mount if not already loaded
+  useEffect(() => {
+    if (tokenPreview === null && !tokenPreviewLoading) {
+      fetchTokenPreview();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onCancel]);
+
+  const selectedSet = new Set(selectedFiles);
+  const stagedChanges = allChanges.filter(c => selectedSet.has(c.file));
+  const skippedCount = allChanges.length - stagedChanges.length;
+
+  // Filter token preview to only show changes from selected files
+  const relevantTokenChanges = tokenPreview?.filter(c => {
+    // Token changes reference set names, not file paths — show all if token preview is available
+    return true;
+  }) ?? [];
+
+  const added = relevantTokenChanges.filter(c => c.status === 'added');
+  const modified = relevantTokenChanges.filter(c => c.status === 'modified');
+  const removed = relevantTokenChanges.filter(c => c.status === 'removed');
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try { await onConfirm(); } finally { setBusy(false); }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
+          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Review what will be committed before proceeding.
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-2">
+          {/* Commit message */}
+          <div className="mb-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Message</div>
+            <div className="text-[11px] text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
+          </div>
+
+          {/* File list */}
+          <div className="mb-2">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+              {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to commit
+              {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
+            </div>
+            <div className="max-h-24 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+              {stagedChanges.map((change, i) => (
+                <div key={i} className="flex items-center gap-1.5 px-2 py-1">
+                  <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${
+                    change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
+                    change.status === 'A' ? 'text-[var(--color-figma-success)]' :
+                    change.status === 'D' ? 'text-[var(--color-figma-error)]' :
+                    'text-[var(--color-figma-text-secondary)]'
+                  }`}>
+                    {change.status}
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{change.file}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Token-level changes */}
+          {tokenPreviewLoading && (
+            <div className="flex items-center gap-2 py-3 justify-center">
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-figma-text-secondary)]/30 border-t-[var(--color-figma-text-secondary)] animate-spin" />
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading token changes\u2026</span>
+            </div>
+          )}
+
+          {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length > 0 && (
+            <div className="mb-2">
+              <div className="flex items-center gap-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+                Token changes
+                <span className="flex gap-2 text-[10px] font-normal">
+                  {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
+                  {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length}</span>}
+                  {removed.length > 0 && <span className="text-[var(--color-figma-error)]">-{removed.length}</span>}
+                </span>
+              </div>
+              <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+                {relevantTokenChanges.map((change, i) => {
+                  const statusColor =
+                    change.status === 'added' ? 'text-[var(--color-figma-success)]' :
+                    change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
+                    'text-[var(--color-figma-warning)]';
+                  const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
+                  const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
+                  return (
+                    <div key={i} className="px-2 py-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">{change.set}</span>
+                      </div>
+                      {change.status === 'modified' && (
+                        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                          <div className="flex items-start gap-1">
+                            <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                            <span className="text-[var(--color-figma-text-secondary)] break-all">{valStr(change.before)}</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                            <span className="text-[var(--color-figma-text)] break-all">{valStr(change.after)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length === 0 && (
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1">No token-level changes detected (non-token files only).</div>
+          )}
+        </div>
+
+        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={busy}
+            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
+            {busy ? 'Committing\u2026' : `Commit ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── PublishAllPreviewModal ─────────────────────────────────────────────── */
+
+function PublishAllPreviewModal({
+  hasVarChanges,
+  hasStyleChanges,
+  hasGitDiffChanges,
+  varRows,
+  varDirs,
+  varPushCount,
+  varPullCount,
+  styleRows,
+  styleDirs,
+  stylePushCount,
+  stylePullCount,
+  gitDiffChoices,
+  onCancel,
+  onConfirm,
+}: {
+  hasVarChanges: boolean;
+  hasStyleChanges: boolean;
+  hasGitDiffChanges: boolean;
+  varRows: PreviewRow[];
+  varDirs: Record<string, 'push' | 'pull' | 'skip'>;
+  varPushCount: number;
+  varPullCount: number;
+  styleRows: PreviewRow[];
+  styleDirs: Record<string, 'push' | 'pull' | 'skip'>;
+  stylePushCount: number;
+  stylePullCount: number;
+  gitDiffChoices: Record<string, 'push' | 'pull' | 'skip'>;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onCancel]);
+
+  const gitPushCount = Object.values(gitDiffChoices).filter(c => c === 'push').length;
+  const gitPullCount = Object.values(gitDiffChoices).filter(c => c === 'pull').length;
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try { await onConfirm(); } finally { setBusy(false); }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Publish all changes</h3>
+          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Review all changes across variables, styles, and git before applying.
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
+          {/* Variables section */}
+          {hasVarChanges && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Variables</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {[
+                    varPushCount > 0 ? `\u2191 ${varPushCount} to Figma` : null,
+                    varPullCount > 0 ? `\u2193 ${varPullCount} to local` : null,
+                  ].filter(Boolean).join(' \u00b7 ')}
+                </span>
+              </div>
+              <SyncDiffSummary rows={varRows} dirs={varDirs} />
+            </div>
+          )}
+
+          {/* Styles section */}
+          {hasStyleChanges && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Styles</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {[
+                    stylePushCount > 0 ? `\u2191 ${stylePushCount} to Figma` : null,
+                    stylePullCount > 0 ? `\u2193 ${stylePullCount} to local` : null,
+                  ].filter(Boolean).join(' \u00b7 ')}
+                </span>
+              </div>
+              <SyncDiffSummary rows={styleRows} dirs={styleDirs} />
+            </div>
+          )}
+
+          {/* Git section */}
+          {hasGitDiffChanges && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Git</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {[
+                    gitPushCount > 0 ? `\u2191 ${gitPushCount} file${gitPushCount !== 1 ? 's' : ''} pushed` : null,
+                    gitPullCount > 0 ? `\u2193 ${gitPullCount} file${gitPullCount !== 1 ? 's' : ''} pulled` : null,
+                  ].filter(Boolean).join(' \u00b7 ')}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={busy}
+            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
+            {busy ? 'Publishing\u2026' : 'Publish all'}
           </button>
         </div>
       </div>

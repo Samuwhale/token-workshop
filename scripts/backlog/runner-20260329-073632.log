@@ -289,3 +289,16 @@ Already up to date.
 
   Merging to main: HistoryPanel restore gives no preview and no progress feedback
 Already up to date.
+[main eab1fda] chore(backlog): done – HistoryPanel restore gives no preview and no progress feedback
+ 6 files changed, 146 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - HistoryPanel restore gives no preview and no progress feedback
+- Added confirmation dialog before restore showing count of tokens to overwrite, broken down by status (modified/added/removed)
+- Added animated spinner progress indicator during restore operation (both "Restore all" and per-token restore buttons)
+- Added full-panel progress state with spinner and descriptive text while restore is in progress
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  10 queued · 6 in-progress · last took 3m15s
+═══════════════════════════════════════════════════════════════
+  → Command palette token search shows no color swatch or value preview — searching tokens via `>` in the command palette (⌘K) shows a type badge and path but no visual preview; color tokens should show a small colored dot, dimension tokens should show the resolved value inline, so users can visually distinguish `color.brand.primary` from `color.brand.secondary` without navigating to each one (CommandPalette.tsx ~L353-370)
