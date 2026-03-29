@@ -50,7 +50,9 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
 
     async save(dimensions: ThemeDimension[]): Promise<void> {
       const data: ThemesFile = { $themes: dimensions };
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+      const tmp = `${filePath}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+      await fs.rename(tmp, filePath);
       cache = structuredClone(dimensions);
       cachedMtimeMs = await fileMtimeMs();
     },

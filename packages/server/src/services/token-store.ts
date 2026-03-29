@@ -604,7 +604,9 @@ export class TokenStore {
             }
           }
           try {
-            await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+            const themesTmp = `${themesPath}.tmp`;
+            await fs.writeFile(themesTmp, JSON.stringify(data, null, 2));
+            await fs.rename(themesTmp, themesPath);
           } catch (writeErr) {
             // Themes write failed — roll back the file rename
             await fs.rename(newFilePath, oldFilePath).catch(() => {});

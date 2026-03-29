@@ -433,3 +433,11 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: Both $themes.json and the operation log use non-atomic fs.writeFile() — only token files and generator config use the safe .tmp+rename pattern; a server crash mid-write corrupts theme config or destroys undo history
 ---
+
+## 2026-03-29 - $themes.json and operation log use non-atomic writes
+- Applied `writeFile(tmp) → rename(tmp, final)` atomic write pattern to three write sites: `themes.ts` `save()`, `token-store.ts` `renameSet()` themes update, and `operation-log.ts` `persist()`. The tmp file is written first, then atomically renamed to the target path, preventing partial writes from corrupting `$themes.json` or the undo log on server crash.
+- Files changed: `packages/server/src/routes/themes.ts` ~L53, `packages/server/src/services/token-store.ts` ~L607, `packages/server/src/services/operation-log.ts` ~L95
+- **Learnings for future iterations:**
+  - In `token-store.ts` the rollback logic (`rename newFilePath → oldFilePath`) still fires correctly even with the atomic write — the rename throws if the tmp write fails, so the outer catch still rolls back the file rename.
+  - The `_startWriteGuard` pattern in token-store.ts is designed for chokidar watchers; for `$themes.json` (not a watched token file) no guard is needed.
+---

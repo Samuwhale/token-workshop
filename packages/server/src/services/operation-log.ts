@@ -92,7 +92,9 @@ export class OperationLog {
 
   private async persist(): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.entries, null, 2), 'utf-8');
+    const tmp = `${this.filePath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(this.entries, null, 2), 'utf-8');
+    await fs.rename(tmp, this.filePath);
   }
 
   /** Record a new operation entry. */
