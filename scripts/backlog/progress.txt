@@ -404,3 +404,10 @@
   - The `write-generator` upsert pattern (analogous to `write-resolver`) is cleaner than separate `create-generator`/`update-generator` steps because rollback only needs to restore state, not replay the original action.
   - Pre-existing build failures in unrelated files will block all backlog items — collateral fixes are necessary when the validate.sh build gate fails.
 ---
+
+## 2026-03-29 - GraphPanel GeneratorPipelineCard uses raw fetch() for all three generator actions
+- Already implemented in a prior session. `apiFetch` is used for all three handlers (`handleRerun`, `handleDuplicate`, `handleDelete`) and `actionError` state with in-card error banner is in place at `GraphPanel.tsx ~L783`.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always check the most recent git commit message before starting — if the commit title matches the backlog item title, the work is done.
+---
