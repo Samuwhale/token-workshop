@@ -76,3 +76,25 @@ Already up to date.
 
 --- Cleanup: archiving completed items (≥23) ---
   → Archived 23 items from backlog.md
+[main 062e9747] chore(backlog): archive 23 completed items + trim progress
+ 4 files changed, 32 insertions(+), 27 deletions(-)
+  Milestone: 910 done — pass skipped (runner PID 48303 already running one)
+
+## 2026-03-29 - Border radius preview shows bar charts instead of actual rounded corners
+- Added `BorderRadiusPreview` component to `BorderRadiusGenerator.tsx`. Each token row now shows a small SVG rectangle (44×24 viewBox) with `rx`/`ry` set directly from the token's px value, capped at 12 (half height) so large values like 9999px render as a pill. Updated `TokenGeneratorDialog.tsx` to import and use `BorderRadiusPreview` for `borderRadiusScale` instead of the shared `SpacingPreview`.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/BorderRadiusGenerator.tsx` ~L1, ~L85; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L26, ~L622
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  17 queued · 2 in-progress · last took 2m18s
+═══════════════════════════════════════════════════════════════
+  → getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code (packages/server/src/utils.ts, packages/server/src/errors.ts:56-58)
+  Worktree: /tmp/backlog-48983-7twame
+  Running agent… (started 13:41:51)
+
+  ✓ done: getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code
+    Deleted packages/server/src/utils.ts — dead code, never imported, duplicate of errors.ts:56-58
+    9 turns · 50s · $0.15
+
+  Merging to main: getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts — utils.ts is never imported anywhere; the entire file is dead code
+Already up to date.

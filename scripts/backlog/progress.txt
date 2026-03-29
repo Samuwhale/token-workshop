@@ -56,3 +56,10 @@
   - SVG rx/ry in viewBox units map directly to px values for typical border-radius tokens (2–16px range), so no normalization is needed — just cap at `H/2` for the full-pill case.
   - Splitting the shared `SpacingPreview` condition into two separate branches is cleaner than adding special-case logic inside the shared component.
 ---
+
+## 2026-03-29 - getErrorMessage() duplicated in server/src/utils.ts and server/src/errors.ts
+- Deleted `packages/server/src/utils.ts` — the file contained only a `getErrorMessage` function identical to the one in `errors.ts`, and was never imported anywhere (confirmed with grep). Dead code removed entirely.
+- Files changed: `packages/server/src/utils.ts` (deleted)
+- **Learnings for future iterations:**
+  - Verified zero imports before deletion via grep pattern `from.*utils` in the server src directory.
+---
