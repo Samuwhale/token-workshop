@@ -267,3 +267,20 @@
 - **Learnings for future iterations:**
   - Before implementing a UI addition, verify the rendered JSX — the set label may already exist from a prior session that fixed the data loading pipeline.
 ---
+
+## 2026-03-29 - Generator pipeline cards show no "stale" indicator when source token has changed
+- Added `lastRunAt` and `lastRunSourceValue` fields to `TokenGenerator` in core (`generator-types.ts`) and the plugin's local copy (`useGenerators.ts`).
+- Updated `GeneratorService.executeGenerator()` to save `lastRunAt` (timestamp) and `lastRunSourceValue` (resolved source token value) to disk after every successful run, without bumping `updatedAt`.
+- Updated `GET /api/generators` route to compute `isStale` per generator: resolves the current source token value and compares it to `lastRunSourceValue` via `JSON.stringify`; only set when `lastRunAt` exists and a source token is bound.
+- Added a "Needs re-run" badge (yellow warning triangle + text) and yellow border to `GeneratorPipelineCard` when `generator.isStale && !hasError`. Badge includes a tooltip explaining which source token changed and that re-running will update the output.
+- Files changed:
+  - `packages/core/src/generator-types.ts` ~L303 (TokenGenerator interface)
+  - `packages/server/src/services/generator-service.ts` ~L505 (executeGenerator)
+  - `packages/server/src/routes/generators.ts` ~L317 (GET /api/generators)
+  - `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L163 (TokenGenerator interface)
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L822 (GeneratorPipelineCard)
+- **Learnings for future iterations:**
+  - `updatedAt` on generators changes on any config edit — use a dedicated `lastRunAt` field to track runs separately from config changes.
+  - `isStale` is computed server-side (in the route, not the service) because it needs both the stored `lastRunSourceValue` and the live `tokenStore.resolveToken()` call; keeping it in the route avoids polluting the service with computed presentation state.
+  - The plugin's `useGenerators.ts` defines its own `TokenGenerator` type (not imported from `@tokenmanager/core`) — any new fields added to the core type must also be mirrored there.
+---

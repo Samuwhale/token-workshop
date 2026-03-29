@@ -162,6 +162,16 @@ export interface TokenGenerator {
   targetSetTemplate?: string;
   createdAt: string;
   updatedAt: string;
+  /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
+  lastRunAt?: string;
+  /** Value of the source token at the time of the last successful run. */
+  lastRunSourceValue?: unknown;
+  /**
+   * Computed by the server on each list request.
+   * True when the source token's current value differs from `lastRunSourceValue`.
+   * Only present for generators that have been run at least once and have a sourceToken.
+   */
+  isStale?: boolean;
   /** Set when the last auto-run (triggered by a source token update) failed. Cleared on success. */
   lastRunError?: { message: string; at: string };
 }

@@ -514,6 +514,22 @@ export class GeneratorService {
     }
     // Clear any prior auto-run error on success
     this.generatorErrors.delete(generator.id);
+
+    // Track when the generator was last run and what the source token's value was,
+    // so the UI can detect whether re-running is needed after a source token edit.
+    // We update the in-memory record directly (preserving updatedAt) and persist.
+    const current = this.generators.get(generator.id);
+    if (current) {
+      const runAt = new Date().toISOString();
+      let lastRunSourceValue: unknown = current.lastRunSourceValue;
+      if (generator.sourceToken) {
+        const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(() => null);
+        if (resolved !== null) lastRunSourceValue = resolved.$value;
+      }
+      this.generators.set(generator.id, { ...current, lastRunAt: runAt, lastRunSourceValue });
+      await this.saveGenerators();
+    }
+
     return results;
   }
 

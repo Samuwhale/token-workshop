@@ -820,6 +820,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
+  const isStale = !!generator.isStale && !hasError;
 
   const handleRerun = async () => {
     setRunning(true);
@@ -877,12 +878,25 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
   };
 
   return (
-    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${hasError ? 'border-[var(--color-figma-error)]' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
+    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${hasError ? 'border-[var(--color-figma-error)]' : isStale ? 'border-yellow-400/70' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}
         </span>
         <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate flex-1">{generator.name}</span>
+        {isStale && (
+          <span
+            title={`Source token "${generator.sourceToken}" has changed since this generator last ran. Re-run to update generated tokens.`}
+            className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
+            aria-label="Generator output may be stale"
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Needs re-run
+          </span>
+        )}
         {hasError && (
           <span title={`Auto-run failed: ${generator.lastRunError!.message}`} className="shrink-0 text-[var(--color-figma-error)]" aria-label="Generator auto-run error">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -317,7 +317,16 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/generators — list all generators
   fastify.get('/generators', async (_request, reply) => {
     try {
-      return await fastify.generatorService.getAll();
+      const generators = await fastify.generatorService.getAll();
+      // Compute isStale: source token's current value differs from the value at last run.
+      // Only set for generators that have run at least once and have a sourceToken.
+      return await Promise.all(generators.map(async (gen) => {
+        if (!gen.sourceToken || gen.lastRunAt === undefined) return gen;
+        const resolved = await fastify.tokenStore.resolveToken(gen.sourceToken).catch(() => null);
+        if (resolved === null) return gen;
+        const isStale = JSON.stringify(resolved.$value) !== JSON.stringify(gen.lastRunSourceValue);
+        return { ...gen, isStale };
+      }));
     } catch (err) {
       return handleRouteError(reply, err);
     }

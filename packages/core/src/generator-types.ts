@@ -302,6 +302,14 @@ export interface TokenGenerator {
   targetSetTemplate?: string;
   createdAt: string;
   updatedAt: string;
+  /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
+  lastRunAt?: string;
+  /**
+   * Value of the source token at the time of the last successful run.
+   * Compared against the current source token value to detect staleness.
+   * Absent if the generator has never been run or has no source token.
+   */
+  lastRunSourceValue?: unknown;
 }
 
 // ---------------------------------------------------------------------------
