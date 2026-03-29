@@ -505,3 +505,18 @@
   - ComparePanel's `buildRows` helper can be reused if additional export formats are needed later
   - The existing `fmtValue` and `fmtProp` functions serve double duty for both display and export text
 ---
+
+## 2026-03-29 - ExportPanel "Save to Server" has no preview or collision handling UI
+- Replaced direct `handleSaveToServer` with two-phase flow: `handlePreviewSave` (dry-run) + `handleConfirmSave` (actual save)
+- `handlePreviewSave` fetches existing server sets, computes slugs, detects create-vs-overwrite, sets `savePhase='preview'`
+- Preview panel shows inline in the figma-variables section (replaces collection list during preview): each collection → target slug with CREATE/OVERWRITE badge + var count
+- Slug conflicts (two collections map to the same slug) show editable text inputs with error styling; "Confirm & Save" is disabled until all conflicts resolved
+- Renames are persisted in `slugRenames` state and applied during actual save; cleared on success or cancel
+- New `savePhase: 'idle' | 'preview-loading' | 'preview' | 'saving'` state machine replaces `exporting` boolean for figma-variables mode
+- Footer shows Cancel/Confirm buttons during preview, spinner button during save
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L32-48 (types), ~L147-149 (new state), ~L396-475 (new functions), ~L910-980 (preview JSX), ~L1134 (collection list conditional), ~L1221-1295 (footer buttons)
+- **Learnings for future iterations:**
+  - Two-phase (preview → confirm) UX pattern works well for destructive/overwriting server operations: fetch state first, show diff, then execute
+  - Dynamic conflict detection using `new Map<slug, count>` computed inline in the JSX IIFE keeps the conflict state always current as user renames slugs
+  - Separate `savePhase` state machine is cleaner than `exporting` boolean for multi-step async flows
+---

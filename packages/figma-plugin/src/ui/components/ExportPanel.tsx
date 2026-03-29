@@ -34,7 +34,15 @@ interface ExportedCollection {
   variables: ExportedVariable[];
 }
 
+interface SavePreviewItem {
+  collectionName: string;
+  slug: string;
+  action: 'create' | 'overwrite';
+  varCount: number;
+}
+
 type ExportMode = 'platforms' | 'figma-variables';
+type SavePhase = 'idle' | 'preview-loading' | 'preview' | 'saving';
 
 function buildZipBlob(files: { path: string; content: string }[]): Blob {
   const crcTable = (() => {
@@ -136,6 +144,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  // Save-to-server preview state
+  const [savePhase, setSavePhase] = useState<SavePhase>('idle');
+  const [savePreviewItems, setSavePreviewItems] = useState<SavePreviewItem[]>([]);
+  const [slugRenames, setSlugRenames] = useState<Record<string, string>>({});
 
   // Persist selected platforms
   useEffect(() => {
@@ -384,30 +397,43 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     }
   };
 
-  const handleSaveToServer = async () => {
+  const handlePreviewSave = async () => {
     if (!connected) return;
-    setExporting(true);
+    setSavePhase('preview-loading');
+    setError(null);
+    setSlugRenames({});
+
+    try {
+      const data = await apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`);
+      const existingSlugs = new Set(data.sets || []);
+
+      const items: SavePreviewItem[] = figmaCollections.map(collection => {
+        const slug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        return {
+          collectionName: collection.name,
+          slug,
+          action: existingSlugs.has(slug) ? 'overwrite' : 'create',
+          varCount: collection.variables.length,
+        };
+      });
+
+      setSavePreviewItems(items);
+      setSavePhase('preview');
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setSavePhase('idle');
+    }
+  };
+
+  const handleConfirmSave = async () => {
+    if (!connected) return;
+    setSavePhase('saving');
     setError(null);
 
     try {
-      // Detect slug collisions before saving anything
-      const slugMap = new Map<string, string[]>();
       for (const collection of figmaCollections) {
-        const slug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-        const existing = slugMap.get(slug) ?? [];
-        existing.push(collection.name);
-        slugMap.set(slug, existing);
-      }
-      const collisions = [...slugMap.entries()].filter(([, names]) => names.length > 1);
-      if (collisions.length > 0) {
-        const details = collisions
-          .map(([slug, names]) => `"${names.join('" and "')}" → "${slug}"`)
-          .join('; ');
-        throw new Error(`Collection name collision: ${details}. Rename one collection before saving.`);
-      }
-
-      for (const collection of figmaCollections) {
-        const setName = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        const defaultSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        const setName = slugRenames[collection.name] ?? defaultSlug;
 
         // Ensure set exists
         await apiFetch(`${serverUrl}/api/sets`, {
@@ -458,10 +484,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
       const totalVars = figmaCollections.reduce((sum, c) => sum + c.variables.length, 0);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVars} variables to server` } }, '*');
+      setSavePhase('idle');
+      setSavePreviewItems([]);
+      setSlugRenames({});
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setExporting(false);
+      setSavePhase('idle');
     }
   };
 
@@ -883,8 +911,92 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   </button>
                 </div>
 
+                {/* Save-to-server preview */}
+                {savePhase === 'preview' && (() => {
+                  const effectiveItems = savePreviewItems.map(item => ({
+                    ...item,
+                    effectiveSlug: slugRenames[item.collectionName] ?? item.slug,
+                  }));
+                  const slugCounts = new Map<string, number>();
+                  for (const item of effectiveItems) {
+                    slugCounts.set(item.effectiveSlug, (slugCounts.get(item.effectiveSlug) ?? 0) + 1);
+                  }
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                          Save Preview
+                        </div>
+                        <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                          {savePreviewItems.filter(i => i.action === 'create').length} new &middot;{' '}
+                          {savePreviewItems.filter(i => i.action === 'overwrite').length} overwrite
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {effectiveItems.map(item => {
+                          const isConflict = (slugCounts.get(item.effectiveSlug) ?? 0) > 1;
+                          return (
+                            <div
+                              key={item.collectionName}
+                              className={`flex items-center gap-2 px-2.5 py-2 rounded-md border ${isConflict ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5' : 'border-[var(--color-figma-border)]'}`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
+                                  {item.collectionName}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                  </svg>
+                                  {isConflict ? (
+                                    <input
+                                      type="text"
+                                      value={item.effectiveSlug}
+                                      onChange={e => {
+                                        const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
+                                        setSlugRenames(prev => ({ ...prev, [item.collectionName]: val }));
+                                      }}
+                                      className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] transition-colors"
+                                      spellCheck={false}
+                                      aria-label={`Set name for ${item.collectionName}`}
+                                    />
+                                  ) : (
+                                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                                      {item.effectiveSlug}
+                                    </span>
+                                  )}
+                                </div>
+                                {isConflict && (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)] shrink-0" aria-hidden="true">
+                                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    <span className="text-[9px] text-[var(--color-figma-error)]">Slug conflict — rename to continue</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                  {item.varCount} var{item.varCount !== 1 ? 's' : ''}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                                  item.action === 'overwrite'
+                                    ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
+                                    : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                                }`}>
+                                  {item.action === 'overwrite' ? 'Overwrite' : 'Create'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Collection list */}
-                <div className="flex flex-col gap-1.5">
+                {savePhase !== 'preview' && <div className="flex flex-col gap-1.5">
                   {figmaCollections.map(collection => (
                     <div key={collection.name} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
                       <button
@@ -1020,7 +1132,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       )}
                     </div>
                   ))}
-                </div>
+                </div>}
               </>
             )}
           </>
@@ -1106,7 +1218,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             )}
           </button>
         )}
-        {mode === 'figma-variables' && figmaCollections.length > 0 && (
+        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase !== 'preview' && savePhase !== 'saving' && (
           <>
             <button
               onClick={handleCopyAll}
@@ -1130,21 +1242,56 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               )}
             </button>
             <button
-              onClick={handleSaveToServer}
-              disabled={exporting || !connected}
+              onClick={handlePreviewSave}
+              disabled={savePhase === 'preview-loading' || !connected}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-              title={!connected ? 'Connect to server to save tokens' : 'Create or update tokens in your local token server from these Figma variables'}
+              title={!connected ? 'Connect to server to save tokens' : 'Preview what will be created or overwritten, then confirm'}
             >
-              {exporting ? (
+              {savePhase === 'preview-loading' ? (
                 <>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
                     <path d="M21 12a9 9 0 11-6.219-8.56" />
                   </svg>
-                  Saving…
+                  Checking…
                 </>
-              ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server'}
+              ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server…'}
             </button>
           </>
+        )}
+        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase === 'preview' && (() => {
+          const effectiveSlugs = savePreviewItems.map(item => slugRenames[item.collectionName] ?? item.slug);
+          const slugCounts = new Map<string, number>();
+          for (const s of effectiveSlugs) slugCounts.set(s, (slugCounts.get(s) ?? 0) + 1);
+          const hasConflicts = [...slugCounts.values()].some(c => c > 1);
+          return (
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => { setSavePhase('idle'); setSavePreviewItems([]); setSlugRenames({}); }}
+                className="flex-1 px-3 py-2 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                disabled={hasConflicts}
+                className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+                title={hasConflicts ? 'Resolve slug conflicts before saving' : 'Confirm and save all collections to the token server'}
+              >
+                {hasConflicts ? 'Resolve conflicts first' : 'Confirm & Save'}
+              </button>
+            </div>
+          );
+        })()}
+        {mode === 'figma-variables' && savePhase === 'saving' && (
+          <button
+            disabled
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium opacity-70 flex items-center justify-center gap-1.5"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
+            </svg>
+            Saving…
+          </button>
         )}
       </div>
     </div>
