@@ -19,3 +19,10 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
   → Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag (opacity: isDragging ? 0.8 : 0), not on hover; designers won't know the bars are interactive until they accidentally drag one (TypeScaleStaircaseEditor.tsx:226)
   Worktree: /tmp/backlog-48983-p4emVP
   Running agent… (started 13:36:01)
+
+  ✓ done: Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag
+    Added hoveredStep state; arrows now appear at 0.5 opacity on bar hover (up from 0), with bar fill/opacity transitions also responding to hover
+    23 turns · 138s · $0.4
+
+  Merging to main: Staircase editor drag affordance is undiscoverable — drag arrows only appear during active drag
+Already up to date.

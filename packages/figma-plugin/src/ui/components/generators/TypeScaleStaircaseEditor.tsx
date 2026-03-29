@@ -39,6 +39,7 @@ const GH = H - PAD_T - PAD_B;
 export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: TypeScaleStaircaseEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggingStep, setDraggingStep] = useState<number | null>(null);
+  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [snapLabel, setSnapLabel] = useState<string | null>(null);
 
   const { steps, ratio, baseStep, roundTo, unit } = config;
@@ -159,6 +160,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
           const y = valToY(val);
           const isBase = step.exponent === baseExponent;
           const isDragging = draggingStep === i;
+          const isHovered = hoveredStep === i;
           // Bar width proportional to value
           const bw = Math.max(8, (val / maxVal) * barMaxW);
           const formatted = parseFloat(val.toFixed(roundTo));
@@ -172,10 +174,12 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
                 width={bw}
                 height={barHeight}
                 rx={2}
-                fill={isBase ? 'var(--color-figma-accent)' : isDragging ? 'var(--color-figma-accent)' : 'var(--color-figma-text-secondary)'}
-                opacity={isBase ? 0.8 : isDragging ? 0.7 : 0.3}
-                style={{ cursor: isBase ? 'default' : 'ns-resize' }}
+                fill={isBase ? 'var(--color-figma-accent)' : (isDragging || isHovered) ? 'var(--color-figma-accent)' : 'var(--color-figma-text-secondary)'}
+                opacity={isBase ? 0.8 : isDragging ? 0.7 : isHovered ? 0.6 : 0.3}
+                style={{ cursor: isBase ? 'default' : 'ns-resize', transition: 'opacity 0.12s, fill 0.12s' }}
                 onPointerDown={e => handlePointerDown(i, e)}
+                onPointerEnter={() => !isBase && setHoveredStep(i)}
+                onPointerLeave={() => setHoveredStep(null)}
               />
               {/* Step name label */}
               <text
@@ -223,7 +227,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
               </foreignObject>
               {/* Drag hint arrows for non-base steps */}
               {!isBase && (
-                <g opacity={isDragging ? 0.8 : 0} style={{ transition: 'opacity 0.15s' }}>
+                <g opacity={isDragging ? 0.8 : isHovered ? 0.5 : 0} style={{ transition: 'opacity 0.15s' }}>
                   <path
                     d={`M ${PAD_L + bw / 2} ${y - barHeight / 2 - 6} l -3 4 h 6 z`}
                     fill="var(--color-figma-text-secondary)"
