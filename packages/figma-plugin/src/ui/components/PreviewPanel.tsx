@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 
@@ -119,16 +120,60 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken }:
     return groups;
   }, [allTokensFlat, resolveAlias]);
 
-  // Collect typography tokens grouped by prefix
+  // Collect typography tokens: fontSize entries + sibling fontWeight/lineHeight/letterSpacing/fontFamily
   const typeTokens = useMemo(() => {
-    return Object.entries(allTokensFlat)
-      .filter(([, e]) => e.$type === 'fontSizes' || e.$type === 'fontSize' || e.$type === 'fontsize')
+    const FONT_SIZE_TYPES = new Set(['fontSizes', 'fontSize', 'fontsize']);
+    const entries = Object.entries(allTokensFlat);
+
+    // Build a lookup: parentPath → { propLeaf → [path, entry] }
+    // e.g. "heading.lg" → { "fontSize": ["heading.lg.fontSize", entry], "fontWeight": ... }
+    const siblingMap = new Map<string, Map<string, [string, TokenMapEntry]>>();
+    for (const [path, entry] of entries) {
+      const lastDot = path.lastIndexOf('.');
+      if (lastDot === -1) continue;
+      const parent = path.slice(0, lastDot);
+      const leaf = path.slice(lastDot + 1);
+      if (!siblingMap.has(parent)) siblingMap.set(parent, new Map());
+      siblingMap.get(parent)!.set(leaf, [path, entry]);
+    }
+
+    return entries
+      .filter(([, e]) => FONT_SIZE_TYPES.has(e.$type ?? ''))
       .sort(([a], [b]) => {
-        // Sort by numeric value if present in path name
         const numA = parseFloat(a.split('.').pop() ?? '0');
         const numB = parseFloat(b.split('.').pop() ?? '0');
         if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
         return a.localeCompare(b);
+      })
+      .map(([path, entry]) => {
+        const lastDot = path.lastIndexOf('.');
+        const parent = lastDot !== -1 ? path.slice(0, lastDot) : '';
+        const siblings = siblingMap.get(parent);
+
+        // Find sibling typography properties by $type or by leaf name
+        const findSibling = (types: string[], leafNames: string[]): string | undefined => {
+          if (!siblings) return undefined;
+          // Try by $type first
+          for (const [, [sibPath, sibEntry]] of siblings) {
+            if (sibPath === path) continue;
+            if (types.some(t => sibEntry.$type === t)) return toCssVar(sibPath);
+          }
+          // Fall back to matching leaf name
+          for (const name of leafNames) {
+            const sib = siblings.get(name);
+            if (sib && sib[0] !== path) return toCssVar(sib[0]);
+          }
+          return undefined;
+        };
+
+        return {
+          path,
+          entry,
+          fontWeightVar: findSibling(['fontWeights', 'fontWeight', 'fontweight'], ['fontWeight', 'fontWeights', 'weight']),
+          lineHeightVar: findSibling(['lineHeights', 'lineHeight', 'lineheight'], ['lineHeight', 'lineHeights']),
+          letterSpacingVar: findSibling(['letterSpacing', 'letterspacing'], ['letterSpacing']),
+          fontFamilyVar: findSibling(['fontFamilies', 'fontFamily', 'fontfamily'], ['fontFamily', 'fontFamilies', 'family']),
+        };
       });
   }, [allTokensFlat]);
 
@@ -308,8 +353,17 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
 
 // ─── Type Scale ───────────────────────────────────────────────────────────────
 
+interface TypeScaleEntry {
+  path: string;
+  entry: TokenMapEntry;
+  fontWeightVar?: string;
+  lineHeightVar?: string;
+  letterSpacingVar?: string;
+  fontFamilyVar?: string;
+}
+
 function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavigateToToken }: {
-  typeTokens: [string, TokenMapEntry][];
+  typeTokens: TypeScaleEntry[];
   cssVars: Record<string, string>;
   darkMode: boolean;
   onGoToTokens?: () => void;
@@ -332,20 +386,41 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
   }
   return (
     <div className="p-3 flex flex-col gap-3">
-      {typeTokens.map(([path]) => {
+      {typeTokens.map(({ path, fontWeightVar, lineHeightVar, letterSpacingVar, fontFamilyVar }) => {
         const cssVarName = toCssVar(path);
         const resolvedSize = cssVars[cssVarName] ?? '16px';
         const leafName = path.split('.').pop() ?? path;
+
+        // Build style with all available typography properties
+        const style: CSSProperties = {
+          fontSize: `var(${cssVarName}, 16px)`,
+        };
+        if (fontWeightVar) style.fontWeight = `var(${fontWeightVar})`;
+        if (lineHeightVar) style.lineHeight = `var(${lineHeightVar})`;
+        if (letterSpacingVar) style.letterSpacing = `var(${letterSpacingVar})`;
+        if (fontFamilyVar) style.fontFamily = `var(${fontFamilyVar})`;
+
+        // Collect resolved meta for display
+        const meta: string[] = [resolvedSize];
+        if (fontWeightVar && cssVars[fontWeightVar]) meta.push(cssVars[fontWeightVar]);
+        if (lineHeightVar && cssVars[lineHeightVar]) meta.push(`/${cssVars[lineHeightVar]}`);
+        if (letterSpacingVar && cssVars[letterSpacingVar]) meta.push(`ls:${cssVars[letterSpacingVar]}`);
+        if (fontFamilyVar && cssVars[fontFamilyVar]) meta.push(cssVars[fontFamilyVar]);
+
         return (
-          <div key={path} className="group flex items-baseline gap-3 overflow-hidden">
-            <span className={`text-[10px] w-16 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{resolvedSize}</span>
-            <span
-              className="overflow-hidden text-ellipsis whitespace-nowrap flex-1"
-              style={{ fontSize: `var(${cssVarName}, 16px)` }}
-            >
-              {leafName} — The quick brown fox
-            </span>
-            <span className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div key={path} className="group flex flex-col gap-0.5 overflow-hidden">
+            <div className="flex items-baseline gap-3 overflow-hidden">
+              <span className={`text-[10px] w-24 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>
+                {meta.join(' ')}
+              </span>
+              <span
+                className="overflow-hidden text-ellipsis whitespace-nowrap flex-1"
+                style={style}
+              >
+                {leafName} — The quick brown fox
+              </span>
+            </div>
+            <div className="flex items-center gap-0.5 pl-[calc(6rem+12px)] opacity-0 group-hover:opacity-100 transition-opacity">
               {onNavigateToToken && (
                 <button
                   onClick={() => onNavigateToToken(path)}
@@ -364,7 +439,7 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
               )}
               <CopyButton text={`var(${cssVarName})`} label={cssVarName} darkMode={darkMode} />
               <CopyButton text={resolvedSize} label={resolvedSize} darkMode={darkMode} />
-            </span>
+            </div>
           </div>
         );
       })}

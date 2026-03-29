@@ -482,3 +482,15 @@
   - `lsGet` returns `null` when the key doesn't exist, so `!lsGet(key)` is a clean first-run check
   - Using lazy `useState(() => ...)` initializer avoids reading localStorage on every render
 ---
+
+## 2026-03-29 - PreviewPanel typography template only shows fontSize
+- Type Scale preview now finds sibling tokens (fontWeight, lineHeight, letterSpacing, fontFamily) sharing the same parent path as each fontSize token
+- Preview text applies all found typography properties via CSS vars, giving a realistic combined preview
+- Meta line beside each sample now shows resolved weight, line-height, letter-spacing, and font-family when available
+- Layout adjusted: rows use flex-col to stack the sample text and hover actions; meta column widened from w-16 to w-24
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1 (CSSProperties import), ~L123-172 (typeTokens memo with siblingMap), ~L352-440 (TypeScaleTemplate rewrite with full typography styles)
+- **Learnings for future iterations:**
+  - Token sibling discovery by parent path is effective: for a token at `heading.lg.fontSize`, look up `heading.lg.*` to find fontWeight, lineHeight, etc.
+  - Match siblings both by `$type` (canonical) and by leaf name (fallback for tokens without a type set)
+  - DTCG type names are inconsistent across tools — handle plural forms (fontSizes, fontWeights, lineHeights, fontFamilies) alongside singular
+---
