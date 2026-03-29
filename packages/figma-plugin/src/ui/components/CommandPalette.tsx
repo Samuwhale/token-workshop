@@ -144,6 +144,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(100);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [recent] = useState<RecentEntry[]>(() => loadRecent());
@@ -151,6 +152,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Reset visible count when query changes
+  useEffect(() => {
+    setVisibleCount(100);
+  }, [query]);
 
   // Token search mode: query starts with ">"
   const isTokenMode = query.startsWith('>');
@@ -198,11 +204,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
     const freeText = parsedTokenQuery.text;
     if (!freeText && !hasQualifiers) {
       // No query at all — browse mode
-      return { filteredTokens: base.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: base.length };
+      return { filteredTokens: base.slice(0, visibleCount), totalTokenMatches: base.length };
     }
     if (!freeText) {
       // Qualifiers only, no free text
-      return { filteredTokens: base.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: base.length };
+      return { filteredTokens: base.slice(0, visibleCount), totalTokenMatches: base.length };
     }
     // Free text fuzzy matching on the qualifier-filtered set
     const matched = base
@@ -210,8 +216,8 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
-    return { filteredTokens: matched.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: matched.length };
-  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers, isGroupQuery]);
+    return { filteredTokens: matched.slice(0, visibleCount), totalTokenMatches: matched.length };
+  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers, isGroupQuery, visibleCount]);
 
   // Group search results
   const { filteredGroups, totalGroupMatches } = useMemo(() => {
@@ -219,13 +225,13 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
 
     if (isGroupQuery) {
       // Explicit group: qualifier — filter groups only
-      if (!groupQueryText) return { filteredGroups: groups.slice(0, MAX_TOKEN_BROWSE), totalGroupMatches: groups.length };
+      if (!groupQueryText) return { filteredGroups: groups.slice(0, visibleCount), totalGroupMatches: groups.length };
       const matched = groups
         .map(g => ({ g, score: fuzzyScore(groupQueryText, g.path) }))
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
         .map(({ g }) => g);
-      return { filteredGroups: matched.slice(0, MAX_TOKEN_BROWSE), totalGroupMatches: matched.length };
+      return { filteredGroups: matched.slice(0, visibleCount), totalGroupMatches: matched.length };
     }
 
     // Auto-detect: when free text matches groups, include top matches alongside tokens
@@ -238,7 +244,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
     // Show up to 5 group matches at the top when not using explicit group: qualifier
     const top = matched.slice(0, 5).map(({ g }) => g);
     return { filteredGroups: top, totalGroupMatches: matched.length };
-  }, [isTokenMode, groups, isGroupQuery, groupQueryText, parsedTokenQuery.text, hasQualifiers]);
+  }, [isTokenMode, groups, isGroupQuery, groupQueryText, parsedTokenQuery.text, hasQualifiers, visibleCount]);
 
   // Normal command search
   const filteredCommands = useMemo(() => {
@@ -527,11 +533,24 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
                 </div>
                 );
               })}
-              {(isGroupQuery ? totalGroupMatches : totalTokenMatches) > MAX_TOKEN_BROWSE && (
-                <div className="px-3 py-2 text-center text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                  {MAX_TOKEN_BROWSE} of {isGroupQuery ? totalGroupMatches : totalTokenMatches} shown — refine your search
-                </div>
-              )}
+              {(() => {
+                const total = isGroupQuery ? totalGroupMatches : totalTokenMatches;
+                const shown = isGroupQuery ? filteredGroups.length : filteredTokens.length;
+                if (total <= shown) return null;
+                return (
+                  <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {shown} of {total} shown
+                    </span>
+                    <button
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                      onClick={() => setVisibleCount(c => c + 100)}
+                    >
+                      Load 100 more
+                    </button>
+                  </div>
+                );
+              })()}
             </>
           )}
 

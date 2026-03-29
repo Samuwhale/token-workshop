@@ -264,3 +264,12 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: AnalyticsPanel.load() treats data.tokens (nested DTCG structure) as a flat map via Object.entries() — only root-level entries are analyzed, making the color palette and contrast matrix empty for all real token files with groups
 ---
+
+## 2026-03-29 - Command palette token browse is capped at 100 with no way to see more
+- Added `visibleCount` state (default 100, reset on query change). `filteredTokens`/`filteredGroups` now slice to `visibleCount` instead of the hard-coded `MAX_TOKEN_BROWSE`. Replaced the static "refine your search" footer with an inline "Load 100 more" button + current count label. Also fixed a pre-existing build failure in `PublishPanel.tsx` where the Spinner commit had accidentally inserted 1300+ lines of variable sync content inside `SUB_TABS.map()` — restored from the parent commit and re-applied only the `<Spinner>` import change.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L145-165, ~L192-247, ~L536-553; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (restored + Spinner import)
+- **Learnings for future iterations:**
+  - For paginated lists, tie `visibleCount` state to a `useEffect([query])` reset so filters always start at page 1.
+  - Always run a baseline build check (`node packages/figma-plugin/build.mjs`) before starting work to detect pre-existing failures early.
+  - The Spinner commit used git stash to confirm its build failure was pre-existing, not caused by current edits.
+---

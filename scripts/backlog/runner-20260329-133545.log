@@ -171,3 +171,22 @@ Already up to date.
   ✓ code pass: code-pass
     4 items written to inbox
 Already up to date.
+[main 5d8cb08f] chore(backlog): code pass – code-pass
+ 6 files changed, 31 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 2 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-29 - code-pass
+- Areas explored: packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx, packages/server/src/services/generator-service.ts, packages/figma-plugin/src/ui/hooks/useFigmaSync.ts, packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts, packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts, packages/figma-plugin/src/ui/hooks/useTokens.ts, packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts, packages/figma-plugin/src/ui/hooks/useServerEvents.ts, packages/figma-plugin/src/ui/hooks/useUndo.ts, packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts, packages/figma-plugin/src/ui/components/ThemeManager.tsx, packages/server/src/routes/tokens.ts, packages/server/src/routes/operations.ts, packages/server/src/services/operation-log.ts
+- Found 4 items — written to backlog-inbox.md
+- Notable: AnalyticsPanel.load() treats data.tokens (nested DTCG structure) as a flat map via Object.entries() — only root-level entries are analyzed, making the color palette and contrast matrix empty for all real token files with groups
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  11 queued · 3 in-progress · last took 18m22s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] AnalyticsPanel color analytics silently broken for all nested DTCG tokens — `load()` iterates `Object.entries(data.tokens)` one level deep, treating the nested DTCG tree as a flat map; only root-level entries are analyzed so `allColors`, `allFlatBySet`, `unifiedFlat`, and `allColorTokens` are empty for any real token file organized into groups (the common case), making the color palette, contrast matrix, and all color analytics show nothing; additionally `load().catch` only calls `setLoading(false)` without setting error state, so any token set fetch failure renders an empty panel with no explanation; fix: call `flattenTokenGroup` from `@tokenmanager/core` before building `allFlatBySet`, and add an error state in the catch (packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx ~L211-265)
+  Worktree: /tmp/backlog-47616-mzbRtv
+  Running agent… (started 14:14:40)
