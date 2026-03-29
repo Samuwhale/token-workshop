@@ -4,6 +4,7 @@ import type { TokenMapEntry } from '../../shared/types';
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   onGoToTokens?: () => void;
+  onNavigateToToken?: (path: string) => void;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card';
@@ -76,7 +77,7 @@ function resolveValue(value: unknown, type: string): string {
   return resolved;
 }
 
-export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>('colors');
   const [darkMode, setDarkMode] = useState(false);
 
@@ -187,8 +188,8 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps)
             style={cssVars as React.CSSProperties}
             className={`rounded-lg overflow-hidden ${darkMode ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}
           >
-            {template === 'colors' && <ColorsTemplate groups={colorGroups} darkMode={darkMode} onGoToTokens={onGoToTokens} />}
-            {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} />}
+            {template === 'colors' && <ColorsTemplate groups={colorGroups} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
+            {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
             {template === 'buttons' && <ButtonsTemplate darkMode={darkMode} />}
             {template === 'forms' && <FormsTemplate darkMode={darkMode} />}
             {template === 'card' && <CardTemplate darkMode={darkMode} />}
@@ -203,7 +204,7 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps)
 
 const SWATCHES_COLLAPSED = 16;
 
-function ColorGroup({ group, tokens, darkMode }: { group: string; tokens: { path: string; value: string }[]; darkMode: boolean }) {
+function ColorGroup({ group, tokens, darkMode, onNavigateToToken }: { group: string; tokens: { path: string; value: string }[]; darkMode: boolean; onNavigateToToken?: (path: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const hasMore = tokens.length > SWATCHES_COLLAPSED;
   const visible = expanded ? tokens : tokens.slice(0, SWATCHES_COLLAPSED);
@@ -216,7 +217,7 @@ function ColorGroup({ group, tokens, darkMode }: { group: string; tokens: { path
       </div>
       <div className="flex flex-wrap gap-1.5">
         {visible.map(({ path, value }) => (
-          <SwatchCell key={path} path={path} value={value} darkMode={darkMode} />
+          <SwatchCell key={path} path={path} value={value} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
         ))}
       </div>
       {hasMore && (
@@ -231,7 +232,7 @@ function ColorGroup({ group, tokens, darkMode }: { group: string; tokens: { path
   );
 }
 
-function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean; onGoToTokens?: () => void }) {
+function ColorsTemplate({ groups, darkMode, onGoToTokens, onNavigateToToken }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean; onGoToTokens?: () => void; onNavigateToToken?: (path: string) => void }) {
   const groupEntries = Object.entries(groups);
   if (groupEntries.length === 0) {
     return (
@@ -251,13 +252,13 @@ function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<str
   return (
     <div className="p-3 flex flex-col gap-4">
       {groupEntries.map(([group, tokens]) => (
-        <ColorGroup key={group} group={group} tokens={tokens} darkMode={darkMode} />
+        <ColorGroup key={group} group={group} tokens={tokens} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
       ))}
     </div>
   );
 }
 
-function SwatchCell({ path, value, darkMode }: { path: string; value: string; darkMode: boolean }) {
+function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string; value: string; darkMode: boolean; onNavigateToToken?: (path: string) => void }) {
   const leafName = path.split('.').pop() ?? path;
   const cssVar = toCssVar(path);
   const [copied, setCopied] = useState<string | null>(null);
@@ -282,6 +283,17 @@ function SwatchCell({ path, value, darkMode }: { path: string; value: string; da
             {copied}
           </div>
         )}
+        {onNavigateToToken && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onNavigateToToken(path); }}
+            title={`Go to token: ${path}`}
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
       </div>
       <span
         className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
@@ -296,11 +308,12 @@ function SwatchCell({ path, value, darkMode }: { path: string; value: string; da
 
 // ─── Type Scale ───────────────────────────────────────────────────────────────
 
-function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens }: {
+function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavigateToToken }: {
   typeTokens: [string, TokenMapEntry][];
   cssVars: Record<string, string>;
   darkMode: boolean;
   onGoToTokens?: () => void;
+  onNavigateToToken?: (path: string) => void;
 }) {
   if (typeTokens.length === 0) {
     return (
@@ -333,6 +346,22 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens }: {
               {leafName} — The quick brown fox
             </span>
             <span className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onNavigateToToken && (
+                <button
+                  onClick={() => onNavigateToToken(path)}
+                  title={`Go to token: ${path}`}
+                  className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] transition-colors ${
+                    darkMode
+                      ? 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800'
+                      : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100'
+                  }`}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                  Go to
+                </button>
+              )}
               <CopyButton text={`var(${cssVarName})`} label={cssVarName} darkMode={darkMode} />
               <CopyButton text={resolvedSize} label={resolvedSize} darkMode={darkMode} />
             </span>

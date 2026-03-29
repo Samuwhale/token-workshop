@@ -328,3 +328,14 @@
   - The graph area is already in a scrollable container, so expanding to show all nodes works naturally without additional scroll handling
   - Using a separate `visibleData` memo layer between `graphData` and `layout` keeps the BFS and display concerns cleanly separated
 ---
+
+## 2026-03-29 - PreviewPanel elements don't link back to token definitions
+- Added `onNavigateToToken` prop to PreviewPanel, threaded through ColorsTemplate → ColorGroup → SwatchCell and TypeScaleTemplate
+- Color swatches show a small arrow badge on hover that navigates to the token in the token list
+- Type scale rows show a "Go to" button alongside existing copy buttons on hover
+- App.tsx passes the same cross-set-aware navigation callback used by TokenFlowPanel (handles set switching + pending highlight)
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L4-8, ~L79, ~L190-191, ~L206, ~L219, ~L234, ~L260-305, ~L310, ~L336-352; `packages/figma-plugin/src/ui/App.tsx` ~L1915-1928
+- **Learnings for future iterations:**
+  - The onNavigateToToken pattern (with pathToSet cross-set handling) is reused identically across TokenFlowPanel, SelectionInspector, and now PreviewPanel — could be extracted to a shared callback factory
+  - SwatchCell uses stopPropagation on the navigate button to avoid triggering the copy handler on the parent swatch div
+---

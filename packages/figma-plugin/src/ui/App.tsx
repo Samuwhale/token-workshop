@@ -1912,7 +1912,21 @@ export function App() {
               />
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
-                <PreviewPanel allTokensFlat={allTokensFlat} onGoToTokens={() => navigateTo('define', 'tokens')} />
+                <PreviewPanel
+                  allTokensFlat={allTokensFlat}
+                  onGoToTokens={() => navigateTo('define', 'tokens')}
+                  onNavigateToToken={(path) => {
+                    const targetSet = pathToSet[path];
+                    navigateTo('define', 'tokens');
+                    setEditingToken(null);
+                    if (targetSet && targetSet !== activeSet) {
+                      setActiveSet(targetSet);
+                      setPendingHighlight(path);
+                    } else {
+                      setHighlightedToken(path);
+                    }
+                  }}
+                />
                 </ErrorBoundary>
               </div>
             </div>

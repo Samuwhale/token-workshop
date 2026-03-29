@@ -66,3 +66,10 @@ Already up to date.
   → PreviewPanel elements don't link back to token definitions — clicking a color swatch or type scale item in PreviewPanel.tsx copies the CSS variable value but doesn't offer navigation to the source token in the token list; add a "Go to token" action on preview elements so users can quickly edit the token they're previewing
   Worktree: /tmp/backlog-67173-F2BaX1
   Running agent… (started 07:44:12)
+
+  ✓ done: PreviewPanel elements don't link back to token definitions
+    Added onNavigateToToken callback to PreviewPanel — color swatches show a hover arrow badge and type scale rows show a 'Go to' button that navigate to the source token in the token list, with cross-set support.
+    25 turns · 197s · $1.04
+
+  Merging to main: PreviewPanel elements don't link back to token definitions
+Already up to date.
