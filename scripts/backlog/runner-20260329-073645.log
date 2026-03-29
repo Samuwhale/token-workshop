@@ -251,3 +251,10 @@ Already up to date.
   → sync.ts has ~130 lines of token-diff-building logic copy-pasted 3 times across commit-diff, push-preview, and pull-preview routes — L186-240 (commit diff), L469-514 (push preview), and L539-583 (pull preview) contain identical flatten→compare→diff code; additionally, all 4 git-sync.ts diff methods (L313, L364, L425, L463) use unsafe `status.charAt(0) as 'A' | 'M' | 'D'` which silently miscategorizes git rename (R), copy (C), and type-change (T) statuses; extract a shared `buildTokenDiff(fileDiffs)` helper and add proper status validation/mapping
   Worktree: /tmp/backlog-67697-Zllrix
   Running agent… (started 08:07:20)
+
+  ✓ done: Extract shared buildTokenDiff helper and fix unsafe git status parsing
+    Extracted buildTokenDiff() in sync.ts replacing 4 identical ~55-line blocks, and added normalizeGitStatus()/parseStatusLine() in git-sync.ts to properly handle R/C/T/U git statuses instead of unsafe charAt(0) casts
+    25 turns · 171s · $1.08
+
+  Merging to main: Extract shared buildTokenDiff helper and fix unsafe git status parsing
+Already up to date.

@@ -508,3 +508,13 @@
   - Atomic write (tmp + rename) is strictly better than write guards around `writeFile` — it eliminates partial reads entirely and makes the guard window negligible
   - `resolver-store.ts` was missing `_clearWriteGuard` that `token-store.ts` already had — when fixing a pattern in one store, check the other store for the same issue
 ---
+
+## 2026-03-29 - Extract shared buildTokenDiff helper and fix unsafe git status parsing
+- Extracted `buildTokenDiff(fileDiffs)` helper in `sync.ts` to replace 4 identical flatten→compare→diff blocks (~55 lines each → 1 function call each)
+- Added `normalizeGitStatus(raw)` and `parseStatusLine(line)` helpers in `git-sync.ts` to properly handle git rename (R), copy (C), type-change (T), and unmerged (U) statuses instead of unsafe `status.charAt(0) as 'A' | 'M' | 'D'` casts
+- `parseStatusLine` also handles R/C lines that have two tab-separated paths (old\tnew) by extracting the destination path
+- Unknown/broken statuses (X, B) are skipped instead of silently miscategorized
+- Files changed: `packages/server/src/routes/sync.ts` ~L7-68 (new helper), ~L253, ~L471, ~L483, ~L497 (4 call sites replaced); `packages/server/src/services/git-sync.ts` ~L6-40 (new helpers), ~L344-353, ~L395-404, ~L456-465, ~L494-503 (4 call sites updated)
+- **Learnings for future iterations:**
+  - Git `--name-status` output for rename/copy has format `R100\told_path\tnew_path` with a similarity score suffix on the status letter — always use `charAt(0)` not the full status string for the letter, and check for 3+ tab-separated parts for R/C
+---

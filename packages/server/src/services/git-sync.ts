@@ -2,6 +2,42 @@ import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+/**
+ * Normalize a git status letter to one of A, M, D.
+ * Git diff/diff-tree can emit: A (added), M (modified), D (deleted),
+ * R (rename), C (copy), T (type-change), U (unmerged), X/B (broken).
+ * Rename and copy are treated as additions of the destination file.
+ * Type-change and unmerged are treated as modifications.
+ * Unknown/broken statuses return null (skip the entry).
+ */
+function normalizeGitStatus(raw: string): 'A' | 'M' | 'D' | null {
+  const ch = raw.charAt(0);
+  switch (ch) {
+    case 'A': return 'A';
+    case 'D': return 'D';
+    case 'M': case 'T': case 'U': return 'M';
+    case 'R': case 'C': return 'A'; // destination file is new/copied
+    default: return null;
+  }
+}
+
+/**
+ * Parse a git --name-status line into status + file path.
+ * Handles rename (R100\told\tnew) and copy (C100\told\tnew) lines
+ * which have two path columns — we use the destination path.
+ */
+function parseStatusLine(line: string): { status: string; filePath: string } | null {
+  const parts = line.split('\t');
+  if (parts.length < 2) return null;
+  const status = parts[0];
+  const ch = status.charAt(0);
+  // R and C statuses have: R100\told_path\tnew_path
+  if ((ch === 'R' || ch === 'C') && parts.length >= 3) {
+    return { status, filePath: parts[parts.length - 1] };
+  }
+  return { status, filePath: parts.slice(1).join('\t') };
+}
+
 /** Result of applyDiffChoices with partial-failure details. */
 export interface ApplyDiffResult {
   /** Files that failed to checkout from remote during pull. */
@@ -307,11 +343,13 @@ export class GitSync {
     const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
 
     for (const line of lines) {
-      const [status, ...pathParts] = line.split('\t');
-      const filePath = pathParts.join('\t');
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+      const { filePath } = parsed;
       if (!filePath.endsWith('.tokens.json')) continue;
 
-      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const s = normalizeGitStatus(parsed.status);
+      if (!s) continue;
       const after = s !== 'D' ? await this.showFileAtCommit(commitHash, filePath) : null;
       const before = s !== 'A' ? await this.showFileAtCommit(`${commitHash}~1`, filePath) : null;
       results.push({ file: filePath, status: s, before, after });
@@ -358,11 +396,13 @@ export class GitSync {
     const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
 
     for (const line of lines) {
-      const [status, ...pathParts] = line.split('\t');
-      const filePath = pathParts.join('\t');
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+      const { filePath } = parsed;
       if (!filePath.endsWith('.tokens.json')) continue;
 
-      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const s = normalizeGitStatus(parsed.status);
+      if (!s) continue;
       const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
       let after: string | null = null;
       if (s !== 'D') {
@@ -419,11 +459,13 @@ export class GitSync {
     const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
 
     for (const line of lines) {
-      const [status, ...pathParts] = line.split('\t');
-      const filePath = pathParts.join('\t');
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+      const { filePath } = parsed;
       if (!filePath.endsWith('.tokens.json')) continue;
 
-      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const s = normalizeGitStatus(parsed.status);
+      if (!s) continue;
       const before = s !== 'A' ? await this.showFileAtCommit(remote, filePath) : null;
       const after = s !== 'D' ? await this.showFileAtCommit('HEAD', filePath) : null;
       fileDiffs.push({ file: filePath, status: s, before, after });
@@ -457,11 +499,13 @@ export class GitSync {
     const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
 
     for (const line of lines) {
-      const [status, ...pathParts] = line.split('\t');
-      const filePath = pathParts.join('\t');
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+      const { filePath } = parsed;
       if (!filePath.endsWith('.tokens.json')) continue;
 
-      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const s = normalizeGitStatus(parsed.status);
+      if (!s) continue;
       // "before" = current local state (HEAD), "after" = what remote has
       const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
       const after = s !== 'D' ? await this.showFileAtCommit(remote, filePath) : null;

@@ -221,3 +221,12 @@ Already up to date.
 
   Merging to main: resolver-store.ts write guard starts BEFORE the actual file write
 Already up to date.
+[main 0955ea4] chore(backlog): done – resolver-store.ts write guard starts BEFORE the actual file write
+ 11 files changed, 92 insertions(+), 33 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 855 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

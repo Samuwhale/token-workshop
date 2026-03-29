@@ -283,3 +283,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 68874) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  9 new item(s) available — continuing.
+  → PublishPanel diff filter text resets when switching sections — if a user types a filter string in the Variables diff view, then clicks "Styles" or "Git" and returns, the filter is cleared; since all three sections share the same token namespace, the filter should persist across section switches (PublishPanel.tsx ~L63, `diffFilter` is unkeyed local state)
+  Worktree: /tmp/backlog-69179-jfd245
+  Running agent… (started 08:10:13)
