@@ -452,3 +452,15 @@
 - **Learnings for future iterations:**
   - Command palette entry IDs (e.g., 'heatmap', 'export') coincidentally matched old overflow panel values but are unrelated — they use `navigateTo()` not `openOverflowPanel()`
 ---
+
+## 2026-03-29 - SelectionInspector has no property-level filter
+- Added a property filter bar to SelectionInspector with text search (by property name/label) and four quick-filter chips: Bound, Unbound, Colors, Dimensions
+- Filter bar appears between the sync controls and the property list when there are visible properties
+- Chips toggle on/off; text search matches against both display labels and internal property names
+- When filter produces no matches, shows "No properties match filter" with a clear button
+- Filter state resets when selection changes
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L197 (state), ~L300 (reset on selection change), ~L595-630 (matchesPropFilter helper + isFilterActive), ~L770-810 (filter bar UI), ~L875 (filter applied to visibleProps), ~L920-935 (no-match empty state)
+- **Learnings for future iterations:**
+  - The property groups rendering already had a visibility filter (binding or value present); adding the user filter was a simple additional `.filter()` call in the same pipeline
+  - Quick-filter chips that toggle (click active chip to deselect back to "all") feel more natural than a dropdown for a small fixed set of categories
+---

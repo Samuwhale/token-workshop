@@ -195,6 +195,10 @@ export function SelectionInspector({
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showLayerSearch, setShowLayerSearch] = useState(false);
 
+  // Property filter state
+  const [propFilter, setPropFilter] = useState('');
+  const [propFilterMode, setPropFilterMode] = useState<'all' | 'bound' | 'unbound' | 'colors' | 'dimensions'>('all');
+
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
     property: BindableProperty;
@@ -297,6 +301,8 @@ export function SelectionInspector({
       setShowExtractPanel(false);
       setBindingErrors({});
       setPeerSuggestion(null);
+      setPropFilter('');
+      setPropFilterMode('all');
     }
   }, [selectedNodes]);
 
@@ -586,6 +592,36 @@ export function SelectionInspector({
     });
   });
 
+  // Property filter helpers
+  const COLOR_PROPS = new Set<BindableProperty>(['fill', 'stroke']);
+  const DIMENSION_PROPS = new Set<BindableProperty>([
+    'width', 'height', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'itemSpacing', 'cornerRadius', 'strokeWeight',
+  ]);
+
+  const matchesPropFilter = (prop: BindableProperty): boolean => {
+    // Text search
+    if (propFilter) {
+      const label = PROPERTY_LABELS[prop].toLowerCase();
+      const q = propFilter.toLowerCase();
+      if (!label.includes(q) && !prop.toLowerCase().includes(q)) return false;
+    }
+    // Mode filter
+    if (propFilterMode === 'bound') {
+      const binding = getBindingForProperty(rootNodes, prop);
+      return !!binding;
+    }
+    if (propFilterMode === 'unbound') {
+      const binding = getBindingForProperty(rootNodes, prop);
+      return !binding;
+    }
+    if (propFilterMode === 'colors') return COLOR_PROPS.has(prop);
+    if (propFilterMode === 'dimensions') return DIMENSION_PROPS.has(prop);
+    return true;
+  };
+
+  const isFilterActive = propFilter !== '' || propFilterMode !== 'all';
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header bar */}
@@ -761,6 +797,49 @@ export function SelectionInspector({
         />
       )}
 
+      {/* Property filter bar */}
+      {hasVisibleProperties && (
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
+          <div className="relative flex-1 min-w-0">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] pointer-events-none" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={propFilter}
+              onChange={e => setPropFilter(e.target.value)}
+              placeholder="Filter properties…"
+              aria-label="Filter properties"
+              className="w-full pl-5 pr-5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            {propFilter && (
+              <button
+                onClick={() => setPropFilter('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                aria-label="Clear filter"
+              >
+                <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {(['bound', 'unbound', 'colors', 'dimensions'] as const).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setPropFilterMode(prev => prev === mode ? 'all' : mode)}
+              className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
+                propFilterMode === mode
+                  ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
+                  : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              {mode === 'bound' ? 'Bound' : mode === 'unbound' ? 'Unbound' : mode === 'colors' ? 'Colors' : 'Dims'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-1 pb-1">
         {!hasVisibleProperties && totalBindings === 0 ? (
@@ -789,7 +868,8 @@ export function SelectionInspector({
             const visibleProps = group.properties.filter(prop => {
               const binding = getBindingForProperty(rootNodes, prop);
               const value = getCurrentValue(rootNodes, prop);
-              return binding || value !== undefined;
+              if (!binding && value === undefined) return false;
+              return matchesPropFilter(prop);
             });
 
             if (visibleProps.length === 0) return null;
@@ -830,6 +910,24 @@ export function SelectionInspector({
               </div>
             );
           })}
+          {isFilterActive && !PROPERTY_GROUPS.some(group =>
+            shouldShowGroup(group.condition, caps) &&
+            group.properties.some(prop => {
+              const binding = getBindingForProperty(rootNodes, prop);
+              const value = getCurrentValue(rootNodes, prop);
+              return (binding || value !== undefined) && matchesPropFilter(prop);
+            })
+          ) && (
+            <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties match filter</p>
+              <button
+                onClick={() => { setPropFilter(''); setPropFilterMode('all'); }}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
           </div>
         )}
 
