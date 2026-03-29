@@ -147,3 +147,10 @@ Already up to date.
   → resolver.ts `$extends` merge is type-unsafe and silently drops inheritance for non-object values — L307-316 only merge when both base and override are non-null non-array objects; if a composite token (typography, shadow) overrides a single sub-property via `$value: { fontSize: "18px" }` but the base resolved to a primitive (e.g., due to a resolution error), the entire base is silently discarded instead of producing an error; conversely, if the override is a primitive string but extends a composite base, the base is silently dropped; add type-matching validation between base and extending token's `$type` to catch these mismatches during resolution rather than producing silently wrong output
   Worktree: /tmp/backlog-69179-ep946T
   Running agent… (started 07:56:42)
+
+  ✓ done: resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
+    Added three validation checks (composite type gate, type-match gate, object-value gate) to $extends merge in resolver.ts; each mismatch now throws a descriptive error instead of silently dropping values. Added 6 test cases.
+    28 turns · 148s · $0.77
+
+  Merging to main: resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
+Already up to date.

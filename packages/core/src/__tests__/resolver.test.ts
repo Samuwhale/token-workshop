@@ -472,4 +472,136 @@ describe('TokenResolver', () => {
       expect(stops[1].color).toBe('#0000ff');
     });
   });
+
+  describe('$extends inheritance', () => {
+    function makeExtendingToken(
+      value: Token['$value'],
+      type: Token['$type'],
+      extendsPath: string,
+    ): Token {
+      return {
+        $value: value,
+        $type: type,
+        $extensions: { tokenmanager: { extends: extendsPath } },
+      };
+    }
+
+    it('merges composite typography tokens via $extends', () => {
+      const tokens: Record<string, Token> = {
+        'typo.base': {
+          $value: { fontFamily: 'Inter', fontSize: '16px', fontWeight: 400 },
+          $type: 'typography',
+        },
+        'typo.heading': makeExtendingToken(
+          { fontSize: '24px', fontWeight: 700 },
+          'typography',
+          'typo.base',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('typo.heading');
+
+      expect(result.$value).toEqual({
+        fontFamily: 'Inter',
+        fontSize: '24px',
+        fontWeight: 700,
+      });
+    });
+
+    it('throws when base token is not a composite type', () => {
+      const tokens: Record<string, Token> = {
+        'colors.red': makeToken('#ff0000', 'color'),
+        'colors.alias': makeExtendingToken('#ff0000', 'color', 'colors.red'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('colors.alias')).toThrow(
+        /not a composite type/,
+      );
+    });
+
+    it('throws when extending token type does not match base type', () => {
+      const tokens: Record<string, Token> = {
+        'typo.base': {
+          $value: { fontFamily: 'Inter', fontSize: '16px' },
+          $type: 'typography',
+        },
+        'border.weird': makeExtendingToken(
+          { color: '#000', width: '1px', style: 'solid' },
+          'border',
+          'typo.base',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('border.weird')).toThrow(
+        /types do not match/,
+      );
+    });
+
+    it('throws when base value resolved to a non-object (e.g., resolution error produced a primitive)', () => {
+      // Simulate a base token that has a composite type but whose value resolved to a string
+      // (this can happen if the base's $value is a reference to a primitive token)
+      const tokens: Record<string, Token> = {
+        'primitives.name': makeToken('Inter', 'string'),
+        'typo.base': {
+          $value: '{primitives.name}',
+          $type: 'typography',
+        },
+        'typo.child': makeExtendingToken(
+          { fontSize: '18px' },
+          'typography',
+          'typo.base',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('typo.child')).toThrow(
+        /base token's resolved value is not an object/,
+      );
+    });
+
+    it('throws when extending token value is a primitive but base is composite', () => {
+      const tokens: Record<string, Token> = {
+        'typo.base': {
+          $value: { fontFamily: 'Inter', fontSize: '16px' },
+          $type: 'typography',
+        },
+        'typo.broken': makeExtendingToken(
+          'some-string-value',
+          'typography',
+          'typo.base',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('typo.broken')).toThrow(
+        /own resolved value is not an object/,
+      );
+    });
+
+    it('merges border tokens via $extends', () => {
+      const tokens: Record<string, Token> = {
+        'border.base': {
+          $value: { color: '#000000', width: '1px', style: 'solid' },
+          $type: 'border',
+        },
+        'border.accent': makeExtendingToken(
+          { color: '#0066ff' },
+          'border',
+          'border.base',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('border.accent');
+
+      expect(result.$value).toEqual({
+        color: '#0066ff',
+        width: '1px',
+        style: 'solid',
+      });
+    });
+  });
 });

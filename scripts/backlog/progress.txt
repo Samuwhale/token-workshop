@@ -558,3 +558,14 @@
   - `.catch(() => {})` on promise chains (clipboard, fetch) are just as problematic as bare `catch {}` — grep for both patterns
   - Plugin sandbox (variableSync rollback) catches are intentionally defensive — warn level is appropriate since they only fire during error recovery
 ---
+
+## 2026-03-29 - resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
+- Added type-matching validation to the `$extends` merge logic in `TokenResolver.dfs()` (L297-340)
+- Three new validation checks before merging: (1) base token must be a composite type, (2) extending token's `$type` must match base's `$type`, (3) both resolved values must be objects
+- Each mismatch now throws a descriptive error instead of silently dropping the base or override
+- Added 6 new test cases covering: successful merge, non-composite base type error, type mismatch error, primitive base value error, primitive override value error, and border merge
+- Files changed: `packages/core/src/resolver.ts` ~L297-340, `packages/core/src/__tests__/resolver.test.ts` ~L475-580
+- **Learnings for future iterations:**
+  - `COMPOSITE_TOKEN_TYPES` in `constants.ts` is the canonical set of types that support `$extends` — use it for validation rather than checking value shapes
+  - The `resolveType` method already handles inheriting `$type` from the extends base, so `$type` is always resolved before the merge logic runs
+---

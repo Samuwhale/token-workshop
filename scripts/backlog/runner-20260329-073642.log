@@ -78,3 +78,19 @@ Already up to date.
 
   Merging to main: Audit bare catch {} blocks and add error logging
 Already up to date.
+[main 5e6564c] chore(backlog): done – Audit bare catch {} blocks and add error logging
+ 48 files changed, 280 insertions(+), 153 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Audit bare catch {} blocks and add error logging
+- Added `logCatch()` helper to `utils.ts` for standardized error logging
+- Fixed ~100 bare `catch {}` blocks across 41 files (37 UI + 4 plugin)
+- Logging levels: `console.debug` for storage/regex/JSON-parse (expected failures), `console.warn` for API/network/clipboard operations
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  0 queued · 2 in-progress · last took 12m24s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

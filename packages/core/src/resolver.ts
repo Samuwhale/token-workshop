@@ -303,17 +303,41 @@ export class TokenResolver {
             `Token "${path}" extends "${extendsPath}" but that token could not be found or resolved.`,
           );
         }
-        // Only merge if the base value is an object (composite token)
-        if (
-          typeof baseResolved.$value === 'object' &&
-          baseResolved.$value !== null &&
-          !Array.isArray(baseResolved.$value) &&
-          typeof resolvedValue === 'object' &&
-          resolvedValue !== null &&
-          !Array.isArray(resolvedValue)
-        ) {
-          resolvedValue = { ...(baseResolved.$value as Record<string, unknown>), ...(resolvedValue as Record<string, unknown>) };
+
+        // Validate that the base token is a composite type that supports $extends
+        if (!COMPOSITE_TOKEN_TYPES.has(baseResolved.$type)) {
+          throw new Error(
+            `Token "${path}" extends "${extendsPath}" but the base token's type "${baseResolved.$type}" ` +
+            `is not a composite type. Only composite types (${[...COMPOSITE_TOKEN_TYPES].join(', ')}) support $extends.`,
+          );
         }
+
+        // Validate type compatibility between base and extending token
+        if ($type !== baseResolved.$type) {
+          throw new Error(
+            `Token "${path}" (type "${$type}") extends "${extendsPath}" (type "${baseResolved.$type}") ` +
+            `but their types do not match. The extending token must have the same type as its base.`,
+          );
+        }
+
+        // Validate that both values are objects — composite types must resolve to objects
+        const baseIsObject = typeof baseResolved.$value === 'object' && baseResolved.$value !== null && !Array.isArray(baseResolved.$value);
+        const overrideIsObject = typeof resolvedValue === 'object' && resolvedValue !== null && !Array.isArray(resolvedValue);
+
+        if (!baseIsObject) {
+          throw new Error(
+            `Token "${path}" extends "${extendsPath}" but the base token's resolved value is not an object. ` +
+            `Expected a composite object value for type "${baseResolved.$type}".`,
+          );
+        }
+        if (!overrideIsObject) {
+          throw new Error(
+            `Token "${path}" extends "${extendsPath}" but its own resolved value is not an object. ` +
+            `Expected a composite object value for type "${$type}".`,
+          );
+        }
+
+        resolvedValue = { ...(baseResolved.$value as Record<string, unknown>), ...(resolvedValue as Record<string, unknown>) };
       }
 
       // Apply color modifiers if present
