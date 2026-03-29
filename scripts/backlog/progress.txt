@@ -92,3 +92,9 @@
 - **Learnings for future iterations:**
   - Block-scoped `const` inside an `if` branch silently shadows outer `useMemo` values — TypeScript won't warn because the variable is valid in its own scope. The fix is simply to delete the inner declaration and let the memo flow through.
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: App.tsx (tab structure), TokenList.tsx, ThemeManager.tsx, GraphPanel.tsx, ColorRampGenerator.tsx, BezierCurveEditor.tsx, ExportPanel.tsx, ImportPanel.tsx, CommandPalette.tsx, HistoryPanel.tsx, PublishPanel.tsx, backlog.md (full), backlog-inbox.md, packages/server/src/routes/
+- Found 12 items — written to backlog-inbox.md
+- Notable: Figma Variables export can permanently lock the ExportPanel if the plugin context doesn't respond — no timeout or error recovery. Also, color ramp generators produce steps with no WCAG contrast preview, forcing users to leave the generator and use the analytics panel separately.
+---
