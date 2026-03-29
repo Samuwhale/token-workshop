@@ -317,3 +317,10 @@ Already up to date.
   → Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button; users must manually identify and re-import the failures with no tooling support (ImportPanel.tsx ~L870-874)
   Worktree: /tmp/backlog-48983-8F3lmC
   Running agent… (started 14:09:19)
+
+  ✓ done: Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button
+    Added "Retry failed" and "Copy paths" buttons to the import failure section; also fixed a pre-existing PublishPanel.tsx build failure (broken Section accordion structure from a prior commit)
+    95 turns · 835s · $3.41
+
+  Merging to main: Import failed tokens have no recovery action — when some tokens fail to import, failedImportPaths is tracked but the UI only shows a count with no "Retry failed" or "Copy failed paths" button
+Already up to date.

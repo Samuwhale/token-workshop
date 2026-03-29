@@ -162,7 +162,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const tailwindFileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
+  const [failedImportBatches, setFailedImportBatches] = useState<{ setName: string; tokens: Record<string, unknown>[] }[]>([]);
+  const [failedImportStrategy, setFailedImportStrategy] = useState<'overwrite' | 'skip'>('overwrite');
   const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
+  const [retrying, setRetrying] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [conflictExistingValues, setConflictExistingValues] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
   const [conflictDecisions, setConflictDecisions] = useState<Map<string, 'accept' | 'reject'>>(new Map());
@@ -639,9 +643,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setImporting(true);
     setError(null);
     setFailedImportPaths([]);
+    setFailedImportBatches([]);
+    setFailedImportStrategy(strategy);
     let importedSets = 0;
     let importedTokens = 0;
     const failedPaths: string[] = [];
+    const failedBatches: { setName: string; tokens: Record<string, unknown>[] }[] = [];
     const rollbackEntries: { setName: string; paths: string[] }[] = [];
     try {
       const allModes = collectionData.flatMap(col =>
@@ -690,7 +697,15 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           }
         } catch (err) {
           console.warn('[ImportPanel] failed to import token batch:', err);
+          const batchTokens = mode.tokens.map(t => {
+            const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+            if (t.$description) tok.$description = t.$description;
+            if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
+            tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: 'figma-variables' } };
+            return tok;
+          });
           for (const t of mode.tokens) failedPaths.push(t.path);
+          failedBatches.push({ setName, tokens: batchTokens });
         }
         importedSets++;
         setImportProgress({ done: importedSets, total: allModes.length });
@@ -706,7 +721,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       if (firstSet) onImportComplete(firstSet);
       setCollectionData([]);
       setSource(null);
-      if (failedCount > 0) { setFailedImportPaths(failedPaths); setSucceededImportCount(importedTokens); }
+      if (failedCount > 0) { setFailedImportPaths(failedPaths); setFailedImportBatches(failedBatches); setSucceededImportCount(importedTokens); }
       if (rollbackEntries.length > 0) setLastImport({ entries: rollbackEntries });
       const successMsg = failedCount > 0
         ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
@@ -834,12 +849,76 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       setLastImport(null);
       setSuccessMessage(null);
       setFailedImportPaths([]);
+      setFailedImportBatches([]);
       setSucceededImportCount(0);
     } catch (err) {
       setError(`Undo failed: ${getErrorMessage(err)}`);
     } finally {
       setUndoing(false);
     }
+  };
+
+  const handleRetryFailed = async () => {
+    if (failedImportBatches.length === 0 || retrying) return;
+    setRetrying(true);
+    setError(null);
+    const stillFailed: string[] = [];
+    const stillFailedBatches: { setName: string; tokens: Record<string, unknown>[] }[] = [];
+    let retried = 0;
+    try {
+      for (const batch of failedImportBatches) {
+        try {
+          const { imported } = await apiFetch<{ imported: number; skipped: number }>(
+            `${serverUrl}/api/tokens/${encodeURIComponent(batch.setName)}/batch`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tokens: batch.tokens, strategy: failedImportStrategy }),
+            },
+          );
+          retried += imported;
+        } catch (err) {
+          console.warn('[ImportPanel] retry failed for batch:', batch.setName, err);
+          for (const t of batch.tokens) stillFailed.push(t.path as string);
+          stillFailedBatches.push(batch);
+        }
+      }
+      if (stillFailed.length === 0) {
+        setFailedImportPaths([]);
+        setFailedImportBatches([]);
+        setSucceededImportCount(prev => prev + retried);
+        setSuccessMessage(prev => prev ? `${prev} (${retried} recovered on retry)` : `Recovered ${retried} token${retried !== 1 ? 's' : ''} on retry`);
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Retried: ${retried} tokens imported` } }, '*');
+      } else {
+        setFailedImportPaths(stillFailed);
+        setFailedImportBatches(stillFailedBatches);
+        setSucceededImportCount(prev => prev + retried);
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Retry: ${retried} recovered, ${stillFailed.length} still failed` } }, '*');
+      }
+      onImported();
+    } catch (err) {
+      setError(`Retry failed: ${getErrorMessage(err)}`);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleCopyFailedPaths = () => {
+    if (failedImportPaths.length === 0) return;
+    navigator.clipboard.writeText(failedImportPaths.join('\n')).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    }).catch(() => {
+      // Fallback: select all text in a temporary textarea
+      const ta = document.createElement('textarea');
+      ta.value = failedImportPaths.join('\n');
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    });
   };
 
   const handleImportStyles = async () => {
@@ -1102,13 +1181,33 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             <div role="status" aria-live="polite" className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
             {failedImportPaths.length > 0 && (
               <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-                <div className="flex items-center gap-3 mb-1.5">
-                  <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
-                    ✓ {succeededImportCount} succeeded
-                  </span>
-                  <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
-                    ✗ {failedImportPaths.length} failed
-                  </span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
+                      ✓ {succeededImportCount} succeeded
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
+                      ✗ {failedImportPaths.length} failed
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCopyFailedPaths}
+                      title="Copy all failed paths to clipboard"
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    >
+                      {copyFeedback ? '✓ Copied' : 'Copy paths'}
+                    </button>
+                    {failedImportBatches.length > 0 && (
+                      <button
+                        onClick={handleRetryFailed}
+                        disabled={retrying}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+                      >
+                        {retrying ? 'Retrying…' : 'Retry failed'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {failedImportPaths.slice(0, 5).map(p => (
@@ -1131,7 +1230,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 </button>
               )}
               <button
-                onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); setSucceededImportCount(0); setLastImport(null); }}
+                onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); setFailedImportBatches([]); setSucceededImportCount(0); setLastImport(null); }}
                 className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
               >
                 Import more
