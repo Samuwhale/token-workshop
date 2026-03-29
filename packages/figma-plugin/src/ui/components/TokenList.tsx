@@ -7,7 +7,6 @@ import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { CrossThemeComparePanel } from './CrossThemeComparePanel';
-import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
@@ -17,8 +16,8 @@ import {
   formatDisplayPath, nodeParentPath, flattenVisible,
   pruneDeletedPaths, filterByDuplicatePaths, filterTokenNodes,
   sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths,
-  flattenLeafNodes, findLeafByPath, findGroupByPath,
-  buildZoomBreadcrumb, collectGroupLeaves, getDefaultValue,
+  flattenLeafNodes, findGroupByPath,
+  buildZoomBreadcrumb, getDefaultValue,
   hasStructuredQualifiers, parseStructuredQuery, QUERY_QUALIFIERS,
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
@@ -38,6 +37,9 @@ import { useTokenCreate } from '../hooks/useTokenCreate';
 import { useTableCreate } from '../hooks/useTableCreate';
 import { useFindReplace } from '../hooks/useFindReplace';
 import { useDragDrop } from '../hooks/useDragDrop';
+import { useGroupOperations } from '../hooks/useGroupOperations';
+import { useTokenPromotion } from '../hooks/useTokenPromotion';
+import { useTokenCrud } from '../hooks/useTokenCrud';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -52,14 +54,9 @@ export function TokenList({
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
   const [varDiffPending, setVarDiffPending] = useState<{ added: number; modified: number; unchanged: number; flat: any[] } | null>(null);
   const [varDiffLoading, setVarDiffLoading] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
-  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null>(null);
-  const [renameGroupConfirm, setRenameGroupConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null>(null);
-  const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
-  const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
+  const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
@@ -68,15 +65,8 @@ export function TokenList({
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [compareAcrossThemesPath, setCompareAcrossThemesPath] = useState<string | null>(null);
-  const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
-  const [promoteBusy, setPromoteBusy] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
-
-  // New-group dialog: null = closed, string = parent path ('' = root level)
-  const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupError, setNewGroupError] = useState('');
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
@@ -914,54 +904,89 @@ export function TokenList({
     handleDropOnGroup, handleDropReorder,
   } = dragDrop;
 
-  const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
-    if (!connected || !serverUrl || !setName) return;
-    const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
-    const siblings = siblingOrderMap.get(parentPath) ?? [];
-    const idx = siblings.indexOf(nodeName);
-    if (idx < 0) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= siblings.length) return;
-    const newOrder = [...siblings];
-    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
-    const prevOrder = [...siblings];
-    setOperationLoading('Reordering…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-      });
-      if (onPushUndo) {
-        const capturedSet = setName;
-        const capturedUrl = serverUrl;
-        onPushUndo({
-          description: `Reorder "${nodeName}"`,
-          restore: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
-            });
-            onRefresh();
-          },
-          redo: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
-            });
-            onRefresh();
-          },
-        });
-      }
-      onRefresh();
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Reorder failed: network error');
-    } finally {
-      setOperationLoading(null);
-    }
-  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError]);
+  const groupOps = useGroupOperations({
+    connected,
+    serverUrl,
+    setName,
+    sets,
+    siblingOrderMap,
+    onRefresh,
+    onPushUndo,
+    onSetOperationLoading: setOperationLoading,
+    onError,
+  });
+  const {
+    renameGroupConfirm, setRenameGroupConfirm,
+    newGroupDialogParent, setNewGroupDialogParent,
+    newGroupName, setNewGroupName,
+    newGroupError, setNewGroupError,
+    movingGroup, setMovingGroup,
+    copyingGroup, setCopyingGroup,
+    moveGroupTargetSet, setMoveGroupTargetSet,
+    copyGroupTargetSet, setCopyGroupTargetSet,
+    executeGroupRename, handleRenameGroup,
+    handleRequestMoveGroup, handleConfirmMoveGroup,
+    handleRequestCopyGroup, handleConfirmCopyGroup,
+    handleDuplicateGroup, handleUpdateGroupMeta,
+    handleCreateGroup, handleMoveTokenInGroup,
+  } = groupOps;
+
+  const tokenCrud = useTokenCrud({
+    connected,
+    serverUrl,
+    setName,
+    sets,
+    tokens,
+    allTokensFlat,
+    perSetFlat,
+    onRefresh,
+    onPushUndo,
+    onRefreshGenerators,
+    onSetOperationLoading: setOperationLoading,
+    onSetLocallyDeletedPaths: setLocallyDeletedPaths,
+    onRecordTouch: recentlyTouched.recordTouch,
+    onRenamePath: (oldPath, newPath) => {
+      recentlyTouched.renamePath(oldPath, newPath);
+      pinnedTokens.renamePin(oldPath, newPath);
+    },
+    onClearSelection: () => { setSelectMode(false); setSelectedPaths(new Set()); },
+    onError,
+  });
+  const {
+    deleteConfirm, setDeleteConfirm,
+    renameTokenConfirm, setRenameTokenConfirm,
+    deleteError, setDeleteError,
+    pendingRenameToken, setPendingRenameToken,
+    movingToken, setMovingToken,
+    copyingToken, setCopyingToken,
+    moveTokenTargetSet, setMoveTokenTargetSet,
+    copyTokenTargetSet, setCopyTokenTargetSet,
+    executeTokenRename, handleRenameToken,
+    requestDeleteToken, requestDeleteGroup,
+    requestBulkDelete: requestBulkDeleteFromHook,
+    executeDelete,
+    handleDuplicateToken, handleInlineSave, handleDescriptionSave,
+    handleMultiModeInlineSave, handleDetachFromGenerator,
+    handleRequestMoveToken, handleConfirmMoveToken,
+    handleRequestCopyToken, handleConfirmCopyToken,
+  } = tokenCrud;
+
+  const tokenPromotion = useTokenPromotion({
+    connected,
+    serverUrl,
+    setName,
+    tokens,
+    allTokensFlat,
+    selectedPaths,
+    onRefresh,
+    onClearSelection: () => { setSelectMode(false); setSelectedPaths(new Set()); },
+    onError,
+  });
+  const {
+    promoteRows, setPromoteRows,
+    promoteBusy,
+    handleOpenPromoteModal, handleConfirmPromote,
+  } = tokenPromotion;
 
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1330,469 +1355,10 @@ export function TokenList({
     onRefresh();
   }, [extractToken, extractMode, newPrimitivePath, newPrimitiveSet, existingAlias, connected, serverUrl, setName, onRefresh]);
 
-  // Group management
-  const [movingGroup, setMovingGroup] = useState<string | null>(null);
-  const [copyingGroup, setCopyingGroup] = useState<string | null>(null);
-  const [movingToken, setMovingToken] = useState<string | null>(null);
-  const [copyingToken, setCopyingToken] = useState<string | null>(null);
-  const [moveTargetSet, setMoveTargetSet] = useState('');
-  const [copyTargetSet, setCopyTargetSet] = useState('');
-
-  const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
-    if (!connected) return;
-    setOperationLoading('Renaming group…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldGroupPath, newGroupPath, updateAliases }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Rename group failed: network error');
-      setOperationLoading(null);
-      return;
-    }
-    setRenameGroupConfirm(null);
-    if (onPushUndo) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      onPushUndo({
-        description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
-        restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldGroupPath, newGroupPath }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, onError]);
-
-  const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
-    if (!connected) return;
-    try {
-      const data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename-preview?oldGroupPath=${encodeURIComponent(oldGroupPath)}&newGroupPath=${encodeURIComponent(newGroupPath)}`);
-      if (data.count > 0) {
-        setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })) });
-        return;
-      }
-    } catch (err) {
-      console.warn('[TokenList] group rename preview failed:', err);
-    }
-    await executeGroupRename(oldGroupPath, newGroupPath);
-  }, [connected, serverUrl, setName, executeGroupRename]);
-
-  const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
-    if (!connected) return;
-    setOperationLoading('Renaming token…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldPath, newPath, updateAliases }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Rename token failed: network error');
-      setOperationLoading(null);
-      return;
-    }
-    setRenameTokenConfirm(null);
-    if (onPushUndo) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      onPushUndo({
-        description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
-        restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPath, newPath }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    recentlyTouched.renamePath(oldPath, newPath);
-    pinnedTokens.renamePin(oldPath, newPath);
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
-
-
-  const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
-    if (!connected) return;
-    let data: { count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> };
-    try {
-      data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename-preview?oldPath=${encodeURIComponent(oldPath)}&newPath=${encodeURIComponent(newPath)}`);
-    } catch (err) {
-      console.warn('[TokenList] token rename preview failed:', err);
-      data = { count: 0, changes: [] };
-    }
-    if (data.count > 0) {
-      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count, deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })) });
-    } else {
-      await executeTokenRename(oldPath, newPath);
-    }
-  }, [connected, serverUrl, setName, executeTokenRename]);
-
-  const handleRequestMoveGroup = useCallback((groupPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setMoveTargetSet(otherSets[0] ?? '');
-    setMovingGroup(groupPath);
-  }, [sets, setName]);
-
-  const handleConfirmMoveGroup = useCallback(async () => {
-    if (!movingGroup || !moveTargetSet || !connected) { setMovingGroup(null); return; }
-    setOperationLoading('Moving group…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
-      });
-      setMovingGroup(null);
-      onRefresh();
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Move group failed: network error');
-    } finally {
-      setOperationLoading(null);
-    }
-  }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleRequestCopyGroup = useCallback((groupPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setCopyTargetSet(otherSets[0] ?? '');
-    setCopyingGroup(groupPath);
-  }, [sets, setName]);
-
-  const handleConfirmCopyGroup = useCallback(async () => {
-    if (!copyingGroup || !copyTargetSet || !connected) { setCopyingGroup(null); return; }
-    setOperationLoading('Copying group…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/copy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath: copyingGroup, targetSet: copyTargetSet }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Copy group failed: network error');
-      setOperationLoading(null);
-      return;
-    }
-    setCopyingGroup(null);
-    onRefresh();
-    setOperationLoading(null);
-  }, [copyingGroup, copyTargetSet, connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleRequestMoveToken = useCallback((tokenPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setMoveTargetSet(otherSets[0] ?? '');
-    setMovingToken(tokenPath);
-  }, [sets, setName]);
-
-  const handleConfirmMoveToken = useCallback(async () => {
-    if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
-    setOperationLoading('Moving token…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Move failed: network error');
-      setOperationLoading(null);
-      return;
-    }
-    setMovingToken(null);
-    onRefresh();
-    setOperationLoading(null);
-  }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleRequestCopyToken = useCallback((tokenPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setCopyTargetSet(otherSets[0] ?? '');
-    setCopyingToken(tokenPath);
-  }, [sets, setName]);
-
-  const handleConfirmCopyToken = useCallback(async () => {
-    if (!copyingToken || !copyTargetSet || !connected) { setCopyingToken(null); return; }
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/copy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenPath: copyingToken, targetSet: copyTargetSet }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Copy failed: network error');
-      return;
-    }
-    setCopyingToken(null);
-    onRefresh();
-  }, [copyingToken, copyTargetSet, connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleDuplicateGroup = useCallback(async (groupPath: string) => {
-    if (!connected) return;
-    setOperationLoading('Duplicating group…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Duplicate group failed: network error');
-      setOperationLoading(null);
-      return;
-    }
-    onRefresh();
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleUpdateGroupMeta = useCallback(async (
-    groupPath: string,
-    meta: { $type?: string | null; $description?: string | null },
-  ) => {
-    if (!connected) return;
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath, ...meta }),
-      });
-      onRefresh();
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Update group failed: network error');
-    }
-  }, [connected, serverUrl, setName, onRefresh, onError]);
-
-  const handleCreateGroup = useCallback(async (parent: string, name: string) => {
-    if (!connected || !name.trim()) return;
-    const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
-    setOperationLoading('Creating group…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath }),
-      });
-    } catch (err) {
-      setNewGroupError(err instanceof ApiError ? err.message : 'Failed to create group');
-      setOperationLoading(null);
-      return;
-    }
-    setNewGroupDialogParent(null);
-    setNewGroupName('');
-    setNewGroupError('');
-    onRefresh();
-    setOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh]);
-
-  const handleDuplicateToken = useCallback(async (path: string) => {
-    if (!connected) return;
-    const token = allTokensFlat[path];
-    if (!token) return;
-    const baseCopy = `${path}-copy`;
-    let newPath = baseCopy;
-    let i = 2;
-    while (allTokensFlat[newPath]) {
-      newPath = `${baseCopy}-${i++}`;
-    }
-    setOperationLoading('Duplicating token…');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
-      });
-      onRefresh();
-      recentlyTouched.recordTouch(newPath);
-      setPendingRenameToken(newPath);
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Duplicate failed: network error');
-    } finally {
-      setOperationLoading(null);
-    }
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched, onError]);
-
-
-  const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
-    if (!connected) return;
-    const oldEntry = allTokensFlat[path];
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: type, $value: newValue }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
-      return;
-    }
-    if (onPushUndo && oldEntry) {
-      onPushUndo({
-        description: `Edit ${path}`,
-        restore: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: type, $value: newValue }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    recentlyTouched.recordTouch(path);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched, onError]);
-
-  const handleDescriptionSave = useCallback(async (path: string, description: string) => {
-    if (!connected) return;
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    const oldEntry = allTokensFlat[path];
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $description: description }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
-      return;
-    }
-    if (onPushUndo && oldEntry) {
-      const oldDesc = (oldEntry as any).$description ?? '';
-      onPushUndo({
-        description: `Edit description of ${path}`,
-        restore: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $description: oldDesc }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $description: description }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    recentlyTouched.recordTouch(path);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched, onError]);
-
-  // Detach a token from its generator by removing the generator extension
-  const handleDetachFromGenerator = useCallback(async (path: string) => {
-    if (!connected) return;
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    const url = `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`;
-    // Fetch the current token to get its full $extensions
-    let tokenData: any;
-    try {
-      const result = await apiFetch<{ token: any }>(url);
-      tokenData = result.token;
-    } catch (err) {
-      console.warn('[TokenList] fetch token data failed:', err);
-      return;
-    }
-    const exts: Record<string, unknown> = { ...tokenData?.$extensions };
-    delete exts['com.tokenmanager.generator'];
-    await apiFetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
-    });
-    onRefresh();
-    onRefreshGenerators?.();
-  }, [connected, serverUrl, setName, onRefresh, onRefreshGenerators]);
-
-  // Multi-mode inline save — routes edits to a specific override set
-  const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: any, targetSet: string) => {
-    if (!connected) return;
-    const oldEntry = perSetFlat?.[targetSet]?.[path];
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $type: type, $value: newValue }),
-    });
-    if (onPushUndo) {
-      onPushUndo({
-        description: `Edit ${path} in ${targetSet}`,
-        restore: async () => {
-          if (oldEntry) {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
-            });
-          }
-          onRefresh();
-        },
-        redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: type, $value: newValue }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-    recentlyTouched.recordTouch(path);
-  }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, recentlyTouched]);
-
-
-  const requestDeleteToken = useCallback((path: string) => {
-    if (!connected) return;
-    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
-      if (tokenPath === path) return false;
-      const val = token.$value;
-      if (typeof val !== 'string' || !val.startsWith('{')) return false;
-      return val.slice(1, -1) === path;
-    }).length;
-    setDeleteConfirm({ type: 'token', path, orphanCount });
-  }, [connected, allTokensFlat]);
-
-  const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
-    if (!connected) return;
-    setDeleteConfirm({ type: 'group', path, name, tokenCount });
-  }, [connected]);
+  // requestBulkDelete wrapper — passes current selectedPaths
+  const requestBulkDelete = useCallback(() => {
+    requestBulkDeleteFromHook(selectedPaths);
+  }, [requestBulkDeleteFromHook, selectedPaths]);
 
   const handleBatchMoveToGroup = useCallback(async () => {
     const target = moveToGroupTarget.trim();
@@ -1804,7 +1370,6 @@ export function TokenList({
       return { oldPath, newPath };
     });
 
-    // Check for duplicate names among the selected tokens
     const newPaths = renames.map(r => r.newPath);
     if (new Set(newPaths).size !== newPaths.length) {
       setMoveToGroupError('Some selected tokens have the same name — resolve conflicts before moving');
@@ -1828,105 +1393,6 @@ export function TokenList({
     setOperationLoading(null);
     onRefresh();
   }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
-
-  const requestBulkDelete = useCallback(() => {
-    if (!connected || selectedPaths.size === 0) return;
-    const paths = [...selectedPaths];
-    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
-      if (selectedPaths.has(tokenPath)) return false;
-      const val = token.$value;
-      if (typeof val !== 'string' || !val.startsWith('{')) return false;
-      const aliasPath = val.slice(1, -1);
-      return selectedPaths.has(aliasPath);
-    }).length;
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount });
-  }, [connected, selectedPaths, allTokensFlat]);
-
-  const executeDelete = async () => {
-    if (!deleteConfirm) return;
-
-    // Capture snapshot before deletion for undo
-    type TokenSnapshot = { path: string; data: { $type?: string; $value?: any; $description?: string } };
-    let undoTokens: TokenSnapshot[] = [];
-    let undoDescription = '';
-
-    if (deleteConfirm.type === 'token') {
-      const found = findLeafByPath(tokens, deleteConfirm.path);
-      if (found) {
-        undoTokens = [{ path: deleteConfirm.path, data: { $type: found.$type, $value: found.$value, $description: found.$description } }];
-      }
-      const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
-      undoDescription = `Deleted "${name}"`;
-    } else if (deleteConfirm.type === 'group') {
-      undoTokens = collectGroupLeaves(tokens, deleteConfirm.path);
-      undoDescription = `Deleted group "${deleteConfirm.name}" (${undoTokens.length} token${undoTokens.length !== 1 ? 's' : ''})`;
-    } else {
-      undoTokens = deleteConfirm.paths.map(p => {
-        const found = findLeafByPath(tokens, p);
-        return { path: p, data: found ? { $type: found.$type, $value: found.$value, $description: found.$description } : {} };
-      });
-      undoDescription = `Deleted ${deleteConfirm.paths.length} token${deleteConfirm.paths.length !== 1 ? 's' : ''}`;
-    }
-
-    // Capture delete info before clearing state
-    const deletedType = deleteConfirm.type;
-    const deletedPath = deleteConfirm.type !== 'bulk' ? deleteConfirm.path : '';
-    const deletedPaths = deleteConfirm.type === 'bulk' ? deleteConfirm.paths : [];
-
-    setDeleteConfirm(null);
-    setDeleteError(null);
-    setOperationLoading(deletedType === 'bulk' ? `Deleting ${deletedPaths.length} tokens…` : 'Deleting…');
-    try {
-      if (deletedType === 'token' || deletedType === 'group') {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
-      } else {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paths: deletedPaths }),
-        });
-        setSelectedPaths(new Set());
-        setSelectMode(false);
-      }
-
-      // Remove deleted paths from the tree so empty group headers vanish immediately
-      if (deletedType === 'token' || deletedType === 'group') {
-        setLocallyDeletedPaths(new Set([deletedPath]));
-      } else {
-        setLocallyDeletedPaths(new Set(deletedPaths));
-      }
-
-      // Push undo slot after successful delete
-      if (onPushUndo && undoTokens.length > 0) {
-        const captured = undoTokens;
-        const capturedSet = setName;
-        const capturedUrl = serverUrl;
-        onPushUndo({
-          description: undoDescription,
-          restore: async () => {
-            await Promise.all(
-              captured.map(({ path, data }) =>
-                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(data),
-                })
-              )
-            );
-            onRefresh();
-          },
-        });
-      }
-
-      onRefresh();
-    } catch (err) {
-      console.error('Failed to delete:', err);
-      setDeleteError(getErrorMessage(err, 'Delete failed'));
-      onRefresh();
-    } finally {
-      setOperationLoading(null);
-    }
-  };
 
   // Handles token selection with modifier key support:
   // - ctrl/cmd-click: enter select mode and toggle the token
@@ -2089,64 +1555,6 @@ export function TokenList({
     setTimeout(() => setApplyResult(null), 3000);
   };
 
-
-  const handleOpenPromoteModal = (pathsOverride?: Set<string>) => {
-    const flat = flattenTokens(tokens);
-    const sourcePaths = pathsOverride ?? selectedPaths;
-    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value));
-    const rows: PromoteRow[] = selectedFlat.map(t => {
-      // Find candidate primitives: same type, not an alias, not the token itself
-      const candidates = Object.entries(allTokensFlat).filter(
-        ([candidatePath, entry]) => candidatePath !== t.path && entry.$type === t.$type && !isAlias(entry.$value),
-      );
-      if (t.$type === 'color' && typeof t.$value === 'string') {
-        let bestPath: string | null = null;
-        let bestDelta = Infinity;
-        for (const [candidatePath, entry] of candidates) {
-          if (typeof entry.$value !== 'string') continue;
-          // Resolve alias if needed
-          const resolved = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
-          const resolvedHex = typeof resolved.value === 'string' ? resolved.value : entry.$value as string;
-          const d = colorDeltaE(t.$value, resolvedHex);
-          if (d !== null && d < bestDelta) {
-            bestDelta = d;
-            bestPath = candidatePath;
-          }
-        }
-        return { path: t.path, $type: t.$type, $value: t.$value, proposedAlias: bestPath, deltaE: bestDelta === Infinity ? undefined : bestDelta, accepted: bestPath !== null };
-      } else {
-        // Exact value match for other types
-        const match = candidates.find(([, entry]) => valuesEqual(entry.$value, t.$value));
-        return { path: t.path, $type: t.$type, $value: t.$value, proposedAlias: match?.[0] ?? null, accepted: match !== undefined };
-      }
-    });
-    setPromoteRows(rows);
-  };
-
-  const handleConfirmPromote = async () => {
-    if (!promoteRows) return;
-    setPromoteBusy(true);
-    const toApply = promoteRows.filter(r => r.accepted && r.proposedAlias);
-    try {
-      await Promise.all(
-        toApply.map(r =>
-          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $value: `{${r.proposedAlias}}` }),
-          }),
-        ),
-      );
-      setPromoteRows(null);
-      setSelectMode(false);
-      setSelectedPaths(new Set());
-      onRefresh();
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Promote to alias failed: network error');
-    } finally {
-      setPromoteBusy(false);
-    }
-  };
 
   const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[] } | null => {
     if (!deleteConfirm) return null;
@@ -2427,7 +1835,7 @@ export function TokenList({
                   </button>
                 )}
                 <button
-                  onClick={handleOpenPromoteModal}
+                  onClick={() => handleOpenPromoteModal()}
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Link to tokens
@@ -4214,16 +3622,16 @@ export function TokenList({
         handleConfirmPromote={handleConfirmPromote}
         movingToken={movingToken}
         movingGroup={movingGroup}
-        moveTargetSet={moveTargetSet}
-        onSetMoveTargetSet={setMoveTargetSet}
+        moveTargetSet={movingGroup ? moveGroupTargetSet : moveTokenTargetSet}
+        onSetMoveTargetSet={movingGroup ? setMoveGroupTargetSet : setMoveTokenTargetSet}
         onSetMovingToken={setMovingToken}
         onSetMovingGroup={setMovingGroup}
         handleConfirmMoveToken={handleConfirmMoveToken}
         handleConfirmMoveGroup={handleConfirmMoveGroup}
         copyingToken={copyingToken}
         copyingGroup={copyingGroup}
-        copyTargetSet={copyTargetSet}
-        onSetCopyTargetSet={setCopyTargetSet}
+        copyTargetSet={copyingGroup ? copyGroupTargetSet : copyTokenTargetSet}
+        onSetCopyTargetSet={copyingGroup ? setCopyGroupTargetSet : setCopyTokenTargetSet}
         onSetCopyingToken={setCopyingToken}
         onSetCopyingGroup={setCopyingGroup}
         handleConfirmCopyToken={handleConfirmCopyToken}

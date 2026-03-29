@@ -456,3 +456,43 @@
   - Silent skips in switch cases for missing optional services are a correctness hazard — rollback steps that cannot be executed should throw, not silently no-op
   - `await` on a synchronous `void` function is a TypeScript-safe no-op, so adding `await` to future-proof sync methods that may go async is harmless
 ---
+- Files changed: `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L27-44
+- **Learnings for future iterations:**
+  - Server operation types are compound strings like `'token-create'`, `'group-rename'`, `'bulk-delete'` — `includes()` matching is more robust than exact-string switch cases for icon dispatch.
+  - When adding new operation categories, check `packages/server/src/routes/` for the full list of `type:` strings used in `logOperation` calls.
+---
+
+## 2026-03-29 - product-pass
+- Areas explored: TokenList.tsx (bulk delete confirmation), generators/ directory (shadow generator gap), SettingsPanel.tsx (lint config discoverability), App.tsx (set tab bar navigation, keyboard shortcuts), useFindReplace.ts (cross-set scope), generator-service.ts (stale indicator), AnalyticsPanel.tsx (duplicate list set context), TokenEditor drawer (keyboard nav gap)
+- Found 8 items — written to backlog-inbox.md
+- Notable: Lint rule configuration (`useLintConfig`) is only reachable via AnalyticsPanel behind a toggle — SettingsPanel.tsx has zero references to lint; users looking for validation settings in Settings will never find them
+---
+
+## 2026-03-29 - ExportPanel error handler captures stale `figmaLoading` in a closure
+- Added `figmaLoadingRef = useRef(false)` and assigned `figmaLoadingRef.current = figmaLoading` on every render. Changed the error branch in the plugin message handler from `figmaLoading` (captured closure value) to `figmaLoadingRef.current` (always current). Removed `figmaLoading` from the effect dependency array so the listener is registered once and never re-registered.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L143-202
+- **Learnings for future iterations:**
+  - The "assign ref on every render" pattern (`ref.current = stateValue` inline after the state declaration) is the canonical way to keep a ref in sync with state without additional effects or call-site changes.
+  - Removing the stale dep from the effect dep array is the other half of the fix — keeping it would just re-register the listener (and thus create a new closure) on every state change anyway.
+---
+
+## 2026-03-29 - Bulk-delete confirmation shows count only, not which tokens are selected
+- Added a scrollable path list to the bulk-delete confirmation modal. `getDeleteModalProps()` in `TokenList.tsx` now returns `pathList: paths` for the `bulk` type. `TokenListModalsProps` in `TokenListModals.tsx` was updated to accept `pathList?: string[]` on `modalProps`. The `ConfirmModal` renders the list as children: up to 20 paths in a monospace scrollable box, with an "and N more…" line when there are more than 20. Used `wide={!!modalProps.pathList}` to give the wider modal layout when the list is shown.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2149, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L23, ~L303
+- **Learnings for future iterations:**
+  - `ConfirmModal` already has a `children` prop and `wide` prop — use them to inject extra content into confirmation dialogs without modifying the modal component itself.
+  - Passing `pathList` through `modalProps` (rather than as a separate prop) keeps the modal interface cohesive and avoids adding new props to `TokenListModalsProps`.
+---
+
+## 2026-03-29 - Extract TokenList async CRUD handlers into domain-specific custom hooks
+- Created three custom hooks to reduce TokenList.tsx from ~4100 to ~3646 lines (~454 lines removed from component):
+  - `useGroupOperations.ts` (293 lines): group rename/move/copy/duplicate/create/reorder handlers + dialog state
+  - `useTokenCrud.ts` (484 lines): token delete/rename/duplicate/inline-save/description-save/multi-mode/detach/move/copy + dialog state
+  - `useTokenPromotion.ts` (107 lines): promote-to-alias flow + dialog state
+- Each hook owns its error/loading state and exposes it via return value; `operationLoading` kept in TokenList and passed via `onSetOperationLoading` param to both hooks
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGroupOperations.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenPromotion.ts` (new), `packages/figma-plugin/src/ui/components/TokenList.tsx` (updated)
+- **Learnings for future iterations:**
+  - `operationLoading` is set by both group and token operations — keep it in the parent component and pass a setter callback to each hook rather than duplicating or merging the state
+  - `moveTargetSet`/`copyTargetSet` can be independently duplicated in each hook since group-move and token-move dialogs are mutually exclusive (never open simultaneously)
+  - All hooks follow the params-object pattern from `useTokenCreate.ts`: typed interface, flat return shape, all external deps passed as params
+---
