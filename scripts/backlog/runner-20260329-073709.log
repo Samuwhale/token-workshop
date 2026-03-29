@@ -287,3 +287,10 @@ Already up to date.
   → PublishPanel diff filter text resets when switching sections — if a user types a filter string in the Variables diff view, then clicks "Styles" or "Git" and returns, the filter is cleared; since all three sections share the same token namespace, the filter should persist across section switches (PublishPanel.tsx ~L63, `diffFilter` is unkeyed local state)
   Worktree: /tmp/backlog-69179-jfd245
   Running agent… (started 08:10:13)
+
+  ✓ done: PublishPanel diff filter text resets when switching sections
+    Lifted diff filter input above all three sections so it persists across collapse/expand; filter now applies to Variables rows, Styles rows, and Git files
+    26 turns · 236s · $1.21
+
+  Merging to main: PublishPanel diff filter text resets when switching sections
+Already up to date.

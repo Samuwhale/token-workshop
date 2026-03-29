@@ -386,6 +386,34 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           </div>
         )}
 
+        {/* ── Shared diff filter ───────────────────────────────────────── */}
+        {(varSync.varRows.length > 0 || styleSync.styleRows.length > 0 || (git.diffView && (git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length) > 0)) && (
+          <div className="relative">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={diffFilter}
+              onChange={e => setDiffFilter(e.target.value)}
+              placeholder="Filter tokens and files\u2026"
+              aria-label="Filter diff rows"
+              className="w-full pl-7 pr-7 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            />
+            {diffFilter && (
+              <button
+                onClick={() => setDiffFilter('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                aria-label="Clear filter"
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── Section: Figma Variables ──────────────────────────────────── */}
         <Section
           title="Figma Variables"
@@ -419,9 +447,13 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           )}
 
           {varSync.varRows.length > 0 && (() => {
-            const localOnly = varSync.varRows.filter(r => r.cat === 'local-only');
-            const figmaOnly = varSync.varRows.filter(r => r.cat === 'figma-only');
-            const conflicts = varSync.varRows.filter(r => r.cat === 'conflict');
+            const filterLower = diffFilter.toLowerCase();
+            const filteredVarRows = filterLower
+              ? varSync.varRows.filter(r => r.path.toLowerCase().includes(filterLower))
+              : varSync.varRows;
+            const localOnly = filteredVarRows.filter(r => r.cat === 'local-only');
+            const figmaOnly = filteredVarRows.filter(r => r.cat === 'figma-only');
+            const conflicts = filteredVarRows.filter(r => r.cat === 'conflict');
 
             return (
               <>
@@ -437,6 +469,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </button>
                   ))}
                 </div>
+
+                {filterLower && filteredVarRows.length !== varSync.varRows.length && (
+                  <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+                    {filteredVarRows.length} of {varSync.varRows.length} token{varSync.varRows.length !== 1 ? 's' : ''} match filter
+                  </div>
+                )}
 
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
                   {localOnly.length > 0 && (
@@ -566,9 +604,13 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           )}
 
           {styleSync.styleRows.length > 0 && (() => {
-            const localOnly = styleSync.styleRows.filter(r => r.cat === 'local-only');
-            const figmaOnly = styleSync.styleRows.filter(r => r.cat === 'figma-only');
-            const conflicts = styleSync.styleRows.filter(r => r.cat === 'conflict');
+            const filterLower = diffFilter.toLowerCase();
+            const filteredStyleRows = filterLower
+              ? styleSync.styleRows.filter(r => r.path.toLowerCase().includes(filterLower))
+              : styleSync.styleRows;
+            const localOnly = filteredStyleRows.filter(r => r.cat === 'local-only');
+            const figmaOnly = filteredStyleRows.filter(r => r.cat === 'figma-only');
+            const conflicts = filteredStyleRows.filter(r => r.cat === 'conflict');
 
             return (
               <>
@@ -584,6 +626,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </button>
                   ))}
                 </div>
+
+                {filterLower && filteredStyleRows.length !== styleSync.styleRows.length && (
+                  <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+                    {filteredStyleRows.length} of {styleSync.styleRows.length} token{styleSync.styleRows.length !== 1 ? 's' : ''} match filter
+                  </div>
+                )}
 
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
                   {localOnly.length > 0 && (
@@ -1133,37 +1181,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     const pendingCount = Object.values(git.diffChoices).filter(c => c !== 'skip').length;
                     return (
                       <>
-                        {allFiles.length >= 5 && (
-                          <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                            <div className="relative">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
-                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                              </svg>
-                              <input
-                                type="text"
-                                value={diffFilter}
-                                onChange={e => setDiffFilter(e.target.value)}
-                                placeholder="Filter files…"
-                                aria-label="Filter files"
-                                className="w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
-                              />
-                              {diffFilter && (
-                                <button
-                                  onClick={() => setDiffFilter('')}
-                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-                                  aria-label="Clear filter"
-                                >
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                            {diffFilter && (
-                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1">
-                                {filteredFiles.length} of {allFiles.length} file{allFiles.length !== 1 ? 's' : ''}
-                              </div>
-                            )}
+                        {filterLower && filteredFiles.length !== allFiles.length && (
+                          <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                            {filteredFiles.length} of {allFiles.length} file{allFiles.length !== 1 ? 's' : ''} match filter
                           </div>
                         )}
                         <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">

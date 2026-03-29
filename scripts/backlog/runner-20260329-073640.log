@@ -233,3 +233,18 @@ Already up to date.
 
   Merging to main: BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
 Already up to date.
+[main 4423d95] chore(backlog): done – BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
+ 6 files changed, 150 insertions(+), 75 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - BatchEditor shows no indication of which tokens were skipped for type-incompatible operations
+- Changed `allColors`/`allScalable` (all-or-nothing) to `hasColors`/`hasScalable` (any-match) so opacity and scale controls appear for mixed-type selections
+- Added `skippedTypeIncompat` counter in `handleApply` that tracks tokens skipped because their type doesn't match the operation (e.g., non-color tokens when applying opacity)
+- Updated success toast to show combined skip info: "Applied to N tokens (M incompatible types, K reference values skipped)"
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  5 queued · 5 in-progress · last took 4m32s
+═══════════════════════════════════════════════════════════════
+  → GraphPanel has no inline output preview before saving a generator — creating a generator requires configuring it, saving, then navigating to TokenList or TokenFlowPanel to see the output; this breaks the authoring feedback loop; add a live "Preview output" section within GraphPanel that renders the first N generated tokens in real time as parameters change, before the generator is saved (GraphPanel.tsx ~L400 lines, no preview section)
+  Worktree: /tmp/backlog-67173-JI0SFO
+  Running agent… (started 08:13:59)
