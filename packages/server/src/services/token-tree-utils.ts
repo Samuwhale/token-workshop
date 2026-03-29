@@ -234,6 +234,128 @@ export function updateBulkAliasRefs(group: TokenGroup, pathMap: Map<string, stri
   });
 }
 
+// ----- Alias ref preview (read-only) -----
+
+export interface AliasChange {
+  /** Dotted path of the token whose $value would be rewritten */
+  tokenPath: string;
+  /** Current $value (or sub-field value) containing the alias */
+  oldValue: string;
+  /** New $value after alias rewrite */
+  newValue: string;
+}
+
+/**
+ * Read-only scan: find every $value in `group` that contains alias references
+ * matching any key in `pathMap`, and return the before/after strings.
+ * Does NOT mutate the group.
+ */
+export function previewBulkAliasChanges(
+  group: TokenGroup,
+  pathMap: Map<string, string>,
+): AliasChange[] {
+  const refRegex = /\{([^}]+)\}/g;
+  const changes: AliasChange[] = [];
+
+  const scanComposite = (obj: Record<string, unknown>, parentPath: string) => {
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string' && v.includes('{')) {
+        let matched = false;
+        const result = v.replace(refRegex, (_match, refPath) => {
+          if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
+          return _match;
+        });
+        if (matched) {
+          changes.push({ tokenPath: parentPath, oldValue: v, newValue: result });
+        }
+      } else if (typeof v === 'object' && v !== null) {
+        scanComposite(v as Record<string, unknown>, parentPath);
+      }
+    }
+  };
+
+  const walk = (obj: TokenGroup, prefix: string) => {
+    for (const key of Object.keys(obj)) {
+      if (key.startsWith('$')) {
+        if (key === '$value') {
+          const val = obj[key];
+          const path = prefix.slice(0, -1); // remove trailing '.'
+          if (typeof val === 'string' && val.includes('{')) {
+            let matched = false;
+            const result = (val as string).replace(refRegex, (_match, refPath) => {
+              if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
+              return _match;
+            });
+            if (matched) {
+              changes.push({ tokenPath: path, oldValue: val as string, newValue: result });
+            }
+          } else if (typeof val === 'object' && val !== null) {
+            scanComposite(val as Record<string, unknown>, path);
+          }
+        }
+        continue;
+      }
+      const child = obj[key];
+      if (typeof child === 'object' && child !== null) {
+        walk(child as TokenGroup, prefix + key + '.');
+      }
+    }
+  };
+
+  walk(group, '');
+  return changes;
+}
+
+/**
+ * Read-only scan for group renames: find every $value containing alias references
+ * to tokens under `oldGroupPath` and return before/after strings.
+ */
+export function previewGroupAliasChanges(
+  group: TokenGroup,
+  oldGroupPath: string,
+  newGroupPath: string,
+): AliasChange[] {
+  const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
+  const changes: AliasChange[] = [];
+
+  const scanValue = (val: unknown, tokenPath: string) => {
+    if (typeof val === 'string' && val.includes(`{${oldGroupPath}`)) {
+      let matched = false;
+      const result = val.replace(refRegex, (_match, _path, rest) => {
+        matched = true;
+        return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
+      });
+      if (matched) {
+        changes.push({ tokenPath, oldValue: val, newValue: result });
+      }
+    } else if (typeof val === 'object' && val !== null) {
+      for (const v of Object.values(val as Record<string, unknown>)) {
+        scanValue(v, tokenPath);
+      }
+    }
+  };
+
+  const walk = (obj: TokenGroup, prefix: string) => {
+    for (const key of Object.keys(obj)) {
+      if (key.startsWith('$')) {
+        if (key === '$value') {
+          scanValue(obj[key], prefix.slice(0, -1));
+        }
+        continue;
+      }
+      const child = obj[key];
+      if (typeof child === 'object' && child !== null) {
+        walk(child as TokenGroup, prefix + key + '.');
+      }
+    }
+  };
+
+  walk(group, '');
+  return changes;
+}
+
 // ----- Regex safety -----
 
 /**

@@ -218,3 +218,10 @@ Already up to date.
 - The fix was already mostly in place: `changeMergeTarget` (L67-73) already resets `mergeChecked`, `mergeConflicts`, `mergeResolutions`, and `mergeSrcFlat` when the target changes, and the UI only shows the "Merge" button when `mergeChecked` is true
 - Added a defensive guard in `handleConfirmMerge` to bail out if `mergeChecked` is false, preventing any edge case where the confirm handler could fire against stale data
 - The `mergeCheckTargetRef` (L42) already handles the race where an in-flight conflict check completes after the target changed — stale async results are discarded at L86
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  1 queued · 5 in-progress · last took 1m48s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager disabled-sets section has inverted collapse/expand logic — ThemeManager.tsx L1567: `{isDisabledCollapsed && disabledSets.map(...)}` renders the disabled sets when the section is collapsed and hides them when expanded; the chevron rotation (L1564) correctly reflects collapsed state but the content visibility check is backwards; should be `{!isDisabledCollapsed && disabledSets.map(...)}`
+  Worktree: /tmp/backlog-66493-fEUHN8
+  Running agent… (started 08:07:56)

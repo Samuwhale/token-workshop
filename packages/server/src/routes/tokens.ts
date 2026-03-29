@@ -409,6 +409,40 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/tokens/:set/tokens/rename-preview — preview alias changes from a token rename (dry-run)
+  fastify.get<{ Params: { set: string }; Querystring: { oldPath: string; newPath: string } }>(
+    '/tokens/:set/tokens/rename-preview',
+    async (request, reply) => {
+      const { oldPath, newPath } = request.query;
+      if (!oldPath || !newPath) {
+        return reply.status(400).send({ error: 'oldPath and newPath query params are required' });
+      }
+      try {
+        const changes = fastify.tokenStore.previewRenameToken(oldPath, newPath);
+        return { oldPath, newPath, changes, count: changes.length };
+      } catch (err) {
+        return handleRouteError(reply, err);
+      }
+    },
+  );
+
+  // GET /api/tokens/:set/groups/rename-preview — preview alias changes from a group rename (dry-run)
+  fastify.get<{ Params: { set: string }; Querystring: { oldGroupPath: string; newGroupPath: string } }>(
+    '/tokens/:set/groups/rename-preview',
+    async (request, reply) => {
+      const { oldGroupPath, newGroupPath } = request.query;
+      if (!oldGroupPath || !newGroupPath) {
+        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath query params are required' });
+      }
+      try {
+        const changes = fastify.tokenStore.previewRenameGroup(oldGroupPath, newGroupPath);
+        return { oldGroupPath, newGroupPath, changes, count: changes.length };
+      } catch (err) {
+        return handleRouteError(reply, err);
+      }
+    },
+  );
+
   // POST /api/tokens/:set/tokens/rename — rename a single leaf token and update alias references
   fastify.post<{ Params: { set: string }; Body: { oldPath: string; newPath: string; updateAliases?: boolean } }>(
     '/tokens/:set/tokens/rename',

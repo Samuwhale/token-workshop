@@ -167,3 +167,19 @@ Already up to date.
 
   Merging to main: useUndo keyboard shortcut fires even when a text input has focus
 Already up to date.
+[main 658e364] chore(backlog): done – useUndo keyboard shortcut fires even when a text input has focus
+ 6 files changed, 29 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - useUndo keyboard shortcut fires even when a text input has focus
+- Changed `useUndo.ts` keydown handler to use `document.activeElement` instead of `e.target` for more reliable focus detection on window-level listeners, and added `isContentEditable` check to match the guard pattern used in App.tsx
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L82-85
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  0 queued · 5 in-progress · last took 1m43s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 68874) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

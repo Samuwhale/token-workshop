@@ -236,3 +236,10 @@ Already up to date.
   → Rename/move token has no impact preview showing affected aliases — `POST /api/tokens/:set/tokens/rename` has `updateAliases` flag but no preview endpoint showing which tokens would be updated; users can't assess the blast radius of a rename before committing; add a preview/dry-run mode that returns the list of aliases that would be rewritten
   Worktree: /tmp/backlog-69179-rG3rLw
   Running agent… (started 08:03:11)
+
+  ✓ done: Rename/move token has no impact preview showing affected aliases
+    Added dry-run preview endpoints (GET rename-preview) for both token and group renames that return before/after alias $value diffs; updated UI confirmation modal to show exact value changes per affected token across all sets
+    30 turns · 294s · $1.4
+
+  Merging to main: Rename/move token has no impact preview showing affected aliases
+Already up to date.

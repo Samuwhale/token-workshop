@@ -51,8 +51,8 @@ export function TokenList({
   const [varDiffPending, setVarDiffPending] = useState<{ added: number; modified: number; unchanged: number; flat: any[] } | null>(null);
   const [varDiffLoading, setVarDiffLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
-  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
-  const [renameGroupConfirm, setRenameGroupConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
+  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null>(null);
+  const [renameGroupConfirm, setRenameGroupConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
@@ -1265,15 +1265,13 @@ export function TokenList({
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
     if (!connected) return;
     try {
-      const encodedPath = oldGroupPath.split('.').map(encodeURIComponent).join('/');
-      const data = await apiFetch<{ count: number; dependents: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/group-dependents/${encodedPath}`);
+      const data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename-preview?oldGroupPath=${encodeURIComponent(oldGroupPath)}&newGroupPath=${encodeURIComponent(newGroupPath)}`);
       if (data.count > 0) {
-        setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.dependents ?? [] });
+        setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })) });
         return;
       }
     } catch (err) {
-      // If dependents check fails, proceed with rename anyway
-      console.warn('[TokenList] group dependents check failed:', err);
+      console.warn('[TokenList] group rename preview failed:', err);
     }
     await executeGroupRename(oldGroupPath, newGroupPath);
   }, [connected, serverUrl, setName, executeGroupRename]);
@@ -1325,16 +1323,15 @@ export function TokenList({
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
-    const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
-    let data: { count: number; dependents: Array<{ path: string; setName: string }> };
+    let data: { count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> };
     try {
-      data = await apiFetch<{ count: number; dependents: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
+      data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename-preview?oldPath=${encodeURIComponent(oldPath)}&newPath=${encodeURIComponent(newPath)}`);
     } catch (err) {
-      console.warn('[TokenList] token dependents check failed:', err);
-      data = { count: 0, dependents: [] };
+      console.warn('[TokenList] token rename preview failed:', err);
+      data = { count: 0, changes: [] };
     }
     if (data.count > 0) {
-      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count, deps: data.dependents ?? [] });
+      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count, deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })) });
     } else {
       await executeTokenRename(oldPath, newPath);
     }

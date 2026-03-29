@@ -26,6 +26,9 @@ import {
   collectGroupLeafTokens,
   updateAliasRefs,
   updateBulkAliasRefs,
+  previewBulkAliasChanges,
+  previewGroupAliasChanges,
+  type AliasChange,
 } from './token-tree-utils.js';
 
 import { isSafeRegex } from './token-tree-utils.js';
@@ -1109,6 +1112,29 @@ export class TokenStore {
     } finally {
       this.endBatch();
     }
+  }
+
+  /** Preview which alias $values would be rewritten by a token rename (read-only). */
+  previewRenameToken(oldPath: string, newPath: string): Array<AliasChange & { setName: string }> {
+    const pathMap = new Map([[oldPath, newPath]]);
+    const result: Array<AliasChange & { setName: string }> = [];
+    for (const [sName, s] of this.sets) {
+      for (const change of previewBulkAliasChanges(s.tokens, pathMap)) {
+        result.push({ ...change, setName: sName });
+      }
+    }
+    return result;
+  }
+
+  /** Preview which alias $values would be rewritten by a group rename (read-only). */
+  previewRenameGroup(oldGroupPath: string, newGroupPath: string): Array<AliasChange & { setName: string }> {
+    const result: Array<AliasChange & { setName: string }> = [];
+    for (const [sName, s] of this.sets) {
+      for (const change of previewGroupAliasChanges(s.tokens, oldGroupPath, newGroupPath)) {
+        result.push({ ...change, setName: sName });
+      }
+    }
+    return result;
   }
 
   async renameToken(setName: string, oldPath: string, newPath: string, updateAliases = true): Promise<{ aliasesUpdated: number }> {

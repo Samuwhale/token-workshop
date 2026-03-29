@@ -33,14 +33,14 @@ export interface TokenListModalsProps {
   onSetNewGroupDialogParent: (v: string | null) => void;
 
   // Rename token confirmation modal
-  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null;
+  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
   executeTokenRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null) => void;
+  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
 
   // Rename group confirmation modal
-  renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null;
+  renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
   executeGroupRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null) => void;
+  onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
 
   // Apply as Variables diff preview
   varDiffPending: { added: number; modified: number; unchanged: number; flat: any[] } | null;
@@ -112,12 +112,12 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
   oldPath: string;
   newPath: string;
   depCount: number;
-  deps: Array<{ path: string; setName: string }>;
+  deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
   onConfirm: (updateAliases: boolean) => void;
   onCancel: () => void;
 }) {
   const label = oldPath.split('.').pop() ?? oldPath;
-  const noun = depCount !== 1 ? 'tokens' : 'token';
+  const noun = depCount !== 1 ? 'aliases' : 'alias';
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -130,19 +130,26 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[280px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
         <div className="px-4 pt-4 pb-3">
           <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             Rename {kind} &ldquo;{label}&rdquo;?
           </h3>
           <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-            {depCount} {noun} reference this {kind}. Choose how to handle existing aliases.
+            {depCount} {noun} will be updated across all sets:
           </p>
           {deps.length > 0 && (
-            <div className="mt-2 max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <div className="mt-2 max-h-[180px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
               {deps.map((dep, i) => (
-                <div key={i} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${dep.setName}: ${dep.path}`}>
-                  <span className="text-[var(--color-figma-text-tertiary)]">{dep.setName}/</span>{dep.path}
+                <div key={i} className="px-2 py-1.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0" title={`${dep.setName}: ${dep.tokenPath}`}>
+                  <div className="text-[var(--color-figma-text-secondary)] truncate">
+                    <span className="text-[var(--color-figma-text-tertiary)]">{dep.setName}/</span>{dep.tokenPath}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1 text-[9px]">
+                    <span className="text-[var(--color-figma-text-danger)] line-through truncate max-w-[45%]">{dep.oldValue}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">&rarr;</span>
+                    <span className="text-[var(--color-figma-text-success)] truncate max-w-[45%]">{dep.newValue}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -153,7 +160,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
             onClick={() => onConfirm(true)}
             className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
-            Auto-update all aliases
+            Update {depCount} {noun} and rename
           </button>
           <button
             onClick={() => onConfirm(false)}

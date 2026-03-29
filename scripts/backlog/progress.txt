@@ -458,3 +458,16 @@
   - Window-level keydown handlers should use `document.activeElement` rather than `e.target` for focus detection — `e.target` can differ from the focused element in edge cases
   - Always include `isContentEditable` in typing guards alongside INPUT/TEXTAREA/SELECT checks
 ---
+
+## 2026-03-29 - Rename/move token has no impact preview showing affected aliases
+- Added `previewBulkAliasChanges` and `previewGroupAliasChanges` read-only scan functions to `token-tree-utils.ts` that return before/after alias `$value` diffs without mutating the tree
+- Added `previewRenameToken` and `previewRenameGroup` methods to `TokenStore` that scan all sets
+- Added `GET /api/tokens/:set/tokens/rename-preview` and `GET /api/tokens/:set/groups/rename-preview` dry-run endpoints
+- Updated UI `handleRenameToken` and `handleRenameGroup` to call preview endpoints instead of the old `dependents` endpoints
+- Enhanced `RenameConfirmModal` to show before→after `$value` diffs per affected token (old value with strikethrough → new value) instead of just a list of paths
+- Files changed: `packages/server/src/services/token-tree-utils.ts` ~L208 (preview functions), `packages/server/src/services/token-store.ts` ~L1117 (preview methods + imports), `packages/server/src/routes/tokens.ts` ~L412 (preview routes), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L54,1263,1324 (state types + handlers), `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L36,108 (props types + modal UI)
+- **Learnings for future iterations:**
+  - The existing `getDependents` endpoint only returns paths, not values — for impact previews, a separate read-only tree walk is needed
+  - `walkAliasValues` mutates in place, so preview functions must do their own walk with regex matching but no mutation
+  - Both token and group rename flows share the same confirmation modal component
+---
