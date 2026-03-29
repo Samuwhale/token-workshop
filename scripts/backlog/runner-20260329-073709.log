@@ -243,3 +243,27 @@ Already up to date.
 
   Merging to main: Rename/move token has no impact preview showing affected aliases
 Already up to date.
+[main 56457ac] chore(backlog): done – Rename/move token has no impact preview showing affected aliases
+ 11 files changed, 257 insertions(+), 28 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - Rename/move token has no impact preview showing affected aliases
+- Added `previewBulkAliasChanges` and `previewGroupAliasChanges` read-only scan functions to `token-tree-utils.ts` that return before/after alias `$value` diffs without mutating the tree
+- Added `previewRenameToken` and `previewRenameGroup` methods to `TokenStore` that scan all sets
+- Added `GET /api/tokens/:set/tokens/rename-preview` and `GET /api/tokens/:set/groups/rename-preview` dry-run endpoints
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  0 queued · 4 in-progress · last took 5m1s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 68874) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  0 queued · 4 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 68874) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

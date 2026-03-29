@@ -225,3 +225,10 @@ Already up to date.
   → ThemeManager disabled-sets section has inverted collapse/expand logic — ThemeManager.tsx L1567: `{isDisabledCollapsed && disabledSets.map(...)}` renders the disabled sets when the section is collapsed and hides them when expanded; the chevron rotation (L1564) correctly reflects collapsed state but the content visibility check is backwards; should be `{!isDisabledCollapsed && disabledSets.map(...)}`
   Worktree: /tmp/backlog-66493-fEUHN8
   Running agent… (started 08:07:56)
+
+  ✓ done: ThemeManager disabled-sets section has inverted collapse/expand logic
+    Flipped `isDisabledCollapsed` to `!isDisabledCollapsed` on L1567 so disabled sets render when expanded, not when collapsed.
+    6 turns · 43s · $0.23
+
+  Merging to main: ThemeManager disabled-sets section has inverted collapse/expand logic
+Already up to date.

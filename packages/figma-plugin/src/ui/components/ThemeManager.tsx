@@ -1564,7 +1564,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                                   Not included ({disabledSets.length})
                                 </button>
-                                {isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
+                                {!isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
                               </div>
                             )}
 
