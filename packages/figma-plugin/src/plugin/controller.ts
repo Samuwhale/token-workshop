@@ -126,7 +126,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       try {
         await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
       } catch (e) {
-        reportError('apply-variables', e);
+        figma.ui.postMessage({
+          type: 'apply-variables-error',
+          error: describeError(e, 'Failed to apply variables'),
+          correlationId: msg.correlationId,
+        });
       }
       break;
     case 'apply-styles':

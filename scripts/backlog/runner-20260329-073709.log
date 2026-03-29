@@ -627,3 +627,10 @@ Already up to date.
   → Variable push to Figma is fire-and-forget with no success or failure feedback — useVariableSync sends a postMessage to push variables but never reports whether the operation succeeded or how many were updated, unlike Style sync which returns detailed result metrics; users have no way to know if their push worked (useVariableSync.ts ~L60-70, PublishPanel.tsx)
   Worktree: /tmp/backlog-69179-m63cGg
   Running agent… (started 08:44:01)
+
+  ✓ done: Variable push to Figma is fire-and-forget with no success or failure feedback
+    Replaced fire-and-forget postMessage with awaited useFigmaMessage roundtrip using correlationId tracking; push now reports success/failure/timeout to the UI, matching the style sync pattern
+    23 turns · 228s · $1.03
+
+  Merging to main: Variable push to Figma is fire-and-forget with no success or failure feedback
+Already up to date.

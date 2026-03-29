@@ -433,3 +433,15 @@
   - The Variables import maps to multiple sets (one per mode), making per-token accept/reject impractical. A strategy-level choice (overwrite vs skip) with aggregate counts gives users the key information and control they need without the complexity of multi-set per-token conflict UI
   - Use a fetch-id counter ref rather than AbortController when cancelling async loops: increment the ref, check `if (fetchId !== varConflictFetchIdRef.current) return` at each await point
 ---
+
+## 2026-03-29 - Variable push to Figma is fire-and-forget with no success or failure feedback
+- Replaced fire-and-forget `parent.postMessage` in `useVariableSync.executePush` with awaited `useFigmaMessage` roundtrip (matching the existing style sync pattern)
+- Added `sendVarApply` hook configured with `responseType: 'variables-applied'`, `errorType: 'apply-variables-error'`, 30s timeout
+- Fixed plugin-side `variableSync.ts` error message to use `error` field (was `message`) to match what `useFigmaMessage` reads from `msg.error`
+- Updated `controller.ts` `apply-variables` catch to send typed `apply-variables-error` with `correlationId` (was calling generic `reportError`)
+- Now: push failures surface in the UI error banner with per-path details; timeouts show "is the plugin running?"; success toast fires only after confirmed completion
+- Files changed: `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L22-40,74-82,93; `packages/figma-plugin/src/plugin/variableSync.ts` ~L175; `packages/figma-plugin/src/plugin/controller.ts` ~L125-131
+- **Learnings for future iterations:**
+  - `useFigmaMessage` expects error payloads on `msg.error` (not `msg.message`) — all plugin error responses must use the `error` field for the hook to extract the message
+  - Variable apply can take longer than style apply (collection/mode creation overhead), so 30s timeout is appropriate vs 15s for styles
+---

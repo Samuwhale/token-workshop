@@ -172,7 +172,7 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
       : `Partial rollback — ${rollbackFailures.length} step(s) failed: ${rollbackFailures.join('; ')}`;
     if (!rolledBack) console.error('[applyVariables] partial rollback failures:', rollbackFailures);
 
-    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack, rollbackError });
+    figma.ui.postMessage({ type: 'apply-variables-error', error: String(error), correlationId, rolledBack, rollbackError });
   }
 }
 

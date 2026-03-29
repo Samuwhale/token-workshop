@@ -19,11 +19,24 @@ interface UseVariableSyncOptions {
 
 const extractTokens = (msg: any): any[] => msg.tokens ?? [];
 
+const extractVarApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
+  count: msg.count ?? 0,
+  total: msg.total ?? msg.count ?? 0,
+  failures: msg.failures ?? [],
+});
+
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
     timeout: 10000,
     extractResponse: extractTokens,
+  });
+
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+    responseType: 'variables-applied',
+    errorType: 'apply-variables-error',
+    timeout: 30000,
+    extractResponse: extractVarApplyResult,
   });
 
   const readFigmaVariables = useCallback(
@@ -65,9 +78,8 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
         $value: r.localValue ?? '',
         setName: activeSet,
       }));
-      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
-      // Variable push is fire-and-forget via postMessage; no failure info returned
-      return { failures: [] };
+      const result = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
+      return { failures: result.failures };
     },
 
     buildPullPayload: (row: VarDiffRow) => ({
@@ -78,7 +90,7 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     successMessage: 'Variable sync applied',
     compareErrorLabel: 'Compare variables',
     applyErrorLabel: 'Apply variable sync',
-  }), [readFigmaVariables, activeSet, collectionMap, modeMap]);
+  }), [readFigmaVariables, sendVarApply, activeSet, collectionMap, modeMap]);
 
   const base = useTokenSyncBase<VarDiffRow>(serverUrl, activeSet, config);
 
