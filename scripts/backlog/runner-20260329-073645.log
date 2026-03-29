@@ -132,3 +132,10 @@ Already up to date.
   → core color-parse.ts uses non-null assertions on nullable `parseRawNum()` creating silent wrong-value bugs — L434-436 (rgb), L463 (oklch %), L472 (oklab %) use `parseRawNum(...)!` but `parseRawNum` returns `null` for unparseable strings; in JS `null / 255` evaluates to `0` (not NaN), so an unparseable rgb channel silently becomes 0 instead of returning null to indicate parse failure; the oklch case is worse: `parseRawNum(...)! / 100` yields 0, then `L === null` check at L466 passes (0 !== null), returning `{coords: [0, C, H]}` — a valid-looking but wrong color; replace all `!` assertions with explicit null checks before division
   Worktree: /tmp/backlog-67697-hr5r2g
   Running agent… (started 07:56:23)
+
+  ✓ done: core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
+    Replaced all parseRawNum(...)! with explicit null checks before division in rgb (L434-436), oklch % (L466), and oklab % (L481) cases — unparseable channels now correctly return null instead of silently becoming 0
+    11 turns · 76s · $0.39
+
+  Merging to main: core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
+Already up to date.

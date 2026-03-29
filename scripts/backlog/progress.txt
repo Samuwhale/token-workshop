@@ -503,3 +503,14 @@
   - The git section computes `pendingCount` inside an IIFE in JSX, making it unavailable to sibling components. Lifting it to a `useMemo` at the component level is the right approach when the value needs to be shared.
   - The three sync hooks (useVariableSync, useStyleSync, useGitSync) all expose `apply*` as async functions that can be awaited sequentially — no special orchestration needed.
 ---
+
+## 2026-03-29 - core color-parse.ts uses non-null assertions on nullable parseRawNum() creating silent wrong-value bugs
+- Replaced all `parseRawNum(...)!` non-null assertions with explicit null checks before division
+- RGB (L434-436): extracted raw values first, null-check, then divide by 255 or 100
+- oklch % (L463) and oklab % (L472): replaced ternary with if/else that checks parseRawNum result before dividing by 100
+- Also removed the now-unnecessary `isNaN(r) || isNaN(g) || isNaN(b)` check since null is caught earlier
+- Files changed: `packages/core/src/color-parse.ts` ~L434-446 (rgb), ~L466-472 (oklch), ~L481-487 (oklab)
+- **Learnings for future iterations:**
+  - `null / N` evaluates to `0` in JS, not `NaN` — so `isNaN` guards after nullable division are ineffective
+  - The `!` non-null assertion operator is a type-level-only construct; at runtime it's a no-op that passes null through
+---

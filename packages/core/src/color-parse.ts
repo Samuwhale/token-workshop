@@ -431,15 +431,18 @@ export function parseAnyColor(input: string): ParsedColor | null {
     case 'rgba': {
       if (channels.length < 3) return null;
       // channels can be 0-255 or 0-100%
-      const r = channels[0].endsWith('%') ? (parseRawNum(channels[0].slice(0, -1))! / 100) : (parseRawNum(channels[0])! / 255);
-      const g = channels[1].endsWith('%') ? (parseRawNum(channels[1].slice(0, -1))! / 100) : (parseRawNum(channels[1])! / 255);
-      const b = channels[2].endsWith('%') ? (parseRawNum(channels[2].slice(0, -1))! / 100) : (parseRawNum(channels[2])! / 255);
+      const rRaw = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1)) : parseRawNum(channels[0]);
+      const gRaw = channels[1].endsWith('%') ? parseRawNum(channels[1].slice(0, -1)) : parseRawNum(channels[1]);
+      const bRaw = channels[2].endsWith('%') ? parseRawNum(channels[2].slice(0, -1)) : parseRawNum(channels[2]);
+      if (rRaw === null || gRaw === null || bRaw === null) return null;
+      const r = channels[0].endsWith('%') ? rRaw / 100 : rRaw / 255;
+      const g = channels[1].endsWith('%') ? gRaw / 100 : gRaw / 255;
+      const b = channels[2].endsWith('%') ? bRaw / 100 : bRaw / 255;
       // Legacy rgba(r, g, b, a) — 4th channel as alpha
       let a = alpha;
       if (channels.length >= 4 && !alphaStr) {
         a = parseNum(channels[3]) ?? 1;
       }
-      if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
       return { space: 'srgb', coords: [clamp01(r), clamp01(g), clamp01(b)], alpha: clamp01(a) };
     }
 
@@ -460,7 +463,13 @@ export function parseAnyColor(input: string): ParsedColor | null {
     case 'oklch': {
       if (channels.length < 3) return null;
       // L: 0-1 or 0-100%, C: 0-0.4+, H: 0-360
-      const L = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1))! / 100 : parseRawNum(channels[0]);
+      let L: number | null;
+      if (channels[0].endsWith('%')) {
+        const raw = parseRawNum(channels[0].slice(0, -1));
+        L = raw !== null ? raw / 100 : null;
+      } else {
+        L = parseRawNum(channels[0]);
+      }
       const C = parseRawNum(channels[1]);
       const H = parseRawNum(channels[2].replace('deg', ''));
       if (L === null || C === null || H === null) return null;
@@ -469,7 +478,13 @@ export function parseAnyColor(input: string): ParsedColor | null {
 
     case 'oklab': {
       if (channels.length < 3) return null;
-      const L = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1))! / 100 : parseRawNum(channels[0]);
+      let L: number | null;
+      if (channels[0].endsWith('%')) {
+        const raw = parseRawNum(channels[0].slice(0, -1));
+        L = raw !== null ? raw / 100 : null;
+      } else {
+        L = parseRawNum(channels[0]);
+      }
       const a2 = parseRawNum(channels[1]);
       const b2 = parseRawNum(channels[2]);
       if (L === null || a2 === null || b2 === null) return null;
