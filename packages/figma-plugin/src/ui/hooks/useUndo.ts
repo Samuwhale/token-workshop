@@ -106,5 +106,7 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY, onError?: (mes
   const slot = canUndo ? past[past.length - 1] : null;
   const redoSlot = canRedo ? future[future.length - 1] : null;
 
-  return { toastVisible, slot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount: past.length };
+  const undoDescriptions = past.map(s => s.description);
+
+  return { toastVisible, slot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount: past.length, undoDescriptions };
 }

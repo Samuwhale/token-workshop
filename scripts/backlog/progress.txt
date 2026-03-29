@@ -381,3 +381,17 @@
   - When verifying TOCTOU claims, carefully check indentation to confirm whether code is inside a callback — the withLock wraps the entire handler body as a callback argument, so all code inside the `try` block is serialized
   - Subagent analysis of code structure can be unreliable for determining nesting/scope — always verify manually
 ---
+
+## 2026-03-29 - Unified Recent Actions panel for undo/history
+- Added "Recent Actions" as a new default tab in HistoryPanel, unifying three separate undo/history mental models into one view
+- Recent Actions tab shows: (1) local undo stack entries with "Local" badges and "Undo available" indicator, (2) server operation log with rollback buttons and type-specific icons, (3) links to switch to Git Commits or Snapshots tabs for full history
+- Exposed `undoDescriptions` from `useUndo` hook for read-only display of local undo stack
+- Created `RecentActionsSource.tsx` component with collapsible sections, operation type icons, relative timestamps, and inline rollback with loading state
+- Extended `HistoryPanel` with third tab and new props (`recentOperations`, `onRollback`, `undoDescriptions`)
+- Wired everything through `App.tsx` passing existing `recentOperations`/`handleRollback` from `useRecentOperations` hook
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L109 (undoDescriptions), `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` (new), `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L1-3 (import), ~L119 (type), ~L123-148 (props), ~L153-156 (tab bar), ~L196-205 (source content), `packages/figma-plugin/src/ui/App.tsx` ~L332 (destructure undoDescriptions), ~L2101 (pass new props)
+- **Learnings for future iterations:**
+  - The `useRecentOperations` hook already fetches and exposes `recentOperations` and `handleRollback` but they were only consumed by the command palette — surfacing them in a panel required zero server changes
+  - HistoryPanel's tab bar uses `flex-1` per tab button so it auto-adjusts when adding a third tab
+  - Exposing undo stack descriptions as a derived array (not the full UndoSlot with closures) keeps the API clean and avoids leaking restore callbacks to display-only components
+---

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ValueDiff } from './ValueDiff';
+import { RecentActionsSource } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
 import {
   type ChangeStatus,
@@ -116,13 +117,23 @@ function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
 
 /* ── Source tab type ────────────────────────────────────────────────────── */
 
-type HistorySource = 'commits' | 'snapshots';
+type HistorySource = 'actions' | 'commits' | 'snapshots';
 
 /* ── Main Panel ─────────────────────────────────────────────────────────── */
 
 interface UndoSlot {
   description: string;
   restore: () => Promise<void>;
+}
+
+interface OperationEntry {
+  id: string;
+  timestamp: string;
+  type: string;
+  description: string;
+  setName: string;
+  affectedPaths: string[];
+  rolledBack: boolean;
 }
 
 interface HistoryPanelProps {
@@ -133,10 +144,16 @@ interface HistoryPanelProps {
   /** When set, filter history to only entries that touched this token path */
   filterTokenPath?: string | null;
   onClearFilter?: () => void;
+  /** Server operation log entries */
+  recentOperations?: OperationEntry[];
+  /** Rollback a server operation by ID */
+  onRollback?: (opId: string) => void;
+  /** Descriptions of local undo stack entries (most recent last) */
+  undoDescriptions?: string[];
 }
 
-export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter }: HistoryPanelProps) {
-  const [source, setSource] = useState<HistorySource>('commits');
+export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, onRollback, undoDescriptions }: HistoryPanelProps) {
+  const [source, setSource] = useState<HistorySource>('actions');
 
   if (!connected) {
     return (
@@ -151,6 +168,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       {/* Source tab bar */}
       <div className="shrink-0 flex border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         {([
+          { id: 'actions' as const, label: 'Recent Actions' },
           { id: 'commits' as const, label: 'Git Commits' },
           { id: 'snapshots' as const, label: 'Snapshots' },
         ]).map(tab => (
@@ -193,7 +211,14 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       )}
 
       {/* Source content */}
-      {source === 'commits' ? (
+      {source === 'actions' ? (
+        <RecentActionsSource
+          recentOperations={recentOperations ?? []}
+          onRollback={onRollback ?? (() => {})}
+          undoDescriptions={undoDescriptions ?? []}
+          onSwitchTab={setSource}
+        />
+      ) : source === 'commits' ? (
         <GitCommitsSource
           serverUrl={serverUrl}
           onPushUndo={onPushUndo}

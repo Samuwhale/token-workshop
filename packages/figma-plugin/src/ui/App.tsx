@@ -329,7 +329,7 @@ export function App() {
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
-  const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo(undoMaxHistory, setErrorToast);
+  const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount, undoDescriptions } = useUndo(undoMaxHistory, setErrorToast);
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
@@ -2101,7 +2101,7 @@ export function App() {
           {/* History sub-tab (Ship > History) — git commits + snapshots */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} />
+              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} />
               </ErrorBoundary>
           )}
 
