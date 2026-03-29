@@ -1220,6 +1220,48 @@ export class TokenStore {
     }
   }
 
+  async copyGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ copiedCount: number }> {
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
+    const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
+    const snapshot = this.snapshotSets(toSet);
+    this.beginBatch();
+    try {
+      if (leafTokens.length === 0) {
+        const groupObj = getObjectAtPath(source.tokens, groupPath);
+        if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
+        if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
+        setGroupAtPath(target.tokens, groupPath, structuredClone(groupObj));
+        await this.saveSet(toSet);
+        this.rebuildFlatTokens();
+        return { copiedCount: 0 };
+      }
+      const collisions: string[] = [];
+      for (const { relativePath } of leafTokens) {
+        const targetPath = `${groupPath}.${relativePath}`;
+        if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
+      }
+      if (collisions.length > 0) {
+        throw new ConflictError(`Cannot copy group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
+      }
+      for (const { relativePath, token } of leafTokens) {
+        setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, structuredClone(token));
+      }
+      await this.saveSet(toSet);
+      this.rebuildFlatTokens();
+      return { copiedCount: leafTokens.length };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
+    } finally {
+      this.endBatch();
+    }
+  }
+
   async moveToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
     if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
     const source = this.sets.get(fromSet);

@@ -131,6 +131,40 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/groups/copy — copy a group to a different set
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string; targetSet: string } }>(
+    '/tokens/:set/groups/copy',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath, targetSet } = request.body ?? {};
+      if (!groupPath || !targetSet) {
+        return reply.status(400).send({ error: 'groupPath and targetSet are required' });
+      }
+      return withLock(async () => {
+        try {
+          const beforeTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
+          const result = await fastify.tokenStore.copyGroup(set, groupPath, targetSet);
+          const afterTarget = await snapshotGroup(fastify.tokenStore, targetSet, groupPath);
+          await fastify.operationLog.record({
+            type: 'group-copy',
+            description: `Copy group "${groupPath}" from ${set} to ${targetSet}`,
+            setName: set,
+            affectedPaths: [...Object.keys(afterTarget)],
+            beforeSnapshot: Object.fromEntries(
+              Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+            ),
+            afterSnapshot: Object.fromEntries(
+              Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+            ),
+          });
+          return { ok: true, ...result };
+        } catch (err) {
+          return handleRouteError(reply, err);
+        }
+      });
+    },
+  );
+
   // POST /api/tokens/:set/groups/duplicate — duplicate a group with a -copy suffix
   fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
     '/tokens/:set/groups/duplicate',

@@ -192,6 +192,7 @@ export interface TokenTreeContextType {
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
   onUpdateGroupMeta?: (groupPath: string, meta: { $type?: string | null; $description?: string | null }) => Promise<void>;
   onRequestMoveGroup?: (groupPath: string) => void;
+  onRequestCopyGroup?: (groupPath: string) => void;
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;

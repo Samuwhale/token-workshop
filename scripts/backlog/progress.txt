@@ -258,3 +258,18 @@
   - Use `unthemedAllTokensFlat ?? allTokensFlat` as fallback in TokenList since it may be undefined for older call sites that don't pass it.
   - Context menu items guarded by a callback (e.g. `onCompareAcrossThemes && !selectMode`) only appear when the feature is relevant — pass `undefined` from the parent when dimensions are absent to auto-hide the menu item.
 ---
+
+## 2026-03-29 - No "move to set" or "copy to set" action for tokens and groups
+- Token context menu already had both "Move to set…" and "Copy to set…". The group context menu only had "Move group to set…" — missing "Copy group to set…".
+- Added `copyGroup` method to `token-store.ts` (mirrors `moveGroup` but omits source deletion, uses `structuredClone` for safety)
+- Added `POST /api/tokens/:set/groups/copy` route to `tokens.ts` with operation log entry
+- Added `onRequestCopyGroup` prop to `tokenListTypes.ts`
+- Added `copyingGroup` state, `handleRequestCopyGroup`, and `handleConfirmCopyGroup` callbacks to `TokenList.tsx`; wired into context and modal props
+- Added copy group modal to `TokenListModals.tsx` (interface + JSX)
+- Added "Copy group to set…" menu item to group context menu in `TokenTreeNode.tsx`
+- Files changed: `packages/server/src/services/token-store.ts` ~L1223, `packages/server/src/routes/tokens.ts` ~L134, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L195, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1308, ~L1453, ~L2269, ~L4128, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L103, ~L840, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L127, ~L698
+- **Learnings for future iterations:**
+  - The "move to set" feature was already complete for both tokens and groups; only "copy to set" for groups was missing
+  - `copyTargetSet` state is shared between `copyingToken` and `copyingGroup` modals — safe since only one can be open at a time
+  - `copyGroup` implementation omits save of `fromSet` (unlike `moveGroup`) since the source is not modified
+---
