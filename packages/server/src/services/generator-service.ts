@@ -15,7 +15,6 @@ import type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ResponsiveScaleConfig,
   ContrastCheckConfig,
 } from '@tokenmanager/core';
 import {
@@ -28,7 +27,6 @@ import {
   runCustomScaleGenerator,
   runAccessibleColorPairGenerator,
   runDarkModeInversionGenerator,
-  runResponsiveScaleGenerator,
   runContrastCheckGenerator,
   applyOverrides,
   validateStepName,
@@ -44,7 +42,7 @@ interface GeneratorsFile {
 const VALID_GENERATOR_TYPES: ReadonlySet<string> = new Set([
   'colorRamp', 'typeScale', 'spacingScale', 'opacityScale',
   'borderRadiusScale', 'zIndexScale', 'customScale',
-  'accessibleColorPair', 'darkModeInversion', 'responsiveScale', 'contrastCheck',
+  'accessibleColorPair', 'darkModeInversion', 'contrastCheck',
 ]);
 
 /**
@@ -294,7 +292,7 @@ export class GeneratorService {
 
   /** Compute what would be generated without persisting anything. */
   async preview(
-    data: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'targetSet' | 'config' | 'overrides'>,
+    data: Pick<TokenGenerator, 'type' | 'sourceToken' | 'inlineValue' | 'targetGroup' | 'targetSet' | 'config' | 'overrides'>,
     tokenStore: TokenStore,
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
@@ -698,14 +696,6 @@ export class GeneratorService {
         results = runDarkModeInversionGenerator(hex, config as DarkModeInversionConfig, targetGroup);
         break;
       }
-      case 'responsiveScale': {
-        const dim = resolvedValue as { value: number; unit: string } | null;
-        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new BadRequestError(`Source value for responsiveScale must be a dimension value`);
-        }
-        results = runResponsiveScaleGenerator(dim, config as ResponsiveScaleConfig, targetGroup);
-        break;
-      }
       case 'contrastCheck': {
         results = runContrastCheckGenerator(config as ContrastCheckConfig, targetGroup);
         break;
@@ -718,10 +708,10 @@ export class GeneratorService {
   }
 
   private async computeResults(
-    generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'config' | 'overrides'>,
+    generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'inlineValue' | 'targetGroup' | 'config' | 'overrides'>,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    const { type, sourceToken } = generator;
+    const { type, sourceToken, inlineValue } = generator;
 
     const needsSource = (
       type === 'colorRamp' ||
@@ -730,20 +720,22 @@ export class GeneratorService {
       type === 'borderRadiusScale' ||
       type === 'accessibleColorPair' ||
       type === 'darkModeInversion' ||
-      type === 'responsiveScale' ||
-      (type === 'customScale' && !!sourceToken)
+      (type === 'customScale' && (!!sourceToken || inlineValue !== undefined))
     );
 
     let resolvedValue: unknown;
     if (needsSource) {
-      if (!sourceToken) {
-        throw new BadRequestError(`Generator type "${type}" requires a source token`);
+      if (sourceToken) {
+        const resolved = await tokenStore.resolveToken(sourceToken);
+        if (!resolved) {
+          throw new NotFoundError(`Source token "${sourceToken}" not found or could not be resolved`);
+        }
+        resolvedValue = resolved.$value;
+      } else if (inlineValue !== undefined) {
+        resolvedValue = inlineValue;
+      } else {
+        throw new BadRequestError(`Generator type "${type}" requires a source token or inline value`);
       }
-      const resolved = await tokenStore.resolveToken(sourceToken);
-      if (!resolved) {
-        throw new NotFoundError(`Source token "${sourceToken}" not found or could not be resolved`);
-      }
-      resolvedValue = resolved.$value;
     }
 
     return this.computeResultsWithValue(generator, resolvedValue);

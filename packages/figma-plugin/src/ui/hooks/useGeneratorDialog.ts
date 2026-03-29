@@ -13,12 +13,13 @@ import {
   autoName,
   defaultConfigForType,
   ALL_TYPES,
-  SOURCE_REQUIRED_TYPES,
-  STANDALONE_TYPES,
-  FLEXIBLE_TYPES,
+  VALUE_REQUIRED_TYPES,
 } from '../components/generators/generatorUtils';
 import { useGeneratorPreview } from './useGeneratorPreview';
 import { useGeneratorSave } from './useGeneratorSave';
+
+import type { OverwrittenEntry } from './useGeneratorPreview';
+export type { OverwrittenEntry } from './useGeneratorPreview';
 
 interface UseGeneratorDialogParams {
   serverUrl: string;
@@ -34,19 +35,13 @@ interface UseGeneratorDialogParams {
   onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
 }
 
-export interface OverwrittenEntry {
-  path: string;
-  type: string;
-  oldValue: unknown;
-  newValue: unknown;
-}
-
 interface UseGeneratorDialogReturn {
   // Derived
   isEditing: boolean;
   isMultiBrand: boolean;
-  typeNeedsSource: boolean;
+  typeNeedsValue: boolean;
   hasSource: boolean;
+  hasValue: boolean;
   availableTypes: GeneratorType[];
   recommendedType: GeneratorType | undefined;
   currentConfig: GeneratorConfig;
@@ -57,6 +52,7 @@ interface UseGeneratorDialogReturn {
   name: string;
   targetSet: string;
   targetGroup: string;
+  inlineValue: unknown;
   inputTable: InputTable | undefined;
   targetSetTemplate: string;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
@@ -72,12 +68,14 @@ interface UseGeneratorDialogReturn {
   savedTokens: GeneratedTokenResult[];
   savedTargetGroup: string;
   showConfirmation: boolean;
+  overwritePendingPaths: string[];
   // Handlers
   handleTypeChange: (type: GeneratorType) => void;
   handleNameChange: (value: string) => void;
   setTargetSet: (value: string) => void;
   setTargetGroup: (value: string) => void;
   setTargetSetTemplate: (value: string) => void;
+  setInlineValue: (value: unknown) => void;
   handleConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   handleToggleMultiBrand: () => void;
   setInputTable: (table: InputTable | undefined) => void;
@@ -88,6 +86,8 @@ interface UseGeneratorDialogReturn {
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
   handleSemanticMappingClose: () => void;
+  handleOverwriteConfirm: () => void;
+  handleOverwriteCancel: () => void;
 }
 
 export function useGeneratorDialog({
@@ -115,7 +115,7 @@ export function useGeneratorDialog({
     existingGenerator?.type ??
     template?.generatorType ??
     recommendedType ??
-    'customScale';
+    'colorRamp';
 
   const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
   const [name, setName] = useState(
@@ -126,6 +126,9 @@ export function useGeneratorDialog({
   const [targetGroup, setTargetGroup] = useState(
     existingGenerator?.targetGroup ??
     (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : ''))
+  );
+  const [inlineValue, setInlineValueRaw] = useState<unknown>(
+    existingGenerator?.inlineValue ?? undefined
   );
 
   const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
@@ -159,9 +162,12 @@ export function useGeneratorDialog({
 
   // Derived values
   const isMultiBrand = Boolean(inputTable);
-  const typeNeedsSource = SOURCE_REQUIRED_TYPES.includes(selectedType);
+  const typeNeedsValue = VALUE_REQUIRED_TYPES.includes(selectedType);
   const hasSource = Boolean(sourceTokenPath);
-  const availableTypes = hasSource ? ALL_TYPES : [...STANDALONE_TYPES, ...FLEXIBLE_TYPES];
+  const hasInlineValue = inlineValue !== undefined && inlineValue !== '';
+  const hasValue = hasSource || hasInlineValue;
+  // All types available — inline values unlock source-requiring types
+  const availableTypes = ALL_TYPES;
   const currentConfig = configs[selectedType]!;
   const lockedCount = Object.values(pendingOverrides).filter(o => o.locked).length;
 
@@ -178,6 +184,7 @@ export function useGeneratorDialog({
     serverUrl,
     selectedType,
     sourceTokenPath,
+    inlineValue,
     targetGroup,
     targetSet,
     config: currentConfig,
@@ -207,6 +214,7 @@ export function useGeneratorDialog({
     selectedType,
     name,
     sourceTokenPath,
+    inlineValue,
     targetSet,
     targetGroup,
     config: currentConfig,
@@ -214,8 +222,8 @@ export function useGeneratorDialog({
     isMultiBrand,
     inputTable,
     targetSetTemplate,
-    typeNeedsSource,
-    hasSource,
+    typeNeedsValue,
+    hasValue,
     previewTokens,
     onSaved,
     onInterceptSemanticMapping,
@@ -264,13 +272,15 @@ export function useGeneratorDialog({
   const setTargetGroupDirty = useCallback((v: string) => { markDirty(); setTargetGroup(v); }, [markDirty]);
   const setTargetSetTemplateDirty = useCallback((v: string) => { markDirty(); setTargetSetTemplate(v); }, [markDirty]);
   const setInputTableDirty = useCallback((t: InputTable | undefined) => { markDirty(); setInputTable(t); }, [markDirty]);
+  const setInlineValue = useCallback((v: unknown) => { markDirty(); setInlineValueRaw(v); }, [markDirty]);
 
   return {
     // Derived
     isEditing,
     isMultiBrand,
-    typeNeedsSource,
+    typeNeedsValue,
     hasSource,
+    hasValue,
     availableTypes,
     recommendedType,
     currentConfig,
@@ -281,6 +291,7 @@ export function useGeneratorDialog({
     name,
     targetSet,
     targetGroup,
+    inlineValue,
     inputTable,
     targetSetTemplate,
     pendingOverrides,
@@ -303,6 +314,7 @@ export function useGeneratorDialog({
     setTargetSet: setTargetSetDirty,
     setTargetGroup: setTargetGroupDirty,
     setTargetSetTemplate: setTargetSetTemplateDirty,
+    setInlineValue,
     handleConfigChange,
     handleToggleMultiBrand,
     setInputTable: setInputTableDirty,

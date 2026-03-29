@@ -15,7 +15,6 @@ export type GeneratorType =
   | 'customScale'
   | 'accessibleColorPair'
   | 'darkModeInversion'
-  | 'responsiveScale'
   | 'contrastCheck';
 
 export interface ColorRampConfig {
@@ -106,16 +105,6 @@ export interface DarkModeInversionConfig {
   chromaBoost: number;
 }
 
-export interface ResponsiveScaleStep {
-  name: string;
-  multiplier: number;
-}
-
-export interface ResponsiveScaleConfig {
-  steps: ResponsiveScaleStep[];
-  unit: 'px' | 'rem';
-}
-
 export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
@@ -126,7 +115,6 @@ export type GeneratorConfig =
   | CustomScaleConfig
   | AccessibleColorPairConfig
   | DarkModeInversionConfig
-  | ResponsiveScaleConfig
   | ContrastCheckConfig;
 
 export interface StepOverride {
@@ -149,6 +137,7 @@ export interface TokenGenerator {
   type: GeneratorType;
   name: string;
   sourceToken?: string;
+  inlineValue?: unknown;
   targetSet: string;
   targetGroup: string;
   config: GeneratorConfig;

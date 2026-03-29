@@ -13,7 +13,6 @@ import type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ResponsiveScaleConfig,
   ContrastCheckConfig,
   TokenType,
 } from '@tokenmanager/core';
@@ -30,7 +29,6 @@ const VALID_GENERATOR_TYPES: readonly string[] = [
   'customScale',
   'accessibleColorPair',
   'darkModeInversion',
-  'responsiveScale',
   'contrastCheck',
 ] as const;
 
@@ -179,16 +177,6 @@ function validateGeneratorConfig(
       };
       return { validated };
     }
-    case 'responsiveScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
-        return { error: 'responsiveScale config requires "steps" as Array<{name: string, multiplier: number}>' };
-      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'responsiveScale config requires "unit" as "px" | "rem"' };
-      const validated: ResponsiveScaleConfig = {
-        steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, multiplier: s.multiplier as number })),
-        unit: c.unit as 'px' | 'rem',
-      };
-      return { validated };
-    }
     case 'contrastCheck': {
       if (typeof c.backgroundHex !== 'string') return { error: 'contrastCheck config requires "backgroundHex" as string' };
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.hex === 'string'))
@@ -210,6 +198,7 @@ function validateGeneratorConfig(
 interface CreateBody {
   type: string;
   sourceToken?: string;
+  inlineValue?: unknown;
   targetSet: string;
   targetGroup: string;
   name?: string;
@@ -225,6 +214,7 @@ interface CreateBody {
 interface PreviewBody {
   type: string;
   sourceToken?: string;
+  inlineValue?: unknown;
   sourceValue?: unknown;
   targetGroup?: string;
   targetSet?: string;
@@ -277,7 +267,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/generators — create a new generator and run it immediately
   fastify.post<{ Body: CreateBody }>('/generators', async (request, reply) => {
-    const { type, sourceToken, targetSet, targetGroup, name, config, overrides, inputTable, targetSetTemplate } = request.body ?? {} as CreateBody;
+    const { type, sourceToken, inlineValue, targetSet, targetGroup, name, config, overrides, inputTable, targetSetTemplate } = request.body ?? {} as CreateBody;
     if (!type || !targetSet || !targetGroup) {
       return reply.status(400).send({
         error: 'type, targetSet, and targetGroup are required',
@@ -298,6 +288,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const generator = await fastify.generatorService.create({
           type: type as GeneratorType,
           sourceToken: sourceToken ?? undefined,
+          inlineValue: inlineValue ?? undefined,
           targetSet,
           targetGroup,
           name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
@@ -345,6 +336,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         {
           type: body.type as GeneratorType,
           sourceToken: body.sourceToken,
+          inlineValue: body.inlineValue,
           targetGroup: body.targetGroup ?? '',
           targetSet: body.targetSet ?? '',
           config: configResult.validated,
@@ -391,6 +383,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         if (typeof body.targetSet === 'string') updates.targetSet = body.targetSet;
         if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
         if (typeof body.targetSetTemplate === 'string') updates.targetSetTemplate = body.targetSetTemplate;
+        if (body.inlineValue !== undefined) updates.inlineValue = body.inlineValue;
         if (body.type !== undefined && typeof body.type === 'string') {
           updates.type = body.type as GeneratorType;
         }

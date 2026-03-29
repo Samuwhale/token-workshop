@@ -146,8 +146,6 @@ export type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ResponsiveScaleStep,
-  ResponsiveScaleConfig,
   ContrastCheckStep,
   ContrastCheckConfig,
   GeneratorConfig,
@@ -167,7 +165,6 @@ export {
   DEFAULT_CUSTOM_SCALE_CONFIG,
   DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
-  DEFAULT_RESPONSIVE_SCALE_CONFIG,
   DEFAULT_CONTRAST_CHECK_CONFIG,
 } from './generator-types.js';
 
@@ -182,7 +179,6 @@ export {
   runCustomScaleGenerator,
   runAccessibleColorPairGenerator,
   runDarkModeInversionGenerator,
-  runResponsiveScaleGenerator,
   runContrastCheckGenerator,
   applyOverrides,
 } from './generator-engine.js';

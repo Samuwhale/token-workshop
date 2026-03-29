@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import type { SpacingScaleConfig, SpacingStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
@@ -50,6 +50,17 @@ const SPACING_STEP_PRESETS = [
       { name: '12', multiplier: 12 },
     ] as SpacingStep[],
   },
+  {
+    label: 'Semantic',
+    description: '5 named steps (sm, base, md, lg, xl) — intent-based responsive sizing',
+    steps: [
+      { name: 'sm', multiplier: 0.75 },
+      { name: 'base', multiplier: 1 },
+      { name: 'md', multiplier: 1.25 },
+      { name: 'lg', multiplier: 1.5 },
+      { name: 'xl', multiplier: 2 },
+    ] as SpacingStep[],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -89,44 +100,51 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
 // ---------------------------------------------------------------------------
 
 export function SpacingScaleConfigEditor({ config, onChange }: { config: SpacingScaleConfig; onChange: (c: SpacingScaleConfig) => void }) {
-  const [customText, setCustomText] = useState('');
-  const [isCustom, setIsCustom] = useState(false);
-  const [customError, setCustomError] = useState('');
+  const [showSteps, setShowSteps] = useState(false);
   const activePresetIdx = SPACING_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s.name === config.steps[i]?.name)
   );
-  const handleCustomCommit = useCallback(() => {
-    const parts = customText.split(',').map(s => s.trim()).filter(Boolean);
-    if (parts.length === 0) { setCustomError('Enter comma-separated multipliers.'); return; }
-    const steps: SpacingStep[] = [];
-    for (const part of parts) {
-      const num = parseFloat(part);
-      if (isNaN(num) || num <= 0) { setCustomError(`Invalid value: "${part}"`); return; }
-      steps.push({ name: String(num), multiplier: num });
-    }
-    setCustomError('');
+  const updateStep = (idx: number, updates: Partial<SpacingStep>) => {
+    const steps = config.steps.map((s, i) => i === idx ? { ...s, ...updates } : s);
     onChange({ ...config, steps });
-  }, [customText, config, onChange]);
+  };
+  const addStep = () => {
+    const maxMult = Math.max(...config.steps.map(s => s.multiplier), 0);
+    const next = Math.round((maxMult + 1) * 10) / 10;
+    onChange({ ...config, steps: [...config.steps, { name: String(next), multiplier: next }] });
+  };
+  const removeStep = (idx: number) => onChange({ ...config, steps: config.steps.filter((_, i) => i !== idx) });
+
   return (
     <div className="flex flex-col gap-3">
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {SPACING_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} title={preset.description} onClick={() => { setIsCustom(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
-              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustom && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            <button key={preset.label} title={preset.description} onClick={() => { setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
+              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
-          <button onClick={() => { setIsCustom(true); setCustomText(config.steps.map(s => s.multiplier).join(', ')); }}
-            className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${isCustom ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-          >Custom</button>
         </div>
-        {isCustom && (
-          <div className="mt-1.5">
-            <textarea value={customText} onChange={e => setCustomText(e.target.value)} placeholder="0.5, 1, 1.5, 2, 3, 4, ..." rows={2}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none font-mono" />
-            {customError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)] mt-0.5">{customError}</p>}
-            <button onClick={handleCustomCommit} className="mt-1 px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] hover:bg-[var(--color-figma-accent-hover)]">Apply</button>
+        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
+          Edit steps ({config.steps.length})
+        </button>
+        {showSteps && (
+          <div className="mt-1.5 flex flex-col gap-1">
+            {config.steps.map((step, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
+                  aria-label={`Step ${i + 1} name`}
+                  placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">&times;</span>
+                <input type="number" step="0.5" value={step.multiplier} onChange={e => updateStep(i, { multiplier: Number(e.target.value), name: step.name === String(step.multiplier) ? e.target.value : step.name })}
+                  aria-label={`Step ${step.name} multiplier`}
+                  className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+              </div>
+            ))}
+            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ConfirmModal } from './ConfirmModal';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
@@ -28,7 +28,7 @@ import { ZIndexConfigEditor } from './generators/ZIndexGenerator';
 import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/ContrastCheckGenerator';
 import { GenericPreview } from './generators/generatorShared';
-import { ALL_TYPES, SOURCE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
+import { PRIMARY_TYPES, ADVANCED_TYPES, VALUE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
 
 // ---------------------------------------------------------------------------
@@ -64,7 +64,6 @@ export const TYPE_LABELS: Record<GeneratorType, string> = {
   customScale: 'Custom',
   accessibleColorPair: 'Accessible Pair',
   darkModeInversion: 'Dark Mode',
-  responsiveScale: 'Responsive',
   contrastCheck: 'Contrast Check',
 };
 
@@ -154,8 +153,9 @@ export function TokenGeneratorDialog({
   const {
     isEditing,
     isMultiBrand,
-    typeNeedsSource,
+    typeNeedsValue,
     hasSource,
+    hasValue,
     availableTypes,
     recommendedType,
     currentConfig,
@@ -164,6 +164,7 @@ export function TokenGeneratorDialog({
     name,
     targetSet,
     targetGroup,
+    inlineValue,
     inputTable,
     targetSetTemplate,
     pendingOverrides,
@@ -185,6 +186,7 @@ export function TokenGeneratorDialog({
     setTargetSet,
     setTargetGroup,
     setTargetSetTemplate,
+    setInlineValue,
     handleConfigChange,
     handleToggleMultiBrand,
     setInputTable,
@@ -255,7 +257,7 @@ export function TokenGeneratorDialog({
           onCancel={handleOverwriteCancel}
         >
           <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            {overwritePendingPaths.map(p => (
+            {overwritePendingPaths.map((p: string) => (
               <div key={p} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] py-0.5 truncate" title={p}>
                 {p}
               </div>
@@ -397,6 +399,38 @@ export function TokenGeneratorDialog({
     );
   }
 
+  const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
+
+  // Effective source value for config editors (from bound token or inline input)
+  const effectiveSourceHex = typeof sourceTokenValue === 'string' ? sourceTokenValue : typeof inlineValue === 'string' ? inlineValue : undefined;
+  const effectiveSourceDim = (() => {
+    if (typeof sourceTokenValue === 'object' && sourceTokenValue !== null && 'value' in sourceTokenValue) return Number(sourceTokenValue.value);
+    if (typeof sourceTokenValue === 'number') return sourceTokenValue;
+    if (typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>)) return Number((inlineValue as { value: number }).value);
+    return undefined;
+  })();
+
+  /** Whether the selected type expects a color input (for inline value rendering) */
+  const typeExpectsColor = selectedType === 'colorRamp' || selectedType === 'accessibleColorPair' || selectedType === 'darkModeInversion';
+  /** Whether the selected type expects a dimension input */
+  const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
+
+  const typeButton = (type: GeneratorType) => (
+    <button
+      key={type}
+      onClick={() => handleTypeChange(type)}
+      className={`px-2 py-1.5 rounded text-[10px] font-medium border transition-colors text-left flex items-center gap-1.5 ${
+        selectedType === type
+          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+      }`}
+    >
+      {type === recommendedType && <span className="text-[8px] leading-none">★</span>}
+      {TYPE_LABELS[type]}
+    </button>
+  );
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
       <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
@@ -411,14 +445,16 @@ export function TokenGeneratorDialog({
             )}
             <div className="flex flex-col gap-0.5">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                {isEditing ? 'Edit Generator' : template ? template.label : 'New Token Generator'}
+                {isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
               </span>
               {sourceTokenPath ? (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[220px]">
-                  {sourceTokenPath}
+                  Source: {sourceTokenPath}
                 </span>
               ) : (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Standalone generator</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {typeNeedsValue ? 'Enter a base value or bind a source token' : 'Standalone generator'}
+                </span>
               )}
             </div>
           </div>
@@ -430,49 +466,107 @@ export function TokenGeneratorDialog({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
-          {/* Type selector */}
+          {/* Type selector — primary types */}
           <div>
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
-              Generator type
+              Type
               {recommendedType && (
                 <span className="ml-1 text-[var(--color-figma-accent)]">(recommended: {TYPE_LABELS[recommendedType]})</span>
               )}
             </label>
             <div className="grid grid-cols-2 gap-1">
-              {ALL_TYPES.map(type => {
-                const disabled = !availableTypes.includes(type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => !disabled && handleTypeChange(type)}
-                    disabled={disabled}
-                    className={`px-2 py-1.5 rounded text-[10px] font-medium border transition-colors text-left flex items-center gap-1.5 ${
-                      disabled
-                        ? 'opacity-30 cursor-not-allowed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
-                        : selectedType === type
-                          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                    }`}
-                  >
-                    {type === recommendedType && <span className="text-[8px] leading-none">★</span>}
-                    {TYPE_LABELS[type]}
-                    {STANDALONE_TYPES.includes(type) && <span className="text-[8px] ml-auto opacity-60">standalone</span>}
-                  </button>
-                );
-              })}
+              {PRIMARY_TYPES.map(typeButton)}
             </div>
-            {typeNeedsSource && !hasSource && (
-              <p className="text-[10px] text-[var(--color-figma-error)] mt-1">
-                This type requires a source token. Open from a token's editor, or switch to a standalone type.
-              </p>
+            {/* Advanced types — collapsible */}
+            <button
+              onClick={() => setShowAdvancedTypes(v => !v)}
+              className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showAdvancedTypes ? 'rotate-90' : ''}`}>
+                <path d="M2 1l4 3-4 3" />
+              </svg>
+              Advanced
+              {ADVANCED_TYPES.includes(selectedType) && !showAdvancedTypes && (
+                <span className="text-[var(--color-figma-accent)] ml-1">({TYPE_LABELS[selectedType]})</span>
+              )}
+            </button>
+            {showAdvancedTypes && (
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                {ADVANCED_TYPES.map(typeButton)}
+              </div>
             )}
           </div>
+
+          {/* Inline base value — shown when no source token is bound AND type needs a value */}
+          {!hasSource && typeNeedsValue && (
+            <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+              <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">Base value</span>
+              {typeExpectsColor && (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-7 h-7 rounded border border-[var(--color-figma-border)] shrink-0 cursor-pointer relative overflow-hidden"
+                    style={{ backgroundColor: typeof inlineValue === 'string' && /^#[0-9a-f]{3,8}$/i.test(inlineValue) ? inlineValue : '#808080' }}
+                  >
+                    <input
+                      type="color"
+                      value={typeof inlineValue === 'string' && /^#[0-9a-f]{6}$/i.test(inlineValue) ? inlineValue : '#808080'}
+                      onChange={e => setInlineValue(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      aria-label="Pick base color"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={typeof inlineValue === 'string' ? inlineValue : ''}
+                    onChange={e => setInlineValue(e.target.value)}
+                    placeholder="#6366F1"
+                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                </div>
+              )}
+              {typeExpectsDimension && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>) ? (inlineValue as { value: number }).value : ''}
+                    onChange={e => {
+                      const num = parseFloat(e.target.value);
+                      if (!isNaN(num)) {
+                        const existing = typeof inlineValue === 'object' && inlineValue !== null ? inlineValue as { unit?: string } : {};
+                        setInlineValue({ value: num, unit: existing.unit || 'px' });
+                      } else if (e.target.value === '') {
+                        setInlineValue(undefined);
+                      }
+                    }}
+                    placeholder={selectedType === 'typeScale' ? '16' : selectedType === 'spacingScale' ? '4' : '8'}
+                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                  <div className="flex gap-0.5">
+                    {(['px', 'rem'] as const).map(u => (
+                      <button
+                        key={u}
+                        onClick={() => {
+                          const existing = typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>) ? (inlineValue as { value: number }) : { value: 0 };
+                          setInlineValue({ ...existing, unit: u });
+                        }}
+                        className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                          (typeof inlineValue === 'object' && inlineValue !== null && (inlineValue as { unit?: string }).unit === u) || (!inlineValue && u === 'px')
+                            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                            : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                        }`}
+                      >{u}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Config */}
           <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
             <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-3">{TYPE_LABELS[selectedType]} settings</span>
-            {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => handleConfigChange('colorRamp', cfg)} sourceHex={typeof sourceTokenValue === 'string' ? sourceTokenValue : undefined} />}
-            {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => handleConfigChange('typeScale', cfg)} sourceValue={typeof sourceTokenValue === 'object' && sourceTokenValue !== null && 'value' in sourceTokenValue ? Number(sourceTokenValue.value) : typeof sourceTokenValue === 'number' ? sourceTokenValue : undefined} />}
+            {selectedType === 'colorRamp' && <ColorRampConfigEditor config={currentConfig as ColorRampConfig} onChange={cfg => handleConfigChange('colorRamp', cfg)} sourceHex={effectiveSourceHex} />}
+            {selectedType === 'typeScale' && <TypeScaleConfigEditor config={currentConfig as TypeScaleConfig} onChange={cfg => handleConfigChange('typeScale', cfg)} sourceValue={effectiveSourceDim} />}
             {selectedType === 'spacingScale' && <SpacingScaleConfigEditor config={currentConfig as SpacingScaleConfig} onChange={cfg => handleConfigChange('spacingScale', cfg)} />}
             {selectedType === 'opacityScale' && <OpacityScaleConfigEditor config={currentConfig as OpacityScaleConfig} onChange={cfg => handleConfigChange('opacityScale', cfg)} />}
             {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => handleConfigChange('borderRadiusScale', cfg)} />}
@@ -511,7 +605,6 @@ export function TokenGeneratorDialog({
               <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
             )}
 
-            {/* Contrast check preview is always shown (even when 0 tokens, to guide the user) */}
             {selectedType === 'contrastCheck' && (
               <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
                 <ContrastCheckPreview tokens={previewTokens} config={currentConfig as ContrastCheckConfig} />
@@ -540,7 +633,11 @@ export function TokenGeneratorDialog({
 
             {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
-                {isMultiBrand ? 'Add a brand row with an input value to see a preview.' : 'No preview available.'}
+                {isMultiBrand
+                  ? 'Add a brand row with an input value to see a preview.'
+                  : typeNeedsValue && !hasValue
+                    ? `Enter a base ${typeExpectsColor ? 'color' : 'value'} above to see a preview.`
+                    : 'No preview available.'}
               </div>
             )}
           </div>
@@ -567,68 +664,88 @@ export function TokenGeneratorDialog({
             </div>
           )}
 
-          {/* Multi-brand input table */}
-          <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand inputs</span>
-              <button
-                onClick={handleToggleMultiBrand}
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-              >
-                {inputTable ? 'Disable' : 'Enable'}
-              </button>
-            </div>
-            {!inputTable && (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Run this generator for multiple brands, each writing to its own token set.
-              </p>
-            )}
-            {inputTable && <InputTableEditor table={inputTable} onChange={setInputTable} />}
-          </div>
-
-          {/* Target */}
+          {/* Target + Name (compact) */}
           <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Target</span>
-            {isMultiBrand ? (
-              <div>
-                <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
-                <input
-                  type="text"
-                  value={targetSetTemplate}
-                  onChange={e => setTargetSetTemplate(e.target.value)}
-                  placeholder="brands/{brand}"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
-                />
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                  {'{brand}'} is replaced with each row's brand slug — e.g. <span className="font-mono">brands/berry</span>
-                </p>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group</label>
+                <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} placeholder="e.g. colors.primary"
+                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono ${!targetGroup.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
               </div>
-            ) : (
-              <div>
-                <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set</label>
-                <select value={targetSet} onChange={e => setTargetSet(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
-                  {allSets.map(s => <option key={s} value={s}>{s}</option>)}
-                  {allSets.length === 0 && <option value={activeSet}>{activeSet}</option>}
-                </select>
-              </div>
+              {!isMultiBrand && (
+                <div className="w-28">
+                  <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Set</label>
+                  <select value={targetSet} onChange={e => setTargetSet(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
+                    {allSets.map(s => <option key={s} value={s}>{s}</option>)}
+                    {allSets.length === 0 && <option value={activeSet}>{activeSet}</option>}
+                  </select>
+                </div>
+              )}
+            </div>
+            {targetGroup.trim() && (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] -mt-1">
+                Tokens: <span className="font-mono">{targetGroup}.{'{'+'step}'}</span>
+              </p>
             )}
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group path</label>
-              <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} placeholder="e.g. spacing"
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono ${!targetGroup.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                Tokens: <span className="font-mono">{targetGroup || '…'}.{'{'+'step}'}</span>
-              </p>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Name</label>
+              <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
+                placeholder="My generator"
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
             </div>
           </div>
 
-          {/* Name */}
+          {/* Advanced options (multi-brand) — collapsible */}
           <div>
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Generator name</label>
-            <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
-              placeholder="My generator"
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
+            <button
+              onClick={() => setShowAdvancedOptions(v => !v)}
+              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}>
+                <path d="M2 1l4 3-4 3" />
+              </svg>
+              Advanced options
+              {isMultiBrand && !showAdvancedOptions && (
+                <span className="text-[var(--color-figma-accent)] ml-1">(multi-brand active)</span>
+              )}
+            </button>
+            {showAdvancedOptions && (
+              <div className="mt-2 border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-theme mode</span>
+                  <button
+                    onClick={handleToggleMultiBrand}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  >
+                    {inputTable ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+                {!inputTable && (
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Run this generator across multiple themes, each writing to its own token set.
+                  </p>
+                )}
+                {inputTable && (
+                  <>
+                    <InputTableEditor table={inputTable} onChange={setInputTable} />
+                    <div className="mt-2">
+                      <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
+                      <input
+                        type="text"
+                        value={targetSetTemplate}
+                        onChange={e => setTargetSetTemplate(e.target.value)}
+                        placeholder="brands/{brand}"
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                      />
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                        {'{brand}'} is replaced per row — e.g. <span className="font-mono">brands/berry</span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
@@ -639,9 +756,9 @@ export function TokenGeneratorDialog({
         <div className="flex flex-col gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
           {!saving && (() => {
             const missing: string[] = [];
-            if (!targetGroup.trim()) missing.push('target group path');
-            if (!name.trim()) missing.push('generator name');
-            if (!isMultiBrand && typeNeedsSource && !hasSource) missing.push('source token');
+            if (!targetGroup.trim()) missing.push('target group');
+            if (!name.trim()) missing.push('name');
+            if (!isMultiBrand && typeNeedsValue && !hasValue) missing.push(typeExpectsColor ? 'base color' : 'base value');
             return missing.length > 0 ? (
               <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                 {missing.length === 1
@@ -652,7 +769,7 @@ export function TokenGeneratorDialog({
           })()}
           <div className="flex gap-2">
           <button onClick={handleClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !!existingTokensError || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
+          <button onClick={handleSave} disabled={saving || !!existingTokensError || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsValue && !hasValue)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
             {isEditing
               ? 'Review & Update'

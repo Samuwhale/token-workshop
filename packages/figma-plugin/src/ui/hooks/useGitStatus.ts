@@ -1,7 +1,20 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
-import type { GitStatus } from './useGitSync';
+
+export interface GitStatus {
+  isRepo: boolean;
+  branch: string | null;
+  remote: string | null;
+  status: {
+    modified: string[];
+    created: string[];
+    deleted: string[];
+    not_added: string[];
+    staged: string[];
+    isClean: boolean;
+  } | null;
+}
 
 interface UseGitStatusOptions {
   serverUrl: string;

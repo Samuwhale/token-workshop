@@ -13,7 +13,7 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
     description: '11-step perceptual ramp derived from a source color token',
     defaultPrefix: 'colors',
     generatorType: 'colorRamp',
-    requiresSource: true,
+    requiresSource: false,
     config: {
       steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
       lightEnd: 97,
@@ -25,10 +25,10 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
   {
     id: 'spacing',
     label: 'Spacing scale',
-    description: 'Multiplier-based spacing scale derived from a base unit token',
+    description: 'Multiplier-based spacing scale from a base unit (e.g. 4px or 8px)',
     defaultPrefix: 'spacing',
     generatorType: 'spacingScale',
-    requiresSource: true,
+    requiresSource: false,
     config: {
       steps: [
         { name: '0.5', multiplier: 0.5 }, { name: '1', multiplier: 1 },
@@ -44,10 +44,10 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
   {
     id: 'border-radius',
     label: 'Border radius',
-    description: 'Corner radius scale from none to full, derived from a base radius token',
+    description: 'Corner radius scale from none to full (e.g. base 8px)',
     defaultPrefix: 'borderRadius',
     generatorType: 'borderRadiusScale',
-    requiresSource: true,
+    requiresSource: false,
     config: {
       steps: [
         { name: 'none', multiplier: 0, exactValue: 0 },
@@ -64,10 +64,10 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
   {
     id: 'typography',
     label: 'Typography scale',
-    description: 'Font size ramp using a ratio, derived from a base font size token',
+    description: 'Font size ramp using a ratio (e.g. base 1rem or 16px)',
     defaultPrefix: 'fontSize',
     generatorType: 'typeScale',
-    requiresSource: true,
+    requiresSource: false,
     config: {
       steps: [
         { name: 'xs', exponent: -2 }, { name: 'sm', exponent: -1 },
@@ -285,59 +285,7 @@ export function QuickStartDialog({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Source-required templates */}
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Derived from a source token</div>
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Pick a base token, then generate a scale from it</div>
-          </div>
-          {QUICK_START_TEMPLATES.filter(t => t.requiresSource).map(template => {
-            const count = getTokenCount(template);
-            const stepNames = getTemplateStepNames(template);
-            return (
-              <button
-                key={template.id}
-                onClick={() => setSelectedTemplate(template)}
-                className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 w-14">
-                    <TemplateIcon id={template.id} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
-                      {count > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
-                          {count} tokens
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
-                        {template.defaultPrefix}.*
-                      </span>
-                      {stepNames.length > 0 && (
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
-                          {formatStepPreview(stepNames)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
-                    <path d="M4.5 2.5L8 6l-3.5 3.5" />
-                  </svg>
-                </div>
-              </button>
-            );
-          })}
-
-          {/* Standalone templates */}
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Standalone</div>
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Ready to use — no source token needed</div>
-          </div>
-          {QUICK_START_TEMPLATES.filter(t => !t.requiresSource).map(template => {
+          {QUICK_START_TEMPLATES.map(template => {
             const count = getTokenCount(template);
             const stepNames = getTemplateStepNames(template);
             return (

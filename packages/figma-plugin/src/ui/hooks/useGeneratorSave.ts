@@ -16,6 +16,7 @@ interface UseGeneratorSaveParams {
   selectedType: GeneratorType;
   name: string;
   sourceTokenPath?: string;
+  inlineValue?: unknown;
   targetSet: string;
   targetGroup: string;
   config: GeneratorConfig;
@@ -23,8 +24,8 @@ interface UseGeneratorSaveParams {
   isMultiBrand: boolean;
   inputTable: InputTable | undefined;
   targetSetTemplate: string;
-  typeNeedsSource: boolean;
-  hasSource: boolean;
+  typeNeedsValue: boolean;
+  hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
   onSaved: (info?: { targetGroup: string }) => void;
   onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
@@ -53,6 +54,7 @@ export function useGeneratorSave({
   selectedType,
   name,
   sourceTokenPath,
+  inlineValue,
   targetSet,
   targetGroup,
   config,
@@ -60,8 +62,8 @@ export function useGeneratorSave({
   isMultiBrand,
   inputTable,
   targetSetTemplate,
-  typeNeedsSource,
-  hasSource,
+  typeNeedsValue,
+  hasValue,
   previewTokens,
   onSaved,
   onInterceptSemanticMapping,
@@ -78,7 +80,7 @@ export function useGeneratorSave({
   const handleSave = useCallback(async () => {
     if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
     if (!name.trim()) { setSaveError('Generator name is required.'); return; }
-    if (!isMultiBrand && typeNeedsSource && !hasSource) { setSaveError('This generator type requires a source token.'); return; }
+    if (!isMultiBrand && typeNeedsValue && !hasValue) { setSaveError('This generator type requires a source token or base value.'); return; }
     if (isMultiBrand && inputTable) {
       if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
       if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
@@ -88,7 +90,7 @@ export function useGeneratorSave({
     }
     setSaveError('');
     setShowConfirmation(true);
-  }, [targetGroup, name, isMultiBrand, typeNeedsSource, hasSource, inputTable, targetSetTemplate]);
+  }, [targetGroup, name, isMultiBrand, typeNeedsValue, hasValue, inputTable, targetSetTemplate]);
 
   /** Inner save logic — commits the generator to the server. */
   const commitSave = useCallback(async () => {
@@ -99,6 +101,7 @@ export function useGeneratorSave({
         type: selectedType,
         name: name.trim(),
         sourceToken: isMultiBrand ? undefined : (sourceTokenPath || undefined),
+        inlineValue: (!sourceTokenPath && inlineValue !== undefined && inlineValue !== '') ? inlineValue : undefined,
         targetSet,
         targetGroup: targetGroup.trim(),
         config,
@@ -144,7 +147,7 @@ export function useGeneratorSave({
       setSaveError(getErrorMessage(err));
       setSaving(false);
     }
-  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, targetSet, targetGroup, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
+  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, targetSet, targetGroup, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
 
   /** Step 2: Check for overwrites, then commit (called from confirmation view). */
   const handleConfirmSave = useCallback(async () => {

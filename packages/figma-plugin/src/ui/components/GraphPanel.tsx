@@ -185,7 +185,6 @@ function getGeneratorTypeLabel(type: GeneratorType): string {
     case 'contrastCheck': return 'Contrast check';
     case 'accessibleColorPair': return 'Accessible color pair';
     case 'darkModeInversion': return 'Dark mode inversion';
-    case 'responsiveScale': return 'Responsive scale';
     default: return type;
   }
 }
@@ -756,10 +755,38 @@ function ApplyForm({
 // Generator pipeline card (shown after templates are applied)
 // ---------------------------------------------------------------------------
 
-function GeneratorPipelineCard({ generator, isFocused, focusRef }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null> }) {
+function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; onRefresh: () => void }) {
+  const [running, setRunning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
+
+  const handleRerun = async () => {
+    setRunning(true);
+    try {
+      await fetch(`${serverUrl}/api/generators/${generator.id}/run`, { method: 'POST' });
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to re-run generator:', err);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleDelete = async (deleteTokens: boolean) => {
+    setDeleting(true);
+    try {
+      await fetch(`${serverUrl}/api/generators/${generator.id}?deleteTokens=${deleteTokens}`, { method: 'DELETE' });
+      setShowDeleteConfirm(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to delete generator:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${hasError ? 'border-[var(--color-figma-error)]' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
@@ -791,6 +818,15 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef }: { generator: 
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
           </>
+        ) : generator.inlineValue !== undefined ? (
+          <>
+            <span className="font-mono text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] px-1 py-px rounded border border-[var(--color-figma-border)] truncate max-w-[100px]">
+              {typeof generator.inlineValue === 'string' ? generator.inlineValue : typeof generator.inlineValue === 'object' && generator.inlineValue !== null && 'value' in (generator.inlineValue as Record<string, unknown>) ? `${(generator.inlineValue as {value: number; unit?: string}).value}${(generator.inlineValue as {unit?: string}).unit || ''}` : String(generator.inlineValue)}
+            </span>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)] shrink-0">
+              <path d="M2 1l4 3-4 3V1z" />
+            </svg>
+          </>
         ) : (
           <>
             <span className="text-[10px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">standalone</span>
@@ -806,6 +842,31 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef }: { generator: 
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
         <span className="text-[var(--color-figma-text-secondary)] tabular-nums">{stepCount} tokens</span>
+      </div>
+      {/* Actions */}
+      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--color-figma-border)]">
+        <button
+          onClick={handleRerun}
+          disabled={running}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors disabled:opacity-50"
+        >
+          {running ? 'Running…' : 'Re-run'}
+        </button>
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors ml-auto"
+          >
+            Delete
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Delete tokens too?</span>
+            <button onClick={() => handleDelete(true)} disabled={deleting} className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50">Yes</button>
+            <button onClick={() => handleDelete(false)} disabled={deleting} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-50">No</button>
+            <button onClick={() => setShowDeleteConfirm(false)} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline">Cancel</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1126,7 +1187,7 @@ export function GraphPanel({
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
               {filteredGenerators.length > 0
                 ? filteredGenerators.map(gen => (
-                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} />
+                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} onRefresh={onRefresh} />
                   ))
                 : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">

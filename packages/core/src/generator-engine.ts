@@ -12,7 +12,6 @@ import type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ResponsiveScaleConfig,
   ContrastCheckConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
@@ -458,40 +457,6 @@ export function runDarkModeInversionGenerator(
     type: 'color',
     value: invertedHex,
   }];
-}
-
-// ---------------------------------------------------------------------------
-// Responsive Scale
-// ---------------------------------------------------------------------------
-
-/**
- * Generate a set of responsive size tokens (sm/base/md/lg/xl) from a source
- * dimension token. Each step value = `sourceValue × step.multiplier`.
- *
- * This is the semantic-naming counterpart to `spacingScale`: where a spacing
- * scale uses numeric multipliers (0.5, 1, 2, …), a responsive scale uses
- * intent-named steps (sm, base, md, lg, xl).
- */
-export function runResponsiveScaleGenerator(
-  sourceValue: { value: number; unit: string },
-  config: ResponsiveScaleConfig,
-  targetGroup: string,
-): GeneratedTokenResult[] {
-  // Validate step names before generating
-  for (const step of config.steps) {
-    validateStepName(step.name);
-  }
-
-  return config.steps.map(step => {
-    const raw = sourceValue.value * step.multiplier;
-    const rounded = parseFloat(raw.toFixed(4));
-    return {
-      stepName: step.name,
-      path: `${targetGroup}.${step.name}`,
-      type: 'dimension',
-      value: { value: rounded, unit: config.unit || sourceValue.unit },
-    };
-  });
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,6 @@
 import type { TokenNode } from '../hooks/useTokens';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
-import type { SortOrder } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { ThemeDimension } from '@tokenmanager/core';
@@ -51,6 +50,8 @@ export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the vi
 // ---------------------------------------------------------------------------
 // Interfaces
 // ---------------------------------------------------------------------------
+
+export type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
 export interface TokenListCtx {
   setName: string;

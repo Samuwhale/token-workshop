@@ -3,30 +3,8 @@ import { useGitStatus } from './useGitStatus';
 import { useGitConflicts } from './useGitConflicts';
 import { useGitDiff } from './useGitDiff';
 
-export interface ConflictRegion {
-  index: number;
-  ours: string;
-  theirs: string;
-}
-
-export interface FileConflict {
-  file: string;
-  regions: ConflictRegion[];
-}
-
-export interface GitStatus {
-  isRepo: boolean;
-  branch: string | null;
-  remote: string | null;
-  status: {
-    modified: string[];
-    created: string[];
-    deleted: string[];
-    not_added: string[];
-    staged: string[];
-    isClean: boolean;
-  } | null;
-}
+export type { ConflictRegion, FileConflict } from './useGitConflicts';
+export type { GitStatus } from './useGitStatus';
 
 interface UseGitSyncOptions {
   serverUrl: string;

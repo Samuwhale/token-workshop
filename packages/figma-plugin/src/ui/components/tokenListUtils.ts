@@ -1,6 +1,7 @@
 import type { TokenNode } from '../hooks/useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from '../hooks/useGenerators';
+import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 
@@ -82,11 +83,7 @@ export const QUERY_QUALIFIERS = [
   { qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand' },
 ];
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
+export type { SortOrder } from './tokenListTypes';
 
 // ---------------------------------------------------------------------------
 // Virtual scroll helpers
@@ -485,7 +482,6 @@ export function getDefaultValue(type: string): any {
 
 import type { TableSortField, TableSortDir } from './tokenListTypes';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import type { TokenMapEntry } from '../../shared/types';
 
 export function sortLeafNodes(
   nodes: TokenNode[],

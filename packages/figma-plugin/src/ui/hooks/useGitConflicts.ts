@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
-import type { FileConflict } from './useGitSync';
+
+export interface ConflictRegion {
+  index: number;
+  ours: string;
+  theirs: string;
+}
+
+export interface FileConflict {
+  file: string;
+  regions: ConflictRegion[];
+}
 
 interface UseGitConflictsOptions {
   serverUrl: string;

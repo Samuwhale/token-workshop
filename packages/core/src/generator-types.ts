@@ -19,7 +19,6 @@ export type GeneratorType =
   | 'customScale'
   | 'accessibleColorPair'
   | 'darkModeInversion'
-  | 'responsiveScale'
   | 'contrastCheck';
 
 // ---------------------------------------------------------------------------
@@ -192,22 +191,6 @@ export interface DarkModeInversionConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Responsive Scale
-// ---------------------------------------------------------------------------
-
-export interface ResponsiveScaleStep {
-  /** Semantic size name, e.g. 'sm', 'base', 'lg' */
-  name: string;
-  /** Multiplier applied to the source dimension value to get this step's value */
-  multiplier: number;
-}
-
-export interface ResponsiveScaleConfig {
-  steps: ResponsiveScaleStep[];
-  unit: 'px' | 'rem';
-}
-
-// ---------------------------------------------------------------------------
 // Contrast Check
 // ---------------------------------------------------------------------------
 
@@ -241,7 +224,6 @@ export type GeneratorConfig =
   | CustomScaleConfig
   | AccessibleColorPairConfig
   | DarkModeInversionConfig
-  | ResponsiveScaleConfig
   | ContrastCheckConfig;
 
 // ---------------------------------------------------------------------------
@@ -258,6 +240,12 @@ export interface TokenGenerator {
    * Optional for standalone generators (zIndexScale, opacityScale, customScale).
    */
   sourceToken?: string;
+  /**
+   * Inline base value used when no sourceToken is bound.
+   * For color generators: a hex string (e.g. "#6366F1").
+   * For dimension generators: a { value, unit } object (e.g. { value: 16, unit: "px" }).
+   */
+  inlineValue?: unknown;
   /** Name of the token set where derived tokens will be written */
   targetSet: string;
   /**
@@ -488,17 +476,6 @@ export const DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG: AccessibleColorPairConfig = {
 export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
   stepName: 'dark',
   chromaBoost: 1.0,
-};
-
-export const DEFAULT_RESPONSIVE_SCALE_CONFIG: ResponsiveScaleConfig = {
-  steps: [
-    { name: 'sm',   multiplier: 0.75 },
-    { name: 'base', multiplier: 1.0  },
-    { name: 'md',   multiplier: 1.25 },
-    { name: 'lg',   multiplier: 1.5  },
-    { name: 'xl',   multiplier: 2.0  },
-  ],
-  unit: 'px',
 };
 
 export const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {

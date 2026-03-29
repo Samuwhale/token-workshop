@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { inputClass } from './ValueEditors';
+import { inputClass } from '../shared/editorClasses';
 
 interface FontFamilyPickerProps {
   value: string;

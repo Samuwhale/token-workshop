@@ -50,34 +50,34 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-0.5 rounded overflow-hidden h-8">
-        {tokens.map((t) => (
-          <div
-            key={t.stepName}
-            className="flex-1 min-w-0 relative"
-            style={{ background: String(t.value) }}
-            title={`${t.path}: ${String(t.value)}${overwritePaths?.has(t.path) ? ' (will overwrite)' : ''}`}
-          >
-            {t.isOverridden && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg width="8" height="8" viewBox="0 0 12 12" fill="white" opacity="0.8">
-                  <path d="M8 1.5L6.5 3 9 5.5l1.5-1.5L8 1.5zM5.5 4l-4 4 .5 2 2-.5 4-4L5.5 4z"/>
-                </svg>
-              </div>
-            )}
-            {overwritePaths?.has(t.path) && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--color-figma-warning)]" aria-hidden="true" />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between">
-        {tokens.length > 0 && (
-          <>
-            <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{tokens[0].stepName}</span>
-            <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{tokens[tokens.length - 1].stepName}</span>
-          </>
-        )}
+      {/* Tall swatch strip with step labels */}
+      <div className="flex gap-0.5 rounded overflow-hidden" style={{ height: tokens.length > 7 ? '48px' : '56px' }}>
+        {tokens.map((t) => {
+          const hex = String(t.value);
+          // Choose label color based on luminance (rough check via the step position)
+          const idx = tokens.indexOf(t);
+          const isLight = idx < tokens.length * 0.4;
+          return (
+            <div
+              key={t.stepName}
+              className="flex-1 min-w-0 relative flex flex-col items-center justify-end pb-1"
+              style={{ background: hex }}
+              title={`${t.path}: ${hex}${overwritePaths?.has(t.path) ? ' (will overwrite)' : ''}`}
+            >
+              <span className={`text-[7px] font-mono leading-none ${isLight ? 'text-black/50' : 'text-white/60'}`}>{t.stepName}</span>
+              {t.isOverridden && (
+                <div className="absolute top-1 left-1/2 -translate-x-1/2">
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="white" opacity="0.8">
+                    <path d="M8 1.5L6.5 3 9 5.5l1.5-1.5L8 1.5zM5.5 4l-4 4 .5 2 2-.5 4-4L5.5 4z"/>
+                  </svg>
+                </div>
+              )}
+              {overwritePaths?.has(t.path) && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--color-figma-warning)]" aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
       </div>
       <OverrideTable tokens={tokens} overrides={overrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} overwritePaths={overwritePaths} />
     </div>

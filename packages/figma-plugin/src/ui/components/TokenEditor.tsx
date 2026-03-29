@@ -457,6 +457,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [copied, setCopied] = useState(false);
   const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
   const [editingGeneratorInDialog, setEditingGeneratorInDialog] = useState<TokenGenerator | undefined>(undefined);
+  const [duplicateTemplate, setDuplicateTemplate] = useState<import('../hooks/useGenerators').GeneratorTemplate | undefined>(undefined);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
   const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
@@ -1256,7 +1257,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       {canBeGeneratorSource && !aliasMode && (
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           <button
-            onClick={() => { setEditingGeneratorInDialog(undefined); setShowGeneratorDialog(true); }}
+            onClick={() => { setEditingGeneratorInDialog(undefined); setDuplicateTemplate(undefined); setShowGeneratorDialog(true); }}
             className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             <span className="flex items-center gap-1.5">
@@ -1293,16 +1294,39 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                     </span>
                     <span className="text-[10px] text-[var(--color-figma-text)] truncate">{gen.targetGroup}</span>
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); setEditingGeneratorInDialog(gen); setShowGeneratorDialog(true); }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={e => { e.stopPropagation(); setEditingGeneratorInDialog(gen); setDuplicateTemplate(undefined); setShowGeneratorDialog(true); }}
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        // Duplicate: open as new with pre-filled config via template
+                        setDuplicateTemplate({
+                          id: `dup-${gen.id}`,
+                          label: `${gen.name} (copy)`,
+                          description: '',
+                          defaultPrefix: gen.targetGroup,
+                          generatorType: gen.type,
+                          config: gen.config,
+                          requiresSource: false,
+                        });
+                        setEditingGeneratorInDialog(undefined);
+                        setShowGeneratorDialog(true);
+                      }}
+                      title="Duplicate generator"
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      Duplicate
+                    </button>
+                  </div>
                 </div>
               ))}
               <button
-                onClick={() => { setEditingGeneratorInDialog(undefined); setShowGeneratorDialog(true); }}
+                onClick={() => { setEditingGeneratorInDialog(undefined); setDuplicateTemplate(undefined); setShowGeneratorDialog(true); }}
                 className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
               >
                 + Add another group
@@ -1465,9 +1489,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           allSets={allSets}
           activeSet={setName}
           existingGenerator={editingGeneratorInDialog}
-          onClose={() => setShowGeneratorDialog(false)}
+          template={duplicateTemplate}
+          onClose={() => { setShowGeneratorDialog(false); setDuplicateTemplate(undefined); }}
           onSaved={() => {
             setShowGeneratorDialog(false);
+            setDuplicateTemplate(undefined);
             onRefreshGenerators?.();
           }}
         />

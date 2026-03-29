@@ -3,7 +3,7 @@ import { evalExpr } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { inputClass } from './ValueEditors';
+import { inputClass } from '../shared/editorClasses';
 
 interface FormulaInputProps {
   value: string;

@@ -3,12 +3,19 @@ import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
-import type { OverwrittenEntry } from './useGeneratorDialog';
+
+export interface OverwrittenEntry {
+  path: string;
+  type: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
 
 interface UseGeneratorPreviewParams {
   serverUrl: string;
   selectedType: GeneratorType;
   sourceTokenPath?: string;
+  inlineValue?: unknown;
   targetGroup: string;
   targetSet: string;
   config: GeneratorConfig;
@@ -31,6 +38,7 @@ export function useGeneratorPreview({
   serverUrl,
   selectedType,
   sourceTokenPath,
+  inlineValue,
   targetGroup,
   targetSet,
   config,
@@ -80,8 +88,11 @@ export function useGeneratorPreview({
         if (isMultiBrand && firstBrandRow) {
           // Use the first brand's input value as the source for a representative preview
           body.sourceValue = firstBrandRow.inputs[inputTable!.inputKey];
-        } else {
-          body.sourceToken = sourceTokenPath || undefined;
+        } else if (sourceTokenPath) {
+          body.sourceToken = sourceTokenPath;
+        } else if (inlineValue !== undefined && inlineValue !== '') {
+          // Use inline value as sourceValue for preview
+          body.sourceValue = inlineValue;
         }
         const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
           `${serverUrl}/api/generators/preview`,
@@ -96,7 +107,7 @@ export function useGeneratorPreview({
         setPreviewLoading(false);
       }
     }, 300);
-  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, firstBrandRow, inputTable]);
+  }, [serverUrl, selectedType, sourceTokenPath, inlineValue, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, firstBrandRow, inputTable]);
 
   useEffect(() => {
     fetchPreview();

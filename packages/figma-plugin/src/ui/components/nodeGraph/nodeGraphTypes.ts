@@ -159,7 +159,6 @@ const GENERATOR_TYPE_LABELS: Record<string, string> = {
   customScale: 'Custom Scale',
   accessibleColorPair: 'Accessible Pair',
   darkModeInversion: 'Dark Mode',
-  responsiveScale: 'Responsive Scale',
   contrastCheck: 'Contrast Check',
 };
 
