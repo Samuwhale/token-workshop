@@ -27,3 +27,20 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: SSE connection has no event replay on reconnect
 Already up to date.
+[main d5ca25c] chore(backlog): done – SSE connection has no event replay on reconnect
+ 11 files changed, 242 insertions(+), 9 deletions(-)
+ create mode 100644 packages/server/src/__tests__/event-bus.test.ts
+ create mode 100644 packages/server/src/services/event-bus.ts
+  ✓ Merged and marked done
+
+## 2026-03-29 - SSE connection has no event replay on reconnect
+- Added `EventBus` service (`packages/server/src/services/event-bus.ts`) that wraps TokenStore change events with monotonic sequence IDs and maintains a 256-entry ring buffer for replay
+- Updated SSE route (`packages/server/src/routes/sse.ts`) to send `id:` fields with each event, check `Last-Event-Id` header on reconnect, replay missed events from the buffer, or send a `stale` named event when the gap is too large
+- Updated client hook (`packages/figma-plugin/src/ui/hooks/useServerEvents.ts`) to accept `onRefresh` callback, listen for `stale` events, and trigger a full data refresh on any reconnection
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  10 queued · 5 in-progress · last took 5m33s
+═══════════════════════════════════════════════════════════════
+  → No "everything is synced" state in PublishPanel — when Figma variables, styles, and git are all in sync, PublishPanel shows empty collapsible sections with no content; add a clear "All synced" confirmation state with a green checkmark so users know there's nothing to do
+  Worktree: /tmp/backlog-67173-AEYj8g
+  Running agent… (started 07:42:13)

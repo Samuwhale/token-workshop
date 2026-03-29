@@ -509,3 +509,13 @@
   - The `event:` field in SSE creates named events that need `addEventListener('stale', ...)` instead of `onmessage`
   - EventBus is decoupled from TokenStore via `onChange` subscription in `index.ts`, keeping TokenStore unchanged
 ---
+
+## 2026-03-29 - Paste import sends one API request per token instead of using batch endpoint
+- Replaced N sequential POST/PATCH requests in `handleConfirm` with a single `POST /api/tokens/:set/batch` call using `strategy: 'overwrite'`
+- Removed per-token progress bar (no longer meaningful for a single request); button shows "Saving…" during the request
+- Removed unused `progress` state variable
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L127-145 (handleConfirm), ~L60 (removed progress state), ~L345-362 (removed progress bar UI), ~L381 (simplified button text)
+- **Learnings for future iterations:**
+  - The batch endpoint accepts `strategy: 'overwrite'` which handles both creates and updates in one call — no need to separate them
+  - PasteTokensModal already pre-classifies tokens into toCreate/toUpdate/skipped, so the batch payload is just `[...toCreate, ...toUpdate]`
+---
