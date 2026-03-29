@@ -114,7 +114,9 @@ export class GeneratorService {
     const data: GeneratorsFile = {
       $generators: Array.from(this.generators.values()),
     };
-    await fs.writeFile(this.filePath, JSON.stringify(data, null, 2));
+    const tmp = `${this.filePath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+    await fs.rename(tmp, this.filePath);
   }
 
   async getAll(): Promise<(TokenGenerator & { lastRunError?: GeneratorRunError })[]> {

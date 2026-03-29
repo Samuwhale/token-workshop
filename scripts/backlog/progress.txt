@@ -273,3 +273,11 @@
   - Always run a baseline build check (`node packages/figma-plugin/build.mjs`) before starting work to detect pre-existing failures early.
   - The Spinner commit used git stash to confirm its build failure was pre-existing, not caused by current edits.
 ---
+
+## 2026-03-29 - generator-service.ts saveGenerators() writes non-atomically, risking config corruption on crash
+- Replaced direct `fs.writeFile` in `saveGenerators()` with atomic `.tmp` + `fs.rename` pattern, matching `token-store.ts` and `resolver-store.ts`.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L117
+- **Learnings for future iterations:**
+  - A server crash mid-write to `$generators.json` would leave truncated JSON, blocking all future server starts.
+  - The fix is a two-liner: write to `.tmp` first, then rename atomically.
+---
