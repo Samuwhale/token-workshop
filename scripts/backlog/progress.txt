@@ -129,3 +129,13 @@
 - **Learnings for future iterations:**
   - Type/runtime divergence like this is a common source of silent bugs — when constants define a set of valid values, the corresponding type should always derive from them via `(typeof ARRAY)[number]`.
 ---
+
+## 2026-03-29 - Generator config types have inconsistent unit unions
+- Replaced inline `'px' | 'rem'` unions in `TypeScaleConfig`, `SpacingScaleConfig`, `BorderRadiusScaleConfig` with `DimensionUnit` from `@tokenmanager/core`. Replaced `'px' | 'rem' | 'em' | '%'` in `CustomScaleConfig.unit` with `DimensionUnit`.
+- Updated server route validation (`packages/server/src/routes/generators.ts`) to use `DIMENSION_UNITS.includes(c.unit as DimensionUnit)` instead of manual `!== 'px' && !== 'rem'` checks, and updated the cast from `as 'px' | 'rem'` to `as DimensionUnit`.
+- UI components (`TypeScaleGenerator.tsx`, `SpacingScaleGenerator.tsx`, `BorderRadiusGenerator.tsx`, `CustomScaleGenerator.tsx`) still show only their relevant subset of units in the picker — intentional UX. No changes needed there since `'px'` / `'rem'` are valid `DimensionUnit` values.
+- Files changed: `packages/core/src/generator-types.ts` ~L10-13, ~L77, ~L97, ~L123, ~L155; `packages/server/src/routes/generators.ts` ~L1-22, ~L88-95, ~L103-108, ~L121-129, ~L155
+- **Learnings for future iterations:**
+  - Widening a type from a narrow union to a shared type is backwards-compatible — existing values remain valid. No UI or runtime changes required.
+  - When validating an open string union from API input, use `Array.includes()` against the constant array rather than chaining `!==` comparisons — more maintainable and automatically stays in sync with the type definition.
+---

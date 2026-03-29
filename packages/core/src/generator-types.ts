@@ -8,6 +8,7 @@
  */
 
 import type { TokenType } from './types.js';
+import type { DimensionUnit } from './constants.js';
 
 export type GeneratorType =
   | 'colorRamp'
@@ -73,7 +74,7 @@ export interface TypeScaleConfig {
    * e.g. 1.25 = Major Third, 1.333 = Perfect Fourth, 1.618 = Golden Ratio
    */
   ratio: number;
-  unit: 'px' | 'rem';
+  unit: DimensionUnit;
   /** Name of the step whose exponent is 0 (matches the source token's value). Default: "base" */
   baseStep: string;
   /** Number of decimal places to round each generated value to. Default: 1 */
@@ -93,7 +94,7 @@ export interface SpacingStep {
 
 export interface SpacingScaleConfig {
   steps: SpacingStep[];
-  unit: 'px' | 'rem';
+  unit: DimensionUnit;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +120,7 @@ export interface BorderRadiusStep {
 
 export interface BorderRadiusScaleConfig {
   steps: BorderRadiusStep[];
-  unit: 'px' | 'rem';
+  unit: DimensionUnit;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +152,7 @@ export interface CustomScaleConfig {
   /** DTCG $type for generated tokens, e.g. "dimension", "number", "color" */
   outputType: TokenType;
   /** Unit appended for dimension outputs */
-  unit?: 'px' | 'rem' | 'em' | '%';
+  unit?: DimensionUnit;
   steps: CustomScaleStep[];
   /**
    * Arithmetic formula evaluated per step.

@@ -15,7 +15,9 @@ import type {
   DarkModeInversionConfig,
   ContrastCheckConfig,
   TokenType,
+  DimensionUnit,
 } from '@tokenmanager/core';
+import { DIMENSION_UNITS } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import { snapshotGroup } from '../services/operation-log.js';
 
@@ -85,13 +87,13 @@ function validateGeneratorConfig(
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.exponent === 'number'))
         return { error: 'typeScale config requires "steps" as Array<{name: string, exponent: number}>' };
       if (typeof c.ratio !== 'number') return { error: 'typeScale config requires "ratio" as number' };
-      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'typeScale config requires "unit" as "px" | "rem"' };
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
       if (typeof c.roundTo !== 'number') return { error: 'typeScale config requires "roundTo" as number' };
       const validated: TypeScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, exponent: s.exponent as number })),
         ratio: c.ratio as number,
-        unit: c.unit as 'px' | 'rem',
+        unit: c.unit as DimensionUnit,
         baseStep: c.baseStep as string,
         roundTo: c.roundTo as number,
       };
@@ -100,10 +102,10 @@ function validateGeneratorConfig(
     case 'spacingScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
         return { error: 'spacingScale config requires "steps" as Array<{name: string, multiplier: number}>' };
-      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'spacingScale config requires "unit" as "px" | "rem"' };
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `spacingScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       const validated: SpacingScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, multiplier: s.multiplier as number })),
-        unit: c.unit as 'px' | 'rem',
+        unit: c.unit as DimensionUnit,
       };
       return { validated };
     }
@@ -118,14 +120,14 @@ function validateGeneratorConfig(
     case 'borderRadiusScale': {
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
         return { error: 'borderRadiusScale config requires "steps" as Array<{name: string, multiplier: number}>' };
-      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'borderRadiusScale config requires "unit" as "px" | "rem"' };
+      if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `borderRadiusScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       const validated: BorderRadiusScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
           name: s.name as string,
           multiplier: s.multiplier as number,
           ...(typeof s.exactValue === 'number' && { exactValue: s.exactValue }),
         })),
-        unit: c.unit as 'px' | 'rem',
+        unit: c.unit as DimensionUnit,
       };
       return { validated };
     }
@@ -152,7 +154,7 @@ function validateGeneratorConfig(
         })),
         formula: c.formula as string,
         roundTo: c.roundTo as number,
-        ...(c.unit === 'px' || c.unit === 'rem' || c.unit === 'em' || c.unit === '%' ? { unit: c.unit } : {}),
+        ...(DIMENSION_UNITS.includes(c.unit as DimensionUnit) ? { unit: c.unit as DimensionUnit } : {}),
       };
       return { validated };
     }
