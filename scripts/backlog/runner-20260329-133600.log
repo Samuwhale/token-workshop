@@ -114,3 +114,10 @@ Already up to date.
   → resolvers.ts uses `reply.code()` (13 occurrences) while every other route file uses `reply.status()` — functionally identical Fastify aliases but inconsistent across the codebase (packages/server/src/routes/resolvers.ts)
   Worktree: /tmp/backlog-48983-cqdjWP
   Running agent… (started 13:42:48)
+
+  ✓ done: resolvers.ts uses `reply.code()` (13 occurrences) while every other route file uses `reply.status()`
+    Replaced all 13 reply.code() calls with reply.status() in resolvers.ts; all validation gates pass
+    6 turns · 43s · $0.13
+
+  Merging to main: resolvers.ts uses `reply.code()` (13 occurrences) while every other route file uses `reply.status()`
+Already up to date.

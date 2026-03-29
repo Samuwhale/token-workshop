@@ -71,3 +71,10 @@
   - `setPreviewLoading(true)` inside `setTimeout` is a common mistake — loading state only shows after the debounce fires (wasted 300ms). Always set loading state before the timer starts, clear it in `finally` as before.
   - Dimming stale content (`opacity-40`) is more informative than just showing a spinner in the header — the user can see what's stale AND that a refresh is pending.
 ---
+
+## 2026-03-29 - resolvers.ts uses reply.code() instead of reply.status()
+- Replaced all 13 occurrences of `reply.code(` with `reply.status(` in `packages/server/src/routes/resolvers.ts` using a simple find-and-replace.
+- Files changed: `packages/server/src/routes/resolvers.ts`
+- **Learnings for future iterations:**
+  - `reply.code()` and `reply.status()` are identical Fastify aliases — purely a consistency fix, no behaviour change.
+---

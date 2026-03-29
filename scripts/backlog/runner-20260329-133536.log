@@ -73,3 +73,18 @@ Already up to date.
 
   Merging to main: No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
 Already up to date.
+[main 150ee123] chore(backlog): done – No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
+ 8 files changed, 38 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No skeleton/loading state during 300ms preview debounce
+- Moved `setPreviewLoading(true)` from inside the `setTimeout` callback to immediately before it in both `useGeneratorPreview.ts` and `GraphPanel.tsx`. The spinner now appears as soon as inputs change (during the debounce wait), not after. Also added `opacity-40` with `transition-opacity duration-150` to the stale preview content area while loading, so the old data visually dims, making it clear a refresh is pending.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L73-78, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L614, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L376-381, ~L622
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  15 queued · 2 in-progress · last took 2m14s
+═══════════════════════════════════════════════════════════════
+  → `components/editorStyles.ts` is dead code — `inputClass` and `labelClass` were migrated to `shared/editorClasses.ts`; the old file at `packages/figma-plugin/src/ui/components/editorStyles.ts` has no importers and can be deleted
+  Worktree: /tmp/backlog-46928-fj2YhV
+  Running agent… (started 13:43:21)

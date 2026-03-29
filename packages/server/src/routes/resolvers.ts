@@ -24,7 +24,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.post<{ Body: { name: string } & ResolverFile }>('/resolvers', async (req, reply) => {
     const { name, ...file } = req.body as { name: string } & ResolverFile;
-    if (!name) return reply.code(400).send({ error: 'name is required' });
+    if (!name) return reply.status(400).send({ error: 'name is required' });
     try {
       await fastify.resolverStore.create(name, file);
       await fastify.operationLog.record({
@@ -36,10 +36,10 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         afterSnapshot: {},
         rollbackSteps: [{ action: 'delete-resolver', name }],
       });
-      return reply.code(201).send({ ok: true, name });
+      return reply.status(201).send({ ok: true, name });
     } catch (err: unknown) {
       const e = err as Error & { statusCode?: number };
-      return reply.code(e.statusCode || 500).send({ error: e.message });
+      return reply.status(e.statusCode || 500).send({ error: e.message });
     }
   });
 
@@ -58,11 +58,11 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         const data = JSON.parse(content) as ThemesFile;
         dimensions = data.$themes || [];
       } catch {
-        return reply.code(404).send({ error: 'No $themes.json found to convert.' });
+        return reply.status(404).send({ error: 'No $themes.json found to convert.' });
       }
 
       if (dimensions.length === 0) {
-        return reply.code(400).send({ error: 'No theme dimensions to convert.' });
+        return reply.status(400).send({ error: 'No theme dimensions to convert.' });
       }
 
       const setNames = await fastify.tokenStore.getSets();
@@ -78,10 +78,10 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         afterSnapshot: {},
         rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
       });
-      return reply.code(201).send({ ok: true, name: resolverName, resolver: resolverFile });
+      return reply.status(201).send({ ok: true, name: resolverName, resolver: resolverFile });
     } catch (err: unknown) {
       const e = err as Error & { statusCode?: number };
-      return reply.code(e.statusCode || 500).send({ error: e.message });
+      return reply.status(e.statusCode || 500).send({ error: e.message });
     }
   });
 
@@ -90,7 +90,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.get<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
     const file = fastify.resolverStore.get(req.params.name);
-    if (!file) return reply.code(404).send({ error: 'Resolver not found' });
+    if (!file) return reply.status(404).send({ error: 'Resolver not found' });
     return { name: req.params.name, ...file };
   });
 
@@ -115,7 +115,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       return { ok: true };
     } catch (err: unknown) {
       const e = err as Error & { statusCode?: number };
-      return reply.code(e.statusCode || 500).send({ error: e.message });
+      return reply.status(e.statusCode || 500).send({ error: e.message });
     }
   });
 
@@ -125,7 +125,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
     const beforeFile = fastify.resolverStore.get(req.params.name);
     const deleted = await fastify.resolverStore.delete(req.params.name);
-    if (!deleted) return reply.code(404).send({ error: 'Resolver not found' });
+    if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
     await fastify.operationLog.record({
       type: 'resolver-delete',
       description: `Delete resolver "${req.params.name}"`,
@@ -145,7 +145,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.get<{ Params: { name: string } }>('/resolvers/:name/modifiers', async (req, reply) => {
     const file = fastify.resolverStore.get(req.params.name);
-    if (!file) return reply.code(404).send({ error: 'Resolver not found' });
+    if (!file) return reply.status(404).send({ error: 'Resolver not found' });
 
     const modifiers: Record<string, { description?: string; contexts: string[]; default?: string }> = {};
     if (file.modifiers) {
@@ -168,7 +168,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
     async (req, reply) => {
       const { input } = req.body as { input: ResolverInput };
       if (!input || typeof input !== 'object') {
-        return reply.code(400).send({ error: 'input object is required' });
+        return reply.status(400).send({ error: 'input object is required' });
       }
       try {
         const tokens = await fastify.resolverStore.resolve(
@@ -187,7 +187,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         return { tokens: flat };
       } catch (err: unknown) {
         const e = err as Error & { statusCode?: number };
-        return reply.code(e.statusCode || 500).send({ error: e.message });
+        return reply.status(e.statusCode || 500).send({ error: e.message });
       }
     },
   );
