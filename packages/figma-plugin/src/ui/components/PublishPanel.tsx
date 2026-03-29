@@ -156,12 +156,17 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
+  const READINESS_TIMEOUT_MS = 15_000;
+
   const runReadinessChecks = useCallback(async () => {
     if (!activeSet) return;
     setReadinessLoading(true);
     setReadinessError(null);
     try {
-      const figmaTokens = await varSync.readFigmaVariables();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('No response from Figma after 15 s — make sure the plugin is open and try again.')), READINESS_TIMEOUT_MS)
+      );
+      const figmaTokens = await Promise.race([varSync.readFigmaVariables(), timeoutPromise]);
 
       const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
