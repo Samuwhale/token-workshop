@@ -262,6 +262,9 @@ function FlowEdges({
 // Main panel
 // ---------------------------------------------------------------------------
 
+const DEFAULT_SOURCE_LIMIT = 20;
+const DEFAULT_DEP_LIMIT = 30;
+
 export function TokenFlowPanel({
   allTokensFlat,
   pathToSet,
@@ -269,6 +272,8 @@ export function TokenFlowPanel({
 }: TokenFlowPanelProps) {
   const help = usePanelHelp('token-flow');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [sourceExpanded, setSourceExpanded] = useState(false);
+  const [depExpanded, setDepExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Build dependents map once
@@ -292,7 +297,7 @@ export function TokenFlowPanel({
     const directRefs = getDirectReferences(centerEntry.$value);
     const seenUp = new Set<string>();
     const queue = [...directRefs];
-    while (queue.length > 0 && sourceNodes.length < 20) {
+    while (queue.length > 0) {
       const ref = queue.shift()!;
       if (seenUp.has(ref) || ref === selectedPath) continue;
       seenUp.add(ref);
@@ -316,7 +321,7 @@ export function TokenFlowPanel({
     const depNodes: FlowNode[] = [];
     const seenDown = new Set<string>();
     const dQueue = [...(dependentsMap.get(selectedPath) ?? [])];
-    while (dQueue.length > 0 && depNodes.length < 30) {
+    while (dQueue.length > 0) {
       const dep = dQueue.shift()!;
       if (seenDown.has(dep) || dep === selectedPath) continue;
       seenDown.add(dep);
@@ -341,10 +346,34 @@ export function TokenFlowPanel({
     return { centerNode, sourceNodes, depNodes };
   }, [selectedPath, allTokensFlat, dependentsMap]);
 
+  // Reset expanded state when selection changes
+  const prevSelectedRef = useRef(selectedPath);
+  if (prevSelectedRef.current !== selectedPath) {
+    prevSelectedRef.current = selectedPath;
+    setSourceExpanded(false);
+    setDepExpanded(false);
+  }
+
+  // Apply display limits
+  const visibleData = useMemo(() => {
+    if (!graphData) return null;
+    const srcLimit = sourceExpanded ? graphData.sourceNodes.length : DEFAULT_SOURCE_LIMIT;
+    const depLimit = depExpanded ? graphData.depNodes.length : DEFAULT_DEP_LIMIT;
+    return {
+      centerNode: graphData.centerNode,
+      sourceNodes: graphData.sourceNodes.slice(0, srcLimit),
+      depNodes: graphData.depNodes.slice(0, depLimit),
+      totalSourceCount: graphData.sourceNodes.length,
+      totalDepCount: graphData.depNodes.length,
+      sourceTruncated: graphData.sourceNodes.length > srcLimit,
+      depTruncated: graphData.depNodes.length > depLimit,
+    };
+  }, [graphData, sourceExpanded, depExpanded]);
+
   // Layout: 3 columns — sources | center | dependents
   const layout = useMemo(() => {
-    if (!graphData) return null;
-    const { centerNode, sourceNodes, depNodes } = graphData;
+    if (!visibleData) return null;
+    const { centerNode, sourceNodes, depNodes, totalSourceCount, totalDepCount, sourceTruncated, depTruncated } = visibleData;
 
     const srcCount = sourceNodes.length;
     const depCount = depNodes.length;
@@ -403,8 +432,10 @@ export function TokenFlowPanel({
       edges,
       totalWidth,
       totalHeight: totalHeight + 40,
+      totalSourceCount, totalDepCount,
+      sourceTruncated, depTruncated,
     };
-  }, [graphData]);
+  }, [visibleData]);
 
   const handleNodeClick = useCallback((path: string) => {
     setSelectedPath(path);
@@ -527,6 +558,20 @@ export function TokenFlowPanel({
                 onClick={() => handleNodeClick(node.path)}
               />
             ))}
+            {layout.sourceTruncated && (
+              <button
+                className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                style={{
+                  left: layout.srcPositions[layout.srcPositions.length - 1]?.x ?? 20,
+                  top: (layout.srcPositions[layout.srcPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
+                  width: NODE_W,
+                  textAlign: 'center',
+                }}
+                onClick={() => setSourceExpanded(true)}
+              >
+                +{layout.totalSourceCount - layout.sourceNodes.length} more reference{layout.totalSourceCount - layout.sourceNodes.length !== 1 ? 's' : ''}
+              </button>
+            )}
 
             {/* Center node */}
             <FlowNodeCard
@@ -548,6 +593,20 @@ export function TokenFlowPanel({
                 onClick={() => handleNodeClick(node.path)}
               />
             ))}
+            {layout.depTruncated && (
+              <button
+                className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                style={{
+                  left: layout.depPositions[layout.depPositions.length - 1]?.x ?? 0,
+                  top: (layout.depPositions[layout.depPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
+                  width: NODE_W,
+                  textAlign: 'center',
+                }}
+                onClick={() => setDepExpanded(true)}
+              >
+                +{layout.totalDepCount - layout.depNodes.length} more dependent{layout.totalDepCount - layout.depNodes.length !== 1 ? 's' : ''}
+              </button>
+            )}
           </div>
 
           {/* Legend / actions below graph */}
@@ -556,9 +615,9 @@ export function TokenFlowPanel({
               <div className="flex items-center gap-3 text-[10px] opacity-50">
                 <span>Click a node to explore it</span>
                 <span>·</span>
-                <span>{layout.sourceNodes.length} reference{layout.sourceNodes.length !== 1 ? 's' : ''}</span>
+                <span>{layout.totalSourceCount} reference{layout.totalSourceCount !== 1 ? 's' : ''}</span>
                 <span>·</span>
-                <span>{layout.depNodes.length} dependent{layout.depNodes.length !== 1 ? 's' : ''}</span>
+                <span>{layout.totalDepCount} dependent{layout.totalDepCount !== 1 ? 's' : ''}</span>
               </div>
               <div className="flex items-center gap-2 mt-1.5">
                 <span className="text-xs truncate font-medium">{selectedPath}</span>

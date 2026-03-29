@@ -30,3 +30,18 @@
 
   Merging to main: TokenStore mutation methods corrupt in-memory state when saveSet() fails
 Already up to date.
+[main 562860d] chore(backlog): done – TokenStore mutation methods corrupt in-memory state when saveSet() fails
+ 6 files changed, 165 insertions(+), 33 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - TokenStore mutation methods corrupt in-memory state when saveSet() fails
+- Added `snapshotSets()` and `restoreSnapshots()` private helpers that use `structuredClone` to capture/restore `set.tokens` state
+- Wrapped all 15 mutation methods with try/catch rollback: `deleteToken`, `deleteTokens`, `createToken`, `updateToken`, `batchUpsertTokens`, `restoreSnapshot`, `renameGroup`, `renameToken`, `moveGroup`, `moveToken`, `copyToken`, `duplicateGroup`, `createGroup`, `updateGroup`, `bulkRename`
+- For multi-set operations (renameToken, renameGroup with alias updates, moveGroup, moveToken, bulkRename), all potentially-modified sets are snapshotted before any mutation
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  5 queued · 5 in-progress · last took 8m4s
+═══════════════════════════════════════════════════════════════
+  → ComparePanel feature is undiscoverable — the multi-token comparison view (ComparePanel.tsx) only appears when 2+ tokens are selected, with no UI hint that this capability exists; add a "Compare" button to the token context menu or batch actions toolbar so users can discover side-by-side token comparison
+  Worktree: /tmp/backlog-66493-emfQWa
+  Running agent… (started 07:44:36)

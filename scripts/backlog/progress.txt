@@ -561,3 +561,15 @@
   - The `beginBatch()`/`endBatch()` pattern defers `rebuildFlatTokens()` but doesn't provide rollback — snapshot-restore is orthogonal to batching
   - `bulkRename` previously did manual per-token reversal which was fragile; snapshot-based rollback is simpler and handles partial save failures correctly
 ---
+
+## 2026-03-29 - TokenFlowPanel silently truncates large dependency graphs
+- Removed hard caps (20 references, 30 dependents) from BFS traversal — all nodes are now collected
+- Added `sourceExpanded`/`depExpanded` state with default display limits (20/30)
+- When truncated, a "+N more references/dependents" button appears below the last visible node; clicking expands to show all
+- Legend footer now shows total counts (not just visible counts)
+- Expanded state resets when selecting a new token
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L265-290 (BFS caps removed), ~L345-370 (visibleData memo with limits), ~L540-570 (+N more buttons), ~L600 (legend total counts)
+- **Learnings for future iterations:**
+  - The graph area is already in a scrollable container, so expanding to show all nodes works naturally without additional scroll handling
+  - Using a separate `visibleData` memo layer between `graphData` and `layout` keeps the BFS and display concerns cleanly separated
+---

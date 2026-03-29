@@ -42,3 +42,10 @@ Already up to date.
   → TokenFlowPanel silently truncates large dependency graphs — TokenFlowPanel.tsx caps references at 20 and dependents at 30 with no indication that results are truncated; tokens in a large design system can easily exceed these limits; show a "+N more" indicator and allow expanding or scrolling to see all dependencies
   Worktree: /tmp/backlog-67697-8j4SRm
   Running agent… (started 07:43:24)
+
+  ✓ done: TokenFlowPanel silently truncates large dependency graphs
+    Removed hard BFS caps, added +N more buttons for references/dependents with expand-to-show-all, and updated legend to show total counts
+    14 turns · 109s · $0.57
+
+  Merging to main: TokenFlowPanel silently truncates large dependency graphs
+Already up to date.
