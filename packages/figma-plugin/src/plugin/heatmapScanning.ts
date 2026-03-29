@@ -85,16 +85,31 @@ export function selectNextSibling() {
   figma.ui.postMessage({ type: 'select-next-sibling-result', found: true });
 }
 
-// Scan all visual nodes on the current page for token/variable binding coverage
-export async function scanCanvasHeatmap() {
+// Scan visual nodes for token/variable binding coverage
+export type HeatmapScope = 'page' | 'selection' | 'all-pages';
+
+export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
   try {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
 
     // Collect visual nodes via batched traversal to avoid freezing on large pages.
     const BATCH_SIZE = 200;
     const nodes: SceneNode[] = [];
-    for await (const node of walkNodes(figma.currentPage.children, { filter: VISUAL_TYPES })) {
-      nodes.push(node);
+
+    if (scope === 'all-pages') {
+      const pages = figma.root.children;
+      for (const page of pages) {
+        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES })) {
+          nodes.push(node);
+        }
+      }
+    } else {
+      const roots = scope === 'selection'
+        ? figma.currentPage.selection
+        : figma.currentPage.children;
+      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
+        nodes.push(node);
+      }
     }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';

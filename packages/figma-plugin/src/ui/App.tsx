@@ -486,7 +486,7 @@ export function App() {
   }, []);
 
 
-  const { heatmapResult, heatmapLoading, heatmapError, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
+  const { heatmapResult, heatmapLoading, heatmapError, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
 
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes
@@ -2098,6 +2098,8 @@ export function App() {
                 result={heatmapResult}
                 loading={heatmapLoading}
                 error={heatmapError}
+                scope={heatmapScope}
+                onScopeChange={setHeatmapScope}
                 onRescan={triggerHeatmapScan}
                 onCancel={cancelHeatmapScan}
                 onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}

@@ -93,3 +93,10 @@ Already up to date.
   → Heatmap scan is always limited to the current Figma page — `packages/figma-plugin/src/plugin/heatmapScanning.ts` L96 always walks `figma.currentPage.children` with no scope parameter; the consistency scanner (`consistencyScanner.ts` L49-55) already supports `scope: 'selection' | 'page'` as a pattern to follow; add "Scan all pages" and "Scan selection" scope options to HeatmapPanel so users working in multi-page files can see token coverage across the whole document
   Worktree: /tmp/backlog-67173-C8cexa
   Running agent… (started 07:48:06)
+
+  ✓ done: Heatmap scan scope options (all pages, selection, current page)
+    Added scope selector (Current page / Selection / All pages) to HeatmapPanel with full plumbing through useHeatmap hook, controller, and scanCanvasHeatmap. All-pages walks figma.root.children across every page. All 4 validation gates pass.
+    40 turns · 232s · $1.5
+
+  Merging to main: Heatmap scan scope options (all pages, selection, current page)
+Already up to date.

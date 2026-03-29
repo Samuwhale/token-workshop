@@ -419,3 +419,16 @@
   - The standalone ResolverPanel was used at L2073 without an import (import was commented out at L8) — it was dead/broken code
   - ThemeManager already had full resolver integration via `resolverState` prop and simple/advanced toggle
 ---
+
+## 2026-03-29 - Heatmap scan scope options (all pages, selection, current page)
+- Added `HeatmapScope` type (`'page' | 'selection' | 'all-pages'`) and scope parameter to `scanCanvasHeatmap()` in `heatmapScanning.ts`
+- For `all-pages` scope, iterates `figma.root.children` (all pages); for `selection`, uses `figma.currentPage.selection`; `page` keeps existing behavior
+- Added scope selector dropdown to HeatmapPanel in both the initial empty state and the results stats bar
+- Changing scope in the stats bar triggers an immediate rescan with the new scope
+- Plumbed scope state through `useHeatmap` hook and App.tsx
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L89-100, `packages/figma-plugin/src/plugin/controller.ts` ~L174, `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` ~L1-63, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L15-100, `packages/figma-plugin/src/ui/App.tsx` ~L489 ~L2117
+- **Learnings for future iterations:**
+  - The consistency scanner's `scope: 'selection' | 'page'` pattern is a good reference for adding scope to other scanners
+  - `figma.root.children` gives all pages — each page's `.children` are the top-level frames
+  - When `onRescan` signature changes from `() => void` to `(scope?) => void`, wrap `onClick={onRescan}` as `onClick={() => onRescan()}` to avoid passing the click event as the scope arg
+---

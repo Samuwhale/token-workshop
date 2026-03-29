@@ -171,7 +171,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'scan-canvas-heatmap':
       try {
-        await scanCanvasHeatmap();
+        await scanCanvasHeatmap(msg.scope ?? 'page');
       } catch (e) {
         reportError('scan-canvas-heatmap', e);
       }

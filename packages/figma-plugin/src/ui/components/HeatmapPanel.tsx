@@ -11,6 +11,8 @@ interface HeatmapNode {
   totalCheckable: number;
 }
 
+export type HeatmapScope = 'page' | 'selection' | 'all-pages';
+
 export interface HeatmapResult {
   total: number;
   green: number;
@@ -23,7 +25,9 @@ interface HeatmapPanelProps {
   result: HeatmapResult | null;
   loading: boolean;
   error?: string | null;
-  onRescan: () => void;
+  scope: HeatmapScope;
+  onScopeChange: (scope: HeatmapScope) => void;
+  onRescan: (scope?: HeatmapScope) => void;
   onCancel?: () => void;
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
@@ -75,7 +79,13 @@ interface QuickBindState {
   statusLabel: string;
 }
 
-export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+const SCOPE_OPTIONS: { value: HeatmapScope; label: string }[] = [
+  { value: 'page', label: 'Current page' },
+  { value: 'selection', label: 'Selection' },
+  { value: 'all-pages', label: 'All pages' },
+];
+
+export function HeatmapPanel({ result, loading, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
@@ -188,8 +198,17 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
               >
                 JSON
               </button>
+              <select
+                value={scope}
+                onChange={e => { const s = e.target.value as HeatmapScope; onScopeChange(s); onRescan(s); }}
+                className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              >
+                {SCOPE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
               <button
-                onClick={onRescan}
+                onClick={() => onRescan()}
                 className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
               >
                 Rescan
@@ -262,7 +281,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
       {help.expanded && result && !loading && (
         <PanelHelpBanner
           title="Heatmap"
-          description="Scan the current Figma page to see which layers use design tokens and which don't. Green = fully bound, yellow = partially bound, red = no token bindings. Use Quick Bind to attach tokens to unbound layers."
+          description="Scan your Figma document to see which layers use design tokens and which don't. Choose a scope — current page, selection, or all pages. Green = fully bound, yellow = partially bound, red = no token bindings. Use Quick Bind to attach tokens to unbound layers."
           onDismiss={help.dismiss}
         />
       )}
@@ -274,7 +293,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
             <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.3"/>
             <path d="M21 12a9 9 0 00-9-9"/>
           </svg>
-          <span className="text-[11px]">Scanning canvas…</span>
+          <span className="text-[11px]">Scanning {scope === 'all-pages' ? 'all pages' : scope === 'selection' ? 'selection' : 'current page'}…</span>
           {onCancel && (
             <button
               onClick={onCancel}
@@ -296,7 +315,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
           </svg>
           <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
           <button
-            onClick={onRescan}
+            onClick={() => onRescan()}
             className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Retry scan
@@ -339,9 +358,23 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
             ))}
           </div>
 
+          {/* Scope selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scope:</span>
+            <select
+              value={scope}
+              onChange={e => onScopeChange(e.target.value as HeatmapScope)}
+              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            >
+              {SCOPE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* CTA */}
           <button
-            onClick={onRescan}
+            onClick={() => onRescan()}
             className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Scan canvas
@@ -366,7 +399,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
             </p>
           </div>
           <button
-            onClick={onRescan}
+            onClick={() => onRescan()}
             className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Scan again
