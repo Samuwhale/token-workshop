@@ -441,7 +441,7 @@ export function TokenFlowPanel({
       centerPos, srcPositions, depPositions,
       edges,
       totalWidth,
-      totalHeight: totalHeight + 40,
+      totalHeight: totalHeight + 40 + ((sourceTruncated || depTruncated) ? 28 : 0),
       totalSourceCount, totalDepCount,
       sourceTruncated, depTruncated,
     };
@@ -568,7 +568,7 @@ export function TokenFlowPanel({
                 onClick={() => handleNodeClick(node.path)}
               />
             ))}
-            {layout.sourceTruncated && (
+            {(layout.sourceTruncated || sourceExpanded) && layout.sourceNodes.length > 0 && (
               <button
                 className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
                 style={{
@@ -577,9 +577,11 @@ export function TokenFlowPanel({
                   width: NODE_W,
                   textAlign: 'center',
                 }}
-                onClick={() => setSourceExpanded(true)}
+                onClick={() => setSourceExpanded(v => !v)}
               >
-                +{layout.totalSourceCount - layout.sourceNodes.length} more reference{layout.totalSourceCount - layout.sourceNodes.length !== 1 ? 's' : ''}
+                {sourceExpanded
+                  ? 'Show fewer'
+                  : `Show all ${layout.totalSourceCount} reference${layout.totalSourceCount !== 1 ? 's' : ''}`}
               </button>
             )}
 
@@ -603,7 +605,7 @@ export function TokenFlowPanel({
                 onClick={() => handleNodeClick(node.path)}
               />
             ))}
-            {layout.depTruncated && (
+            {(layout.depTruncated || depExpanded) && layout.depNodes.length > 0 && (
               <button
                 className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
                 style={{
@@ -612,9 +614,11 @@ export function TokenFlowPanel({
                   width: NODE_W,
                   textAlign: 'center',
                 }}
-                onClick={() => setDepExpanded(true)}
+                onClick={() => setDepExpanded(v => !v)}
               >
-                +{layout.totalDepCount - layout.depNodes.length} more dependent{layout.totalDepCount - layout.depNodes.length !== 1 ? 's' : ''}
+                {depExpanded
+                  ? 'Show fewer'
+                  : `Show all ${layout.totalDepCount} dependent${layout.totalDepCount !== 1 ? 's' : ''}`}
               </button>
             )}
           </div>

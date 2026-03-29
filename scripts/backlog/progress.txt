@@ -358,3 +358,11 @@
   - fontFamily matching is string-exact (case-insensitive), not numeric — build a Map index rather than a sorted numeric array.
   - Figma TextNode uses `fontName.family` for the font family string; there is no top-level `fontFamily` property on the node.
 ---
+
+## 2026-03-29 - TokenFlowPanel hard-codes 20-source / 30-dependent display limits with no "show more"
+- The partial expand implementation already existed ("+N more" buttons), but had two gaps: button text used "+N more X" instead of "Show all N X", and there was no way to collapse back once expanded. Fixed both: updated button text to "Show all N references"/"Show all N dependents", changed `onClick` to toggle (`v => !v`) and show "Show fewer" when expanded. Also fixed a layout bug where absolutely positioned expand buttons could extend ~6px past the container's minHeight (clipped by scroll container); added 28px to totalHeight when truncation is present.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L571-584 (source expand button), ~L606-619 (dep expand button), ~L444 (totalHeight padding)
+- **Learnings for future iterations:**
+  - Absolutely positioned children do NOT extend the scroll height of an overflow-auto ancestor — they can be visually clipped. Always ensure minHeight accounts for elements positioned near the bottom.
+  - Toggle pattern: `onClick={() => setState(v => !v)}` + conditional label is cleaner than separate expand/collapse handlers.
+---
