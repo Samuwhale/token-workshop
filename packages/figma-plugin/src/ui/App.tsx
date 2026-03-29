@@ -227,7 +227,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
 const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = { define: 'tokens', apply: 'inspect', ship: 'publish' };
 const SUB_TAB_STORAGE: Record<TopTab, string> = { define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP };
 
-type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
+type OverflowPanel = 'import' | 'settings' | null;
 
 const RESIZE_MIN_W = 320;
 const RESIZE_MIN_H = 400;

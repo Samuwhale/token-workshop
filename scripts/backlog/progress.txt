@@ -445,3 +445,10 @@
   - `useFigmaMessage` expects error payloads on `msg.error` (not `msg.message`) — all plugin error responses must use the `error` field for the hook to extract the message
   - Variable apply can take longer than style apply (collection/mode creation overhead), so 30s timeout is appropriate vs 15s for styles
 ---
+
+## 2026-03-29 - OverflowPanel type has 5 dead values
+- Removed 5 dead values ('heatmap', 'analytics', 'themes', 'theme-compare', 'export') from the `OverflowPanel` union type. These were leftovers from before those features became sub-tabs. Only 'import', 'settings', and null are ever used.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L230
+- **Learnings for future iterations:**
+  - Command palette entry IDs (e.g., 'heatmap', 'export') coincidentally matched old overflow panel values but are unrelated — they use `navigateTo()` not `openOverflowPanel()`
+---
