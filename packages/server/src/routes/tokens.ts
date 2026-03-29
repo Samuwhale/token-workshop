@@ -238,9 +238,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const paths = patches.map(p => p.path);
         const before = await snapshotPaths(fastify.tokenStore, set, paths);
-        for (const { path: tokenPath, patch } of patches) {
-          await fastify.tokenStore.updateToken(set, tokenPath, patch);
-        }
+        await fastify.tokenStore.batchUpdateTokens(set, patches);
         const after = await snapshotPaths(fastify.tokenStore, set, paths);
         const entry = await fastify.operationLog.record({
           type: 'batch-update',
@@ -277,12 +275,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const allOldPaths = renames.map(r => r.oldPath);
         const allNewPaths = renames.map(r => r.newPath);
         const before = await snapshotPaths(fastify.tokenStore, set, allOldPaths);
-        const pathMap = new Map<string, string>();
-        for (const { oldPath, newPath } of renames) {
-          await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
-          pathMap.set(oldPath, newPath);
-        }
+        const result = await fastify.tokenStore.batchRenameTokens(set, renames, updateAliases !== false);
         const after = await snapshotPaths(fastify.tokenStore, set, allNewPaths);
+        const pathMap = new Map(renames.map(r => [r.oldPath, r.newPath]));
         const entry = await fastify.operationLog.record({
           type: 'batch-rename',
           description: `Batch rename ${renames.length} token${renames.length === 1 ? '' : 's'} in ${set}`,
@@ -292,7 +287,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: after,
         });
         await fastify.generatorService.updateTokenPaths(pathMap);
-        return { renamed: renames.length, operationId: entry.id };
+        return { renamed: result.renamed, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch rename tokens');
       }
@@ -319,11 +314,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = { ...beforeSource, ...Object.fromEntries(
           Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
         )};
-        let moved = 0;
-        for (const tokenPath of paths) {
-          await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
-          moved++;
-        }
+        const result = await fastify.tokenStore.batchMoveTokens(set, paths, targetSet);
         const afterSource = await snapshotPaths(fastify.tokenStore, set, paths);
         const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
         const after = { ...afterSource, ...Object.fromEntries(
@@ -331,13 +322,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         )};
         const entry = await fastify.operationLog.record({
           type: 'batch-move',
-          description: `Move ${moved} token${moved === 1 ? '' : 's'} from ${set} to ${targetSet}`,
+          description: `Move ${result.moved} token${result.moved === 1 ? '' : 's'} from ${set} to ${targetSet}`,
           setName: set,
           affectedPaths: paths,
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        return { moved, operationId: entry.id };
+        return { moved: result.moved, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to batch move tokens');
       }

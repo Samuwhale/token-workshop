@@ -111,3 +111,10 @@ Already up to date.
   → Batch token mutation routes have no partial-failure rollback — `tokens.ts` batch-rename (L280-283), batch-move (L322-325), and batch-update (L240-242) all loop through items sequentially calling `renameToken`/`moveToken`/`updateToken` with no rollback if an iteration throws midway; the `before` snapshot is captured once upfront but if e.g. the 5th of 10 renames fails, the first 4 are already persisted to disk with no undo, and the operation log records neither a complete success nor the partial state, leaving the token set in an inconsistent state that the user can't undo via the operations panel
   Worktree: /tmp/backlog-66493-ak7d4L
   Running agent… (started 07:54:33)
+
+  ✓ done: Batch token mutation routes have no partial-failure rollback
+    Added atomic batchUpdateTokens, batchRenameTokens, batchMoveTokens methods to TokenStore with upfront validation, single snapshot, single save, and full rollback on error — replacing the previous loop-over-individual-calls pattern in route handlers
+    21 turns · 283s · $1.26
+
+  Merging to main: Batch token mutation routes have no partial-failure rollback
+Already up to date.

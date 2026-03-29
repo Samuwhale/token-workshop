@@ -1239,6 +1239,165 @@ export class TokenStore {
     }
   }
 
+  /**
+   * Atomically update multiple tokens in the same set. All changes are applied
+   * in memory first, then saved once. If any patch fails validation, all
+   * changes are rolled back (no partial writes to disk).
+   */
+  async batchUpdateTokens(
+    setName: string,
+    patches: Array<{ path: string; patch: Partial<Token> }>,
+  ): Promise<void> {
+    const set = this.sets.get(setName);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    // Validate all patches upfront before mutating anything
+    const enrichedPatches: Array<{ path: string; patch: Partial<Token> }> = [];
+    const circularChecks: Array<{ path: string; value: unknown }> = [];
+    for (const { path: tokenPath, patch } of patches) {
+      const existing = getTokenAtPath(set.tokens, tokenPath);
+      if (!existing) throw new NotFoundError(`Token "${tokenPath}" not found in set "${setName}"`);
+      let enrichedPatch = patch;
+      if ('$value' in patch && patch.$value !== undefined) {
+        const enriched = this.enrichFormulaExtension({ $value: patch.$value, $extensions: patch.$extensions ?? existing.$extensions });
+        const originalExtensions = patch.$extensions ?? existing.$extensions;
+        if (JSON.stringify(enriched.$extensions) !== JSON.stringify(originalExtensions)) {
+          enrichedPatch = { ...patch, $extensions: enriched.$extensions };
+        }
+        circularChecks.push({ path: tokenPath, value: patch.$value });
+      }
+      enrichedPatches.push({ path: tokenPath, patch: enrichedPatch });
+    }
+    if (circularChecks.length > 0) {
+      this.checkCircularReferences(circularChecks);
+    }
+    // All validation passed — apply changes atomically
+    const snapshot = this.snapshotSets(setName);
+    this.beginBatch();
+    try {
+      for (const { path: tokenPath, patch } of enrichedPatches) {
+        const existing = getTokenAtPath(set.tokens, tokenPath)!;
+        if ('$value' in patch) existing.$value = patch.$value!;
+        if ('$type' in patch) existing.$type = patch.$type;
+        if ('$description' in patch) existing.$description = patch.$description;
+        if ('$extensions' in patch) existing.$extensions = patch.$extensions;
+      }
+      await this.saveSet(setName);
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      throw err;
+    } finally {
+      this.endBatch();
+    }
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName, tokenPath: '' });
+  }
+
+  /**
+   * Atomically rename multiple tokens in the same set. All renames are applied
+   * in memory first, then saved once. Alias updates across all sets are also
+   * batched into a single save per affected set. If any rename fails, all
+   * changes (including alias updates) are rolled back.
+   */
+  async batchRenameTokens(
+    setName: string,
+    renames: Array<{ oldPath: string; newPath: string }>,
+    updateAliases = true,
+  ): Promise<{ renamed: number; aliasesUpdated: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    // Validate all renames upfront
+    for (const { oldPath, newPath } of renames) {
+      validateTokenPath(newPath);
+    }
+    // Check that all source tokens exist and no target paths conflict
+    const tokens: Array<{ oldPath: string; newPath: string; token: Token }> = [];
+    const newPathSet = new Set<string>();
+    for (const { oldPath, newPath } of renames) {
+      const token = getTokenAtPath(set.tokens, oldPath);
+      if (!token) throw new NotFoundError(`Token "${oldPath}" not found in set "${setName}"`);
+      if (getTokenAtPath(set.tokens, newPath)) throw new ConflictError(`Token "${newPath}" already exists`);
+      if (newPathSet.has(newPath)) throw new ConflictError(`Duplicate target path "${newPath}" in batch`);
+      newPathSet.add(newPath);
+      tokens.push({ oldPath, newPath, token });
+    }
+    // Snapshot all sets that may be modified
+    const allSetNames = updateAliases
+      ? [setName, ...[...this.sets.keys()].filter(n => n !== setName)]
+      : [setName];
+    const snapshot = this.snapshotSets(...allSetNames);
+    this.beginBatch();
+    try {
+      // Apply all renames in memory
+      for (const { oldPath, newPath, token } of tokens) {
+        setTokenAtPath(set.tokens, newPath, token);
+        deleteTokenAtPath(set.tokens, oldPath);
+      }
+      await this.saveSet(setName);
+      // Batch alias updates
+      let aliasesUpdated = 0;
+      if (updateAliases) {
+        const pathMap = new Map(tokens.map(t => [t.oldPath, t.newPath]));
+        const setsToSave = new Set<string>();
+        for (const [sName, s] of this.sets) {
+          const changed = updateBulkAliasRefs(s.tokens, pathMap);
+          if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+        }
+        for (const sName of setsToSave) await this.saveSet(sName);
+      }
+      this.rebuildFlatTokens();
+      return { renamed: tokens.length, aliasesUpdated };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
+    } finally {
+      this.endBatch();
+    }
+  }
+
+  /**
+   * Atomically move multiple tokens from one set to another. All moves are
+   * applied in memory first, then both sets are saved once. If any move fails
+   * validation, all changes are rolled back.
+   */
+  async batchMoveTokens(
+    fromSet: string,
+    paths: string[],
+    toSet: string,
+  ): Promise<{ moved: number }> {
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
+    // Validate all moves upfront
+    const tokensToMove: Array<{ path: string; token: Token }> = [];
+    for (const tokenPath of paths) {
+      const token = getTokenAtPath(source.tokens, tokenPath);
+      if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
+      if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+      tokensToMove.push({ path: tokenPath, token });
+    }
+    const snapshot = this.snapshotSets(fromSet, toSet);
+    this.beginBatch();
+    try {
+      for (const { path: tokenPath, token } of tokensToMove) {
+        setTokenAtPath(target.tokens, tokenPath, token);
+        deleteTokenAtPath(source.tokens, tokenPath);
+      }
+      await this.saveSet(fromSet);
+      await this.saveSet(toSet);
+      this.rebuildFlatTokens();
+      return { moved: tokensToMove.length };
+    } catch (err) {
+      this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens();
+      throw err;
+    } finally {
+      this.endBatch();
+    }
+  }
+
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);

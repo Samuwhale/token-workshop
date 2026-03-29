@@ -569,3 +569,15 @@
   - `COMPOSITE_TOKEN_TYPES` in `constants.ts` is the canonical set of types that support `$extends` — use it for validation rather than checking value shapes
   - The `resolveType` method already handles inheriting `$type` from the extends base, so `$type` is always resolved before the merge logic runs
 ---
+
+## 2026-03-29 - Batch token mutation routes have no partial-failure rollback
+- Added three atomic batch methods to TokenStore: `batchUpdateTokens`, `batchRenameTokens`, `batchMoveTokens`
+- Each method validates all inputs upfront, snapshots affected sets, applies all in-memory changes, saves once, and rolls back everything on any error
+- Updated route handlers in `tokens.ts` to call the new batch methods instead of looping over individual `updateToken`/`renameToken`/`moveToken` calls
+- This also improves performance: N tokens now require 1 disk write instead of N
+- Files changed: `packages/server/src/services/token-store.ts` ~L1242-1396 (3 new batch methods), `packages/server/src/routes/tokens.ts` ~L237-345 (3 route handlers updated)
+- **Learnings for future iterations:**
+  - Individual TokenStore methods (`updateToken`, `renameToken`, `moveToken`) each snapshot+restore+save internally, making them safe individually but not composable in loops — batch operations need dedicated methods
+  - `batchRenameTokens` with `updateAliases=true` must snapshot ALL sets upfront (not just the primary set) because alias references can be in any set
+  - The `beginBatch`/`endBatch` mechanism defers flat-token rebuilds, so batch methods should call `rebuildFlatTokens` once after all changes
+---

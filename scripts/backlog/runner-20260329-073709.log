@@ -154,3 +154,19 @@ Already up to date.
 
   Merging to main: resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
 Already up to date.
+[main 2e394a5] chore(backlog): done – resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
+ 7 files changed, 202 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - resolver.ts $extends merge is type-unsafe and silently drops inheritance for non-object values
+- Added type-matching validation to the `$extends` merge logic in `TokenResolver.dfs()` (L297-340)
+- Three new validation checks before merging: (1) base token must be a composite type, (2) extending token's `$type` must match base's `$type`, (3) both resolved values must be objects
+- Each mismatch now throws a descriptive error instead of silently dropping the base or override
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  0 queued · 1 in-progress · last took 2m36s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 67173) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
