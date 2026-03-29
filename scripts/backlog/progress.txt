@@ -321,3 +321,9 @@
   - The `resolveForOpt` pattern in `compareRows` is a useful reusable building block — extracting it to a broader `useMemo` keyed by `${dimId}/${optName}` avoids recomputation and can serve multiple UI features.
   - Option chips already had a badge slot (missing count); adding a second badge type in sequence is clean and doesn't require layout changes.
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: ImportPanel.tsx (conflict handling, error recovery), ExportPanel.tsx (formats, subset export, clipboard), BatchEditor.tsx (alias find/replace gap), HistoryPanel.tsx (redo gap, search, sub-tab confusion), PreviewPanel.tsx (theme integration, missing token types), SelectionInspector.tsx (bulk binding gap), App.tsx (tab naming, keyboard nav), QuickStartWizard.tsx (onboarding flow), useTokenCreate.ts (validation), TokenEditor.tsx (dirty state, unsaved guard, auto-focus)
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenEditor has no unsaved-changes guard — closing the drawer with dirty state silently discards edits with no confirmation; and HistoryPanel's three sub-tabs (Recent Actions / Git Commits / Snapshots) serve the same goal but use different mental models, suggesting a unified timeline would be cleaner
+---
