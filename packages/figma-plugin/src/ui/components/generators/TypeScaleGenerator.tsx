@@ -142,8 +142,8 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
       <div className="flex flex-col gap-0.5">
         {sorted.map(({ t, px }, rank) => {
           const label = SPECIMEN_LABELS[Math.min(rank, SPECIMEN_LABELS.length - 1)];
-          // Show hierarchy without clamping to 32px — cap only at 52px to prevent extreme overflow
-          const displayPx = Math.min(Math.max(px, 9), 52);
+          // Scale proportionally: largest step anchored at 48px, all others scaled relative to it
+          const displayPx = Math.max(9, Math.round((px / maxPx) * 48));
           const lineHeight = displayPx >= 24 ? 1.15 : 1.3;
           return (
             <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>

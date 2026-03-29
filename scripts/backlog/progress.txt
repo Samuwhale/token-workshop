@@ -296,3 +296,11 @@
 - **Learnings for future iterations:**
   - The legend doubles as filter buttons — clicking a status filters the node list to that status only; clicking again clears the filter.
 ---
+
+## 2026-03-29 - TypeScaleGenerator specimen preview clamps display to 9–52px, hiding large tokens
+- Replaced flat clamp `Math.min(Math.max(px, 9), 52)` with proportional scaling: `Math.max(9, Math.round((px / maxPx) * 48))`. The largest step is now anchored at 48px and all smaller steps are scaled proportionally, making size ratios visually distinguishable across all tiers.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L146
+- **Learnings for future iterations:**
+  - `maxPx` was already computed above the render loop, so the proportional scaling needed no new state or computation.
+  - Anchoring at 48px (not the raw max) keeps the preview compact while showing true ratios — a reasonable cap for a narrow plugin panel.
+---
