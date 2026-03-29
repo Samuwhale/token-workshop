@@ -458,3 +458,10 @@
   - `useRecentOperations` uses a `loadedCount` state to drive a cumulative limit re-fetch (simpler than appending pages)
   - New props on `HistoryPanel` are optional so existing usages without them still compile cleanly
 ---
+
+## 2026-03-29 - CommandPalette qualifier hint section shows only 6 of all available qualifiers
+- Replaced `.slice(0, 6)` with a stateful expand/collapse toggle. Default shows first 6 qualifiers; a "+7 more" button expands to show all 13. Button label flips to "fewer" when expanded. Removed the `filter(q => q.example || q.qualifier.includes(':'))` pre-filter (all qualifiers include ':' so it was a no-op). Changed `overflow-x-auto scrollbar-none` to `flex-wrap` so expanded qualifiers wrap naturally instead of requiring horizontal scrolling.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L147, ~L404
+- **Learnings for future iterations:**
+  - Expand/collapse hint rows pair well with `flex-wrap` layout — the row stays compact by default while revealing the full list on demand without requiring horizontal scroll.
+---
