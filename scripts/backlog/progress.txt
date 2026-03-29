@@ -364,3 +364,10 @@
   - New generator type editors follow the same pattern: one file per type, export `DEFAULT_*_CONFIG` + a `*ConfigEditor` component; wire into TokenGeneratorDialog at the config-section conditional block (~L586-595) and import the config type from `useGenerators`.
   - The `chromaBoost` default in `generatorUtils.ts` is `0` (produces gray), not `1` (preserve saturation) — match it in any new default exports to stay consistent.
 ---
+## 2026-03-29 - Rollback button in Recent Actions fires immediately with no confirmation
+- Added a `ConfirmModal` before executing rollback: clicking "Rollback" now opens a modal showing the operation description and affected paths count; the actual API call only fires after the user confirms.
+- Files changed: `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L1, ~L52, ~L58, ~L253
+- **Learnings for future iterations:**
+  - `ConfirmModal` accepts an async `onConfirm` and handles the spinner/error state internally — pass the async action directly rather than wrapping it.
+  - The `confirmOp` state pattern (store the full operation object, not just its ID) makes it easy to render rich context (description, path count) in the modal body.
+---
