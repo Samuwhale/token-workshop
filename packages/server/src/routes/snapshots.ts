@@ -7,17 +7,21 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/snapshots — save current state
   fastify.post<{ Body: { label?: string } }>('/snapshots', async (request, reply) => {
-    const label = (request.body as { label?: string })?.label?.trim()
-      || `Snapshot ${new Date().toLocaleString()}`;
-    return withLock(async () => {
-      const entry = await fastify.manualSnapshots.save(label, fastify.tokenStore);
-      return reply.status(201).send({
-        ok: true,
-        id: entry.id,
-        label: entry.label,
-        timestamp: entry.timestamp,
+    try {
+      const label = (request.body as { label?: string })?.label?.trim()
+        || `Snapshot ${new Date().toLocaleString()}`;
+      return await withLock(async () => {
+        const entry = await fastify.manualSnapshots.save(label, fastify.tokenStore);
+        return reply.status(201).send({
+          ok: true,
+          id: entry.id,
+          label: entry.label,
+          timestamp: entry.timestamp,
+        });
       });
-    });
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
   });
 
   // GET /api/snapshots — list saved snapshots

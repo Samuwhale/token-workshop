@@ -441,3 +441,11 @@
   - In `token-store.ts` the rollback logic (`rename newFilePath → oldFilePath`) still fires correctly even with the atomic write — the rename throws if the tmp write fails, so the outer catch still rolls back the file rename.
   - The `_startWriteGuard` pattern in token-store.ts is designed for chokidar watchers; for `$themes.json` (not a watched token file) no guard is needed.
 ---
+
+## 2026-03-29 - Multiple server route handlers lack try/catch and return unstructured 500s on async errors
+- Added try/catch with `handleRouteError` to all five identified handlers: `DELETE /resolvers/:name` (also added missing `handleRouteError` import), `POST /snapshots`, `DELETE /generators/:id` (inside `withLock`), `GET /generators`, and `GET /generators/:id`.
+- Files changed: `packages/server/src/routes/resolvers.ts` ~L13, ~L126; `packages/server/src/routes/snapshots.ts` ~L9; `packages/server/src/routes/generators.ts` ~L318, ~L444, ~L544
+- **Learnings for future iterations:**
+  - `withLock` callbacks that throw will bubble up as unhandled promise rejections — always wrap `withLock(async () => { try { ... } catch (err) { return handleRouteError(reply, err); } })` when there's async work inside.
+  - A route file missing the `handleRouteError` import is a signal it has no error handling — always check imports when auditing bare async handlers.
+---

@@ -315,8 +315,12 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
   // GET /api/generators — list all generators
-  fastify.get('/generators', async (_request, _reply) => {
-    return fastify.generatorService.getAll();
+  fastify.get('/generators', async (_request, reply) => {
+    try {
+      return await fastify.generatorService.getAll();
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
   });
 
   // GET /api/generators/orphaned-tokens — find tokens whose generator no longer exists
@@ -442,9 +446,13 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/generators/:id — get single generator
   fastify.get<{ Params: { id: string } }>('/generators/:id', async (request, reply) => {
-    const gen = await fastify.generatorService.getById(request.params.id);
-    if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-    return gen;
+    try {
+      const gen = await fastify.generatorService.getById(request.params.id);
+      if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+      return gen;
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
   });
 
   // PUT /api/generators/:id — update generator config and re-run
@@ -542,38 +550,42 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     '/generators/:id',
     async (request, reply) => {
       return withLock(async () => {
-        const gen = await fastify.generatorService.getById(request.params.id);
-        if (!gen) {
-          return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+        try {
+          const gen = await fastify.generatorService.getById(request.params.id);
+          if (!gen) {
+            return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+          }
+          // Snapshot before delete if tokens will also be removed
+          const willDeleteTokens = request.query.deleteTokens === 'true';
+          const before = willDeleteTokens && gen.targetSet && gen.targetGroup
+            ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
+            : {};
+          const deleted = await fastify.generatorService.delete(request.params.id);
+          if (!deleted) {
+            return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+          }
+          let tokensDeleted = 0;
+          if (willDeleteTokens) {
+            tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
+          }
+          const after = tokensDeleted > 0 && gen.targetSet && gen.targetGroup
+            ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
+            : {};
+          await fastify.operationLog.record({
+            type: 'generator-delete',
+            description: tokensDeleted > 0
+              ? `Delete generator "${gen.name}" and ${tokensDeleted} tokens`
+              : `Delete generator "${gen.name}"`,
+            setName: gen.targetSet,
+            affectedPaths: Object.keys(before),
+            beforeSnapshot: before,
+            afterSnapshot: after,
+            rollbackSteps: [{ action: 'create-generator', generator: gen }],
+          });
+          return { ok: true, id: request.params.id, tokensDeleted };
+        } catch (err) {
+          return handleRouteError(reply, err);
         }
-        // Snapshot before delete if tokens will also be removed
-        const willDeleteTokens = request.query.deleteTokens === 'true';
-        const before = willDeleteTokens && gen.targetSet && gen.targetGroup
-          ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
-          : {};
-        const deleted = await fastify.generatorService.delete(request.params.id);
-        if (!deleted) {
-          return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-        }
-        let tokensDeleted = 0;
-        if (willDeleteTokens) {
-          tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
-        }
-        const after = tokensDeleted > 0 && gen.targetSet && gen.targetGroup
-          ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
-          : {};
-        await fastify.operationLog.record({
-          type: 'generator-delete',
-          description: tokensDeleted > 0
-            ? `Delete generator "${gen.name}" and ${tokensDeleted} tokens`
-            : `Delete generator "${gen.name}"`,
-          setName: gen.targetSet,
-          affectedPaths: Object.keys(before),
-          beforeSnapshot: before,
-          afterSnapshot: after,
-          rollbackSteps: [{ action: 'create-generator', generator: gen }],
-        });
-        return { ok: true, id: request.params.id, tokensDeleted };
       });
     },
   );

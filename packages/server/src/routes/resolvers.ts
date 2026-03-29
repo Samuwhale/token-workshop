@@ -10,6 +10,7 @@ import type { ResolverFile, ResolverInput, ThemeDimension, ThemesFile } from '@t
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { convertThemesToResolver } from '../services/themes-to-resolver.js';
+import { handleRouteError } from '../errors.js';
 
 export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
@@ -123,21 +124,25 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // Delete a resolver
   // -----------------------------------------------------------------------
   fastify.delete<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
-    const beforeFile = fastify.resolverStore.get(req.params.name);
-    const deleted = await fastify.resolverStore.delete(req.params.name);
-    if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
-    await fastify.operationLog.record({
-      type: 'resolver-delete',
-      description: `Delete resolver "${req.params.name}"`,
-      setName: req.params.name,
-      affectedPaths: [],
-      beforeSnapshot: {},
-      afterSnapshot: {},
-      rollbackSteps: beforeFile
-        ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
-        : [],
-    });
-    return { ok: true };
+    try {
+      const beforeFile = fastify.resolverStore.get(req.params.name);
+      const deleted = await fastify.resolverStore.delete(req.params.name);
+      if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
+      await fastify.operationLog.record({
+        type: 'resolver-delete',
+        description: `Delete resolver "${req.params.name}"`,
+        setName: req.params.name,
+        affectedPaths: [],
+        beforeSnapshot: {},
+        afterSnapshot: {},
+        rollbackSteps: beforeFile
+          ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
+          : [],
+      });
+      return { ok: true };
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
   });
 
   // -----------------------------------------------------------------------
