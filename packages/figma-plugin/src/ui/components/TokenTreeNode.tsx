@@ -1709,7 +1709,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 onShowReferences(node.path);
               }}
             >
-              <span>Show references</span>
+              <span>Open in dependency graph</span>
             </button>
           )}
           {onCompareAcrossThemes && !selectMode && (

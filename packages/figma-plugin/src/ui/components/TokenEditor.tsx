@@ -958,8 +958,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         </div>
         {!isCreateMode && onShowReferences && <button
           onClick={() => onShowReferences(tokenPath)}
-          title="Show references in Token Flow"
-          aria-label="Show references"
+          title="Open in dependency graph (Apply → Dependencies)"
+          aria-label="Open in dependency graph"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

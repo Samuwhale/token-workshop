@@ -387,3 +387,14 @@
   - `setThemeStatusMap` is now a ready-made per-set status lookup — any other UI that needs to know a set's role in active themes can use the same pattern.
   - When a set appears in multiple active dimensions with different statuses, the priority order (enabled > source > disabled) ensures the most meaningful status wins.
 ---
+
+## 2026-03-29 - TokenFlowPanel has no "Show in Dependencies" shortcut from context menu or editor
+- The `onShowReferences` callback, context menu item ("Show references"), and TokenEditor icon button already existed but were broken — they called `navigateTo('define', 'flow')` which doesn't exist as a sub-tab, causing silent fallback to Define > Tokens instead of the TokenFlowPanel.
+- Fixed all three occurrences of `navigateTo('define', 'flow')` → `navigateTo('apply', 'dependencies')` in App.tsx.
+- Renamed context menu label from "Show references" to "Open in dependency graph" (TokenTreeNode.tsx).
+- Updated TokenEditor button tooltip to "Open in dependency graph (Apply → Dependencies)".
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1913, ~L1935, ~L2220; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1712; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L961
+- **Learnings for future iterations:**
+  - When `navigateTo(topTab, subTab)` is called with a subTab that doesn't exist in the topTab's subTabs array, it silently falls back to the default sub-tab (e.g. 'tokens' for 'define'). No error is thrown, making this easy to ship unnoticed.
+  - Always verify the (topTab, subTab) pair against the TOP_TABS constant when writing navigation calls.
+---
