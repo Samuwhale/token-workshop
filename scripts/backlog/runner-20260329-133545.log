@@ -48,3 +48,18 @@ Already up to date.
 
   Merging to main: No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
 Already up to date.
+[main 5cb9c10c] chore(backlog): done – No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
+ 6 files changed, 200 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - No generator configuration comparison
+- Added A/B compare mode to `TypeScaleConfigEditor`. A toggle button labeled "A/B" appears next to the "Scale ratio" label. When enabled, a two-column layout shows Config A (current) and Config B (alternate) with full ratio preset lists and custom inputs in each column, plus side-by-side staircase editors for visual comparison. "Use B (ratio)" applies B's ratio and exits compare mode. A swap button (⇄) exchanges A and B ratios. Compare mode is purely local — no state leaks to the parent; only "Use B" triggers `onChange`. Initializes B to the next preset above A's current ratio for an immediately useful comparison.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L171
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  21 queued · 3 in-progress · last took 4m42s
+═══════════════════════════════════════════════════════════════
+  → DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units — runtime constants support `vw`, `vh`, `ch`, `cap`, `dvw`, etc. but the type rejects them; DimensionValue should use `DimensionUnit` from constants.ts (packages/core/src/types.ts:20, packages/core/src/constants.ts:56-58)
+  Worktree: /tmp/backlog-47616-qhr6M1
+  Running agent… (started 13:45:38)

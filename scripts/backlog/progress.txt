@@ -114,3 +114,10 @@
   - The two staircase editors share the same steps/unit/baseStep — only ratio differs. The B editor's `onChange` only updates `compareRatio` (not the full config), keeping the live config unaffected until "Use B" is clicked.
   - Side-by-side SVG staircases (each `width="100%"` in a `grid-cols-2`) render fine at ~50% width; the responsive SVG with fixed viewBox scales all content proportionally.
 ---
+
+## 2026-03-29 - package-lock.json coexists with pnpm-lock.yaml
+- Deleted root `package-lock.json`. The project declares `"packageManager": "pnpm@9.15.0"` in package.json and uses `pnpm-lock.yaml` as its canonical lock file; the npm lock file was stale and risked dependency drift.
+- Files changed: `package-lock.json` (deleted)
+- **Learnings for future iterations:**
+  - No code changes needed — pure file deletion. Validate still passes since no build or test logic depends on package-lock.json.
+---

@@ -80,7 +80,7 @@
 
 ### UX
 
-- [~] No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
+- [x] No generator configuration comparison — can't preview two ratios or two configurations side by side before committing; useful for A/B-ing e.g. Minor Third vs Major Third type scales
 - [x] No skeleton/loading state during 300ms preview debounce — currently shows stale data while new preview loads; add a subtle loading indicator so the designer knows a refresh is pending (useGeneratorPreview.ts)
 
 ---
@@ -120,7 +120,7 @@
 
 ### Correctness & Safety
 
-- [ ] DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units — runtime constants support `vw`, `vh`, `ch`, `cap`, `dvw`, etc. but the type rejects them; DimensionValue should use `DimensionUnit` from constants.ts (packages/core/src/types.ts:20, packages/core/src/constants.ts:56-58)
+- [~] DimensionValue type uses hardcoded 4-unit union instead of the DimensionUnit type that defines 20 units — runtime constants support `vw`, `vh`, `ch`, `cap`, `dvw`, etc. but the type rejects them; DimensionValue should use `DimensionUnit` from constants.ts (packages/core/src/types.ts:20, packages/core/src/constants.ts:56-58)
 - [ ] Three plugin message types handled in controller.ts are missing from the PluginMessage union — `SearchLayersMessage` is defined at types.ts:343 but not in the union; `ScanTokenVariableBindingsMessage` and `RemoveBindingFromNodeMessage` have no interface at all; all three are dispatched from UI and handled in the switch but bypass compile-time type checking (packages/figma-plugin/src/shared/types.ts:409-441, src/plugin/controller.ts:298,319,332)
 - [ ] ScanCanvasHeatmapMessage type definition missing optional `scope` property — handler reads `msg.scope ?? 'page'` but the interface has no scope field, so the property access is untyped (packages/figma-plugin/src/shared/types.ts, src/plugin/controller.ts:272)
 - [ ] PUT /api/sets/reorder has no try/catch — every other set mutation endpoint wraps logic in error handling; this one lets unhandled exceptions propagate as 500s with no structured error response (packages/server/src/routes/sets.ts:145-165)
