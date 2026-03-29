@@ -464,3 +464,13 @@
   - The property groups rendering already had a visibility filter (binding or value present); adding the user filter was a simple additional `.filter()` call in the same pipeline
   - Quick-filter chips that toggle (click active chip to deselect back to "all") feel more natural than a dropdown for a small fixed set of categories
 ---
+## 2026-03-29 - ImportPanel Figma Variables mode silently overwrites without conflict UI
+- Added conflict preview to the Variables import footer: pre-fetches existing tokens for each enabled mode's target set when `collectionData` loads (or when mode/set-name config changes), shows "N new · M will overwrite" summary consistent with the styles/JSON preview
+- Modified `handleImportVariables` to accept a `strategy: 'overwrite' | 'skip'` parameter (default `'overwrite'`) and passes it to the batch endpoint
+- When overwrites are detected: shows two buttons ("Import & overwrite" and "Import & keep existing") instead of the single button. When no overwrites: single button unchanged
+- Used a fetch-id ref (`varConflictFetchIdRef`) to cancel stale in-flight conflict fetches when the user changes mode/set-name config before a fetch completes
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L185 (new state), ~L265 (new conflict-fetch useEffect), ~L631 (strategy param), ~L676 (strategy passthrough), ~L1384 (footer UI)
+- **Learnings for future iterations:**
+  - The Variables import maps to multiple sets (one per mode), making per-token accept/reject impractical. A strategy-level choice (overwrite vs skip) with aggregate counts gives users the key information and control they need without the complexity of multi-set per-token conflict UI
+  - Use a fetch-id counter ref rather than AbortController when cancelling async loops: increment the ref, check `if (fetchId !== varConflictFetchIdRef.current) return` at each await point
+---

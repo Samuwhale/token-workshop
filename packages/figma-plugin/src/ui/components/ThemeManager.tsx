@@ -25,6 +25,7 @@ interface ThemeManagerProps {
   sets: string[];
   onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
   onNavigateToToken?: (set: string, tokenPath: string) => void;
+  onCreateToken?: (tokenPath: string, set: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   /** Resolver state — when provided, enables the Advanced mode toggle */
   resolverState?: ResolverContentProps;
@@ -51,7 +52,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onPushUndo, resolverState }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
@@ -1619,6 +1620,18 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     title={`Create ${item.missingRef} in override set`}
                                   >
                                     {isFilling ? '…' : 'Fill'}
+                                  </button>
+                                )}
+                                {!canFill && onCreateToken && (
+                                  <button
+                                    onClick={() => {
+                                      const createPath = item.missingRef ?? item.path;
+                                      onCreateToken(createPath, item.set);
+                                    }}
+                                    className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-tertiary)] text-[var(--color-figma-text)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-opacity"
+                                    title={item.missingRef ? `Create token "${item.missingRef}" to resolve missing alias` : `Create token "${item.path}" in set "${item.set}"`}
+                                  >
+                                    Create
                                   </button>
                                 )}
                               </div>
