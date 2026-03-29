@@ -489,3 +489,17 @@
   - `withThemeLock()` already handles operation logging with rollback steps — routes using it should NOT add their own `operationLog.record()` call
   - The reorder-dimensions route is the only one using `store.withLock` directly (not `withThemeLock`), so it correctly has its own logging
 ---
+
+## 2026-03-29 - PublishPanel "Publish all" summary action button
+- Added a "Publish all" button that appears when 2+ sections have pending changes (variables, styles, git diff)
+- Button shows a summary of pending changes per section (e.g., "3 variables, 5 styles, 2 files")
+- Single confirmation modal lists all sections with push/pull counts before executing
+- Sequential execution: variables → styles → git diff, with a spinner showing which step is in progress
+- Error handling: if any step fails, remaining steps are skipped and error is displayed
+- New types: `PublishAllStep` for progress tracking, extended `ConfirmAction` union with `'publish-all'`
+- Git diff pending count lifted to a component-level `useMemo` so it can be used by both the git section and publish-all logic
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L14-15 (types), ~L75-78 (state), ~L97-131 (pending counts + runPublishAll callback), ~L349-393 (publish-all button/progress banner + error), ~L1355-1394 (confirmation modal)
+- **Learnings for future iterations:**
+  - The git section computes `pendingCount` inside an IIFE in JSX, making it unavailable to sibling components. Lifting it to a `useMemo` at the component level is the right approach when the value needs to be shared.
+  - The three sync hooks (useVariableSync, useStyleSync, useGitSync) all expose `apply*` as async functions that can be awaited sequentially — no special orchestration needed.
+---

@@ -11,7 +11,9 @@ import { ConfirmModal } from './ConfirmModal';
 import { apiFetch } from '../shared/apiFetch';
 import { formatRelativeTime, Section } from '../shared/changeHelpers';
 
-type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'apply-diff' | null;
+type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'apply-diff' | 'publish-all' | null;
+
+type PublishAllStep = 'variables' | 'styles' | 'git' | null;
 
 /* ── Interfaces ──────────────────────────────────────────────────────────── */
 
@@ -70,6 +72,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
+  // ── Publish-all state ──
+  const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
+  const [publishAllError, setPublishAllError] = useState<string | null>(null);
+
   // ── Orphan deletion message handler ──
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
@@ -85,6 +91,41 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  /* ── Publish-all pending counts ─────────────────────────────────────── */
+
+  const hasVarChanges = varSync.varChecked && varSync.varSyncCount > 0;
+  const hasStyleChanges = styleSync.styleChecked && styleSync.styleSyncCount > 0;
+  const gitDiffPendingCount = useMemo(
+    () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
+    [git.diffChoices],
+  );
+  const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
+  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (hasGitDiffChanges ? 1 : 0);
+  const publishAllAvailable = publishAllSections >= 2;
+  const publishAllBusy = publishAllStep !== null;
+
+  const runPublishAll = useCallback(async () => {
+    setPublishAllError(null);
+    try {
+      if (hasVarChanges) {
+        setPublishAllStep('variables');
+        await varSync.applyVarDiff();
+      }
+      if (hasStyleChanges) {
+        setPublishAllStep('styles');
+        await styleSync.applyStyleDiff();
+      }
+      if (hasGitDiffChanges) {
+        setPublishAllStep('git');
+        await git.applyDiff();
+      }
+    } catch (err) {
+      setPublishAllError(describeError(err));
+    } finally {
+      setPublishAllStep(null);
+    }
+  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, varSync, styleSync, git]);
 
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
@@ -299,6 +340,49 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
               Figma variables, styles, and Git are all up to date.
             </span>
+          </div>
+        )}
+
+        {/* ── Publish all ───────────────────────────────────────────────── */}
+        {(publishAllAvailable || publishAllBusy) && (
+          <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 p-3">
+            {publishAllBusy ? (
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin shrink-0 text-[var(--color-figma-accent)]" width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
+                </svg>
+                <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
+                  {publishAllStep === 'variables' && 'Applying variable changes\u2026'}
+                  {publishAllStep === 'styles' && 'Applying style changes\u2026'}
+                  {publishAllStep === 'git' && 'Applying git diff changes\u2026'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Publish all</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {[
+                      hasVarChanges ? `${varSync.varSyncCount} variable${varSync.varSyncCount !== 1 ? 's' : ''}` : null,
+                      hasStyleChanges ? `${styleSync.styleSyncCount} style${styleSync.styleSyncCount !== 1 ? 's' : ''}` : null,
+                      hasGitDiffChanges ? `${gitDiffPendingCount} file${gitDiffPendingCount !== 1 ? 's' : ''}` : null,
+                    ].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setConfirmAction('publish-all')}
+                  className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                >
+                  Publish all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {publishAllError && (
+          <div role="alert" className="text-[10px] text-[var(--color-figma-error)] px-1">
+            Publish all failed: {publishAllError}
           </div>
         )}
 
@@ -1263,6 +1347,53 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           })()}
           . This will overwrite the target files.
         </p>
+      </ConfirmModal>
+    )}
+
+    {confirmAction === 'publish-all' && (
+      <ConfirmModal
+        title="Publish all changes?"
+        confirmLabel="Publish all"
+        wide
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await runPublishAll();
+        }}
+      >
+        <div className="flex flex-col gap-1.5 mt-1">
+          {hasVarChanges && (
+            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              <strong className="font-medium text-[var(--color-figma-text)]">Variables:</strong>{' '}
+              {[
+                varSync.varPushCount > 0 ? `${varSync.varPushCount} pushed to Figma` : null,
+                varSync.varPullCount > 0 ? `${varSync.varPullCount} pulled to local` : null,
+              ].filter(Boolean).join(', ')}
+            </div>
+          )}
+          {hasStyleChanges && (
+            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              <strong className="font-medium text-[var(--color-figma-text)]">Styles:</strong>{' '}
+              {[
+                styleSync.stylePushCount > 0 ? `${styleSync.stylePushCount} pushed to Figma` : null,
+                styleSync.stylePullCount > 0 ? `${styleSync.stylePullCount} pulled to local` : null,
+              ].filter(Boolean).join(', ')}
+            </div>
+          )}
+          {hasGitDiffChanges && (
+            <div className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              <strong className="font-medium text-[var(--color-figma-text)]">Git:</strong>{' '}
+              {(() => {
+                const pushCount = Object.values(git.diffChoices).filter(c => c === 'push').length;
+                const pullCount = Object.values(git.diffChoices).filter(c => c === 'pull').length;
+                return [
+                  pushCount > 0 ? `${pushCount} file${pushCount !== 1 ? 's' : ''} pushed` : null,
+                  pullCount > 0 ? `${pullCount} file${pullCount !== 1 ? 's' : ''} pulled` : null,
+                ].filter(Boolean).join(', ');
+              })()}
+            </div>
+          )}
+        </div>
       </ConfirmModal>
     )}
     </>

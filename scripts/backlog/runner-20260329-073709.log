@@ -132,3 +132,18 @@ Already up to date.
 
   Merging to main: themes.ts routes double-log operations and reference undeclared beforeDims
 Already up to date.
+[main 1a1cfcd] chore(backlog): done – themes.ts routes double-log operations and reference undeclared beforeDims
+ 6 files changed, 35 insertions(+), 73 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-03-29 - themes.ts routes double-log operations and reference undeclared beforeDims
+- Removed duplicate `operationLog.record()` calls from 7 of 9 theme mutation routes that already use `withThemeLock()` (which records its own log entry)
+- These duplicate calls referenced `beforeDims` which was only declared in the reorder-dimensions route, causing ReferenceError at runtime in all other routes
+- The reorder-dimensions route (`PUT /themes/dimensions-order`) correctly uses `store.withLock` directly with its own `beforeDims` declaration and logging — left unchanged
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  1 queued · 6 in-progress · last took 2m9s
+═══════════════════════════════════════════════════════════════
+  → resolver.ts `$extends` merge is type-unsafe and silently drops inheritance for non-object values — L307-316 only merge when both base and override are non-null non-array objects; if a composite token (typography, shadow) overrides a single sub-property via `$value: { fontSize: "18px" }` but the base resolved to a primitive (e.g., due to a resolution error), the entire base is silently discarded instead of producing an error; conversely, if the override is a primitive string but extends a composite base, the base is silently dropped; add type-matching validation between base and extending token's `$type` to catch these mismatches during resolution rather than producing silently wrong output
+  Worktree: /tmp/backlog-69179-ep946T
+  Running agent… (started 07:56:42)

@@ -115,3 +115,10 @@ Already up to date.
   → PublishPanel requires three separate "Apply" actions to fully sync to Figma and git — users who regularly push all changes (variables + styles + git commit) must click Apply in three independent sections; add a "Publish all" summary action button that checks all three sections for pending changes and applies them in sequence with a single confirmation, reducing a common 6-click flow to 2 clicks
   Worktree: /tmp/backlog-67173-4fEnxz
   Running agent… (started 07:52:05)
+
+  ✓ done: PublishPanel "Publish all" summary action button
+    Added "Publish all" button that appears when 2+ sections have pending changes, shows per-section summary, confirms in one modal, and applies variables → styles → git sequentially with progress spinner.
+    30 turns · 274s · $1.31
+
+  Merging to main: PublishPanel "Publish all" summary action button
+Already up to date.
