@@ -364,3 +364,10 @@ Already up to date.
 
   Merging to main: No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
 Already up to date.
+[main af63df79] chore(backlog): done – No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
+ 6 files changed, 124 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥23) ---
+  → Archived 23 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
