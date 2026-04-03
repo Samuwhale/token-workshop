@@ -277,3 +277,9 @@
 - **Learnings for future iterations:**
   - In async handlers with optional error callbacks, catch blocks that only log are almost always bugs — they should always either re-throw, call onError, or return early. A fall-through after a catch is only safe when the operation is genuinely non-critical to the main flow.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: BatchEditor.tsx (scale/alias silent skips, pre-apply dry-run), AnalyticsPanel.tsx (unused tokens, stale validation, contrast matrix cap), ExportPanel.tsx (preview staleness, filter UX), ThemeManager.tsx (fill-all-gaps, dimension search state), App.tsx (command palette gaps, keyboard shortcuts), TokenList.tsx (collapse-all, zoom breadcrumb), GraphPanel.tsx (generator dry-run), useUndo hook (no redo)
+- Found 12 items — written to backlog-inbox.md
+- Notable: ThemeManager.tsx declares dimSearch state + ref at ~L138-139 for dimension search/filter but never renders the input — a hidden feature that's literally wired up but invisible; also no redo path exists anywhere in the app despite undo being fully implemented
+---

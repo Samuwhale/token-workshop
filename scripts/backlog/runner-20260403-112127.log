@@ -192,3 +192,83 @@ Already up to date.
 
   Merging to main: useGroupOperations group rename preview error silently falls through to executing the rename
 Already up to date.
+[main db04b444] chore(backlog): done – useGroupOperations group rename preview error silently falls through to executing the rename
+ 5 files changed, 49 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - useGroupOperations group rename preview error silently falls through
+- When the rename-preview fetch failed, the catch block only logged a console.warn then continued to call `executeGroupRename` — silently executing a rename that could break aliases. Fixed by replacing the console.warn with `onError?.(...)` and returning early, so the rename is aborted and the user sees an error toast.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGroupOperations.ts` ~L102-105
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  0 queued · 1 in-progress · last took 47s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  0 queued · 1 in-progress · last took 31s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 31178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

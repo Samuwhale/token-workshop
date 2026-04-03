@@ -52,3 +52,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    12 items written to backlog-inbox.md — top finds: no redo stack despite full undo implementation; ThemeManager has dimSearch state+ref declared but never rendered; AnalyticsPanel unused-token list has no delete action; BatchEditor silently skips alias tokens during scale ops with only a post-apply warning; token tree zoom has no breadcrumb; generator panel has no dry-run preview
+Already up to date.
