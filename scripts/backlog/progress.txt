@@ -403,3 +403,9 @@
   - Adding a `qualifier?: true` discriminator to `ShortcutEntry` keeps the registry as a single source of truth without needing a separate data structure for qualifiers.
   - Qualifier example strings (e.g., `type:color`) pass through `adaptShortcut()` unchanged since that function only transforms `⌘`/`⇧` symbols — no special handling needed.
 ---
+- Files changed: `packages/server/src/services/git-sync.ts` ~L494, `packages/server/src/routes/sync.ts` ~L272, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L198, ~L347, ~L490, ~L668, ~L1504
+- **Learnings for future iterations:**
+  - `git diff --name-status A B` (two refs, no `..`) gives the diff from A to B inclusive; `A..B` is equivalent for simple linear histories but `--name-status A B` is safer and more explicit.
+  - The existing `buildTokenDiff` function is reusable for any source of `FileDiff[]` objects — no changes needed to it.
+  - The compare view intentionally has no restore buttons (read-only diff); keeping it simpler reduces accidental state mutations when users are just exploring history.
+---

@@ -178,3 +178,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — covers comparison panels, generator UX, lint duplication, component decomposition, sync progress, snapshot diffing, and resolver template fragility
+Already up to date.

@@ -220,3 +220,18 @@ Already up to date.
 
   Merging to main: Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
 Already up to date.
+[main c1f27d12] chore(backlog): done – Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
+ 7 files changed, 77 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Token search qualifiers undocumented outside command palette
+- Added a "Token Search Qualifiers" section to the keyboard shortcuts modal listing all 14 qualifiers (type:, has:alias, has:direct, has:duplicate, has:description, has:extension, has:generated, has:unused, value:, desc:, path:, name:, generator:, group:) with their example syntax and descriptions.
+- Added `qualifier?: true` flag to `ShortcutEntry` interface so the modal can render qualifier entries using `<code>` (monospace) styling instead of `<kbd>` (keyboard key) styling.
+- Added `'Token Search'` to `ShortcutGroup` type and `GROUP_ORDER` array, inserted between 'Command Palette' and 'Inspect'.
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  7 queued · 2 in-progress · last took 3m14s
+═══════════════════════════════════════════════════════════════
+  → Contrast matrix in AnalyticsPanel has no filtering by token group or sorting by failure severity — with 100+ color tokens the matrix becomes unwieldy and finding the worst WCAG violations requires scanning every cell
+  Worktree: /tmp/backlog-91949-7pA4em
+  Running agent… (started 01:38:51)
