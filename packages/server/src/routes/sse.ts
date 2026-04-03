@@ -3,10 +3,21 @@ import type { FastifyPluginAsync } from 'fastify';
 export const sseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/events', async (request, reply) => {
     reply.hijack();
+
+    // reply.hijack() bypasses Fastify's response pipeline (including @fastify/cors),
+    // so we must set CORS headers manually on the raw response.
+    const allowedOrigins: Array<string | RegExp> = [
+      'https://www.figma.com', 'https://figma.com', /^https:\/\/.*\.figma\.com$/, 'null',
+    ];
+    const origin = request.headers.origin ?? '';
+    const originAllowed = allowedOrigins.some((o) =>
+      typeof o === 'string' ? o === origin : o.test(origin),
+    );
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      ...(originAllowed && { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }),
     });
 
     const { eventBus } = fastify;

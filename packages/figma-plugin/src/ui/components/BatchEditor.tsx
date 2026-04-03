@@ -343,7 +343,8 @@ export function BatchEditor({
 
     type Op = { path: string; patch: Record<string, unknown>; oldEntry: TokenMapEntry };
     const ops: Op[] = [];
-    let skippedTypeIncompat = 0;
+    let skippedNotColor = 0;
+    let skippedNotNumeric = 0;
 
     for (const { path, entry } of selectedEntries) {
       const patch: Record<string, unknown> = {};
@@ -385,9 +386,8 @@ export function BatchEditor({
               patch.$type = entry.$type;
             }
           }
-        } else if (!description.trim() && newType === '' && batchScopes.length === 0 && !scalingActive) {
-          // Only count as skipped if opacity is the sole value-changing operation for this token
-          skippedTypeIncompat++;
+        } else {
+          skippedNotColor++;
         }
       }
 
@@ -401,9 +401,8 @@ export function BatchEditor({
               patch.$type = entry.$type;
             }
           }
-        } else if (!description.trim() && newType === '' && batchScopes.length === 0 && !opacityActive) {
-          // Only count as skipped if scaling is the sole value-changing operation for this token
-          skippedTypeIncompat++;
+        } else {
+          skippedNotNumeric++;
         }
       }
 
@@ -450,13 +449,16 @@ export function BatchEditor({
       onApply();
 
       const skippedAliases = scalingActive ? scaleAliasCount : 0;
-      const totalSkipped = skippedAliases + skippedTypeIncompat;
+      const totalSkipped = skippedAliases + skippedNotColor + skippedNotNumeric;
       const skipParts: string[] = [];
       if (skippedAliases > 0) {
         skipParts.push(`${skippedAliases} reference value${skippedAliases === 1 ? '' : 's'}`);
       }
-      if (skippedTypeIncompat > 0) {
-        skipParts.push(`${skippedTypeIncompat} incompatible type${skippedTypeIncompat === 1 ? '' : 's'}`);
+      if (skippedNotColor > 0) {
+        skipParts.push(`${skippedNotColor} not color`);
+      }
+      if (skippedNotNumeric > 0) {
+        skipParts.push(`${skippedNotNumeric} not numeric`);
       }
       const skipNote = totalSkipped > 0
         ? ` (${skipParts.join(', ')} skipped)`
@@ -478,25 +480,27 @@ export function BatchEditor({
     }
   };
 
-  const handleMove = async () => {
+  const createBatchHandler = (type: 'move' | 'copy') => async () => {
     if (!connected || !canMove) return;
-    setMoving(true);
+    const setInProgress = type === 'move' ? setMoving : setCopying;
+    setInProgress(true);
     setFeedback(null);
     try {
       const paths = selectedEntries.map(e => e.path);
-      const result = await apiFetch<{ ok: true; moved: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`,
+      const result = await apiFetch<{ ok: true; moved?: number; copied?: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-${type}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths, targetSet }),
         },
       );
-
+      const count = (type === 'move' ? result.moved : result.copied) ?? 0;
+      const pastVerb = type === 'move' ? 'Moved' : 'Copied';
       if (onPushUndo) {
         const opId = result.operationId;
         onPushUndo({
-          description: `Move ${result.moved} token${result.moved === 1 ? '' : 's'} to "${targetSet}"`,
+          description: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetSet}"`,
           restore: async () => {
             await rollbackOperation(opId);
             onApply();
@@ -504,64 +508,22 @@ export function BatchEditor({
         });
       }
       onApply();
-      setFeedback({ ok: true, msg: `Moved ${result.moved} token${result.moved === 1 ? '' : 's'} to "${targetSet}"` });
+      setFeedback({ ok: true, msg: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetSet}"` });
       setTargetSet('');
     } catch (err) {
-      console.warn('[BatchEditor] batch move failed:', err);
-      setFeedback({ ok: false, msg: 'Move failed — check server connection' });
+      console.warn(`[BatchEditor] batch ${type} failed:`, err);
+      setFeedback({ ok: false, msg: `${type === 'move' ? 'Move' : 'Copy'} failed — check server connection` });
     } finally {
-      setMoving(false);
+      setInProgress(false);
     }
   };
 
-  const handleCopy = async () => {
-    if (!connected || !canCopy) return;
-    setCopying(true);
-    setFeedback(null);
-    try {
-      const paths = selectedEntries.map(e => e.path);
-      const result = await apiFetch<{ ok: true; copied: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-copy`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paths, targetSet }),
-        },
-      );
-
-      if (onPushUndo) {
-        const opId = result.operationId;
-        onPushUndo({
-          description: `Copy ${result.copied} token${result.copied === 1 ? '' : 's'} to "${targetSet}"`,
-          restore: async () => {
-            await rollbackOperation(opId);
-            onApply();
-          },
-        });
-      }
-      onApply();
-      setFeedback({ ok: true, msg: `Copied ${result.copied} token${result.copied === 1 ? '' : 's'} to "${targetSet}"` });
-      setTargetSet('');
-    } catch (err) {
-      console.warn('[BatchEditor] batch copy failed:', err);
-      setFeedback({ ok: false, msg: 'Copy failed — check server connection' });
-    } finally {
-      setCopying(false);
-    }
-  };
+  const handleMove = createBatchHandler('move');
+  const handleCopy = createBatchHandler('copy');
 
   const handleRename = async () => {
     if (!connected || !canRename) return;
-    // Build rename pairs from selected entries
-    const renames: Array<{ oldPath: string; newPath: string }> = [];
-    for (const { path } of selectedEntries) {
-      const newPath = useRegex && parsedRegex
-        ? path.replace(parsedRegex, replaceText)
-        : path.split(findText).join(replaceText);
-      if (newPath !== path) {
-        renames.push({ oldPath: path, newPath });
-      }
-    }
+    const renames = renameChanges.map(({ from, to }) => ({ oldPath: from, newPath: to }));
     if (renames.length === 0) return;
 
     setRenaming(true);

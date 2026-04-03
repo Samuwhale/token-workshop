@@ -490,3 +490,14 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: BindingAuditPanel is a pure pass-through wrapper (47 lines, zero added logic) that should be deleted; Resolvers sub-tab is an extra concept that belongs inside ThemeManager; AnalyticsPanel duplicate detection and lint no-duplicate-values rule do the same thing in two places
 ---
+
+## 2026-04-03 - BatchEditor handleMove/handleCopy factory + rename unification + skip counter fix
+- Extracted `createBatchHandler('move'|'copy')` factory function replacing the two 35-line near-identical `handleMove`/`handleCopy` functions. Factory differences parameterized: API endpoint (`batch-move`/`batch-copy`), response field (`moved`/`copied`), state setter (`setMoving`/`setCopying`), past-tense verb for feedback/undo label.
+- Unified rename path computation in `handleRename` to use the existing `renameChanges` useMemo (map `{from,to}` to `{oldPath,newPath}`) instead of duplicating the find/replace logic inline.
+- Fixed skip counter labels: replaced single `skippedTypeIncompat` with two separate counters — `skippedNotColor` (opacity applied to non-color token) and `skippedNotNumeric` (scale applied to non-numeric token). Removed the `!scalingActive`/`!opacityActive` guards that were preventing counting when both operations are active simultaneously. Feedback now says "N not color, M not numeric skipped" instead of "N incompatible types skipped".
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L344, ~L378, ~L451, ~L481
+- **Learnings for future iterations:**
+  - The `!otherOpActive` guards in skip counters were an attempt to avoid double-counting, but they caused under-counting (silent skips) when both operations are active. Splitting into separate named counters eliminates the need for guards — each counter tracks exactly one kind of skip, and if a token is skipped by both, both counters increment, producing informative multi-part feedback.
+  - `canMove` and `canCopy` were identical (`targetSet !== '' && !moving && !copying`), confirming a single `can` check in the factory is correct.
+  - Rename useMemo already produces `{from, to}` pairs with the same filtering logic — `handleRename` just needed a `.map(({from,to}) => ({oldPath: from, newPath: to}))` to reuse it.
+---

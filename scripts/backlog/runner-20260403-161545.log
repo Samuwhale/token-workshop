@@ -370,3 +370,19 @@ Already up to date.
 
   Merging to main: Remove BindingAuditPanel wrapper and use HeatmapPanel directly
 Already up to date.
+[main dedb54e0] chore(backlog): done – Remove BindingAuditPanel wrapper and use HeatmapPanel directly
+ 6 files changed, 52 insertions(+), 67 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/BindingAuditPanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (tab structure, navigation), TokenEditor.tsx (edit flow), TokenList.tsx (tree interactions), ThemeManager.tsx (theme/dimension UX), SetSwitcher.tsx (set switching), BindingAuditPanel.tsx (redundancy), HeatmapPanel.tsx, ConsistencyPanel.tsx, AnalyticsPanel.tsx (overlap), PreviewPanel.tsx + TokenDetailPreview.tsx (overlap), GraphPanel.tsx + TokenGeneratorDialog.tsx (generator UX), CommandPalette.tsx + shortcutRegistry.ts (shortcuts), SettingsPanel.tsx, ExportPanel.tsx, PublishPanel.tsx, server routes and services
+- Found 12 items — written to backlog-inbox.md
+- Notable: BindingAuditPanel is a pure pass-through wrapper (47 lines, zero added logic) that should be deleted; Resolvers sub-tab is an extra concept that belongs inside ThemeManager; AnalyticsPanel duplicate detection and lint no-duplicate-values rule do the same thing in two places
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  11 queued · 3 in-progress · last took 1m25s
+═══════════════════════════════════════════════════════════════
+  → Consolidate Resolvers sub-tab into Themes — Resolvers are theme-scoped value resolution rules that only make sense in the context of themes; having them as a separate sub-tab under Define forces users to learn an extra concept and navigate away from the theme they're configuring; fold resolver management into ThemeManager as a section or collapsible panel within each dimension, reducing the top-level sub-tab count from 4 to 3
+  Worktree: /tmp/backlog-46580-FdiKPH
+  Running agent… (started 17:37:03)

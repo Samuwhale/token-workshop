@@ -284,3 +284,10 @@ Already up to date.
   → BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic — BatchEditor.tsx handleMove (L481-515) and handleCopy (L517-551) share identical structure (same params, error handling, undo registration) differing only in the API endpoint and feedback message; additionally the rename path computation at L558-560 duplicates the `renameChanges` useMemo at L271-291; the opacity/scale skip counters (`skippedTypeIncompat`) conflate "type not applicable" with "type incompatible" and produce misleading user feedback when both opacity and scale are active; extract a shared `createBatchHandler('move'|'copy')` factory function, unify rename computation, and fix the skip-counter labels to distinguish "not a color token" from "uses reference value"
   Worktree: /tmp/backlog-46178-HTJZlC
   Running agent… (started 17:35:28)
+
+  ✓ done: BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic
+    Extracted createBatchHandler factory, unified rename via renameChanges useMemo, and split skippedTypeIncompat into skippedNotColor/skippedNotNumeric with clearer feedback labels
+    15 turns · 219s · $0.55
+
+  Merging to main: BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic
+Already up to date.
