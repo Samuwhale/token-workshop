@@ -53,3 +53,18 @@ Already up to date.
 
   Merging to main: ExportPanel single-file preview has no copy-to-clipboard button
 Already up to date.
+[main 9f8dc230] chore(backlog): done – ExportPanel single-file preview has no copy-to-clipboard button
+ 4 files changed, 34 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel single-file preview has no copy-to-clipboard button
+- Stale — already implemented. A "Copy" button with clipboard icon and "Copied" confirmation state already exists in the preview footer (`ExportPanel.tsx` ~L854-875). It calls `handleCopyFile(activeFile)` which writes the current file content to the clipboard. No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  7 queued · 1 in-progress · last took 39s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
+  Worktree: /tmp/backlog-30880-cskujt
+  Running agent… (started 11:24:39)

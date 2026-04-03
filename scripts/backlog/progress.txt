@@ -401,3 +401,9 @@
 - **Learnings for future iterations:**
   - The copy button is in the preview *footer* bar (alongside "Download"), not the header. The backlog item described the header, but the footer placement is equally accessible and already working.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: ColorPicker.tsx (token swatch list alpha), useTokenCrud.ts (multi-mode save, detach from generator error handling), TokenTableView.tsx (inline edit silent failure), packages/server/src/routes/tokens.ts (dependents route :set param), useGroupOperations.ts (rename preview error fallthrough)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* declare a :set URL param that is never read — calls succeed even for non-existent sets, returning global dependents instead of 404; also ColorPicker token swatch list still uses v.slice(0,7) stripping alpha from 8-char hex tokens (separate from the recent-colors fix already shipped)
+---
