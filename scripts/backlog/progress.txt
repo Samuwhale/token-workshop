@@ -419,3 +419,12 @@
   - `emptyPlaceholder` option bridges the '—' vs '' disagreement between callers without breaking existing behavior.
   - `isDimensionLike` is intentionally defined locally in tokenFormatting.ts (not imported from generatorShared or core) to avoid the no-re-exports-from-core rule and keep the shared utility self-contained.
 ---
+  1. **styleSync.ts `applyPaintStyle`**: No longer unconditionally replaces `style.paints` with a single SOLID. Now finds the existing solid paint and updates it in-place, preserving gradients, image fills, and other paint layers. If no solid exists, prepends the new one.
+  2. **selectionHandling.ts `syncBindings`**: Per-node rollback on property failure. Previously, a failing `applyTokenValue` call left the node partially mutated (some props applied, some not). Now, if any property fails for a node, all mutations on that node are restored from the pre-operation snapshot. `nodeSnapshots.delete` prevents double-restore in the outer catastrophic-failure catch.
+  3. **variableSync.ts `applyVariables`**: Surfaces `created` and `overwritten` counts in the `variables-applied` success message (using `createdVariableIds.length` and `variableSnapshots.size` which are already computed for rollback). The UI hook (`useVariableSync`) now reads these fields and posts a more descriptive Figma notify when variables are overwritten ("N created, M updated").
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L104, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L747, `packages/figma-plugin/src/plugin/variableSync.ts` ~L112, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L22
+- **Learnings for future iterations:**
+  - `variableSnapshots.size` already equals the overwritten variable count — no new tracking variable needed.
+  - Per-node rollback pattern: track `nodeUpdated`/`nodeErrors` per node, restore from snapshot if `nodeErrors > 0`, delete snapshot entry to prevent double-restore in outer catch.
+  - When updating a paint style's color, always splice rather than replace: `existing.findIndex(p => p.type === 'SOLID')` finds the solid to update; fall back to prepend if none exists.
+---

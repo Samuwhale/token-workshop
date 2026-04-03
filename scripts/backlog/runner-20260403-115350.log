@@ -260,3 +260,10 @@ Already up to date.
   → ThemeManager has no drag-and-drop reordering for dimensions or options — dimension order and option order can only be changed via the reorder API endpoints (PUT /api/themes/dimensions-order, PUT /api/themes/dimensions/:id/options-order) but the ThemeManager UI provides no interactive reordering UI; add drag-to-reorder handles on dimension rows and option pills, similar to the existing token drag-drop in TokenList
   Worktree: /tmp/backlog-81267-IRIKy5
   Running agent… (started 12:20:05)
+
+  ✓ done: ThemeManager has no drag-and-drop reordering for dimensions or options
+    Added HTML5 drag-and-drop to dimension cards (grip handle + draggable wrapper) and option pills (draggable tabs with cursor-grab); both call existing reorder API endpoints optimistically with visual feedback (opacity + accent ring).
+    20 turns · 195s · $0.71
+
+  Merging to main: ThemeManager has no drag-and-drop reordering for dimensions or options
+Already up to date.

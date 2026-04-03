@@ -199,3 +199,19 @@ Already up to date.
 
   Merging to main: Duplicate fmtValue formatting functions across ComparePanel, CrossThemeComparePanel, and separate formatValue/formatTokenValue helpers
 Already up to date.
+[main 520fa059] chore(backlog): done – Duplicate fmtValue formatting functions across ComparePanel, CrossThemeComparePanel, and separate formatValue/formatTokenValue helpers
+ 11 files changed, 174 insertions(+), 107 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/tokenFormatting.ts
+  ✓ Merged and marked done
+
+## 2026-04-03 - Consolidate duplicate fmtValue/formatValue/formatTokenValue formatting functions
+- Created `packages/figma-plugin/src/ui/shared/tokenFormatting.ts` with a single `formatTokenValueForDisplay(type, value, options?)` function that is the superset of all six prior implementations: handles color, dimension (default px), duration (default ms), typography (fontFamily fontSize fontWeight /lineHeight space-joined), shadow (×N prefix for arrays, offsetX/x fallback, color inclusion), gradient, border, and unknown objects (truncated JSON ≤50 chars). Default emptyPlaceholder is '—'.
+- Replaced `fmtValue()` in `ComparePanel.tsx` and `CrossThemeComparePanel.tsx` with thin wrappers delegating to the shared function.
+- Replaced `formatValue()` in `tokenListUtils.ts` and `generatorShared.tsx` with thin wrappers (passing `{ emptyPlaceholder: '' }` to preserve existing null/undefined behavior).
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  9 queued · 3 in-progress · last took 4m50s
+═══════════════════════════════════════════════════════════════
+  → No way to search or filter tokens by value in the command palette — the command palette (Cmd+K) supports token path search and group navigation but doesn't expose the `value:` qualifier that the token list search bar supports; power users who want to quickly find "all tokens with value #FF0000" must leave the command palette and type `value:#FF0000` in the search bar instead; wire the `value:` qualifier into the command palette's token search mode
+  Worktree: /tmp/backlog-81661-soUB8U
+  Running agent… (started 12:22:31)

@@ -145,6 +145,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [compareSearch, setCompareSearch] = useState('');
   const [compareDiffsOnly, setCompareDiffsOnly] = useState(true);
 
+  // Drag-and-drop reorder state
+  const [draggingDimId, setDraggingDimId] = useState<string | null>(null);
+  const [dragOverDimId, setDragOverDimId] = useState<string | null>(null);
+  const [draggingOpt, setDraggingOpt] = useState<{ dimId: string; optionName: string } | null>(null);
+  const [dragOverOpt, setDragOverOpt] = useState<{ dimId: string; optionName: string } | null>(null);
+
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
     // Cancel any in-flight fetch to avoid racing setState calls
@@ -606,6 +612,97 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       fetchDimensions();
     }
   };
+
+  // --- Drag-and-drop dimension reorder ---
+
+  const handleDimDragStart = (e: React.DragEvent, dimId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingDimId(dimId);
+  };
+
+  const handleDimDragOver = (e: React.DragEvent, dimId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dimId !== dragOverDimId) setDragOverDimId(dimId);
+  };
+
+  const handleDimDrop = async (targetDimId: string) => {
+    if (!draggingDimId || draggingDimId === targetDimId) {
+      setDraggingDimId(null);
+      setDragOverDimId(null);
+      return;
+    }
+    const fromIdx = dimensions.findIndex(d => d.id === draggingDimId);
+    const toIdx = dimensions.findIndex(d => d.id === targetDimId);
+    if (fromIdx === -1 || toIdx === -1) { setDraggingDimId(null); setDragOverDimId(null); return; }
+    const reordered = [...dimensions];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setDimensions(reordered);
+    setDraggingDimId(null);
+    setDragOverDimId(null);
+    try {
+      await apiFetch(`${serverUrl}/api/themes/dimensions-order`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dimensionIds: reordered.map(d => d.id) }),
+      });
+    } catch (err) {
+      console.warn('[ThemeManager] failed to reorder dimensions:', err);
+      fetchDimensions();
+    }
+  };
+
+  const handleDimDragEnd = () => { setDraggingDimId(null); setDragOverDimId(null); };
+
+  // --- Drag-and-drop option reorder ---
+
+  const handleOptDragStart = (e: React.DragEvent, dimId: string, optionName: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+    setDraggingOpt({ dimId, optionName });
+  };
+
+  const handleOptDragOver = (e: React.DragEvent, dimId: string, optionName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverOpt?.dimId !== dimId || dragOverOpt?.optionName !== optionName) {
+      setDragOverOpt({ dimId, optionName });
+    }
+  };
+
+  const handleOptDrop = async (e: React.DragEvent, targetDimId: string, targetOptionName: string) => {
+    e.stopPropagation();
+    if (!draggingOpt || draggingOpt.dimId !== targetDimId || draggingOpt.optionName === targetOptionName) {
+      setDraggingOpt(null);
+      setDragOverOpt(null);
+      return;
+    }
+    const dim = dimensions.find(d => d.id === targetDimId);
+    if (!dim) { setDraggingOpt(null); setDragOverOpt(null); return; }
+    const fromIdx = dim.options.findIndex(o => o.name === draggingOpt.optionName);
+    const toIdx = dim.options.findIndex(o => o.name === targetOptionName);
+    if (fromIdx === -1 || toIdx === -1) { setDraggingOpt(null); setDragOverOpt(null); return; }
+    const reordered = [...dim.options];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setDimensions(prev => prev.map(d => d.id === targetDimId ? { ...d, options: reordered } : d));
+    setDraggingOpt(null);
+    setDragOverOpt(null);
+    try {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(targetDimId)}/options-order`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ options: reordered.map(o => o.name) }),
+      });
+    } catch (err) {
+      console.warn('[ThemeManager] failed to reorder options:', err);
+      fetchDimensions();
+    }
+  };
+
+  const handleOptDragEnd = () => { setDraggingOpt(null); setDragOverOpt(null); };
 
   // --- Delete option ---
 
@@ -1453,10 +1550,29 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   <div
                     key={dim.id}
                     ref={dim.id === newlyCreatedDim ? (el) => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } : undefined}
-                    className="border-b border-[var(--color-figma-border)]"
+                    draggable
+                    onDragStart={e => handleDimDragStart(e, dim.id)}
+                    onDragOver={e => handleDimDragOver(e, dim.id)}
+                    onDrop={() => handleDimDrop(dim.id)}
+                    onDragEnd={handleDimDragEnd}
+                    className={`border-b border-[var(--color-figma-border)] transition-opacity ${draggingDimId === dim.id ? 'opacity-40' : ''} ${dragOverDimId === dim.id && draggingDimId !== dim.id ? 'ring-2 ring-inset ring-[var(--color-figma-accent)]/50' : ''}`}
                   >
                     {/* Layer header */}
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] group">
+                      {/* Drag grip handle */}
+                      {dimensions.length > 1 && (
+                        <span
+                          className="cursor-grab active:cursor-grabbing text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-60 hover:!opacity-100 flex-shrink-0 select-none"
+                          title="Drag to reorder layer"
+                          aria-hidden="true"
+                        >
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                            <circle cx="2" cy="2" r="1.2" /><circle cx="6" cy="2" r="1.2" />
+                            <circle cx="2" cy="6" r="1.2" /><circle cx="6" cy="6" r="1.2" />
+                            <circle cx="2" cy="10" r="1.2" /><circle cx="6" cy="10" r="1.2" />
+                          </svg>
+                        </span>
+                      )}
                       {/* Layer number badge */}
                       <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[10px] font-bold flex-shrink-0" title={`Layer ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
                         {layerNum}
@@ -1534,15 +1650,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
                           const isSelected = selectedOpt === o.name;
                           const diffCount = isSelected ? 0 : (optionDiffCounts[`${dim.id}/${o.name}`] ?? 0);
+                          const isBeingDragged = draggingOpt?.dimId === dim.id && draggingOpt?.optionName === o.name;
+                          const isDragTarget = dragOverOpt?.dimId === dim.id && dragOverOpt?.optionName === o.name && draggingOpt?.optionName !== o.name;
                           return (
                           <button
                             key={o.name}
+                            draggable={dim.options.length > 1}
+                            onDragStart={e => handleOptDragStart(e, dim.id, o.name)}
+                            onDragOver={e => handleOptDragOver(e, dim.id, o.name)}
+                            onDrop={e => handleOptDrop(e, dim.id, o.name)}
+                            onDragEnd={handleOptDragEnd}
                             onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
                             className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 flex items-center gap-1 ${
                               isSelected
                                 ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
                                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                            }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
+                            }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}${isBeingDragged ? ' opacity-40' : ''}${isDragTarget ? ' ring-2 ring-[var(--color-figma-accent)]/60' : ''}${dim.options.length > 1 ? ' cursor-grab active:cursor-grabbing' : ''}`}
                           >
                             {o.name}
                             {!isSelected && diffCount > 0 && (
