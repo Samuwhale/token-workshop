@@ -290,3 +290,9 @@
   - Moving `useCallback` dependency objects to module level (outside the component) is cleaner than adding them as deps or wrapping in `useMemo`.
   - The "parse → show diff → confirm → apply" pattern is the canonical approach for destructive import flows; keep it as an inline card (not a modal) for Figma plugin's compact UI.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: packages/server/src/services/ (all 13 service files — token-store, generator-service, resolver-store, operation-log, git-sync, style-dict, event-bus, token-lock, etc.), packages/figma-plugin/src/ui/hooks/ (all 48 hooks — sync hooks, crud hooks, drag-drop, lint, navigation, etc.), packages/core/src/ (resolver, dtcg-resolver, eval-expr, color-modifier, color-parse, validator), packages/figma-plugin/src/plugin/ (controller, variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner, colorUtils)
+- Found 6 items — written to backlog-inbox.md
+- Notable: operation-log rollback (operation-log.ts:285-326) is not transactional — if executeSteps throws during structural rollback, token snapshot capture runs against partially-modified state with no recovery; also plugin sandbox has 3 message handlers (search-layers, find-peers-for-property, eyedropper) missing try-catch that can crash the entire message loop
+---

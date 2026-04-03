@@ -124,3 +124,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: non-transactional rollback (HIGH), server silent error swallowing (6+ locations), plugin sandbox unprotected handlers (3), plugin data-loss overwrites, duplicate sync boilerplate (3 hooks), core resolver unsafe casts (6+ locations)
+Already up to date.
