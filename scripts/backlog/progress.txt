@@ -423,3 +423,12 @@
   - Alias resolution for custom platforms: use `buildFlatValueMap` + `isReference`/`resolveRefValue` from `@tokenmanager/core` — the same utility functions used for gradient stop resolution.
   - Tokens with unrecognized `$type` for Tailwind (e.g., `shadow`, `gradient`, `typography`) are silently skipped; users get only the tokens that map cleanly to Tailwind sections.
 ---
+
+## 2026-04-03 - useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
+- Fixed: when `apiFetch` for the rename-preview endpoint throws, the catch block now calls `onError?.(message)` and returns early, preventing `executeTokenRename` from running silently with assumed zero dependencies.
+- Added `onError` to the `useCallback` dependency array for `handleRenameToken` (was missing).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L141-156
+- **Learnings for future iterations:**
+  - Pattern: whenever a try/catch with `return` in catch is followed by code that uses the try-assigned variable, TypeScript's definite assignment analysis correctly identifies the variable as assigned — no `!` needed.
+  - Always add new closure dependencies (like `onError`) to the `useCallback` dep array; ESLint's `exhaustive-deps` rule will catch misses.
+---

@@ -651,3 +651,18 @@ Already up to date.
 
   Merging to main: Export panel is missing Tailwind config and CSS-in-JS output formats
 Already up to date.
+[main 29065fef] chore(backlog): done – Export panel is missing Tailwind config and CSS-in-JS output formats
+ 9 files changed, 173 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Export panel missing Tailwind config and CSS-in-JS output formats
+- Added `tailwind` and `css-in-js` as two new export platforms (10 total now).
+- `tailwind` generates `tailwind.config.js` with `module.exports = { theme: { extend: { colors: {...}, spacing: {...}, ... } } }` — tokens are grouped by their DTCG `$type` and mapped to Tailwind theme section keys (color→colors, spacing→spacing, fontFamily→fontFamily, fontSize→fontSize, fontWeight→fontWeight, lineHeight→lineHeight, letterSpacing→letterSpacing, borderRadius→borderRadius, borderWidth→borderWidth, opacity→opacity, boxShadow→boxShadow, duration→transitionDuration, cubicBezier→transitionTimingFunction, dimension→spacing).
+- `css-in-js` generates `theme.ts` with `export const theme = { ... } as const; export type Theme = typeof theme;` — all tokens as a nested TypeScript object keyed by their dotted paths, compatible with styled-components ThemeProvider and Emotion's theme.
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  11 queued · 3 in-progress · last took 4m19s
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-46580-FHqjoP
+  Running agent… (started 18:52:39)

@@ -606,3 +606,10 @@ Already up to date.
   → [HIGH] useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies" and proceeds with the rename — if the preview fetch fails (L141-143), `data` defaults to `{count:0, changes:[]}` and `executeTokenRename` runs immediately without showing the confirmation dialog, silently breaking any alias references the server would have reported; should show an error and block the rename until preview succeeds (useTokenCrud.ts L134-155)
   Worktree: /tmp/backlog-46178-klmbRL
   Running agent… (started 18:52:23)
+
+  ✓ done: useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
+    Catch block now calls onError and returns early instead of defaulting to {count:0,changes:[]} and proceeding with the rename silently
+    13 turns · 71s · $0.27
+
+  Merging to main: useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
+Already up to date.

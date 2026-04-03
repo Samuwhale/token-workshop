@@ -140,7 +140,8 @@ export function useTokenCrud({
       );
     } catch (err) {
       console.warn('[useTokenCrud] token rename preview failed:', err);
-      data = { count: 0, changes: [] };
+      onError?.(err instanceof ApiError ? err.message : 'Failed to check rename dependencies — rename cancelled');
+      return;
     }
     if (data.count > 0) {
       setRenameTokenConfirm({
@@ -152,7 +153,7 @@ export function useTokenCrud({
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, setName, executeTokenRename]);
+  }, [connected, serverUrl, setName, executeTokenRename, onError]);
 
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
