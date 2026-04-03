@@ -600,15 +600,22 @@ export class GeneratorService {
     // Track when the generator was last run and what the source token's value was,
     // so the UI can detect whether re-running is needed after a source token edit.
     // We update the in-memory record directly (preserving updatedAt) and persist.
+    // Important: resolve the source token value BEFORE the final re-read, then
+    // re-read current AFTER all awaits so concurrent update() calls are not lost.
+    const runAt = new Date().toISOString();
+    let lastRunSourceValue: unknown;
+    if (generator.sourceToken) {
+      const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(() => null);
+      if (resolved !== null) lastRunSourceValue = resolved.$value;
+    }
+    // Re-read after all awaits — prevents overwriting concurrent update() mutations.
     const current = this.generators.get(generator.id);
     if (current) {
-      const runAt = new Date().toISOString();
-      let lastRunSourceValue: unknown = current.lastRunSourceValue;
-      if (generator.sourceToken) {
-        const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(() => null);
-        if (resolved !== null) lastRunSourceValue = resolved.$value;
-      }
-      this.generators.set(generator.id, { ...current, lastRunAt: runAt, lastRunSourceValue });
+      this.generators.set(generator.id, {
+        ...current,
+        lastRunAt: runAt,
+        lastRunSourceValue: lastRunSourceValue !== undefined ? lastRunSourceValue : current.lastRunSourceValue,
+      });
       await this.saveGenerators();
     }
 

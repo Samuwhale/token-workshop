@@ -282,3 +282,10 @@ Already up to date.
   → [HIGH] GeneratorService.executeGenerator overwrites concurrent generator updates — at generator-service.ts L603-613, after executing a generator, the code reads `this.generators.get(id)` then spreads it with `lastRunAt`/`lastRunSourceValue`; if another request called `update()` on the same generator between execution start and this final write, those changes are silently overwritten by the stale spread; fix by re-reading the generator inside `withGeneratorLock` or using a compare-and-swap on `updatedAt`
   Worktree: /tmp/backlog-46580-6LS01J
   Running agent… (started 17:23:49)
+
+  ✓ done: GeneratorService.executeGenerator overwrites concurrent generator updates
+    Moved this.generators.get(id) re-read to after all awaits so concurrent update() calls between the resolveToken await and the final set are no longer lost
+    12 turns · 124s · $0.33
+
+  Merging to main: GeneratorService.executeGenerator overwrites concurrent generator updates
+Already up to date.

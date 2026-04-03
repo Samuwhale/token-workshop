@@ -257,3 +257,18 @@ Already up to date.
 
   Merging to main: Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop
 Already up to date.
+[main ae74274b] chore(backlog): done – Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop
+ 6 files changed, 101 insertions(+), 28 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Find & Replace across all sets registers undo only for completed sets
+- Root cause: when user cancels mid-loop, `apiFetch` with an in-flight request throws an AbortError that propagated to the outer catch block, bypassing the undo registration code entirely — even though sets that completed before the abort had their tokens renamed on the server.
+- Fix: wrapped each `apiFetch` call inside the per-set loop in a try/catch; AbortErrors convert to `wasAborted = true; break` so the loop exits cleanly and post-loop undo registration always runs.
+- After undo registration, if `wasAborted` and `totalRenamed > 0`, show a partial success message ("Cancelled — renamed N tokens in K of M sets") and call `onRefresh`, then `return` to skip the full-success dialog-close path.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  8 queued · 3 in-progress · last took 4m51s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox message protocol has unmatched response types — `search-layers-result`, `peers-for-property-result`, `consistency-scan-progress`, `consistency-scan-result`, and `consistency-scan-error` are sent from the sandbox via `figma.ui.postMessage` but are not defined in the `PluginMessage` union type in `types.ts`; additionally `applied-to-selection` (selectionHandling.ts:188) is sent but not in MESSAGE_SCHEMA; the UI `onmessage` handler silently ignores unknown types so these responses are potentially dropped; audit all `figma.ui.postMessage` calls against the PluginMessage union and MESSAGE_SCHEMA, add missing types, and add a catch-all warning for unhandled message types in the UI handler
+  Worktree: /tmp/backlog-45818-PVqQ89
+  Running agent… (started 17:25:32)

@@ -391,3 +391,12 @@
   - Inner try/catch on each loop iteration's `await` is the right pattern for interruptible multi-step async loops: convert AbortErrors to a flag+break, rethrow other errors, then let post-loop code (undo registration, status reporting) always run.
   - `ac.signal.aborted` checked both at loop top AND in the inner catch covers all abort timing: abort fires before fetch starts, or fires while fetch is in-flight.
 ---
+
+## 2026-04-03 - GeneratorService.executeGenerator overwrites concurrent generator updates
+- Fixed race condition in `executeGenerator`: the original code read `current = this.generators.get(id)` at L603 (sync), then awaited `tokenStore.resolveToken()` at L608, then wrote `{ ...current, ... }` at L611 — any concurrent `update()` call during the await was silently overwritten because `current` was stale.
+- Fix: moved the `this.generators.get(id)` read to AFTER all awaits, right before `this.generators.set()`. The `lastRunSourceValue` fallback now uses `current.lastRunSourceValue` (from the fresh re-read) instead of the pre-await stale snapshot.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L600-620
+- **Learnings for future iterations:**
+  - The race pattern: `const x = map.get(id)` → `await something()` → `map.set(id, { ...x, newField })` — any mutation to `map.get(id)` during the await is lost because `x` is stale. Fix: move the `map.get(id)` call to immediately before `map.set`.
+  - TypeScript/Node.js concurrency: single-threaded JS doesn't race on synchronous lines, only across `await` boundaries. When you see a read-await-write pattern, check whether anything between the read and write can mutate the same key.
+---
