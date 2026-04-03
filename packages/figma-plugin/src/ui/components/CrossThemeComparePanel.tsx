@@ -1,9 +1,10 @@
 import { useMemo, useState, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
-import { resolveAllAliases, isAlias } from '../../shared/resolveAlias';
+import { isAlias } from '../../shared/resolveAlias';
 import { swatchBgColor } from '../shared/colorUtils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import { resolveThemeOption, copyToClipboard } from '../shared/comparisonUtils';
 
 interface CrossThemeComparePanelProps {
   tokenPath: string;
@@ -30,34 +31,6 @@ function fmtValue(value: unknown, type: string): string {
   return formatTokenValueForDisplay(type, value);
 }
 
-function resolveForOption(
-  option: { sets: Record<string, string> },
-  allTokensFlat: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
-  themedSets: Set<string>,
-): Record<string, TokenMapEntry> {
-  // Base layer: tokens NOT assigned to any dimension
-  const merged: Record<string, TokenMapEntry> = {};
-  for (const [path, entry] of Object.entries(allTokensFlat)) {
-    const set = pathToSet[path];
-    if (!set || !themedSets.has(set)) merged[path] = entry;
-  }
-  // Source sets first (foundation)
-  for (const [setName, status] of Object.entries(option.sets)) {
-    if (status !== 'source') continue;
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (pathToSet[path] === setName) merged[path] = entry;
-    }
-  }
-  // Enabled sets override
-  for (const [setName, status] of Object.entries(option.sets)) {
-    if (status !== 'enabled') continue;
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (pathToSet[path] === setName) merged[path] = entry;
-    }
-  }
-  return resolveAllAliases(merged);
-}
 
 export function CrossThemeComparePanel({
   tokenPath,
@@ -84,7 +57,7 @@ export function CrossThemeComparePanel({
     const out: OptionResult[] = [];
     for (const dim of dimensions) {
       for (const option of dim.options) {
-        const resolved = resolveForOption(option, allTokensFlat, pathToSet, themedSets);
+        const resolved = resolveThemeOption(option, allTokensFlat, pathToSet, themedSets);
         const entry = resolved[tokenPath];
         const rawEntry = allTokensFlat[tokenPath]; // for alias detection before resolution
         const aliasCheck = rawEntry ? isAlias(rawEntry.$value) : false;
@@ -131,9 +104,10 @@ export function CrossThemeComparePanel({
       rows.push([r.dimName, r.optionName, r.missing ? '(not set)' : fmtValue(r.resolvedValue, tokenType)]);
     }
     const tsv = rows.map(r => r.join('\t')).join('\n');
-    await navigator.clipboard.writeText(tsv);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await copyToClipboard(tsv, () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
   }, [results, tokenType]);
 
   if (dimensions.length === 0) {

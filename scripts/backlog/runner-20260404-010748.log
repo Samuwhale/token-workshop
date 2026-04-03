@@ -146,3 +146,10 @@ Already up to date.
   → Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
   Worktree: /tmp/backlog-91949-rraNb5
   Running agent… (started 01:22:24)
+
+  ✓ done: Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
+    Created comparisonUtils.ts with resolveThemeOption, exportCsvFile, copyToClipboard; updated all three components to use shared utilities; removed local formatThemeValue in favour of formatTokenValueForDisplay
+    41 turns · 341s · $1.29
+
+  Merging to main: Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
+Already up to date.

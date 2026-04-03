@@ -3,6 +3,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import { exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 
 interface ComparePanelProps {
   selectedPaths: Set<string>;
@@ -155,21 +156,14 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
 
   const handleCopy = useCallback(async () => {
     const tsv = buildRows().map(r => r.join('\t')).join('\n');
-    await navigator.clipboard.writeText(tsv);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await copyToClipboard(tsv, () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
   }, [buildRows]);
 
   const handleExportCsv = useCallback(() => {
-    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const csv = buildRows().map(r => r.map(esc).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `token-compare-${tokens.length}-tokens.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportCsvFile(`token-compare-${tokens.length}-tokens.csv`, buildRows());
   }, [buildRows, tokens.length]);
 
   if (tokens.length === 0) {

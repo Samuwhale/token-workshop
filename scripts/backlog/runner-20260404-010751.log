@@ -119,3 +119,18 @@ Already up to date.
 
   Merging to main: ExtractTokensPanel does not bind created tokens to the originating selection
 Already up to date.
+[main e8cceeb3] chore(backlog): done – ExtractTokensPanel does not bind created tokens to the originating selection
+ 8 files changed, 116 insertions(+), 31 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ExtractTokensPanel does not bind created tokens to the originating selection
+- Added `layerIds?: string[]` to `ExtractedTokenEntry` in `shared/types.ts` to track all deduplicated layer IDs (not just the first one)
+- Fixed deduplication in `extractTokensFromSelection()` to collect all `layerIds` per entry instead of just incrementing `layerCount`
+- Added `bindToLayers` boolean state (default `true`) and `boundCount` state to `ExtractTokensPanel`
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  14 queued · 3 in-progress · last took 5m56s
+═══════════════════════════════════════════════════════════════
+  → No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
+  Worktree: /tmp/backlog-92209-5bBymg
+  Running agent… (started 01:26:19)

@@ -601,3 +601,19 @@
   - `border` extracted entries use `property: 'border'` which is NOT in `BindableProperty` — map to `targetProperty: 'stroke'` for binding since `applyTokenValue`'s stroke case has special handling for `tokenType === 'border'`
   - Messages sent fire-and-forget from UI; the plugin handles them sequentially and shows per-token Figma notifications
 ---
+
+## 2026-04-04 - Extract shared comparison utilities from ComparePanel, CrossThemeComparePanel, ThemeCompare
+- Created `packages/figma-plugin/src/ui/shared/comparisonUtils.ts` with three shared utilities:
+  - `resolveThemeOption(option, allTokensFlat, pathToSet, themedSets?)` — merges source+enabled sets and resolves aliases; accepts optional `themedSets` to include non-themed tokens as a base layer (used by CrossThemeComparePanel)
+  - `exportCsvFile(filename, rows)` — RFC 4180 CSV escape + Blob download, replaces identical duplicates in ComparePanel and ThemeCompare
+  - `copyToClipboard(text, onSuccess?, onError?)` — clipboard write with consistent error handling/logging, replaces 3 near-identical implementations
+- Updated `CrossThemeComparePanel.tsx`: removed local `resolveForOption`, uses `resolveThemeOption` + `copyToClipboard`
+- Updated `ThemeCompare.tsx`: removed local `resolveForOption` and `formatThemeValue` (replaced with `formatTokenValueForDisplay`), uses `resolveThemeOption` + `exportCsvFile` + `copyToClipboard`
+- Updated `ComparePanel.tsx`: uses `exportCsvFile` + `copyToClipboard` (inline duplicates removed)
+- `useThemeCompare.ts` left unchanged — it uses a different data model (`setTokenValues: Record<string, Record<string, any>>` with inline alias resolution rather than `TokenMapEntry`+`resolveAllAliases`), so sharing resolution logic would require a separate, incompatible adapter
+- Files changed: `packages/figma-plugin/src/ui/shared/comparisonUtils.ts` (new), `ComparePanel.tsx` ~L5, ~L156, `CrossThemeComparePanel.tsx` ~L5, ~L33, ~L87, ~L128, `ThemeCompare.tsx` ~L1, ~L39, ~L61, ~L97, ~L143, ~L173
+- **Learnings for future iterations:**
+  - `resolveThemeOption` with optional `themedSets` covers two subtly different resolution strategies (with/without unthemed base layer) behind one API — optional parameter avoids needing two separate functions
+  - `formatTokenValueForDisplay` from `tokenFormatting.ts` already handles all DTCG types; custom `formatThemeValue` copies were unnecessary
+  - `useThemeCompare.ts` uses a plain-value flat map (values are scalars/strings, not `TokenMapEntry` objects) — resolution logic there operates on simpler data and is intentionally different
+---

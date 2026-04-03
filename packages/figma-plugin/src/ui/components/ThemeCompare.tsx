@@ -1,7 +1,8 @@
 import { useMemo, useState, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import { resolveAllAliases } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import { resolveThemeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 
@@ -36,44 +37,6 @@ function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
   return result;
 }
 
-function resolveForOption(
-  option: FlatOption | null,
-  allTokensFlat: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
-): Record<string, TokenMapEntry> {
-  if (!option) return resolveAllAliases(allTokensFlat);
-  const merged: Record<string, TokenMapEntry> = {};
-  for (const [setName, status] of Object.entries(option.sets)) {
-    if (status !== 'source') continue;
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (pathToSet[path] === setName) merged[path] = entry;
-    }
-  }
-  for (const [setName, status] of Object.entries(option.sets)) {
-    if (status !== 'enabled') continue;
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (pathToSet[path] === setName) merged[path] = entry;
-    }
-  }
-  return resolveAllAliases(merged);
-}
-
-function formatThemeValue(value: any, type: string): string {
-  if (value === undefined || value === null) return '—';
-  if (type === 'dimension' && typeof value === 'object' && 'value' in value) {
-    return `${value.value}${value.unit ?? 'px'}`;
-  }
-  if (type === 'typography' && typeof value === 'object') {
-    const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : (value.fontFamily ?? '');
-    const size = typeof value.fontSize === 'object'
-      ? `${value.fontSize?.value ?? ''}${value.fontSize?.unit ?? 'px'}`
-      : value.fontSize ? `${value.fontSize}px` : '';
-    const weight = value.fontWeight ?? '';
-    return [family, size, weight].filter(Boolean).join(' ') || '—';
-  }
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
 
 function ColorSwatch({ hex }: { hex: string }) {
   const bg = hex.slice(0, 7);
@@ -97,13 +60,13 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
   const resolvedA = useMemo(() => {
     if (!optionKeyA) return null;
     const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
-    return resolveForOption(opt, allTokensFlat, pathToSet);
+    return resolveThemeOption(opt, allTokensFlat, pathToSet);
   }, [optionKeyA, flatOptions, allTokensFlat, pathToSet]);
 
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
     const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
-    return resolveForOption(opt, allTokensFlat, pathToSet);
+    return resolveThemeOption(opt, allTokensFlat, pathToSet);
   }, [optionKeyB, flatOptions, allTokensFlat, pathToSet]);
 
   // Build a lookup: for each option, which set would be the best target for creating a token?
@@ -173,42 +136,32 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
   const buildTsv = useCallback((rows: typeof filteredDiffs) => {
     const header = ['Token Path', 'Type', labelA, labelB].join('\t');
     const lines = rows.map(d =>
-      [d.path, d.type, formatThemeValue(d.valueA, d.type), formatThemeValue(d.valueB, d.type)].join('\t')
+      [d.path, d.type, formatTokenValueForDisplay(d.type, d.valueA), formatTokenValueForDisplay(d.type, d.valueB)].join('\t')
     );
     return [header, ...lines].join('\n');
   }, [labelA, labelB]);
 
   const handleCopy = useCallback(async () => {
     const text = buildTsv(filteredDiffs);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 1500);
-    } catch (err) {
-      console.warn('[ThemeCompare] clipboard write failed:', err);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
-    }
+    await copyToClipboard(
+      text,
+      () => { setCopyFeedback(true); setTimeout(() => setCopyFeedback(false), 1500); },
+      () => parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*'),
+    );
   }, [buildTsv, filteredDiffs]);
 
   const handleExportCsv = useCallback(() => {
-    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const header = [labelA, labelB, 'Token Path', 'Type'].map(escape).join(',');
-    const lines = filteredDiffs.map(d =>
-      [
-        escape(formatThemeValue(d.valueA, d.type)),
-        escape(formatThemeValue(d.valueB, d.type)),
-        escape(d.path),
-        escape(d.type),
-      ].join(',')
+    const header = [labelA, labelB, 'Token Path', 'Type'];
+    const rows = filteredDiffs.map(d => [
+      formatTokenValueForDisplay(d.type, d.valueA),
+      formatTokenValueForDisplay(d.type, d.valueB),
+      d.path,
+      d.type,
+    ]);
+    exportCsvFile(
+      `theme-compare-${labelA.replace(/\W+/g, '_')}-vs-${labelB.replace(/\W+/g, '_')}.csv`,
+      [header, ...rows],
     );
-    const csv = [header, ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `theme-compare-${labelA.replace(/\W+/g, '_')}-vs-${labelB.replace(/\W+/g, '_')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   }, [filteredDiffs, labelA, labelB]);
 
   return (
@@ -325,8 +278,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
               const isColor = diff.type === 'color';
               const hexA = isColor && typeof diff.valueA === 'string' ? diff.valueA : null;
               const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
-              const fmtA = formatThemeValue(diff.valueA, diff.type);
-              const fmtB = formatThemeValue(diff.valueB, diff.type);
+              const fmtA = formatTokenValueForDisplay(diff.type, diff.valueA);
+              const fmtB = formatTokenValueForDisplay(diff.type, diff.valueB);
               const leaf = diff.name;
               const parent = nodeParentPath(diff.path, diff.name);
               const absentInA = diff.valueA === undefined;
