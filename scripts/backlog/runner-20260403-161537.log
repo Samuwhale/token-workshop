@@ -291,3 +291,25 @@ Already up to date.
 
   Merging to main: BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic
 Already up to date.
+[main 9b6b1de2] chore(backlog): done – BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic
+ 9 files changed, 76 insertions(+), 70 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor handleMove/handleCopy factory + rename unification + skip counter fix
+- Extracted `createBatchHandler('move'|'copy')` factory function replacing the two 35-line near-identical `handleMove`/`handleCopy` functions. Factory differences parameterized: API endpoint (`batch-move`/`batch-copy`), response field (`moved`/`copied`), state setter (`setMoving`/`setCopying`), past-tense verb for feedback/undo label.
+- Unified rename path computation in `handleRename` to use the existing `renameChanges` useMemo (map `{from,to}` to `{oldPath,newPath}`) instead of duplicating the find/replace logic inline.
+- Fixed skip counter labels: replaced single `skippedTypeIncompat` with two separate counters — `skippedNotColor` (opacity applied to non-color token) and `skippedNotNumeric` (scale applied to non-numeric token). Removed the `!scalingActive`/`!opacityActive` guards that were preventing counting when both operations are active simultaneously. Feedback now says "N not color, M not numeric skipped" instead of "N incompatible types skipped".
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  10 queued · 3 in-progress · last took 3m47s
+═══════════════════════════════════════════════════════════════
+  → Token creation dialog should remember last-used type — when creating multiple tokens in sequence (e.g., a set of spacing tokens), the user must re-select the token type each time because the create dialog always defaults; persist the last-used type in localStorage and pre-select it in the type dropdown for the next creation within the same session
+  Worktree: /tmp/backlog-46178-DAmF0K
+  Running agent… (started 17:39:15)
+
+  ✓ done: Token creation dialog should remember last-used type
+    stale — already done: useTokenCreate.ts initializes newTokenType from localStorage('tm_last_token_type') and persists on every change via setNewTokenType wrapper
+    7 turns · 25s · $0.16
+
+  Merging to main: Token creation dialog should remember last-used type
+Already up to date.

@@ -501,3 +501,9 @@
   - `canMove` and `canCopy` were identical (`targetSet !== '' && !moving && !copying`), confirming a single `can` check in the factory is correct.
   - Rename useMemo already produces `{from, to}` pairs with the same filtering logic — `handleRename` just needed a `.map(({from,to}) => ({oldPath: from, newPath: to}))` to reuse it.
 ---
+## 2026-04-03 - Token creation dialog should remember last-used type
+- Feature already implemented in `useTokenCreate.ts`: `newTokenType` state is initialized from `localStorage.getItem('tm_last_token_type')` and the `setNewTokenType` wrapper persists to localStorage on every change.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check `useTokenCreate.ts` for localStorage-based persistence before implementing — group and type are both already persisted.
+---
