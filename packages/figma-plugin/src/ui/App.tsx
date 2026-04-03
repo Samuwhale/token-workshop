@@ -2306,6 +2306,8 @@ export function App() {
                       fetchResolvers: resolverState.fetchResolvers,
                       convertFromThemes: resolverState.convertFromThemes,
                       deleteResolver: resolverState.deleteResolver,
+                      getResolverFile: resolverState.getResolverFile,
+                      updateResolver: resolverState.updateResolver,
                     }} />
                   </ErrorBoundary>
                 ) : (

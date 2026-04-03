@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import type { ResolverFile } from '@tokenmanager/core';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
@@ -31,6 +32,8 @@ export interface ResolverContentProps {
   fetchResolvers: () => void;
   convertFromThemes: (name?: string) => Promise<unknown>;
   deleteResolver: (name: string) => Promise<void>;
+  getResolverFile?: (name: string) => Promise<ResolverFile>;
+  updateResolver?: (name: string, file: ResolverFile) => Promise<void>;
 }
 
 /**
@@ -48,6 +51,12 @@ export function ResolverPanel(props: ResolverContentProps) {
   return <ResolverInner {...props} showHeader />;
 }
 
+// Edit form state for a single resolver
+interface EditFormState {
+  description: string;
+  modifiers: Record<string, { description: string; defaultContext: string }>;
+}
+
 function ResolverInner({
   serverUrl,
   connected,
@@ -63,6 +72,8 @@ function ResolverInner({
   fetchResolvers,
   convertFromThemes,
   deleteResolver,
+  getResolverFile,
+  updateResolver,
   showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
   const help = usePanelHelp('resolvers');
@@ -75,6 +86,14 @@ function ResolverInner({
   const [creatingFromTemplate, setCreatingFromTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateError, setTemplateError] = useState<string | null>(null);
+
+  // Edit mode state
+  const [editingResolver, setEditingResolver] = useState<string | null>(null);
+  const [editFile, setEditFile] = useState<ResolverFile | null>(null);
+  const [editForm, setEditForm] = useState<EditFormState | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
 
   const handleMigrate = useCallback(async () => {
     setMigrating(true);
@@ -180,6 +199,84 @@ function ResolverInner({
   const handleModifierChange = useCallback((modName: string, context: string) => {
     setResolverInput({ ...resolverInput, [modName]: context });
   }, [resolverInput, setResolverInput]);
+
+  const handleEditClick = useCallback(async (name: string) => {
+    if (!getResolverFile) return;
+    setEditingResolver(name);
+    setEditError(null);
+    setEditFile(null);
+    setEditForm(null);
+    setEditLoading(true);
+    try {
+      const file = await getResolverFile(name);
+      setEditFile(file);
+      // Build form state from file
+      const modifiers: EditFormState['modifiers'] = {};
+      if (file.modifiers) {
+        for (const [modName, mod] of Object.entries(file.modifiers)) {
+          const contexts = Object.keys(mod.contexts);
+          modifiers[modName] = {
+            description: mod.description ?? '',
+            defaultContext: mod.default ?? contexts[0] ?? '',
+          };
+        }
+      }
+      setEditForm({
+        description: file.description ?? '',
+        modifiers,
+      });
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditLoading(false);
+    }
+  }, [getResolverFile]);
+
+  const handleEditSave = useCallback(async () => {
+    if (!editingResolver || !editFile || !editForm || !updateResolver) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      // Apply form values onto the full file
+      const updatedModifiers: ResolverFile['modifiers'] = editFile.modifiers
+        ? Object.fromEntries(
+            Object.entries(editFile.modifiers).map(([modName, mod]) => {
+              const formMod = editForm.modifiers[modName];
+              const updatedMod = { ...mod };
+              if (formMod?.description) {
+                updatedMod.description = formMod.description;
+              } else {
+                delete updatedMod.description;
+              }
+              if (formMod?.defaultContext) {
+                updatedMod.default = formMod.defaultContext;
+              }
+              return [modName, updatedMod];
+            }),
+          )
+        : undefined;
+      const updatedFile: ResolverFile = {
+        ...editFile,
+        description: editForm.description || undefined,
+        modifiers: updatedModifiers,
+      };
+      await updateResolver(editingResolver, updatedFile);
+      setEditingResolver(null);
+      setEditFile(null);
+      setEditForm(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editingResolver, editFile, editForm, updateResolver]);
+
+  const handleEditCancel = useCallback(() => {
+    setEditingResolver(null);
+    setEditFile(null);
+    setEditForm(null);
+    setEditError(null);
+  }, []);
 
   const resolvedCount = resolvedTokens ? Object.keys(resolvedTokens).length : 0;
 
@@ -418,6 +515,18 @@ function ResolverInner({
                       {modNames.length} modifier{modNames.length !== 1 ? 's' : ''}
                     </span>
                   )}
+                  {getResolverFile && updateResolver && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEditClick(resolver.name); }}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
+                      title="Edit resolver"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(resolver.name); }}
                     className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
@@ -430,8 +539,104 @@ function ResolverInner({
                 </div>
               </div>
 
+              {/* Edit mode form */}
+              {editingResolver === resolver.name && (
+                <div className="px-3 pb-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                  {editLoading ? (
+                    <div className="py-3 text-[10px] text-[var(--color-figma-text-tertiary)] animate-pulse">Loading…</div>
+                  ) : editForm ? (
+                    <div className="flex flex-col gap-2 pt-2">
+                      {/* Description */}
+                      <div className="flex flex-col gap-0.5">
+                        <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Description</label>
+                        <input
+                          type="text"
+                          value={editForm.description}
+                          onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                          placeholder="Optional description…"
+                          className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                        />
+                      </div>
+
+                      {/* Modifiers */}
+                      {Object.keys(editForm.modifiers).length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Modifiers</div>
+                          {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
+                            const resolverMeta = resolvers.find(r => r.name === resolver.name);
+                            const contexts = resolverMeta?.modifiers[modName]?.contexts ?? [];
+                            return (
+                              <div key={modName} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 flex flex-col gap-1.5">
+                                <div className="text-[10px] font-medium text-[var(--color-figma-text)] capitalize">{modName}</div>
+                                <div className="flex flex-col gap-0.5">
+                                  <label className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Description</label>
+                                  <input
+                                    type="text"
+                                    value={modEdit.description}
+                                    onChange={e => setEditForm({
+                                      ...editForm,
+                                      modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, description: e.target.value } },
+                                    })}
+                                    placeholder="Optional modifier description…"
+                                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                                  />
+                                </div>
+                                {contexts.length > 0 && (
+                                  <div className="flex flex-col gap-0.5">
+                                    <label className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Default context</label>
+                                    <div className="flex flex-wrap gap-0.5">
+                                      {contexts.map(ctx => (
+                                        <button
+                                          key={ctx}
+                                          onClick={() => setEditForm({
+                                            ...editForm,
+                                            modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, defaultContext: ctx } },
+                                          })}
+                                          className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                                            modEdit.defaultContext === ctx
+                                              ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                                              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                          }`}
+                                        >
+                                          {ctx}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {editError && <div className="text-[10px] text-red-500">{editError}</div>}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 justify-end pt-0.5">
+                        <button
+                          onClick={handleEditCancel}
+                          className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleEditSave}
+                          disabled={editSaving}
+                          className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                        >
+                          {editSaving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : editError ? (
+                    <div className="py-2 text-[10px] text-red-500">{editError}</div>
+                  ) : null}
+                </div>
+              )}
+
               {/* Expanded: modifier controls + preview */}
-              {isActive && (
+              {isActive && editingResolver !== resolver.name && (
                 <div className="px-3 pb-2">
                   {/* Modifier selectors */}
                   {modNames.length > 0 ? (

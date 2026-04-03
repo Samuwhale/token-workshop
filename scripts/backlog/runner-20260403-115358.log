@@ -133,3 +133,18 @@ Already up to date.
 
   Merging to main: PreviewPanel dark mode toggle is not persisted
 Already up to date.
+[main 381912cf] chore(backlog): done – PreviewPanel dark mode toggle is not persisted
+ 4 files changed, 35 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - PreviewPanel dark mode toggle not persisted
+- Persisted both `darkMode` and `template` to localStorage so they survive tab switches and panel re-opens. Initialized both states with lazy initializers reading from localStorage; writes happen inline at each setter call site.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L86-98, ~L248, ~L265
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  4 queued · 3 in-progress · last took 1m10s
+═══════════════════════════════════════════════════════════════
+  → No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
+  Worktree: /tmp/backlog-81661-JPW5rk
+  Running agent… (started 12:06:17)

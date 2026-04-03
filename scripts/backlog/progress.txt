@@ -258,3 +258,16 @@
   - The component unmounts/remounts when switching top-level tabs, so any `useState` with a default value resets. Always use lazy initializers (`useState(() => localStorage.getItem(...))`) for UI preferences that should survive remounts.
   - Both `template` and `darkMode` were susceptible — fixed together since they're both toolbar-level preferences in the same component.
 ---
+
+## 2026-04-03 - ResolverPanel has no edit flow for existing resolvers
+- Added inline edit mode to ResolverPanel: pencil icon button appears on hover for each resolver row (alongside the existing delete button). Clicking it fetches the full resolver file from `GET /api/resolvers/:name`, pre-populates a form with description and per-modifier settings (description + default context selector), then PUTs the updated file on Save.
+- Added `getResolverFile(name)` and `updateResolver(name, file)` to `useResolvers.ts` hook and exposed both in return value.
+- Added `getResolverFile?` and `updateResolver?` as optional props to `ResolverContentProps` (optional so existing ThemeManager usages without these props still type-check).
+- Wired new props in App.tsx `resolverState` object passed to ThemeManager.
+- Edit form renders below the resolver row header in place of the normal expanded modifier/resolution view. Cancel exits without saving; Save applies description and modifier changes (description text + default context) then refreshes the resolver list.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L157, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L18, ~L37, ~L69, ~L197, ~L421, `packages/figma-plugin/src/ui/App.tsx` ~L2309
+- **Learnings for future iterations:**
+  - `GET /api/resolvers/:name` returns `{ name: string } & ResolverFile` — strip the outer `name` before PUT since PUT body must be a plain `ResolverFile`.
+  - The `modifiers` field in `ResolverFile` is optional; `updatedMod.description` should use `delete` (not `undefined`) to cleanly remove the key before serialization.
+  - Making new props optional on `ResolverContentProps` avoids the need to update every call site that doesn't need them — only App.tsx needs the update.
+---

@@ -165,6 +165,31 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     fetchResolvers();
   }, [serverUrl, activeResolver, fetchResolvers]);
 
+  // -----------------------------------------------------------------------
+  // Fetch full resolver file (for editing)
+  // -----------------------------------------------------------------------
+  const getResolverFile = useCallback(async (name: string): Promise<import('@tokenmanager/core').ResolverFile> => {
+    const data = await apiFetch<{ name: string } & import('@tokenmanager/core').ResolverFile>(
+      `${serverUrl}/api/resolvers/${encodeURIComponent(name)}`,
+    );
+    // Strip the outer `name` field (resolver identifier from params) before returning file body
+    const { name: _n, ...file } = data;
+    void _n;
+    return file as import('@tokenmanager/core').ResolverFile;
+  }, [serverUrl]);
+
+  // -----------------------------------------------------------------------
+  // Update resolver (PUT full file)
+  // -----------------------------------------------------------------------
+  const updateResolver = useCallback(async (name: string, file: import('@tokenmanager/core').ResolverFile) => {
+    await apiFetch(`${serverUrl}/api/resolvers/${encodeURIComponent(name)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(file),
+    });
+    fetchResolvers();
+  }, [serverUrl, fetchResolvers]);
+
   return {
     resolvers,
     activeResolver,
@@ -178,5 +203,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     fetchResolvers,
     convertFromThemes,
     deleteResolver,
+    getResolverFile,
+    updateResolver,
   };
 }

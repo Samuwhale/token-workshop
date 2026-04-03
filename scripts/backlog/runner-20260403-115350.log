@@ -171,3 +171,10 @@ Already up to date.
   → ResolverPanel has no edit flow for existing resolvers — users can create and delete resolvers but cannot edit name, description, or modifier configuration after creation; the only path is delete-and-recreate which loses any associated state; add inline editing or an edit mode for resolver properties (ResolverPanel.tsx ~L383-513)
   Worktree: /tmp/backlog-81267-leTt89
   Running agent… (started 12:02:47)
+
+  ✓ done: ResolverPanel has no edit flow for existing resolvers
+    Added inline edit mode with pencil button per row — fetches full resolver file on click, shows description + per-modifier description/default-context form, PUTs updated file on save
+    34 turns · 270s · $1.07
+
+  Merging to main: ResolverPanel has no edit flow for existing resolvers
+Already up to date.
