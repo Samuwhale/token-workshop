@@ -590,3 +590,11 @@
   - The "save current" inline expand pattern (toggle + focus via `setTimeout(() => ref.current?.focus(), 0)`) works cleanly without a separate modal.
   - Delete button uses `opacity-0 group-hover:opacity-100` so it's only visible on hover — prevents visual clutter with many presets.
 ---
+
+## 2026-04-03 - AnalyticsPanel validation results show no timestamp and have no auto-revalidation
+- Added `validatedAt: Date | null` state, set in `runValidate` on success. Added `formatValidatedAt(date)` helper returning "just now", "N min ago", or "at H:MM AM/PM". Timestamp appears inline in the Validation section header (hidden when results are stale to avoid confusion). Stale hint updated to "Tokens changed since last validation (N min ago)" so users know exactly how old the data is. Auto-revalidation on token changes was already implemented via `tokenChangeKey` effect with a 2s debounce.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L96, ~L141, ~L617, ~L649, ~L669
+- **Learnings for future iterations:**
+  - `AnalyticsPanel` unmounts/remounts on tab navigation (rendered conditionally in App.tsx), so per-session state like timestamps naturally reset — no stale cross-session state risk.
+  - The `tokenChangeKey` auto-revalidation was already in place but the stale banner gave no temporal context to the user, making it feel ambiguous.
+---

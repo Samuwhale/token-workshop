@@ -94,6 +94,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
   const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
+  const [validatedAt, setValidatedAt] = useState<Date | null>(null);
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(
     () => new Set(lsGetJson<string[]>(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, []))
@@ -139,6 +140,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       const issues = data.issues ?? [];
       setValidateResults(issues);
       setResultsStale(false);
+      setValidatedAt(new Date());
       onValidationComplete?.(issues.length);
     } catch (err) {
       console.warn('[AnalyticsPanel] validation request failed:', err);
@@ -613,6 +615,15 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     return sum + tokens.filter(t => t.path !== chosenPath).length;
   }, 0);
 
+  function formatValidatedAt(date: Date): string {
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin === 1) return '1 min ago';
+    if (diffMin < 60) return `${diffMin} min ago`;
+    return `at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Validate header */}
@@ -635,7 +646,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       {resultsStale && validateResults !== null && !validateLoading && (
         <div className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 text-[10px] text-[var(--color-figma-text-secondary)]">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-          Results may be outdated — re-validate to check your fixes.
+          Tokens changed since last validation{validatedAt ? ` (${formatValidatedAt(validatedAt)})` : ''} — re-validate to see current results.
         </div>
       )}
 
@@ -652,6 +663,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
             <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
               Validation
+              {validatedAt && !resultsStale && (
+                <span className="normal-case font-normal tracking-normal text-[var(--color-figma-text-tertiary)]">{formatValidatedAt(validatedAt)}</span>
+              )}
               {severityCounts && validateResults.length > 0 && (
                 <span className="flex items-center gap-1 normal-case font-normal tracking-normal">
                   {severityCounts.error > 0 && (

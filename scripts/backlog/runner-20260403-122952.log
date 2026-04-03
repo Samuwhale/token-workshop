@@ -312,3 +312,25 @@ Already up to date.
 
   Merging to main: No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
 Already up to date.
+[main bac4ff16] chore(backlog): done – No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
+ 7 files changed, 182 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope
+- Added named export presets to the platforms mode of ExportPanel.tsx. Presets capture: selected platforms, CSS selector, selected sets, selected types, path prefix, nest-by-platform, and zip filename. UI: a "Presets" section at the top of platforms mode with inline "Save current" that expands a name input, preset pills (click to load, hover reveals X to delete). Presets persist to localStorage via new `EXPORT_PRESETS` key.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L34 — added `EXPORT_PRESETS` key
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  14 queued · 3 in-progress · last took 2m9s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel validation results show no timestamp and have no auto-revalidation — after navigating away and returning, `resultsStale` becomes true but there's no visible timestamp showing when validation last ran, and no option to auto-revalidate on token changes; users can unknowingly act on stale validation data (AnalyticsPanel.tsx ~L95, ~L633-638)
+  Worktree: /tmp/backlog-49887-AncV64
+  Running agent… (started 13:37:19)
+
+  ✓ done: AnalyticsPanel validation results show no timestamp and have no auto-revalidation
+    Added validatedAt timestamp displayed in validation header and stale hint; auto-revalidation via tokenChangeKey was already implemented
+    19 turns · 122s · $0.46
+
+  Merging to main: AnalyticsPanel validation results show no timestamp and have no auto-revalidation
+Already up to date.
