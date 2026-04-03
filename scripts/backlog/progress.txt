@@ -317,3 +317,10 @@
   - Skipping expensive list fetches (`skipListFetch`) when a component is mounted only for its detail view avoids redundant API calls and prevents loading state flicker.
   - `handleCompare` (and similar side-effect-initiating functions used in `useEffect`) should be `useCallback` so the effect dependency array is correct without eslint suppression.
 ---
+
+## 2026-04-03 - Token tree has no "collapse all" / "expand all" shortcut
+- Stale — already fully implemented. `handleExpandAll` and `handleCollapseAll` exist at `TokenList.tsx` ~L175–181. Toolbar buttons are rendered at ~L2007–2028 (tree view only, when groups exist). Keyboard shortcuts `Cmd/Ctrl+→` (expand all) and `Cmd/Ctrl+←` (collapse all) are wired at ~L1211–1219.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing, always verify the feature doesn't already exist — both the handlers and toolbar buttons were present.
+---

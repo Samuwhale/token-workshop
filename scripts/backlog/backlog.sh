@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>] [--passes true|false] [--pass-frequency N]
+# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N]
 #
 # Concurrency-safe: each agent runs in an isolated git worktree.
 # backlog.md mutations are serialised by file locks.
@@ -52,6 +52,12 @@ while [[ $# -gt 0 ]]; do
     *)                  shift ;;
   esac
 done
+
+case "$MODEL" in
+  default) MODEL="claude-opus-4-6" ;;
+  sonnet)  MODEL="claude-sonnet-4-6" ;;
+  opus)    MODEL="claude-opus-4-6" ;;
+esac
 
 if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
   echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."

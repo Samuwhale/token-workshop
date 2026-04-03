@@ -184,3 +184,25 @@ Already up to date.
 
   Merging to main: Merge the HistoryPanel's three sub-tabs into a unified change timeline
 Already up to date.
+[main befd3ea4] chore(backlog): done – Merge the HistoryPanel's three sub-tabs into a unified change timeline
+ 8 files changed, 506 insertions(+), 66 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Merge the HistoryPanel's three sub-tabs into a unified change timeline
+- Replaced the three-tab layout ("Recent Actions", "Git Commits", "Snapshots") with a single chronological timeline that interleaves all three event types, sorted by timestamp descending.
+- Key changes:
+  - `HistoryPanel`: removed tab bar and `HistorySource` type; fetches commits+snapshots in parallel via `fetchTimeline()`; merges with `recentOperations` props into `TimelineItem[]` sorted by `ts`; navigates to commit detail or snapshot compare via `selectedCommitHash`/`selectedSnapshotId` state; rollback confirm dialog moved here; inline "Save state" toolbar replaces SnapshotsSource list-view save button; "This session" local undo section kept collapsible at top.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  9 queued · 1 in-progress · last took 17m22s
+═══════════════════════════════════════════════════════════════
+  → Token tree has no "collapse all" / "expand all" shortcut — the tree can be expanded one node at a time but there is no way to quickly collapse all expanded nodes or expand all in the current view; power users navigating large trees constantly get lost; add a collapse-all toolbar button (or Cmd+Shift+Left shortcut) and expand-all to match standard tree-view behavior (TokenList.tsx expandedPaths state ~L140)
+  Worktree: /tmp/backlog-20980-aRX3OK
+  Running agent… (started 11:48:51)
+
+  ✓ done: Token tree has no "collapse all" / "expand all" shortcut
+    stale — already done: handleExpandAll/handleCollapseAll, toolbar buttons, and Cmd+←/→ keyboard shortcuts all exist in TokenList.tsx
+    10 turns · 37s · $0.21
+
+  Merging to main: Token tree has no "collapse all" / "expand all" shortcut
+Already up to date.
