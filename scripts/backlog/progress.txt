@@ -408,3 +408,14 @@
   - When a hook only needs to re-run an effect when data changes (not use the data itself), prefer a stable revision counter over passing the data array — avoids the unstable-reference trap.
   - `tokenRevision` (a `number` from `useTokens`) is already the canonical "something changed" signal for token data throughout this codebase.
 ---
+
+## 2026-04-03 - syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
+- Fixed two distinct bugs in `selectionHandling.ts`:
+  1. **figma.mixed in captureNodeProps**: `JSON.parse(JSON.stringify(val))` silently drops `figma.mixed` (a Symbol) — changed to detect `val === figma.mixed` and store the reference directly in the snapshot. `restoreNodeProps` already assigns values back directly, so it can restore `figma.mixed` correctly.
+  2. **Missing tokens counted as skipped**: Removed the `skipped++` increment from the missing-token branch — `missingTokens.length` in the sync-complete message is the authoritative count. Updated `figma.notify` summary to show missing tokens as a distinct part (e.g., "2 missing tokens") rather than folding them into "skipped".
+  3. **UI tooltip for missing**: Added `title` tooltip to the sync result span in `SelectionInspector.tsx` that lists the specific missing token paths on hover.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L644, ~L748, ~L804; `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L772
+- **Learnings for future iterations:**
+  - `figma.mixed` is a Symbol — always guard against it before any JSON serialization. `typeof val === 'symbol'` is a reliable check, or use `val === figma.mixed` directly in plugin code.
+  - When a count metric has a dedicated array/set (like `missingTokens`), use `.length` in the response rather than a redundant counter — avoids them getting out of sync.
+---

@@ -770,13 +770,19 @@ export function SelectionInspector({
           </span>
         ) : syncResult ? (
           <span className={`text-[10px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
-            title={syncResult.errors > 0 ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property` : undefined}
+            title={
+              syncResult.errors > 0
+                ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property`
+                : syncResult.missingTokens.length > 0
+                  ? `Missing tokens (not in token server):\n${syncResult.missingTokens.join('\n')}`
+                  : undefined
+            }
           >
             {syncResult.errors > 0
               ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
               : syncResult.updated === 0 && syncResult.missingTokens.length === 0
                 ? 'Up to date'
-                : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` (${syncResult.missingTokens.length} missing)` : ''}`
+                : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` · ${syncResult.missingTokens.length} missing` : ''}`
             }
           </span>
         ) : (

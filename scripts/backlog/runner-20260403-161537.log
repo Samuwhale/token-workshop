@@ -203,3 +203,18 @@ Already up to date.
 
   Merging to main: useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time
 Already up to date.
+[main f90ee6fb] chore(backlog): done – useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time
+ 7 files changed, 36 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - useThemeSwitcher re-fetches themes on every render due to unstable `tokens` dep
+- Replaced `tokens: unknown[]` parameter with `tokenRevision: number` in `useThemeSwitcher`. Updated the effect dependency from `[fetchThemesInner, tokens]` to `[fetchThemesInner, tokenRevision]`. Updated the call site in `App.tsx` to pass `tokenRevision` instead of `tokens`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L12, ~L83; `packages/figma-plugin/src/ui/App.tsx` ~L534
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  6 queued · 3 in-progress · last took 1m15s
+═══════════════════════════════════════════════════════════════
+  → Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely — git-sync.ts uses `simple-git` for all git operations (lines 217, 222, 227, 295, 388, 451, 491, 533, 585, 598, 607) without any timeout configuration; a network partition or unresponsive remote will block the server's token lock (via withLock) indefinitely, preventing all other mutations; simple-git supports a `timeout` option in its constructor — configure a reasonable default (e.g. 30s for fetch/pull/push) and surface timeout errors as typed errors so the sync UI can show actionable feedback
+  Worktree: /tmp/backlog-46178-hld0hK
+  Running agent… (started 17:26:39)

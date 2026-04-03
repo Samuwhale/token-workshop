@@ -646,9 +646,14 @@ function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<strin
   for (const prop of bindingProps) {
     try {
       const val = (node as Record<string, unknown>)[prop];
-      if (val !== undefined) {
-        snap[prop] = JSON.parse(JSON.stringify(val));
+      if (val === undefined) continue;
+      // figma.mixed is a Symbol — JSON.stringify silently drops Symbols, losing the value.
+      // Store the reference directly so restoreNodeProps can assign it back.
+      if (val === figma.mixed) {
+        snap[prop] = figma.mixed;
+        continue;
       }
+      snap[prop] = JSON.parse(JSON.stringify(val));
     } catch (e) { console.debug('[selectionHandling] skip unreadable or unserializable property:', prop, e); }
   }
   return snap;
@@ -747,8 +752,9 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
         for (const [prop, tokenPath] of Object.entries(bindings)) {
           const entry = tokenMap[tokenPath];
           if (!entry) {
+            // Track missing tokens distinctly — do not count them as skipped.
+            // The missingTokens array is sent in the sync-complete message.
             missingTokens.add(tokenPath);
-            skipped++;
             continue;
           }
           // Resolve alias references before applying
@@ -810,8 +816,11 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
       missingTokens: missingArr,
     });
 
-    const summary = `Synced: ${updated} updated, ${skipped} skipped${errors ? `, ${errors} errors` : ''}`;
-    figma.notify(summary);
+    const summaryParts = [`${updated} updated`];
+    if (skipped > 0) summaryParts.push(`${skipped} skipped`);
+    if (missingArr.length > 0) summaryParts.push(`${missingArr.length} missing token${missingArr.length !== 1 ? 's' : ''}`);
+    if (errors > 0) summaryParts.push(`${errors} error${errors !== 1 ? 's' : ''}`);
+    figma.notify(`Synced: ${summaryParts.join(', ')}`);
   } catch (outerError) {
     // An unexpected error broke out of the batch loop — roll back all node changes applied so far
     let rolledBack = false;

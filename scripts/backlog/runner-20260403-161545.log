@@ -304,3 +304,10 @@ Already up to date.
   → syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed — in selectionHandling.ts:748-752, when a token path in a binding is not found in the tokenMap, it increments `skipped` (not `errors`) and leaves the stale binding on the node with no UI indication; separately, captureNodeProps (line 644-655) uses `JSON.parse(JSON.stringify(val))` to snapshot node properties but `figma.mixed` (a Symbol) is not JSON-serializable, so the snapshot silently loses the original value and rollback on error cannot restore mixed-property nodes; fix: report missing tokens distinctly from skipped (include the missing paths in the response), and handle figma.mixed by storing a sentinel or skipping the snapshot for mixed properties
   Worktree: /tmp/backlog-46580-Hp2KU6
   Running agent… (started 17:26:00)
+
+  ✓ done: syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
+    Fixed: captureNodeProps now stores figma.mixed by reference instead of silently dropping it via JSON round-trip; missing tokens no longer increment skipped counter; notify summary and UI tooltip distinguish missing tokens distinctly
+    22 turns · 126s · $0.44
+
+  Merging to main: syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
+Already up to date.
