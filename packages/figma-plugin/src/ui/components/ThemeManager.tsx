@@ -2089,7 +2089,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   <button
                                     onClick={() => handleAutoFillSingle(dim.id, selectedOpt, item)}
                                     disabled={isFilling}
-                                    className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
+                                    className="flex-shrink-0 opacity-40 group-hover/fill:opacity-100 pointer-events-none group-hover/fill:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/80 text-white hover:bg-[var(--color-figma-accent)] disabled:opacity-50 transition-opacity"
                                     title={`Create ${item.missingRef} in override set`}
                                   >
                                     {isFilling ? '…' : 'Fill'}
@@ -2101,7 +2101,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                       const createPath = item.missingRef ?? item.path;
                                       onCreateToken(createPath, item.set);
                                     }}
-                                    className="flex-shrink-0 opacity-0 group-hover/fill:opacity-100 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-tertiary)] text-[var(--color-figma-text)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-opacity"
+                                    className="flex-shrink-0 opacity-40 group-hover/fill:opacity-100 pointer-events-none group-hover/fill:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-tertiary)] text-[var(--color-figma-text)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-opacity"
                                     title={item.missingRef ? `Create token "${item.missingRef}" to resolve missing alias` : `Create token "${item.path}" in set "${item.set}"`}
                                   >
                                     Create

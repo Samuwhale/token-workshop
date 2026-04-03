@@ -391,3 +391,10 @@ Already up to date.
   → ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100) — the "Fill" action per token and "Fill all gaps" per option are the primary recovery action for coverage gaps but are invisible until the user hovers; make them always visible or use the faint-always-visible pattern (ThemeManager.tsx coverage section ~L2054-2150)
   Worktree: /tmp/backlog-81661-Qu5g7A
   Running agent… (started 13:02:28)
+
+  ✓ done: ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100)
+    Applied faint-always-visible pattern (opacity-40 + pointer-events-none, full opacity/interactivity on group hover) to the per-token Fill and Create buttons in renderCoverageRow
+    8 turns · 55s · $0.19
+
+  Merging to main: ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100)
+Already up to date.

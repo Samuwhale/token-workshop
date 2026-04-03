@@ -478,3 +478,22 @@ Already up to date.
   ✓ code pass: code-pass
     4 items written to inbox: [HIGH] batchUpsertTokens stale cache + 41-site rebuild inconsistency, generator multi-brand partial failure with no rollback, PublishPanel/PublishModals race condition + swallowed errors, DTCG resolver infinite recursion on circular internal $ref pointers
 Already up to date.
+[main e61c2b5e] chore(backlog): code pass – code-pass
+ 6 files changed, 31 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 3 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - HistoryPanel fetches only the last 50 Git commits with no pagination or search
+- Added server-side `offset` and `search` (via `--grep --regexp-ignore-case`) query params to `GET /api/sync/log`; returns `hasMore` by fetching `limit+1` and trimming to `limit`.
+- Updated `git-sync.ts` `log()` to accept `offset` and `search` params, passing `--skip` and `--grep` to simple-git.
+- In the main `HistoryPanel` timeline: added `commitSearch` input in the toolbar (debounced, 300ms), resets offset on search change, and a "Load more commits" button that appends the next batch of 50 to the timeline.
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  6 queued · 4 in-progress · last took 18m54s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenStore batchUpsertTokens never triggers rebuildFlatTokens — after a batch import the flat token cache and resolver go stale because nothing inside the batch calls rebuildFlatTokens() and the write guard suppresses the file watcher; compare with batchDeleteTokens which correctly rebuilds after endBatch(); broader issue: rebuildFlatTokens is called 41 times across token-store.ts with three inconsistent patterns (inside batch try+catch where it just defers, after endBatch, or missing entirely) making every new batch method error-prone; should centralize into a withBatch(fn) helper (token-store.ts:738-769 for the bug, 181-213 for the batch mechanism)
+  Worktree: /tmp/backlog-81267-WL47Wu
+  Running agent… (started 13:03:22)
