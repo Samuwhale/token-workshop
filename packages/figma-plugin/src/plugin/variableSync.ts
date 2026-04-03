@@ -109,7 +109,13 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
       variable.setPluginData('tokenSet', token.setName || '');
     }
 
-    figma.ui.postMessage({ type: 'variables-applied', count: tokens.length, correlationId });
+    figma.ui.postMessage({
+      type: 'variables-applied',
+      count: tokens.length,
+      created: createdVariableIds.length,
+      overwritten: variableSnapshots.size,
+      correlationId,
+    });
   } catch (error) {
     // Attempt to roll back all changes made before the failure
     const rollbackFailures: string[] = [];

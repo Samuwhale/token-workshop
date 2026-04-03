@@ -238,3 +238,10 @@ Already up to date.
   → Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping — variableSync.ts:66-95 silently mutates existing variables when names collide (snapshots are captured but never surfaced to UI for review), styleSync.ts:104-116 replaces multi-paint styles with a single solid color, and selectionHandling.ts:768 applies token values to nodes in a loop where partial failures leave earlier nodes modified with no rollback; these should either preview changes before applying or use Figma's `figma.group()` API to make the entire batch undoable as one step
   Worktree: /tmp/backlog-81267-ZDCwpQ
   Running agent… (started 12:15:25)
+
+  ✓ done: Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping
+    Three fixes: styleSync preserves non-solid paint layers when updating a color token; selectionHandling rolls back entire node on any property failure; variableSync surfaces created/overwritten counts in the success message
+    21 turns · 271s · $0.78
+
+  Merging to main: Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping
+Already up to date.

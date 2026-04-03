@@ -177,3 +177,18 @@ Already up to date.
 
   Merging to main: Server services silently swallow errors in 6+ locations via console.warn-and-continue
 Already up to date.
+[main 11940501] chore(backlog): done – Server services silently swallow errors in 6+ locations via console.warn-and-continue
+ 12 files changed, 128 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server services silently swallow errors in 6+ locations
+- Implemented consistent error propagation across all four problem areas:
+  1. **token-store.ts watcher**: Added `'file-load-error'` to `ChangeEvent` type union; watcher `change`/`add` handlers now emit `file-load-error` events to SSE stream in addition to console.warn.
+  2. **generator-service.ts**: Per-generator catch block now calls `tokenStore.emitEvent({ type: 'generator-error', generatorId, message })` — making it consistent with the existing dependency-graph error path.
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  12 queued · 4 in-progress · last took 6m26s
+═══════════════════════════════════════════════════════════════
+  → Duplicate `fmtValue` formatting functions across ComparePanel, CrossThemeComparePanel, and separate `formatValue`/`formatTokenValue` helpers in tokenListUtils, generatorShared, changeHelpers, and selectionInspectorUtils — six independent implementations of "format a token value for display" with subtly different type handling (e.g., shadow array formatting, typography joining, dimension unit defaults); consolidate into a single shared `formatTokenValueForDisplay(type, value)` in `shared/` that all panels and utilities import
+  Worktree: /tmp/backlog-81661-sR60uu
+  Running agent… (started 12:17:40)

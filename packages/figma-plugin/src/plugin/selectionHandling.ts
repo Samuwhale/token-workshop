@@ -744,6 +744,8 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
           nodeSnapshots.set(node.id, { node, props: captureNodeProps(node, Object.keys(bindings)) });
         }
 
+        let nodeUpdated = 0;
+        let nodeErrors = 0;
         for (const [prop, tokenPath] of Object.entries(bindings)) {
           const entry = tokenMap[tokenPath];
           if (!entry) {
@@ -766,11 +768,25 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
           }
           try {
             await applyTokenValue(node, prop, value, type);
-            updated++;
+            nodeUpdated++;
           } catch (err) {
             console.error(`Sync error on ${node.name}.${prop}:`, err);
-            errors++;
+            nodeErrors++;
           }
+        }
+
+        if (nodeErrors > 0) {
+          // Any property failure means the node is left in a partial state — roll it back entirely
+          const snap = nodeSnapshots.get(node.id);
+          if (snap) {
+            await restoreNodeProps(snap.node, snap.props).catch(re =>
+              console.error('[syncBindings] per-node rollback failed:', re)
+            );
+            nodeSnapshots.delete(node.id); // prevent double-restore in outer catch
+          }
+          errors += nodeErrors;
+        } else {
+          updated += nodeUpdated;
         }
       }
 

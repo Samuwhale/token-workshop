@@ -19,10 +19,12 @@ interface UseVariableSyncOptions {
 
 const extractTokens = (msg: any): any[] => msg.tokens ?? [];
 
-const extractVarApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
+const extractVarApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number } => ({
   count: msg.count ?? 0,
   total: msg.total ?? msg.count ?? 0,
   failures: msg.failures ?? [],
+  created: msg.created,
+  overwritten: msg.overwritten,
 });
 
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
@@ -32,7 +34,7 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     extractResponse: extractTokens,
   });
 
-  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number }>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
@@ -79,6 +81,15 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
         setName: activeSet,
       }));
       const result = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
+      // Surface overwrite count so the caller can include it in success feedback
+      if ((result.overwritten ?? 0) > 0) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'notify',
+            message: `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated`,
+          },
+        }, '*');
+      }
       return { failures: result.failures };
     },
 

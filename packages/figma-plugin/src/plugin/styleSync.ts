@@ -111,7 +111,22 @@ function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
   }
   const color = parseColor(token.$value as string);
   if (color) {
-    style.paints = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+    const newSolid: SolidPaint = { type: 'SOLID', color: color.rgb, opacity: color.a };
+    const existing = style.paints;
+    if (existing.length === 0) {
+      style.paints = [newSolid];
+    } else {
+      // Update only the first solid paint; preserve gradients, images, and other layers
+      const solidIdx = existing.findIndex(p => p.type === 'SOLID');
+      if (solidIdx >= 0) {
+        const updated = [...existing];
+        updated[solidIdx] = newSolid;
+        style.paints = updated;
+      } else {
+        // No existing solid — prepend the token color while keeping other paint layers
+        style.paints = [newSolid, ...existing];
+      }
+    }
   }
   style.setPluginData('tokenPath', token.path);
 }
