@@ -66,3 +66,10 @@ Already up to date.
   → ExportPanel multi-collection save silently partially succeeds when set creation fails — handleConfirmSave at line 483 creates each set with .catch(() => console.warn) (line 487), so a 409/500 from set creation is swallowed; the subsequent batch save at line 522 then attempts to write to a potentially non-existent set; when it fails, the catch at line 534 shows a generic error but 0 to N-1 collections have already been written; users see an error but have no indication which collections succeeded and which didn't; fix by failing fast on set creation errors instead of swallowing them, so the operation is all-or-nothing
   Worktree: /tmp/backlog-81267-acLWL9
   Running agent… (started 11:55:53)
+
+  ✓ done: ExportPanel multi-collection save silently partially succeeds when set creation fails
+    Replaced .catch(console.warn) with a catch that re-throws non-409 errors, making the multi-collection save fail-fast; 409 (already exists) is silently ignored; both set-creation and batch-save errors now include the set name for clarity
+    15 turns · 88s · $0.29
+
+  Merging to main: ExportPanel multi-collection save silently partially succeeds when set creation fails
+Already up to date.

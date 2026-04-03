@@ -2,7 +2,7 @@ import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
@@ -479,12 +479,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         const defaultSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
         const setName = slugRenames[collection.name] ?? defaultSlug;
 
-        // Ensure set exists
+        // Ensure set exists — 409 means it already exists, which is fine.
+        // Any other error propagates and aborts the whole operation (fail-fast).
         await apiFetch(`${serverUrl}/api/sets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: setName }),
-        }).catch((err) => { console.warn('[ExportPanel] failed to ensure set exists:', err); });
+        }).catch((err) => {
+          if (err instanceof ApiError && err.status === 409) return;
+          throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+        });
 
         // Build all tokens and upsert in a single batch request
         const batchTokens = collection.variables.map(variable => {
@@ -523,6 +527,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
+        }).catch((err) => {
+          throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
         });
       }
 

@@ -28,3 +28,18 @@ NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
 
   Merging to main: AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more
 Already up to date.
+[main a80ede04] chore(backlog): done – AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more
+ 6 files changed, 127 insertions(+), 60 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel color contrast matrix capped at 16 tokens
+- Removed the `.slice(0, 16)` cap from `colorTokens` state so all non-alias color tokens are included in the matrix. Added `contrastPage` state and a page-size constant of 16. The matrix now shows 16 tokens per page with prev/next buttons and numbered page pills when there are more than 16 tokens. Page resets to 0 on data reload. The matrix header still shows the total token count.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L79, ~L261, ~L964
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  2 queued · 4 in-progress · last took 2m6s
+═══════════════════════════════════════════════════════════════
+  → TokenEditor has no AbortController on token fetch — the useEffect at TokenEditor.tsx:501 fires fetchToken() whenever tokenPath changes but never aborts in-flight requests from a previous path; if the user rapidly switches between tokens (common when navigating the tree), multiple fetches can be in-flight and the last to resolve wins regardless of which was initiated most recently; the wrong token's data can be displayed; fix by creating an AbortController inside the effect and passing its signal to apiFetch, aborting on cleanup
+  Worktree: /tmp/backlog-82379-YUC2xL
+  Running agent… (started 11:56:22)

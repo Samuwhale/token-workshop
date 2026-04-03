@@ -392,3 +392,11 @@
   - IIFE pattern `{...(() => { ... })()}` in JSX is clean for deriving local constants (page slice, total pages) without polluting component scope — avoids needing extra `useMemo` for simple derived values that are only used in one render block.
   - When removing a data cap, always reset the page index to 0 on reload (set alongside the data setter) to prevent stale out-of-range page state.
 ---
+
+## 2026-04-03 - ExportPanel multi-collection save silently partially succeeds when set creation fails
+- Replaced the `.catch(() => console.warn(...))` on set creation with a catch that re-throws for non-409 errors. 409 (set already exists) is silently swallowed — that's fine. All other set creation errors now propagate and abort the loop immediately (fail-fast). Also wrapped the batch save in a `.catch()` that re-throws with the set name in the message, so the error shown to the user identifies which collection failed. The operation is now all-or-nothing: either all collections save or none after the failing one does.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L5 (ApiError import), ~L482–490 (set creation catch), ~L526–530 (batch save catch)
+- **Learnings for future iterations:**
+  - `.catch((err) => { if (condition) return; throw err; })` is the idiomatic pattern for selectively suppressing specific errors while re-throwing others — cleaner than try/catch with an if-else.
+  - When wrapping re-thrown errors with context (e.g., set name), wrap in `new Error(msg)` rather than re-throwing the original so the UI error message is human-readable.
+---
