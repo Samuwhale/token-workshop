@@ -23,9 +23,8 @@ export function useTokenNavigation(
 
   // Reset createFromEmpty when switching sets
   useEffect(() => {
-    if (createFromEmpty) setCreateFromEmpty(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSet]);
+    setCreateFromEmpty(false);
+  }, [activeSet, setCreateFromEmpty]);
 
   // Apply pending highlight after switching sets
   useEffect(() => {

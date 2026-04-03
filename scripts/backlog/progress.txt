@@ -435,3 +435,24 @@
 - **Learnings for future iterations:**
   - The "Extract Figma" label was non-standard terminology; "Import from Figma" aligns with standard import/export mental models and makes the directionality explicit.
 ---
+
+## 2026-04-03 - 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions audit
+- Audited all 15 active suppression sites (the 16th at useNearbyTokenMatch.ts:130 was already fixed / didn't exist).
+- **Fixed one suppression cleanly**: `useTokenNavigation.ts:27` — simplified `if (createFromEmpty) setCreateFromEmpty(false)` to unconditional `setCreateFromEmpty(false)` (React no-ops if already false), added stable `setCreateFromEmpty` to deps, removed suppression entirely. Lint error count dropped from 5 to 4.
+- **Documented 14 remaining suppressions** with inline `// Safe:` comments explaining why each suppression is intentional:
+  - `useTokens.ts:119` — `refreshTokens` omitted to avoid double-fetch (first effect handles reconnect)
+  - `useWindowExpand.ts:19` — mount-only resize restore; `isExpanded` omitted to avoid double-firing with toggleExpand
+  - `SelectionInspector.tsx:270` — mount-only postMessage sync; `deepInspect` omitted (toggle handler already fires it)
+  - `SelectionInspector.tsx:298` — trigger-only pattern; omitted deps read fresh closure at trigger time
+  - `SelectionInspector.tsx:562` — specific `caps` properties listed (not full object) to prevent recompute on unrelated cap changes
+  - `HistoryPanel.tsx:746/1254` — mount-only "initial value" prop fetch pattern
+  - `SetSwitcher.tsx:40` — `filtered`/`activeSet` omitted; only query changes should reset the index
+  - `PublishPanel.tsx:1121`, `PublishModals.tsx:186` — mount-only fetch; callback prop omitted to prevent re-fetch on parent re-render
+  - `PublishPanel.tsx:1298`, `PublishModals.tsx:360` — mount-only conditional fetch; omitting loading state prevents feedback loop
+  - `PublishPanel.tsx:1734`, `PublishShared.tsx:124` — only `allChanges.length` triggers; omitting loading state prevents feedback loop
+- Files changed: `hooks/useTokenNavigation.ts` ~L25, `hooks/useTokens.ts` ~L118, `hooks/useWindowExpand.ts` ~L19, `components/SelectionInspector.tsx` ~L265/295/560, `components/HistoryPanel.tsx` ~L741/1249, `components/SetSwitcher.tsx` ~L36, `components/PublishPanel.tsx` ~L1119/1293/1729, `components/publish/PublishModals.tsx` ~L184/356, `components/publish/PublishShared.tsx` ~L120
+- **Learnings for future iterations:**
+  - `setCreateFromEmpty(false)` with no guard is safe — React state setters are no-ops when value is unchanged, so removing `if (createFromEmpty)` guard and adding the stable setter to deps cleanly resolves the lint warning.
+  - "Trigger-only" patterns (dep = boolean flag that fires an action) are safe to suppress when all other referenced values are read from a closure captured at the same render as the trigger state update.
+  - Listing specific object properties in `useMemo` deps (instead of the whole object) is a valid performance optimization when the object is recreated each render but only a subset of properties affects the computation.
+---

@@ -318,3 +318,11 @@ Already up to date.
 
   Merging to main: ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab
 Already up to date.
+[main 156bf735] chore(backlog): done – ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab
+ 7 files changed, 39 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel conflates "export to platforms" with "import from Figma Variables"
+- Renamed the "Extract Figma" mode button label to "Import from Figma" in the segmented control toggle (~L606). The description already accurately described the import behavior; only the button label was misleading.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L606
+- **Learnings for future iterations:**

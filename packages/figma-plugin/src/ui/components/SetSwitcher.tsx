@@ -37,7 +37,11 @@ export function SetSwitcher({ sets, activeSet, onSelect, onClose }: SetSwitcherP
     // When query changes, reset to first result (or keep active set visible)
     const idx = filtered.indexOf(activeSet);
     setActiveIdx(idx >= 0 ? idx : 0);
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Safe: `filtered` and `activeSet` are intentionally omitted. `filtered` is derived from `query`
+  // so it changes whenever `query` does. `activeSet` is omitted to prevent resetting the index
+  // when the user switches sets without typing a new query.
+  }, [query]);
 
   // Scroll active item into view
   useEffect(() => {

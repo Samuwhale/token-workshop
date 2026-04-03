@@ -744,7 +744,10 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
       fetchDetail(initialSelectedHash);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount
+    // Safe: mount-only. `initialSelectedHash` is an "initial value" prop — it sets the starting
+    // state and should not trigger re-fetches if the parent re-renders. `fetchDetail` is a stable
+    // useCallback; omitting it avoids re-runs if its deps (serverUrl) ever change on mount.
+  }, []);
 
   const handleSelectCommit = useCallback((hash: string) => {
     setSelectedHash(hash);
@@ -1252,7 +1255,10 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
       handleCompare(initialComparingId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount
+    // Safe: mount-only. `initialComparingId` is an "initial value" prop — it sets the starting
+    // state and should not trigger re-compares if the parent re-renders. `handleCompare` is a
+    // stable useCallback; omitting it avoids re-runs if its deps (serverUrl) change on mount.
+  }, []);
 
   const handleRevert = async () => {
     if (!comparing) return;

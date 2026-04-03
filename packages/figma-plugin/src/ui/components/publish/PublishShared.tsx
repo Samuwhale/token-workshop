@@ -121,7 +121,11 @@ export function FileTokenDiffList({
     if (tokenPreview === null && !tokenPreviewLoading && allChanges.length > 0) {
       fetchTokenPreview();
     }
-  }, [allChanges.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Safe: only `allChanges.length` triggers a re-check. `tokenPreview`, `tokenPreviewLoading`,
+  // and `fetchTokenPreview` are intentionally omitted — including them would create a feedback
+  // loop (loading state change → effect fires again → guard re-evaluated endlessly).
+  }, [allChanges.length]);
 
   const changesByFile = useMemo(() => {
     const map = new Map<string, import('../../hooks/useGitDiff').TokenChange[]>();

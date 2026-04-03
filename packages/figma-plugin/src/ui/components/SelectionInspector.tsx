@@ -283,6 +283,8 @@ export function SelectionInspector({
       parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: true } }, '*');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Safe: mount-only sync. `deepInspect` is intentionally omitted — the Cmd+Shift+D toggle
+  // handler already sends the postMessage on every state change. Adding it here would double-fire.
   }, []);
 
   // Cmd+T: open create-from-first-unbound-property
@@ -311,6 +313,10 @@ export function SelectionInspector({
       setNewTokenName(SUGGESTED_NAMES[target] || 'token.new-token');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Safe: trigger-only pattern. Only `triggerCreateToken` is a dep. `selectedNodes`, `connected`,
+  // `activeSet` and the state setters are intentionally omitted — they are read from the closure
+  // captured when the trigger fires (a state update), so they reflect the latest render. Including
+  // them would cause the effect to re-run on every selection change while the trigger is active.
   }, [triggerCreateToken]);
 
   // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
@@ -577,6 +583,9 @@ export function SelectionInspector({
   const suggestions = useMemo(
     () => hasSelection && hasAnyTokens ? rankTokensForSelection(rootNodes, tokenMap, caps) : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Safe: `caps` is listed as specific properties rather than the full object because `caps` is
+    // recreated on every render. The listed properties are all that `rankTokensForSelection` reads
+    // from `caps`; listing them prevents unnecessary recomputation on unrelated cap changes.
     [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps.hasFills, caps.hasStrokes, caps.hasAutoLayout, caps.isText, caps.hasEffects],
   );
 

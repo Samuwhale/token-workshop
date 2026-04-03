@@ -119,6 +119,9 @@ export function useTokens(
     }
     refreshTokens();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Safe: `refreshTokens` is intentionally omitted — the effect at line 101 already handles
+    // re-fetching when `refreshTokens` changes (e.g. on reconnect). Including it here would
+    // cause a redundant double-fetch whenever connection state changes.
   }, [activeSet]);
 
   return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
