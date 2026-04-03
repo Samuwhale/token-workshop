@@ -21,3 +21,10 @@ NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
   → AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more — the matrix is limited (AnalyticsPanel.tsx ~L232-236) for performance, but token sets often have 30-50 color tokens; users cannot audit contrast for tokens beyond the cap; add pagination or a "selected pairs only" mode that lets users pick specific tokens to compare rather than always computing the full NxN matrix
   Worktree: /tmp/backlog-82379-7Q81cO
   Running agent… (started 11:54:16)
+
+  ✓ done: AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more
+    Removed 16-token cap; added page controls (16 tokens/page) with prev/next and numbered page pills — full token set now auditable via pagination
+    15 turns · 119s · $0.4
+
+  Merging to main: AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more
+Already up to date.

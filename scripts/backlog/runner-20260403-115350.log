@@ -51,3 +51,18 @@ Already up to date.
 
   Merging to main: POST /api/tokens/:set/* returns original request body instead of the stored token
 Already up to date.
+[main 60892d37] chore(backlog): done – POST /api/tokens/:set/* returns original request body instead of the stored token
+ 5 files changed, 35 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - POST /api/tokens/:set/* returns original request body instead of stored token
+- Fetched the stored token after `createToken` using `getToken(set, tokenPath)` and returned it as `token: created` instead of `token: body`. Mirrors the PATCH endpoint pattern at lines 793-794.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L757
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  3 queued · 4 in-progress · last took 42s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel multi-collection save silently partially succeeds when set creation fails — handleConfirmSave at line 483 creates each set with .catch(() => console.warn) (line 487), so a 409/500 from set creation is swallowed; the subsequent batch save at line 522 then attempts to write to a potentially non-existent set; when it fails, the catch at line 534 shows a generic error but 0 to N-1 collections have already been written; users see an error but have no indication which collections succeeded and which didn't; fix by failing fast on set creation errors instead of swallowing them, so the operation is all-or-nothing
+  Worktree: /tmp/backlog-81267-acLWL9
+  Running agent… (started 11:55:53)

@@ -384,3 +384,11 @@
 - **Learnings for future iterations:**
   - POST create endpoints should always return the persisted token (via a follow-up `getToken`) rather than the raw request body, since store operations like `enrichFormulaExtension` may transform the data before persisting.
 ---
+
+## 2026-04-03 - AnalyticsPanel color contrast matrix capped at 16 tokens
+- Removed the `.slice(0, 16)` cap from `colorTokens` state so all non-alias color tokens are included in the matrix. Added `contrastPage` state and a page-size constant of 16. The matrix now shows 16 tokens per page with prev/next buttons and numbered page pills when there are more than 16 tokens. Page resets to 0 on data reload. The matrix header still shows the total token count.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L79, ~L261, ~L964
+- **Learnings for future iterations:**
+  - IIFE pattern `{...(() => { ... })()}` in JSX is clean for deriving local constants (page slice, total pages) without polluting component scope — avoids needing extra `useMemo` for simple derived values that are only used in one render block.
+  - When removing a data cap, always reset the page index to 0 on reload (set alongside the data setter) to prevent stale out-of-range page state.
+---
