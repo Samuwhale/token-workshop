@@ -94,3 +94,42 @@ Already up to date.
 
   Merging to main: Token editor save failure has no retry affordance
 Already up to date.
+[main 6c84308c] chore(backlog): done – Token editor save failure has no retry affordance
+ 7 files changed, 37 insertions(+), 5 deletions(-)
+ create mode 120000 packages/figma-plugin/node_modules
+  ✓ Merged and marked done
+
+## 2026-04-03 - Token editor save failure has no retry affordance
+- Added `saveRetryArgs: [boolean, boolean] | null` state to track whether the current error is from a server/network save failure (retryable) vs a validation failure (not retryable). Set in the `handleSave` catch block; cleared at save start and on validation errors.
+- Updated the error alert div to use `flex items-start gap-2`, wrapping the message in `<span className="flex-1">` and appending a "Retry" button that calls `handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1])` when `saveRetryArgs` is set.
+- Also fixed a pre-existing build-breaking bug: `allTokensFlat` was declared twice in `TokenGeneratorDialogProps` interface and twice in the component destructuring, causing esbuild to fail with "cannot be bound multiple times". Removed the duplicate interface entry and destructuring binding.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  17 queued · 3 in-progress · last took 6m26s
+═══════════════════════════════════════════════════════════════
+  → ResolverPanel is hidden behind ThemeManager's "Advanced" toggle — DTCG v2025.10 resolvers are a core feature but users must discover them by toggling Advanced mode inside Theme Manager; surface Resolvers as a dedicated sub-tab under Define (alongside Tokens, Themes, Generators) or add a prominent link in the ThemeManager header (ResolverPanel.tsx, App.tsx tab structure)
+  Worktree: /tmp/backlog-46580-FtuOoG
+  Running agent… (started 16:40:17)
+
+  · unknown
+    101 turns · 712s · $2.93
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Token editor save failure has no retry affordance
+- Added `saveRetryArgs: [boolean, boolean] | null` state to track whether the current error is from a server/network save failure (retryable) vs a validation failure (not retryable). Set in the `handleSave` catch block; cleared at save start and on validation errors.
+- Updated the error alert div to use `flex items-start gap-2`, wrapping the message in `<span className="flex-1">` and appending a "Retry" button that calls `handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1])` when `saveRetryArgs` is set.
+- Also fixed a pre-existing build-breaking bug: `allTokensFlat` was declared twice in `TokenGeneratorDialogProps` interface and twice in the component destructuring, causing esbuild to fail with "cannot be bound multiple times". Removed the duplicate interface entry and destructuring binding.
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  17 queued · 3 in-progress · last took 11m57s
+═══════════════════════════════════════════════════════════════
+  → ResolverPanel is hidden behind ThemeManager's "Advanced" toggle — DTCG v2025.10 resolvers are a core feature but users must discover them by toggling Advanced mode inside Theme Manager; surface Resolvers as a dedicated sub-tab under Define (alongside Tokens, Themes, Generators) or add a prominent link in the ThemeManager header (ResolverPanel.tsx, App.tsx tab structure)
+  Worktree: /tmp/backlog-46580-yQUDhP
+  Running agent… (started 16:52:14)
+
+  ✓ done: ResolverPanel is hidden behind ThemeManager's "Advanced" toggle
+    Added 'Resolvers' as a dedicated sub-tab under Define (alongside Tokens, Themes, Generators) in App.tsx — type, TOP_TABS, import, and render block all updated
+    42 turns · 302s · $0.99
+
+  Merging to main: ResolverPanel is hidden behind ThemeManager's "Advanced" toggle
+Already up to date.

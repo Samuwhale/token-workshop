@@ -524,3 +524,13 @@
   - Distinguish retryable (server/network) errors from non-retryable (validation) ones by clearing `saveRetryArgs` in all validation-error branches and only setting it in the catch block of the actual API call.
   - Pre-existing `allTokensFlat` duplicate in `TokenGeneratorDialog.tsx` was blocking builds — the fix was to remove the earlier duplicate interface entry (the one with the outdated description) and the earlier destructuring binding.
 ---
+
+## 2026-04-03 - ResolverPanel hidden behind ThemeManager Advanced toggle
+- Added 'resolvers' as a dedicated sub-tab under the Define top-tab (alongside Tokens, Themes, Generators).
+- Updated `DefineSubTab` type to include `'resolvers'`, added entry to `TOP_TABS` array, imported `ResolverPanel` directly in App.tsx, and added a conditional render block that passes all `resolverState` props to `ResolverPanel`.
+- `ResolverPanel` (standalone variant with header) is used instead of `ResolverContent` (the embedded headerless variant used inside ThemeManager's advanced mode), keeping the ThemeManager advanced mode intact for users who arrive there.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L8 (import), ~L173 (type), ~L217 (TOP_TABS), ~L2344 (render block)
+- **Learnings for future iterations:**
+  - The `ResolverPanel` component already had both a standalone (`ResolverPanel`) and embeddable (`ResolverContent`) export — surfacing it as a first-class tab only required changes in App.tsx, no changes to the panel itself.
+  - Validate.sh gate 1 fails in this worktree due to a pre-existing `@tokenmanager/core` resolution error in vitest (vitest lacks the `resolve.alias` that `build.mjs` provides). Lint gate passes at baseline (5 errors).
+---

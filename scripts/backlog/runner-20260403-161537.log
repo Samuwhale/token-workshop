@@ -90,3 +90,19 @@ Already up to date.
   → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
   Worktree: /tmp/backlog-46178-qvb9kS
   Running agent… (started 16:33:39)
+
+  · unknown
+    101 turns · 646s · $3.1
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Token editor save failure has no retry affordance
+- Added `saveRetryArgs: [boolean, boolean] | null` state to track whether the current error is from a server/network save failure (retryable) vs a validation failure (not retryable). Set in the `handleSave` catch block; cleared at save start and on validation errors.
+- Updated the error alert div to use `flex items-start gap-2`, wrapping the message in `<span className="flex-1">` and appending a "Retry" button that calls `handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1])` when `saveRetryArgs` is set.
+- Also fixed a pre-existing build-breaking bug: `allTokensFlat` was declared twice in `TokenGeneratorDialogProps` interface and twice in the component destructuring, causing esbuild to fail with "cannot be bound multiple times". Removed the duplicate interface entry and destructuring binding.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  17 queued · 3 in-progress · last took 10m50s
+═══════════════════════════════════════════════════════════════
+  → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
+  Worktree: /tmp/backlog-46178-RFBqC9
+  Running agent… (started 16:44:29)
