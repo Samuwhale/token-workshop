@@ -289,3 +289,18 @@ Already up to date.
 
   Merging to main: GeneratorService.executeGenerator overwrites concurrent generator updates
 Already up to date.
+[main 48bbb86c] chore(backlog): done – GeneratorService.executeGenerator overwrites concurrent generator updates
+ 6 files changed, 48 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - GeneratorService.executeGenerator overwrites concurrent generator updates
+- Fixed race condition in `executeGenerator`: the original code read `current = this.generators.get(id)` at L603 (sync), then awaited `tokenStore.resolveToken()` at L608, then wrote `{ ...current, ... }` at L611 — any concurrent `update()` call during the await was silently overwritten because `current` was stale.
+- Fix: moved the `this.generators.get(id)` read to AFTER all awaits, right before `this.generators.set()`. The `lastRunSourceValue` fallback now uses `current.lastRunSourceValue` (from the fresh re-read) instead of the pre-await stale snapshot.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L600-620
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  7 queued · 3 in-progress · last took 2m10s
+═══════════════════════════════════════════════════════════════
+  → syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed — in selectionHandling.ts:748-752, when a token path in a binding is not found in the tokenMap, it increments `skipped` (not `errors`) and leaves the stale binding on the node with no UI indication; separately, captureNodeProps (line 644-655) uses `JSON.parse(JSON.stringify(val))` to snapshot node properties but `figma.mixed` (a Symbol) is not JSON-serializable, so the snapshot silently loses the original value and rollback on error cannot restore mixed-property nodes; fix: report missing tokens distinctly from skipped (include the missing paths in the response), and handle figma.mixed by storing a sentinel or skipping the snapshot for mixed properties
+  Worktree: /tmp/backlog-46580-Hp2KU6
+  Running agent… (started 17:26:00)

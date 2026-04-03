@@ -531,7 +531,7 @@ export function App() {
   const isNarrow = windowWidth <= 360;
 
   // Theme switcher state (multi-dimensional)
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat: themeOnlyTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
+  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat: themeOnlyTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat, pathToSet);
 
   // DTCG Resolver (v2025.10) — contextual token resolution
   const resolverState = useResolvers(serverUrl, connected);

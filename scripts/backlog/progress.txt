@@ -400,3 +400,11 @@
   - The race pattern: `const x = map.get(id)` → `await something()` → `map.set(id, { ...x, newField })` — any mutation to `map.get(id)` during the await is lost because `x` is stale. Fix: move the `map.get(id)` call to immediately before `map.set`.
   - TypeScript/Node.js concurrency: single-threaded JS doesn't race on synchronous lines, only across `await` boundaries. When you see a read-await-write pattern, check whether anything between the read and write can mutate the same key.
 ---
+
+## 2026-04-03 - useThemeSwitcher re-fetches themes on every render due to unstable `tokens` dep
+- Replaced `tokens: unknown[]` parameter with `tokenRevision: number` in `useThemeSwitcher`. Updated the effect dependency from `[fetchThemesInner, tokens]` to `[fetchThemesInner, tokenRevision]`. Updated the call site in `App.tsx` to pass `tokenRevision` instead of `tokens`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L12, ~L83; `packages/figma-plugin/src/ui/App.tsx` ~L534
+- **Learnings for future iterations:**
+  - When a hook only needs to re-run an effect when data changes (not use the data itself), prefer a stable revision counter over passing the data array — avoids the unstable-reference trap.
+  - `tokenRevision` (a `number` from `useTokens`) is already the canonical "something changed" signal for token data throughout this codebase.
+---

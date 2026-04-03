@@ -196,3 +196,10 @@ Already up to date.
   → useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time — the effect at useThemeSwitcher.ts:83 depends on `[fetchThemesInner, tokens]` but `tokens` is a TokenNode[] recreated by `buildTree` on every fetch; this causes an unnecessary `/api/themes` call on every token change; replace the `tokens` dependency with `tokenRevision` (a stable incrementing number already exposed by useTokens) or remove it entirely since the effect already re-runs when `connected`/`serverUrl` change via `fetchThemesInner`
   Worktree: /tmp/backlog-46178-NNqBLZ
   Running agent… (started 17:25:25)
+
+  ✓ done: useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time
+    Replaced unstable `tokens: unknown[]` param with `tokenRevision: number` in useThemeSwitcher; updated effect deps and App.tsx call site
+    16 turns · 67s · $0.27
+
+  Merging to main: useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time
+Already up to date.

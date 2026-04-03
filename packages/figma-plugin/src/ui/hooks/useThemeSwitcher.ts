@@ -9,7 +9,7 @@ import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 export function useThemeSwitcher(
   serverUrl: string,
   connected: boolean,
-  tokens: unknown[],
+  tokenRevision: number,
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToSet: Record<string, string>,
 ) {
@@ -80,7 +80,7 @@ export function useThemeSwitcher(
     abortRef.current = controller;
     fetchThemesInner(controller.signal);
     return () => controller.abort();
-  }, [fetchThemesInner, tokens]);
+  }, [fetchThemesInner, tokenRevision]);
 
   const fetchThemes = useCallback(() => {
     abortRef.current?.abort();
