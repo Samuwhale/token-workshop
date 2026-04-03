@@ -463,3 +463,11 @@
   - `rowDiffs` only covers `propertyKeys`; the alias and scopes rows have no equivalent — compute separate `aliasDiffers`/`scopesDiffer` booleans outside `useMemo` (alias is cheap enough to be inline; scopes needs `useMemo` since it reads `allTokensFlat`).
   - The flat-value branch is a ternary (`hasStructuredValues ? A : B`) — converting the `B` side to a conditional requires adding `: null` as the third arm (`? A : condition ? B : null`) rather than wrapping with `&&`.
 ---
+
+## 2026-04-03 - Token bind candidate list hard-capped at 12 entries
+- Added `bindShowAll` state (default false). When false, `bindCandidates` slices to 12. When true, shows all. Replaced the passive "X more — type to refine" footer text with an actionable "Show all N tokens" button styled in accent color. `bindShowAll` resets to false when the bind panel opens (same block as `setBindQuery` / `setBindSelectedIndex`) and also when the query input changes. The scrollable container (`max-h-[156px] overflow-y-auto`) handles the expanded list without layout changes.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L85, ~L126, ~L138, ~L415, ~L495
+- **Learnings for future iterations:**
+  - The "X more — type to refine" text was already there as a hint; converting it to a button is minimal change, avoids virtual scrolling complexity, and keeps the component self-contained.
+  - Reset `bindShowAll` on query change to avoid stale "Show all" state after the user has already filtered.
+---

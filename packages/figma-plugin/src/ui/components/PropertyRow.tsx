@@ -84,6 +84,7 @@ export function PropertyRow({
   const [conflictExists, setConflictExists] = useState(false);
   const [bindQuery, setBindQuery] = useState('');
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
+  const [bindShowAll, setBindShowAll] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -123,9 +124,10 @@ export function PropertyRow({
         })
         .sort((a, b) => b[2] - a[2])
     : [];
-  const bindCandidates = bindCandidatesAll.slice(0, 12);
+  const BIND_PAGE_SIZE = 12;
   const bindTotalCount = bindCandidatesAll.length;
-  const bindHasMore = bindTotalCount > 12;
+  const bindHasMore = !bindShowAll && bindTotalCount > BIND_PAGE_SIZE;
+  const bindCandidates = bindShowAll ? bindCandidatesAll : bindCandidatesAll.slice(0, BIND_PAGE_SIZE);
   // Determine if we should show a "Suggested" divider — top candidates scored > 0
   const suggestedCount = bindCandidates.filter(([, , s]) => s > 0).length;
   const showSuggestedDivider = suggestedCount > 0 && suggestedCount < bindCandidates.length && !bindQuery;
@@ -141,6 +143,7 @@ export function PropertyRow({
       setBindQuery('');
     }
     setBindSelectedIndex(-1);
+    setBindShowAll(false);
   }
   prevBindingFromProp.current = bindingFromProp;
 
@@ -411,7 +414,7 @@ export function PropertyRow({
             <input
               autoFocus
               value={bindQuery}
-              onChange={e => { setBindQuery(e.target.value); setBindSelectedIndex(-1); }}
+              onChange={e => { setBindQuery(e.target.value); setBindSelectedIndex(-1); setBindShowAll(false); }}
               onKeyDown={e => {
                 if (e.key === 'Escape') { onCancelBind(); return; }
                 if (e.key === 'ArrowDown') { e.preventDefault(); setBindSelectedIndex(i => Math.min(i + 1, bindCandidates.length - 1)); return; }
@@ -492,9 +495,12 @@ export function PropertyRow({
                   );
                 })}
                 {bindHasMore && (
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]">
-                    {bindTotalCount - 12} more — type to refine
-                  </div>
+                  <button
+                    onClick={() => setBindShowAll(true)}
+                    className="w-full text-[10px] text-[var(--color-figma-accent)] text-center py-1 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                  >
+                    Show all {bindTotalCount} tokens
+                  </button>
                 )}
               </div>
             )}

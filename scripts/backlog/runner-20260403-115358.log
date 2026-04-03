@@ -111,3 +111,18 @@ Already up to date.
 
   Merging to main: ComparePanel has no "show differences only" toggle
 Already up to date.
+[main 74dc8227] chore(backlog): done – ComparePanel has no "show differences only" toggle
+ 6 files changed, 69 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ComparePanel has no "show differences only" toggle
+- Added `showDiffsOnly` state (default `false`) with a "Diffs only" toggle button in the header toolbar, disabled when all values are identical.
+- Computed `aliasDiffers` and `scopesDiffer` alongside existing `rowDiffs` to correctly gate all four row types (type, alias, property keys, scopes) when the toggle is active.
+- The toggle button shows a yellow-tinted active state to indicate the filter is on; `anyDiff` gates the disabled state so the button is greyed out when tokens are identical.
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  5 queued · 4 in-progress · last took 2m41s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel dark mode toggle is not persisted — switching between light/dark resets every time the user changes template tabs or re-opens the panel; persist the dark mode preference in localStorage so it survives across sessions (PreviewPanel.tsx ~L287-315)
+  Worktree: /tmp/backlog-81661-O6Ta5p
+  Running agent… (started 12:05:07)

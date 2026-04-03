@@ -102,3 +102,10 @@ Already up to date.
   → Token bind candidate list is hard-capped at 12 entries with no pagination — PropertyRow.tsx:126 slices to 12 results; for token sets with 50+ color tokens users can't see most candidates without typing a precise filter; add a "Show all" expansion or virtual scrolling to the bind dropdown
   Worktree: /tmp/backlog-82379-8hK8bn
   Running agent… (started 12:03:46)
+
+  ✓ done: Token bind candidate list is hard-capped at 12 entries with no pagination
+    Replaced passive 'X more' hint with a 'Show all N tokens' button that expands bindCandidates from 12 to all; resets on panel open and query change
+    15 turns · 91s · $0.33
+
+  Merging to main: Token bind candidate list is hard-capped at 12 entries with no pagination
+Already up to date.
