@@ -121,14 +121,38 @@ export interface NodeBinding {
   tokenPath: string;
 }
 
+/**
+ * Current visual property values read from a Figma node.
+ * All fields are optional — only populated when the node supports the property.
+ * fill/stroke are serialized as hex color strings (e.g. "#RRGGBBAA").
+ */
+export interface NodeCurrentValues {
+  fill?: string;
+  stroke?: string;
+  width?: number;
+  height?: number;
+  opacity?: number;
+  cornerRadius?: number;
+  strokeWeight?: number;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  itemSpacing?: number;
+  visible?: boolean;
+}
+
 export interface SelectionNodeInfo {
   id: string;
   name: string;
   type: string;
-  bindings: Record<string, string>; // property -> tokenPath
+  /** Maps BindableProperty name → token path for each active binding. */
+  bindings: Record<string, string>;
   capabilities: NodeCapabilities;
-  currentValues: Record<string, any>;
-  depth?: number;   // 0 = directly selected, 1+ = nested descendant
+  currentValues: NodeCurrentValues;
+  /** 0 = directly selected, 1+ = nested descendant (deep inspect mode). */
+  depth?: number;
+  /** ID of the parent node; only set for depth > 0. */
   parentId?: string;
 }
 

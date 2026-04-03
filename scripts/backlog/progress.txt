@@ -471,3 +471,13 @@
   - The `formatDraftAge` utility is inlined in TokenEditor since it's only needed there. If needed in other editors, move to `shared/utils.ts`.
   - Create mode is intentionally excluded from draft auto-save — the token path isn't stable until saved, making the draft key unreliable.
 ---
+
+## 2026-04-03 - Plugin sandbox selection flow is pervasively `any`-typed
+- Defined `NodeCurrentValues` interface in `shared/types.ts` with typed optional fields for all visual properties read from Figma nodes (fill/stroke as hex strings, numeric dimensions, boolean visible). Updated `SelectionNodeInfo.currentValues` from `Record<string, any>` to `NodeCurrentValues`.
+- In `selectionHandling.ts`: imported `NodeCapabilities`, `NodeCurrentValues`, `SelectionNodeInfo` from shared/types; added return type annotations to `getNodeCapabilities` (`NodeCapabilities`), `readCurrentValues` (`NodeCurrentValues`), `collectDescendantsWithBindings` (`SelectionNodeInfo[]`); changed `getSelection` local variable from `any[]` to `SelectionNodeInfo[]`; added `as number` casts for `unknown`-typed `Record<string, unknown>` field reads.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L111, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L1, ~L232, ~L243, ~L291, ~L315
+- **Learnings for future iterations:**
+  - `NodeCapabilities`, `NodeBinding`, `SelectionNodeInfo`, and all postMessage discriminated unions were already well-typed in shared/types.ts — the only gap was the two `any[]` local variables in selectionHandling.ts and the `Record<string, any>` on `currentValues`.
+  - When casting `Record<string, unknown>` field reads to typed struct fields, `as T` casts are appropriate since the property-existence guards (`'width' in node`) already guarantee runtime correctness.
+  - ESLint count improved from baseline 5 → 4 after the change (removing some implicit-any warnings).
+---

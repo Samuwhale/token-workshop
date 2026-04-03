@@ -450,3 +450,25 @@ Already up to date.
 
   Merging to main: Token editor loses unsaved changes silently when the panel closes
 Already up to date.
+[main 3df0b55f] chore(backlog): done – Token editor loses unsaved changes silently when the panel closes
+ 7 files changed, 179 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Token editor loses unsaved changes silently when the panel closes
+- Implemented sessionStorage draft auto-save and recovery for the token editor:
+  1. **Draft utilities** added to `TokenEditor.tsx` (before the component): `saveEditorDraft`, `loadEditorDraft`, `clearEditorDraft`, `formatDraftAge` — all keyed by `tm_editor_draft:{setName}:{tokenPath}`.
+  2. **`pendingDraft` state**: set after the token fetch if a draft exists in sessionStorage that differs from the server data.
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  13 queued · 4 in-progress · last took 10m42s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox selection flow is pervasively `any`-typed — `collectDescendantsWithBindings` (selectionHandling.ts:291) returns `any[]`, `getSelection` (selectionHandling.ts:315) builds `any[]`, and all node info objects flowing through postMessage to the UI (SelectionInspector, QuickApplyPicker) are untyped; this makes the entire selection inspection pipeline (~15 message types between sandbox and UI) impossible to validate at compile time; define concrete interfaces for node info, binding data, and selection results in shared/types.ts alongside the existing PluginMessage union
+  Worktree: /tmp/backlog-80049-9STARj
+  Running agent… (started 13:24:33)
+
+  ✓ done: Plugin sandbox selection flow is pervasively `any`-typed — `collectDescendantsWithBindings` (selectionHandling.ts:291) returns `any[]`, `getSelection` (selectionHandling.ts:315) builds `any[]`
+    Added NodeCurrentValues interface to shared/types.ts; updated SelectionNodeInfo.currentValues; fixed collectDescendantsWithBindings and getSelection to use SelectionNodeInfo[]; added return type annotations to getNodeCapabilities and readCurrentValues
+    21 turns · 220s · $0.8
+
+  Merging to main: Plugin sandbox selection flow is pervasively `any`-typed — `collectDescendantsWithBindings` (selectionHandling.ts:291) returns `any[]`, `getSelection` (selectionHandling.ts:315) builds `any[]`
+Already up to date.

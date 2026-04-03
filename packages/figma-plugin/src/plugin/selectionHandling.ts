@@ -1,5 +1,5 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
-import type { ExtractedTokenEntry } from '../shared/types.js';
+import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
@@ -229,7 +229,7 @@ export async function clearAllBindings() {
 }
 
 // Get node capabilities for UI filtering
-function getNodeCapabilities(node: SceneNode) {
+function getNodeCapabilities(node: SceneNode): NodeCapabilities {
   return {
     hasFills: 'fills' in node,
     hasStrokes: 'strokes' in node,
@@ -240,8 +240,8 @@ function getNodeCapabilities(node: SceneNode) {
 }
 
 // Read current visual values from a node for display in the inspector
-function readCurrentValues(node: SceneNode): Record<string, any> {
-  const values: Record<string, any> = {};
+function readCurrentValues(node: SceneNode): NodeCurrentValues {
+  const values: NodeCurrentValues = {};
 
   const n = node as Record<string, unknown>;
   if ('fills' in node) {
@@ -256,18 +256,18 @@ function readCurrentValues(node: SceneNode): Record<string, any> {
       values.stroke = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
     }
   }
-  if ('width' in node) values.width = n['width'];
-  if ('height' in node) values.height = n['height'];
-  if ('opacity' in node) values.opacity = n['opacity'];
-  if ('cornerRadius' in node) values.cornerRadius = n['cornerRadius'];
-  if ('strokeWeight' in node) values.strokeWeight = n['strokeWeight'];
+  if ('width' in node) values.width = n['width'] as number;
+  if ('height' in node) values.height = n['height'] as number;
+  if ('opacity' in node) values.opacity = n['opacity'] as number;
+  if ('cornerRadius' in node) values.cornerRadius = n['cornerRadius'] as number;
+  if ('strokeWeight' in node) values.strokeWeight = n['strokeWeight'] as number;
   if ('paddingTop' in node) {
-    values.paddingTop = n['paddingTop'];
-    values.paddingRight = n['paddingRight'];
-    values.paddingBottom = n['paddingBottom'];
-    values.paddingLeft = n['paddingLeft'];
+    values.paddingTop = n['paddingTop'] as number;
+    values.paddingRight = n['paddingRight'] as number;
+    values.paddingBottom = n['paddingBottom'] as number;
+    values.paddingLeft = n['paddingLeft'] as number;
   }
-  if ('itemSpacing' in node) values.itemSpacing = n['itemSpacing'];
+  if ('itemSpacing' in node) values.itemSpacing = n['itemSpacing'] as number;
   if ('visible' in node) values.visible = node.visible;
 
   return values;
@@ -288,8 +288,8 @@ function readNodeBindings(node: SceneNode): Record<string, string> {
   return bindings;
 }
 
-function collectDescendantsWithBindings(node: SceneNode, depth: number): any[] {
-  const results: any[] = [];
+function collectDescendantsWithBindings(node: SceneNode, depth: number): SelectionNodeInfo[] {
+  const results: SelectionNodeInfo[] = [];
   if (!('children' in node)) return results;
   for (const child of (node as SceneNode & { children: readonly SceneNode[] }).children) {
     const bindings = readNodeBindings(child);
@@ -312,17 +312,15 @@ function collectDescendantsWithBindings(node: SceneNode, depth: number): any[] {
 
 export async function getSelection(deepInspectEnabled: boolean) {
   const selection = figma.currentPage.selection;
-  const info: any[] = selection.map(node => {
-    return {
-      id: node.id,
-      name: node.name,
-      type: node.type,
-      bindings: readNodeBindings(node),
-      capabilities: getNodeCapabilities(node),
-      currentValues: readCurrentValues(node),
-      depth: 0,
-    };
-  });
+  const info: SelectionNodeInfo[] = selection.map(node => ({
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    bindings: readNodeBindings(node),
+    capabilities: getNodeCapabilities(node),
+    currentValues: readCurrentValues(node),
+    depth: 0,
+  }));
 
   if (deepInspectEnabled) {
     for (const node of selection) {
