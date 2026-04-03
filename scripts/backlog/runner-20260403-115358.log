@@ -515,3 +515,10 @@ Already up to date.
   → Find & Replace doesn't warn when replacements would break alias references — the regex-based find/replace shows a preview of path changes but doesn't check whether any renamed paths are referenced as alias targets by other tokens; breaking aliases silently creates dangling references that only surface later as validation errors (TokenListModals.tsx ~L818-820)
   Worktree: /tmp/backlog-81661-YQ4LUy
   Running agent… (started 13:22:47)
+
+  ✓ done: Find & Replace doesn't warn when replacements would break alias references
+    Added frAliasImpact memo to useFindReplace hook that scans all loaded token data for alias references to renamed paths; shows an info banner in the preview when other tokens will be auto-updated. Also fixed a latent bug where frTarget/frValuePreview/frValueCount/onSetFrTarget were missing from TokenListModals destructuring block despite being used in JSX.
+    70 turns · 603s · $2.37
+
+  Merging to main: Find & Replace doesn't warn when replacements would break alias references
+Already up to date.

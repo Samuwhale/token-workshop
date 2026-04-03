@@ -934,6 +934,7 @@ export function TokenList({
     frFind, setFrFind, frReplace, setFrReplace,
     frIsRegex, setFrIsRegex, frScope, setFrScope, frTarget, setFrTarget, frError, setFrError, frBusy,
     frRegexError, frPreview, frValuePreview, frConflictCount, frRenameCount, frValueCount,
+    frAliasImpact,
     handleFindReplace, cancelFindReplace,
   } = findReplace;
 
@@ -3750,6 +3751,7 @@ export function TokenList({
         frConflictCount={frConflictCount}
         frRenameCount={frRenameCount}
         frValueCount={frValueCount}
+        frAliasImpact={frAliasImpact}
         onSetFrFind={setFrFind}
         onSetFrReplace={setFrReplace}
         onSetFrIsRegex={setFrIsRegex}

@@ -268,3 +268,18 @@ Already up to date.
 
   Merging to main: HSL/RGB color conversion implemented three separate times
 Already up to date.
+[main bc1e5f22] chore(backlog): done – HSL/RGB color conversion implemented three separate times
+ 10 files changed, 51 insertions(+), 44 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - HSL/RGB color conversion implemented three separate times
+- Exported `hslToSrgb` and `srgbToHsl` from `packages/core/src/color-parse.ts` (added `export` keyword to both functions) and added them to core's `index.ts` re-export list.
+- Removed the duplicate `rgbToHsl` and `hslToRgb` implementations from `packages/figma-plugin/src/ui/shared/colorUtils.ts`. Replaced with imports of `hslToSrgb`/`srgbToHsl` from `@tokenmanager/core`. Updated all internal call sites.
+- Updated `packages/figma-plugin/src/ui/components/ColorPicker.tsx` to import `hslToSrgb` directly from `@tokenmanager/core` instead of `hslToRgb` from colorUtils.
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  15 queued · 3 in-progress · last took 2m56s
+═══════════════════════════════════════════════════════════════
+  → Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback — between the atomic file rename (token-store.ts:593) and the $themes.json update (token-store.ts:615), a server crash leaves themes referencing the old set name with no recovery mechanism; additionally the file-rename rollback on line 618 uses `.catch(() => {})` which silently swallows rename-back failures, so a double failure (themes write fails AND rename-back fails) leaves both files in an inconsistent state with no error logged
+  Worktree: /tmp/backlog-49887-FQ87cJ
+  Running agent… (started 13:32:40)

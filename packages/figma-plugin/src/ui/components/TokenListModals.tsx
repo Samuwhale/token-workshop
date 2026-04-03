@@ -80,6 +80,7 @@ export interface TokenListModalsProps {
   frConflictCount: number;
   frRenameCount: number;
   frValueCount: number;
+  frAliasImpact: { tokenCount: number };
   onSetFrFind: (v: string) => void;
   onSetFrReplace: (v: string) => void;
   onSetFrIsRegex: (v: boolean) => void;
@@ -250,16 +251,21 @@ export function TokenListModals(props: TokenListModalsProps) {
     frReplace,
     frIsRegex,
     frScope,
+    frTarget,
     frError,
     frBusy,
     frRegexError,
     frPreview,
+    frValuePreview,
     frConflictCount,
     frRenameCount,
+    frValueCount,
+    frAliasImpact,
     onSetFrFind,
     onSetFrReplace,
     onSetFrIsRegex,
     onSetFrScope,
+    onSetFrTarget,
     onSetFrError,
     onSetShowFindReplace,
     handleFindReplace,
@@ -818,6 +824,11 @@ export function TokenListModals(props: TokenListModalsProps) {
               {!frError && frTarget === 'names' && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                   ⚠ Empty replacement will delete the matched segment from token paths. This may break references.
+                </div>
+              )}
+              {!frError && frTarget === 'names' && frAliasImpact.tokenCount > 0 && frRenameCount > 0 && (
+                <div className="text-[10px] text-sky-700 bg-sky-50 border border-sky-200 rounded px-2 py-1.5">
+                  ℹ {frAliasImpact.tokenCount} other token{frAliasImpact.tokenCount !== 1 ? 's' : ''} reference{frAliasImpact.tokenCount === 1 ? 's' : ''} the renamed path{frRenameCount !== 1 ? 's' : ''} — {frAliasImpact.tokenCount !== 1 ? 'their' : 'its'} alias values will be updated automatically.
                 </div>
               )}
             </div>

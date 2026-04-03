@@ -82,6 +82,25 @@ function deserializeValue(original: unknown, replaced: string): unknown {
   return replaced;
 }
 
+/**
+ * Check if a token $value contains an alias reference to any path in the given set.
+ * Handles string values, composite object values, and array values recursively.
+ */
+function valueHasAliasToAny(value: unknown, pathSet: Set<string>): boolean {
+  if (typeof value === 'string' && value.includes('{')) {
+    const refRegex = /\{([^}]+)\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = refRegex.exec(value)) !== null) {
+      if (pathSet.has(m[1])) return true;
+    }
+  } else if (Array.isArray(value)) {
+    return value.some(v => valueHasAliasToAny(v, pathSet));
+  } else if (typeof value === 'object' && value !== null) {
+    return Object.values(value as Record<string, unknown>).some(v => valueHasAliasToAny(v, pathSet));
+  }
+  return false;
+}
+
 /** Compute value replacements for a list of tokens. */
 function computeValueReplacements(
   tokens: Array<{ path: string; $value: unknown; setName: string }>,
@@ -192,6 +211,40 @@ export function useFindReplace({
     }
     return allResults;
   }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, tokens, setName, allSets, perSetFlat]);
+
+  /**
+   * Tokens (in any loaded set) whose $value contains an alias reference to a
+   * path that is being renamed. These will be silently updated by the server's
+   * updateBulkAliasRefs — the banner informs the user of this side-effect.
+   */
+  const frAliasImpact = useMemo(() => {
+    if (frTarget !== 'names') return { tokenCount: 0 };
+    const nonConflictRenames = frPreview.filter(r => !r.conflict);
+    if (nonConflictRenames.length === 0) return { tokenCount: 0 };
+
+    // Build a set of the old paths being renamed
+    const renamedPaths = new Set(nonConflictRenames.map(r => r.oldPath));
+    // Build a set of (setName:tokenPath) keys for tokens being renamed — skip self-references
+    const renamedKeys = new Set(nonConflictRenames.map(r => `${r.setName}:${r.oldPath}`));
+
+    let tokenCount = 0;
+    const setsToScan = allSets ?? (perSetFlat ? Object.keys(perSetFlat) : [setName]);
+    const activeSetFlat = Object.fromEntries(flattenTokenPaths(tokens, setName).map(t => [t.path, t]));
+
+    for (const sn of setsToScan) {
+      const flatMap: Record<string, { $value?: unknown }> = sn === setName
+        ? activeSetFlat
+        : (perSetFlat?.[sn] ?? {});
+      for (const [tokenPath, entry] of Object.entries(flatMap)) {
+        if (renamedKeys.has(`${sn}:${tokenPath}`)) continue; // skip the renamed tokens themselves
+        if (valueHasAliasToAny(entry.$value, renamedPaths)) {
+          tokenCount++;
+        }
+      }
+    }
+
+    return { tokenCount };
+  }, [frTarget, frPreview, tokens, setName, allSets, perSetFlat]);
 
   const cancelFindReplace = useCallback(() => {
     if (abortRef.current) {
@@ -443,6 +496,7 @@ export function useFindReplace({
     frConflictCount,
     frRenameCount,
     frValueCount,
+    frAliasImpact,
     handleFindReplace,
     cancelFindReplace,
   };

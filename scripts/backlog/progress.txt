@@ -523,3 +523,18 @@
   - `replace_all` on a substring like `rgbToHsl` will also match inside `srgbToHsl` — always double-check grep results after a bulk replace for unintended partial-string matches.
   - When removing an exported function that other files import, update all call sites to use the canonical name from core (don't leave a thin re-export wrapper — the memory note warns about TDZ risk with re-export chains in singlefile bundles).
 ---
+
+## 2026-04-03 - Find & Replace doesn't warn when replacements would break alias references
+- Added `frAliasImpact` to `useFindReplace.ts`: scans all loaded tokens across sets for `$value` strings (including composite object/array values) that contain `{oldPath}` alias references to paths being renamed. Returns a `{ tokenCount }` — the number of tokens (excluding the renamed ones themselves) that reference renamed paths.
+- Added an info banner in the Find & Replace modal that appears when `frTarget === 'names'` and `frAliasImpact.tokenCount > 0`: "ℹ N other tokens reference the renamed paths — their alias values will be updated automatically." Uses sky/blue styling to distinguish from the amber empty-replacement warning.
+- Also fixed a latent bug: `frTarget`, `frValuePreview`, `frValueCount`, and `onSetFrTarget` were in the `TokenListModalsProps` interface and passed as JSX props, but were never added to the component's destructuring block. This caused silent runtime failures whenever the Find & Replace modal was opened (ReferenceError in strict mode). The destructuring omission was from the previous session's implementation.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L85 (helper fn), ~L218 (frAliasImpact memo), ~L500 (return value)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L936, ~L3718 (thread frAliasImpact)
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L83 (interface), ~L253 (destructuring), ~L823 (banner JSX)
+- **Learnings for future iterations:**
+  - When adding new props to `TokenListModalsProps`, always add them to BOTH the interface AND the destructuring block at ~L205. The destructuring block spans ~90 lines and is easy to miss — grep for a nearby prop name to find the right insertion point.
+  - The server's `bulkRename` always runs `updateBulkAliasRefs` across ALL sets, so alias references genuinely don't break. The warning is informational only.
+  - Composite token `$value` can be objects or arrays with nested string fields — the alias scanner needs to recurse into them (not just check if `$value` is a string).
+  - Esbuild (Vite build) does NOT type-check — TypeScript errors like undefined variables are invisible at build time and only surface at runtime.
+---
