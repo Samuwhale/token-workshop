@@ -1026,6 +1026,14 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       onDuplicateToken?.(node.path);
       return;
     }
+
+    // F2: rename token inline
+    if (e.key === 'F2') {
+      e.preventDefault();
+      setRenameTokenVal(node.name);
+      setRenamingToken(true);
+      return;
+    }
   };
 
   const parentGroupPath = node.path.length > node.name.length ? nodeParentPath(node.path, node.name) : null;
@@ -1692,7 +1700,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setRenamingToken(true);
             }}
           >
-            <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
+            <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F2</span>
           </button>
           {!isAlias(node.$value) && (
             <button

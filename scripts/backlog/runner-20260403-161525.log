@@ -124,3 +124,10 @@ Already up to date.
   → No keyboard shortcut for Delete, Rename, or Duplicate token — common operations like delete (Backspace/Del), rename (F2), and duplicate (Cmd+D) have no keyboard shortcuts despite the tree supporting full keyboard navigation; these are standard shortcuts in Figma's own Variables panel and every file manager (shortcutRegistry.ts, TokenList.tsx)
   Worktree: /tmp/backlog-45818-EhFNfy
   Running agent… (started 16:33:30)
+
+  ✓ done: No keyboard shortcut for Delete, Rename, or Duplicate token
+    Added F2 for inline rename (Delete/Backspace and Cmd+D were already implemented); registered all three in shortcutRegistry.ts for the help modal; updated context menu rename hint from "R" to "F2"; fixed pre-existing duplicate-param build error in TokenGeneratorDialog.tsx
+    51 turns · 334s · $1.37
+
+  Merging to main: No keyboard shortcut for Delete, Rename, or Duplicate token
+Already up to date.

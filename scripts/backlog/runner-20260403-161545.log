@@ -72,3 +72,18 @@ Already up to date.
 
   Merging to main: Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files)
 Already up to date.
+[main ad048086] chore(backlog): done – Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files)
+ 13 files changed, 256 insertions(+), 120 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Plugin sandbox data pipeline is pervasively `any`-typed
+- Defined `DimensionValue`, `ShadowTokenValue`, `TypographyValue`, `BorderValue`, `ResolvedTokenValue` union, `VariableSyncToken`, `ReadVariableToken/Mode/Collection`, `ExportedVariableModeValue/Entry/Collection`, `ConsistencyMatch`, `ConsistencySuggestion` in `shared/types.ts`.
+- Updated all message interfaces: `ApplyToSelectionMessage`, `BatchBindHeatmapNodesMessage`, `ApplyToNodesMessage`, `ApplyVariablesMessage`, `VariablesReadMessage`, `AllVariablesExportedMessage`, `ScanConsistencyMessage`, `ConsistencyScanResultMessage`, `ExtractedTokenEntry` — all use concrete types instead of `any`.
+- `consistencyScanner.ts`: imports `TokenMapEntry`, `ResolvedTokenValue`, `ConsistencyMatch`, `ConsistencySuggestion` from shared; removed local interface duplicates; `buildColorIndex`, `buildSortedNumericIndex`, `scanConsistency`, `addMatch` all typed. Cast `entry.$value as ResolvedTokenValue` at the `TokenValue | TokenReference` boundary.
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  19 queued · 3 in-progress · last took 12m6s
+═══════════════════════════════════════════════════════════════
+  → Token editor save failure has no retry affordance — when saving fails (server error, validation, conflict), the user sees an error message but must manually re-trigger save; add a "Retry" button next to the error message, matching the pattern used in PublishModals (TokenEditor.tsx ~L1067-1070)
+  Worktree: /tmp/backlog-46580-RRMdm6
+  Running agent… (started 16:33:51)

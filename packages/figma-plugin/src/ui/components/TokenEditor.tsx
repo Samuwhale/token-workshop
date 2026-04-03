@@ -745,6 +745,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const initialServerSnapshotRef = useRef<string | null>(null);
   const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
+  // Stores the args of the last failed save so the user can retry it
+  const [saveRetryArgs, setSaveRetryArgs] = useState<[boolean, boolean] | null>(null);
   // Draft recovery: set when the editor loads and finds a newer draft in sessionStorage
   const [pendingDraft, setPendingDraft] = useState<EditorDraftData | null>(null);
 
@@ -1127,10 +1129,12 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   const handleSave = async (forceOverwrite = false, createAnother = false) => {
     if (isCreateMode && !editPath.trim()) {
+      setSaveRetryArgs(null);
       setError('Token path cannot be empty');
       return;
     }
     setSaving(true);
+    setSaveRetryArgs(null);
     setError(null);
     try {
       // Conflict detection: if the token was modified on the server since we loaded it, warn the user.
@@ -1171,6 +1175,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           }
         } catch (err) {
           console.debug('[TokenEditor] invalid extensions JSON:', err);
+          setSaveRetryArgs(null);
           setError('Invalid JSON in Extensions — fix before saving');
           setSaving(false);
           return;
@@ -1198,6 +1203,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       }
     } catch (err) {
       setError(getErrorMessage(err));
+      setSaveRetryArgs([forceOverwrite, createAnother]);
     } finally {
       setSaving(false);
     }
@@ -1379,8 +1385,17 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       {/* Editor body */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
-          <div role="alert" className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto">
-            {error}
+          <div role="alert" className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto flex items-start gap-2">
+            <span className="flex-1">{error}</span>
+            {saveRetryArgs && (
+              <button
+                type="button"
+                onClick={() => { setSaveRetryArgs(null); handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1]); }}
+                className="shrink-0 font-medium underline hover:opacity-80"
+              >
+                Retry
+              </button>
+            )}
           </div>
         )}
 

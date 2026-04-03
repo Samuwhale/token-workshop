@@ -501,3 +501,15 @@
   - Re-exporting types with `export type { Foo }` from a plugin file that imports from shared keeps the shared type as the canonical definition, avoiding duplication while maintaining the original module's export surface.
   - Recursive `type ResolvedTokenValue = ... | Record<string, ResolvedTokenValue>` works in TypeScript ≥3.7 but overlaps structurally with more specific object members (DimensionValue etc.), so discriminating inside switch cases may still require explicit casts.
 ---
+
+## 2026-04-03 - No keyboard shortcut for Delete, Rename, or Duplicate token
+- Added F2 shortcut for inline rename in `handleRowKeyDown` (TokenTreeNode.tsx). Delete/Backspace and Cmd+D were already implemented but undocumented.
+- Added TOKEN_RENAME ('F2'), TOKEN_DELETE ('⌫'), TOKEN_DUPLICATE ('⌘D') constants to SHORTCUT_KEYS in shortcutRegistry.ts, plus registry entries so they appear in the keyboard shortcuts help modal.
+- Updated context menu rename hint from "R" (context-menu accelerator) to "F2" (the standalone shortcut), making the persistent shortcut visible to users.
+- Also fixed a pre-existing build error in TokenGeneratorDialog.tsx: `allTokensFlat` was declared twice in both the Props interface and the component destructuring parameter list.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1024-1036, ~L1703; `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L69-73, ~L115-117; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L58-71, ~L164-172
+- **Learnings for future iterations:**
+  - Delete/Backspace and Cmd+D were already wired in `handleRowKeyDown` — only F2 for rename was missing. Always verify claimed "missing" shortcuts against actual code before implementing.
+  - Context menu accelerator hints (single letter "R") and standalone keyboard shortcuts (F2) serve different purposes — the menu hint should show the standalone shortcut so users discover it can be used outside the menu.
+  - When a duplicate prop/parameter causes a build failure (`"X" cannot be bound multiple times in the same parameter list`), both the interface and the destructuring must be deduplicated, not just one.
+---

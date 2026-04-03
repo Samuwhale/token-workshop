@@ -65,8 +65,6 @@ export interface TokenGeneratorDialogProps {
   onSaved: (info?: { targetGroup: string }) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
   onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
-  /** All tokens flat map for source token autocomplete and inline value matching */
-  allTokensFlat?: Record<string, TokenMapEntry>;
   /** Token path → set name for autocomplete display */
   pathToSet?: Record<string, string>;
 }
@@ -168,7 +166,6 @@ export function TokenGeneratorDialog({
   onClose,
   onSaved,
   onInterceptSemanticMapping,
-  allTokensFlat,
   pathToSet,
 }: TokenGeneratorDialogProps) {
   const {

@@ -68,6 +68,9 @@ export const SHORTCUT_KEYS = {
   TOKEN_MULTI_SELECT:    'M',
   TOKEN_EXPAND_ALL:      '⌘→',
   TOKEN_COLLAPSE_ALL:    '⌘←',
+  TOKEN_RENAME:          'F2',
+  TOKEN_DELETE:          '⌫',
+  TOKEN_DUPLICATE:       '⌘D',
   // Paste Modal
   PASTE_CONFIRM:         '⌘↵',
 } as const;
@@ -110,6 +113,9 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_COPY',            group: 'Token List',      description: 'Copy selected tokens as JSON',   mac: SHORTCUT_KEYS.TOKEN_COPY },
   { id: 'TOKEN_EXPAND_ALL',      group: 'Token List',      description: 'Expand all groups',              mac: SHORTCUT_KEYS.TOKEN_EXPAND_ALL },
   { id: 'TOKEN_COLLAPSE_ALL',    group: 'Token List',      description: 'Collapse all groups',            mac: SHORTCUT_KEYS.TOKEN_COLLAPSE_ALL },
+  { id: 'TOKEN_RENAME',          group: 'Token List',      description: 'Rename token',                   mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },
+  { id: 'TOKEN_DELETE',          group: 'Token List',      description: 'Delete token',                   mac: SHORTCUT_KEYS.TOKEN_DELETE,    altMac: 'Del', displayOnly: true },
+  { id: 'TOKEN_DUPLICATE',       group: 'Token List',      description: 'Duplicate token',                mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
 
   // ── Token Editor ─────────────────────────────────────────────────────────
   { id: 'EDITOR_NEXT',           group: 'Token Editor',    description: 'Next token',                     mac: SHORTCUT_KEYS.EDITOR_NEXT_TOKEN },
