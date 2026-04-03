@@ -8,6 +8,7 @@ import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMap
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { adaptShortcut } from '../shared/utils';
+import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import {
   shouldShowGroup,
@@ -724,7 +725,7 @@ export function SelectionInspector({
             lsSet(STORAGE_KEYS.DEEP_INSPECT, String(next));
             parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           }}
-          title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut('⌘⇧D')})` : `Enable deep inspect to show nested children (${adaptShortcut('⌘⇧D')})`}
+          title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})` : `Enable deep inspect to show nested children (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_DEEP_INSPECT)})`}
           className={`text-[10px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
             deepInspect
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'

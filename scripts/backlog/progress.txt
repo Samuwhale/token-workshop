@@ -316,3 +316,18 @@
   - The `inverseSteps` were already computed before `executeSteps` was called — so the rollback guard only required wrapping the execution in try/catch, not restructuring the computation order.
   - The revert attempt in the catch block is best-effort (inner try/catch suppresses revert failures) — always re-throw the original error so the HTTP layer sees the root cause.
 ---
+
+## 2026-04-03 - Keyboard shortcut definitions scattered across 5+ files with no single source of truth
+- Created `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` as the single source of truth. Exports: `SHORTCUT_KEYS` (named constants for all Mac key-combo strings), `ShortcutEntry` interface with `mac`/`altMac`/`displayOnly` fields, `SHORTCUT_REGISTRY` (array of all 35 entries across 7 groups), and `SHORTCUT_SECTIONS` (pre-grouped for the modal).
+- Rewrote `KeyboardShortcutsModal.tsx` to import and render `SHORTCUT_SECTIONS` instead of a static hardcoded `SECTIONS` array — the display list can no longer drift from the registry.
+- Updated `App.tsx` to import `SHORTCUT_KEYS` and replaced 9 hardcoded shortcut strings in `commands[]` array and JSX with registry constants.
+- Updated `TokenEditor.tsx` to replace 4 hardcoded `'⌘↵'`/`'⌘⇧↵'` strings in button labels/titles.
+- Updated `SelectionInspector.tsx` to replace 2 hardcoded `'⌘⇧D'` strings in a title attribute.
+- Handler logic (native `e.key` matching) was intentionally left untouched — only display strings centralised.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` (new), `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L1, `packages/figma-plugin/src/ui/App.tsx` ~L63, ~L762-941, ~L1084-1219, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1, ~L1527-1544, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L10, ~L727
+- **Learnings for future iterations:**
+  - The `altMac?: string` field on `ShortcutEntry` cleanly handles Redo's `⌘⇧Z / ⌘Y` alternate display without complicating the main structure.
+  - `displayOnly?: true` flag distinguishes documentation-only entries (e.g. `↑↓ Navigate rows`) from handler-backed shortcuts — useful for future auditing.
+  - `GROUP_ORDER` array with explicit ordering ensures section display order is always deterministic (avoids relying on object key insertion order).
+  - Placing the registry in `shared/` (not `components/`) is correct since it has no React dependency and must be imported by both App.tsx and leaf components.
+---

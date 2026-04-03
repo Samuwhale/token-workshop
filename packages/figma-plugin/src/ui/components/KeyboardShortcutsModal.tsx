@@ -1,80 +1,5 @@
 import { adaptShortcut } from '../shared/utils';
-
-interface ShortcutSection {
-  header: string;
-  shortcuts: { keys: string[]; label: string }[];
-}
-
-const SECTIONS: ShortcutSection[] = [
-  {
-    header: 'Global',
-    shortcuts: [
-      { keys: ['⌘K'], label: 'Open command palette' },
-      { keys: ['⌘⇧V'], label: 'Paste tokens' },
-      { keys: ['⌘,'], label: 'Open settings' },
-      { keys: ['⌘Z'], label: 'Undo' },
-      { keys: ['⌘⇧Z', '⌘Y'], label: 'Redo' },
-    ],
-  },
-  {
-    header: 'Navigation',
-    shortcuts: [
-      { keys: ['⌘1'], label: 'Go to Define' },
-      { keys: ['⌘2'], label: 'Go to Apply' },
-      { keys: ['⌘3'], label: 'Go to Ship' },
-      { keys: ['⌘⇧S'], label: 'Quick-switch token set' },
-    ],
-  },
-  {
-    header: 'Command Palette',
-    shortcuts: [
-      { keys: ['↑↓'], label: 'Navigate results' },
-      { keys: ['↵'], label: 'Run selected command' },
-      { keys: ['>'], label: 'Switch to token search' },
-      { keys: ['Esc'], label: 'Close palette' },
-    ],
-  },
-  {
-    header: 'Inspect',
-    shortcuts: [
-      { keys: ['⌘⇧A'], label: 'Quick apply token to selection' },
-      { keys: ['⌘T'], label: 'Create token from selection' },
-      { keys: ['⌘⇧D'], label: 'Toggle deep inspect' },
-    ],
-  },
-  {
-    header: 'Token List',
-    shortcuts: [
-      { keys: ['N'], label: 'New token' },
-      { keys: ['Double-click'], label: 'Edit token' },
-      { keys: ['/'], label: 'Focus search' },
-      { keys: ['M'], label: 'Toggle multi-select mode' },
-      { keys: ['↑↓'], label: 'Navigate rows' },
-      { keys: ['←→'], label: 'Collapse / expand group' },
-      { keys: ['Esc'], label: 'Exit multi-select / close form' },
-      { keys: ['⌘C'], label: 'Copy selected tokens as JSON' },
-      { keys: ['⌘→'], label: 'Expand all groups' },
-      { keys: ['⌘←'], label: 'Collapse all groups' },
-    ],
-  },
-  {
-    header: 'Token Editor',
-    shortcuts: [
-      { keys: ['⌘]'], label: 'Next token' },
-      { keys: ['⌘['], label: 'Previous token' },
-      { keys: ['⌘L'], label: 'Toggle reference mode' },
-      { keys: ['⌘↵'], label: 'Save token' },
-      { keys: ['⌘⇧↵'], label: 'Save and create another' },
-      { keys: ['Esc'], label: 'Back / discard' },
-    ],
-  },
-  {
-    header: 'Paste Modal',
-    shortcuts: [
-      { keys: ['⌘↵'], label: 'Confirm paste' },
-    ],
-  },
-];
+import { SHORTCUT_SECTIONS } from '../shared/shortcutRegistry';
 
 interface KeyboardShortcutsModalProps {
   onClose: () => void;
@@ -110,28 +35,26 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
         {/* Shortcut list */}
         <div className="overflow-y-auto flex-1 py-1">
-          {SECTIONS.map(section => (
+          {SHORTCUT_SECTIONS.map(section => (
             <div key={section.header}>
               <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
                 {section.header}
               </div>
-              {section.shortcuts.map(({ keys, label }) => (
-                <div key={label} className="flex items-center justify-between px-3 py-1.5">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">{label}</span>
+              {section.shortcuts.map(({ mac, altMac, description }) => (
+                <div key={description} className="flex items-center justify-between px-3 py-1.5">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">{description}</span>
                   <div className="flex items-center gap-1 shrink-0">
-                    {keys.map((key, i) => (
+                    <kbd className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans">
+                      {adaptShortcut(mac)}
+                    </kbd>
+                    {altMac && (
                       <>
-                        {i > 0 && (
-                          <span key={`sep-${i}`} className="text-[10px] text-[var(--color-figma-text-secondary)]">/</span>
-                        )}
-                        <kbd
-                          key={key}
-                          className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans"
-                        >
-                          {adaptShortcut(key)}
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">/</span>
+                        <kbd className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans">
+                          {adaptShortcut(altMac)}
                         </kbd>
                       </>
-                    ))}
+                    )}
                   </div>
                 </div>
               ))}

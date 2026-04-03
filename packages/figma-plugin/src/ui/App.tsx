@@ -61,6 +61,7 @@ import { useLintConfig } from './hooks/useLintConfig';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { adaptShortcut } from './shared/utils';
+import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
@@ -759,7 +760,7 @@ export function App() {
         label: 'Create new token',
         description: `In set: ${activeSet}`,
         category: 'Tokens',
-        shortcut: adaptShortcut('⌘T'),
+        shortcut: adaptShortcut(SHORTCUT_KEYS.CREATE_FROM_SELECTION),
         handler: () => { goToTokens(); },
       },
       {
@@ -767,7 +768,7 @@ export function App() {
         label: 'Switch set\u2026',
         description: `${sets.length} set${sets.length !== 1 ? 's' : ''} available`,
         category: 'Sets',
-        shortcut: adaptShortcut('⌘⇧S'),
+        shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
         handler: () => setShowSetSwitcher(true),
       },
       {
@@ -775,7 +776,7 @@ export function App() {
         label: 'Paste tokens',
         description: 'Create tokens from JSON, CSS vars, CSV, or Tailwind config',
         category: 'Tokens',
-        shortcut: adaptShortcut('⌘⇧V'),
+        shortcut: adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS),
         handler: () => setShowPasteModal(true),
       },
       {
@@ -833,7 +834,7 @@ export function App() {
         label: 'Quick apply token to selection',
         description: 'Contextual token picker — infers property, shows relevant tokens',
         category: 'Selection',
-        shortcut: adaptShortcut('⌘⇧A'),
+        shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_QUICK_APPLY),
         handler: () => { if (selectedNodes.length > 0) setShowQuickApply(true); },
       },
       {
@@ -878,7 +879,7 @@ export function App() {
           ? `Cycle through ${lintViolations.length} validation issue${lintViolations.length === 1 ? '' : 's'} in the current set`
           : 'No validation issues in the current set',
         category: 'Tokens',
-        shortcut: 'F8',
+        shortcut: SHORTCUT_KEYS.NEXT_LINT_ISSUE,
         handler: jumpToNextIssue,
       },
       {
@@ -938,7 +939,7 @@ export function App() {
         label: 'Keyboard shortcuts\u2026',
         description: 'View all keyboard shortcuts',
         category: 'Help',
-        shortcut: '?',
+        shortcut: SHORTCUT_KEYS.SHOW_SHORTCUTS,
         handler: () => setShowKeyboardShortcuts(true),
       },
       // Server-side undo: recent operations with rollback
@@ -1081,14 +1082,14 @@ export function App() {
         <button
           onClick={() => setShowCommandPalette(v => !v)}
           className="flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
-          title={`Command palette (${adaptShortcut('⌘K')})`}
+          title={`Command palette (${adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)})`}
           aria-label="Open command palette"
         >
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="4.5" cy="4.5" r="3.5"/>
             <path d="M8 8l2 2"/>
           </svg>
-          <span className="opacity-50">{adaptShortcut('⌘K')}</span>
+          <span className="opacity-50">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
         </button>
 
         {/* Second screen / expand toggle */}
@@ -1216,7 +1217,7 @@ export function App() {
                 onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Paste tokens <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut('⌘⇧V')}</span>
+                Paste tokens <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS)}</span>
               </button>
               <button
                 role="menuitem"

@@ -1,4 +1,5 @@
 import { getErrorMessage, adaptShortcut } from '../shared/utils';
+import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { Spinner } from './Spinner';
 import { apiFetch } from '../shared/apiFetch';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -1746,24 +1747,24 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           <button
             onClick={() => handleSave(false, true)}
             disabled={saving || !canSave || !editPath.trim()}
-            title={`Create this token and immediately start creating another (${adaptShortcut('⌘⇧↵')})`}
+            title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
             className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Creating…' : (<>Create & New <span className="ml-1 opacity-50 text-[10px]">{adaptShortcut('⌘⇧↵')}</span></>)}
+            {saving ? 'Creating…' : (<>Create & New <span className="ml-1 opacity-50 text-[10px]">{adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}</span></>)}
           </button>
         )}
         <div className="flex-1" onClick={() => { if (!canSave && saveBlockReason && tokenType === 'typography') focusBlockedField(); }}>
           <button
             onClick={() => handleSave()}
             disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
-            title={saveBlockReason || `Save (${adaptShortcut('⌘↵')})`}
+            title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
             className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving
               ? (isCreateMode ? 'Creating…' : 'Saving…')
               : (saveBlockReason
                 ? saveBlockReason
-                : (!isCreateMode && !isDirty ? 'No changes' : (<>{isCreateMode ? 'Create' : 'Save changes'} <span className="ml-1 opacity-60 text-[10px]">{adaptShortcut('⌘↵')}</span></>)))}
+                : (!isCreateMode && !isDirty ? 'No changes' : (<>{isCreateMode ? 'Create' : 'Save changes'} <span className="ml-1 opacity-60 text-[10px]">{adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)}</span></>)))}
           </button>
         </div>
       </div>

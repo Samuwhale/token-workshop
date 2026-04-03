@@ -153,3 +153,12 @@ Already up to date.
 
   Merging to main: Operation-log rollback is not transactional
 Already up to date.
+[main 8cbda1fa] chore(backlog): done – Operation-log rollback is not transactional
+ 6 files changed, 78 insertions(+), 32 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1062 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

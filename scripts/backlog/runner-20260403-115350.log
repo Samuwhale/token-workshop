@@ -193,3 +193,10 @@ Already up to date.
   → Keyboard shortcut definitions are scattered across 5+ files with no single source of truth — handlers live in App.tsx, TokenList.tsx, TokenEditor.tsx, SelectionInspector.tsx, and CommandPalette.tsx while KeyboardShortcutsModal.tsx has its own static display list; adding or changing a shortcut requires updating multiple files and the documentation can easily drift from reality; consolidate into a single shortcut registry that both handlers and the help modal consume
   Worktree: /tmp/backlog-81267-garGHx
   Running agent… (started 12:07:25)
+
+  ✓ done: Keyboard shortcut definitions are scattered across 5+ files with no single source of truth
+    Created shortcutRegistry.ts with SHORTCUT_KEYS constants, ShortcutEntry types, SHORTCUT_REGISTRY array, and SHORTCUT_SECTIONS; updated KeyboardShortcutsModal.tsx to render from registry; replaced hardcoded strings in App.tsx, TokenEditor.tsx, SelectionInspector.tsx
+    45 turns · 429s · $1.53
+
+  Merging to main: Keyboard shortcut definitions are scattered across 5+ files with no single source of truth
+Already up to date.
