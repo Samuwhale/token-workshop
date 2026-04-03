@@ -331,3 +331,10 @@
   - `GROUP_ORDER` array with explicit ordering ensures section display order is always deterministic (avoids relying on object key insertion order).
   - Placing the registry in `shared/` (not `components/`) is correct since it has no React dependency and must be imported by both App.tsx and leaf components.
 ---
+
+## 2026-04-03 - Plugin sandbox message handlers missing try-catch (search-layers, find-peers-for-property, eyedropper)
+- Wrapped `search-layers`, `find-peers-for-property`, and `eyedropper`/`sampleSelectionColor` handlers in try-catch blocks calling `reportError()`, consistent with all other handlers in the switch statement.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L319, ~L322, ~L349
+- **Learnings for future iterations:**
+  - All case branches in `figma.ui.onmessage` must be wrapped in try-catch to prevent a single thrown error from crashing the entire message loop and bricking the plugin until reload.
+---

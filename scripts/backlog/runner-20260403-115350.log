@@ -200,3 +200,26 @@ Already up to date.
 
   Merging to main: Keyboard shortcut definitions are scattered across 5+ files with no single source of truth
 Already up to date.
+[main 73751693] chore(backlog): done – Keyboard shortcut definitions are scattered across 5+ files with no single source of truth
+ 10 files changed, 202 insertions(+), 106 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/shortcutRegistry.ts
+  ✓ Merged and marked done
+
+## 2026-04-03 - Keyboard shortcut definitions scattered across 5+ files with no single source of truth
+- Created `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` as the single source of truth. Exports: `SHORTCUT_KEYS` (named constants for all Mac key-combo strings), `ShortcutEntry` interface with `mac`/`altMac`/`displayOnly` fields, `SHORTCUT_REGISTRY` (array of all 35 entries across 7 groups), and `SHORTCUT_SECTIONS` (pre-grouped for the modal).
+- Rewrote `KeyboardShortcutsModal.tsx` to import and render `SHORTCUT_SECTIONS` instead of a static hardcoded `SECTIONS` array — the display list can no longer drift from the registry.
+- Updated `App.tsx` to import `SHORTCUT_KEYS` and replaced 9 hardcoded shortcut strings in `commands[]` array and JSX with registry constants.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  4 queued · 3 in-progress · last took 7m17s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox has 3 message handlers without try-catch that can crash the entire message loop — `search-layers` (controller.ts:320), `find-peers-for-property` (controller.ts:322), and `eyedropper`/`sampleSelectionColor` (controller.ts:350) are not wrapped in try-catch unlike all other handlers; if any of these throw, the `figma.ui.onmessage` handler crashes and stops processing all subsequent messages, effectively bricking the plugin until reload
+  Worktree: /tmp/backlog-81267-hrEAOL
+  Running agent… (started 12:14:41)
+
+  ✓ done: Plugin sandbox has 3 message handlers without try-catch that can crash the entire message loop
+    Wrapped search-layers, find-peers-for-property, and eyedropper handlers in try-catch blocks calling reportError(), matching all other handlers in the switch statement
+    7 turns · 36s · $0.14
+
+  Merging to main: Plugin sandbox has 3 message handlers without try-catch that can crash the entire message loop
+Already up to date.

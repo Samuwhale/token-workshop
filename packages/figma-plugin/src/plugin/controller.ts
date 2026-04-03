@@ -317,10 +317,18 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'search-layers':
-      searchLayers(msg.query);
+      try {
+        searchLayers(msg.query);
+      } catch (e) {
+        reportError('search-layers', e);
+      }
       break;
     case 'find-peers-for-property':
-      findPeersForProperty(msg.nodeId, msg.property);
+      try {
+        findPeersForProperty(msg.nodeId, msg.property);
+      } catch (e) {
+        reportError('find-peers-for-property', e);
+      }
       break;
     case 'apply-to-nodes':
       try {
@@ -347,7 +355,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     }
     case 'eyedropper':
-      sampleSelectionColor();
+      try {
+        sampleSelectionColor();
+      } catch (e) {
+        reportError('eyedropper', e);
+      }
       break;
     case 'get-active-themes': {
       try {
