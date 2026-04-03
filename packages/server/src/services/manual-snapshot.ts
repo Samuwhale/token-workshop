@@ -43,27 +43,27 @@ const MAX_SNAPSHOTS = 20;
 export class ManualSnapshotStore {
   private filePath: string;
   private snapshots: ManualSnapshotEntry[] = [];
-  private loaded = false;
+  private loadPromise: Promise<void> | null = null;
 
   constructor(tokenDir: string) {
     const tmDir = path.join(path.resolve(tokenDir), '.tokenmanager');
     this.filePath = path.join(tmDir, 'snapshots.json');
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (this.loaded) return;
-    try {
-      const raw = await fs.readFile(this.filePath, 'utf-8');
-      this.snapshots = JSON.parse(raw) as ManualSnapshotEntry[];
-    } catch {
-      this.snapshots = [];
+  private ensureLoaded(): Promise<void> {
+    if (!this.loadPromise) {
+      this.loadPromise = fs.readFile(this.filePath, 'utf-8')
+        .then(raw => { this.snapshots = JSON.parse(raw) as ManualSnapshotEntry[]; })
+        .catch(() => { this.snapshots = []; });
     }
-    this.loaded = true;
+    return this.loadPromise;
   }
 
   private async persist(): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.snapshots, null, 2), 'utf-8');
+    const tmp = `${this.filePath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(this.snapshots, null, 2), 'utf-8');
+    await fs.rename(tmp, this.filePath);
   }
 
   /** Capture the current state of all token sets. */

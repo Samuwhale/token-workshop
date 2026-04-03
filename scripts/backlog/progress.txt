@@ -356,3 +356,13 @@
   - `VALID_GENERATOR_TYPES` in `routes/generators.ts` and the `Set` in `services/generator-service.ts` must stay in sync. The route list is a string array for `.includes()`, the service uses a `ReadonlySet` for `.has()` — both need updating when a new type is added to core.
   - `snapshotGroup` with an empty string prefix `''` would actually match ALL tokens (since every path starts with `''`), but the code used `|| '__root__'` instead of passing `''`, so the empty string branch was never reached. Using `snapshotSet` is the correct and explicit choice for root snapshots.
 ---
+
+## 2026-04-03 - Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
+- Fixed `OperationLog.ensureLoaded` race: replaced `loaded: boolean` flag with `loadPromise: Promise<void> | null`. First call creates and caches the promise; concurrent callers all await the same promise, preventing double-parse and lost entries.
+- Fixed `ManualSnapshotStore.ensureLoaded` with the same promise-caching pattern.
+- Fixed `ManualSnapshotStore.persist` to use the tmp-rename atomic write pattern (matching `OperationLog.persist` and `DimensionsStore`), eliminating risk of file corruption on crash mid-write.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L82-L103, `packages/server/src/services/manual-snapshot.ts` ~L43-L67
+- **Learnings for future iterations:**
+  - The `loaded: boolean` guard is only safe for single-threaded synchronous code. In async Node.js, `if (!this.loaded)` lets multiple concurrent callers pass before any sets it to `true`. The fix: cache the `Promise` itself, not its result. All callers await the same promise; after resolution, `loadPromise !== null` is the single gate.
+  - Both `OperationLog` and `ManualSnapshotStore` had the same pattern — always check sibling services for the same bug when fixing one.
+---

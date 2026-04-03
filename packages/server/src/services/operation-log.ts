@@ -83,7 +83,7 @@ export class OperationLog {
   private entries: OperationEntry[] = [];
   private filePath: string;
   private tokenDir: string;
-  private loaded = false;
+  private loadPromise: Promise<void> | null = null;
 
   constructor(tokenDir: string) {
     this.tokenDir = path.resolve(tokenDir);
@@ -91,15 +91,13 @@ export class OperationLog {
     this.filePath = path.join(tmDir, 'operations.json');
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (this.loaded) return;
-    try {
-      const raw = await fs.readFile(this.filePath, 'utf-8');
-      this.entries = JSON.parse(raw) as OperationEntry[];
-    } catch {
-      this.entries = [];
+  private ensureLoaded(): Promise<void> {
+    if (!this.loadPromise) {
+      this.loadPromise = fs.readFile(this.filePath, 'utf-8')
+        .then(raw => { this.entries = JSON.parse(raw) as OperationEntry[]; })
+        .catch(() => { this.entries = []; });
     }
-    this.loaded = true;
+    return this.loadPromise;
   }
 
   private async persist(): Promise<void> {

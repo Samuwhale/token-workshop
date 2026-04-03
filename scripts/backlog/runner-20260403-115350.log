@@ -393,3 +393,10 @@ Already up to date.
   → Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs — OperationLog.ensureLoaded has no guard against concurrent first-call races (two requests arriving before the first record() completes both parse the file and the second overwrites the first's append), and ManualSnapshotStore.persist uses plain writeFile instead of the tmp-rename atomic pattern used by OperationLog and DimensionsStore, risking corruption on crash
   Worktree: /tmp/backlog-81267-inZf4S
   Running agent… (started 12:39:59)
+
+  ✓ done: Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
+    Fixed ensureLoaded race in both OperationLog and ManualSnapshotStore by caching the load Promise (not a boolean flag); fixed ManualSnapshotStore.persist to use atomic tmp-rename write.
+    9 turns · 77s · $0.25
+
+  Merging to main: Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
+Already up to date.

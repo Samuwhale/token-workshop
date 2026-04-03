@@ -50,3 +50,18 @@ Already up to date.
 
   Merging to main: Server generator routes reject valid shadowScale type and root-metadata rollback is broken
 Already up to date.
+[main 93b55597] chore(backlog): done – Server generator routes reject valid shadowScale type and root-metadata rollback is broken
+ 7 files changed, 70 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server generator routes reject valid shadowScale type and root-metadata rollback is broken
+- Added `'shadowScale'` to `VALID_GENERATOR_TYPES` array in `routes/generators.ts` (was missing, causing 400 on POST/PUT for shadow scale generators). Also added `ShadowScaleConfig` import and a full `shadowScale` case in `validateGeneratorConfig` that validates `color` (string) and `steps` (Array<{name, offsetX, offsetY, blur, spread, opacity}>).
+- Fixed the `snapshotGroup(..., '__root__')` sentinel in `routes/tokens.ts` PATCH `/tokens/:set/groups/meta`. When `groupPath` is empty (root-level metadata update), `snapshotGroup` with `'__root__'` matched no real token paths, producing an empty snapshot and making the operation non-rollbackable. Fix: use `snapshotSet` when `groupPath` is empty, `snapshotGroup` otherwise.
+- Files changed: `packages/server/src/routes/generators.ts` ~L14 (import), ~L24 (VALID_GENERATOR_TYPES), ~L216 (shadowScale case in validateGeneratorConfig); `packages/server/src/routes/tokens.ts` ~L269 (snapshotGroup → snapshotSet for root)
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  5 queued · 4 in-progress · last took 1m47s
+═══════════════════════════════════════════════════════════════
+  → No PluginResponse discriminated union for controller→UI messages — shared/types.ts defines PluginMessage (UI→controller, 35 types) but has no corresponding outbound type; at least 6 response types (applied-to-nodes, search-layers-result, peers-for-property-result, removed-binding-from-node, select-next-sibling-result, scan-token-usage-result) are posted from controller.ts/selectionHandling.ts/heatmapScanning.ts without type declarations, making it impossible for UI code to type-guard responses
+  Worktree: /tmp/backlog-49887-k0txtO
+  Running agent… (started 12:41:20)
