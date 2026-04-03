@@ -152,3 +152,10 @@ Already up to date.
   → No Tokens Studio import format — EmptyState.tsx line 133 mentions "Tokens Studio" as a supported format but ImportPanel has no dedicated Tokens Studio importer; Tokens Studio JSON uses a different structure than DTCG (nested groups with $value but also $type inheritance and set references); users migrating from Tokens Studio must manually convert their files before importing (ImportPanel.tsx)
   Worktree: /tmp/backlog-46178-4PLDht
   Running agent… (started 17:12:28)
+
+  ✓ done: No Tokens Studio import format — EmptyState.tsx line 133 mentions "Tokens Studio" as a supported format but ImportPanel has no dedicated Tokens Studio importer
+    Added full Tokens Studio JSON importer: parser in tokenParsers.ts (handles old/new format, type mapping, set ordering), dedicated button in ImportPanel.tsx, auto-detection in drag-and-drop JSON handler, single-set → flat list flow, multi-set → collection/modes flow reusing Figma Variables UI
+    38 turns · 523s · $1.67
+
+  Merging to main: No Tokens Studio import format — EmptyState.tsx line 133 mentions "Tokens Studio" as a supported format but ImportPanel has no dedicated Tokens Studio importer
+Already up to date.

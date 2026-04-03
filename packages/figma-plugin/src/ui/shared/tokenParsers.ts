@@ -10,7 +10,7 @@ export interface ParsedToken {
   $value: unknown;
 }
 
-export type ParseFormat = 'dtcg' | 'lines' | 'css' | 'csv' | 'tailwind' | 'empty' | 'error';
+export type ParseFormat = 'dtcg' | 'lines' | 'css' | 'csv' | 'tailwind' | 'tokens-studio' | 'empty' | 'error';
 
 export interface ParseResult {
   tokens: ParsedToken[];
@@ -392,6 +392,170 @@ export function parseInput(raw: string): ParseResult {
     tokens.push({ path, ...inferType(rawValue) });
   }
   return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'lines' };
+}
+
+// ---------------------------------------------------------------------------
+// Tokens Studio importer
+// ---------------------------------------------------------------------------
+
+/**
+ * Tokens Studio uses non-standard type names. Map them to DTCG equivalents.
+ * Types already matching DTCG names pass through unchanged via the fallback.
+ */
+const TS_TYPE_MAP: Record<string, string> = {
+  fontSizes: 'dimension',
+  fontFamilies: 'fontFamily',
+  fontWeights: 'fontWeight',
+  lineHeights: 'dimension',
+  letterSpacing: 'dimension',
+  paragraphSpacing: 'dimension',
+  textDecoration: 'string',
+  textCase: 'string',
+  spacing: 'dimension',
+  sizing: 'dimension',
+  borderRadius: 'dimension',
+  borderWidth: 'dimension',
+  boxShadow: 'shadow',
+  opacity: 'number',
+  asset: 'string',
+  other: 'string',
+};
+
+function normalizeTsType(tsType: string | undefined): string {
+  if (!tsType) return 'string';
+  return TS_TYPE_MAP[tsType] ?? tsType;
+}
+
+/** Recursively flatten a Tokens Studio token group into ParsedToken[]. Handles both
+ *  old format (value/type) and new format ($value/$type). */
+function flattenTsGroup(obj: Record<string, unknown>, prefix = '', inheritedType?: string): ParsedToken[] {
+  const results: ParsedToken[] = [];
+  // Pick up group-level $type / type for inheritance
+  const levelType =
+    typeof obj['$type'] === 'string' ? (obj['$type'] as string) :
+    typeof obj['type'] === 'string' ? (obj['type'] as string) :
+    inheritedType;
+
+  for (const [key, val] of Object.entries(obj)) {
+    // Skip metadata keys at any level
+    if (key === '$type' || key === 'type' || key === '$description' || key === 'description' ||
+        key === '$extensions' || key === 'extensions') continue;
+
+    const path = prefix ? `${prefix}.${key}` : key;
+
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      const node = val as Record<string, unknown>;
+      const hasNewValue = '$value' in node;
+      const hasOldValue = 'value' in node;
+
+      if (hasNewValue || hasOldValue) {
+        // Token node
+        const rawValue = hasNewValue ? node['$value'] : node['value'];
+        const rawType =
+          typeof node['$type'] === 'string' ? (node['$type'] as string) :
+          typeof node['type'] === 'string' ? (node['type'] as string) :
+          levelType;
+        results.push({ path, $type: normalizeTsType(rawType), $value: rawValue });
+      } else {
+        // Group node — recurse
+        results.push(...flattenTsGroup(node, path, levelType));
+      }
+    }
+    // Primitive values at group level are metadata, skip them
+  }
+  return results;
+}
+
+/** Scan up to `maxDepth` levels for old-format tokens (value without $value). */
+function hasOldFormatTokens(obj: Record<string, unknown>, depth: number): boolean {
+  if (depth > 3) return false;
+  for (const val of Object.values(obj)) {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      const node = val as Record<string, unknown>;
+      if ('value' in node && !('$value' in node)) return true;
+      if (hasOldFormatTokens(node, depth + 1)) return true;
+    }
+  }
+  return false;
+}
+
+/** Return true if the root object looks like a Tokens Studio export. */
+export function isTokensStudioFormat(obj: Record<string, unknown>): boolean {
+  // Strong signal: $metadata.tokenSetOrder array
+  const meta = obj['$metadata'];
+  if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
+    if (Array.isArray((meta as Record<string, unknown>)['tokenSetOrder'])) return true;
+  }
+  // Strong signal: $themes array
+  if (Array.isArray(obj['$themes'])) return true;
+
+  // Moderate signal: old-format tokens anywhere in top-level non-$ groups
+  const topKeys = Object.keys(obj).filter(k => !k.startsWith('$'));
+  for (const key of topKeys) {
+    const val = obj[key];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      if (hasOldFormatTokens(val as Record<string, unknown>, 0)) return true;
+    }
+  }
+  return false;
+}
+
+export interface TokensStudioParseResult {
+  /** Map of set name → flat token list, in tokenSetOrder if available. */
+  sets: Map<string, ParsedToken[]>;
+  errors: string[];
+}
+
+/**
+ * Parse a Tokens Studio JSON export.
+ * Returns a map of set name → tokens. Special top-level keys ($themes, $metadata,
+ * $sets) are skipped. tokenSetOrder from $metadata is respected for ordering.
+ */
+export function parseTokensStudioFile(raw: string): TokensStudioParseResult {
+  const errors: string[] = [];
+  const sets = new Map<string, ParsedToken[]>();
+
+  let obj: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { sets, errors: ['Expected a JSON object'] };
+    }
+    obj = parsed as Record<string, unknown>;
+  } catch (e) {
+    return { sets, errors: [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`] };
+  }
+
+  // Extract tokenSetOrder from $metadata for deterministic ordering
+  let setOrder: string[] | null = null;
+  const meta = obj['$metadata'];
+  if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
+    const order = (meta as Record<string, unknown>)['tokenSetOrder'];
+    if (Array.isArray(order)) {
+      setOrder = order.filter((s): s is string => typeof s === 'string');
+    }
+  }
+
+  const SKIP_KEYS = new Set(['$themes', '$metadata', '$sets']);
+  const topKeys = Object.keys(obj).filter(k => !SKIP_KEYS.has(k));
+
+  // Honour setOrder but also include any keys not listed in it
+  const orderedKeys = setOrder
+    ? [...setOrder.filter(k => topKeys.includes(k)), ...topKeys.filter(k => !(setOrder as string[]).includes(k))]
+    : topKeys;
+
+  for (const key of orderedKeys) {
+    const val = obj[key];
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) continue;
+    const tokens = flattenTsGroup(val as Record<string, unknown>);
+    if (tokens.length > 0) sets.set(key, tokens);
+  }
+
+  if (sets.size === 0 && topKeys.length > 0) {
+    errors.push('No tokens found in file. Expected Tokens Studio JSON with nested groups containing "value" or "$value" fields.');
+  }
+
+  return { sets, errors };
 }
 
 // ---------------------------------------------------------------------------

@@ -235,3 +235,18 @@ Already up to date.
 
   Merging to main: Server themes routes and resolver-store use Object.assign instead of typed error classes
 Already up to date.
+[main 8bc42fde] chore(backlog): done – Server themes routes and resolver-store use Object.assign instead of typed error classes
+ 6 files changed, 55 insertions(+), 33 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Replace Object.assign error pattern with typed error classes in themes/resolvers routes
+- Replaced all 14 `Object.assign(new Error(...), { statusCode })` calls in `routes/themes.ts` with `NotFoundError`, `ConflictError`, or `BadRequestError` from `errors.ts`. Added the typed imports alongside the existing `handleRouteError` import.
+- Replaced all 6 `Object.assign(new Error(...), { statusCode })` calls in `services/resolver-store.ts` with typed error classes. Added import from `../errors.js`.
+- Replaced all 4 manual `(err as Error & { statusCode?: number })` extraction blocks in `routes/resolvers.ts` with `handleRouteError(reply, err, fallbackMsg)`.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  7 queued · 2 in-progress · last took 2m39s
+═══════════════════════════════════════════════════════════════
+  → Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop — useFindReplace.ts L326-337 iterates `setNames` with an `ac.signal.aborted` break guard, but the undo registration at L344-370 uses `capturedSets = Object.keys(renamedBySet)` which correctly only includes sets where `renamed > 0`; however the redo handler at L360-370 calls bulk-rename on all `capturedSets` which may include sets that were only partially renamed (the abort can occur after the API call for a set succeeds but before the response count is processed); track exactly which sets completed successfully and only register undo/redo for those
+  Worktree: /tmp/backlog-45818-h8YINM
+  Running agent… (started 17:20:40)

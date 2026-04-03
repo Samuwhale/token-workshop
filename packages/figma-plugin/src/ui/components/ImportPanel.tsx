@@ -6,7 +6,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { parseCSSCustomProperties, parseTailwindConfigFile } from '../shared/tokenParsers';
+import { parseCSSCustomProperties, parseTailwindConfigFile, isTokensStudioFormat, parseTokensStudioFile } from '../shared/tokenParsers';
 
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;
@@ -156,10 +156,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [targetSet, setTargetSet] = useState(() => lsGet(STORAGE_KEYS.IMPORT_TARGET_SET, 'imported'));
   const [sets, setSets] = useState<string[]>([]);
   const [setsError, setSetsError] = useState<string | null>(null);
-  const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | null>(null);
+  const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cssFileInputRef = useRef<HTMLInputElement | null>(null);
   const tailwindFileInputRef = useRef<HTMLInputElement | null>(null);
+  const tokensStudioFileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [failedImportBatches, setFailedImportBatches] = useState<{ setName: string; tokens: Record<string, unknown>[] }[]>([]);
@@ -451,6 +452,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         }
 
         const root = json as Record<string, unknown>;
+
+        // Auto-detect Tokens Studio format before attempting DTCG parsing
+        if (isTokensStudioFormat(root)) {
+          processTokensStudioContent(raw, file.name.replace(/\.json$/i, '') || 'Token Sets');
+          return;
+        }
+
         const group = (root.tokens ?? root) as Record<string, unknown>;
 
         // Validate structure: look for DTCG token indicators ($value/$type) or nested groups
@@ -551,12 +559,71 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     reader.readAsText(file);
   };
 
+  const processTokensStudioContent = (raw: string, collectionName = 'Token Sets') => {
+    const { sets, errors } = parseTokensStudioFile(raw);
+    if (sets.size === 0) {
+      setError(errors.length > 0 ? errors.join('; ') : 'No tokens found in Tokens Studio file.');
+      return;
+    }
+    setError(null);
+    setSuccessMessage(null);
+    existingPathsCacheRef.current = null;
+    setExistingTokenMap(null);
+    setCollectionData([]);
+
+    if (sets.size === 1) {
+      // Single set: use flat token list flow (same as JSON import)
+      const [, setTokenList] = [...sets.entries()][0];
+      const importTokens: ImportToken[] = setTokenList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+      const markedTokens = markDuplicatePaths(importTokens);
+      setSource('tokens-studio');
+      setTokens(markedTokens);
+      setSelectedTokens(new Set(importTokens.map(t => t.path)));
+      setTypeFilter(null);
+    } else {
+      // Multiple sets: use collection/modes flow (same as Variables import)
+      const modes: ModeData[] = [];
+      const names: Record<string, string> = {};
+      const enabled: Record<string, boolean> = {};
+      for (const [setName, setTokenList] of sets) {
+        const importTokens: ImportToken[] = setTokenList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+        modes.push({ modeId: setName, modeName: setName, tokens: importTokens });
+        const key = modeKey(collectionName, setName);
+        names[key] = setName; // default target set name = Tokens Studio set name
+        enabled[key] = true;
+      }
+      setSource('tokens-studio');
+      setCollectionData([{ name: collectionName, modes }]);
+      setModeSetNames(names);
+      setModeEnabled(enabled);
+    }
+  };
+
+  const processTokensStudioFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        processTokensStudioContent(reader.result as string, file.name.replace(/\.json$/i, '') || 'Token Sets');
+      } catch (err) {
+        setError(`Failed to process Tokens Studio file: ${getErrorMessage(err)}`);
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read file. The file may be corrupt or inaccessible.');
+    };
+    reader.readAsText(file);
+  };
+
   const handleReadCSS = () => {
     cssFileInputRef.current?.click();
   };
 
   const handleReadTailwind = () => {
     tailwindFileInputRef.current?.click();
+  };
+
+  const handleReadTokensStudio = () => {
+    tokensStudioFileInputRef.current?.click();
   };
 
   const handleCSSFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -571,6 +638,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     if (!file) return;
     e.target.value = '';
     processTailwindFile(file);
+  };
+
+  const handleTokensStudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    processTokensStudioFile(file);
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -600,7 +674,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     if (cssFile) { processCSSFile(cssFile); return; }
     const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/.test(f.name));
     if (twFile) { processTailwindFile(twFile); return; }
-    setError('Please drop a .json, .css, or .js/.ts file.');
+    setError('Please drop a .json (DTCG or Tokens Studio), .css, or .js/.ts file.');
   };
 
   const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -684,7 +758,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                   const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
                   if (t.$description) tok.$description = t.$description;
                   if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
-                  tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: 'figma-variables' } };
+                  const srcTag = source === 'tokens-studio' ? 'tokens-studio' : 'figma-variables';
+                  tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: srcTag } };
                   return tok;
                 }),
                 strategy,
@@ -701,7 +776,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
             if (t.$description) tok.$description = t.$description;
             if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
-            tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: 'figma-variables' } };
+            const srcTag = source === 'tokens-studio' ? 'tokens-studio' : 'figma-variables';
+            tok.$extensions = { ...(t.$extensions ?? {}), tokenmanager: { ...(t.$extensions?.tokenmanager ?? {}), source: srcTag } };
             return tok;
           });
           for (const t of mode.tokens) failedPaths.push(t.path);
@@ -1032,7 +1108,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
-          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop file to import (.json, .css, .js, .ts)</div>
+          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop file to import (.json DTCG or Tokens Studio, .css, .js, .ts)</div>
         </div>
       )}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
@@ -1122,6 +1198,36 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               accept=".json,application/json"
               className="sr-only"
               onChange={handleJsonFileChange}
+            />
+
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mt-2 mb-1">
+              Migration
+            </div>
+            <button
+              onClick={handleReadTokensStudio}
+              className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <div className="w-8 h-8 rounded bg-[#e67e22]/10 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e67e22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                  <circle cx="12" cy="12" r="3" fill="#e67e22" stroke="none" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Tokens Studio</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Load a Tokens Studio JSON export — single or multi-set</div>
+              </div>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+            </button>
+            <input
+              ref={tokensStudioFileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="sr-only"
+              onChange={handleTokensStudioFileChange}
             />
 
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mt-2 mb-1">

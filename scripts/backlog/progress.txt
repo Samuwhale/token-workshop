@@ -351,3 +351,14 @@
   - `getHttpStatusCode` in `errors.ts` already had a fallback for the `Object.assign` pattern — after this migration that fallback is only needed for legacy code outside these files.
   - The `resolver-store.ts` service imports from `../errors.js` (not `./errors.js`) since it lives in `services/` not `routes/`.
 ---
+
+## 2026-04-03 - No Tokens Studio import format
+- Added a dedicated Tokens Studio JSON importer. Added `parseTokensStudioFile`, `isTokensStudioFormat`, and `flattenTsGroup` to `tokenParsers.ts`. Handles both old Tokens Studio format (`value`/`type`) and new format (`$value`/`$type`), respects `$metadata.tokenSetOrder`, skips `$themes`/`$metadata`/`$sets` top-level keys, and maps non-standard type names (e.g. `fontSizes` → `dimension`, `boxShadow` → `shadow`) to DTCG equivalents.
+- Single-set TS files go through the existing flat-list import flow; multi-set files populate the collection/modes UI (same as Figma Variables import) with each TS set as a mode and the set name as the default target set name.
+- `processJsonFile` now auto-detects Tokens Studio format before attempting DTCG parsing, so dragging any `.json` file onto the panel routes correctly.
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenParsers.ts` ~L413, `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L10, ~L159, ~L163, ~L456, ~L556, ~L689, ~L706, ~L1172, ~L1212
+- **Learnings for future iterations:**
+  - Tokens Studio's `$metadata.tokenSetOrder` is the canonical key to detect a TS export; `$themes` is a secondary signal; old-format `value`/`type` (no `$` prefix) is the tertiary signal.
+  - The multi-set import path via `setCollectionData` is fully reusable for any non-Figma multi-set source — just populate `CollectionData[]` with one collection per logical grouping and `ModeData[]` for each set.
+  - Fixing the hardcoded `'figma-variables'` source tag in `handleImportVariables` to use the `source` state variable enables correct provenance tracking without any new code.
+---
