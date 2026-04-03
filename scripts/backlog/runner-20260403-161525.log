@@ -323,3 +323,18 @@ Already up to date.
 
   Merging to main: No cross-set token search from the command palette
 Already up to date.
+[main 423342fa] chore(backlog): done – No cross-set token search from the command palette
+ 8 files changed, 118 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No cross-set token search from the command palette
+- Added "Search all sets" toggle to the command palette token mode (`>` prefix).
+- Default token mode now searches only the active set (uses `perSetFlat[activeSet]`), making results focused and fast.
+- Clicking the "All sets" button in the qualifier hints bar switches to searching all sets simultaneously, with set name badges prominently shown on each result.
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  5 queued · 3 in-progress · last took 8m40s
+═══════════════════════════════════════════════════════════════
+  → Generator edit requires re-opening the full dialog — modifying a generator parameter (e.g., changing a color ramp's step count from 9 to 11) requires opening the full multi-step TokenGeneratorDialog; for simple parameter tweaks, an inline editor or a streamlined "quick edit" panel in the Generators sub-tab would reduce friction significantly
+  Worktree: /tmp/backlog-45818-sfs3Xe
+  Running agent… (started 17:48:57)

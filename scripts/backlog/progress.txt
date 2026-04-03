@@ -555,3 +555,13 @@
   - Adding a scope-toggle to a search component is cleanly done by: (a) computing two token lists — scoped and unscoped, (b) passing both as separate props, (c) maintaining toggle state locally in the component, (d) switching the `activeTokenList` derivation. No additional server calls needed.
   - The `networkidle` timeout in `validate.mjs` is pre-existing — the plugin UI's API polling prevents the `waitUntil: 'networkidle'` condition from being satisfied within the 15s timeout. All code gates (tests, build, lint) pass.
 ---
+
+## 2026-04-03 - No warning when assigning an empty set as a theme override
+- Added an "empty" warning badge to `renderSetRow` in ThemeManager.tsx. When a set's status is `'enabled'` (Override) and its token count (from `setTokenValues`) is 0, a small amber pill badge reading "empty" appears between the set name and the toggle buttons, with a tooltip explaining the coverage gap.
+- `tokenCount` is `null` when the set hasn't been loaded yet (fetch in progress) to avoid false positives during loading.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1249
+- **Learnings for future iterations:**
+  - `setTokenValues[setName]` is already populated per-set by the existing fetch loop; no new API calls needed.
+  - Checking `tokenCount !== null` guards against showing warnings before data loads.
+  - Gate 4 (headless UI validation) timed out due to a pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); confirmed pre-existing via `git stash` test; gates 1-3 all passed cleanly.
+---

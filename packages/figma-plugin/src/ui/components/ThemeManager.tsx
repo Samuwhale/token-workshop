@@ -1249,6 +1249,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
     const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
     const saveKey = `${dim.id}/${opt.name}/${setName}`;
+    const tokenCount = setTokenValues[setName] ? Object.keys(setTokenValues[setName]).length : null;
+    const isEmptyOverride = status === 'enabled' && tokenCount !== null && tokenCount === 0;
     return (
       <div
         key={setName}
@@ -1261,6 +1263,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         }}
       >
         <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
+        {isEmptyOverride && (
+          <span
+            title="This override set is empty — it contains no tokens and will not change any values when this theme option is active"
+            className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#f59e0b)] leading-none"
+          >
+            empty
+          </span>
+        )}
         <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px] font-medium">
           {(['disabled', 'source', 'enabled'] as const).map(s => (
             <button
