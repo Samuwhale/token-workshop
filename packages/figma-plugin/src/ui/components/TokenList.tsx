@@ -365,6 +365,32 @@ export function TokenList({
     return { duplicateValuePaths: paths, duplicateCounts: counts };
   }, [debouncedTokens]);
 
+  // Compute the set of token paths that are "unused": zero Figma usage AND not referenced by any other token as an alias
+  const unusedTokenPaths = useMemo<Set<string> | undefined>(() => {
+    if (!tokenUsageCounts || Object.keys(tokenUsageCounts).length === 0) return undefined;
+    // Collect all alias target paths from allTokensFlat
+    const referencedPaths = new Set<string>();
+    const collectRefs = (value: unknown) => {
+      if (typeof value === 'string') {
+        const m = value.match(/^\{([^}]+)\}$/);
+        if (m) referencedPaths.add(m[1]);
+      } else if (Array.isArray(value)) {
+        for (const item of value) collectRefs(item);
+      } else if (value && typeof value === 'object') {
+        for (const v of Object.values(value as Record<string, unknown>)) collectRefs(v);
+      }
+    };
+    for (const entry of Object.values(allTokensFlat)) collectRefs(entry.$value);
+    // Tokens with 0 Figma usage count AND not referenced by another token
+    const paths = new Set<string>();
+    for (const path of Object.keys(allTokensFlat)) {
+      if ((tokenUsageCounts[path] ?? 0) === 0 && !referencedPaths.has(path)) {
+        paths.add(path);
+      }
+    }
+    return paths.size > 0 ? paths : undefined;
+  }, [tokenUsageCounts, allTokensFlat]);
+
   const flattenTokens = (nodes: TokenNode[]): any[] => {
     const result: any[] = [];
     const walk = (list: TokenNode[]) => {
@@ -650,7 +676,7 @@ export function TokenList({
       const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
       baseTokens = zoomNode?.children ?? [];
     }
-    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths) : baseTokens;
+    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -663,7 +689,7 @@ export function TokenList({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths, derivedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths, derivedTokenPaths, unusedTokenPaths]);
 
   // Auto-clear zoom if the zoomed group no longer exists in the tree
   useEffect(() => {

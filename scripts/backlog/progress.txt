@@ -357,3 +357,17 @@
   - When storing a function in React state, always use the updater form: `setState(() => fn)` not `setState(fn)`, otherwise React calls fn as an updater function.
   - `handleEditorClose` must be called before executing the pending action so `editingToken` is cleared first (prevents stale editor state after navigation).
 ---
+
+## 2026-04-03 - No unused token detection anywhere in the product
+- Implemented two surfaces for unused token detection (tokens with zero Figma usage AND no alias dependents):
+  1. **AnalyticsPanel "Unused Tokens" section** (Ship > Validation tab): collapsible section showing count + scrollable list of unused tokens with path, type, and set. Shows a notice when no Figma usage data is available. Clicking a token navigates to it in the token list.
+  2. **`has:unused` search qualifier** in TokenList search: users can type `has:unused` in the search bar to filter to unused tokens only. Follows the same pattern as `has:duplicate`, `has:generated`, etc.
+- `tokenUsageCounts` was already defined in `TokenListData` but not passed from App.tsx — wired it up to all 3 TokenList instances and to AnalyticsPanel.
+- The "referenced" check scans all token values recursively (handles composite tokens with object/array values) for `{alias.path}` patterns to build a `referencedPaths` set.
+- AnalyticsPanel now stores `unifiedFlat` in state (via `allTokensUnified`) after load so the `unusedTokens` useMemo can depend on it and recompute when usage counts change.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L34, ~L78, ~L213, ~L251, ~L285; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L366, ~L679, ~L692; `packages/figma-plugin/src/ui/App.tsx` ~L1980, ~L2042, ~L2056, ~L2168; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L25, ~L66, ~L96, ~L261, ~L1179
+- **Learnings for future iterations:**
+  - AnalyticsPanel builds its own token data via server fetch — it doesn't share the `allTokensFlat` from App.tsx. Store server-fetched data in state so memos can depend on it.
+  - When extending `filterTokenNodes` with a new `has:` qualifier that requires pre-computed context (like a Set of paths), add it as an optional trailing parameter and pass `undefined` from existing call sites — no existing callers break.
+  - The `tokenUsageCounts` data in App.tsx is populated only when the user visits Define > Tokens tab. Show a clear "requires scan" message in Analytics when the map is empty.
+---

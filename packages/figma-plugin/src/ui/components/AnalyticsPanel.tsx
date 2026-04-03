@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
@@ -26,6 +26,7 @@ interface AnalyticsPanelProps {
   serverUrl: string;
   connected: boolean;
   validateKey?: number;
+  tokenUsageCounts?: Record<string, number>;
   onNavigateToToken?: (path: string, set: string) => void;
   onValidationComplete?: (count: number) => void;
 }
@@ -62,7 +63,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 const TYPE_COLOR_FALLBACK = '#8888aa';
 
-export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
+export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCounts, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -91,6 +92,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     () => new Set(lsGetJson<string[]>(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, []))
   );
   const [showSuppressed, setShowSuppressed] = useState(false);
+  const [allTokensUnified, setAllTokensUnified] = useState<Record<string, { $value: unknown; $type: string; set: string }>>({});
+  const [showUnused, setShowUnused] = useState(false);
   const hasAutoValidated = useRef(false);
   const lastValidatedKey = useRef(0);
 
@@ -259,6 +262,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         }
       }
       setAllColorTokens(resolvedColors);
+      setAllTokensUnified(unifiedFlat);
 
       setLoading(false);
     };
@@ -413,6 +417,27 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       .filter(([, paths]) => paths.length > 1)
       .sort((a, b) => b[1].length - a[1].length);
   })();
+
+  // Compute unused tokens: zero Figma usage count AND not referenced by any other token as an alias
+  const unusedTokens = useMemo(() => {
+    if (!tokenUsageCounts || Object.keys(allTokensUnified).length === 0) return [];
+    const referencedPaths = new Set<string>();
+    const collectRefs = (value: unknown) => {
+      if (typeof value === 'string') {
+        const m = value.match(/^\{([^}]+)\}$/);
+        if (m) referencedPaths.add(m[1]);
+      } else if (Array.isArray(value)) {
+        for (const item of value) collectRefs(item);
+      } else if (value && typeof value === 'object') {
+        for (const v of Object.values(value as Record<string, unknown>)) collectRefs(v);
+      }
+    };
+    for (const entry of Object.values(allTokensUnified)) collectRefs(entry.$value);
+    return Object.entries(allTokensUnified)
+      .filter(([path]) => (tokenUsageCounts[path] ?? 0) === 0 && !referencedPaths.has(path))
+      .map(([path, entry]) => ({ path, set: entry.set, $type: entry.$type }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [tokenUsageCounts, allTokensUnified]);
 
   const handleDeduplicate = async (hex: string, canonical: { path: string; set: string }, others: { path: string; set: string }[]) => {
     setDeduplicating(hex);
@@ -1150,6 +1175,62 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           )}
         </div>
       )}
+
+      {/* Unused Tokens */}
+      <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+        <button
+          onClick={() => setShowUnused(v => !v)}
+          className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+        >
+          <span className="flex items-center gap-1.5">
+            {unusedTokens.length > 0 ? (
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            ) : null}
+            Unused Tokens
+            {!tokenUsageCounts || Object.keys(tokenUsageCounts).length === 0 ? (
+              <span className="normal-case font-normal opacity-60">(requires Figma usage scan)</span>
+            ) : (
+              <span className="ml-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">{unusedTokens.length}</span>
+            )}
+          </span>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+        </button>
+        {showUnused && (
+          <div>
+            {!tokenUsageCounts || Object.keys(tokenUsageCounts).length === 0 ? (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                No Figma usage data available. Open the Define &gt; Tokens tab to trigger a usage scan, then return here.
+              </div>
+            ) : unusedTokens.length === 0 ? (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                No unused tokens found — all tokens are either used in Figma or referenced by other tokens.
+              </div>
+            ) : (
+              <>
+                <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                  {unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents — potential deletion candidates.
+                </div>
+                <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
+                  {unusedTokens.map(({ path, set, $type }) => (
+                    <button
+                      key={`${set}:${path}`}
+                      onClick={() => onNavigateToToken?.(path, set)}
+                      disabled={!onNavigateToToken}
+                      className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default"
+                    >
+                      <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1">{path}</span>
+                      <span className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{$type}</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{set}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Component Coverage */}
       <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">

@@ -29,3 +29,18 @@
 
   Merging to main: TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation
 Already up to date.
+[main 39d6623b] chore(backlog): done – TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation
+ 10 files changed, 407 insertions(+), 10 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260329-171215.log
+ create mode 100644 scripts/backlog/runner-20260329-171221.log
+ create mode 100644 scripts/backlog/runner-20260329-171222.log
+ create mode 100644 scripts/backlog/runner-20260403-111210.log
+ create mode 100644 scripts/backlog/runner-20260403-111222.log
+ create mode 100644 scripts/backlog/runner-20260403-111226.log
+  ✓ Merged and marked done
+
+  Milestone: 1020 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

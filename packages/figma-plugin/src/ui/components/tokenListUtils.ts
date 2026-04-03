@@ -31,7 +31,7 @@ export interface ParsedQuery {
 const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generator|gen):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
-const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext', 'generated', 'gen']);
+const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext', 'generated', 'gen', 'unused']);
 
 export function parseStructuredQuery(raw: string): ParsedQuery {
   const types: string[] = [];
@@ -75,6 +75,7 @@ export const QUERY_QUALIFIERS = [
   { qualifier: 'has:description', desc: 'Only tokens with a description', example: '' },
   { qualifier: 'has:extension', desc: 'Only tokens with extensions', example: '' },
   { qualifier: 'has:generated', desc: 'Only generator-produced tokens', example: '' },
+  { qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: '' },
   { qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000' },
   { qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary' },
   { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },
@@ -217,6 +218,7 @@ export function filterTokenNodes(
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
   derivedTokenPaths?: Map<string, TokenGenerator>,
+  unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
@@ -224,7 +226,7 @@ export function filterTokenNodes(
     || parsed.generators.length > 0;
 
   if (hasQualifiers) {
-    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
+    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
   }
 
   // Fast path: plain text search (no qualifiers)
@@ -232,7 +234,7 @@ export function filterTokenNodes(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
+      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -255,12 +257,13 @@ function filterTokenNodesStructured(
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
   derivedTokenPaths?: Map<string, TokenGenerator>,
+  unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   const q = parsed.text.toLowerCase();
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths);
+      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
       // Free-text match (on path, name, or description)
@@ -283,6 +286,7 @@ function filterTokenNodesStructured(
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
         if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(node.path)) { hasMatch = false; break; }
+        if (h === 'unused' && (!unusedTokenPaths || !unusedTokenPaths.has(node.path))) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;
 

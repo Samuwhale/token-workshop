@@ -19,3 +19,10 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
   → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
   Worktree: /tmp/backlog-21545-hXdbJ5
   Running agent… (started 11:12:26)
+
+  ✓ done: No unused token detection anywhere in the product
+    Added has:unused search qualifier in TokenList + Unused Tokens section in AnalyticsPanel; both detect tokens with zero Figma usage and no alias dependents
+    61 turns · 502s · $1.87
+
+  Merging to main: No unused token detection anywhere in the product
+Already up to date.
