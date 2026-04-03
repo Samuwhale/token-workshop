@@ -181,6 +181,21 @@ export function useSetTabs({
     }
   };
 
+  const handleReorderSetFull = async (newOrder: string[]) => {
+    setSets(newOrder);
+    try {
+      await apiFetch(`${serverUrl}/api/sets/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder }),
+      });
+      setSuccessToast('Set order updated');
+    } catch (err) {
+      console.warn('[useSetTabs] reorder set full failed:', err);
+      refreshTokens();
+    }
+  };
+
   const handleSetDrop = async (e: React.DragEvent, targetSetName: string) => {
     e.preventDefault();
     if (!dragSetName || dragSetName === targetSetName) { handleSetDragEnd(); return; }
@@ -254,6 +269,7 @@ export function useSetTabs({
     handleSetDragEnd,
     handleSetDrop,
     handleReorderSet,
+    handleReorderSetFull,
     handleCreateSet,
     scrollSetTabs,
     checkSetTabsOverflow,

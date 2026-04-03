@@ -172,3 +172,10 @@ Already up to date.
   → SetSwitcher manage mode has no drag-and-drop for set reordering — reordering uses move-up/move-down buttons which require O(n) clicks to move a set across a long list; add drag-and-drop reordering matching the pattern already used in the token tree (SetSwitcher.tsx ~L378-402)
   Worktree: /tmp/backlog-46580-A7zb0M
   Running agent… (started 17:07:16)
+
+  ✓ done: SetSwitcher manage mode has no drag-and-drop for set reordering
+    Added drag-and-drop to ManageView with 6-dot grip handle, drop indicator, and onReorderFull callback; move-up/down buttons hidden when DnD is available
+    43 turns · 219s · $1.02
+
+  Merging to main: SetSwitcher manage mode has no drag-and-drop for set reordering
+Already up to date.

@@ -562,7 +562,7 @@ export function App() {
   }, [dimensions, activeThemes]);
 
   // Set tab management (drag, context menu, overflow, new-set form)
-  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
+  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
@@ -3003,6 +3003,7 @@ export function App() {
           onDuplicate={handleDuplicateSet}
           onDelete={startDelete}
           onReorder={handleReorderSet}
+          onReorderFull={handleReorderSetFull}
           onCreateSet={createSetByName}
           onEditInfo={(set) => { setShowSetSwitcher(false); setShowManageSets(false); openSetMetadata(set); }}
           setTokenCounts={setTokenCounts}

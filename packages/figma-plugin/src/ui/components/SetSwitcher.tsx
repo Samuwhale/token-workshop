@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SET_NAME_RE } from '../shared/utils';
 
 interface SetSwitcherProps {
@@ -12,6 +12,7 @@ interface SetSwitcherProps {
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
   onReorder?: (setName: string, direction: 'left' | 'right') => void;
+  onReorderFull?: (newOrder: string[]) => void;
   onCreateSet?: (name: string) => Promise<void>;
   onEditInfo?: (setName: string) => void;
   setTokenCounts?: Record<string, number>;
@@ -51,6 +52,7 @@ export function SetSwitcher({
   onDuplicate,
   onDelete,
   onReorder,
+  onReorderFull,
   onCreateSet,
   onEditInfo,
   setTokenCounts = {},
@@ -142,7 +144,7 @@ export function SetSwitcher({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const canManage = !!(onRename || onDuplicate || onDelete || onReorder || onCreateSet || onEditInfo);
+  const canManage = !!(onRename || onDuplicate || onDelete || onReorder || onReorderFull || onCreateSet || onEditInfo);
 
   return (
     <div
@@ -220,6 +222,7 @@ export function SetSwitcher({
             onDuplicate={onDuplicate}
             onDelete={onDelete}
             onReorder={onReorder}
+            onReorderFull={onReorderFull}
             onEditInfo={onEditInfo}
             creatingSet={creatingSet}
             setCreatingSet={setCreatingSet}
@@ -309,6 +312,7 @@ interface ManageViewProps {
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
   onReorder?: (setName: string, direction: 'left' | 'right') => void;
+  onReorderFull?: (newOrder: string[]) => void;
   onEditInfo?: (setName: string) => void;
   creatingSet: boolean;
   setCreatingSet: (v: boolean) => void;
@@ -325,11 +329,51 @@ interface ManageViewProps {
 function ManageView({
   listRef, filtered, sets, activeSet, query,
   setTokenCounts, setDescriptions,
-  onSelect, onRename, onDuplicate, onDelete, onReorder, onEditInfo,
+  onSelect, onRename, onDuplicate, onDelete, onReorder, onReorderFull, onEditInfo,
   creatingSet, setCreatingSet, newSetName, setNewSetName,
   newSetError, setNewSetError, createPending,
   newSetInputRef, onCreateSubmit, canCreate,
 }: ManageViewProps) {
+  const [dragSetName, setDragSetName] = useState<string | null>(null);
+  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, setName: string) => {
+    setDragSetName(setName);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, setName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragSetName && dragSetName !== setName) {
+      setDragOverSetName(setName);
+    }
+  }, [dragSetName]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragSetName(null);
+    setDragOverSetName(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetSetName: string) => {
+    e.preventDefault();
+    if (!dragSetName || dragSetName === targetSetName || !onReorderFull) {
+      handleDragEnd();
+      return;
+    }
+    const fromIdx = sets.indexOf(dragSetName);
+    const toIdx = sets.indexOf(targetSetName);
+    if (fromIdx === -1 || toIdx === -1) { handleDragEnd(); return; }
+    const newOrder = [...sets];
+    newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, dragSetName);
+    setDragSetName(null);
+    setDragOverSetName(null);
+    onReorderFull(newOrder);
+  }, [dragSetName, sets, onReorderFull, handleDragEnd]);
+
+  const canDrag = !!onReorderFull;
+
   return (
     <div ref={listRef} className="overflow-y-auto flex-1">
       {filtered.length === 0 && !creatingSet ? (
@@ -346,11 +390,29 @@ function ManageView({
             const tokenCount = setTokenCounts[set];
             const description = setDescriptions[set];
 
+            const isDragOver = dragOverSetName === set && dragSetName !== set;
+            const isDragging = dragSetName === set;
+
             return (
               <div
                 key={set}
-                className={`group flex items-center gap-2 px-3 py-2 text-[12px] border-b border-[var(--color-figma-border)] last:border-b-0 ${isCurrent ? 'bg-[var(--color-figma-bg-secondary)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+                draggable={canDrag}
+                onDragStart={canDrag ? e => handleDragStart(e, set) : undefined}
+                onDragOver={canDrag ? e => handleDragOver(e, set) : undefined}
+                onDrop={canDrag ? e => handleDrop(e, set) : undefined}
+                onDragEnd={canDrag ? handleDragEnd : undefined}
+                className={`group flex items-center gap-2 px-3 py-2 text-[12px] border-b border-[var(--color-figma-border)] last:border-b-0 transition-colors ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]' : isCurrent ? 'bg-[var(--color-figma-bg-secondary)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
               >
+                {/* Drag handle */}
+                {canDrag && (
+                  <span className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing" aria-hidden="true">
+                    <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                      <circle cx="2" cy="2" r="1" /><circle cx="6" cy="2" r="1" />
+                      <circle cx="2" cy="6" r="1" /><circle cx="6" cy="6" r="1" />
+                      <circle cx="2" cy="10" r="1" /><circle cx="6" cy="10" r="1" />
+                    </svg>
+                  </span>
+                )}
                 {/* Set name — click to switch to this set */}
                 <button
                   onClick={() => onSelect(set)}
@@ -374,8 +436,8 @@ function ManageView({
 
                 {/* Action buttons */}
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {/* Move up */}
-                  {onReorder && (
+                  {/* Move up/down buttons — only shown when drag-and-drop is not available */}
+                  {onReorder && !canDrag && (
                     <button
                       onClick={() => onReorder(set, 'left')}
                       disabled={isFirst}
@@ -387,8 +449,7 @@ function ManageView({
                       </svg>
                     </button>
                   )}
-                  {/* Move down */}
-                  {onReorder && (
+                  {onReorder && !canDrag && (
                     <button
                       onClick={() => onReorder(set, 'right')}
                       disabled={isLast}

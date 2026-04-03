@@ -129,3 +129,13 @@ Already up to date.
 
   Merging to main: Token editor auto-focus is missing in edit mode
 Already up to date.
+[main f9cbb3c3] chore(backlog): done – Token editor auto-focus is missing in edit mode
+ 7 files changed, 69 insertions(+), 4 deletions(-)
+ create mode 100644 packages/figma-plugin/vite.config.ts
+  ✓ Merged and marked done
+
+  Milestone: 1148 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

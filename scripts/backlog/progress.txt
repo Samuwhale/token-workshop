@@ -556,3 +556,16 @@
   - When checking `reference` vs `aliasMode` in effects: `reference` is set in the same React batch as `loading=false`, but `aliasMode` is set by a chained `useEffect` that fires after the first render — so check `reference` (not `aliasMode`) to decide which field to focus when `loading` changes.
   - vitest resolves `@tokenmanager/core` via `node_modules` (not the Vite build alias). A `vite.config.ts` with the alias in `resolve.alias` fixes this for vitest runs in worktrees.
 ---
+
+## 2026-04-03 - SetSwitcher manage mode drag-and-drop set reordering
+- Added drag-and-drop reordering to the SetSwitcher manage mode. Each set row now shows a 6-dot grip handle (hidden until hover) and is `draggable` when `onReorderFull` is provided.
+- Added `handleReorderSetFull(newOrder: string[])` to `useSetTabs.ts` — takes a full new order and PUTs to `/api/sets/reorder` (same API as the existing incremental reorder).
+- Added `onReorderFull` prop to `SetSwitcherProps` and `ManageViewProps`. When present, each row gets drag events and the redundant move-up/move-down arrow buttons are hidden.
+- Local drag state (`dragSetName`, `dragOverSetName`) in `ManageView` drives the drop indicator (left accent border + bg-hover on the drag-over row) and opacity-40 on the dragged row.
+- Wired `onReorderFull={handleReorderSetFull}` in App.tsx alongside the existing `onReorder`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetTabs.ts` ~L184, `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L1,299,325,385, `packages/figma-plugin/src/ui/App.tsx` ~L565,3005
+- **Learnings for future iterations:**
+  - When adding DnD to a list that already has up/down buttons, gate button render on `!canDrag` — both mechanisms for the same action is visual clutter.
+  - The existing tabs DnD pattern (dragSetName + dragOverSetName state + border-l-2 accent indicator) works cleanly in a vertical list too.
+  - Adding a new `onReorderFull(newOrder)` prop is cleaner than trying to compute N incremental direction moves from a single drag.
+---
