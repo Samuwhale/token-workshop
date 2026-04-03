@@ -119,3 +119,25 @@ Already up to date.
 
   Merging to main: PreviewPanel cannot visualize shadow, gradient, or transition tokens
 Already up to date.
+[main ba41be6f] chore(backlog): done – PreviewPanel cannot visualize shadow, gradient, or transition tokens
+ 6 files changed, 302 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - PreviewPanel cannot visualize shadow, gradient, or transition tokens
+- Added "Effects" template tab showing shadow swatches (box with `box-shadow` applied, click-to-copy) and a Transitions & Durations section (hover-animated demo box that slides using the token's transition value). Also added gradient swatches to the Colors template as a "Gradients" subsection below color groups.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L15, ~L88, ~L126, ~L135, ~L165, ~L310, ~L333, ~L420, ~L595 (new `GradientSwatch`, `ShadowSwatch`, `TransitionRow`, `EffectsTemplate` components)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  3 queued · 1 in-progress · last took 3m7s
+═══════════════════════════════════════════════════════════════
+  → TokenTableView silently swallows invalid inline edit values with no user feedback — when the user types an invalid value and presses Enter, `commitEdit` at TokenTableView.tsx:148 returns early (`if (parsed === null) return`) without calling `setEditingCell(null)`, showing a validation error, or giving any indication why the input was rejected; the field appears to do nothing on Enter, which is confusing; should either show an inline red error message below the input or at minimum clear the editing state to avoid the silent-do-nothing UX
+  Worktree: /tmp/backlog-30880-KXE6Po
+  Running agent… (started 11:34:09)
+
+  ✓ done: TokenTableView silently swallows invalid inline edit values with no user feedback
+    Added editError state — invalid values now turn input border red with a tooltip and keep the cell in edit mode instead of silently doing nothing
+    13 turns · 85s · $0.28
+
+  Merging to main: TokenTableView silently swallows invalid inline edit values with no user feedback
+Already up to date.

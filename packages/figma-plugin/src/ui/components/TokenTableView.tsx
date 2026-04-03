@@ -62,6 +62,7 @@ export function TokenTableView({
   const [sort, setSort] = useState<TableSort | null>(null);
   const [editingCell, setEditingCell] = useState<{ path: string; field: 'value' | 'description' } | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editError, setEditError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Virtual scroll
@@ -133,6 +134,7 @@ export function TokenTableView({
     } else {
       setEditValue((node.$description ?? '') as string);
     }
+    setEditError(false);
     setEditingCell({ path, field });
   }, [connected]);
 
@@ -145,7 +147,8 @@ export function TokenTableView({
       const raw = editValue.trim();
       if (!raw || raw === getEditableString(node.$type, node.$value)) { setEditingCell(null); return; }
       const parsed = parseInlineValue(node.$type!, raw);
-      if (parsed === null) return; // invalid
+      if (parsed === null) { setEditError(true); inputRef.current?.focus(); return; }
+      setEditError(false);
       setEditingCell(null);
       onInlineSave?.(node.path, node.$type!, parsed);
     } else {
@@ -158,7 +161,7 @@ export function TokenTableView({
     }
   }, [editingCell, editValue, leafNodes, onInlineSave, onDescriptionSave]);
 
-  const cancelEdit = useCallback(() => setEditingCell(null), []);
+  const cancelEdit = useCallback(() => { setEditingCell(null); setEditError(false); }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
@@ -289,12 +292,15 @@ export function TokenTableView({
                       ref={inputRef}
                       type="text"
                       value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
+                      onChange={e => { setEditValue(e.target.value); setEditError(false); }}
                       onKeyDown={handleKeyDown}
                       onBlur={commitEdit}
                       onClick={e => e.stopPropagation()}
                       aria-label="Token value"
-                      className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 py-0 text-[10px] font-mono text-[var(--color-figma-text)] outline-none"
+                      title={editError ? 'Invalid value for this token type' : undefined}
+                      className={`w-full bg-[var(--color-figma-bg)] border rounded px-1 py-0 text-[10px] font-mono text-[var(--color-figma-text)] outline-none ${
+                        editError ? 'border-red-500' : 'border-[var(--color-figma-accent)]'
+                      }`}
                     />
                   ) : (
                     <span className="flex items-center gap-1">

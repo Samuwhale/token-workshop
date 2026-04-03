@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>]
+# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>] [--passes true|false] [--pass-frequency N]
 #
 # Concurrency-safe: each agent runs in an isolated git worktree.
 # backlog.md mutations are serialised by file locks.
@@ -23,14 +23,33 @@ trap graceful_stop INT TERM
 
 TOOL="claude"
 MODEL="claude-sonnet-4-6"
+PASSES_ENABLED=1
+PASS_FREQUENCY=10
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --tool)    TOOL="$2"; shift 2 ;;
-    --tool=*)  TOOL="${1#*=}"; shift ;;
-    --model)   MODEL="$2"; shift 2 ;;
-    --model=*) MODEL="${1#*=}"; shift ;;
-    *)         shift ;;
+    --tool)             TOOL="$2"; shift 2 ;;
+    --tool=*)           TOOL="${1#*=}"; shift ;;
+    --model)            MODEL="$2"; shift 2 ;;
+    --model=*)          MODEL="${1#*=}"; shift ;;
+    --passes)
+      case "$2" in
+        true|1|yes)   PASSES_ENABLED=1 ;;
+        false|0|no)   PASSES_ENABLED=0 ;;
+        *)            echo "Error: --passes must be true or false"; exit 1 ;;
+      esac
+      shift 2 ;;
+    --passes=*)
+      _v="${1#*=}"
+      case "$_v" in
+        true|1|yes)   PASSES_ENABLED=1 ;;
+        false|0|no)   PASSES_ENABLED=0 ;;
+        *)            echo "Error: --passes must be true or false"; exit 1 ;;
+      esac
+      shift ;;
+    --pass-frequency)   PASS_FREQUENCY="$2"; shift 2 ;;
+    --pass-frequency=*) PASS_FREQUENCY="${1#*=}"; shift ;;
+    *)                  shift ;;
   esac
 done
 
@@ -710,10 +729,11 @@ JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["d
 #   product pass — every 10 completed items (offset by 5), or when the backlog is empty
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_CODE_PASS_IN=$(( 10 - (CURRENT_COUNT % 10) ))
-[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=10
-NEXT_PRODUCT_PASS_IN=$(( 10 - ((CURRENT_COUNT + 5) % 10) ))
-[ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=10
+PASS_HALF=$(( PASS_FREQUENCY / 2 ))
+NEXT_CODE_PASS_IN=$(( PASS_FREQUENCY - (CURRENT_COUNT % PASS_FREQUENCY) ))
+[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=$PASS_FREQUENCY
+NEXT_PRODUCT_PASS_IN=$(( PASS_FREQUENCY - ((CURRENT_COUNT + PASS_HALF) % PASS_FREQUENCY) ))
+[ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=$PASS_FREQUENCY
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
@@ -723,6 +743,11 @@ echo "  PID:    $$"
 echo "  Tool:   $TOOL"
 echo "  Model:  $MODEL"
 echo "  Log:    $RUNNER_LOG"
+if [ "$PASSES_ENABLED" -eq 1 ]; then
+  echo "  Passes: enabled (every $PASS_FREQUENCY items)"
+else
+  echo "  Passes: disabled"
+fi
 
 # Drain inbox before first iteration so items are available immediately
 drain_inbox
@@ -731,7 +756,11 @@ IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
 FAILED=$(grep -cE '^\- \[!\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
 echo ""
 echo "  Queue:    $(remaining) ready · ${IN_PROGRESS} in-progress · ${FAILED} failed"
-echo "  Done:     $CURRENT_COUNT total (next code pass in $NEXT_CODE_PASS_IN, product pass in $NEXT_PRODUCT_PASS_IN)"
+if [ "$PASSES_ENABLED" -eq 1 ]; then
+  echo "  Done:     $CURRENT_COUNT total (next code pass in $NEXT_CODE_PASS_IN, product pass in $NEXT_PRODUCT_PASS_IN)"
+else
+  echo "  Done:     $CURRENT_COUNT total"
+fi
 echo "  Stop:     Ctrl+C  (or: touch $STOP_FILE)"
 echo ""
 
@@ -765,8 +794,11 @@ while true; do
     if [[ "$REMAINING" -gt 0 ]]; then
       echo "  Inbox had $REMAINING item(s) — continuing."
     else
-      # Backlog complete — run both product and code passes to restock
-      if [[ "$TOOL" == "claude" ]] && try_pass_lock; then
+      # Backlog complete — run discovery passes to restock (if enabled)
+      if [[ "$PASSES_ENABLED" -eq 0 ]]; then
+        echo "  Backlog empty and passes are disabled — stopping."
+        break
+      elif [[ "$TOOL" == "claude" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
         echo "  No items found — running discovery passes to replenish backlog…"
         run_special_pass "product"
@@ -929,12 +961,12 @@ while true; do
       CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
       teardown_worktree
 
-      # Milestone maintenance passes (skip if stop was requested)
+      # Milestone maintenance passes (skip if stop was requested or passes disabled)
       TOTAL_DONE=$(increment_completed_count)
-      if [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+      if [ "$PASSES_ENABLED" -eq 1 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
         RUN_CODE=0; RUN_PRODUCT=0
-        [ $((TOTAL_DONE % 10)) -eq 0 ] && RUN_CODE=1
-        [ $(((TOTAL_DONE + 5) % 10)) -eq 0 ] && RUN_PRODUCT=1
+        [ $((TOTAL_DONE % PASS_FREQUENCY)) -eq 0 ] && RUN_CODE=1
+        [ $(((TOTAL_DONE + PASS_HALF) % PASS_FREQUENCY)) -eq 0 ] && RUN_PRODUCT=1
         if [ $((RUN_CODE + RUN_PRODUCT)) -gt 0 ]; then
           cleanup_if_needed
           # Non-blocking pass lock: if another runner is already running a pass, skip
