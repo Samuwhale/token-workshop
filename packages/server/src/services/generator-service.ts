@@ -679,6 +679,24 @@ export class GeneratorService {
     const { inputTable, targetSetTemplate, targetSet } = generator;
     const allResults: GeneratedTokenResult[] = [];
 
+    // Determine all sets that will be written to so we can snapshot them before any writes.
+    const affectedSets = new Set<string>();
+    for (const row of inputTable!.rows) {
+      if (!row.brand.trim()) continue;
+      const setName = targetSetTemplate
+        ? targetSetTemplate.replace('{brand}', row.brand)
+        : targetSet!;
+      affectedSets.add(setName);
+    }
+
+    // Capture pre-run state for each affected set so partial failures can be rolled back.
+    const preRunSnapshots = new Map<string, Record<string, Token>>();
+    for (const setName of affectedSets) {
+      const flatTokens = await tokenStore.getFlatTokensForSet(setName).catch(() => ({}));
+      preRunSnapshots.set(setName, structuredClone(flatTokens) as Record<string, Token>);
+    }
+
+    let succeeded = false;
     try {
       for (const row of inputTable!.rows) {
         if (!row.brand.trim()) continue;
@@ -718,8 +736,32 @@ export class GeneratorService {
         }
         allResults.push(...results);
       }
+      succeeded = true;
+    } catch (err) {
+      // Roll back all affected sets to their pre-run state.
+      // Build restore items: original tokens to restore + tokens created during the run to delete.
+      for (const [setName, preSnapshot] of preRunSnapshots) {
+        const currentTokens = await tokenStore.getFlatTokensForSet(setName).catch(() => ({}));
+        const restoreItems: Array<{ path: string; token: Token | null }> = [];
+        for (const [p, t] of Object.entries(preSnapshot)) {
+          restoreItems.push({ path: p, token: t });
+        }
+        for (const p of Object.keys(currentTokens)) {
+          if (!(p in preSnapshot)) {
+            restoreItems.push({ path: p, token: null });
+          }
+        }
+        if (restoreItems.length > 0) {
+          await tokenStore.restoreSnapshot(setName, restoreItems).catch(() => {});
+        }
+      }
+      throw err;
     } finally {
-      await this.clearNonLockedOverrides(generator);
+      // Only clear non-locked overrides when the run completed successfully.
+      // On partial failure the overrides must remain intact so a re-run produces the same result.
+      if (succeeded) {
+        await this.clearNonLockedOverrides(generator);
+      }
     }
 
     return allResults;

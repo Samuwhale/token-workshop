@@ -428,3 +428,10 @@ Already up to date.
   → Generator executeGeneratorMultiBrand has no rollback on partial row failure — each brand row (generator-service.ts:674-726) runs in its own beginBatch/endBatch, so if row 3 of 5 throws, rows 1-2 are already persisted and saveSet'd with no way to undo; the outer finally block still calls clearNonLockedOverrides (line 722) which strips non-locked overrides even though the run was incomplete, changing subsequent re-run behavior; should either wrap all rows in a single snapshot/rollback or skip clearNonLockedOverrides on failure
   Worktree: /tmp/backlog-81661-6Jc9qa
   Running agent… (started 13:06:51)
+
+  ✓ done: Generator executeGeneratorMultiBrand has no rollback on partial row failure
+    Snapshot all affected sets before the row loop; on failure restore via restoreSnapshot (with null-deletions for newly-created paths); clearNonLockedOverrides now guarded by succeeded flag so it is skipped on incomplete runs
+    21 turns · 170s · $0.49
+
+  Merging to main: Generator executeGeneratorMultiBrand has no rollback on partial row failure
+Already up to date.

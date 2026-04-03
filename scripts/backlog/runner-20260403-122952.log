@@ -154,3 +154,18 @@ Already up to date.
 
   Merging to main: Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
 Already up to date.
+[main 5fd7c591] chore(backlog): done – Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
+ 5 files changed, 46 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
+- Added a `visited: Set<string>` parameter (default `new Set()`) to the `loadSource` function. When an internal `#/` pointer is encountered, the function checks if `ref` is already in `visited` — if so, it logs a warning with the full cycle path and returns an empty Map. Otherwise it creates a new child set (`new Set(visited).add(ref)`) and passes it to all recursive `loadSource` calls within the referenced set's sources.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L239-289
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  10 queued · 4 in-progress · last took 1m6s
+═══════════════════════════════════════════════════════════════
+  → Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side (POST /api/tokens/:set/bulk-delete, GET /api/tokens/:set/dependents/*, POST /api/export) but have no command palette entries; users must navigate to the token tree context menu for every destructive operation (CommandPalette.tsx ~L75-86, tokens.ts ~L807, ~L487)
+  Worktree: /tmp/backlog-49887-BqHS6U
+  Running agent… (started 13:09:37)

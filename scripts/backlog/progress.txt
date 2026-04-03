@@ -592,3 +592,12 @@
   - `new Set(visited).add(ref)` creates a per-branch copy of the visited set, which is correct — sibling sources within the same set should each see the full ancestor chain but not each other's branches.
   - The warning message logs the full cycle path via `[...visited].join(' → ') + ' → ' + ref` which aids debugging.
 ---
+
+## 2026-04-03 - Generator executeGeneratorMultiBrand has no rollback on partial row failure
+- Rewrote `executeGeneratorMultiBrand` in `generator-service.ts` to take a full pre-run snapshot of all affected sets (using `getFlatTokensForSet`) before starting the row loop. On any row failure the catch block restores all sets to their pre-run state via `tokenStore.restoreSnapshot` — passing original token values for existing paths plus `null`-deletions for tokens newly created during the failed run. `clearNonLockedOverrides` is now guarded by a `succeeded` flag in a `finally` block so it only runs after all rows complete successfully.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L674
+- **Learnings for future iterations:**
+  - `restoreSnapshot` takes `Array<{ path, token: Token | null }>` — null entries delete the path. To fully revert a run you need both the original values AND null entries for any paths that were created during the run (not present in the pre-run snapshot).
+  - `snapshotSets`/`restoreSnapshots` are private on TokenStore; the public `getFlatTokensForSet` + `restoreSnapshot` pair achieves the same result for external callers.
+  - Guarding side-effectful cleanup (like `clearNonLockedOverrides`) with a `succeeded` flag in finally is cleaner than restructuring try/catch — the finally still runs exactly once and the flag makes intent explicit.
+---
