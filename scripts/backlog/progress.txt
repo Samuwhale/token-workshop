@@ -404,3 +404,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: ExportPanel conflates platform export with Figma Variables import in one tab — Mode B reads FROM Figma and writes TO server, which is the opposite direction of "export"; also GeneratorPipelineCard has rerun/preview/duplicate/delete but no Edit button, forcing users through TokenEditor's derived groups section to edit a generator
 ---
+
+## 2026-04-03 - useTokenDataLoading triggers redundant flat-token fetches on every tree change
+- Replaced `tokens: unknown[]` dependency with `tokenRevision: number` — a primitive counter that increments only when `refreshTokens` successfully builds the tree. Added `tokenRevision` state to `useTokens` (incremented via `setTokenRevision(r => r + 1)` after `setTokens(buildTree(...))`). Updated `useTokenDataLoading` interface/params/effect deps to use `tokenRevision` instead of `tokens`. Updated `App.tsx` to destructure `tokenRevision` and pass it to `useTokenDataLoading`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L52, ~L89, ~L123; `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L9, ~L16, ~L47; `packages/figma-plugin/src/ui/App.tsx` ~L319, ~L323
+- **Learnings for future iterations:**
+  - Object references in React effect deps trigger re-runs on every render that rebuilds the object, even when the underlying data hasn't changed. Always prefer primitives (counters, booleans) as cross-hook change signals.
+  - The `tokenRevision` pattern (increment-on-successful-fetch) is a clean alternative to passing the full tree reference — it's a lightweight "version bump" that only changes when data actually arrives, not on every setState call.
+---

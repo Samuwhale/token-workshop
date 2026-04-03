@@ -49,6 +49,7 @@ export function useTokens(
     setActiveSetState(s);
   };
   const [tokens, setTokens] = useState<TokenNode[]>([]);
+  const [tokenRevision, setTokenRevision] = useState(0);
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
   const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
@@ -86,6 +87,7 @@ export function useTokens(
         const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
         if (gen !== fetchGenRef.current) return;
         setTokens(buildTree(tokensData.tokens || {}));
+        setTokenRevision(r => r + 1);
 
         if (gen !== fetchGenRef.current) return;
         setSetTokenCounts(setsData.counts || {});
@@ -119,7 +121,7 @@ export function useTokens(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSet]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
+  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {

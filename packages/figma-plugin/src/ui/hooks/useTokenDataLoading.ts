@@ -8,12 +8,12 @@ import type { TokenMapEntry } from '../../shared/types';
 interface UseTokenDataLoadingParams {
   serverUrl: string;
   connected: boolean;
-  /** Token tree — used as a dependency to trigger re-fetch */
-  tokens: unknown[];
+  /** Increments each time useTokens successfully rebuilds the tree — lightweight trigger for re-fetch */
+  tokenRevision: number;
   markDisconnected: () => void;
 }
 
-export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected }: UseTokenDataLoadingParams) {
+export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected }: UseTokenDataLoadingParams) {
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
@@ -44,7 +44,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
     } else {
       setTokensLoading(false);
     }
-  }, [connected, serverUrl, tokens, markDisconnected]);
+  }, [connected, serverUrl, tokenRevision, markDisconnected]);
 
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {

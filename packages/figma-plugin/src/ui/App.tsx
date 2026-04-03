@@ -316,11 +316,11 @@ export function App() {
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
   const [previewingToken, setPreviewingToken] = useState<{ path: string; name?: string; set: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
-  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
+  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
   const { selectedNodes } = useSelection();
   const availableFonts = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading } = useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected });
+  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
     setErrorToast(`Alias target not found: ${aliasPath}`);
   }, []);

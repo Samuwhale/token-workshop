@@ -271,3 +271,28 @@ Already up to date.
   ✓ product pass: product-pass
     10 items written to inbox — ExportPanel import/export conflation, missing generator Edit button, Publish All blocked by Git conflicts, scattered set management, HistoryPanel commit cap, no quick-fix on validation issues, hidden auto-fill buttons, no inline token editing, manual duplicate canonical selection, contrast matrix pagination
 Already up to date.
+[main c02cab24] chore(backlog): product pass – product-pass
+ 6 files changed, 37 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 10 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: TokenEditor.tsx (creation flow, path autocomplete, batch editor, save-and-create-another), token tree interactions (drag-drop, multi-select, copy/paste, undo/redo — all fully implemented), PublishPanel.tsx (Variables/Styles/Git sub-tabs, Publish All orchestration, orphan detection), ExportPanel.tsx (dual-mode: platforms export vs Figma Variables import), PublishModals.tsx + PublishShared.tsx, GitSubPanel.tsx (merge conflicts, file selection), ThemeManager.tsx (dimensions, options, set assignment 3-state, coverage gaps, auto-fill, drag reorder), SetSwitcher.tsx (read-only fuzzy search), EmptyState.tsx + QuickStartWizard.tsx (onboarding), GraphPanel.tsx (template browser, pipeline view, NodeGraphCanvas, GeneratorPipelineCard actions), TokenGeneratorDialog.tsx (create/edit flow, multi-brand, live preview), AnalyticsPanel.tsx (token summary, color contrast matrix, duplicate detection, validation issues, unused tokens), HistoryPanel.tsx (merged timeline, rollback/redo, snapshots, commit history), LintConfigPanel.tsx + lint.ts (5 configurable rules + 4 structural checks)
+- Found 10 items — written to backlog-inbox.md
+- Notable: ExportPanel conflates platform export with Figma Variables import in one tab — Mode B reads FROM Figma and writes TO server, which is the opposite direction of "export"; also GeneratorPipelineCard has rerun/preview/duplicate/delete but no Edit button, forcing users through TokenEditor's derived groups section to edit a generator
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  11 queued · 4 in-progress · last took 14m50s
+═══════════════════════════════════════════════════════════════
+  → useTokenDataLoading triggers redundant flat-token fetches on every tree change — the hook accepts `tokens` (the tree object from useTokens) as a dependency (line 47) which changes on every token mutation, but useTokens already fetches and rebuilds the tree; this causes a double-fetch (once for tree in useTokens, once for flat in useTokenDataLoading) on every change; should instead react to a lightweight change counter or SSE event rather than the full tree reference
+  Worktree: /tmp/backlog-80049-dBEMYW
+  Running agent… (started 12:47:38)
+
+  ✓ done: useTokenDataLoading triggers redundant flat-token fetches on every tree change
+    Replaced `tokens: unknown[]` dep with `tokenRevision: number` counter in useTokens/useTokenDataLoading/App.tsx — flat fetch now triggers only when tree is successfully rebuilt, not on every object reference change
+    18 turns · 150s · $0.52
+
+  Merging to main: useTokenDataLoading triggers redundant flat-token fetches on every tree change
+Already up to date.
