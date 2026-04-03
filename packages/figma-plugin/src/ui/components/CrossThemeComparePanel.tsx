@@ -3,6 +3,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { resolveAllAliases, isAlias } from '../../shared/resolveAlias';
 import { swatchBgColor } from '../shared/colorUtils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 
 interface CrossThemeComparePanelProps {
   tokenPath: string;
@@ -26,26 +27,7 @@ interface OptionResult {
 
 /** Format a token value for compact display. */
 function fmtValue(value: unknown, type: string): string {
-  if (value === undefined || value === null) return '—';
-  if (type === 'color' && typeof value === 'string') return value;
-  if ((type === 'dimension' || type === 'duration') && typeof value === 'object' && value !== null && 'value' in value) {
-    const v = value as { value: unknown; unit?: string };
-    return `${v.value}${v.unit ?? (type === 'dimension' ? 'px' : 'ms')}`;
-  }
-  if (type === 'typography' && typeof value === 'object' && value !== null) {
-    const v = value as Record<string, unknown>;
-    const parts: string[] = [];
-    if (v.fontFamily) parts.push(Array.isArray(v.fontFamily) ? String(v.fontFamily[0]) : String(v.fontFamily));
-    if (v.fontSize) {
-      parts.push(typeof v.fontSize === 'object' && v.fontSize !== null && 'value' in v.fontSize
-        ? `${(v.fontSize as { value: unknown; unit?: string }).value}${(v.fontSize as { value: unknown; unit?: string }).unit ?? 'px'}`
-        : `${v.fontSize}px`);
-    }
-    if (v.fontWeight) parts.push(String(v.fontWeight));
-    return parts.join(' ') || '—';
-  }
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  return formatTokenValueForDisplay(type, value);
 }
 
 function resolveForOption(

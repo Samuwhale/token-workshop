@@ -193,3 +193,18 @@ Already up to date.
 
   Merging to main: Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts
 Already up to date.
+[main 4f71c9b8] chore(backlog): done – Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts
+ 9 files changed, 45 insertions(+), 27 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts
+- Exported a single `extractSyncApplyResult` helper from `useTokenSyncBase.ts` and removed the three near-identical local definitions (`extractStyleApplyResult` in useFigmaSync/useStyleSync, `extractVarApplyResult` in useVariableSync). All three hooks now import and use the shared function.
+- The backlog item also asked to "migrate useFigmaSync to use useTokenSyncBase". useFigmaSync uses a fundamentally different invocation pattern (pending-state-triggered ad-hoc push operations rather than computeDiff→applyDiff workflow), so full migration is not applicable. The shared extractor is the meaningful consolidation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L6, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L7
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  10 queued · 3 in-progress · last took 4m36s
+═══════════════════════════════════════════════════════════════
+  → TokenFlowPanel (dependency graph) has no loading state and no empty state guidance — when no token is selected the panel shows nothing with no hint about what to do; add "Select a token to see its dependency graph" empty state text
+  Worktree: /tmp/backlog-80049-Z1P1jO
+  Running agent… (started 12:21:03)

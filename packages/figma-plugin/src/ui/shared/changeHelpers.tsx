@@ -1,4 +1,5 @@
 import { swatchBgColor } from './colorUtils';
+import { formatTokenValueForDisplay } from './tokenFormatting';
 
 /* ── Types ────────────────────────────────────────────────────────────── */
 
@@ -54,13 +55,7 @@ export function summarizeChanges(changes: TokenChange[]): { added: number; modif
 }
 
 export function formatTokenValue(type: string, value: any): string {
-  if (value == null) return '—';
-  if (type === 'color' && typeof value === 'string') return value;
-  if (typeof value === 'object') {
-    const s = JSON.stringify(value);
-    return s.length > 50 ? s.slice(0, 50) + '…' : s;
-  }
-  return String(value);
+  return formatTokenValueForDisplay(type, value);
 }
 
 /* ── Shared UI components ─────────────────────────────────────────────── */

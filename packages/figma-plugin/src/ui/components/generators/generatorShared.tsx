@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { DimensionValue } from '@tokenmanager/core';
 import type { GeneratedTokenResult } from '../../hooks/useGenerators';
+import { formatTokenValueForDisplay } from '../../shared/tokenFormatting';
 
 // ---------------------------------------------------------------------------
 // Type guard for DTCG dimension values ({ value: number; unit: string })
@@ -17,11 +18,7 @@ export function isDimensionLike(v: unknown): v is DimensionValue {
 // ---------------------------------------------------------------------------
 
 export function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (isDimensionLike(value)) {
-    return `${value.value}${value.unit}`;
-  }
-  return String(value);
+  return formatTokenValueForDisplay(undefined, value, { emptyPlaceholder: '' });
 }
 
 // ---------------------------------------------------------------------------

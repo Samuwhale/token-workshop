@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 
 interface ComparePanelProps {
   selectedPaths: Set<string>;
@@ -11,38 +12,7 @@ interface ComparePanelProps {
 
 /** Format a token value for display. */
 function fmtValue(value: any, type: string): string {
-  if (value === undefined || value === null) return '—';
-  if (type === 'color' && typeof value === 'string') return value;
-  if (type === 'dimension' && typeof value === 'object' && 'value' in value) {
-    return `${value.value}${value.unit ?? 'px'}`;
-  }
-  if (type === 'duration' && typeof value === 'object' && 'value' in value) {
-    return `${value.value}${value.unit ?? 'ms'}`;
-  }
-  if (type === 'typography' && typeof value === 'object') {
-    const parts: string[] = [];
-    if (value.fontFamily) parts.push(Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily);
-    if (value.fontSize) {
-      parts.push(typeof value.fontSize === 'object' ? `${value.fontSize.value}${value.fontSize.unit ?? 'px'}` : `${value.fontSize}px`);
-    }
-    if (value.fontWeight) parts.push(String(value.fontWeight));
-    if (value.lineHeight) {
-      parts.push(`/${typeof value.lineHeight === 'object' ? `${value.lineHeight.value}${value.lineHeight.unit ?? ''}` : value.lineHeight}`);
-    }
-    return parts.join(' ') || '—';
-  }
-  if (type === 'shadow' && Array.isArray(value)) {
-    return value.map((s: any) => {
-      const parts = [];
-      if (s.offsetX) parts.push(typeof s.offsetX === 'object' ? `${s.offsetX.value}${s.offsetX.unit ?? 'px'}` : s.offsetX);
-      if (s.offsetY) parts.push(typeof s.offsetY === 'object' ? `${s.offsetY.value}${s.offsetY.unit ?? 'px'}` : s.offsetY);
-      if (s.blur) parts.push(typeof s.blur === 'object' ? `${s.blur.value}${s.blur.unit ?? 'px'}` : s.blur);
-      if (s.color) parts.push(typeof s.color === 'string' ? s.color : JSON.stringify(s.color));
-      return parts.join(' ');
-    }).join(', ');
-  }
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  return formatTokenValueForDisplay(type, value);
 }
 
 /** Extract all property keys from a value object. */

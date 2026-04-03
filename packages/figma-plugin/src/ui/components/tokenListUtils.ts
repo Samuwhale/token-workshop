@@ -4,6 +4,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 
 // ---------------------------------------------------------------------------
 // Structured query parsing
@@ -138,46 +139,7 @@ export function nodeParentPath(nodePath: string, nodeName: string): string {
 // ---------------------------------------------------------------------------
 
 export function formatValue(type?: string, value?: any): string {
-  if (value === undefined || value === null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (typeof value === 'object') {
-    if ('value' in value && 'unit' in value) return `${value.value}${value.unit}`;
-    if (type === 'typography') {
-      const size = typeof value.fontSize === 'object'
-        ? `${value.fontSize.value}${value.fontSize.unit}`
-        : value.fontSize ? String(value.fontSize) : '';
-      const weight = value.fontWeight != null ? String(value.fontWeight) : '';
-      const family = value.fontFamily ? String(value.fontFamily) : '';
-      return [family, size, weight].filter(Boolean).join(' / ');
-    }
-    if (type === 'shadow') {
-      const s = Array.isArray(value) ? value[0] : value;
-      if (s && typeof s === 'object') {
-        const x = s.offsetX ?? s.x ?? '0';
-        const y = s.offsetY ?? s.y ?? '0';
-        const blur = s.blur ?? s.blurRadius ?? '0';
-        const prefix = Array.isArray(value) && value.length > 1 ? `×${value.length} ` : '';
-        return `${prefix}${x} ${y} ${blur}`;
-      }
-      return 'Shadow';
-    }
-    if (type === 'gradient') {
-      if (value.gradientType) return String(value.gradientType);
-      if (Array.isArray(value.stops)) return `${value.stops.length} stops`;
-      return 'Gradient';
-    }
-    if (type === 'border') {
-      const w = value.width
-        ? (typeof value.width === 'object' ? `${value.width.value}${value.width.unit}` : String(value.width))
-        : '';
-      const style = value.style ? String(value.style) : '';
-      return [w, style].filter(Boolean).join(' ') || 'Border';
-    }
-    return JSON.stringify(value).slice(0, 30);
-  }
-  return String(value);
+  return formatTokenValueForDisplay(type, value, { emptyPlaceholder: '' });
 }
 
 // ---------------------------------------------------------------------------

@@ -406,3 +406,16 @@
   - Shared response-shape extractors belong in the base module (`useTokenSyncBase.ts`) so all consumers import from one place.
   - When a backlog item says "migrate X to use Y base", verify whether the invocation patterns are actually compatible before restructuring. useFigmaSync's pending-state-triggered pattern is architecturally distinct from the diff-apply pattern in useTokenSyncBase.
 ---
+
+## 2026-04-03 - Consolidate duplicate fmtValue/formatValue/formatTokenValue formatting functions
+- Created `packages/figma-plugin/src/ui/shared/tokenFormatting.ts` with a single `formatTokenValueForDisplay(type, value, options?)` function that is the superset of all six prior implementations: handles color, dimension (default px), duration (default ms), typography (fontFamily fontSize fontWeight /lineHeight space-joined), shadow (×N prefix for arrays, offsetX/x fallback, color inclusion), gradient, border, and unknown objects (truncated JSON ≤50 chars). Default emptyPlaceholder is '—'.
+- Replaced `fmtValue()` in `ComparePanel.tsx` and `CrossThemeComparePanel.tsx` with thin wrappers delegating to the shared function.
+- Replaced `formatValue()` in `tokenListUtils.ts` and `generatorShared.tsx` with thin wrappers (passing `{ emptyPlaceholder: '' }` to preserve existing null/undefined behavior).
+- Replaced `formatTokenValue()` in `changeHelpers.tsx` with a thin wrapper.
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenFormatting.ts` (new), `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L13, `packages/figma-plugin/src/ui/components/CrossThemeComparePanel.tsx` ~L28, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L140, `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L19, `packages/figma-plugin/src/ui/shared/changeHelpers.tsx` ~L56
+- **Learnings for future iterations:**
+  - Typography: ComparePanel had the most complete implementation (includes lineHeight). CrossThemeComparePanel omitted lineHeight — the shared function now provides lineHeight for all callers.
+  - Shadow: tokenListUtils had the best compact representation (×N prefix, fallback property names); ComparePanel expanded all shadows. Shared function uses the compact approach.
+  - `emptyPlaceholder` option bridges the '—' vs '' disagreement between callers without breaking existing behavior.
+  - `isDimensionLike` is intentionally defined locally in tokenFormatting.ts (not imported from generatorShared or core) to avoid the no-re-exports-from-core rule and keep the shared utility self-contained.
+---

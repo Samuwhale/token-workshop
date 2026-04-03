@@ -192,3 +192,10 @@ Already up to date.
   → Duplicate `fmtValue` formatting functions across ComparePanel, CrossThemeComparePanel, and separate `formatValue`/`formatTokenValue` helpers in tokenListUtils, generatorShared, changeHelpers, and selectionInspectorUtils — six independent implementations of "format a token value for display" with subtly different type handling (e.g., shadow array formatting, typography joining, dimension unit defaults); consolidate into a single shared `formatTokenValueForDisplay(type, value)` in `shared/` that all panels and utilities import
   Worktree: /tmp/backlog-81661-sR60uu
   Running agent… (started 12:17:40)
+
+  ✓ done: Duplicate fmtValue formatting functions across ComparePanel, CrossThemeComparePanel, and separate formatValue/formatTokenValue helpers
+    Created shared/tokenFormatting.ts with formatTokenValueForDisplay(type, value, options); all six implementations now delegate to it. Lint errors dropped from 5 to 4 (baseline improvement).
+    31 turns · 283s · $0.96
+
+  Merging to main: Duplicate fmtValue formatting functions across ComparePanel, CrossThemeComparePanel, and separate formatValue/formatTokenValue helpers
+Already up to date.
