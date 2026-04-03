@@ -309,3 +309,9 @@
   - The bar chart already existed but used `h-1.5` (6px) which is too thin to read as a chart. Increasing to `h-3` (12px) and adding a percentage label transforms perception from "text with decoration" to "bar chart".
   - Adding a colored dot swatch next to the type name reinforces the color-coding and improves scannability without cluttering.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: all server services (token-store, generator-service, resolver-store, lint, manual-snapshot, style-dict, git-sync, operation-log), server route handlers (generators, tokens, resolvers, themes), shared/types.ts (PluginMessage union completeness), all UI hooks (useTokenDataLoading, useTokens, useThemeSwitcher, useVariableSync, useRecentOperations, useFigmaMessage, usePinnedTokens), plugin sandbox controller.ts message handlers, plugin variableSync.ts/selectionHandling.ts/heatmapScanning.ts outbound message types, eslint-disable suppressions across UI
+- Found 5 items — written to backlog-inbox.md
+- Notable: shared/types.ts defines a 35-member PluginMessage union for UI→controller but has zero type coverage for the reverse direction — at least 6 controller→UI response types are posted as untyped objects; also generator-service.ts delete() never clears generatorErrors so stale error badges leak to recreated generators
+---
