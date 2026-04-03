@@ -50,3 +50,25 @@ Already up to date.
 
   Merging to main: dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors via console.warn
 Already up to date.
+[main 8dfb605f] chore(backlog): done – dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors via console.warn
+ 9 files changed, 90 insertions(+), 23 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors
+- Replaced `console.warn` in `loadSource` with a `ResolverDiagnostic[]` accumulator threaded through the call stack. Added `ResolverDiagnostic` (`{ severity, message }`) and `ResolverResult` (`{ tokens, diagnostics }`) types. Changed `resolveTokens` return type from `Promise<Record<string, Token>>` to `Promise<ResolverResult>`. Updated `resolveTokensFull` similarly. Updated `resolver-store.ts:resolve()` to return `Promise<ResolverResult>`. Updated the `/resolvers/:name/resolve` route to include `diagnostics` in the JSON response so callers can surface errors in the UI.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L124-141 (types), ~L154-211 (resolveTokens), ~L213-232 (resolveTokensFull), ~L265-310 (loadSource); `packages/core/src/index.ts` ~L129 (exports); `packages/server/src/services/resolver-store.ts` ~L12-16 (import), ~L172-196 (resolve); `packages/server/src/routes/resolvers.ts` ~L179-192 (route)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  18 queued · 3 in-progress · last took 3m34s
+═══════════════════════════════════════════════════════════════
+  → CommandPalette token search qualifiers (type:, has:, path:) are undocumented in the UI — the placeholder text mentions them but there's no help tooltip, cheat sheet, or progressive disclosure; users won't discover these powerful filters without prior knowledge; add an inline help popover or footer hint row listing available qualifiers when the search is empty (CommandPalette.tsx ~L104-109, ~L410)
+  Worktree: /tmp/backlog-45818-NVLFe3
+  Running agent… (started 16:27:42)
+
+  ✓ done: CommandPalette token search qualifiers (type:, has:, path:) are undocumented in the UI
+    stale — already done. Qualifier hint chips row already exists at CommandPalette.tsx ~L427-448 with clickable chips, tooltips, and show-more toggle backed by QUERY_QUALIFIERS from tokenListUtils.ts.
+    10 turns · 46s · $0.22
+
+  Merging to main: CommandPalette token search qualifiers (type:, has:, path:) are undocumented in the UI
+Already up to date.

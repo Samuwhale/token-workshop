@@ -449,3 +449,10 @@
   - Cycle detection and bad-reference errors should be `severity: 'error'` (source is silently dropped), not `'warning'` — the distinction matters for UI display.
   - The route response shape becomes `{ tokens, diagnostics }` — clients that previously destructured `tokens` directly need to update, but since no users exist yet this is fine.
 ---
+
+## 2026-04-03 - CommandPalette token search qualifiers are undocumented in the UI
+- stale — already done. The CommandPalette already has a persistent qualifier hint chips row (lines 427-448 in CommandPalette.tsx) that shows all qualifiers from `QUERY_QUALIFIERS` when in token mode (`isTokenMode`). Chips are clickable and populate the search input. A `showAllQualifiers` toggle reveals the full list. The `QUERY_QUALIFIERS` array is defined in `tokenListUtils.ts` and exported to both CommandPalette and TokenList. No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing, check if the referenced code lines have changed substantially — the item referenced ~L104-109 and ~L410, but the implementation was already added at ~L427-448.
+---
