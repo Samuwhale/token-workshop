@@ -354,6 +354,65 @@ export class GeneratorService {
     return modified;
   }
 
+  /**
+   * Compute a full diff of what a generator re-run would produce, without
+   * persisting anything.  Returns tokens classified as created / updated /
+   * deleted / unchanged so the UI can show an accurate preview.
+   *
+   * - created:   in preview results but not yet in the token store
+   * - updated:   in preview results AND in store but the value would change
+   * - unchanged: in preview results AND in store with identical value
+   * - deleted:   in the store (tagged with this generator's id) but NOT in the
+   *              preview results (e.g. a step was removed from the config)
+   */
+  async dryRun(
+    id: string,
+    tokenStore: TokenStore,
+  ): Promise<{
+    created: Array<{ path: string; value: unknown; type: string }>;
+    updated: Array<{ path: string; currentValue: unknown; newValue: unknown; type: string }>;
+    unchanged: Array<{ path: string; value: unknown; type: string }>;
+    deleted: Array<{ path: string; currentValue: unknown }>;
+  }> {
+    const generator = this.generators.get(id);
+    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
+
+    const preview = await this.computeResults(generator, tokenStore);
+    const targetSet = generator.targetSet;
+
+    const created: Array<{ path: string; value: unknown; type: string }> = [];
+    const updated: Array<{ path: string; currentValue: unknown; newValue: unknown; type: string }> = [];
+    const unchanged: Array<{ path: string; value: unknown; type: string }> = [];
+    const previewPaths = new Set<string>();
+
+    for (const result of preview) {
+      previewPaths.add(result.path);
+      const existing = await tokenStore.getToken(targetSet, result.path);
+      if (!existing) {
+        created.push({ path: result.path, value: result.value, type: result.type });
+      } else if (stableStringify(existing.$value) !== stableStringify(result.value)) {
+        updated.push({ path: result.path, currentValue: existing.$value, newValue: result.value, type: result.type });
+      } else {
+        unchanged.push({ path: result.path, value: result.value, type: result.type });
+      }
+    }
+
+    // Detect tokens that belong to this generator but would be removed because
+    // they are no longer in the preview results (e.g. a step was deleted).
+    const flatTokens = await tokenStore.getFlatTokensForSet(targetSet);
+    const prefix = generator.targetGroup ? generator.targetGroup + '.' : '';
+    const deleted: Array<{ path: string; currentValue: unknown }> = [];
+    for (const [path, token] of Object.entries(flatTokens)) {
+      if (prefix && !path.startsWith(prefix) && path !== generator.targetGroup) continue;
+      const ext = token.$extensions?.['com.tokenmanager.generator'];
+      if (ext?.generatorId === id && !previewPaths.has(path)) {
+        deleted.push({ path, currentValue: token.$value });
+      }
+    }
+
+    return { created, updated, unchanged, deleted };
+  }
+
   /** Returns true if any generator is currently executing (has a pending lock chain). */
   isAnyRunning(): boolean {
     return this.generatorLocks.size > 0;

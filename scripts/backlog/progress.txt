@@ -417,3 +417,14 @@
   - The inner `tokenStore.beginBatch()`/`endBatch()` pair already used try/finally correctly; the outer loop lacked the same pattern for `clearNonLockedOverrides`.
   - `clearNonLockedOverrides` is called in `executeSingleBrand` before the token writes (so it always runs), but in `executeGeneratorMultiBrand` it was after the loop without a finally guard.
 ---
+
+## 2026-04-03 - Generator panel dry-run preview mode
+- Added `dryRun()` method to `GeneratorService` that computes a full diff (created/updated/unchanged/deleted) without persisting — compares `computeResults()` output against the token store, and detects deleted tokens by scanning for generator-tagged tokens in the target group not present in the preview output
+- Added `POST /api/generators/:id/dry-run` route in generators.ts (registered before `:id/check-overwrites` and `:id/run` to ensure static sub-segment wins)
+- Added `DryRunDiff` interface, `DryRunPreview` component, and `handlePreviewOutput` to `GeneratorPipelineCard` in GraphPanel.tsx; the card now has a "Preview output" button in the actions bar that fetches the diff inline, shows summary pills (+N new, ~M changed, -K removed, =P unchanged) that are clickable to expand detail lists with old→new values, and a "Run (apply N changes)" confirm button
+- Files changed: `packages/server/src/services/generator-service.ts` ~L357, `packages/server/src/routes/generators.ts` ~L602, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L890
+- **Learnings for future iterations:**
+  - The `checkOverwrites` method only flags tokens already tagged with the generator's extension ID; a proper dry-run diff needs to check ALL tokens in the preview vs. the store (for new generators that have never run before, every token is "created", not "updated")
+  - Detecting "deleted" tokens requires scanning the full target group in the store for tokens tagged with this generator's ID but absent from the preview — snapshotGroup already does this traversal but returns all tokens; filtering by extension.generatorId narrows to generator-owned ones
+  - Placing the `DryRunPreview` component definition before `GeneratorPipelineCard` avoids forward-reference TypeScript errors; the `DryRunDiff` interface must also be defined first
+---

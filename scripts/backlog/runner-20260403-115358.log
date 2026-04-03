@@ -21,3 +21,10 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
   → Generator panel has no dry-run preview mode — users must actually run a generator to see what tokens it would create; for generators targeting existing groups this overwrites values without any preview; add a "Preview output" action that shows a diff of what tokens would be created/updated/deleted without committing the change (GraphPanel.tsx ~L200-400, generator run endpoint)
   Worktree: /tmp/backlog-81661-sLlTHN
   Running agent… (started 11:53:59)
+
+  ✓ done: Generator panel has no dry-run preview mode
+    Added POST /api/generators/:id/dry-run endpoint and DryRunPreview UI component in GeneratorPipelineCard — shows created/updated/deleted/unchanged diff inline before committing, with an expand-on-click detail list and a confirm Run button
+    32 turns · 290s · $1
+
+  Merging to main: Generator panel has no dry-run preview mode
+Already up to date.

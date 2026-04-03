@@ -599,6 +599,16 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/generators/:id/dry-run — diff of what a re-run would produce, without committing
+  fastify.post<{ Params: { id: string } }>('/generators/:id/dry-run', async (request, reply) => {
+    try {
+      const diff = await fastify.generatorService.dryRun(request.params.id, fastify.tokenStore);
+      return diff;
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
+  });
+
   // POST /api/generators/:id/check-overwrites — preview which tokens would be overwritten
   fastify.post<{ Params: { id: string } }>('/generators/:id/check-overwrites', async (request, reply) => {
     try {

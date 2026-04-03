@@ -95,3 +95,19 @@ Already up to date.
 
   Merging to main: Generator multi-brand run leaves non-locked overrides in place on failure
 Already up to date.
+[main 837fc317] chore(backlog): done – Generator multi-brand run leaves non-locked overrides in place on failure
+ 6 files changed, 64 insertions(+), 38 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator multi-brand run leaves non-locked overrides in place on failure
+- Wrapped the multi-brand loop in a try/finally so `clearNonLockedOverrides` is always called even when `computeResultsWithValue` or token store operations throw mid-loop.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L600
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  0 queued · 3 in-progress · last took 1m19s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

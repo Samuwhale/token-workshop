@@ -891,12 +891,135 @@ function ApplyForm({
 // Generator pipeline card (shown after templates are applied)
 // ---------------------------------------------------------------------------
 
+interface DryRunDiff {
+  created: Array<{ path: string; value: unknown; type: string }>;
+  updated: Array<{ path: string; currentValue: unknown; newValue: unknown; type: string }>;
+  unchanged: Array<{ path: string; value: unknown; type: string }>;
+  deleted: Array<{ path: string; currentValue: unknown }>;
+}
+
+function formatTokenValue(value: unknown): string {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  return JSON.stringify(value);
+}
+
+function DryRunPreview({ diff, onConfirmRun, onClose, running }: {
+  diff: DryRunDiff;
+  onConfirmRun: () => void;
+  onClose: () => void;
+  running: boolean;
+}) {
+  const [expanded, setExpanded] = useState<'created' | 'updated' | 'deleted' | null>(null);
+  const totalChanges = diff.created.length + diff.updated.length + diff.deleted.length;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Preview output</span>
+        <button onClick={onClose} className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Close preview">×</button>
+      </div>
+
+      {totalChanges === 0 && diff.unchanged.length === 0 ? (
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">No tokens would be generated.</p>
+      ) : totalChanges === 0 ? (
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">All {diff.unchanged.length} tokens are already up-to-date. Nothing would change.</p>
+      ) : (
+        <div className="space-y-1">
+          {/* Summary pills */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {diff.created.length > 0 && (
+              <button
+                onClick={() => setExpanded(expanded === 'created' ? null : 'created')}
+                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'created' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'}`}
+              >
+                +{diff.created.length} new
+              </button>
+            )}
+            {diff.updated.length > 0 && (
+              <button
+                onClick={() => setExpanded(expanded === 'updated' ? null : 'updated')}
+                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'updated' ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'}`}
+              >
+                ~{diff.updated.length} changed
+              </button>
+            )}
+            {diff.deleted.length > 0 && (
+              <button
+                onClick={() => setExpanded(expanded === 'deleted' ? null : 'deleted')}
+                className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'deleted' ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'}`}
+              >
+                -{diff.deleted.length} removed
+              </button>
+            )}
+            {diff.unchanged.length > 0 && (
+              <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
+                ={diff.unchanged.length} unchanged
+              </span>
+            )}
+          </div>
+
+          {/* Detail list for expanded section */}
+          {expanded === 'created' && diff.created.length > 0 && (
+            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
+              {diff.created.map(t => (
+                <div key={t.path} className="flex items-center gap-1 text-[10px]">
+                  <span className="text-emerald-600 font-medium shrink-0">+</span>
+                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+                  <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">{formatTokenValue(t.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {expanded === 'updated' && diff.updated.length > 0 && (
+            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
+              {diff.updated.map(t => (
+                <div key={t.path} className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0">
+                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">was</span>
+                    <span className="font-mono text-red-500 truncate max-w-[90px]">{formatTokenValue(t.currentValue)}</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)] shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                    <span className="font-mono text-emerald-600 truncate max-w-[90px]">{formatTokenValue(t.newValue)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {expanded === 'deleted' && diff.deleted.length > 0 && (
+            <div className="max-h-28 overflow-y-auto space-y-px mt-1">
+              {diff.deleted.map(t => (
+                <div key={t.path} className="flex items-center gap-1 text-[10px]">
+                  <span className="text-red-500 font-medium shrink-0">−</span>
+                  <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+                  <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">{formatTokenValue(t.currentValue)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={onConfirmRun}
+        disabled={running}
+        className="mt-2 w-full py-1.5 px-2 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        {running ? 'Running…' : totalChanges === 0 ? 'Run (no changes)' : `Run (apply ${totalChanges} change${totalChanges !== 1 ? 's' : ''})`}
+      </button>
+    </div>
+  );
+}
+
 function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; onRefresh: () => void }) {
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewDiff, setPreviewDiff] = useState<DryRunDiff | null>(null);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
@@ -905,6 +1028,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
   const handleRerun = async () => {
     setRunning(true);
     setActionError(null);
+    setPreviewDiff(null);
     try {
       await apiFetch(`${serverUrl}/api/generators/${generator.id}/run`, { method: 'POST' });
       onRefresh();
@@ -912,6 +1036,19 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
       setActionError(err instanceof Error ? err.message : 'Re-run failed');
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handlePreviewOutput = async () => {
+    setPreviewLoading(true);
+    setActionError(null);
+    try {
+      const diff = await apiFetch<DryRunDiff>(`${serverUrl}/api/generators/${generator.id}/dry-run`, { method: 'POST' });
+      setPreviewDiff(diff);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Preview failed');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -1040,10 +1177,18 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--color-figma-border)]">
         <button
           onClick={handleRerun}
-          disabled={running}
+          disabled={running || previewLoading}
           className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors disabled:opacity-50"
         >
           {running ? 'Running…' : 'Re-run'}
+        </button>
+        <button
+          onClick={previewDiff ? () => setPreviewDiff(null) : handlePreviewOutput}
+          disabled={running || previewLoading}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
+          title="Preview what tokens would be created, updated, or deleted without running"
+        >
+          {previewLoading ? 'Loading…' : previewDiff ? 'Hide preview' : 'Preview output'}
         </button>
         <button
           onClick={handleDuplicate}
@@ -1069,6 +1214,15 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
           </div>
         )}
       </div>
+
+      {previewDiff && (
+        <DryRunPreview
+          diff={previewDiff}
+          onConfirmRun={handleRerun}
+          onClose={() => setPreviewDiff(null)}
+          running={running}
+        />
+      )}
     </div>
   );
 }
