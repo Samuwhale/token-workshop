@@ -593,3 +593,14 @@
   - For preset selectors (e.g., step presets), `JSON.stringify` comparison works fine because the arrays are small and always integer-typed
   - Types where the step list IS the config (opacityScale, zIndexScale) are better left to the full dialog — quick edit wisely skips them
 ---
+
+## 2026-04-03 - No bulk generator execution — add "Run all" button to Generators list view
+- Added a "Run all" button to the pipeline view header toolbar in `GraphPanel.tsx`. The button runs all generators in the active set sequentially via `POST /api/generators/:id/run`, collects per-generator results, and shows a dismissible success banner ("Ran N generators — M tokens updated") or error banner listing which generators failed. During execution a spinner with "Running…" label disables the button. The button is also disabled when not connected to the server.
+- Three new state variables added: `runningAll`, `runAllResult`, `runAllError`.
+- The `handleRunAll` function serializes calls (one at a time) to avoid race conditions with server file writes, accumulates token counts, and calls `onRefresh()` after all generators complete.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L941, ~L984, ~L1155, ~L1203
+- **Learnings for future iterations:**
+  - The run endpoint returns `{ count: number, tokens: ... }` — use `apiFetch<{ count: number }>` for the typed form.
+  - Sequential (not parallel) calls are correct here to avoid concurrent writes to the same token file; the server has a promise-chain mutex but sequential UI calls simplify error attribution per generator.
+  - Gate 4 (headless UI validation) timed out due to a pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); gates 1-3 all passed cleanly.
+---

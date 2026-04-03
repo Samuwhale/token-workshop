@@ -1308,6 +1308,9 @@ export function GraphPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
   const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<string | null>(null);
+  const [runningAll, setRunningAll] = useState(false);
+  const [runAllResult, setRunAllResult] = useState<{ count: number; tokenCount: number } | null>(null);
+  const [runAllError, setRunAllError] = useState<string | null>(null);
 
   // Scroll to and highlight a focused generator (from token badge click)
   useEffect(() => {
@@ -1344,6 +1347,31 @@ export function GraphPanel({
     setSearchQuery('');
     if (onApplyTemplate) onApplyTemplate('');
     if (onClearPendingGroup) onClearPendingGroup();
+  };
+
+  const handleRunAll = async () => {
+    setRunningAll(true);
+    setRunAllResult(null);
+    setRunAllError(null);
+    let successCount = 0;
+    let totalTokens = 0;
+    const errors: string[] = [];
+    for (const gen of setGenerators) {
+      try {
+        const res = await apiFetch<{ count: number }>(`${serverUrl}/api/generators/${gen.id}/run`, { method: 'POST' });
+        successCount++;
+        totalTokens += res.count ?? 0;
+      } catch (err) {
+        errors.push(gen.name);
+      }
+    }
+    setRunningAll(false);
+    if (errors.length === 0) {
+      setRunAllResult({ count: successCount, tokenCount: totalTokens });
+    } else {
+      setRunAllError(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`);
+    }
+    onRefresh();
   };
 
   const q = searchQuery.trim().toLowerCase();
@@ -1489,6 +1517,31 @@ export function GraphPanel({
               </svg>
             </button>
             <button
+              onClick={handleRunAll}
+              disabled={!connected || runningAll}
+              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              title={`Re-run all ${setGenerators.length} generator${setGenerators.length !== 1 ? 's' : ''} in this set`}
+            >
+              {runningAll
+                ? (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                      <path d="M21 12a9 9 0 11-6.219-8.56" />
+                    </svg>
+                    Running…
+                  </>
+                )
+                : (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Run all
+                  </>
+                )
+              }
+            </button>
+            <button
               onClick={() => setBrowsingTemplates(true)}
               disabled={!connected}
               className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1512,6 +1565,41 @@ export function GraphPanel({
               <path d="M20 6L9 17l-5-5" />
             </svg>
             <span><strong>{justApplied}</strong> applied — tokens are generating</span>
+          </div>
+        )}
+
+        {runAllResult && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center justify-between gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span>
+                Ran {runAllResult.count} generator{runAllResult.count !== 1 ? 's' : ''}
+                {runAllResult.tokenCount > 0 && <> — {runAllResult.tokenCount} token{runAllResult.tokenCount !== 1 ? 's' : ''} updated</>}
+              </span>
+            </div>
+            <button onClick={() => setRunAllResult(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {runAllError && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-600 dark:text-red-400 flex items-center justify-between gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+              <span>{runAllError}</span>
+            </div>
+            <button onClick={() => setRunAllError(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 

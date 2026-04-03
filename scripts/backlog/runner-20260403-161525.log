@@ -345,3 +345,18 @@ Already up to date.
 
   Merging to main: Generator edit requires re-opening the full dialog
 Already up to date.
+[main 444d67f3] chore(backlog): done – Generator edit requires re-opening the full dialog
+ 6 files changed, 413 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator edit requires re-opening the full dialog
+- Added an inline `QuickEditPanel` component to `GeneratorPipelineCard` in `GraphPanel.tsx` that lets users tweak key generator parameters without opening the full multi-step dialog.
+- The "Edit" button now toggles an inline quick-edit section within the card. It shows:
+  - **Source token** field (for types that require a value: colorRamp, typeScale, spacingScale, borderRadiusScale, accessibleColorPair, darkModeInversion)
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  2 queued · 3 in-progress · last took 7m12s
+═══════════════════════════════════════════════════════════════
+  → No token value history per token — the History panel shows operation-level history (bulk changes, generator runs) but there's no way to see the history of a single token's value over time; power users managing brand colors or key spacing values need to see "this token was #1a73e8, then changed to #1967d2 on March 15"; add a "Value history" section to TokenDetailPreview or the token editor that queries the operation log filtered by token path
+  Worktree: /tmp/backlog-45818-pcCSUP
+  Running agent… (started 17:56:09)

@@ -357,3 +357,10 @@ Already up to date.
   → No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
   Worktree: /tmp/backlog-46178-kmwby8
   Running agent… (started 17:52:06)
+
+  ✓ done: No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
+    Added "Run all" button to the Generators panel header toolbar; runs all generators in the active set sequentially, shows dismissible success/error banners with token counts
+    24 turns · 289s · $0.75
+
+  Merging to main: No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
+Already up to date.
