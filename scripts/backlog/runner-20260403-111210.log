@@ -66,3 +66,10 @@ Already up to date.
   → [HIGH] ColorPicker token swatch panel strips alpha from 8-char hex colors — `colorTokens` useMemo at ColorPicker.tsx:355 uses `v.slice(0, 7)` on every hex value that matches `#[0-9a-fA-F]{6,8}`, silently discarding the alpha byte from `#RRGGBBAA` tokens; selecting such a token from the "browse tokens" swatch panel applies the wrong fully-opaque color (the recent-colors alpha fix at ~L54 was a separate code path and did not fix this instance)
   Worktree: /tmp/backlog-20980-bLGkdM
   Running agent… (started 11:25:12)
+
+  ✓ done: ColorPicker token swatch panel strips alpha from 8-char hex colors
+    Fixed by preserving full #RRGGBBAA value in colorTokens useMemo (was sliced to 7 chars) and adding setAlpha(parseAlpha(t.hex)) in the token swatch click handler
+    16 turns · 105s · $0.41
+
+  Merging to main: ColorPicker token swatch panel strips alpha from 8-char hex colors
+Already up to date.

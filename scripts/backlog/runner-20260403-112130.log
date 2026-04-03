@@ -26,3 +26,12 @@ NOTE: 1 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: ExportPanel cannot export a filtered subset of tokens
 Already up to date.
+[main 09d788c8] chore(backlog): done – ExportPanel cannot export a filtered subset of tokens
+ 8 files changed, 233 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1025 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

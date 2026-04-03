@@ -419,3 +419,12 @@
   - The existing `group: string[]` server param already does path-prefix navigation; exposing it in the UI as a dot-separated string input is the cleanest UX approach.
   - Token type inheritance from parent groups (DTCG spec) must be tracked through the recursive filter via an `inheritedType` param.
 ---
+
+## 2026-04-03 - ColorPicker token swatch panel strips alpha from 8-char hex colors
+- Fixed two bugs in `colorTokens` useMemo at `ColorPicker.tsx:355`: (1) changed `v.slice(0, 7)` to `v` for both `hex` and `cssColor` fields so `#RRGGBBAA` values are preserved; (2) added `setAlpha(parseAlpha(t.hex))` in the token swatch click handler so selecting an 8-char hex token also applies its alpha, matching the existing recent-colors click handler pattern.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L355, ~L939
+- **Learnings for future iterations:**
+  - `hexToRgb` from `@tokenmanager/core` already handles 8-char hex (returns `{r, g, b, a?}`) — so passing full `#RRGGBBAA` to `hexToHsl` is safe (it only uses the RGB portion).
+  - `parseAlpha(hex)` is the canonical helper for extracting alpha from a hex string — use it consistently across all color-apply paths.
+  - When adding a new "apply color" code path, always mirror the full state updates from the existing reference path (recent-colors handler at L896-897 sets all 4: hue, sat, lit, alpha).
+---

@@ -352,7 +352,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       const v = entry.$value;
       if (typeof v !== 'string' || v.startsWith('{')) continue;
       if (/^#[0-9a-fA-F]{6,8}$/.test(v)) {
-        entries.push({ path, hex: v.slice(0, 7), cssColor: v.slice(0, 7) });
+        entries.push({ path, hex: v, cssColor: v });
       } else {
         // CSS Color 4 string — get sRGB fallback hex for the picker, keep original for display
         const parsed = parseAnyColor(v);
@@ -936,7 +936,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                     title={t.path}
                     onClick={() => {
                       const hsl = hexToHsl(t.hex);
-                      if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
+                      if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); setAlpha(parseAlpha(t.hex)); }
                     }}
                     className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors shrink-0"
                     style={{ backgroundColor: t.cssColor }}
