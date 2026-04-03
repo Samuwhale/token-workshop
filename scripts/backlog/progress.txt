@@ -346,3 +346,10 @@
   - For debounced auto-effects, use a `useRef` timer + cleanup in the effect return. The `validateResultsRef` pattern (sync ref to state) avoids listing `validateResults` in the effect deps while still reading its current value.
   - `refreshAll` in App.tsx is the canonical "tokens changed" signal — it's called for SSE events, editor saves, generator runs, scaffold wizard completions, etc. A new counter prop on child panels is the right way to propagate this signal without prop-drilling state.
 ---
+
+## 2026-04-03 - BatchEditor silently skips alias tokens during scale operations
+- Stale — already implemented. `skippedAliasTokens` useMemo (BatchEditor.tsx ~L144-155) and a pre-apply warning banner (BatchEditor.tsx ~L746-763) already show which tokens will be skipped before Apply is clicked, including the full list of skipped paths and their reference values. This was likely added during the "BatchEditor shows no indication of which tokens were skipped for type-incompatible operations" session.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The pre-apply alias-skip warning and the post-apply skip count both coexist; the item was written before the pre-apply UI was added.
+---

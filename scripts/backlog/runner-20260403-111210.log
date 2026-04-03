@@ -244,3 +244,17 @@ Already up to date.
   → ThemeManager has no "fill all coverage gaps" one-click action per dimension — coverage gap detection correctly identifies which tokens are missing per option (ThemeManager.tsx ~L249-287) but auto-fill only works per-option and per-set; users with a theme dimension that has many coverage gaps must click through each option individually; add a "Fill all gaps in dimension" action that runs auto-fill for every option in a single operation
   Worktree: /tmp/backlog-20980-lAisCV
   Running agent… (started 11:51:33)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    3 turns · 49s · $0.17
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+- Added `tokenChangeKey` prop (number) to `AnalyticsPanel`. App.tsx increments it in `refreshAll` (which is called on every SSE token change, editor save, and mutation). In `AnalyticsPanel`, a new `useEffect` on `tokenChangeKey` immediately marks `resultsStale = true` and schedules a debounced `runValidate()` after 2s (cancels if another change arrives within the window). A mutable `validateResultsRef` tracks whether validation has run yet, so the auto-revalidate is skipped on the very first load (when `validateResults === null`).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L350, ~L2224; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L26, ~L67, ~L100, ~L148
+- **Learnings for future iterations:**
+
+  Stopped after 10 iterations (1042 total items completed).

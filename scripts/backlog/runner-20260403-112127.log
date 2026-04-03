@@ -327,3 +327,25 @@ Already up to date.
 
   Merging to main: AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
 Already up to date.
+[main 4170e59b] chore(backlog): done – AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+ 8 files changed, 65 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+- Added `tokenChangeKey` prop (number) to `AnalyticsPanel`. App.tsx increments it in `refreshAll` (which is called on every SSE token change, editor save, and mutation). In `AnalyticsPanel`, a new `useEffect` on `tokenChangeKey` immediately marks `resultsStale = true` and schedules a debounced `runValidate()` after 2s (cancels if another change arrives within the window). A mutable `validateResultsRef` tracks whether validation has run yet, so the auto-revalidate is skipped on the very first load (when `validateResults === null`).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L350, ~L2224; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L26, ~L67, ~L100, ~L148
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  10 queued · 2 in-progress · last took 3m41s
+═══════════════════════════════════════════════════════════════
+  → BatchEditor silently skips alias tokens during scale operations and only reports the skip count post-apply — when scaling dimension tokens, any token with an alias reference is silently omitted (BatchEditor.tsx ~L146-155) and a count warning appears only after the operation completes; show a pre-apply summary listing the skipped alias tokens so users can decide whether to dereference them first
+  Worktree: /tmp/backlog-30880-Ov5Xz7
+  Running agent… (started 11:52:20)
+
+  ✓ done: BatchEditor silently skips alias tokens during scale operations and only reports the skip count post-apply
+    stale — already done. Pre-apply warning banner listing skipped alias tokens is already implemented at BatchEditor.tsx ~L746-763, added in a prior session.
+    9 turns · 60s · $0.29
+
+  Merging to main: BatchEditor silently skips alias tokens during scale operations and only reports the skip count post-apply
+Already up to date.
