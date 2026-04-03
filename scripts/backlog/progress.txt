@@ -472,3 +472,10 @@
   - `setActiveThemes` from `useThemeSwitcher` already persists to localStorage and posts a message to the Figma plugin sandbox — no extra persistence code needed in PreviewPanel.
   - Passing `themedAllTokensFlat` (resolver-aware, theme-applied) rather than raw `allTokensFlat` is the correct token source for a live preview; the resolver/theme merge is already done upstream in App.tsx.
 ---
+
+## 2026-04-03 - HistoryPanel has no search within operations
+- Stale — already implemented. `RecentActionsSource.tsx` already has a `searchPath` text input (line 219) that filters server operations by description, set name, and affected paths (lines 95-104). It also has a `filterType` dropdown for operation type filtering and a clear-filters button. The filter bar renders inside the collapsible "Server operations" section.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always read the full component before implementing — the filter was already present from a prior session.
+---

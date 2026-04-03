@@ -97,3 +97,18 @@ Already up to date.
 
   Merging to main: PreviewPanel ignores the active Theme Manager configuration
 Already up to date.
+[main 2e6928ae] chore(backlog): done – PreviewPanel ignores the active Theme Manager configuration
+ 7 files changed, 99 insertions(+), 37 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - PreviewPanel ignores the active Theme Manager configuration
+- Wired PreviewPanel to consume App's active theme state. Added `dimensions`, `activeThemes`, and `onActiveThemesChange` props to `PreviewPanelProps`. When dimensions are present, a compact row of `<select>` dropdowns (one per dimension) is rendered beneath the template tabs in the toolbar — each reflects the current `activeThemes` selection and calls `onActiveThemesChange` on change. In App.tsx, `themedAllTokensFlat` is now passed as `allTokensFlat` (instead of raw `allTokensFlat`) so the preview renders resolved, theme-aware token values. `dimensions`, `activeThemes`, and `setActiveThemes` are also passed down so the dimension selectors are fully connected to shared App state.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1, ~L81, ~L184; `packages/figma-plugin/src/ui/App.tsx` ~L2111
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  5 queued · 1 in-progress · last took 3m18s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel cannot visualize shadow, gradient, or transition tokens — the preview templates (colors, type-scale, buttons, forms, card) do not include any token types from `shadow`, `gradient`, or `transition`/`animation`; users who heavily use these token types have no way to see live previews before applying to Figma; add a "Effects" preview template that renders shadow token swatches and transition timing demos, and add gradient swatches to the existing colors template (PreviewPanel.tsx template list ~L13)
+  Worktree: /tmp/backlog-30880-ALccw9
+  Running agent… (started 11:31:03)

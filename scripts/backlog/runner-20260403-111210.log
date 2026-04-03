@@ -155,3 +155,10 @@ Already up to date.
   → HistoryPanel has no search within operations — the Recent Actions list can grow long and the only navigation is scrolling with "load more"; users who want to find "when was token X last changed?" must page through manually; add a text filter input above the operations list that filters entries by description or affected token path, similar to how the token filter banner works in TokenList (HistoryPanel.tsx ~L196, RecentActionsSource.tsx)
   Worktree: /tmp/backlog-20980-Gjk7cN
   Running agent… (started 11:30:44)
+
+  ✓ done: HistoryPanel has no search within operations
+    stale — already done; RecentActionsSource.tsx already has a searchPath text input and filterType dropdown that filter server operations by description, set name, and affected paths
+    10 turns · 38s · $0.22
+
+  Merging to main: HistoryPanel has no search within operations
+Already up to date.
