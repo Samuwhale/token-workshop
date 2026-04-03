@@ -22,7 +22,7 @@ import {
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
+import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density, AffectedRef } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
@@ -1712,34 +1712,43 @@ export function TokenList({
   };
 
 
-  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[] } | null => {
+  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[] } | null => {
     if (!deleteConfirm) return null;
     if (deleteConfirm.type === 'token') {
       const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
-      const { orphanCount } = deleteConfirm;
+      const { orphanCount, affectedRefs } = deleteConfirm;
+      const setCount = new Set(affectedRefs.map(r => r.setName)).size;
       return {
         title: `Delete "${name}"?`,
         description: orphanCount > 0
-          ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} reference this and will become broken.`
+          ? `This will break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
           : `Token path: ${deleteConfirm.path}`,
         confirmLabel: 'Delete',
+        affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
       };
     }
     if (deleteConfirm.type === 'group') {
+      const { orphanCount, affectedRefs } = deleteConfirm;
+      const setCount = new Set(affectedRefs.map(r => r.setName)).size;
       return {
         title: `Delete group "${deleteConfirm.name}"?`,
-        description: `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} in this group.`,
+        description: orphanCount > 0
+          ? `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} and break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
+          : `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} in this group.`,
         confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''})`,
+        affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
       };
     }
-    const { paths, orphanCount } = deleteConfirm;
+    const { paths, orphanCount, affectedRefs } = deleteConfirm;
+    const setCount = new Set(affectedRefs.map(r => r.setName)).size;
     return {
       title: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}?`,
       description: orphanCount > 0
-        ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} reference these and will become broken.`
+        ? `This will break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
         : undefined,
       confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}`,
       pathList: paths,
+      affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
     };
   };
 

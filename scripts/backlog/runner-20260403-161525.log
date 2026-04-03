@@ -454,3 +454,10 @@ Already up to date.
   → No token dependency impact preview before destructive actions — deleting or renaming a token that other tokens alias shows no preview of affected dependents; users discover broken aliases after the fact; add an impact summary ("This will break N alias references in M sets") to the delete/rename confirmation dialog, with a list of affected token paths (TokenEditor.tsx rename, TokenList.tsx delete confirmation, token-tree-utils.ts alias tracking)
   Worktree: /tmp/backlog-45818-h9vdTK
   Running agent… (started 18:22:09)
+
+  ✓ done: No token dependency impact preview before destructive actions
+    Delete confirmations now show "This will break N alias references in M sets" with a scrollable list of affected token paths (set/path format); group deletion now also surfaces orphan impact which was previously omitted entirely
+    30 turns · 391s · $1.34
+
+  Merging to main: No token dependency impact preview before destructive actions
+Already up to date.

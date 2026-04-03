@@ -503,3 +503,18 @@ Already up to date.
 
   Merging to main: CSS and Tailwind imports silently skip dynamic expressions with no report
 Already up to date.
+[main fc61eae1] chore(backlog): done – CSS and Tailwind imports silently skip dynamic expressions with no report
+ 8 files changed, 264 insertions(+), 30 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - CSS and Tailwind imports skipped-entry summary
+- Added `SkippedEntry { path, originalExpression, reason }` interface and `skipped: SkippedEntry[]` field to `ParseResult` in `tokenParsers.ts`.
+- CSS parser (`parseCSSCustomProperties`): detects values containing `calc(`, `env(`, `min(`, `max(`, `clamp(`, or unresolved `var(...)` (anything other than a simple `var(--name)`) — skips them instead of importing as raw strings, and records each in `skipped` with the original expression and reason.
+- Tailwind/JS parser (`flattenJSObject`): now takes an optional `skipped` accumulator; arrays, booleans, and null leaf values are added to it with descriptive reasons. `parseTailwindConfig` initialises and threads the accumulator through, returning it in the result.
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  8 queued · 3 in-progress · last took 11m19s
+═══════════════════════════════════════════════════════════════
+  → Node graph has no undo/redo for node positioning or edge changes — moving nodes, adding/deleting edges, and adding transform nodes in the graph editor have no undo support; accidentally deleting an edge or moving a node requires manual reconstruction; the graph state changes should integrate with the existing undo system (NodeGraphCanvas.tsx, useNodeGraph.ts)
+  Worktree: /tmp/backlog-46580-VLCh2t
+  Running agent… (started 18:25:40)

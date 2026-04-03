@@ -136,10 +136,15 @@ export interface TokenListProps {
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
 }
 
+export interface AffectedRef {
+  path: string;
+  setName: string;
+}
+
 export type DeleteConfirm =
-  | { type: 'token'; path: string; orphanCount: number }
-  | { type: 'group'; path: string; name: string; tokenCount: number }
-  | { type: 'bulk'; paths: string[]; orphanCount: number };
+  | { type: 'token'; path: string; orphanCount: number; affectedRefs: AffectedRef[] }
+  | { type: 'group'; path: string; name: string; tokenCount: number; orphanCount: number; affectedRefs: AffectedRef[] }
+  | { type: 'bulk'; paths: string[]; orphanCount: number; affectedRefs: AffectedRef[] };
 
 export interface PromoteRow {
   path: string;

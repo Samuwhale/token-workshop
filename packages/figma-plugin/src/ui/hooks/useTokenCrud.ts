@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
-import type { DeleteConfirm } from '../components/tokenListTypes';
+import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
@@ -156,31 +156,58 @@ export function useTokenCrud({
 
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
-    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
-      if (tokenPath === path) return false;
-      const val = token.$value;
-      if (!isAlias(val)) return false;
-      return extractAliasPath(val) === path;
-    }).length;
-    setDeleteConfirm({ type: 'token', path, orphanCount });
-  }, [connected, allTokensFlat]);
+    const affectedRefs: AffectedRef[] = [];
+    const source = perSetFlat ?? { '': allTokensFlat };
+    for (const [sName, flatSet] of Object.entries(source)) {
+      for (const [tokenPath, token] of Object.entries(flatSet)) {
+        if (tokenPath === path) continue;
+        const val = token.$value;
+        if (!isAlias(val)) continue;
+        if (extractAliasPath(val) === path) {
+          affectedRefs.push({ path: tokenPath, setName: sName });
+        }
+      }
+    }
+    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs });
+  }, [connected, allTokensFlat, perSetFlat]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
-    setDeleteConfirm({ type: 'group', path, name, tokenCount });
-  }, [connected]);
+    const affectedRefs: AffectedRef[] = [];
+    const prefix = `${path}.`;
+    const source = perSetFlat ?? { '': allTokensFlat };
+    for (const [sName, flatSet] of Object.entries(source)) {
+      for (const [tokenPath, token] of Object.entries(flatSet)) {
+        if (tokenPath === path || tokenPath.startsWith(prefix)) continue;
+        const val = token.$value;
+        if (!isAlias(val)) continue;
+        const aliasPath = extractAliasPath(val);
+        if (aliasPath && (aliasPath === path || aliasPath.startsWith(prefix))) {
+          affectedRefs.push({ path: tokenPath, setName: sName });
+        }
+      }
+    }
+    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs });
+  }, [connected, allTokensFlat, perSetFlat]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
     const paths = [...selectedPaths];
-    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
-      if (selectedPaths.has(tokenPath)) return false;
-      const val = token.$value;
-      if (!isAlias(val)) return false;
-      return selectedPaths.has(extractAliasPath(val)!);
-    }).length;
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount });
-  }, [connected, allTokensFlat]);
+    const affectedRefs: AffectedRef[] = [];
+    const source = perSetFlat ?? { '': allTokensFlat };
+    for (const [sName, flatSet] of Object.entries(source)) {
+      for (const [tokenPath, token] of Object.entries(flatSet)) {
+        if (selectedPaths.has(tokenPath)) continue;
+        const val = token.$value;
+        if (!isAlias(val)) continue;
+        const aliasPath = extractAliasPath(val);
+        if (aliasPath && selectedPaths.has(aliasPath)) {
+          affectedRefs.push({ path: tokenPath, setName: sName });
+        }
+      }
+    }
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs });
+  }, [connected, allTokensFlat, perSetFlat]);
 
   const executeDelete = useCallback(async () => {
     if (!deleteConfirm) return;

@@ -5,7 +5,7 @@ import { QuickStartDialog } from './QuickStartDialog';
 import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
-import type { DeleteConfirm, PromoteRow } from './tokenListTypes';
+import type { DeleteConfirm, PromoteRow, AffectedRef } from './tokenListTypes';
 
 export interface TokenListModalsProps {
   // Quick Start Dialog
@@ -20,7 +20,7 @@ export interface TokenListModalsProps {
 
   // Delete confirmation modal
   deleteConfirm: DeleteConfirm | null;
-  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[] } | null;
+  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[] } | null;
   executeDelete: () => void;
   onSetDeleteConfirm: (v: DeleteConfirm | null) => void;
 
@@ -326,7 +326,7 @@ export function TokenListModals(props: TokenListModalsProps) {
           description={modalProps.description}
           confirmLabel={modalProps.confirmLabel}
           danger
-          wide={!!modalProps.pathList}
+          wide={!!(modalProps.pathList || modalProps.affectedRefs)}
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
         >
@@ -342,6 +342,23 @@ export function TokenListModals(props: TokenListModalsProps) {
                   and {modalProps.pathList.length - 20} more…
                 </div>
               )}
+            </div>
+          )}
+          {modalProps.affectedRefs && modalProps.affectedRefs.length > 0 && (
+            <div className="mt-2">
+              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">Affected alias references:</div>
+              <div className="max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {modalProps.affectedRefs.slice(0, 20).map((ref, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate hover:text-[var(--color-figma-text)]" title={`${ref.setName}/${ref.path}`}>
+                    <span className="text-[var(--color-figma-text-tertiary)]">{ref.setName}/</span>{ref.path}
+                  </div>
+                ))}
+                {modalProps.affectedRefs.length > 20 && (
+                  <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">
+                    and {modalProps.affectedRefs.length - 20} more…
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </ConfirmModal>
