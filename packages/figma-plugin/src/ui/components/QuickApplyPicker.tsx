@@ -46,6 +46,7 @@ interface QuickApplyPickerProps {
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
   onApply: (tokenPath: string, tokenType: string, targetProperty: BindableProperty, resolvedValue: any) => void;
+  onUnbind: (targetProperty: BindableProperty) => void;
   onClose: () => void;
 }
 
@@ -94,7 +95,7 @@ const MAX_CANDIDATES = 15;
 // Component
 // ---------------------------------------------------------------------------
 
-export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onClose }: QuickApplyPickerProps) {
+export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, onClose }: QuickApplyPickerProps) {
   const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
@@ -143,8 +144,18 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onClose }: 
     onApply(candidate.path, candidate.entry.$type, activeProp, candidate.resolved);
   };
 
+  const handleUnbind = () => {
+    onUnbind(activeProp);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
+    // Backspace/Delete with empty query unbinds the current binding
+    if ((e.key === 'Backspace' || e.key === 'Delete') && query === '' && currentBinding && currentBinding !== 'mixed') {
+      e.preventDefault();
+      handleUnbind();
+      return;
+    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const idx = eligibleProps.indexOf(activeProp);
@@ -255,6 +266,18 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onClose }: 
               {currentBinding}
             </span>
           )}
+          {currentBinding && (
+            <button
+              onClick={handleUnbind}
+              title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
+              className="shrink-0 flex items-center gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-red-400 hover:bg-red-400/10 rounded px-1.5 py-0.5 transition-colors"
+            >
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+              Unbind
+            </button>
+          )}
         </div>
 
         {/* Token candidates */}
@@ -362,6 +385,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onClose }: 
           <span>↑↓ navigate</span>
           <span>↵ apply</span>
           <span>Tab switch property</span>
+          {currentBinding && <span>⌫ unbind</span>}
           <span>ESC close</span>
         </div>
       </div>

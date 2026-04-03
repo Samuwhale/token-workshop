@@ -586,3 +586,17 @@
 - **Learnings for future iterations:**
   - Verify current code state before assuming a backlog item is unimplemented — prior sessions may have already addressed it as part of adjacent work.
 ---
+
+## 2026-04-03 - QuickApplyPicker has no "unbind" action
+- Added `onUnbind: (targetProperty: BindableProperty) => void` prop to `QuickApplyPickerProps`.
+- Added `handleUnbind()` that calls `onUnbind(activeProp)`.
+- Added keyboard shortcut: `Backspace`/`Delete` with empty query unbinds the current binding (with guard: only when `currentBinding` is set and not 'mixed').
+- Added "Unbind" button in the search row next to the current-binding badge; shows for both exact and 'mixed' bindings; uses red hover style to signal destructive intent.
+- Updated footer hints to show `⌫ unbind` when a binding is present.
+- In App.tsx, `onUnbind` posts `remove-binding` message with the property and shows a success toast.
+- Files changed: `packages/figma-plugin/src/ui/components/QuickApplyPicker.tsx` ~L45-51, ~L142-155, ~L253-265, ~L381; `packages/figma-plugin/src/ui/App.tsx` ~L3187
+- **Learnings for future iterations:**
+  - The existing `remove-binding` plugin message already targets the full selection, so no new plugin-side code was needed.
+  - Showing the unbind button for 'mixed' binding state (multiple different tokens bound) is safe — the controller removes whatever binding each selected node has for that property.
+  - Using `Backspace` as the keyboard shortcut matches the mental model (erase the binding); guarding on `query === ''` prevents accidental unbind while the user is typing.
+---
