@@ -97,3 +97,18 @@ Already up to date.
 
   Merging to main: Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
 Already up to date.
+[main 48c6affd] chore(backlog): done – Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
+ 7 files changed, 142 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
+- Added `resolveAllConflicts(resolutions)` method to `GitSync` service that:
+  1. Validates each resolution entry has a non-empty `file` string and a `choices` object.
+  2. Validates all choice values are `'ours'` or `'theirs'`.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  12 queued · 3 in-progress · last took 3m50s
+═══════════════════════════════════════════════════════════════
+  → ExtractTokensPanel does not bind created tokens to the originating selection — after batch-extracting tokens from a Figma layer, users must manually return to SelectionInspector and bind each one individually, breaking the extract-to-bind workflow
+  Worktree: /tmp/backlog-92209-WGFLB8
+  Running agent… (started 01:20:24)

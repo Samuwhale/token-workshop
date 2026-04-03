@@ -43,3 +43,10 @@ Already up to date.
   → App.tsx command palette useMemo has 30 dependencies and recalculates frequently — the `commands` array is rebuilt on nearly every state change because its dependency array includes 30+ values including state that changes on every interaction; extracting command definitions to a stable registry would prevent unnecessary recalculation (App.tsx ~L870-1188)
   Worktree: /tmp/backlog-91634-ZQbEUp
   Running agent… (started 01:12:01)
+
+  ✓ done: App.tsx command palette useMemo has 30 dependencies and recalculates frequently
+    Split the 31-dep commands memo into 5 focused sub-memos (baseCommands, setCommands, themeCompareCommands, contextualCommands, undoRedoCommands) + a cheap merge; hover events now only rebuild contextualCommands (~5 entries) instead of all 40+ commands
+    16 turns · 530s · $1.06
+
+  Merging to main: App.tsx command palette useMemo has 30 dependencies and recalculates frequently
+Already up to date.

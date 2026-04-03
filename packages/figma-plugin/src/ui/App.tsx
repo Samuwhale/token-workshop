@@ -867,9 +867,16 @@ export function App() {
     }
   }, [paletteDeleteConfirm, allTokensFlat, serverUrl, activeSet, pushUndo, refreshAll, setSuccessToast, setErrorToast]);
 
-  const commands: Command[] = useMemo(() => {
+  // Split the command palette registry into focused sub-memos so that
+  // frequently-changing state (highlightedToken on every hover, undo stack on
+  // every op) only rebuilds its own small slice instead of all 40+ commands.
+
+  // Base commands: stable navigation / action commands.
+  // Rebuilds when set count, preview toggle, lint count, selection, or
+  // server connectivity changes — all infrequent relative to hover events.
+  const baseCommands = useMemo<Command[]>(() => {
     const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
-    const cmds: Command[] = [
+    return [
       {
         id: 'new-token',
         label: 'Create new token',
@@ -981,31 +988,6 @@ export function App() {
         category: 'Navigation',
         handler: () => navigateTo('define', 'themes'),
       },
-      // Compare theme options — shown when dimensions exist
-      ...(dimensions.length > 0 ? [{
-        id: 'compare-theme-options',
-        label: 'Compare theme options\u2026',
-        description: 'Side-by-side token diff across theme options',
-        category: 'Themes',
-        handler: () => {
-          setCompareMode('theme-options');
-          navigateTo('define', 'compare');
-        },
-      }] : []),
-      // Per-dimension compare shortcuts when there are ≥2 options
-      ...dimensions.filter(d => d.options.length >= 2).map(d => ({
-        id: `compare-dim-${d.id}`,
-        label: `Compare ${d.name}: ${d.options[0].name} vs ${d.options[1].name}`,
-        description: `See token differences across ${d.name} options`,
-        category: 'Themes',
-        handler: () => {
-          setCompareThemeDefaultA(`${d.id}:${d.options[0].name}`);
-          setCompareThemeDefaultB(`${d.id}:${d.options[1].name}`);
-          setCompareThemeKey(k => k + 1);
-          setCompareMode('theme-options');
-          navigateTo('define', 'compare');
-        },
-      })),
       {
         id: 'canvas-audit',
         label: 'Canvas Audit',
@@ -1069,18 +1051,11 @@ export function App() {
         id: `graph-template-${t.id}`,
         label: `Generate ${t.label}`,
         description: `Generator template — ${t.description}`,
-        category: 'Generate',
+        category: 'Generate' as const,
         handler: () => {
           navigateTo('define', 'generators');
           setPendingGraphTemplate(t.id);
         },
-      })),
-      ...sets.map(s => ({
-        id: `switch-set-${s}`,
-        label: `Switch to Set: ${s}`,
-        description: `${setTokenCounts[s] ?? 0} tokens`,
-        category: 'Sets',
-        handler: () => { setActiveSet(s); goToTokens(); },
       })),
       {
         id: 'guided-setup',
@@ -1104,33 +1079,6 @@ export function App() {
         shortcut: SHORTCUT_KEYS.SHOW_SHORTCUTS,
         handler: () => setShowKeyboardShortcuts(true),
       },
-      // Delete highlighted token (only when a token in the active set is focused)
-      ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-        id: 'delete-highlighted-token',
-        label: `Delete token: ${highlightedToken}`,
-        description: `Permanently delete this token from set "${activeSet}"`,
-        category: 'Tokens',
-        handler: () => setPaletteDeleteConfirm({ paths: [highlightedToken], label: `Delete "${highlightedToken}"?` }),
-      }] : []),
-      // Delete selected tokens (only when multi-select is active in TokenList)
-      ...(tokenListSelection.length > 0 ? [{
-        id: 'delete-selected-tokens',
-        label: `Delete ${tokenListSelection.length} selected token${tokenListSelection.length !== 1 ? 's' : ''}`,
-        description: `Permanently delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''} from set "${activeSet}"`,
-        category: 'Tokens',
-        handler: () => setPaletteDeleteConfirm({
-          paths: tokenListSelection,
-          label: `Delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''}?`,
-        }),
-      }] : []),
-      // Show dependencies of highlighted token
-      ...(highlightedToken ? [{
-        id: 'show-dependencies',
-        label: `Show dependencies: ${highlightedToken}`,
-        description: 'View what aliases and tokens reference this token',
-        category: 'Tokens',
-        handler: () => { setFlowPanelInitialPath(highlightedToken); navigateTo('apply', 'dependencies'); },
-      }] : []),
       // Compare tokens (multi-select → navigate to compare tab)
       {
         id: 'compare-tokens',
@@ -1139,53 +1087,136 @@ export function App() {
         category: 'Tokens',
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
-      // Compare token across themes (only when theme dimensions exist and a token is focused)
-      ...(dimensions.length > 0 && highlightedToken ? [{
-        id: 'compare-across-themes',
-        label: `Compare across themes: ${highlightedToken}`,
-        description: 'See how this token\u2019s value varies across all theme options',
-        category: 'Tokens',
-        handler: () => { handleOpenCrossThemeCompare(highlightedToken); },
-      }] : []),
-      // Compare any token across themes (no focused token — prompt user)
-      ...(dimensions.length > 0 && !highlightedToken ? [{
-        id: 'compare-across-themes-pick',
-        label: 'Compare token across themes\u2026',
-        description: 'Focus a token first, then run this command to compare its values across theme options',
-        category: 'Tokens',
-        handler: () => { setCompareMode('cross-theme'); navigateTo('define', 'compare'); },
-      }] : []),
-      // Server-side undo: recent operations with rollback
-      ...recentOperations
-        .filter(op => !op.rolledBack)
-        .slice(0, 5)
-        .map((op, i) => ({
-          id: `undo-op-${op.id}`,
-          label: i === 0 ? `Undo: ${op.description}` : `Rollback: ${op.description}`,
-          description: `${op.affectedPaths.length} path(s) \u00b7 ${op.setName} \u00b7 ${timeAgo(op.timestamp)}`,
-          category: 'Undo',
-          handler: () => handleRollback(op.id),
-        })),
-      // Local redo: most recent item from the client-side future stack
-      ...(canRedo && redoSlot ? [{
-        id: 'redo-local',
-        label: `Redo: ${redoSlot.description}`,
-        description: 'Re-apply the last undone action',
-        category: 'Undo',
-        shortcut: '⇧⌘Z',
-        handler: executeRedo,
-      }] : []),
-      // Server-side redo: rolled-back operations that can be re-applied (most recent first)
-      ...[...redoableItems].reverse().slice(0, 5).map((item, i) => ({
-        id: `redo-op-${item.origOpId}`,
-        label: i === 0 && !canRedo ? `Redo: ${item.description}` : `Re-apply: ${item.description}`,
-        description: 'Re-apply a rolled-back server operation',
-        category: 'Undo',
-        handler: () => handleServerRedo(item.origOpId),
-      })),
     ];
-    return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey, connected, serverUrl, handleOpenCrossThemeCompare]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl]);
+
+  // Per-set switch commands — rebuilds when the set list or token counts change.
+  const setCommands = useMemo<Command[]>(() => {
+    const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
+    return sets.map(s => ({
+      id: `switch-set-${s}`,
+      label: `Switch to Set: ${s}`,
+      description: `${setTokenCounts[s] ?? 0} tokens`,
+      category: 'Sets' as const,
+      handler: () => { setActiveSet(s); goToTokens(); },
+    }));
+  }, [sets, setTokenCounts, navigateTo]);
+
+  // Theme compare commands — rebuilds when dimensions change (rare: theme config edits).
+  const themeCompareCommands = useMemo<Command[]>(() => [
+    // Compare theme options — shown when dimensions exist
+    ...(dimensions.length > 0 ? [{
+      id: 'compare-theme-options',
+      label: 'Compare theme options\u2026',
+      description: 'Side-by-side token diff across theme options',
+      category: 'Themes' as const,
+      handler: () => {
+        setCompareMode('theme-options');
+        navigateTo('define', 'compare');
+      },
+    }] : []),
+    // Per-dimension compare shortcuts when there are ≥2 options
+    ...dimensions.filter(d => d.options.length >= 2).map(d => ({
+      id: `compare-dim-${d.id}`,
+      label: `Compare ${d.name}: ${d.options[0].name} vs ${d.options[1].name}`,
+      description: `See token differences across ${d.name} options`,
+      category: 'Themes' as const,
+      handler: () => {
+        setCompareThemeDefaultA(`${d.id}:${d.options[0].name}`);
+        setCompareThemeDefaultB(`${d.id}:${d.options[1].name}`);
+        setCompareThemeKey(k => k + 1);
+        setCompareMode('theme-options');
+        navigateTo('define', 'compare');
+      },
+    })),
+  ], [dimensions, navigateTo, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey]);
+
+  // Contextual commands — rebuilds on hover/selection changes (most frequent).
+  // Kept small (~5 entries) so the rebuild cost is negligible.
+  const contextualCommands = useMemo<Command[]>(() => [
+    // Delete highlighted token (only when a token in the active set is focused)
+    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
+      id: 'delete-highlighted-token',
+      label: `Delete token: ${highlightedToken}`,
+      description: `Permanently delete this token from set "${activeSet}"`,
+      category: 'Tokens' as const,
+      handler: () => setPaletteDeleteConfirm({ paths: [highlightedToken], label: `Delete "${highlightedToken}"?` }),
+    }] : []),
+    // Delete selected tokens (only when multi-select is active in TokenList)
+    ...(tokenListSelection.length > 0 ? [{
+      id: 'delete-selected-tokens',
+      label: `Delete ${tokenListSelection.length} selected token${tokenListSelection.length !== 1 ? 's' : ''}`,
+      description: `Permanently delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''} from set "${activeSet}"`,
+      category: 'Tokens' as const,
+      handler: () => setPaletteDeleteConfirm({
+        paths: tokenListSelection,
+        label: `Delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''}?`,
+      }),
+    }] : []),
+    // Show dependencies of highlighted token
+    ...(highlightedToken ? [{
+      id: 'show-dependencies',
+      label: `Show dependencies: ${highlightedToken}`,
+      description: 'View what aliases and tokens reference this token',
+      category: 'Tokens' as const,
+      handler: () => { setFlowPanelInitialPath(highlightedToken); navigateTo('apply', 'dependencies'); },
+    }] : []),
+    // Compare token across themes (only when theme dimensions exist and a token is focused)
+    ...(dimensions.length > 0 && highlightedToken ? [{
+      id: 'compare-across-themes',
+      label: `Compare across themes: ${highlightedToken}`,
+      description: 'See how this token\u2019s value varies across all theme options',
+      category: 'Tokens' as const,
+      handler: () => { handleOpenCrossThemeCompare(highlightedToken); },
+    }] : []),
+    // Compare any token across themes (no focused token — prompt user)
+    ...(dimensions.length > 0 && !highlightedToken ? [{
+      id: 'compare-across-themes-pick',
+      label: 'Compare token across themes\u2026',
+      description: 'Focus a token first, then run this command to compare its values across theme options',
+      category: 'Tokens' as const,
+      handler: () => { setCompareMode('cross-theme'); navigateTo('define', 'compare'); },
+    }] : []),
+  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, setCompareMode, handleOpenCrossThemeCompare]);
+
+  // Undo/redo commands — rebuilds when the operation log or redo stack changes.
+  const undoRedoCommands = useMemo<Command[]>(() => [
+    // Server-side undo: recent operations with rollback
+    ...recentOperations
+      .filter(op => !op.rolledBack)
+      .slice(0, 5)
+      .map((op, i) => ({
+        id: `undo-op-${op.id}`,
+        label: i === 0 ? `Undo: ${op.description}` : `Rollback: ${op.description}`,
+        description: `${op.affectedPaths.length} path(s) \u00b7 ${op.setName} \u00b7 ${timeAgo(op.timestamp)}`,
+        category: 'Undo' as const,
+        handler: () => handleRollback(op.id),
+      })),
+    // Local redo: most recent item from the client-side future stack
+    ...(canRedo && redoSlot ? [{
+      id: 'redo-local',
+      label: `Redo: ${redoSlot.description}`,
+      description: 'Re-apply the last undone action',
+      category: 'Undo' as const,
+      shortcut: '⇧⌘Z',
+      handler: executeRedo,
+    }] : []),
+    // Server-side redo: rolled-back operations that can be re-applied (most recent first)
+    ...[...redoableItems].reverse().slice(0, 5).map((item, i) => ({
+      id: `redo-op-${item.origOpId}`,
+      label: i === 0 && !canRedo ? `Redo: ${item.description}` : `Re-apply: ${item.description}`,
+      description: 'Re-apply a rolled-back server operation',
+      category: 'Undo' as const,
+      handler: () => handleServerRedo(item.origOpId),
+    })),
+  ], [recentOperations, handleRollback, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo]);
+
+  // Merge all command slices. Each slice has a stable reference until its own
+  // deps change, so this array spread is the only work done on hover events.
+  const commands: Command[] = useMemo(
+    () => [...baseCommands, ...themeCompareCommands, ...setCommands, ...contextualCommands, ...undoRedoCommands],
+    [baseCommands, themeCompareCommands, setCommands, contextualCommands, undoRedoCommands],
+  );
 
   // Flat token list for command palette — active set only (default mode)
   const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {

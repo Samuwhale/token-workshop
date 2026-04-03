@@ -553,3 +553,19 @@
   - Resolving all file contents in memory before any `fs.rename`/`git add` side effects eliminates the main partial-failure window — failures during in-memory computation never touch git state.
   - The service's `withLock` mutex must wrap the entire operation (validation + write + stage) in one critical section, not per-file, to prevent interleaved concurrent resolutions from corrupting the staged index.
 ---
+
+## 2026-04-04 - App.tsx command palette useMemo has 30 dependencies and recalculates frequently
+- Split the single 31-dep `commands` useMemo into 5 focused sub-memos + a cheap merge memo.
+- `baseCommands` (~25 static navigation/action commands): deps `activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl` — rebuilds only when set count, preview toggle, or server state changes.
+- `setCommands` (per-set switch commands): deps `sets, setTokenCounts, navigateTo` — rebuilds when sets or token counts change.
+- `themeCompareCommands` (compare-theme-options + per-dim compare): deps `dimensions, navigateTo, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey` — rebuilds only when theme config changes.
+- `contextualCommands` (~5 entries: delete/show-deps/compare-across-themes for focused token, delete for selection): deps `highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, setCompareMode, handleOpenCrossThemeCompare` — the only memo that rebuilds on every hover/selection change, but it only builds ~5 entries.
+- `undoRedoCommands` (undo-op-*, redo-local, redo-op-*): deps `recentOperations, handleRollback, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo` — rebuilds on undo/redo ops only.
+- Final `commands` = `useMemo(() => [...baseCommands, ...themeCompareCommands, ...setCommands, ...contextualCommands, ...undoRedoCommands], [...5 refs])` — trivial array spread, stable until a slice changes.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L870-1188
+- **Learnings for future iterations:**
+  - The key insight: identify which state changes *most frequently* (hover → `highlightedToken`, selection → `tokenListSelection`) and isolate only the commands that actually depend on those into a small sub-memo. The 40+ static commands never rebuild on hover.
+  - GRAPH_TEMPLATES is a module-level constant, so the `.map()` over it produces the same structure every time — it belongs in `baseCommands`, not a separate memo.
+  - `setTokenCounts` was in the original dep array even though zero base commands reference it — it only applies to the per-set switch commands, so it now correctly lives only in `setCommands`.
+  - Stable setState setters (`setShowSetSwitcher`, `setShowManageSets`, etc.) don't need to be in deps; the convention in this codebase (already used in the original) is to omit them.
+---
