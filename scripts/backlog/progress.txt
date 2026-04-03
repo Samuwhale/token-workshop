@@ -569,3 +569,14 @@
   - The existing tabs DnD pattern (dragSetName + dragOverSetName state + border-l-2 accent indicator) works cleanly in a vertical list too.
   - Adding a new `onReorderFull(newOrder)` prop is cleaner than trying to compute N incremental direction moves from a single drag.
 ---
+
+## 2026-04-03 - Consistency Panel is buried inside Binding Audit sub-tab
+- Added "Consistency" as a first-class sub-tab under the Apply top-tab (alongside Inspect, Binding Audit, Dependencies).
+- ConsistencyPanel is now rendered directly from App.tsx when `activeSubTab === 'consistency'`, no longer nested inside BindingAuditPanel's internal Coverage/Suggestions toggle.
+- Simplified BindingAuditPanel to a thin wrapper around HeatmapPanel only (removed the Coverage/Suggestions toggle entirely).
+- Added "Token Consistency" command palette entry (`id: 'consistency'`) that navigates directly to Apply > Consistency.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L175 (type), ~L222 (TOP_TABS), ~L32 (import), ~L2569 (render), ~L943 (command palette); `packages/figma-plugin/src/ui/components/BindingAuditPanel.tsx` (simplified)
+- **Learnings for future iterations:**
+  - When a panel has an internal view toggle (Coverage/Suggestions), the right fix for discoverability is to hoist the toggle to the navigation level (sub-tabs) rather than keeping it buried. This makes the feature visible without any extra clicks.
+  - The `ApplySubTab` union type and `TOP_TABS` array are the two places to update when adding Apply sub-tabs; the router condition in the JSX is the third.
+---

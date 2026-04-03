@@ -179,3 +179,25 @@ Already up to date.
 
   Merging to main: SetSwitcher manage mode has no drag-and-drop for set reordering
 Already up to date.
+[main 8592fdad] chore(backlog): done – SetSwitcher manage mode has no drag-and-drop for set reordering
+ 8 files changed, 119 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - SetSwitcher manage mode drag-and-drop set reordering
+- Added drag-and-drop reordering to the SetSwitcher manage mode. Each set row now shows a 6-dot grip handle (hidden until hover) and is `draggable` when `onReorderFull` is provided.
+- Added `handleReorderSetFull(newOrder: string[])` to `useSetTabs.ts` — takes a full new order and PUTs to `/api/sets/reorder` (same API as the existing incremental reorder).
+- Added `onReorderFull` prop to `SetSwitcherProps` and `ManageViewProps`. When present, each row gets drag events and the redundant move-up/move-down arrow buttons are hidden.
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  14 queued · 2 in-progress · last took 3m47s
+═══════════════════════════════════════════════════════════════
+  → Consistency Panel is buried inside Binding Audit sub-tab — the token consistency checker (suggesting token bindings for hardcoded values) is hidden behind a Coverage/Suggestions toggle inside the Binding Audit panel; many users exploring the Apply tab will only see the Heatmap and miss this feature entirely; consider surfacing it as a visible sub-tab or adding a command palette entry (ConsistencyPanel.tsx, BindingAuditPanel.tsx)
+  Worktree: /tmp/backlog-46580-pbWvNl
+  Running agent… (started 17:11:02)
+
+  ✓ done: Consistency Panel is buried inside Binding Audit sub-tab
+    Added "Consistency" as a top-level Apply sub-tab; simplified BindingAuditPanel to heatmap-only; added command palette entry for Token Consistency
+    29 turns · 189s · $0.67
+
+  Merging to main: Consistency Panel is buried inside Binding Audit sub-tab
+Already up to date.

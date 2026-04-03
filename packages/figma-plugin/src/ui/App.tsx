@@ -29,6 +29,7 @@ import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { BindingAuditPanel } from './components/BindingAuditPanel';
+import { ConsistencyPanel } from './components/ConsistencyPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -172,7 +173,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolvers';
-type ApplySubTab = 'inspect' | 'audit' | 'dependencies';
+type ApplySubTab = 'inspect' | 'audit' | 'consistency' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
@@ -221,6 +222,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
     { id: 'audit', label: 'Binding Audit' },
+    { id: 'consistency', label: 'Consistency' },
     { id: 'dependencies', label: 'Dependencies' },
   ]},
   { id: 'ship', label: 'Ship', subTabs: [
@@ -940,6 +942,13 @@ export function App() {
         description: 'Token adoption overlay on the canvas',
         category: 'Navigation',
         handler: () => { navigateTo('apply', 'audit'); triggerHeatmapScan(); },
+      },
+      {
+        id: 'consistency',
+        label: 'Token Consistency',
+        description: 'Find hardcoded values that could be replaced with tokens',
+        category: 'Navigation',
+        handler: () => navigateTo('apply', 'consistency'),
       },
       {
         id: 'publish',
@@ -2562,6 +2571,16 @@ export function App() {
                   if (!entry) return;
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
+                availableTokens={allTokensFlat}
+                onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
+              />
+              </ErrorBoundary>
+          )}
+
+          {/* Consistency sub-tab (Apply > Consistency) */}
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'consistency' && (
+              <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
+              <ConsistencyPanel
                 availableTokens={allTokensFlat}
                 onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
               />
