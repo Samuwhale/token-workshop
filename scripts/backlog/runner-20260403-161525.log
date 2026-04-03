@@ -309,3 +309,10 @@ Already up to date.
 - Added `setNameRef` and `serverUrlRef` refs (updated on every render) to `useTokenCrud` so that undo/redo callbacks can always read the current set name at execution time.
 - Added set-context validation guards in `restore`/`redo` callbacks of `executeTokenRename`, `executeDelete`, `handleInlineSave`, and `handleDescriptionSave`: if `setNameRef.current !== capturedSet`, the undo/redo is aborted and `onError` is called with a descriptive message explaining which set changed.
 - Also explicitly captured `capturedSet`/`capturedUrl` constants inside `handleInlineSave` and `handleDescriptionSave` (previously relying on the outer `useCallback` closure, which works but was inconsistent with the explicit-capture pattern established in `executeTokenRename`).
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  9 queued · 2 in-progress · last took 6m0s
+═══════════════════════════════════════════════════════════════
+  → No cross-set token search from the command palette — the command palette (Cmd+K) only searches tokens in the active set; users managing tokens across 10+ sets cannot quickly jump to a token by name without first switching sets; add a "Search all sets" mode to the command palette that shows results with set name badges and switches set + scrolls to the token on selection
+  Worktree: /tmp/backlog-45818-j90FD1
+  Running agent… (started 17:40:17)

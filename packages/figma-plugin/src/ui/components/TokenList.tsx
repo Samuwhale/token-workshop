@@ -72,6 +72,7 @@ export function TokenList({
   const [showScaffold, setShowScaffold] = useState(false);
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [copyCssFeedback, setCopyCssFeedback] = useState(false);
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
   const [moveToGroupError, setMoveToGroupError] = useState('');
@@ -124,6 +125,7 @@ export function TokenList({
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
+  const copyTokensAsCssVarRef = useRef<(nodes: TokenNode[]) => void>(() => {});
 
   // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
   const virtualScrollTopRef = useRef(0);
@@ -1126,6 +1128,28 @@ export function TokenList({
       }
     }
 
+    // Cmd/Ctrl+Shift+C: copy selected tokens as CSS custom properties
+    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
+      if (selectMode && selectedPaths.size > 0) {
+        e.preventDefault();
+        const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
+        copyTokensAsCssVarRef.current(nodes);
+        return;
+      }
+      // Single focused token row — copy that token
+      if (!isTyping) {
+        const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
+        if (focusedPath) {
+          const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
+          if (node) {
+            e.preventDefault();
+            copyTokensAsCssVarRef.current([node]);
+            return;
+          }
+        }
+      }
+    }
+
     // Cmd/Ctrl+] / Cmd/Ctrl+[: navigate to next/previous token in the editor (works from list when side panel is visible)
     if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && editingTokenPath) {
       e.preventDefault();
@@ -1597,6 +1621,20 @@ export function TokenList({
   }, []);
   copyTokensAsJsonRef.current = copyTokensAsJson;
 
+  /** Convert token paths to CSS custom property references and copy to clipboard. */
+  const copyTokensAsCssVar = useCallback((nodes: TokenNode[]) => {
+    const leafNodes = nodes.filter(n => !n.isGroup);
+    if (leafNodes.length === 0) return;
+    const text = leafNodes
+      .map(n => `var(--${n.path.replace(/\./g, '-')})`)
+      .join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyCssFeedback(true);
+      setTimeout(() => setCopyCssFeedback(false), 1500);
+    }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
+  }, []);
+  copyTokensAsCssVarRef.current = copyTokensAsCssVar;
+
   const resolveFlat = (flat: any[]) =>
     flat.map(t => {
       if (t.$type === 'gradient' && Array.isArray(t.$value)) {
@@ -1991,6 +2029,15 @@ export function TokenList({
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy JSON'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
+                    copyTokensAsCssVar(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'Copy CSS var'}</span>
                 </button>
                 <button
                   onClick={requestBulkDelete}

@@ -393,3 +393,25 @@ Already up to date.
 
   Merging to main: Consolidate Resolvers sub-tab into Themes
 Already up to date.
+[main b56a7de1] chore(backlog): done – Consolidate Resolvers sub-tab into Themes
+ 6 files changed, 26 insertions(+), 28 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Consolidate Resolvers sub-tab into Themes
+- Removed the "Resolvers" sub-tab from Define, reducing from 4 to 3 sub-tabs (Tokens, Themes, Generators). Resolver management remains accessible via Themes > Advanced mode toggle, which already rendered `<ResolverContent>` inline using the same resolver state.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L8 (removed import), ~L176 (updated DefineSubTab type), ~L221 (removed sub-tab from TOP_TABS), ~L2415 (removed standalone ResolverPanel rendering block)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  8 queued · 2 in-progress · last took 3m17s
+═══════════════════════════════════════════════════════════════
+  → No "copy token path as CSS variable" keyboard shortcut — Cmd+C copies the token as JSON, but the most common paste target is CSS/code where users need `var(--color-brand-primary)`; add Cmd+Shift+C to copy the token path formatted as a CSS custom property (or the format matching the user's export settings)
+  Worktree: /tmp/backlog-46580-UcJ0QD
+  Running agent… (started 17:40:20)
+
+  ✓ done: No "copy token path as CSS variable" keyboard shortcut
+    Added Cmd+Shift+C to copy focused/selected token(s) as var(--path) CSS custom properties; also added a "Copy CSS var" button to the multi-select toolbar and registered the shortcut in the help modal
+    23 turns · 282s · $0.85
+
+  Merging to main: No "copy token path as CSS variable" keyboard shortcut
+Already up to date.
