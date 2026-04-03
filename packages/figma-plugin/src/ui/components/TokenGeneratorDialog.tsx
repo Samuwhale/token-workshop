@@ -1,9 +1,11 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
 import { swatchBgColor } from '../shared/colorUtils';
+import { AliasAutocomplete } from './AliasAutocomplete';
+import type { TokenMapEntry } from '../../shared/types';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -63,6 +65,10 @@ export interface TokenGeneratorDialogProps {
   onSaved: (info?: { targetGroup: string }) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
   onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
+  /** All tokens flat map for source token autocomplete and inline value matching */
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  /** Token path → set name for autocomplete display */
+  pathToSet?: Record<string, string>;
 }
 
 export const TYPE_LABELS: Record<GeneratorType, string> = {
@@ -162,6 +168,8 @@ export function TokenGeneratorDialog({
   onClose,
   onSaved,
   onInterceptSemanticMapping,
+  allTokensFlat,
+  pathToSet,
 }: TokenGeneratorDialogProps) {
   const {
     isEditing,
@@ -237,9 +245,8 @@ export function TokenGeneratorDialog({
   const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [showSourcePicker, setShowSourcePicker] = useState(false);
-  const [sourcePickerQuery, setSourcePickerQuery] = useState('');
-  const sourceInputRef = useRef<HTMLInputElement>(null);
+  const [showSourceAutocomplete, setShowSourceAutocomplete] = useState(false);
+  const sourcePathInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
     if (isDirtyRef.current) {
@@ -458,6 +465,39 @@ export function TokenGeneratorDialog({
   /** Whether the selected type expects a dimension input */
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
 
+  // Tokens with values matching the current inline value — used to suggest binding instead of using an orphaned literal
+  const matchingTokens = useMemo(() => {
+    if (!allTokensFlat || !inlineValue) return [] as Array<{ path: string; value: string }>;
+    if (typeExpectsColor && typeof inlineValue === 'string') {
+      const normHex = inlineValue.toLowerCase().slice(0, 7);
+      if (!/^#[0-9a-f]{6}$/.test(normHex)) return [] as Array<{ path: string; value: string }>;
+      return Object.entries(allTokensFlat)
+        .filter(([, e]) => e.$type === 'color' && typeof e.$value === 'string' && (e.$value as string).toLowerCase().slice(0, 7) === normHex)
+        .slice(0, 5)
+        .map(([path, e]) => ({ path, value: e.$value as string }));
+    }
+    if (typeExpectsDimension && typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>)) {
+      const { value: numVal, unit } = inlineValue as { value: number; unit: string };
+      return Object.entries(allTokensFlat)
+        .filter(([, e]) => {
+          if (e.$type !== 'dimension') return false;
+          const v = e.$value;
+          if (typeof v === 'string') {
+            const m = (v as string).match(/^([0-9.]+)(px|rem|em|%)?$/);
+            if (m) return parseFloat(m[1]) === numVal && (m[2] ?? 'px') === unit;
+          }
+          if (typeof v === 'object' && v !== null && 'value' in (v as Record<string, unknown>)) {
+            const dv = v as { value: number; unit?: string };
+            return dv.value === numVal && (dv.unit ?? 'px') === unit;
+          }
+          return false;
+        })
+        .slice(0, 5)
+        .map(([path, e]) => ({ path, value: String(e.$value) }));
+    }
+    return [] as Array<{ path: string; value: string }>;
+  }, [allTokensFlat, inlineValue, typeExpectsColor, typeExpectsDimension]);
+
   // Resolved value preview — only valid when the editable path matches the initially-bound source token
   const sourcePreviewAvailable = Boolean(sourceTokenPath && editableSourcePath === sourceTokenPath && sourceTokenValue != null);
   const sourcePreviewIsColor = sourcePreviewAvailable && (sourceTokenType === 'color') && typeof effectiveSourceHex === 'string';
@@ -579,33 +619,29 @@ export function TokenGeneratorDialog({
 
           {/* Source token binding — shown when type needs a value and not in multi-brand mode */}
           {typeNeedsValue && !isMultiBrand && (
-            <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
-              <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">Source token</span>
+            <div className="border border-[var(--color-figma-accent)]/40 rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Source token</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium">Recommended</span>
+              </div>
               <div className="relative">
                 <div className="flex items-center gap-1.5">
                   <input
-                    ref={sourceInputRef}
+                    ref={sourcePathInputRef}
                     type="text"
-                    value={showSourcePicker ? sourcePickerQuery : editableSourcePath}
+                    value={editableSourcePath}
                     onChange={e => {
-                      setSourcePickerQuery(e.target.value);
-                      if (allTokensFlat) setShowSourcePicker(true);
-                      else setEditableSourcePath(e.target.value);
+                      setEditableSourcePath(e.target.value);
+                      setShowSourceAutocomplete(true);
                     }}
-                    onFocus={() => {
-                      if (allTokensFlat) {
-                        setSourcePickerQuery('');
-                        setShowSourcePicker(true);
-                      }
-                    }}
-                    onBlur={() => setTimeout(() => setShowSourcePicker(false), 150)}
-                    placeholder={allTokensFlat ? 'Search tokens…' : 'e.g. colors.brand.primary'}
-                    aria-label="Source token path"
+                    onFocus={() => setShowSourceAutocomplete(true)}
+                    onBlur={() => setTimeout(() => setShowSourceAutocomplete(false), 150)}
+                    placeholder={allTokensFlat ? 'Search or type a token path…' : 'e.g. colors.brand.primary'}
                     className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
                   />
-                  {editableSourcePath && !showSourcePicker && (
+                  {editableSourcePath && (
                     <button
-                      onClick={() => { setEditableSourcePath(''); setSourcePickerQuery(''); }}
+                      onClick={() => { setEditableSourcePath(''); setShowSourceAutocomplete(false); }}
                       aria-label="Clear source token"
                       className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                     >
@@ -613,24 +649,18 @@ export function TokenGeneratorDialog({
                     </button>
                   )}
                 </div>
-                {showSourcePicker && allTokensFlat && (
+                {/* Token autocomplete dropdown */}
+                {showSourceAutocomplete && allTokensFlat && (
                   <AliasAutocomplete
-                    query={sourcePickerQuery}
+                    query={editableSourcePath}
                     allTokensFlat={allTokensFlat}
-                    filterType={
-                      selectedType === 'colorRamp' ? 'color'
-                      : selectedType === 'typeScale' ? 'dimension'
-                      : selectedType === 'spacingScale' ? 'dimension'
-                      : selectedType === 'borderRadiusScale' ? 'dimension'
-                      : selectedType === 'opacityScale' ? 'number'
-                      : undefined
-                    }
+                    pathToSet={pathToSet}
+                    filterType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : undefined}
                     onSelect={path => {
                       setEditableSourcePath(path);
-                      setSourcePickerQuery('');
-                      setShowSourcePicker(false);
+                      setShowSourceAutocomplete(false);
                     }}
-                    onClose={() => setShowSourcePicker(false)}
+                    onClose={() => setShowSourceAutocomplete(false)}
                   />
                 )}
               </div>
@@ -655,15 +685,20 @@ export function TokenGeneratorDialog({
                 </div>
               )}
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1 block">
-                {editableSourcePath ? 'Token path to use as base value — clears to use manual base value below' : 'Leave empty to enter a base value manually below'}
+                {editableSourcePath
+                  ? 'Bound to a token — changes to the source token automatically update the generator.'
+                  : 'Bind to a token so the generator stays connected to your token graph.'}
               </span>
             </div>
           )}
 
           {/* Inline base value — shown when no source token is bound AND type needs a value */}
           {!hasSource && typeNeedsValue && (
-            <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
-              <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">Base value</span>
+            <div className="border border-dashed border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)] opacity-90">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Manual base value</span>
+                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">fallback</span>
+              </div>
               {typeExpectsColor && (
                 <div className="flex items-center gap-2">
                   <div
@@ -722,6 +757,37 @@ export function TokenGeneratorDialog({
                   </div>
                 </div>
               )}
+              {/* Matching token suggestions */}
+              {matchingTokens.length > 0 && (
+                <div className="mt-2 border-t border-[var(--color-figma-border)] pt-2">
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] block mb-1">
+                    Tokens with this value — bind one to connect to the token graph:
+                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    {matchingTokens.map(({ path, value: tv }) => (
+                      <button
+                        key={path}
+                        onClick={() => setEditableSourcePath(path)}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--color-figma-accent)]/10 text-left group"
+                      >
+                        {typeExpectsColor && typeof tv === 'string' && (
+                          <div
+                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                            style={{ backgroundColor: swatchBgColor(tv) }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
+                        <span className="text-[9px] text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">Use token</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Warning that inline values are not referenceable */}
+              <p className="mt-2 text-[9px] text-[var(--color-figma-text-secondary)]">
+                This value is stored inline and is not referenceable as a token. Binding a source token above is preferred.
+              </p>
             </div>
           )}
 

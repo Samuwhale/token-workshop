@@ -1914,6 +1914,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           allTokensFlat={allTokensFlat}
           existingGenerator={editingGeneratorInDialog}
           template={duplicateTemplate}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
           onClose={() => { setShowGeneratorDialog(false); setDuplicateTemplate(undefined); }}
           onSaved={() => {
             setShowGeneratorDialog(false);

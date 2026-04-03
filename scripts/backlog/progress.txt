@@ -420,3 +420,23 @@
   - `GraphTemplate` (local to GraphPanel) is a superset of `GeneratorTemplate` (from useGenerators); converting is a trivial object spread picking the 7 shared fields.
   - When a prop is removed from a component interface, always grep for call sites that still pass it — TypeScript will warn but the linter baseline may not catch it if it was already below the threshold.
 ---
+
+## 2026-04-03 - Inline base values are disconnected from the token graph
+- Added `allTokensFlat` and `pathToSet` optional props to `TokenGeneratorDialogProps`.
+- Replaced the plain text source-token input with a searchable `AliasAutocomplete` dropdown: opens on focus/type, filtered by type (`color` or `dimension` based on generator type), selects on click/Enter.
+- Re-styled the source-token section with an accent border and "Recommended" badge to make it visually primary.
+- Re-styled the inline base-value section with a dashed border, "fallback" label, and reduced emphasis to de-emphasize raw inline input.
+- Added `matchingTokens` useMemo that finds existing tokens whose resolved value matches the current inline hex or dimension value (≤5 results, shown as clickable suggestions in the inline section with "Use token" affordance).
+- Added a warning note in the inline section: "This value is stored inline and is not referenceable as a token."
+- Passed `allTokensFlat` and `pathToSet` from `TokenEditor` to `TokenGeneratorDialog`.
+- Added `allTokensFlat` prop to `GeneratorPipelineCard` in `GraphPanel` and threaded it through to `TokenGeneratorDialog`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1-50 (imports), ~L47-68 (props), ~L240-244 (state), ~L493-530 (matchingTokens), ~L615-760 (source+inline sections)
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1906
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1057, ~L1285, ~L1612
+- **Learnings for future iterations:**
+  - `AliasAutocomplete` accepts `filterType` as a raw DTCG `$type` string (`'color'`, `'dimension'`). For the generator dialog, map generator-type to DTCG type: colorRamp/accessibleColorPair/darkModeInversion → `'color'`, typeScale/spacingScale/borderRadiusScale → `'dimension'`.
+  - Autocomplete needs `showSourceAutocomplete` + `onBlur` with `setTimeout(..., 150)` delay to allow `onMouseDown` on dropdown items to fire before the blur closes the dropdown.
+  - `matchingTokens` for dimension must handle both `"16px"` string format and `{ value, unit }` object format since DTCG dimension values vary.
+  - Threading `allTokensFlat` down through intermediate components (`GeneratorPipelineCard`) requires updating both the component's prop type and the render call-site.
+---

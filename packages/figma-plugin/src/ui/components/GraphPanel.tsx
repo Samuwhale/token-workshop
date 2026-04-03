@@ -817,6 +817,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allS
           activeSet={activeSet}
           allTokensFlat={allTokensFlat}
           existingGenerator={generator}
+          allTokensFlat={allTokensFlat}
           onClose={() => setShowEditDialog(false)}
           onSaved={() => { setShowEditDialog(false); onRefresh(); }}
         />

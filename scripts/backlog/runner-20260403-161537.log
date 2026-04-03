@@ -46,3 +46,10 @@ Already up to date.
   → Inline base values are disconnected from the token graph — when users type a raw hex or dimension as an inline value, that value is orphaned inside the generator config and not referenceable as a token; encourage source token binding over inline values by promoting the picker and de-emphasizing the raw input; consider auto-suggesting existing tokens that match the entered value
   Worktree: /tmp/backlog-46178-8GMfBG
   Running agent… (started 16:19:05)
+
+  ✓ done: Inline base values are disconnected from the token graph
+    Added AliasAutocomplete to source token input (with type filtering), re-styled source section as "Recommended" and inline section as de-emphasized "fallback", and added value-matching token suggestions in the inline section so users can bind to an existing token with one click.
+    52 turns · 411s · $1.73
+
+  Merging to main: Inline base values are disconnected from the token graph
+Already up to date.
