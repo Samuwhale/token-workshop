@@ -1000,11 +1000,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('application/x-token-drag', 'true');
+        let dragPaths: string[];
+        let dragNames: string[];
         if (selectMode && isSelected && selectedLeafNodes && selectedLeafNodes.length > 0) {
-          onDragStart?.(selectedLeafNodes.map(n => n.path), selectedLeafNodes.map(n => n.name));
+          dragPaths = selectedLeafNodes.map(n => n.path);
+          dragNames = selectedLeafNodes.map(n => n.name);
         } else {
-          onDragStart?.([node.path], [node.name]);
+          dragPaths = [node.path];
+          dragNames = [node.name];
         }
+        if (dragPaths.length > 1) {
+          const ghost = document.createElement('div');
+          ghost.style.cssText = 'position:fixed;top:-9999px;left:-9999px;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;background:var(--color-figma-accent,#18a0fb);color:#fff;font-size:11px;font-weight:600;white-space:nowrap;pointer-events:none;';
+          ghost.textContent = `${dragPaths.length} tokens`;
+          document.body.appendChild(ghost);
+          e.dataTransfer.setDragImage(ghost, -8, -8);
+          requestAnimationFrame(() => document.body.removeChild(ghost));
+        }
+        onDragStart?.(dragPaths, dragNames);
       }}
       onDragEnd={() => onDragEnd?.()}
       onDragOver={(e) => {

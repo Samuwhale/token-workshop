@@ -412,3 +412,12 @@
   - Two banner variants (blocking vs optional-only) map cleanly to the two distinct user actions needed: "you must fix these" vs "you can publish now".
   - Reordering checks in the array is the simplest way to enforce visual priority — no sorting logic needed.
 ---
+
+## 2026-04-03 - Drag-and-drop only supports single-token moves
+- Upgraded `handleDropOnGroup` in `useDragDrop.ts` to use a single atomic `POST /api/tokens/:set/batch-rename-paths` call instead of N serial `/tokens/rename` calls. Added a name-conflict pre-check before the batch call. Fixed `handleDropReorder` to fall back to `handleDropOnGroup(targetParent)` when dragged tokens span multiple groups (instead of silently returning). Added a drag ghost image in `TokenTreeNode.tsx` that shows a "N tokens" badge when dragging multiple selected tokens.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L59-157, ~L170-174; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1000
+- **Learnings for future iterations:**
+  - The data model in `useDragDrop` already supported multi-token drags (`{ paths: string[], names: string[] }`); the bottleneck was using serial single-rename calls instead of the existing `batch-rename-paths` endpoint.
+  - `handleDropReorder` calling `void handleDropOnGroup(...)` creates a dependency cycle between two `useCallback` values — add `handleDropOnGroup` to `handleDropReorder`'s deps array to avoid stale closure.
+  - `requestAnimationFrame(() => document.body.removeChild(ghost))` is the canonical pattern for ephemeral drag ghost elements — the browser snapshots the DOM node before the frame fires.
+---

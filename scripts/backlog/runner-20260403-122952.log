@@ -191,3 +191,10 @@ Already up to date.
   → Drag-and-drop only supports single-token moves — useDragDrop tracks a single dragSource and validates all sources are siblings (line 171-174), so users cannot select multiple tokens across groups and drag them together; the server's POST /api/tokens/:set/batch-move endpoint supports batch moves but the UI never calls it for drag operations (useDragDrop.ts ~L28, ~L59-157)
   Worktree: /tmp/backlog-49887-hrUpHC
   Running agent… (started 13:15:38)
+
+  ✓ done: Drag-and-drop only supports single-token moves
+    Replaced N serial rename calls with a single atomic batch-rename-paths call; cross-group drags now fall back to group-move instead of silently dropping; added multi-token ghost badge
+    16 turns · 271s · $0.84
+
+  Merging to main: Drag-and-drop only supports single-token moves
+Already up to date.

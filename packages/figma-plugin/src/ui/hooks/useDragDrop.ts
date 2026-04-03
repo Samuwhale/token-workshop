@@ -71,86 +71,72 @@ export function useDragDrop({
     }
     if (planned.length === 0) return;
 
-    const succeeded: Array<{ oldPath: string; newPath: string }> = [];
-    const failures: Array<{ path: string; reason: string }> = [];
-    for (const { oldPath, newPath } of planned) {
-      try {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ oldPath, newPath }),
-        });
-        succeeded.push({ oldPath, newPath });
-      } catch (err) {
-        const reason = err instanceof ApiError
-          ? (err.message || `HTTP ${err.status}`)
-          : 'network error';
-        failures.push({ path: oldPath, reason });
-      }
+    // Check for name conflicts (two dragged tokens with the same leaf name)
+    const newPaths = planned.map(r => r.newPath);
+    if (new Set(newPaths).size !== newPaths.length) {
+      onError?.('Two or more selected tokens share the same name — rename them before moving');
+      return;
     }
-    if (failures.length > 0) {
-      const failDetails = failures.map(f => `"${f.path.split('.').pop() ?? f.path}": ${f.reason}`).join('; ');
-      const summary = succeeded.length > 0
-        ? `Moved ${succeeded.length}/${planned.length}. Failed: ${failDetails}`
-        : failures.length === 1
-          ? `Move failed — ${failDetails}`
-          : `All ${failures.length} moves failed: ${failDetails}`;
-      onError?.(summary);
+
+    const capturedSet = setName;
+    const capturedUrl = serverUrl;
+    try {
+      await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renames: planned, updateAliases: true }),
+      });
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? (err.message || `Move failed (${err.status})`)
+        : 'Move failed: network error';
+      onError?.(msg);
+      onRefresh();
+      return;
     }
-    // Always push undo for whatever succeeded, so partially-moved tokens can be reverted
-    if (onPushUndo && succeeded.length > 0) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      const label = succeeded.length === planned.length
-        ? (planned.length === 1
-          ? `Move "${planned[0].oldPath.split('.').pop() ?? planned[0].oldPath}"`
-          : `Move ${planned.length} tokens`)
-        : `Move ${succeeded.length}/${planned.length} tokens (partial)`;
+
+    if (onPushUndo) {
+      const label = planned.length === 1
+        ? `Move "${planned[0].oldPath.split('.').pop() ?? planned[0].oldPath}"`
+        : `Move ${planned.length} tokens`;
       onPushUndo({
         description: label,
         restore: async () => {
-          // Reverse in reverse order to undo correctly
-          const failures: string[] = [];
-          for (let i = succeeded.length - 1; i >= 0; i--) {
-            const { oldPath, newPath } = succeeded[i];
-            try {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
-              });
-            } catch (err) {
-              console.warn('[useDragDrop] undo rename failed:', err);
-              failures.push(oldPath);
-            }
+          const undoRenames = planned.map(r => ({ oldPath: r.newPath, newPath: r.oldPath }));
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ renames: undoRenames, updateAliases: true }),
+            });
+          } catch (err) {
+            console.warn('[useDragDrop] undo move failed:', err);
+            onError?.('Undo failed');
           }
-          if (failures.length > 0) {
-            onError?.(`Undo failed for ${failures.length} token(s)`);
+          for (const { oldPath, newPath } of planned) {
+            onRenamePath(newPath, oldPath);
           }
           onRefresh();
         },
         redo: async () => {
-          const failures: string[] = [];
-          for (const { oldPath, newPath } of succeeded) {
-            try {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldPath, newPath }),
-              });
-            } catch (err) {
-              console.warn('[useDragDrop] redo rename failed:', err);
-              failures.push(oldPath);
-            }
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ renames: planned, updateAliases: true }),
+            });
+          } catch (err) {
+            console.warn('[useDragDrop] redo move failed:', err);
+            onError?.('Redo failed');
           }
-          if (failures.length > 0) {
-            onError?.(`Redo failed for ${failures.length} token(s)`);
+          for (const { oldPath, newPath } of planned) {
+            onRenamePath(oldPath, newPath);
           }
           onRefresh();
         },
       });
     }
-    for (const { oldPath, newPath } of succeeded) {
+    for (const { oldPath, newPath } of planned) {
       onRenamePath(oldPath, newPath);
     }
     onRefresh();
@@ -167,10 +153,13 @@ export function useDragDrop({
     const siblings = siblingOrderMap.get(targetParent);
     if (!siblings) return;
 
-    // Verify all dragged tokens are siblings in the same group
-    for (let i = 0; i < source.paths.length; i++) {
-      const srcParent = nodeParentPath(source.paths[i], source.names[i]) ?? '';
-      if (srcParent !== targetParent) return;
+    // If any dragged token comes from a different group, fall back to a group move
+    const allSameParent = source.paths.every(
+      (p, i) => (nodeParentPath(p, source.names[i]) ?? '') === targetParent
+    );
+    if (!allSameParent) {
+      void handleDropOnGroup(targetParent);
+      return;
     }
     if (source.paths.length === 1 && source.paths[0] === targetPath) return;
 
@@ -221,7 +210,7 @@ export function useDragDrop({
       });
     }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError]);
+  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError, handleDropOnGroup]);
 
   return {
     dragSource,
