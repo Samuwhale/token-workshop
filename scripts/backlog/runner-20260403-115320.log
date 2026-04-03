@@ -116,3 +116,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 82379) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  9 new item(s) available — continuing.
+  → PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens — ButtonsTemplate (PreviewPanel.tsx:582) uses hardcoded `var(--color-primary, #0066ff)` with generic fallbacks; if the user's tokens use different naming conventions the templates render entirely from hardcoded fallbacks; either dynamically map the user's actual tokens to template slots or let users assign tokens to template properties
+  Worktree: /tmp/backlog-80049-KOEvWI
+  Running agent… (started 12:02:31)

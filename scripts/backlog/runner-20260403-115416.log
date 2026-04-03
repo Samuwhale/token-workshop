@@ -62,3 +62,28 @@ Already up to date.
   ✓ product pass: product-pass
     10 items written to inbox — mixed-selection binding blocked, static preview templates, resolver no-edit, compare diff filter, bind candidate cap, preview dark mode persistence, per-token changelog, shortcut registry consolidation, settings import preview, token copy format picker
 Already up to date.
+[main 79c8663c] chore(backlog): product pass – product-pass
+ 8 files changed, 197 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 10 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: SyncPanel.tsx, SettingsPanel.tsx (import/export, lint config, connection UX), CommandPalette.tsx (token search qualifiers, command coverage, shortcut registry), server routes (tokens, sets, generators, themes, resolvers, sync, snapshots, operations, export, lint), SelectionInspector.tsx + PropertyRow.tsx (multi-select binding, bind candidates cap, mixed-value handling), ResolverPanel.tsx (create-only, no edit), PreviewPanel.tsx (static templates, dark mode persistence), ComparePanel.tsx (diff filtering), plugin sandbox (selectionHandling.ts binding workflow)
+- Found 10 items — written to backlog-inbox.md
+- Notable: PropertyRow.tsx:98 explicitly disables binding when multi-selection has mixed values (`canBind = !isMixed`) — this blocks the most common multi-select use case (unifying different fills under one token); also PreviewPanel Buttons/Forms/Card templates are entirely static CSS with hardcoded fallbacks that never reflect the user's actual tokens
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  10 queued · 1 in-progress · last took 6m8s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector disables token binding when multi-selection has mixed values — PropertyRow.tsx:98 sets `canBind = !isMixed`, so when selected nodes have different fills the bind action is unavailable; power users select multiple frames precisely to unify them under one token; allow binding even when values are mixed by applying the chosen token to all selected nodes
+  Worktree: /tmp/backlog-82379-KgHJTq
+  Running agent… (started 12:02:31)
+
+  ✓ done: SelectionInspector disables token binding when multi-selection has mixed values
+    Removed !isMixed from canBind guard in PropertyRow.tsx — bind button now appears for mixed selections so users can unify nodes under one token
+    13 turns · 67s · $0.26
+
+  Merging to main: SelectionInspector disables token binding when multi-selection has mixed values
+Already up to date.

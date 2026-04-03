@@ -167,3 +167,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 82379) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  8 new item(s) available — continuing.
+  → ResolverPanel has no edit flow for existing resolvers — users can create and delete resolvers but cannot edit name, description, or modifier configuration after creation; the only path is delete-and-recreate which loses any associated state; add inline editing or an edit mode for resolver properties (ResolverPanel.tsx ~L383-513)
+  Worktree: /tmp/backlog-81267-leTt89
+  Running agent… (started 12:02:47)

@@ -95,7 +95,7 @@ export function PropertyRow({
   const isUnbound = !binding || isMixed;
   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
   const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet && !isThisPropActive;
-  const canBind = !isBound && !isMixed && connected && hasAnyTokens && !isThisPropActive;
+  const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
   const canChangeBind = isBound && connected && hasAnyTokens && !isThisPropActive;
 
   // Resolve binding display

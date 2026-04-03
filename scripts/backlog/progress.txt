@@ -445,3 +445,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: PropertyRow.tsx:98 explicitly disables binding when multi-selection has mixed values (`canBind = !isMixed`) — this blocks the most common multi-select use case (unifying different fills under one token); also PreviewPanel Buttons/Forms/Card templates are entirely static CSS with hardcoded fallbacks that never reflect the user's actual tokens
 ---
+
+## 2026-04-03 - SelectionInspector disables token binding when multi-selection has mixed values
+- Removed `!isMixed` from the `canBind` guard in `PropertyRow.tsx`. The condition `const canBind = !isBound && !isMixed && ...` prevented the bind button from appearing when multiple selected nodes had different values for a property. The fix allows binding even with mixed values — `handleBindToken` in `SelectionInspector.tsx` already sends `apply-to-selection` to all selected nodes, so the bind correctly unifies all nodes under the chosen token.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L98
+- **Learnings for future iterations:**
+  - `isMixed` in `canBind` was originally added to match `!isBound`, but mixed is a subset of unbound — it means "at least one node is unbound or bound to something different". Blocking bind for mixed is the opposite of what power users need.
+  - The undo path in `handleBindToken` captures `oldBinding` before applying; when `oldBinding === 'mixed'`, the undo branch is skipped (condition `oldBinding !== 'mixed'`), which is reasonable — there's no single previous state to restore.
+---

@@ -100,3 +100,7 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 82379) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  7 new item(s) available — continuing.
+  → ComparePanel has no "show differences only" toggle — when comparing tokens with many shared properties the actual differences are buried in identical rows; add a toggle to filter the comparison table to only rows where values differ across the selected tokens (ComparePanel.tsx ~L261-379, rowDiffs at ~L120-131 already computed)
+  Worktree: /tmp/backlog-81661-OMrETZ
+  Running agent… (started 12:02:56)
