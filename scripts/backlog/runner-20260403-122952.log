@@ -371,3 +371,10 @@ Already up to date.
   → No token picker for generator source selection — both the template ApplyForm (GraphPanel.tsx ~L687-693) and the full TokenGeneratorDialog require users to type the exact dot-delimited token path from memory; add a searchable token picker/dropdown component filterable by type (color, dimension) that can be used in both flows; this is the single highest-friction point in generator creation
   Worktree: /tmp/backlog-49887-m1y923
   Running agent… (started 13:41:38)
+
+  ✓ done: No token picker for generator source selection
+    Replaced plain text input in ApplyForm with AliasAutocomplete searchable picker; threads allTokensFlat from App.tsx through GraphPanel props with type-filtered suggestions (color/dimension per generator type)
+    36 turns · 267s · $1.1
+
+  Merging to main: No token picker for generator source selection
+Already up to date.

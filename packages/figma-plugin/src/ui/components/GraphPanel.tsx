@@ -7,6 +7,8 @@ import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+import { AliasAutocomplete } from './AliasAutocomplete';
+import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -472,6 +474,12 @@ function TemplateCard({
 // Configuration form (after selecting a template)
 // ---------------------------------------------------------------------------
 
+function filterTypeForGenerator(generatorType: GeneratorType): string | undefined {
+  if (generatorType === 'colorRamp') return 'color';
+  if (generatorType === 'spacingScale') return 'dimension';
+  return undefined;
+}
+
 function ApplyForm({
   template,
   activeSet,
@@ -479,6 +487,7 @@ function ApplyForm({
   onBack,
   onApplied,
   initialPrefix,
+  allTokensFlat,
 }: {
   template: GraphTemplate;
   activeSet: string;
@@ -486,8 +495,11 @@ function ApplyForm({
   onBack: () => void;
   onApplied: () => void;
   initialPrefix?: string;
+  allTokensFlat?: Record<string, TokenMapEntry>;
 }) {
   const [sourceToken, setSourceToken] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState('');
   const [prefix, setPrefix] = useState(initialPrefix ?? template.defaultPrefix);
   const [applying, setApplying] = useState(false);
   const applyingRef = useRef(false);
@@ -684,18 +696,47 @@ function ApplyForm({
               Source token
               <span className="ml-1 text-[var(--color-figma-error)]">*</span>
             </label>
-            <input
-              type="text"
-              value={sourceToken}
-              onChange={e => setSourceToken(e.target.value)}
-              placeholder={template.generatorType === 'colorRamp' ? 'e.g. brand.500' : template.generatorType === 'typeScale' ? 'e.g. fontSize.base' : 'e.g. spacing.base'}
-              aria-label="Source token path"
-              className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
-              autoFocus
-            />
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
-              Path of the token to derive from. Must exist in <span className="font-mono">{activeSet}</span>.
-            </p>
+            <div className="relative">
+              <input
+                type="text"
+                value={showPicker ? pickerQuery : sourceToken}
+                onChange={e => { setPickerQuery(e.target.value); setShowPicker(true); }}
+                onFocus={() => { setPickerQuery(''); setShowPicker(true); }}
+                onBlur={() => setTimeout(() => setShowPicker(false), 150)}
+                placeholder={template.generatorType === 'colorRamp' ? 'Search color tokens…' : template.generatorType === 'typeScale' ? 'Search font size tokens…' : 'Search dimension tokens…'}
+                aria-label="Source token path"
+                className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                autoFocus
+              />
+              {sourceToken && !showPicker && (
+                <button
+                  onMouseDown={e => { e.preventDefault(); setSourceToken(''); setPickerQuery(''); }}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                  aria-label="Clear source token"
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              )}
+              {showPicker && allTokensFlat && (
+                <AliasAutocomplete
+                  query={pickerQuery}
+                  allTokensFlat={allTokensFlat}
+                  filterType={filterTypeForGenerator(template.generatorType)}
+                  onSelect={path => { setSourceToken(path); setPickerQuery(''); setShowPicker(false); }}
+                  onClose={() => setShowPicker(false)}
+                />
+              )}
+            </div>
+            {sourceToken && !showPicker && (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 font-mono truncate" title={sourceToken}>{sourceToken}</p>
+            )}
+            {!sourceToken && (
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
+                {allTokensFlat ? 'Search or type a token path.' : 'Token path must exist in'} <span className="font-mono">{!allTokensFlat ? activeSet : ''}</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -1323,6 +1364,7 @@ export interface GraphPanelProps {
   onClearPendingGroup?: () => void;
   focusGeneratorId?: string | null;
   onClearFocusGenerator?: () => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
 }
 
 /** Map a DTCG token $type to the best-fit template id. */
@@ -1346,6 +1388,7 @@ export function GraphPanel({
   onClearPendingGroup,
   focusGeneratorId,
   onClearFocusGenerator,
+  allTokensFlat,
 }: GraphPanelProps) {
   const help = usePanelHelp('generators');
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
@@ -1428,6 +1471,7 @@ export function GraphPanel({
         onBack={handleBack}
         onApplied={handleApplied}
         initialPrefix={pendingGroupPath ?? undefined}
+        allTokensFlat={allTokensFlat}
       />
     );
   }

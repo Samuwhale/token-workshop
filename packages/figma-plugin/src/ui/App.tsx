@@ -2338,6 +2338,7 @@ export function App() {
               onClearPendingGroup={() => setPendingGraphFromGroup(null)}
               focusGeneratorId={focusGeneratorId}
               onClearFocusGenerator={() => setFocusGeneratorId(null)}
+              allTokensFlat={allTokensFlat}
             />
             </ErrorBoundary>
           )}

@@ -348,3 +348,12 @@
   - `jsonErrorInfo` state needs to be initialized and synced in the external-change branch, not just on user input, so that tokens loaded with pre-existing invalid extensions still show the caret.
   - The caret snippet uses `whitespace-pre` and `' '.repeat(col - 1)` — no library needed.
 ---
+
+## 2026-04-03 - Token picker for generator source selection
+- Replaced the plain text input in `ApplyForm` (GraphPanel.tsx) with a searchable token picker using `AliasAutocomplete`. The picker shows a dropdown when focused, supports fuzzy search, filters by type (color for colorRamp, dimension for spacingScale, none for typeScale), and shows color swatches + type badges in results. Added `allTokensFlat` prop to `GraphPanelProps` and threaded it down from App.tsx → GraphPanel → ApplyForm.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1-12 (imports), ~L477-510 (new filterTypeForGenerator helper + ApplyForm props), ~L692-740 (picker UI), ~L1330 (GraphPanelProps), ~L1355 (GraphPanel destructuring), ~L1440 (ApplyForm call site); `packages/figma-plugin/src/ui/App.tsx` ~L2340 (GraphPanel call site)
+- **Learnings for future iterations:**
+  - The ContrastChecker pattern (input shows selected path when closed, switches to search query when focused, `onBlur` with 150ms delay to allow `onMouseDown` on dropdown items) is the correct way to integrate AliasAutocomplete into any form field.
+  - `filterTypeForGenerator` maps generatorType → DTCG $type string; typeScale gets `undefined` (no filter) since base font size can be stored as dimension or number.
+  - `allTokensFlat` is optional (`?`) on GraphPanelProps so existing callers don't break; the picker falls back gracefully (no dropdown) when absent.
+---

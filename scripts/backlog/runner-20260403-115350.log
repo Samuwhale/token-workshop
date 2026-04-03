@@ -692,3 +692,21 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: undo/redo state divergence on API failure across 4 hooks, Object.assign errors + inconsistent handleRouteError in server, color-parse Lab→sRGB duplication, find-replace partial-abort undo bug, generator auto-run fire-and-forget
 Already up to date.
+[main e6e65ab3] chore(backlog): code pass – code-pass
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - Import from Figma Variables has no mode-name customization UI
+- Stale — already implemented. The Variables import preview already has inline editable text inputs for each mode's target set name (`modeSetNames` state, `defaultSetName()` fallback, input at ImportPanel.tsx ~L1315-1323). Users can rename modes before committing the import. "existing"/"new" badges update live. The `handleImportVariables` handler uses the custom names when creating sets.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  26 queued · 4 in-progress · last took 8m24s
+═══════════════════════════════════════════════════════════════
+  → Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+  Worktree: /tmp/backlog-81267-gijLvl
+  Running agent… (started 13:45:24)
