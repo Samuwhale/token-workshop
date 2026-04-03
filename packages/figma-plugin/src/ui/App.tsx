@@ -1083,6 +1083,13 @@ export function App() {
         handler: () => setShowGuidedSetup(true),
       },
       {
+        id: 'view-style-guide',
+        label: 'View style guide',
+        description: connected ? `Open ${serverUrl}/docs in browser` : 'Connect to server first',
+        category: 'Help',
+        handler: () => { if (connected) window.open(`${serverUrl}/docs`, '_blank', 'noopener,noreferrer'); },
+      },
+      {
         id: 'keyboard-shortcuts',
         label: 'Keyboard shortcuts\u2026',
         description: 'View all keyboard shortcuts',
@@ -1171,7 +1178,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setThemesView, setThemeCompareDefaultA, setThemeCompareDefaultB, setThemeCompareKey]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setThemesView, setThemeCompareDefaultA, setThemeCompareDefaultB, setThemeCompareKey, connected, serverUrl]);
 
   // Flat token list for command palette — active set only (default mode)
   const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {

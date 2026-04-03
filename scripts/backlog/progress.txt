@@ -351,3 +351,14 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: The auto-generated HTML style guide at /docs is a complete, well-rendered page with color swatches and typography specimens, but is completely invisible from the plugin UI — no link, button, or command palette entry points to it. Also, HeatmapPanel and ConsistencyPanel both scan Figma layers for binding issues and could be merged into a single "Canvas Audit" panel.
 ---
+
+## 2026-04-03 - Auto-generated docs page invisible from plugin UI
+- Added a "View style guide" command palette entry in the Help category that calls `window.open(`${serverUrl}/docs`, '_blank', 'noopener,noreferrer')`.
+- Description updates dynamically: "Open http://localhost:9400/docs in browser" when connected, "Connect to server first" when disconnected. Handler is a no-op when disconnected.
+- Added `connected` and `serverUrl` to the `commands` useMemo dependency array so the description and handler stay current.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1085, ~L1182
+- **Learnings for future iterations:**
+  - `window.open` with `'noopener,noreferrer'` is the correct way to open external URLs from plugin UI — no Figma `parent.postMessage` needed since the plugin runs in an iframe in a browser context.
+  - Guard the handler against disconnected state rather than hiding the command entirely — keeping the command visible with a "Connect to server first" description is more discoverable than making it conditional.
+  - Gate 4 (headless UI validation) has a pre-existing browser timeout failure in this sandbox — confirmed by prior sessions.
+---

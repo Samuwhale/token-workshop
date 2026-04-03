@@ -384,3 +384,14 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 46178) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  10 new item(s) available — continuing.
+  → Auto-generated docs page is invisible from the plugin UI — the server serves a full HTML style guide at /docs with color swatches, typography specimens, and spacing bars, but there is no link, button, or command palette entry to open it; add a "View style guide" action that opens `${serverUrl}/docs` in the default browser, and add a command palette entry for it (routes/docs.ts, App.tsx commands)
+  Worktree: /tmp/backlog-45818-LojhAV
+  Running agent… (started 18:05:12)
+
+  ✓ done: Auto-generated docs page is invisible from the plugin UI
+    Added "View style guide" command palette entry (Help category) that opens ${serverUrl}/docs in a new browser tab via window.open; description reflects connection state; connected/serverUrl added to useMemo deps
+    18 turns · 169s · $0.56
+
+  Merging to main: Auto-generated docs page is invisible from the plugin UI
+Already up to date.
