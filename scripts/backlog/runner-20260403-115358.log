@@ -553,3 +553,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    13 items written to inbox — focus on discoverability (5 hidden features: Resolvers, Compare panels, Consistency checker, Preview, search qualifiers), missing keyboard shortcuts (Delete/Rename/Duplicate), workflow friction (set reordering, server connection UX, editor auto-focus/retry), and missing capabilities (Tokens Studio import, bulk copy-to-set)
+Already up to date.

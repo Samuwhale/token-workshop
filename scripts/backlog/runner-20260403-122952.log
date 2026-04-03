@@ -334,3 +334,18 @@ Already up to date.
 
   Merging to main: AnalyticsPanel validation results show no timestamp and have no auto-revalidation
 Already up to date.
+[main 7577658e] chore(backlog): done – AnalyticsPanel validation results show no timestamp and have no auto-revalidation
+ 5 files changed, 48 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel validation results show no timestamp and have no auto-revalidation
+- Added `validatedAt: Date | null` state, set in `runValidate` on success. Added `formatValidatedAt(date)` helper returning "just now", "N min ago", or "at H:MM AM/PM". Timestamp appears inline in the Validation section header (hidden when results are stale to avoid confusion). Stale hint updated to "Tokens changed since last validation (N min ago)" so users know exactly how old the data is. Auto-revalidation on token changes was already implemented via `tokenChangeKey` effect with a 2s debounce.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L96, ~L141, ~L617, ~L649, ~L669
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  13 queued · 3 in-progress · last took 2m8s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector "mixed" binding state gives no detail — when multiple layers are selected with different bindings on the same property, the inspector shows "mixed" with no way to see what the actual different values are without deselecting layers one at a time; show a tooltip or expandable list of the distinct values (SelectionInspector.tsx ~L362-366)
+  Worktree: /tmp/backlog-49887-rSoJ2M
+  Running agent… (started 13:39:28)
