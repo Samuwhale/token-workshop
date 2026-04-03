@@ -348,26 +348,34 @@ export function useFindReplace({
             onPushUndo({
               description: `Rename ${capturedTotal} token${capturedTotal !== 1 ? 's' : ''} across ${capturedSets.length} set${capturedSets.length !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
               restore: async () => {
-                for (const sn of capturedSets) {
-                  await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
-                    signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
-                  });
+                try {
+                  for (const sn of capturedSets) {
+                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
+                      signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                    });
+                  }
+                  onRefresh();
+                } catch (err) {
+                  console.warn('[useFindReplace] undo bulk rename failed:', err);
                 }
-                onRefresh();
               },
               redo: async () => {
-                for (const sn of capturedSets) {
-                  await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
-                    signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
-                  });
+                try {
+                  for (const sn of capturedSets) {
+                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+                      signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                    });
+                  }
+                  onRefresh();
+                } catch (err) {
+                  console.warn('[useFindReplace] redo bulk rename failed:', err);
                 }
-                onRefresh();
               },
             });
           }

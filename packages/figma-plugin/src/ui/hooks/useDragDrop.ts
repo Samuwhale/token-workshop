@@ -109,14 +109,14 @@ export function useDragDrop({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ renames: undoRenames, updateAliases: true }),
             });
+            for (const { oldPath, newPath } of planned) {
+              onRenamePath(newPath, oldPath);
+            }
+            onRefresh();
           } catch (err) {
             console.warn('[useDragDrop] undo move failed:', err);
             onError?.('Undo failed');
           }
-          for (const { oldPath, newPath } of planned) {
-            onRenamePath(newPath, oldPath);
-          }
-          onRefresh();
         },
         redo: async () => {
           try {
@@ -125,14 +125,14 @@ export function useDragDrop({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ renames: planned, updateAliases: true }),
             });
+            for (const { oldPath, newPath } of planned) {
+              onRenamePath(oldPath, newPath);
+            }
+            onRefresh();
           } catch (err) {
             console.warn('[useDragDrop] redo move failed:', err);
             onError?.('Redo failed');
           }
-          for (const { oldPath, newPath } of planned) {
-            onRenamePath(oldPath, newPath);
-          }
-          onRefresh();
         },
       });
     }

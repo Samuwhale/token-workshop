@@ -606,3 +606,15 @@
   - When two affordances (Enter key + button) exist for the same action, the hint text tends to acknowledge both and becomes confusing. Remove the meta-explanation and instead make the single button the obvious call-to-action, relying on Enter as an implicit shortcut.
   - Troubleshooting hints as a bullet list are more scannable than a paragraph, especially when users are in a frustrated "why doesn't this work" state.
 ---
+
+## 2026-04-03 - Undo/redo restore and redo handlers update local state even when the server API call fails
+- Fixed all four undo/redo handlers to skip local state updates when the API call fails:
+  - `useDragDrop.ts`: moved `onRenamePath` + `onRefresh` inside the try block for both `restore` and `redo`; they were previously called unconditionally after the catch
+  - `useGroupOperations.ts`: added try/catch to both `restore` and `redo` (had none); `onRefresh` now only called on success; errors reported via `onError` using `ApiError` check
+  - `useTokenCrud.ts`: added try/catch to both `restore` and `redo` (had none); `onRefresh` now only called on success; errors reported via `onError`
+  - `useFindReplace.ts`: added try/catch to both `restore` and `redo` (had none); `onRefresh` now only called after all set renames succeed; errors logged via `console.warn` (hook has no `onError` prop)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L104-136, `packages/figma-plugin/src/ui/hooks/useGroupOperations.ts` ~L65-88, `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L82-107, `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L350-385
+- **Learnings for future iterations:**
+  - When a hook lacks an `onError` prop (like `useFindReplace`), use `console.warn` in undo/redo catch blocks — avoid trying to surface errors through local state that would be stale in a closure
+  - The `restore`/`redo` closures are invoked later from the undo stack, not during the original render, so any `setFrError` captured from that render's closure would point to the wrong component instance's state setter
+---

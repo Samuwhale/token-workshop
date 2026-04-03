@@ -63,20 +63,30 @@ export function useGroupOperations({
       onPushUndo({
         description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
         restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
-          });
-          onRefresh();
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
+            });
+            onRefresh();
+          } catch (err) {
+            console.warn('[useGroupOperations] undo group rename failed:', err);
+            onError?.(err instanceof ApiError ? err.message : 'Undo failed');
+          }
         },
         redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldGroupPath, newGroupPath }),
-          });
-          onRefresh();
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldGroupPath, newGroupPath }),
+            });
+            onRefresh();
+          } catch (err) {
+            console.warn('[useGroupOperations] redo group rename failed:', err);
+            onError?.(err instanceof ApiError ? err.message : 'Redo failed');
+          }
         },
       });
     }

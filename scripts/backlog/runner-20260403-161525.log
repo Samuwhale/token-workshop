@@ -191,3 +191,25 @@ Already up to date.
 
   Merging to main: SettingsPanel server connection has redundant "Enter to connect" and "Save & Connect" button
 Already up to date.
+[main 8504b58b] chore(backlog): done – SettingsPanel server connection has redundant "Enter to connect" and "Save & Connect" button
+ 5 files changed, 43 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - SettingsPanel server connection redundant affordances
+- Removed the "Press Enter to connect, or click Save & Connect below." hint line that documented two separate affordances for the same action.
+- Renamed "Save & Connect" button to "Connect" to match the simpler, clearer intent.
+- Merged the two helper text paragraphs into one: "Run `npm start` in the TokenManager directory, then press Enter or click Connect."
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  10 queued · 3 in-progress · last took 1m9s
+═══════════════════════════════════════════════════════════════
+  → Undo/redo restore and redo handlers update local state even when the server API call fails — useDragDrop.ts (L104-136), useGroupOperations.ts (L65-81), useTokenCrud.ts (L82-98), and useFindReplace.ts (L350-370) all call `onRenamePath`/`onRefresh` after their API calls regardless of success or failure; in useDragDrop the try/catch logs a warning and shows an error toast but then falls through to update local state (`onRenamePath` + `onRefresh`) causing the UI to show the undo was applied when the server still has the old state; useGroupOperations has no try/catch at all in restore/redo making any network error an unhandled promise rejection; fix all undo/redo handlers to skip local state updates when the API call fails and add try/catch to useGroupOperations
+  Worktree: /tmp/backlog-45818-pUGi0M
+  Running agent… (started 17:15:48)
+
+  ✓ done: Undo/redo restore and redo handlers update local state even when the server API call fails
+    Fixed all four hooks: moved onRenamePath/onRefresh inside try blocks in useDragDrop; added missing try/catch with onError reporting to useGroupOperations and useTokenCrud; added try/catch with console.warn to useFindReplace restore/redo
+    22 turns · 126s · $0.48
+
+  Merging to main: Undo/redo restore and redo handlers update local state even when the server API call fails
+Already up to date.

@@ -80,20 +80,30 @@ export function useTokenCrud({
       onPushUndo({
         description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
         restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
-          });
-          onRefresh();
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
+            });
+            onRefresh();
+          } catch (err) {
+            console.warn('[useTokenCrud] undo token rename failed:', err);
+            onError?.(err instanceof ApiError ? err.message : 'Undo failed');
+          }
         },
         redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPath, newPath }),
-          });
-          onRefresh();
+          try {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPath, newPath }),
+            });
+            onRefresh();
+          } catch (err) {
+            console.warn('[useTokenCrud] redo token rename failed:', err);
+            onError?.(err instanceof ApiError ? err.message : 'Redo failed');
+          }
         },
       });
     }
