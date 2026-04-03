@@ -555,6 +555,8 @@ export interface ExtractedTokenEntry {
   layerId: string;
   /** Number of layers sharing this exact value (for deduplication) */
   layerCount?: number;
+  /** All layer IDs that share this exact value (populated during deduplication) */
+  layerIds?: string[];
 }
 
 export interface ExtractedTokensMessage {

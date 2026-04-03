@@ -556,9 +556,10 @@ export async function extractTokensFromSelection() {
     const existing = seen.get(valueKey);
     if (existing !== undefined) {
       deduped[existing].layerCount = (deduped[existing].layerCount ?? 1) + 1;
+      deduped[existing].layerIds!.push(entry.layerId);
     } else {
       seen.set(valueKey, deduped.length);
-      deduped.push({ ...entry, layerCount: 1 });
+      deduped.push({ ...entry, layerCount: 1, layerIds: [entry.layerId] });
     }
   }
 

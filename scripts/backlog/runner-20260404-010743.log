@@ -62,3 +62,21 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: hooks async cleanup inconsistency (structural), styleSync ghost bindings bug, SettingsPanel unvalidated import, generator-service error handling gaps, ExportPanel timeout leak
 Already up to date.
+[main f2583d9a] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - styleSync.ts silently swallows parse failures for color tokens and gradient stops
+- Fixed `applyPaintStyle` to throw with a descriptive error when `parseColor` returns null, instead of silently skipping the paint update. Moved parse call before style creation to avoid leaving empty Figma styles behind on failure.
+- Fixed `applyGradientPaintStyle` to parse all stops upfront, collect failures with their indices and unparseable values, and throw a descriptive error listing each failed stop (e.g., "2 of 5 gradient stops could not be parsed: stop 1 ("#gggggg"), stop 3 (null)"). Also added an upfront check for stops.length < 2. Style is no longer created when stops are invalid.
+- Errors surface through the existing `failures` array in `styles-applied`, which the UI already displays to users as "Push: N/M applied (failed: …)".
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  15 queued · 3 in-progress · last took 14m10s
+═══════════════════════════════════════════════════════════════
+  → BatchEditor preview is capped at 8 items with no way to expand — power users editing 50+ tokens cannot verify what will change before applying
+  Worktree: /tmp/backlog-91634-7wOba4
+  Running agent… (started 01:26:11)

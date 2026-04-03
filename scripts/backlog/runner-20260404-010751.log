@@ -112,3 +112,10 @@ Already up to date.
   → ExtractTokensPanel does not bind created tokens to the originating selection — after batch-extracting tokens from a Figma layer, users must manually return to SelectionInspector and bind each one individually, breaking the extract-to-bind workflow
   Worktree: /tmp/backlog-92209-WGFLB8
   Running agent… (started 01:20:24)
+
+  ✓ done: ExtractTokensPanel does not bind created tokens to the originating selection
+    Added auto-binding: after batch-creating tokens, ExtractTokensPanel now sends apply-to-nodes messages to bind each token to its source layer(s). Added a "Bind tokens to source layers" checkbox (default on) and fixed deduplication to collect all layerIds so multi-layer bindings work correctly.
+    28 turns · 348s · $1.05
+
+  Merging to main: ExtractTokensPanel does not bind created tokens to the originating selection
+Already up to date.

@@ -586,3 +586,18 @@
   - `setTokenCounts` was in the original dep array even though zero base commands reference it — it only applies to the per-set switch commands, so it now correctly lives only in `setCommands`.
   - Stable setState setters (`setShowSetSwitcher`, `setShowManageSets`, etc.) don't need to be in deps; the convention in this codebase (already used in the original) is to omit them.
 ---
+
+## 2026-04-04 - ExtractTokensPanel does not bind created tokens to the originating selection
+- Added `layerIds?: string[]` to `ExtractedTokenEntry` in `shared/types.ts` to track all deduplicated layer IDs (not just the first one)
+- Fixed deduplication in `extractTokensFromSelection()` to collect all `layerIds` per entry instead of just incrementing `layerCount`
+- Added `bindToLayers` boolean state (default `true`) and `boundCount` state to `ExtractTokensPanel`
+- Added "Bind tokens to source layers" checkbox above the Create button in the footer
+- After successful token creation, sends `apply-to-nodes` plugin messages for each created token using `entry.layerIds` as node targets; maps `border` property to `targetProperty: 'stroke'` (since `applyTokenValue` handles border tokens in the `stroke` case)
+- Done state now shows "Bound to N layers" when binding was performed
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L549, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L551, `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L99, ~L160, ~L185, ~L365
+- **Learnings for future iterations:**
+  - `apply-to-nodes` already exists (not a new message type) and is the correct primitive to use — it takes `nodeIds[]`, `tokenPath`, `tokenType`, `targetProperty`, `resolvedValue` and stores plugin data bindings per node without changing selection
+  - Deduplication key `${tokenType}::${JSON.stringify(value)}` does NOT include `property` — so fill and stroke with the same color value get merged into one entry. This is a pre-existing design choice (one token for one value) but means auto-binding uses only the first entry's property. Not fixed here.
+  - `border` extracted entries use `property: 'border'` which is NOT in `BindableProperty` — map to `targetProperty: 'stroke'` for binding since `applyTokenValue`'s stroke case has special handling for `tokenType === 'border'`
+  - Messages sent fire-and-forget from UI; the plugin handles them sequentially and shows per-token Figma notifications
+---

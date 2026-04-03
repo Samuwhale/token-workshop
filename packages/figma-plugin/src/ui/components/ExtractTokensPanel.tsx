@@ -96,6 +96,8 @@ export function ExtractTokensPanel({
   }, []);
 
   const [prefix, setPrefix] = useState('');
+  const [bindToLayers, setBindToLayers] = useState(true);
+  const [boundCount, setBoundCount] = useState(0);
 
   const applyPrefix = useCallback(() => {
     if (!tokens) return;
@@ -169,6 +171,29 @@ export function ExtractTokensPanel({
         created++;
         setProgress({ current: created, total: toCreate.length });
       }
+
+      // Bind the created tokens to their originating layers
+      if (bindToLayers) {
+        let totalBound = 0;
+        for (const item of toCreate) {
+          // 'border' tokens bind as 'stroke' (applyTokenValue handles border type in the stroke case)
+          const targetProperty = item.property === 'border' ? 'stroke' : item.property;
+          const nodeIds = item.layerIds ?? [item.layerId];
+          parent.postMessage({
+            pluginMessage: {
+              type: 'apply-to-nodes',
+              nodeIds,
+              tokenPath: item.name,
+              tokenType: item.tokenType,
+              targetProperty,
+              resolvedValue: item.value,
+            }
+          }, '*');
+          totalBound += nodeIds.length;
+        }
+        setBoundCount(totalBound);
+      }
+
       setDone(true);
       onTokenCreated();
     } catch (err) {
@@ -185,7 +210,7 @@ export function ExtractTokensPanel({
   if (done) {
     return (
       <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
             <path d="M20 6L9 17l-5-5" />
           </svg>
@@ -193,9 +218,14 @@ export function ExtractTokensPanel({
             Created {selectedCount} token{selectedCount !== 1 ? 's' : ''} from selection
           </span>
         </div>
+        {bindToLayers && boundCount > 0 && (
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2 ml-5">
+            Bound to {boundCount} layer{boundCount !== 1 ? 's' : ''}
+          </p>
+        )}
         <button
           onClick={onClose}
-          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+          className="text-[10px] text-[var(--color-figma-accent)] hover:underline ml-5"
         >
           Done
         </button>
@@ -361,27 +391,39 @@ export function ExtractTokensPanel({
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-            <button
-              onClick={onClose}
-              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
-              disabled={creating}
-            >
-              Cancel
-            </button>
-            <div className="flex-1" />
-            {progress && (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                {progress.current}/{progress.total}
-              </span>
-            )}
-            <button
-              onClick={handleCreate}
-              disabled={selectedCount === 0 || creating || !connected}
-              className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {creating ? 'Creating...' : `Create ${selectedCount} Token${selectedCount !== 1 ? 's' : ''}`}
-            </button>
+          <div className="flex flex-col gap-1.5 px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+            <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={bindToLayers}
+                onChange={e => setBindToLayers(e.target.checked)}
+                className="accent-[var(--color-figma-accent)]"
+                disabled={creating}
+              />
+              Bind tokens to source layers
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onClose}
+                className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
+                disabled={creating}
+              >
+                Cancel
+              </button>
+              <div className="flex-1" />
+              {progress && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {progress.current}/{progress.total}
+                </span>
+              )}
+              <button
+                onClick={handleCreate}
+                disabled={selectedCount === 0 || creating || !connected}
+                className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {creating ? 'Creating...' : `Create ${selectedCount} Token${selectedCount !== 1 ? 's' : ''}`}
+              </button>
+            </div>
           </div>
         </>
       )}
