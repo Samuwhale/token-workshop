@@ -26,6 +26,7 @@ interface AnalyticsPanelProps {
   serverUrl: string;
   connected: boolean;
   validateKey?: number;
+  tokenChangeKey?: number;
   tokenUsageCounts?: Record<string, number>;
   onNavigateToToken?: (path: string, set: string) => void;
   onValidationComplete?: (count: number) => void;
@@ -63,7 +64,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 const TYPE_COLOR_FALLBACK = '#8888aa';
 
-export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCounts, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
+export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeKey, tokenUsageCounts, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -98,6 +99,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCo
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set()); // 'all' or 'set:path'
   const hasAutoValidated = useRef(false);
   const lastValidatedKey = useRef(0);
+  const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const validateResultsRef = useRef<ValidationIssue[] | null>(null);
+  validateResultsRef.current = validateResults;
 
   // Component coverage state
   const [coverageResult, setCoverageResult] = useState<{
@@ -151,6 +155,26 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCo
       runValidate();
     }
   }, [connected, validateResults, validateLoading, runValidate]);
+
+  // Auto-revalidate after token changes (external SSE refresh or internal mutations)
+  // when validation has already run — marks results stale immediately then re-runs
+  // after a 2s debounce to batch rapid changes.
+  useEffect(() => {
+    if (!tokenChangeKey) return;
+    if (validateResultsRef.current === null) return; // haven't run yet, skip
+    setResultsStale(true);
+    if (autoRevalidateTimer.current !== null) clearTimeout(autoRevalidateTimer.current);
+    autoRevalidateTimer.current = setTimeout(() => {
+      autoRevalidateTimer.current = null;
+      runValidate();
+    }, 2000);
+    return () => {
+      if (autoRevalidateTimer.current !== null) {
+        clearTimeout(autoRevalidateTimer.current);
+        autoRevalidateTimer.current = null;
+      }
+    };
+  }, [tokenChangeKey, runValidate]);
 
   // Listen for component-coverage-result from controller
   useEffect(() => {

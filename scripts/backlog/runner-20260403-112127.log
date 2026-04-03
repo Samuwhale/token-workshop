@@ -320,3 +320,10 @@ Already up to date.
   → AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation — resultsStale state exists (AnalyticsPanel.tsx ~L89) and is set when tokens change via SSE, but validation is never automatically re-run after the user fixes an issue; users must manually hit "Validate" again to see current status; add an auto-revalidate after any token mutation that changes validation-relevant data (broken aliases, missing types, circular refs)
   Worktree: /tmp/backlog-30880-mLBw8K
   Running agent… (started 11:48:39)
+
+  ✓ done: AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+    Added tokenChangeKey prop to AnalyticsPanel; App.tsx increments it in refreshAll; AnalyticsPanel debounces auto-revalidation (2s) after any token change when results already exist
+    26 turns · 213s · $0.66
+
+  Merging to main: AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+Already up to date.

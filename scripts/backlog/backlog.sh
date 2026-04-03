@@ -757,6 +757,9 @@ echo "╚═══════════════════════�
 echo "  PID:    $$"
 echo "  Tool:   $TOOL"
 echo "  Model:  $MODEL"
+if [ "$PASS_MODEL" != "$MODEL" ]; then
+  echo "  Pass model: $PASS_MODEL"
+fi
 echo "  Log:    $RUNNER_LOG"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
   echo "  Passes: enabled (every $PASS_FREQUENCY items)"

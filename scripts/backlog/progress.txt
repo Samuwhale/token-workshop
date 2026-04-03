@@ -337,3 +337,12 @@
 - **Learnings for future iterations:**
   - The zoom breadcrumb feature was completed in a prior session not reflected in the backlog item — check actual code before implementing.
 ---
+
+## 2026-04-03 - AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation
+- Added `tokenChangeKey` prop (number) to `AnalyticsPanel`. App.tsx increments it in `refreshAll` (which is called on every SSE token change, editor save, and mutation). In `AnalyticsPanel`, a new `useEffect` on `tokenChangeKey` immediately marks `resultsStale = true` and schedules a debounced `runValidate()` after 2s (cancels if another change arrives within the window). A mutable `validateResultsRef` tracks whether validation has run yet, so the auto-revalidate is skipped on the very first load (when `validateResults === null`).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L350, ~L2224; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L26, ~L67, ~L100, ~L148
+- **Learnings for future iterations:**
+  - The backlog description said `resultsStale` was "set when tokens change via SSE" — this was inaccurate. It was only set when the user clicked "Go →". The actual SSE path never touched `resultsStale`. Always verify the described behavior against the code.
+  - For debounced auto-effects, use a `useRef` timer + cleanup in the effect return. The `validateResultsRef` pattern (sync ref to state) avoids listing `validateResults` in the effect deps while still reading its current value.
+  - `refreshAll` in App.tsx is the canonical "tokens changed" signal — it's called for SSE events, editor saves, generator runs, scaffold wizard completions, etc. A new counter prop on child panels is the right way to propagate this signal without prop-drilling state.
+---

@@ -347,7 +347,8 @@ export function App() {
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const lintConfig = useLintConfig(serverUrl, connected);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
-  const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
+  const [tokenChangeKey, setTokenChangeKey] = useState(0);
+  const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -2222,6 +2223,7 @@ export function App() {
                 serverUrl={serverUrl}
                 connected={connected}
                 validateKey={validateKey}
+                tokenChangeKey={tokenChangeKey}
                 tokenUsageCounts={tokenUsageCounts}
                 onNavigateToToken={(path, set) => {
                   setActiveSet(set);
