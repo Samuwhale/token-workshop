@@ -338,3 +338,10 @@ Already up to date.
   → Generator edit requires re-opening the full dialog — modifying a generator parameter (e.g., changing a color ramp's step count from 9 to 11) requires opening the full multi-step TokenGeneratorDialog; for simple parameter tweaks, an inline editor or a streamlined "quick edit" panel in the Generators sub-tab would reduce friction significantly
   Worktree: /tmp/backlog-45818-sfs3Xe
   Running agent… (started 17:48:57)
+
+  ✓ done: Generator edit requires re-opening the full dialog
+    Added inline QuickEditPanel to GeneratorPipelineCard — clicking Edit now expands type-specific compact fields (step presets, ratio, unit, etc.) plus name/target within the card; Save & re-run calls PUT /:id; Full settings → opens the existing multi-step dialog
+    38 turns · 425s · $1.41
+
+  Merging to main: Generator edit requires re-opening the full dialog
+Already up to date.

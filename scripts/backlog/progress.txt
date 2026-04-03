@@ -577,3 +577,19 @@
   - When "Edit" is triggered from within a split-view inline preview, collapsing the split view first (`setShowPreviewSplit(false)`) and then opening the editor sidebar is the cleanest UX — avoids needing to render the editor inside the preview pane.
   - Gate 4 (headless UI validation) timed out due to pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); gates 1–3 passed cleanly.
 ---
+
+## 2026-04-03 - Generator edit requires re-opening the full dialog
+- Added an inline `QuickEditPanel` component to `GeneratorPipelineCard` in `GraphPanel.tsx` that lets users tweak key generator parameters without opening the full multi-step dialog.
+- The "Edit" button now toggles an inline quick-edit section within the card. It shows:
+  - **Source token** field (for types that require a value: colorRamp, typeScale, spacingScale, borderRadiusScale, accessibleColorPair, darkModeInversion)
+  - **Type-specific key params**: colorRamp → step preset (3 buttons), light end, dark end, chroma boost; typeScale → ratio dropdown (6 named presets), unit, roundTo; spacingScale/borderRadiusScale → unit toggle; shadowScale → color swatch + hex; customScale → formula; accessibleColorPair → AA/AAA toggle; darkModeInversion → chromaBoost; contrastCheck → backgroundHex
+  - **Name**, **Target group**, **Target set** fields (always shown)
+  - **Save & re-run** button (calls `PUT /api/generators/:id` which saves + re-runs) and **Full settings →** link (opens the existing `TokenGeneratorDialog`)
+- opacityScale and zIndexScale show no type-specific fields (their steps require the full editor) — users see the fallback "Full settings →" link
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L469 (QuickEditPanel added before DryRunDiff), ~L949 (GeneratorPipelineCard state + rendering)
+- **Learnings for future iterations:**
+  - The `PUT /api/generators/:id` endpoint already re-runs the generator server-side, so "Save & re-run" is a single API call with no extra logic
+  - Defining shared Tailwind-class strings as module-level `const` (e.g., `QE_INPUT`, `QE_LABEL`) avoids repetition without adding abstraction overhead
+  - For preset selectors (e.g., step presets), `JSON.stringify` comparison works fine because the arrays are small and always integer-typed
+  - Types where the step list IS the config (opacityScale, zIndexScale) are better left to the full dialog — quick edit wisely skips them
+---

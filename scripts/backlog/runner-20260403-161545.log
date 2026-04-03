@@ -437,3 +437,18 @@ Already up to date.
 
   Merging to main: PreviewPanel and TokenDetailPreview serve overlapping purposes — unify them into a single preview pane that shows context-aware content
 Already up to date.
+[main afd40158] chore(backlog): done – PreviewPanel and TokenDetailPreview serve overlapping purposes — unify them into a single preview pane that shows context-aware content
+ 7 files changed, 77 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Unify PreviewPanel and TokenDetailPreview into context-aware preview pane
+- Made the split-view PreviewPanel context-aware: when a token is focused (`previewingToken` is set), it renders `TokenDetailPreview` inline in the bottom pane instead of collection templates. When nothing is focused, it renders the normal collection templates (Colors, Type Scale, Buttons, etc.).
+- **PreviewPanel.tsx**: Added `focusedToken`, `pathToSet`, `onClearFocus`, and `onEditToken` props to the interface. Imported `TokenDetailPreview`. Added an early-return branch that renders `TokenDetailPreview` inline when `focusedToken` is set, with `onClose=onClearFocus` (back to collection) and `onNavigateToAlias` wired to `onNavigateToToken` for alias-chain navigation.
+- **App.tsx** (split-view section): Changed `onNavigateToToken` to call `setPreviewingToken` (focus token in preview pane) instead of navigating the list. Added `focusedToken={previewingToken}`, `pathToSet`, `onClearFocus`, and `onEditToken` (which collapses split view and opens editor sidebar) to the PreviewPanel call. Updated split-view TokenList `highlightedToken` to also reflect `previewingToken?.path`.
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  3 queued · 3 in-progress · last took 7m58s
+═══════════════════════════════════════════════════════════════
+  → Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
+  Worktree: /tmp/backlog-46580-Ka6LPc
+  Running agent… (started 17:53:07)

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratorTemplate } from '../hooks/useGenerators';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratorTemplate, BorderRadiusScaleConfig, CustomScaleConfig, ContrastCheckConfig } from '../hooks/useGenerators';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+import { VALUE_REQUIRED_TYPES } from './generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -466,6 +467,361 @@ function TemplateCard({
 }
 
 // ---------------------------------------------------------------------------
+// Quick edit panel (inline, no dialog required for simple tweaks)
+// ---------------------------------------------------------------------------
+
+const RATIO_PRESETS = [
+  { label: 'Minor Third (1.2)', value: 1.2 },
+  { label: 'Major Third (1.25)', value: 1.25 },
+  { label: 'Perfect Fourth (1.333)', value: 1.333 },
+  { label: 'Augmented Fourth (1.414)', value: 1.414 },
+  { label: 'Perfect Fifth (1.5)', value: 1.5 },
+  { label: 'Golden Ratio (1.618)', value: 1.618 },
+];
+
+const COLOR_STEP_PRESETS = [
+  { label: 'Tailwind (11)', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] },
+  { label: 'Material (10)', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
+  { label: 'Compact (5)', steps: [100, 300, 500, 700, 900] },
+];
+
+const QE_INPUT = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]';
+const QE_LABEL = 'block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
+
+function QuickEditTypeFields({ type, config, onChange }: {
+  type: GeneratorType;
+  config: GeneratorConfig;
+  onChange: (c: GeneratorConfig) => void;
+}) {
+  switch (type) {
+    case 'colorRamp': {
+      const c = config as ColorRampConfig;
+      return (
+        <>
+          <div>
+            <label className={QE_LABEL}>Step preset</label>
+            <div className="flex gap-1">
+              {COLOR_STEP_PRESETS.map(preset => {
+                const active = JSON.stringify(c.steps) === JSON.stringify(preset.steps);
+                return (
+                  <button
+                    key={preset.label}
+                    onClick={() => onChange({ ...c, steps: preset.steps })}
+                    title={preset.label}
+                    className={`flex-1 text-[9px] py-0.5 px-1 rounded border transition-colors ${active ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]'}`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="flex-1">
+              <label className={QE_LABEL}>Light end (L*)</label>
+              <input
+                type="number"
+                value={c.lightEnd}
+                min={1}
+                max={100}
+                onChange={e => onChange({ ...c, lightEnd: Number(e.target.value) })}
+                className={QE_INPUT}
+              />
+            </div>
+            <div className="flex-1">
+              <label className={QE_LABEL}>Dark end (L*)</label>
+              <input
+                type="number"
+                value={c.darkEnd}
+                min={1}
+                max={100}
+                onChange={e => onChange({ ...c, darkEnd: Number(e.target.value) })}
+                className={QE_INPUT}
+              />
+            </div>
+            <div className="flex-1">
+              <label className={QE_LABEL}>Chroma boost</label>
+              <input
+                type="number"
+                value={c.chromaBoost}
+                min={0.1}
+                max={3.0}
+                step={0.1}
+                onChange={e => onChange({ ...c, chromaBoost: Number(e.target.value) })}
+                className={QE_INPUT}
+              />
+            </div>
+          </div>
+        </>
+      );
+    }
+    case 'typeScale': {
+      const c = config as TypeScaleConfig;
+      const knownRatio = RATIO_PRESETS.some(p => Math.abs(p.value - c.ratio) < 0.0001);
+      return (
+        <>
+          <div>
+            <label className={QE_LABEL}>Scale ratio</label>
+            <select
+              value={knownRatio ? String(c.ratio) : 'custom'}
+              onChange={e => {
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v)) onChange({ ...c, ratio: v });
+              }}
+              className={QE_INPUT}
+            >
+              {RATIO_PRESETS.map(p => (
+                <option key={p.value} value={String(p.value)}>{p.label}</option>
+              ))}
+              {!knownRatio && <option value="custom">{c.ratio} (custom)</option>}
+            </select>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="flex-1">
+              <label className={QE_LABEL}>Unit</label>
+              <select value={c.unit} onChange={e => onChange({ ...c, unit: e.target.value as 'px' | 'rem' })} className={QE_INPUT}>
+                <option value="rem">rem</option>
+                <option value="px">px</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className={QE_LABEL}>Round to</label>
+              <input
+                type="number"
+                value={c.roundTo}
+                min={0}
+                max={5}
+                onChange={e => onChange({ ...c, roundTo: Number(e.target.value) })}
+                className={QE_INPUT}
+              />
+            </div>
+          </div>
+        </>
+      );
+    }
+    case 'spacingScale': {
+      const c = config as SpacingScaleConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Unit</label>
+          <select value={c.unit} onChange={e => onChange({ ...c, unit: e.target.value as 'px' | 'rem' })} className={QE_INPUT}>
+            <option value="px">px</option>
+            <option value="rem">rem</option>
+          </select>
+        </div>
+      );
+    }
+    case 'borderRadiusScale': {
+      const c = config as BorderRadiusScaleConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Unit</label>
+          <select value={c.unit} onChange={e => onChange({ ...c, unit: e.target.value as 'px' | 'rem' })} className={QE_INPUT}>
+            <option value="px">px</option>
+            <option value="rem">rem</option>
+          </select>
+        </div>
+      );
+    }
+    case 'shadowScale': {
+      const c = config as ShadowScaleConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Shadow color</label>
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
+              style={{ background: c.color }}
+            />
+            <input
+              type="text"
+              value={c.color}
+              onChange={e => onChange({ ...c, color: e.target.value })}
+              placeholder="#000000"
+              className={`${QE_INPUT} font-mono`}
+              maxLength={9}
+            />
+          </div>
+        </div>
+      );
+    }
+    case 'customScale': {
+      const c = config as CustomScaleConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Formula</label>
+          <input
+            type="text"
+            value={c.formula}
+            onChange={e => onChange({ ...c, formula: e.target.value })}
+            placeholder="base * ratio^index"
+            className={`${QE_INPUT} font-mono`}
+          />
+        </div>
+      );
+    }
+    case 'accessibleColorPair': {
+      const c = config as AccessibleColorPairConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Contrast level</label>
+          <div className="flex gap-1">
+            {(['AA', 'AAA'] as const).map(level => (
+              <button
+                key={level}
+                onClick={() => onChange({ ...c, contrastLevel: level })}
+                className={`flex-1 text-[10px] py-0.5 px-2 rounded border transition-colors ${c.contrastLevel === level ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]'}`}
+              >
+                {level} ({level === 'AA' ? '4.5:1' : '7:1'})
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    case 'darkModeInversion': {
+      const c = config as DarkModeInversionConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Chroma boost</label>
+          <input
+            type="number"
+            value={c.chromaBoost}
+            min={0}
+            max={2.0}
+            step={0.05}
+            onChange={e => onChange({ ...c, chromaBoost: Number(e.target.value) })}
+            className={QE_INPUT}
+          />
+        </div>
+      );
+    }
+    case 'contrastCheck': {
+      const c = config as ContrastCheckConfig;
+      return (
+        <div>
+          <label className={QE_LABEL}>Background color</label>
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
+              style={{ background: c.backgroundHex }}
+            />
+            <input
+              type="text"
+              value={c.backgroundHex}
+              onChange={e => onChange({ ...c, backgroundHex: e.target.value })}
+              placeholder="#ffffff"
+              className={`${QE_INPUT} font-mono`}
+              maxLength={9}
+            />
+          </div>
+        </div>
+      );
+    }
+    case 'opacityScale':
+    case 'zIndexScale':
+    default:
+      return null;
+  }
+}
+
+function QuickEditPanel({ generator, serverUrl, allSets, onSaved, onOpenFullDialog }: {
+  generator: TokenGenerator;
+  serverUrl: string;
+  allSets: string[];
+  onSaved: () => void;
+  onOpenFullDialog: () => void;
+}) {
+  const [config, setConfig] = useState<GeneratorConfig>(() => JSON.parse(JSON.stringify(generator.config)));
+  const [sourceToken, setSourceToken] = useState(generator.sourceToken ?? '');
+  const [name, setName] = useState(generator.name);
+  const [targetGroup, setTargetGroup] = useState(generator.targetGroup ?? '');
+  const [targetSet, setTargetSet] = useState(generator.targetSet ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const needsSource = VALUE_REQUIRED_TYPES.includes(generator.type);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = { name, targetGroup, targetSet, config };
+      if (needsSource && sourceToken.trim()) body.sourceToken = sourceToken.trim();
+      await apiFetch(`${serverUrl}/api/generators/${generator.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex flex-col gap-2">
+      {needsSource && (
+        <div>
+          <label className={QE_LABEL}>Source token</label>
+          <input
+            type="text"
+            value={sourceToken}
+            onChange={e => setSourceToken(e.target.value)}
+            placeholder="e.g. colors.brand.primary"
+            className={`${QE_INPUT} font-mono`}
+          />
+        </div>
+      )}
+
+      <QuickEditTypeFields type={generator.type} config={config} onChange={setConfig} />
+
+      <div className="flex gap-1.5">
+        <div className="flex-1">
+          <label className={QE_LABEL}>Name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className={QE_INPUT} />
+        </div>
+        <div className="flex-1">
+          <label className={QE_LABEL}>Target group</label>
+          <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} className={`${QE_INPUT} font-mono`} />
+        </div>
+      </div>
+
+      <div>
+        <label className={QE_LABEL}>Target set</label>
+        <select value={targetSet} onChange={e => setTargetSet(e.target.value)} className={QE_INPUT}>
+          {allSets.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      {error && (
+        <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+        >
+          {saving ? 'Saving…' : 'Save & re-run'}
+        </button>
+        <button
+          onClick={onOpenFullDialog}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors whitespace-nowrap"
+        >
+          Full settings →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Generator pipeline card (shown after templates are applied)
 // ---------------------------------------------------------------------------
 
@@ -595,6 +951,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allS
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showQuickEdit, setShowQuickEdit] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -770,11 +1127,11 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allS
           {previewLoading ? 'Loading…' : previewDiff ? 'Hide preview' : 'Preview output'}
         </button>
         <button
-          onClick={() => setShowEditDialog(true)}
-          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-          title="Edit generator settings"
+          onClick={() => setShowQuickEdit(v => !v)}
+          className={`text-[10px] transition-colors ${showQuickEdit ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+          title={showQuickEdit ? 'Close quick edit' : 'Quick-edit key parameters inline'}
         >
-          Edit
+          {showQuickEdit ? 'Close edit' : 'Edit'}
         </button>
         <button
           onClick={handleDuplicate}
@@ -807,6 +1164,16 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allS
           onConfirmRun={handleRerun}
           onClose={() => setPreviewDiff(null)}
           running={running}
+        />
+      )}
+
+      {showQuickEdit && (
+        <QuickEditPanel
+          generator={generator}
+          serverUrl={serverUrl}
+          allSets={allSets}
+          onSaved={() => { setShowQuickEdit(false); onRefresh(); }}
+          onOpenFullDialog={() => { setShowQuickEdit(false); setShowEditDialog(true); }}
         />
       )}
 
