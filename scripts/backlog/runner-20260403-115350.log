@@ -560,3 +560,29 @@ Already up to date.
   ✓ product pass: product-pass
     10 items written to inbox — 1 HIGH (onNavigateToToken param order bug), 9 feature/UX gaps across sync, import, export, graph, editor, inspector, and analytics panels
 Already up to date.
+[main 06b354a1] chore(backlog): product pass – product-pass
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 9 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (navigation architecture, modal management, overflow panels, editor layout), SetSwitcher.tsx (set creation flow, folder hierarchy), SettingsPanel.tsx (settings duplication with ExportPanel), ExportPanel.tsx (dual modes, filter state, presets), CommandPalette.tsx (token search qualifiers, bulk ops), TokenEditor.tsx (alias picker limits, extensions validation, conflict detection), BatchEditor.tsx (alias scaling, type conversion), SelectionInspector.tsx (mixed bindings, deep inspection, peer suggestions), ImportPanel.tsx (conflict strategies, mode naming), VariableSyncSubPanel.tsx (conflict diff visibility), GraphPanel.tsx (pipeline card actions, wizard state), AnalyticsPanel.tsx (stale results, onNavigateToToken param order), ThemeManager.tsx (onNavigateToToken param order mismatch), server routes (all 13 route files, unwired endpoints)
+- Found 10 items — written to backlog-inbox.md
+- Notable: onNavigateToToken callback has reversed parameter order between AnalyticsPanel `(path, set)` and ThemeManager `(set, tokenPath)` — a silent bug where one caller is passing arguments in the wrong order; also sync conflict review requires opening each token individually with no inline value diff
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  15 queued · 4 in-progress · last took 6m24s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] onNavigateToToken callback has inconsistent parameter order across panels — AnalyticsPanel declares `(path: string, set: string)` while ThemeManager declares `(set: string, tokenPath: string)`; this means one of them is silently passing wrong arguments when navigating to a token, causing navigation to fail or land on the wrong token (AnalyticsPanel.tsx:33 vs ThemeManager.tsx:29)
+  Worktree: /tmp/backlog-81267-WXdzXS
+  Running agent… (started 13:22:59)
+
+  ✓ done: onNavigateToToken callback has inconsistent parameter order across panels — AnalyticsPanel declares `(path: string, set: string)` while ThemeManager declares `(set: string, tokenPath: string)`
+    Standardized to (path, set) everywhere — fixed ThemeManager prop type, 2 internal call sites, and App.tsx callback parameter names
+    17 turns · 80s · $0.3
+
+  Merging to main: onNavigateToToken callback has inconsistent parameter order across panels — AnalyticsPanel declares `(path: string, set: string)` while ThemeManager declares `(set: string, tokenPath: string)`
+Already up to date.

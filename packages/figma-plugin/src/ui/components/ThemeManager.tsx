@@ -26,7 +26,7 @@ interface ThemeManagerProps {
   connected: boolean;
   sets: string[];
   onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
-  onNavigateToToken?: (set: string, tokenPath: string) => void;
+  onNavigateToToken?: (path: string, set: string) => void;
   onCreateToken?: (tokenPath: string, set: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   /** Resolver state — when provided, enables the Advanced mode toggle */
@@ -2078,7 +2078,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 )}
                                 {onNavigateToToken && item.set ? (
                                   <button
-                                    onClick={() => onNavigateToToken(item.set, item.path)}
+                                    onClick={() => onNavigateToToken(item.path, item.set)}
                                     className="flex-1 text-left text-[10px] text-[var(--color-figma-text)] font-mono truncate hover:underline cursor-pointer"
                                     title={`Navigate to ${item.path} in set "${item.set}"${item.missingRef ? `\nMissing: {${item.missingRef}}` : ''}`}
                                   >
@@ -2257,7 +2257,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           <tr
                             key={t.path}
                             className="hover:bg-[var(--color-figma-bg-hover)] cursor-default"
-                            onClick={() => onNavigateToToken?.(t.set, t.path)}
+                            onClick={() => onNavigateToToken?.(t.path, t.set)}
                             title={`${t.path}\nRaw: ${typeof t.rawValue === 'object' ? JSON.stringify(t.rawValue) : t.rawValue}\nFrom: ${t.set} (${t.layer})`}
                           >
                             <td className="px-3 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[120px]">{t.path}</td>

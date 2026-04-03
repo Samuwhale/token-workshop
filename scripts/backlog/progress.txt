@@ -445,3 +445,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: onNavigateToToken callback has reversed parameter order between AnalyticsPanel `(path, set)` and ThemeManager `(set, tokenPath)` — a silent bug where one caller is passing arguments in the wrong order; also sync conflict review requires opening each token individually with no inline value diff
 ---
+
+## 2026-04-03 - onNavigateToToken callback has inconsistent parameter order across panels
+- Standardized `onNavigateToToken` to `(path: string, set: string)` everywhere. `ThemeManager` had the inverse order `(set: string, tokenPath: string)` in its prop type declaration and all internal call sites. Fixed the prop type, both internal call sites in `ThemeManager.tsx`, and the App.tsx callback destructuring (parameter names were `(set, path)` → `(path, set)` while the body already called `handleNavigateToSet(set, path)` correctly — so navigation was accidentally working but the names were swapped relative to the declared prop type).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L29, ~L2081, ~L2260; `packages/figma-plugin/src/ui/App.tsx` ~L2436
+- **Learnings for future iterations:**
+  - When a callback's parameter names are swapped in the consuming component (App.tsx used `(set, path)` as destructured names but passed them to `handleNavigateToSet(set, path)` in correct semantic order), the bug is invisible at runtime but creates a maintenance hazard — future callers following the prop type declaration would get it wrong.
+  - Always check all call sites (internal calls in the component + consumer in App.tsx) when fixing a type signature inconsistency.
+---
