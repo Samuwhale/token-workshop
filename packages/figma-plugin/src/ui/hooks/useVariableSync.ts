@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
-import { useTokenSyncBase, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
+import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
 
 export type { SyncProgress };
 
@@ -19,14 +19,6 @@ interface UseVariableSyncOptions {
 
 const extractTokens = (msg: any): any[] => msg.tokens ?? [];
 
-const extractVarApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number } => ({
-  count: msg.count ?? 0,
-  total: msg.total ?? msg.count ?? 0,
-  failures: msg.failures ?? [],
-  created: msg.created,
-  overwritten: msg.overwritten,
-});
-
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
@@ -38,7 +30,7 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
-    extractResponse: extractVarApplyResult,
+    extractResponse: extractSyncApplyResult,
   });
 
   const readFigmaVariables = useCallback(

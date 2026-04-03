@@ -186,3 +186,10 @@ Already up to date.
   → Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts — all three hooks define identical `{ count, total, failures }` extraction functions (useFigmaSync.ts:8-12, useStyleSync.ts:40-44, useVariableSync.ts:22-26) and share the same response shape; useStyleSync and useVariableSync already use `useTokenSyncBase` but useFigmaSync duplicates that base logic manually with its own state management; consolidate the shared extraction into a single module and migrate useFigmaSync to use useTokenSyncBase
   Worktree: /tmp/backlog-80049-3n7ysq
   Running agent… (started 12:16:27)
+
+  ✓ done: Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts
+    Extracted shared `extractSyncApplyResult` to useTokenSyncBase.ts; removed 3 duplicate local definitions across all three hooks. Full useFigmaSync→useTokenSyncBase migration not applicable (different invocation pattern).
+    18 turns · 268s · $0.66
+
+  Merging to main: Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts
+Already up to date.

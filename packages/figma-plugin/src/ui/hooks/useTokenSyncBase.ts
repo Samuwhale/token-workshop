@@ -3,6 +3,18 @@ import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 
+// ── Shared helpers ──
+
+/**
+ * Extract the standard `{ count, total, failures }` shape from a Figma apply response message.
+ * All three sync hooks (style, variable, figma-group) share this response shape.
+ */
+export const extractSyncApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
+  count: msg.count ?? 0,
+  total: msg.total ?? msg.count ?? 0,
+  failures: msg.failures ?? [],
+});
+
 // ── Shared types ──
 
 export interface SyncProgress {

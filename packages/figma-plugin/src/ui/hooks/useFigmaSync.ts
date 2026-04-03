@@ -4,12 +4,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { useFigmaMessage } from './useFigmaMessage';
-
-const extractStyleApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
-  count: msg.count ?? 0,
-  total: msg.total ?? msg.count ?? 0,
-  failures: msg.failures ?? [],
-});
+import { extractSyncApplyResult } from './useTokenSyncBase';
 
 export function useFigmaSync(
   serverUrl: string,
@@ -33,7 +28,7 @@ export function useFigmaSync(
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
-    extractResponse: extractStyleApplyResult,
+    extractResponse: extractSyncApplyResult,
   });
 
   const handleSyncGroup = useCallback(async () => {

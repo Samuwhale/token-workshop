@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
-import { useTokenSyncBase, type SyncProgress } from './useTokenSyncBase';
+import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress } from './useTokenSyncBase';
 import type { DiffRowBase } from './useTokenSyncBase';
 
 export type { SyncProgress };
@@ -37,12 +37,6 @@ interface UseStyleSyncOptions {
 
 const extractStyleReadTokens = (msg: any): any[] => msg.tokens ?? [];
 
-const extractStyleApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
-  count: msg.count ?? 0,
-  total: msg.total ?? msg.count ?? 0,
-  failures: msg.failures ?? [],
-});
-
 export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const sendStyleRead = useFigmaMessage<any[]>({
     responseType: 'styles-read',
@@ -55,7 +49,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
-    extractResponse: extractStyleApplyResult,
+    extractResponse: extractSyncApplyResult,
   });
 
   const config = useMemo(() => ({
