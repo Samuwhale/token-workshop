@@ -130,6 +130,12 @@ export function useRecentOperations({
     [redoEntries],
   );
 
+  /** Ordered list of redoable items for command palette, most-recently-rolled-back last. */
+  const redoableItems = useMemo(
+    () => redoEntries.map(e => ({ origOpId: e.origOpId, description: e.description })),
+    [redoEntries],
+  );
+
   return {
     recentOperations,
     total,
@@ -141,5 +147,6 @@ export function useRecentOperations({
     canServerRedo,
     serverRedoDescription,
     redoableOpIds,
+    redoableItems,
   };
 }

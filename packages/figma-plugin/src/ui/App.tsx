@@ -390,7 +390,7 @@ export function App() {
   }, [allTokensFlat, setSuccessToast]);
 
   // Server-side operation log for undo/rollback
-  const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback, handleServerRedo, canServerRedo, serverRedoDescription, redoableOpIds } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
+  const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback, handleServerRedo, canServerRedo, serverRedoDescription, redoableOpIds, redoableItems } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
 
   // Keyboard shortcut for server redo (Cmd+Y / Cmd+Shift+Z) when no local redo is available
   const serverRedoRef = useRef(handleServerRedo);
@@ -918,9 +918,26 @@ export function App() {
           category: 'Undo',
           handler: () => handleRollback(op.id),
         })),
+      // Local redo: most recent item from the client-side future stack
+      ...(canRedo && redoSlot ? [{
+        id: 'redo-local',
+        label: `Redo: ${redoSlot.description}`,
+        description: 'Re-apply the last undone action',
+        category: 'Undo',
+        shortcut: '⇧⌘Z',
+        handler: executeRedo,
+      }] : []),
+      // Server-side redo: rolled-back operations that can be re-applied (most recent first)
+      ...[...redoableItems].reverse().slice(0, 5).map((item, i) => ({
+        id: `redo-op-${item.origOpId}`,
+        label: i === 0 && !canRedo ? `Redo: ${item.description}` : `Re-apply: ${item.description}`,
+        description: 'Re-apply a rolled-back server operation',
+        category: 'Undo',
+        handler: () => handleServerRedo(item.origOpId),
+      })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {

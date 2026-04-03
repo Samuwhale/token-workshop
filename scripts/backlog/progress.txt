@@ -283,3 +283,14 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: ThemeManager.tsx declares dimSearch state + ref at ~L138-139 for dimension search/filter but never renders the input — a hidden feature that's literally wired up but invisible; also no redo path exists anywhere in the app despite undo being fully implemented
 ---
+
+## 2026-04-03 - No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path
+- The core redo implementation was already complete: `useUndo` had `executeRedo`, `future` stack, `canRedo`, `redoSlot`; App.tsx wired up keyboard shortcuts and the UndoToast; HistoryPanel/RecentActionsSource showed redo buttons. The only missing piece was **redo commands in the CommandPalette**.
+- Added `redoableItems: Array<{ origOpId, description }>` to `useRecentOperations` return value — derived from `redoEntries` with `useMemo`.
+- Updated App.tsx to destructure `redoableItems` and added two redo command groups to the `cmds` array: (1) local redo from `redoSlot` as "Redo: X" with ⇧⌘Z shortcut hint; (2) server redo from `redoableItems` (reversed, most recent first) as "Redo: X" / "Re-apply: X". Both in category 'Undo'. Updated `useMemo` deps to include `canRedo`, `redoSlot`, `executeRedo`, `redoableItems`, `handleServerRedo`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` ~L128, `packages/figma-plugin/src/ui/App.tsx` ~L393, ~L910
+- **Learnings for future iterations:**
+  - The backlog item described redo as "not implemented" but it was mostly done — only the command palette integration was missing. Always verify actual file state before scoping work.
+  - `redoEntries` in `useRecentOperations` is ordered with most-recently-rolled-back last; reversing it before slicing gives most-recent-first ordering for the palette.
+  - Lint baseline improved by 1 (5 → 4 errors) as a side effect of this change — the deps array fix resolved a react-hooks/exhaustive-deps warning.
+---

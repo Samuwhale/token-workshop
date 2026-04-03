@@ -272,3 +272,14 @@ Already up to date.
   Backlog empty — checking inbox for new items…
   No items — another runner (PID 31178) is running a discovery pass. Waiting…
   Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+  12 new item(s) available — continuing.
+  → No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path; once an operation is rolled back, it is gone; users expect redo to work symmetrically with undo; implement a redo stack in useUndo that captures rolled-back operations and re-applies them on demand (useUndo hook, HistoryPanel.tsx, CommandPalette.tsx)
+  Worktree: /tmp/backlog-30880-awtNBb
+  Running agent… (started 11:42:14)
+
+  ✓ done: No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path; once an operation is rolled back, it is gone; users expect redo to work symmetrically with undo; implement a redo stack in useUndo that captures rolled-back operations and re-applies them on demand (useUndo hook, HistoryPanel.tsx, CommandPalette.tsx)
+    Redo was already implemented in useUndo/HistoryPanel/UndoToast/keyboard shortcuts; added the missing piece: redo commands in the CommandPalette (local redo as 'Redo: X' + server redo items as 'Redo:/Re-apply: X') by exposing redoableItems from useRecentOperations and adding them to the App.tsx commands array
+    30 turns · 251s · $0.87
+
+  Merging to main: No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path; once an operation is rolled back, it is gone; users expect redo to work symmetrically with undo; implement a redo stack in useUndo that captures rolled-back operations and re-applies them on demand (useUndo hook, HistoryPanel.tsx, CommandPalette.tsx)
+Already up to date.
