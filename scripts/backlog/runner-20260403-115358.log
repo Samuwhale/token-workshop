@@ -398,3 +398,12 @@ Already up to date.
 
   Merging to main: ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100)
 Already up to date.
+[main 9f8b7966] chore(backlog): done – ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100)
+ 6 files changed, 40 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1098 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

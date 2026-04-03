@@ -377,3 +377,10 @@ Already up to date.
   → No inline token value editing in the token list — changing any token value requires opening the full TokenEditor panel; double-click on a value cell should open a minimal inline editor (text input for simple types, color picker for colors) that saves on blur/Enter, matching the interaction model of spreadsheets and Figma's native variable table (TokenTreeNode.tsx, TokenList.tsx)
   Worktree: /tmp/backlog-80049-Osr5Km
   Running agent… (started 13:02:36)
+
+  ✓ done: No inline token value editing in the token list
+    stale — already done; TokenTreeNode.tsx has full inline editing for all simple types (color picker, stepper, text input) with double-click/click activation and save on Enter/blur
+    11 turns · 137s · $0.49
+
+  Merging to main: No inline token value editing in the token list
+Already up to date.

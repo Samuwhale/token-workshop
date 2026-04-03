@@ -531,3 +531,10 @@
   - The faint-always-visible pattern works with named group modifiers (`group/fill`) — just suffix the Tailwind utilities consistently: `group-hover/fill:opacity-100 group-hover/fill:pointer-events-auto`.
   - `pointer-events-none` + `group-hover:pointer-events-auto` is essential — without it, the dimly-visible button is unclickable (good), but row hover triggers unexpectedly when hovering the disabled button area.
 ---
+- In `GitCommitsSource` (standalone commit list): added the same search input below the header count row and a "Load more commits" button at the bottom of the commit list. Empty-search state shows a "No commits match '…'" message with a clear button.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L322, `packages/server/src/routes/sync.ts` ~L224, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L180-240 (main panel), ~L704-800 (GitCommitsSource)
+- **Learnings for future iterations:**
+  - simple-git v3 `log()` accepts a `Record<string, unknown>` options object; pass `{ maxCount, '--skip': N, '--grep': term, '--regexp-ignore-case': null }`. The `null` value works for boolean flags.
+  - The "fetch limit+1 to detect hasMore" pattern is cleaner than counting: no extra count query needed.
+  - `GitCommitsSource` has a `filterTokenPath` mode (per-token history) that is separate from commit message search — hide the search input when `filterTokenPath` is active to avoid conflicting filter modes.
+---
