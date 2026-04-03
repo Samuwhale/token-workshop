@@ -95,6 +95,28 @@ export function ExtractTokensPanel({
     };
   }, []);
 
+  const [prefix, setPrefix] = useState('');
+
+  const applyPrefix = useCallback(() => {
+    if (!tokens) return;
+    setNames(prev => {
+      const next = { ...prev };
+      tokens.forEach((t, i) => {
+        if (!selected.has(i)) return;
+        next[i] = prefix.trim() ? `${prefix.trim()}.${t.suggestedName}` : t.suggestedName;
+      });
+      return next;
+    });
+  }, [tokens, selected, prefix]);
+
+  const resetNames = useCallback(() => {
+    if (!tokens) return;
+    const nameMap: Record<number, string> = {};
+    tokens.forEach((t, i) => { nameMap[i] = t.suggestedName; });
+    setNames(nameMap);
+    setPrefix('');
+  }, [tokens]);
+
   const toggleSelect = useCallback((idx: number) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -242,6 +264,33 @@ export function ExtractTokensPanel({
                 {conflictCount} will overwrite
               </span>
             )}
+          </div>
+
+          {/* Batch prefix bar */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Prefix:</span>
+            <input
+              type="text"
+              value={prefix}
+              onChange={e => setPrefix(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') applyPrefix(); }}
+              placeholder="e.g. color.brand"
+              className="flex-1 min-w-0 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+            />
+            <button
+              onClick={applyPrefix}
+              disabled={selectedCount === 0}
+              className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+            >
+              Apply
+            </button>
+            <button
+              onClick={resetNames}
+              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+              title="Reset all names to suggested"
+            >
+              Reset
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto">

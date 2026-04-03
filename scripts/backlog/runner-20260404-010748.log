@@ -28,3 +28,25 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: Git sub-panel does not show commits ahead/behind remote
 Already up to date.
+[main 7baeab42] chore(backlog): done – Git sub-panel does not show commits ahead/behind remote
+ 8 files changed, 55 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Git sub-panel does not show commits ahead/behind remote
+- Added `ahead` and `behind` counts to the git status API response and displayed them as small inline badges in the branch row of GitSubPanel.
+- Server: added `ahead: status.ahead, behind: status.behind` to `/api/sync/status` response in `sync.ts` (line ~104). `simple-git`'s `StatusResult` already exposes these fields from `git status`—no new method needed.
+- Types: added `ahead: number; behind: number` fields to `GitStatus.status` interface in `useGitStatus.ts` (line ~10).
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  7 queued · 3 in-progress · last took 2m44s
+═══════════════════════════════════════════════════════════════
+  → ExtractTokensPanel has no batch rename for extracted tokens — each token name must be edited individually in its own text input; users extracting 50 primitives from a Figma selection cannot apply a common prefix or naming pattern in bulk (ExtractTokensPanel.tsx ~L268-282)
+  Worktree: /tmp/backlog-91949-YMnfuo
+  Running agent… (started 01:10:32)
+
+  ✓ done: ExtractTokensPanel has no batch rename for extracted tokens
+    Added a Prefix bar with Apply (Enter) and Reset buttons; Apply rewrites all selected token names to prefix.suggestedName, Reset restores originals.
+    7 turns · 62s · $0.21
+
+  Merging to main: ExtractTokensPanel has no batch rename for extracted tokens
+Already up to date.

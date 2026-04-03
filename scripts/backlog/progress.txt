@@ -465,3 +465,11 @@
   - The ahead/behind counts reflect locally cached remote tracking refs, not live remote state. They update after fetch/pull/push. This matches standard git UX (e.g., VS Code's branch indicator shows the same values without auto-fetching).
   - When both ahead and behind are 0, showing nothing is the right choice—the user can see "Clean" or "N changes" for local state without cluttering the branch row for the common in-sync case.
 ---
+
+## 2026-04-04 - ExtractTokensPanel has no batch rename for extracted tokens
+- Added a "Prefix" bar between the select-all row and the token list. A text input accepts a dot-separated prefix (e.g. `color.brand`); clicking "Apply" (or pressing Enter) rewrites every selected token's name to `${prefix}.${suggestedName}`. The "Reset" button restores all names to their original `suggestedName` values and clears the prefix. Non-selected tokens are unaffected by Apply but are reset by Reset. The prefix bar only appears when there are tokens to show.
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L98-L118 (new callbacks), ~L270-L291 (new UI bar)
+- **Learnings for future iterations:**
+  - Applying prefix re-bases from `token.suggestedName` (not the current edited name) to avoid double-prefixing on repeated Apply clicks. This is the right default — users who manually edited a name can still use Apply to override it.
+  - The `applyPrefix` callback captures `selected` at call time, so only currently-selected tokens are affected; deselected tokens keep whatever name they already have.
+---
