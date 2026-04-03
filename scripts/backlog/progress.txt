@@ -481,3 +481,16 @@
   - The header badge and filter bar button both toggle the same state, so clicking either one activates/deactivates the mixed filter — consistent with the existing toggle pattern for other mode buttons.
   - `isFilterActive` and the "clear filters" button required no changes since they already check `propFilterMode !== 'all'`.
 ---
+
+## 2026-04-04 - Set switcher renders all sets flat with no folder grouping
+- Added `buildFolderGroups` helper that groups flat set names by their first path segment (e.g. `brand/colors` + `brand/spacing` → a "brand/" folder group). Preserves original order.
+- Modified `SwitchView` to render collapsible folder groups when any set name contains a `/`. Folder headers show a chevron toggle + item count + active-set dot indicator when collapsed.
+- Items inside a folder are indented (`pl-6`) and show only the sub-path (after the first `/`). Ungrouped sets render flat as before.
+- Added `collapsedFolders` state: all folders start expanded; all folders auto-expand when the user types a query. Keyboard navigation auto-expands a folder if the arrow keys land on an item inside a collapsed group.
+- Changed parent scroll-into-view effect from index-based (`querySelectorAll('[data-set-item]')[activeIdx]`) to name-based (`querySelector('[data-set-name="..."]')`), so collapsed folders don't shift element indices.
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L1 (new types/helper), ~L128 (scroll effect), ~L294 (SwitchView full rewrite)
+- **Learnings for future iterations:**
+  - When a list has collapsible sections, don't use `querySelectorAll(...)[index]` for scroll-into-view — use a `data-name` attribute + `querySelector('[data-name="..."]')` so hidden items don't shift indices.
+  - Auto-expand-on-keyboard-nav is cleanly done with a `useEffect` on `activeIdx` that checks if the current item's folder is collapsed and removes it from the collapsed set.
+  - Expand-all-on-search (resetting `collapsedFolders` when `query` is truthy) ensures search results are never hidden inside collapsed groups.
+---

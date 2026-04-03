@@ -1,6 +1,40 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SET_NAME_RE } from '../shared/utils';
 
+interface FolderGroup {
+  folder: string;
+  sets: string[];
+}
+type GroupItem = string | FolderGroup;
+
+/** Group a flat list of set names by their first path segment. Preserves original order. */
+function buildFolderGroups(sets: string[]): GroupItem[] {
+  const folderMap = new Map<string, string[]>();
+  for (const set of sets) {
+    const slashIdx = set.indexOf('/');
+    if (slashIdx !== -1) {
+      const folder = set.slice(0, slashIdx);
+      if (!folderMap.has(folder)) folderMap.set(folder, []);
+      folderMap.get(folder)!.push(set);
+    }
+  }
+  const result: GroupItem[] = [];
+  const seenFolders = new Set<string>();
+  for (const set of sets) {
+    const slashIdx = set.indexOf('/');
+    if (slashIdx === -1) {
+      result.push(set);
+    } else {
+      const folder = set.slice(0, slashIdx);
+      if (!seenFolders.has(folder)) {
+        seenFolders.add(folder);
+        result.push({ folder, sets: folderMap.get(folder)! });
+      }
+    }
+  }
+  return result;
+}
+
 interface SetSwitcherProps {
   sets: string[];
   activeSet: string;
@@ -91,15 +125,16 @@ export function SetSwitcher({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // Scroll active item into view (switch mode)
+  // Scroll active item into view (switch mode) — query by name so collapsed folders don't shift indices
   useEffect(() => {
     if (mode !== 'switch') return;
     const list = listRef.current;
     if (!list) return;
-    const items = list.querySelectorAll('[data-set-item]');
-    const active = items[activeIdx] as HTMLElement | undefined;
+    const setName = filtered[activeIdx];
+    if (!setName) return;
+    const active = list.querySelector(`[data-set-name="${setName.replace(/"/g, '\\"')}"]`) as HTMLElement | null;
     active?.scrollIntoView({ block: 'nearest' });
-  }, [activeIdx, mode]);
+  }, [activeIdx, mode, filtered]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
@@ -266,34 +301,99 @@ interface SwitchViewProps {
 }
 
 function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect }: SwitchViewProps) {
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+
+  // Expand all folders when searching so results are always visible
+  useEffect(() => {
+    if (query) setCollapsedFolders(new Set());
+  }, [query]);
+
+  // Auto-expand folder when keyboard navigation lands on an item inside it
+  useEffect(() => {
+    const set = filtered[activeIdx];
+    if (!set) return;
+    const slashIdx = set.indexOf('/');
+    if (slashIdx === -1) return;
+    const folder = set.slice(0, slashIdx);
+    if (collapsedFolders.has(folder)) {
+      setCollapsedFolders(prev => { const s = new Set(prev); s.delete(folder); return s; });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
+
+  const toggleFolder = (folder: string) => {
+    setCollapsedFolders(prev => {
+      const s = new Set(prev);
+      if (s.has(folder)) s.delete(folder); else s.add(folder);
+      return s;
+    });
+  };
+
+  const hasFolders = filtered.some(s => s.includes('/'));
+  const groups = hasFolders ? buildFolderGroups(filtered) : null;
+
+  const renderSetButton = (set: string, indented: boolean) => {
+    const isCurrent = set === activeSet;
+    const isHighlighted = filtered[activeIdx] === set;
+    const label = indented ? set.slice(set.indexOf('/') + 1) : null;
+    return (
+      <button
+        key={set}
+        data-set-item
+        data-set-name={set}
+        onClick={() => onSelect(set)}
+        className={`w-full flex items-center justify-between text-left text-[12px] transition-colors py-2 pr-3 ${indented ? 'pl-6' : 'px-3'} ${isHighlighted ? 'bg-[var(--color-figma-bg-hover)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+        role="option"
+        aria-selected={isCurrent}
+      >
+        <span className={isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}>
+          {label !== null ? <span>{label}</span> : <SetNameDisplay name={set} />}
+        </span>
+        {isCurrent && (
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">active</span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Token sets">
       {filtered.length === 0 ? (
         <div className="px-3 py-4 text-[11px] text-[var(--color-figma-text-secondary)] text-center">
           No sets match &ldquo;{query}&rdquo;
         </div>
-      ) : (
-        filtered.map((set, i) => {
-          const isCurrent = set === activeSet;
-          const isHighlighted = i === activeIdx;
+      ) : groups ? (
+        groups.map(group => {
+          if (typeof group === 'string') {
+            return renderSetButton(group, false);
+          }
+          const isCollapsed = collapsedFolders.has(group.folder);
+          const hasActiveSet = group.sets.some(s => s === activeSet);
           return (
-            <button
-              key={set}
-              data-set-item
-              onClick={() => onSelect(set)}
-              className={`w-full flex items-center justify-between px-3 py-2 text-left text-[12px] transition-colors ${isHighlighted ? 'bg-[var(--color-figma-bg-hover)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
-              role="option"
-              aria-selected={isCurrent}
-            >
-              <span className={isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}>
-                <SetNameDisplay name={set} />
-              </span>
-              {isCurrent && (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">active</span>
-              )}
-            </button>
+            <div key={group.folder}>
+              <button
+                onClick={() => toggleFolder(group.folder)}
+                className="w-full flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-b border-[var(--color-figma-border)]"
+              >
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+                <span className="font-medium">{group.folder}/</span>
+                <span className="opacity-50 text-[10px]">{group.sets.length}</span>
+                {hasActiveSet && isCollapsed && (
+                  <span className="ml-auto text-[var(--color-figma-accent)] leading-none" aria-label="contains active set">●</span>
+                )}
+              </button>
+              {!isCollapsed && group.sets.map(set => renderSetButton(set, true))}
+            </div>
           );
         })
+      ) : (
+        filtered.map(set => renderSetButton(set, false))
       )}
     </div>
   );

@@ -21,3 +21,10 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
   → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
   Worktree: /tmp/backlog-91634-PI98N3
   Running agent… (started 01:07:43)
+
+  ✓ done: Set switcher renders all sets flat with no folder grouping
+    Added collapsible folder groups to SwitchView — sets with matching prefixes (e.g. brand/colors, brand/spacing) now appear under a toggleable "brand/" header; keyboard nav auto-expands collapsed folders; search auto-expands all folders
+    15 turns · 251s · $0.63
+
+  Merging to main: Set switcher renders all sets flat with no folder grouping
+Already up to date.
