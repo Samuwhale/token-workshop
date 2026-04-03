@@ -378,3 +378,15 @@
   - When editing an existing generator from GraphPanel (no `sourceTokenPath` prop), the generator's `existingGenerator.sourceToken` must be used as the initial value — the prop alone isn't sufficient for edit mode.
   - The `effectiveSourcePath = editableSourcePath.trim() || undefined` pattern converts the mutable string state to the `string | undefined` that sub-hooks expect without extra complexity.
 ---
+
+## 2026-04-03 - No resolved-value preview for source token in TokenGeneratorDialog
+- When a source token is bound (dialog opened from a token, `sourceTokenPath` + `sourceTokenValue` props provided), the dialog now shows the resolved value inline alongside the path.
+- In the header subtitle: a 3×3px color swatch + `= #RRGGBB` is shown next to the path for color tokens; `= 16px` for dimension/fontSize tokens. Only visible when `editableSourcePath === sourceTokenPath` (path matches initial binding).
+- In the "Source token" binding section: a small bordered preview row shows a larger swatch + full hex/dimension value with a "resolved" label. This only renders when the preview is valid (color or dimension, path unchanged).
+- Added `sourcePreviewAvailable`, `sourcePreviewIsColor`, `sourcePreviewIsDimension`, and `sourceDimUnit` derived constants in the main render function.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L448-460 (new derived consts), ~L499-524 (header subtitle), ~L594-614 (source section preview row)
+- **Learnings for future iterations:**
+  - `sourceTokenValue` is only valid when the dialog was opened from a specific token; editing an existing generator passes no `sourceTokenValue`. Guard with `sourcePreviewAvailable = editableSourcePath === sourceTokenPath && sourceTokenValue != null`.
+  - `sourceDimUnit` must be extracted from `sourceTokenValue.unit` when it's an object; default to `'px'` for plain numbers.
+  - Showing the preview only when path is unmodified prevents showing stale data when the user types a different path.
+---

@@ -393,3 +393,74 @@ Already up to date.
   → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
   Worktree: /tmp/backlog-49887-DOaRKo
   Running agent… (started 13:46:13)
+
+  · unknown
+    13 turns · 96s · $0.31
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  23 queued · 4 in-progress · last took 1m41s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-49887-SUZLZn
+  Running agent… (started 13:47:53)
+
+  · unknown
+    1 turns · 1s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  25 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-49887-FWjYPp
+  Running agent… (started 13:47:59)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  26 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+  Worktree: /tmp/backlog-49887-OGQnnl
+  Running agent… (started 13:48:05)
+
+  · unknown
+    1 turns · 1s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  26 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+  Worktree: /tmp/backlog-49887-8V6B9c
+  Running agent… (started 13:48:11)
+
+  · unknown
+    1 turns · 1s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

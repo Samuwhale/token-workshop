@@ -1,0 +1,23 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    45818
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-161525.log
+  Passes: enabled (every 15 items)
+
+  Queue:    26 ready · 1 in-progress · 3 failed
+  Done:     1133 total (next code pass in 7, product pass in 15)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  26 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+  Worktree: /tmp/backlog-45818-38bwjh
+  Running agent… (started 16:15:26)

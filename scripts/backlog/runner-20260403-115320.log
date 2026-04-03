@@ -547,3 +547,74 @@ Already up to date.
   → Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499 says "Enter a base value or bind a source token" when no source is bound, but there is no mechanism to bind one from the dialog; either add the token picker here or reword the subtitle to match actual capabilities
   Worktree: /tmp/backlog-80049-UnlN79
   Running agent… (started 13:47:16)
+
+  · unknown
+    11 turns · 40s · $0.21
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  24 queued · 3 in-progress · last took 44s
+═══════════════════════════════════════════════════════════════
+  → Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499 says "Enter a base value or bind a source token" when no source is bound, but there is no mechanism to bind one from the dialog; either add the token picker here or reword the subtitle to match actual capabilities
+  Worktree: /tmp/backlog-80049-lq67iT
+  Running agent… (started 13:48:01)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  25 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-80049-6KrWmg
+  Running agent… (started 13:48:06)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  25 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-80049-t3HG7W
+  Running agent… (started 13:48:12)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  25 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-80049-ZZsqaL
+  Running agent… (started 13:48:18)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

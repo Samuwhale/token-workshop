@@ -1,0 +1,30 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    46178
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-161537.log
+  Passes: enabled (every 15 items)
+
+  Queue:    25 ready · 2 in-progress · 3 failed
+  Done:     1133 total (next code pass in 7, product pass in 15)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  25 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-46178-YCbh8l
+  Running agent… (started 16:15:38)
+
+  ✓ done: No resolved-value preview for source token in TokenGeneratorDialog
+    Added color swatch + hex value (or dimension value) preview in both the dialog header and the Source token binding section; preview is gated to when editableSourcePath matches the initial sourceTokenPath prop so stale data is never shown
+    27 turns · 199s · $0.72
+
+  Merging to main: No resolved-value preview for source token in TokenGeneratorDialog
+Already up to date.

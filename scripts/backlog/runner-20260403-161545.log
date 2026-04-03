@@ -1,0 +1,23 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    46580
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-161545.log
+  Passes: enabled (every 15 items)
+
+  Queue:    24 ready · 3 in-progress · 3 failed
+  Done:     1133 total (next code pass in 7, product pass in 15)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  24 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499 says "Enter a base value or bind a source token" when no source is bound, but there is no mechanism to bind one from the dialog; either add the token picker here or reword the subtitle to match actual capabilities
+  Worktree: /tmp/backlog-46580-MbcPoK
+  Running agent… (started 16:15:45)

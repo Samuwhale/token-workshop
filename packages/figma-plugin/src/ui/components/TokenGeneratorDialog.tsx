@@ -450,6 +450,14 @@ export function TokenGeneratorDialog({
   /** Whether the selected type expects a dimension input */
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
 
+  // Resolved value preview — only valid when the editable path matches the initially-bound source token
+  const sourcePreviewAvailable = Boolean(sourceTokenPath && editableSourcePath === sourceTokenPath && sourceTokenValue != null);
+  const sourcePreviewIsColor = sourcePreviewAvailable && (sourceTokenType === 'color') && typeof effectiveSourceHex === 'string';
+  const sourcePreviewIsDimension = sourcePreviewAvailable && (sourceTokenType === 'dimension' || sourceTokenType === 'fontSize') && effectiveSourceDim !== undefined;
+  const sourceDimUnit = typeof sourceTokenValue === 'object' && sourceTokenValue !== null && 'unit' in sourceTokenValue
+    ? String((sourceTokenValue as { unit: string }).unit)
+    : 'px';
+
   const typeButton = (type: GeneratorType) => (
     <button
       key={type}
@@ -493,9 +501,28 @@ export function TokenGeneratorDialog({
                 {isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
               </span>
               {editableSourcePath ? (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[220px]">
-                  Source: {editableSourcePath}
-                </span>
+                <div className="flex items-center gap-1 max-w-[220px]">
+                  {sourcePreviewIsColor && effectiveSourceHex && (
+                    <div
+                      className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                      style={{ backgroundColor: swatchBgColor(effectiveSourceHex) }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
+                    {editableSourcePath}
+                  </span>
+                  {sourcePreviewIsColor && effectiveSourceHex && (
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono shrink-0">
+                      = {effectiveSourceHex.slice(0, 7)}
+                    </span>
+                  )}
+                  {sourcePreviewIsDimension && effectiveSourceDim !== undefined && (
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono shrink-0">
+                      = {effectiveSourceDim}{sourceDimUnit}
+                    </span>
+                  )}
+                </div>
               ) : (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {typeNeedsValue ? 'Enter a base value or bind a source token' : 'Standalone generator'}
@@ -564,6 +591,26 @@ export function TokenGeneratorDialog({
                   </button>
                 )}
               </div>
+              {/* Resolved value preview */}
+              {editableSourcePath && sourcePreviewAvailable && (sourcePreviewIsColor || sourcePreviewIsDimension) && (
+                <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+                  {sourcePreviewIsColor && effectiveSourceHex && (
+                    <div
+                      className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                      style={{ backgroundColor: swatchBgColor(effectiveSourceHex) }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+                    {sourcePreviewIsColor && effectiveSourceHex
+                      ? effectiveSourceHex
+                      : sourcePreviewIsDimension && effectiveSourceDim !== undefined
+                        ? `${effectiveSourceDim}${sourceDimUnit}`
+                        : null}
+                  </span>
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-auto">resolved</span>
+                </div>
+              )}
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1 block">
                 {editableSourcePath ? 'Token path to use as base value — clears to use manual base value below' : 'Leave empty to enter a base value manually below'}
               </span>
