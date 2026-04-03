@@ -237,3 +237,18 @@ Already up to date.
 
   Merging to main: No global cross-set find-and-replace for token values
 Already up to date.
+[main 89a636b2] chore(backlog): done – No global cross-set find-and-replace for token values
+ 8 files changed, 417 insertions(+), 94 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No global cross-set find-and-replace for token values
+- Added "Find by: Names | Values" toggle to the Find & Replace dialog. In Values mode, the dialog searches token `$value` strings (colors, aliases, dimensions, etc.) and replaces them via `batch-update`. Supports regex, active-set or all-sets scope, live preview with before/after highlighting, undo/redo, and abort.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` — added `frTarget` state, `frValuePreview` computed state (using `serializeValue`/`deserializeValue` helpers), values branch in `handleFindReplace` calling `batch-update` per set, `frValueCount` derived count
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  6 queued · 4 in-progress · last took 8m3s
+═══════════════════════════════════════════════════════════════
+  → No token "pinned" or "recently edited" quick-access outside the token list — the pinned tokens feature (usePinnedTokens) and recently-touched tracking (useRecentlyTouched) only surface within the token list panel; there's no way to access pinned or recent tokens from other panels (e.g., while in the Theme Manager or Selection Inspector); add a pinned/recent tokens section to the command palette
+  Worktree: /tmp/backlog-80049-zFIz0E
+  Running agent… (started 12:32:48)

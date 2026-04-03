@@ -495,3 +495,16 @@
   - The values preview has no "conflict" concept (unlike names) — any match is always updatable.
   - Keeping `frPreview` (names) and `frValuePreview` (values) as separate computed arrays avoids type union complexity and keeps each mode's IIFE render block clean.
 ---
+
+## 2026-04-03 - Theme dimension option management requires too many clicks — bulk assignment UI
+- Implemented three features to reduce clicks when managing theme dimension options:
+  1. **"Copy from" in new option creation**: When adding a new option, a "Copy assignments from:" select dropdown appears (only when ≥1 existing option exists). Selecting a source pre-populates the new option with that option's set assignments instead of starting all-disabled.
+  2. **"Copy assignments from" button in option action bar**: Added a clipboard-with-arrow icon button (next to duplicate/delete) that opens a dropdown listing other options in the same dimension. Clicking an option replaces the current option's set assignments with the source's assignments. Only shown when dimension has ≥1 other options.
+  3. **Batch "Set all" toolbar**: Added a "Set all: [Base] [Override] [Excluded]" quick-action row at the top of each option's set-assignment panel (only when there are >1 sets). One click sets every set to the chosen state.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L148, ~L921, ~L980, ~L514, ~L1800, ~L1921, ~L1975
+- **Learnings for future iterations:**
+  - The `handleAddOption` function needed minimal change — just swap `defaultSets` for `initialSets` seeded from the source option.
+  - The copy-from popover uses the same click-outside + Escape pattern as `bulkMenu` (document event listeners in a `useEffect` with cleanup).
+  - The batch "Set all" handler (`handleBulkSetAllInOption`) uses the same mutation-chain queue pattern as the single-set handler so concurrent clicks don't interleave.
+  - ESLint lint count actually improved (5 → 4) because some prior warnings may have been in now-corrected regions.
+---

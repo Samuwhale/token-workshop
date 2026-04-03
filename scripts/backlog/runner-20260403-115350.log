@@ -327,3 +327,10 @@ Already up to date.
   → Theme dimension option management requires too many clicks — adding a new option to a theme dimension and assigning sets has no bulk assignment UI; adding a new theme variant to a design system with many sets requires individual clicks per set; add a "Copy assignments from existing option" action or a batch set-assignment modal
   Worktree: /tmp/backlog-81267-cykt4x
   Running agent… (started 12:27:24)
+
+  ✓ done: Theme dimension option management requires too many clicks — bulk assignment UI
+    Added 3 features: (1) 'Copy from' dropdown when creating new options to seed assignments, (2) 'Copy assignments from' popover button in option action bar, (3) 'Set all: Base/Override/Excluded' batch toolbar above set rows — all gates pass
+    33 turns · 324s · $1.15
+
+  Merging to main: Theme dimension option management requires too many clicks — bulk assignment UI
+Already up to date.
