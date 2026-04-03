@@ -84,3 +84,28 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: useThemeSwitcher excessive re-fetches from unstable tokens dep, plugin sandbox unmatched message types, syncBindings silent skip + figma.mixed snapshot failure, git-sync no timeout on operations, applyToSelection no rollback on partial failure
 Already up to date.
+[main 4c466940] chore(backlog): code pass – code-pass
+ 5 files changed, 29 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: server services (git-sync.ts, lint.ts, style-dict.ts, themes-to-resolver.ts, token-tree-utils.ts, event-bus.ts, token-lock.ts, manual-snapshot.ts), server routes (tokens.ts, sets.ts, themes.ts, generators.ts, sync.ts, sse.ts, export.ts, lint.ts, operations.ts, snapshots.ts, resolvers.ts, docs.ts, health.ts), UI hooks (useTokens.ts, useThemeSwitcher.ts, useGenerators.ts, useServerEvents.ts, useFigmaSync.ts, usePinnedTokens.ts, useSetTabs.ts, useTokenNavigation.ts, useTokenDataLoading.ts, useTokenCrud.ts, useUndo.ts, useServerConnection.ts, useModalVisibility.ts, useSelection.ts, useRecentlyTouched.ts, useToastStack.ts, useTokenCreate.ts, usePreviewSplit.ts, useResolvers.ts, useLint.ts), App.tsx, TokenTreeContext.tsx, core package (color-math.ts, constants.ts, eval-expr.ts, generator-types.ts), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts, variableUtils.ts, colorUtils.ts, fontLoading.ts, walkNodes.ts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: useThemeSwitcher re-fetches /api/themes on every token change because `tokens` (an array) is used as an effect dependency and recreated on every fetch — replacing with `tokenRevision` (already available) eliminates the unnecessary network calls; plugin sandbox sends 5+ message types not in the PluginMessage union type, meaning UI silently drops those responses
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  22 queued · 3 in-progress · last took 4m50s
+═══════════════════════════════════════════════════════════════
+  → CommandPalette search results mix groups and tokens with no visual section headers — group matches appear before token matches but there's no heading separating them, making it confusing when a user expects token results but gets group results first; add "Groups" / "Tokens" section labels in results (CommandPalette.tsx ~L468-505)
+  Worktree: /tmp/backlog-45818-i25HDC
+  Running agent… (started 16:32:32)
+
+  ✓ done: CommandPalette search results mix groups and tokens with no visual section headers
+    stale — already done; "Groups" and "Tokens" section headers exist at CommandPalette.tsx L469-472 and L500-503
+    7 turns · 49s · $0.19
+
+  Merging to main: CommandPalette search results mix groups and tokens with no visual section headers
+Already up to date.

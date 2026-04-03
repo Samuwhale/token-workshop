@@ -462,3 +462,10 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: useThemeSwitcher re-fetches /api/themes on every token change because `tokens` (an array) is used as an effect dependency and recreated on every fetch — replacing with `tokenRevision` (already available) eliminates the unnecessary network calls; plugin sandbox sends 5+ message types not in the PluginMessage union type, meaning UI silently drops those responses
 ---
+
+## 2026-04-03 - CommandPalette search results mix groups and tokens with no visual section headers
+- Stale — already implemented. "Groups" and "Tokens" section labels already exist in CommandPalette.tsx at L469-472 (Groups header, shown when filteredGroups.length > 0 && !isGroupQuery) and L500-503 (Tokens header, shown when both sections have results). No code changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check the exact lines cited in the backlog item before implementing — recent sessions may have already addressed the issue.
+---
