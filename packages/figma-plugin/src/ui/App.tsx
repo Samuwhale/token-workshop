@@ -28,7 +28,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PreviewPanel } from './components/PreviewPanel';
-import { BindingAuditPanel } from './components/BindingAuditPanel';
+import { HeatmapPanel } from './components/HeatmapPanel';
 import { ConsistencyPanel } from './components/ConsistencyPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
@@ -2587,12 +2587,12 @@ export function App() {
           {/* Binding Audit sub-tab (Apply > Binding Audit) */}
           {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'audit' && (
               <ErrorBoundary panelName="Binding Audit" onReset={() => navigateTo('apply', 'inspect')}>
-              <BindingAuditPanel
-                heatmapResult={heatmapResult}
-                heatmapLoading={heatmapLoading}
-                heatmapProgress={heatmapProgress}
-                heatmapError={heatmapError}
-                heatmapScope={heatmapScope}
+              <HeatmapPanel
+                result={heatmapResult}
+                loading={heatmapLoading}
+                progress={heatmapProgress}
+                error={heatmapError}
+                scope={heatmapScope}
                 onScopeChange={setHeatmapScope}
                 onRescan={triggerHeatmapScan}
                 onCancel={cancelHeatmapScan}
@@ -2603,7 +2603,6 @@ export function App() {
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
                 availableTokens={allTokensFlat}
-                onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
               />
               </ErrorBoundary>
           )}

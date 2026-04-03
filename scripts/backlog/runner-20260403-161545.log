@@ -345,3 +345,28 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — consolidation (BindingAuditPanel removal, Resolvers into Themes, preview unification, analytics dedup), missing features (cross-set search, token value history, bulk generator run, copy-as-CSS-var), and UX friction (remember last type, empty set warning, inline generator edit, buried theme comparison)
 Already up to date.
+[main 7f95705f] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (tab structure, navigation), TokenEditor.tsx (edit flow), TokenList.tsx (tree interactions), ThemeManager.tsx (theme/dimension UX), SetSwitcher.tsx (set switching), BindingAuditPanel.tsx (redundancy), HeatmapPanel.tsx, ConsistencyPanel.tsx, AnalyticsPanel.tsx (overlap), PreviewPanel.tsx + TokenDetailPreview.tsx (overlap), GraphPanel.tsx + TokenGeneratorDialog.tsx (generator UX), CommandPalette.tsx + shortcutRegistry.ts (shortcuts), SettingsPanel.tsx, ExportPanel.tsx, PublishPanel.tsx, server routes and services
+- Found 12 items — written to backlog-inbox.md
+- Notable: BindingAuditPanel is a pure pass-through wrapper (47 lines, zero added logic) that should be deleted; Resolvers sub-tab is an extra concept that belongs inside ThemeManager; AnalyticsPanel duplicate detection and lint no-duplicate-values rule do the same thing in two places
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  12 queued · 3 in-progress · last took 7m26s
+═══════════════════════════════════════════════════════════════
+  → Remove BindingAuditPanel wrapper and use HeatmapPanel directly — BindingAuditPanel.tsx is a 47-line pass-through component that adds zero functionality over HeatmapPanel; it takes the same props, renders only HeatmapPanel, and even accepts an `onSelectNode` prop it never passes through; delete it and reference HeatmapPanel directly from App.tsx to reduce indirection and one unused prop interface
+  Worktree: /tmp/backlog-46580-QygE1E
+  Running agent… (started 17:35:38)
+
+  ✓ done: Remove BindingAuditPanel wrapper and use HeatmapPanel directly
+    Deleted BindingAuditPanel.tsx and updated App.tsx to import/use HeatmapPanel directly with its native prop names; dropped the unused onSelectNode prop.
+    19 turns · 78s · $0.3
+
+  Merging to main: Remove BindingAuditPanel wrapper and use HeatmapPanel directly
+Already up to date.
