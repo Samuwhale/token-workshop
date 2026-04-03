@@ -156,3 +156,19 @@ Already up to date.
 
   Merging to main: ComparePanel and CrossThemeComparePanel are only accessible via right-click context menu — no command palette entries, no keyboard shortcuts, and no visible buttons in the main UI
 Already up to date.
+[main 8127ded9] chore(backlog): done – ComparePanel and CrossThemeComparePanel are only accessible via right-click context menu — no command palette entries, no keyboard shortcuts, and no visible buttons in the main UI
+ 11 files changed, 168 insertions(+), 4 deletions(-)
+ create mode 100644 packages/figma-plugin/vitest.config.ts
+  ✓ Merged and marked done
+
+## 2026-04-03 - ComparePanel and CrossThemeComparePanel discovery (command palette + toolbar button)
+- Added `TokenListImperativeHandle` interface to `tokenListTypes.ts` with `openCompareMode()` and `openCrossThemeCompare(path)` methods, plus `compareHandle` prop to `TokenListProps`.
+- In `TokenList.tsx`, populated `compareHandle.current` via `useEffect` (setState setters are stable, so deps only include `compareHandle`). Added a "Compare" icon button (two-column SVG icon) to the normal toolbar (tree view only), before the spacer, with separator.
+- In `App.tsx`, created `tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null)` and passed it to all three `TokenList` instances as `compareHandle`. Added three command palette entries: "Compare tokens…" (always visible, enters multi-select + compare mode), "Compare across themes: {token}" (when theme dimensions exist AND a token is focused), and "Compare token across themes…" (when dimensions exist but no focused token, navigates to tokens tab). Added `dimensions` to the `commands` `useMemo` deps array.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  15 queued · 3 in-progress · last took 9m51s
+═══════════════════════════════════════════════════════════════
+  → SetSwitcher manage mode has no drag-and-drop for set reordering — reordering uses move-up/move-down buttons which require O(n) clicks to move a set across a long list; add drag-and-drop reordering matching the pattern already used in the token tree (SetSwitcher.tsx ~L378-402)
+  Worktree: /tmp/backlog-46580-A7zb0M
+  Running agent… (started 17:07:16)

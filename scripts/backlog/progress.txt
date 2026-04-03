@@ -546,3 +546,13 @@
   - The `vitest.config.ts` with `resolve.alias` for workspace packages fixes the pre-existing worktree test failure. Add this pattern whenever a new package is added that vitest tests need to import from `@tokenmanager/core`.
   - For command palette entries that are contextual on highlighted token, use spread conditionals: `...(condition ? [{ id, label, handler }] : [])`. Keep the non-contextual base command always visible so users can discover the feature even without a focused token.
 ---
+
+## 2026-04-03 - Token editor auto-focus is missing in edit mode
+- Added a `useEffect` in `TokenEditor` that fires once after the async data load completes (when `loading` goes false in edit mode). For alias tokens, it uses `setTimeout(() => refInputRef.current?.focus(), 0)` to wait for the `aliasMode` effect's re-render before focusing the reference input. For non-alias tokens, it queries the first non-color/non-checkbox input within the value editor container (`valueEditorContainerRef`) and focuses it. Two new refs added: `valueEditorContainerRef` (on the value editors wrapper div) and `didAutoFocusRef` (prevents re-firing on subsequent renders).
+- Also created `packages/figma-plugin/vite.config.ts` with the `@tokenmanager/core` alias so vitest can resolve the workspace package — fixing a pre-existing test failure that was blocking the validate script.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L723-726 (refs), ~L882-900 (useEffect), ~L1560 (ref on container div); `packages/figma-plugin/vite.config.ts` (new)
+- **Learnings for future iterations:**
+  - `autoFocus` HTML attribute in React is unreliable for inputs that mount after async state transitions; the reliable alternative is `useEffect` + `ref.current?.focus()` with `setTimeout` when the target element mounts in a subsequent render (e.g., alias mode set via a chained effect).
+  - When checking `reference` vs `aliasMode` in effects: `reference` is set in the same React batch as `loading=false`, but `aliasMode` is set by a chained `useEffect` that fires after the first render — so check `reference` (not `aliasMode`) to decide which field to focus when `loading` changes.
+  - vitest resolves `@tokenmanager/core` via `node_modules` (not the Vite build alias). A `vite.config.ts` with the alias in `resolve.alias` fixes this for vitest runs in worktrees.
+---

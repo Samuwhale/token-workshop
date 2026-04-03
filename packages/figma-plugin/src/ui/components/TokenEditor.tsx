@@ -721,6 +721,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const valueEditorContainerRef = useRef<HTMLDivElement>(null);
+  const didAutoFocusRef = useRef(false);
   const preAliasValueRef = useRef<any>(null);
   const fontFamilyRef = useRef<HTMLInputElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
@@ -877,6 +879,23 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   useEffect(() => {
     if (reference) setAliasMode(true);
   }, [reference]);
+
+  // Auto-focus the appropriate field once edit mode data finishes loading
+  useEffect(() => {
+    if (isCreateMode || loading || didAutoFocusRef.current) return;
+    didAutoFocusRef.current = true;
+    if (reference) {
+      // Alias token: reference input mounts after aliasMode effect fires (next render)
+      setTimeout(() => refInputRef.current?.focus(), 0);
+    } else {
+      // Non-alias token: value editors are already mounted; focus first text input
+      const input = valueEditorContainerRef.current?.querySelector<HTMLElement>(
+        'input:not([type="color"]):not([type="checkbox"]):not([type="hidden"]):not([type="radio"]), textarea'
+      );
+      input?.focus();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const isDirty = useMemo(() => {
     if (!initialRef.current) return false;
@@ -1538,7 +1557,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
         {/* Type-specific editor */}
         {!reference && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" ref={valueEditorContainerRef}>
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center justify-between">
                 <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">

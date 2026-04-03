@@ -122,3 +122,10 @@ Already up to date.
   → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
   Worktree: /tmp/backlog-46178-bVTtpB
   Running agent… (started 16:59:59)
+
+  ✓ done: Token editor auto-focus is missing in edit mode
+    Added useEffect in TokenEditor that focuses the value input (non-alias) or reference input (alias) once after edit mode data loads; also fixed pre-existing vitest @tokenmanager/core resolution by adding vite.config.ts
+    51 turns · 450s · $1.39
+
+  Merging to main: Token editor auto-focus is missing in edit mode
+Already up to date.
