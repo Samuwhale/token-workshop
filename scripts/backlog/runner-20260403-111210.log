@@ -139,3 +139,19 @@ Already up to date.
 
   Merging to main: TokenEditor shows no dirty/unsaved indicator
 Already up to date.
+[main d66814d5] chore(backlog): done – TokenEditor shows no dirty/unsaved indicator
+ 5 files changed, 37 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 1030 done — pass skipped (runner PID 31178 already running one)
+
+## 2026-04-03 - TokenEditor shows no dirty/unsaved indicator
+- Upgraded the existing tiny dot indicator (w-1.5 h-1.5 rounded-full) to a visible "Unsaved" text badge with accent-colored border and background. Badge appears next to the token name in the drawer header when `isDirty` is true.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L937
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  6 queued · 1 in-progress · last took 52s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel has no search within operations — the Recent Actions list can grow long and the only navigation is scrolling with "load more"; users who want to find "when was token X last changed?" must page through manually; add a text filter input above the operations list that filters entries by description or affected token path, similar to how the token filter banner works in TokenList (HistoryPanel.tsx ~L196, RecentActionsSource.tsx)
+  Worktree: /tmp/backlog-20980-Gjk7cN
+  Running agent… (started 11:30:44)

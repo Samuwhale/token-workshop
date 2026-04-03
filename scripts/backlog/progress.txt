@@ -463,3 +463,12 @@
   - The dot indicator already existed — the fix was a visual upgrade, not a new feature.
   - Badge pattern: `px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none` gives a subtle but readable pill badge using the accent color with low-opacity fill and border.
 ---
+
+## 2026-04-03 - PreviewPanel ignores the active Theme Manager configuration
+- Wired PreviewPanel to consume App's active theme state. Added `dimensions`, `activeThemes`, and `onActiveThemesChange` props to `PreviewPanelProps`. When dimensions are present, a compact row of `<select>` dropdowns (one per dimension) is rendered beneath the template tabs in the toolbar — each reflects the current `activeThemes` selection and calls `onActiveThemesChange` on change. In App.tsx, `themedAllTokensFlat` is now passed as `allTokensFlat` (instead of raw `allTokensFlat`) so the preview renders resolved, theme-aware token values. `dimensions`, `activeThemes`, and `setActiveThemes` are also passed down so the dimension selectors are fully connected to shared App state.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1, ~L81, ~L184; `packages/figma-plugin/src/ui/App.tsx` ~L2111
+- **Learnings for future iterations:**
+  - The toolbar wrapping div needed to change from a single-row flex to a `flex-col` container to accommodate the second dimension-selector row without disrupting the template tabs + dark/light toggle layout.
+  - `setActiveThemes` from `useThemeSwitcher` already persists to localStorage and posts a message to the Figma plugin sandbox — no extra persistence code needed in PreviewPanel.
+  - Passing `themedAllTokensFlat` (resolver-aware, theme-applied) rather than raw `allTokensFlat` is the correct token source for a live preview; the resolver/theme merge is already done upstream in App.tsx.
+---

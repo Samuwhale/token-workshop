@@ -2109,7 +2109,10 @@ export function App() {
               <div className="flex-1 min-h-0 overflow-hidden">
                 <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
                 <PreviewPanel
-                  allTokensFlat={allTokensFlat}
+                  allTokensFlat={themedAllTokensFlat}
+                  dimensions={dimensions}
+                  activeThemes={activeThemes}
+                  onActiveThemesChange={setActiveThemes}
                   onGoToTokens={() => navigateTo('define', 'tokens')}
                   onNavigateToToken={(path) => {
                     const targetSet = pathToSet[path];

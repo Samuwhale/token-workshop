@@ -1,9 +1,13 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
+import type { ThemeDimension } from '@tokenmanager/core';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
+  dimensions?: ThemeDimension[];
+  activeThemes?: Record<string, string>;
+  onActiveThemesChange?: (themes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
 }
@@ -78,7 +82,7 @@ function resolveValue(value: unknown, type: string): string {
   return resolved;
 }
 
-export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>('colors');
   const [darkMode, setDarkMode] = useState(false);
 
@@ -182,39 +186,62 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken }:
   return (
     <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-        <div className="flex items-center gap-0.5 overflow-x-auto flex-1">
-          {TEMPLATES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTemplate(t.id)}
-              className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
-                template === t.id
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+        <div className="flex items-center gap-1 px-2 py-1.5">
+          <div className="flex items-center gap-0.5 overflow-x-auto flex-1">
+            {TEMPLATES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTemplate(t.id)}
+                className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
+                  template === t.id
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setDarkMode(v => !v)}
+            title={darkMode ? 'Switch to light' : 'Switch to dark'}
+            className={`shrink-0 flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
+              darkMode
+                ? 'bg-[var(--color-figma-accent)] text-white'
+                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+            }`}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {darkMode
+                ? <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
+                : <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              }
+            </svg>
+            {darkMode ? 'Light' : 'Dark'}
+          </button>
         </div>
-        <button
-          onClick={() => setDarkMode(v => !v)}
-          title={darkMode ? 'Switch to light' : 'Switch to dark'}
-          className={`shrink-0 flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
-            darkMode
-              ? 'bg-[var(--color-figma-accent)] text-white'
-              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-          }`}
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {darkMode
-              ? <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
-              : <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            }
-          </svg>
-          {darkMode ? 'Light' : 'Dark'}
-        </button>
+        {dimensions.length > 0 && (
+          <div className="flex items-center gap-1.5 px-2 pb-1.5 flex-wrap">
+            {dimensions.map(dim => {
+              const activeOption = activeThemes[dim.id] ?? dim.options[0]?.name ?? '';
+              return (
+                <label key={dim.id} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="shrink-0">{dim.name}</span>
+                  <select
+                    value={activeOption}
+                    onChange={e => onActiveThemesChange?.({ ...activeThemes, [dim.id]: e.target.value })}
+                    className="text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] cursor-pointer"
+                  >
+                    {dim.options.map(opt => (
+                      <option key={opt.name} value={opt.name}>{opt.name}</option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Preview surface */}

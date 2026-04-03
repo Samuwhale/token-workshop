@@ -90,3 +90,10 @@ Already up to date.
   → PreviewPanel ignores the active Theme Manager configuration — the live preview has only a hardcoded dark/light toggle (boolean) that swaps a CSS class; it has no connection to the actual theme dimensions and options defined in ThemeManager; users cannot preview "how does this component look in brand=Acme, mode=dark?" without manually switching the active theme in a separate tab; wire the preview panel to consume the active theme option selections from App state and apply them to the preview context (PreviewPanel.tsx ~L81, ThemeManager.tsx active theme state)
   Worktree: /tmp/backlog-30880-f7WO37
   Running agent… (started 11:27:44)
+
+  ✓ done: PreviewPanel ignores the active Theme Manager configuration
+    Added per-dimension theme selectors to the PreviewPanel toolbar; wired to App's activeThemes state and switched the token source to themedAllTokensFlat so the preview reflects the active theme configuration.
+    18 turns · 191s · $0.63
+
+  Merging to main: PreviewPanel ignores the active Theme Manager configuration
+Already up to date.
