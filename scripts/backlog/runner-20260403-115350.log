@@ -422,3 +422,25 @@ Already up to date.
 
   Merging to main: Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
 Already up to date.
+[main 3e9d7d2c] chore(backlog): done – Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
+ 8 files changed, 39 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
+- Applied tmp+rename atomic write pattern to three services. `manual-snapshot.ts` was already fixed (stale reference in item). Fixed: `LintConfigStore.save` in `lint.ts`; tokenFile and cssTokenFile writes in `style-dict.ts`; `resolveFileConflict` write in `git-sync.ts`.
+- Files changed: `packages/server/src/services/lint.ts` ~L80, `packages/server/src/services/style-dict.ts` ~L232,238, `packages/server/src/services/git-sync.ts` ~L276
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  3 queued · 3 in-progress · last took 1m35s
+═══════════════════════════════════════════════════════════════
+  → Generator service does not clear generatorErrors on delete (generator-service.ts:166-171) — when a generator is deleted, `this.generatorErrors` is never cleared for that ID; if a new generator is later created with the same ID, stale error state leaks through; also when a generator in a dependency chain fails (line 468-473), downstream generators still execute against stale output instead of being skipped
+  Worktree: /tmp/backlog-81267-Kw5Fx3
+  Running agent… (started 12:42:58)
+
+  ✓ done: Generator service does not clear generatorErrors on delete
+    Fixed delete() to clear generatorErrors for the deleted ID, and runForSourceToken() to skip downstream generators when their upstream dependency fails in the same run.
+    13 turns · 83s · $0.31
+
+  Merging to main: Generator service does not clear generatorErrors on delete
+Already up to date.

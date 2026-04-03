@@ -166,6 +166,7 @@ export class GeneratorService {
   async delete(id: string): Promise<boolean> {
     if (!this.generators.has(id)) return false;
     this.generators.delete(id);
+    this.generatorErrors.delete(id);
     await this.saveGenerators();
     return true;
   }
@@ -458,11 +459,31 @@ export class GeneratorService {
       }
     }
 
-    // Execute in topological order, serialized per-generator via promise-chain locks
+    // Execute in topological order, serialized per-generator via promise-chain locks.
+    // Track failed generator IDs so downstream dependents can be skipped — running
+    // a downstream generator after its upstream failed would process stale output.
+    const failedIds = new Set<string>();
     for (const genId of order) {
       if (!affected.has(genId)) continue;
       const gen = this.generators.get(genId);
       if (!gen) continue;
+
+      // Skip if any upstream generator (whose output this one sources from) failed.
+      const upstreamFailed = gen.sourceToken
+        ? [...failedIds].some(failedId => {
+            const failedGen = this.generators.get(failedId);
+            return failedGen && gen.sourceToken!.startsWith(failedGen.targetGroup + '.');
+          })
+        : false;
+      if (upstreamFailed) {
+        const message = `Skipped: upstream generator failed`;
+        this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
+        console.warn(`[GeneratorService] Generator "${genId}" skipped because an upstream dependency failed`);
+        tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
+        failedIds.add(genId);
+        continue;
+      }
+
       await this.withGeneratorLock(genId, () =>
         this.executeGenerator(gen, tokenStore),
       ).catch(err => {
@@ -470,6 +491,7 @@ export class GeneratorService {
         this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
         console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
         tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
+        failedIds.add(genId);
       });
     }
   }

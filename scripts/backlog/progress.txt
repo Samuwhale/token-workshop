@@ -388,3 +388,13 @@
   - The `style-dict.ts` writes are to a temp/output dir (not chokidar-watched), but the tmp+rename pattern still improves crash safety for user-provided `outputDir`.
   - `git-sync.ts` `resolveFileConflict` writes `.tokens.json` files directly in the token directory — these are definitely chokidar-watched and needed the fix.
 ---
+
+## 2026-04-03 - Generator service does not clear generatorErrors on delete
+- Fixed two bugs in `packages/server/src/services/generator-service.ts`:
+  1. `delete()` now calls `this.generatorErrors.delete(id)` so stale error state doesn't leak if a new generator is created with the same ID later.
+  2. `runForSourceToken()` now tracks `failedIds` (a Set) and skips any downstream generator whose `sourceToken` starts with a failed upstream generator's `targetGroup + '.'`. Skipped generators get their own error entry ("Skipped: upstream generator failed") and a `generator-error` event so the UI reflects the skip. Previously, downstream generators executed against stale/unchanged output.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L166-171 (delete), ~L462-496 (runForSourceToken loop)
+- **Learnings for future iterations:**
+  - The upstream-failed check must use `failedIds` accumulated during the current run, not `generatorErrors` — the latter persists across runs and could cause false skips on the next successful upstream execution.
+  - Skipped generators are added to `failedIds` so that transitive downstream chains are also skipped correctly.
+---
