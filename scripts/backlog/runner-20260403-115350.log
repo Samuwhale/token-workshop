@@ -689,3 +689,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: undo/redo state divergence on API failure across 4 hooks, Object.assign errors + inconsistent handleRouteError in server, color-parse Lab→sRGB duplication, find-replace partial-abort undo bug, generator auto-run fire-and-forget
+Already up to date.

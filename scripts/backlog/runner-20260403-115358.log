@@ -581,3 +581,18 @@ Already up to date.
 
   Merging to main: Import from Figma Variables has no mode-name customization UI — multi-mode import creates per-mode token sets with auto-slugified names and users must accept or rename sets after import; add an inline rename step during import preview where users can map Figma mode names to desired set names before committing (ImportPanel.tsx ~L625-632)
 Already up to date.
+[main 5ae8e857] chore(backlog): done – Import from Figma Variables has no mode-name customization UI — multi-mode import creates per-mode token sets with auto-slugified names and users must accept or rename sets after import; add an inline rename step during import preview where users can map Figma mode names to desired set names before committing (ImportPanel.tsx ~L625-632)
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Import from Figma Variables has no mode-name customization UI
+- Stale — already implemented. The Variables import preview already has inline editable text inputs for each mode's target set name (`modeSetNames` state, `defaultSetName()` fallback, input at ImportPanel.tsx ~L1315-1323). Users can rename modes before committing the import. "existing"/"new" badges update live. The `handleImportVariables` handler uses the custom names when creating sets.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  22 queued · 3 in-progress · last took 1m36s
+═══════════════════════════════════════════════════════════════
+  → Generator source token is immutable after creation — useGeneratorDialog.ts derives `hasSource` from read-only props (~L167); changing a generator's source token requires deleting and recreating; make the source token editable in the generator edit dialog so users can re-bind to a different token without losing config, overrides, and naming
+  Worktree: /tmp/backlog-81661-TQV6Ky
+  Running agent… (started 13:41:57)
