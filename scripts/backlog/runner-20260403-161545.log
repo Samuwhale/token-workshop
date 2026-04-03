@@ -459,3 +459,18 @@ Already up to date.
 
   Merging to main: Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
 Already up to date.
+[main 3e90b1e9] chore(backlog): done – Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
+ 6 files changed, 86 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Theme comparison panel is buried and hard to discover
+- Added three discoverability surfaces for the theme comparison feature:
+  1. **Dimension row "Compare" button** (ThemeManager.tsx ~L1736): Each dimension with ≥2 options now shows a faint "Compare" button (faint-always-visible pattern: `opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto`) that opens the internal compare mode (`showCompare=true`) with the dimension's first two options pre-selected as A/B.
+  2. **Command palette commands** (App.tsx ~L970): Added "Compare theme options…" (navigates to Themes > Compare view) and per-dimension "Compare [dim.name]: [optA] vs [optB]" commands that navigate to the compare view with specific options pre-selected.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  1 queued · 2 in-progress · last took 7m32s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap — AnalyticsPanel has its own duplicate value detection section while the lint system has a `no-duplicate-values` rule; users see duplicates in two different places with potentially different results; consolidate by having AnalyticsPanel read from lint results rather than running its own scan, or remove the analytics duplicate section and link to the lint violations view
+  Worktree: /tmp/backlog-46580-0fxyjI
+  Running agent… (started 18:00:39)

@@ -360,3 +360,10 @@ Already up to date.
   → No token value history per token — the History panel shows operation-level history (bulk changes, generator runs) but there's no way to see the history of a single token's value over time; power users managing brand colors or key spacing values need to see "this token was #1a73e8, then changed to #1967d2 on March 15"; add a "Value history" section to TokenDetailPreview or the token editor that queries the operation log filtered by token path
   Worktree: /tmp/backlog-45818-pcCSUP
   Running agent… (started 17:56:09)
+
+  ✓ done: No token value history per token
+    Extracted TokenHistorySection into a shared component and added it to TokenDetailPreview with a serverUrl prop; history section shows collapsible before→after value diffs with timestamps and pagination
+    62 turns · 505s · $1.72
+
+  Merging to main: No token value history per token
+Already up to date.

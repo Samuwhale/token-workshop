@@ -5,6 +5,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { ValuePreview } from './ValuePreview';
 import { resolveTokenValue, isAlias, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
 import { formatDisplayPath, formatValue } from './tokenListUtils';
+import { TokenHistorySection } from './TokenHistorySection';
 
 interface TokenDetailPreviewProps {
   tokenPath: string;
@@ -14,6 +15,8 @@ interface TokenDetailPreviewProps {
   pathToSet?: Record<string, string>;
   dimensions?: ThemeDimension[];
   activeThemes?: Record<string, string>;
+  /** Server URL for fetching token value history. When omitted, history section is hidden. */
+  serverUrl?: string;
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
@@ -27,6 +30,7 @@ export function TokenDetailPreview({
   pathToSet,
   dimensions,
   activeThemes,
+  serverUrl,
   onEdit,
   onClose,
   onNavigateToAlias,
@@ -212,6 +216,14 @@ export function TokenDetailPreview({
               The quick brown fox
             </div>
           </div>
+        )}
+        {/* Value history */}
+        {serverUrl && (
+          <TokenHistorySection
+            tokenPath={tokenPath}
+            serverUrl={serverUrl}
+            tokenType={type}
+          />
         )}
       </div>
 

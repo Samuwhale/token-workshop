@@ -333,3 +333,15 @@
   - ThemeCompare is conditionally rendered (ternary in App.tsx), so it remounts each time the user switches to the compare view — using `useState(initialProp)` works for initial selection, but a `key` counter is needed to force remount when the user wants to switch pre-selected options while already on the compare view.
   - Adding per-dimension command palette entries (filtered by `d.options.length >= 2`) gives power users fast keyboard access to specific dimension comparisons.
 ---
+
+## 2026-04-03 - No token value history per token
+- Extracted `TokenHistorySection`, `HistoryValueChip`, `HistoryEntryData`, and `formatRelativeTime` from `TokenEditor.tsx` into a new shared `TokenHistorySection.tsx` component.
+- Added a collapsible "History" section to `TokenDetailPreview` that fetches per-token history via `GET /api/operations/token-history?path=<tokenPath>`. Shows before→after value diffs with color swatches for color tokens, relative timestamps, and "rolled back" badges. Lazy-loads on first expand with pagination ("Load more").
+- Added `serverUrl?: string` prop to `TokenDetailPreview` — section renders only when `serverUrl` is provided, so call sites without server connectivity are unaffected.
+- Added `serverUrl?: string` prop to `PreviewPanel` and passed it through to `TokenDetailPreview`.
+- Passed `serverUrl` from App.tsx to all 3 `TokenDetailPreview` / `PreviewPanel` call sites.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenHistorySection.tsx` (new), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1-6, ~L389-596, `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L1-20, ~L213, `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L7-20, ~L217, ~L369, `packages/figma-plugin/src/ui/App.tsx` ~L2329, ~L2386, ~L2676
+- **Learnings for future iterations:**
+  - `TokenHistorySection` was already implemented in `TokenEditor.tsx` — the backlog item mainly required surfacing it in `TokenDetailPreview` too.
+  - Gate 4 (headless UI validation) has a pre-existing browser timeout failure in the sandbox environment — confirmed by testing the unmodified codebase.
+---

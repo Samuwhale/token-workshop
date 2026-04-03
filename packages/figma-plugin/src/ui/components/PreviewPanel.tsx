@@ -16,6 +16,7 @@ interface PreviewPanelProps {
   pathToSet?: Record<string, string>;
   onClearFocus?: () => void;
   onEditToken?: (path: string, name?: string, set?: string) => void;
+  serverUrl?: string;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card' | 'effects';
@@ -213,7 +214,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -374,6 +375,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           pathToSet={pathToSet}
           dimensions={dimensions}
           activeThemes={activeThemes}
+          serverUrl={serverUrl}
           onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}

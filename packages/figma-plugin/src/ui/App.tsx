@@ -2362,6 +2362,7 @@ export function App() {
                     pathToSet={pathToSet}
                     dimensions={dimensions}
                     activeThemes={activeThemes}
+                    serverUrl={serverUrl}
                     onEdit={handlePreviewEdit}
                     onClose={handlePreviewClose}
                     onNavigateToAlias={handleNavigateToAlias}
@@ -2430,6 +2431,7 @@ export function App() {
                     setEditingToken({ path, name, set: set ?? activeSet });
                     setPreviewingToken(null);
                   }}
+                  serverUrl={serverUrl}
                 />
                 </ErrorBoundary>
               </div>
@@ -2712,6 +2714,7 @@ export function App() {
                 pathToSet={pathToSet}
                 dimensions={dimensions}
                 activeThemes={activeThemes}
+                serverUrl={serverUrl}
                 onEdit={handlePreviewEdit}
                 onClose={handlePreviewClose}
                 onNavigateToAlias={handleNavigateToAlias}
