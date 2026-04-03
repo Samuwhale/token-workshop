@@ -4,10 +4,11 @@ import {
   PROPERTY_LABELS,
   ALL_BINDABLE_PROPERTIES,
 } from '../../shared/types';
-import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMapEntry, LayerSearchResult } from '../../shared/types';
+import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMapEntry, LayerSearchResult, ExtractedTokenEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
-import { adaptShortcut } from '../shared/utils';
+import { adaptShortcut, getErrorMessage } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import {
@@ -198,6 +199,11 @@ export function SelectionInspector({
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showLayerSearch, setShowLayerSearch] = useState(false);
 
+  // Extract & Bind All Unbound fast-path state
+  const [extractingUnbound, setExtractingUnbound] = useState(false);
+  const [extractUnboundResult, setExtractUnboundResult] = useState<{ created: number; bound: number } | null>(null);
+  const [extractUnboundError, setExtractUnboundError] = useState<string | null>(null);
+
   // Property filter state
   const [propFilter, setPropFilter] = useState('');
   const [propFilterMode, setPropFilterMode] = useState<'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions'>('all');
@@ -347,6 +353,9 @@ export function SelectionInspector({
       setPropTypeSuggestion(null);
       setPropFilter('');
       setPropFilterMode('all');
+      setExtractingUnbound(false);
+      setExtractUnboundResult(null);
+      setExtractUnboundError(null);
       setNoMoreSiblings(false);
       setDeepRemoveError(null);
     }
@@ -592,6 +601,101 @@ export function SelectionInspector({
   // Check if all visible properties with values are bound (no more unbound to advance to)
   const allPropertiesBound = hasSelection && totalBindings > 0 && getNextUnboundProperty(null, rootNodes, caps) === null;
 
+  // Count unbound properties that have a current value (candidates for the fast-path batch action)
+  const unboundWithValueCount = useMemo(() => {
+    if (!hasSelection) return 0;
+    return ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (binding) return sum;
+      const value = getCurrentValue(rootNodes, prop);
+      if (value === undefined || value === null) return sum;
+      return sum + 1;
+    }, 0);
+  }, [hasSelection, rootNodes]);
+
+  // Fast-path: extract tokens for all unbound properties and bind them in one step
+  const handleExtractAllUnbound = useCallback(() => {
+    if (!connected || !activeSet || extractingUnbound) return;
+    const snapshot = rootNodes; // capture binding state at click time
+    setExtractingUnbound(true);
+    setExtractUnboundError(null);
+    setExtractUnboundResult(null);
+
+    let handled = false;
+    const handler = (event: MessageEvent) => {
+      const msg = event.data?.pluginMessage;
+      if (msg?.type !== 'extracted-tokens') return;
+      if (handled) return;
+      handled = true;
+      clearTimeout(timeout);
+      window.removeEventListener('message', handler);
+
+      const extracted = msg.tokens as ExtractedTokenEntry[];
+      // Only create tokens for currently unbound properties
+      const unboundTokens = extracted.filter(token => {
+        const prop = token.property as BindableProperty;
+        return !getBindingForProperty(snapshot, prop);
+      });
+
+      if (unboundTokens.length === 0) {
+        setExtractingUnbound(false);
+        setExtractUnboundResult({ created: 0, bound: 0 });
+        return;
+      }
+
+      (async () => {
+        let created = 0;
+        try {
+          for (const token of unboundTokens) {
+            const pathEncoded = token.suggestedName.split('.').map(encodeURIComponent).join('/');
+            const existing = tokenMap[token.suggestedName];
+            const method = existing ? 'PATCH' : 'POST';
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: token.tokenType, $value: token.value }),
+            });
+            created++;
+          }
+          let totalBound = 0;
+          for (const token of unboundTokens) {
+            const targetProperty = token.property === 'border' ? 'stroke' : token.property;
+            const nodeIds = token.layerIds ?? [token.layerId];
+            parent.postMessage({
+              pluginMessage: {
+                type: 'apply-to-nodes',
+                nodeIds,
+                tokenPath: token.suggestedName,
+                tokenType: token.tokenType,
+                targetProperty,
+                resolvedValue: token.value,
+              },
+            }, '*');
+            totalBound += nodeIds.length;
+          }
+          setExtractUnboundResult({ created, bound: totalBound });
+          onTokenCreated();
+        } catch (err) {
+          setExtractUnboundError(getErrorMessage(err));
+        } finally {
+          setExtractingUnbound(false);
+        }
+      })();
+    };
+
+    const timeout = setTimeout(() => {
+      if (!handled) {
+        handled = true;
+        window.removeEventListener('message', handler);
+        setExtractingUnbound(false);
+        setExtractUnboundError('No response from Figma — make sure a layer is selected and try again.');
+      }
+    }, 8000);
+
+    window.addEventListener('message', handler);
+    parent.postMessage({ pluginMessage: { type: 'extract-tokens-from-selection' } }, '*');
+  }, [connected, activeSet, extractingUnbound, rootNodes, tokenMap, serverUrl, onTokenCreated]);
+
   // No selection — full empty state
   if (!hasSelection) {
     return (
@@ -821,12 +925,45 @@ export function SelectionInspector({
             )}
           </>
         )}</span>
+        {/* Extract & Bind All Unbound fast-path */}
+        {connected && activeSet && unboundWithValueCount > 0 && !extractingUnbound && !extractUnboundResult && !extractUnboundError && (
+          <button
+            onClick={handleExtractAllUnbound}
+            title={`Create tokens for all ${unboundWithValueCount} unbound propert${unboundWithValueCount !== 1 ? 'ies' : 'y'} and bind them to selected layers in one step`}
+            className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+          >
+            Extract {unboundWithValueCount} unbound
+          </button>
+        )}
+        {extractingUnbound && (
+          <span className="ml-auto text-[10px] text-[var(--color-figma-text-secondary)]">Extracting…</span>
+        )}
+        {extractUnboundResult && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--color-figma-success,#18a058)]">
+            ✓ Created {extractUnboundResult.created}, bound {extractUnboundResult.bound}
+            <button
+              onClick={() => setExtractUnboundResult(null)}
+              className="opacity-50 hover:opacity-100 leading-none"
+              aria-label="Dismiss"
+            >×</button>
+          </span>
+        )}
+        {extractUnboundError && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--color-figma-error,#f56565)]" title={extractUnboundError}>
+            Extract failed
+            <button
+              onClick={() => setExtractUnboundError(null)}
+              className="opacity-50 hover:opacity-100 leading-none"
+              aria-label="Dismiss"
+            >×</button>
+          </span>
+        )}
         {/* Extract tokens from selection button */}
         {connected && activeSet && (
           <button
             onClick={() => { setShowExtractPanel(prev => !prev); setShowRemapPanel(false); }}
             title="Extract tokens from selected layers (fills, fonts, dimensions, shadows, borders)"
-            className={`ml-auto text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+            className={`${!extractingUnbound && !extractUnboundResult && !extractUnboundError && unboundWithValueCount === 0 ? 'ml-auto' : ''} text-[10px] px-1.5 py-0.5 rounded transition-colors ${
               showExtractPanel
                 ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
                 : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'

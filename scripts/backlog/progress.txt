@@ -380,3 +380,14 @@
   - The existing `buildTokenDiff` function is reusable for any source of `FileDiff[]` objects — no changes needed to it.
   - The compare view intentionally has no restore buttons (read-only diff); keeping it simpler reduces accidental state mutations when users are just exploring history.
 ---
+
+## 2026-04-04 - No "Extract and Bind Unbound" fast-path in SelectionInspector
+- Added "Extract X unbound" button to the SelectionInspector sync controls bar. When clicked, it sends `extract-tokens-from-selection` to the plugin, filters extracted tokens to only those with unbound properties (cross-referencing current `rootNodes` binding state), creates tokens via API with suggested names, and fires `apply-to-nodes` to bind them — all in one step with no review UI.
+- Button only appears when `connected && activeSet && unboundWithValueCount > 0` (computed via `useMemo`). Shows "Extracting…" while in progress, success summary ("✓ Created N, bound N") or error inline after completion, each dismissible with ×.
+- The existing "Extract" button (full panel) remains; the new button sits to its left and takes `ml-auto` to push the group right. The "Extract" button conditionally removes its own `ml-auto` when the fast-path element is visible.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L7 (imports), ~L197 (state), ~L340 (reset on selection change), ~L604 (unboundWithValueCount useMemo), ~L617 (handleExtractAllUnbound useCallback), ~L928 (toolbar buttons + feedback)
+- **Learnings for future iterations:**
+  - Filtering extracted tokens by binding state is done in the UI: `extracted.filter(t => !getBindingForProperty(snapshot, t.property as BindableProperty))`. Capture `rootNodes` as `snapshot` at button-click time (before async) so selection changes mid-extraction don't corrupt the filter.
+  - The timeout pattern for one-shot plugin message responses: declare `let handled = false`, assign `const timeout = setTimeout(...)` AFTER `handler` definition (closure captures by reference — safe because handler only runs asynchronously), add `window.addEventListener('message', handler)` + `postMessage(...)` last. No double-fire because `if (handled) return` guards.
+  - `ml-auto` juggling in a shared toolbar: use a derived boolean to decide which element owns `ml-auto` rather than complex ternaries in each element's className.
+---

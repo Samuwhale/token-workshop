@@ -102,3 +102,10 @@ Already up to date.
   → No "Extract and Bind Unbound" fast-path in SelectionInspector — users inspecting a layer with many unbound properties must create tokens one-by-one; add a batch action that extracts all unbound properties as tokens and binds them in one step
   Worktree: /tmp/backlog-91634-TPTGmn
   Running agent… (started 01:29:05)
+
+  ✓ done: No "Extract and Bind Unbound" fast-path in SelectionInspector
+    Added "Extract X unbound" button to the sync controls bar — one click extracts tokens for all unbound properties with current values and binds them, skipping the review panel entirely. All 4 validation gates pass.
+    29 turns · 502s · $1.41
+
+  Merging to main: No "Extract and Bind Unbound" fast-path in SelectionInspector
+Already up to date.
