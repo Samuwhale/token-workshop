@@ -164,3 +164,10 @@ Already up to date.
   → No token reference format picker when copying a token path — the context menu and command palette offer separate "Copy path", "Copy CSS var", and "Copy value" actions but the most common need is switching between dotted path, CSS var `var(--token-path)`, and DTCG alias `{token.path}` formats; add a small format submenu or a "Copy as…" action with format options in the token context menu (TokenTreeNode.tsx context menu, App.tsx clipboard handlers ~L2781-2788)
   Worktree: /tmp/backlog-80049-elTOlB
   Running agent… (started 12:11:04)
+
+  ✓ done: No token reference format picker when copying a token path
+    Replaced 7-10 flat copy buttons with a compact "Copy as…" format-pill row (CSS var, {ref}, $scss, value, JSON) + color format pills; added {ref} button to command palette; fixed CSS var handler to copy var(--token-path) not just --token-path.
+    26 turns · 316s · $0.94
+
+  Merging to main: No token reference format picker when copying a token path
+Already up to date.

@@ -338,3 +338,15 @@
 - **Learnings for future iterations:**
   - All case branches in `figma.ui.onmessage` must be wrapped in try-catch to prevent a single thrown error from crashing the entire message loop and bricking the plugin until reload.
 ---
+
+## 2026-04-03 - No token reference format picker when copying a token path
+- Replaced 7-10 flat copy buttons in the context menu (TokenTreeNode.tsx) with a compact "Copy as…" format-pill section: keeps "Copy path" as a full button with `C` shortcut, then shows pill buttons for `CSS var`, `{ref}`, `$scss`, `value` (V), and `JSON` (J) in a single compact row. Color tokens get a second row with `hex`, `rgb()`, `hsl()`, `oklch()`, `p3` pills.
+- Added `{ref}` (DTCG alias format) button to CommandPalette.tsx token rows alongside the existing `Path`, `Val`, `CSS` action buttons.
+- Added `onCopyTokenRef` prop to `CommandPalette` and wired it up in `App.tsx`.
+- Fixed `tokenCssVar` in CommandPalette and `onCopyTokenCssVar` in App.tsx to copy the full `var(--token-path)` usage form instead of just `--token-path` (the declaration form).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1728, `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L80, ~L91, ~L144, ~L521, `packages/figma-plugin/src/ui/App.tsx` ~L2815
+- **Learnings for future iterations:**
+  - IIFE inside JSX (`{(() => { ... return <JSX/>; })()}`) is a clean way to pre-compute multiple derived values for a JSX block without extracting a full sub-component.
+  - Format pill sections save significant vertical menu space when there are 5+ format variants — reduces to 1-2 compact rows vs. 7-10 full-height items.
+  - The CSS var copy format should be `var(--token-path)` (usage form) not `--token-path` (declaration form); the context menu was already correct but the App.tsx handler was returning only the declaration form.
+---

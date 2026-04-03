@@ -223,3 +223,18 @@ Already up to date.
 
   Merging to main: Plugin sandbox has 3 message handlers without try-catch that can crash the entire message loop
 Already up to date.
+[main 94672179] chore(backlog): done – Plugin sandbox has 3 message handlers without try-catch that can crash the entire message loop
+ 5 files changed, 48 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Plugin sandbox message handlers missing try-catch (search-layers, find-peers-for-property, eyedropper)
+- Wrapped `search-layers`, `find-peers-for-property`, and `eyedropper`/`sampleSelectionColor` handlers in try-catch blocks calling `reportError()`, consistent with all other handlers in the switch statement.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L319, ~L322, ~L349
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  3 queued · 3 in-progress · last took 44s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping — variableSync.ts:66-95 silently mutates existing variables when names collide (snapshots are captured but never surfaced to UI for review), styleSync.ts:104-116 replaces multi-paint styles with a single solid color, and selectionHandling.ts:768 applies token values to nodes in a loop where partial failures leave earlier nodes modified with no rollback; these should either preview changes before applying or use Figma's `figma.group()` API to make the entire batch undoable as one step
+  Worktree: /tmp/backlog-81267-ZDCwpQ
+  Running agent… (started 12:15:25)

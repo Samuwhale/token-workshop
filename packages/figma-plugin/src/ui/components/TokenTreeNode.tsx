@@ -1736,74 +1736,66 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           >
             <span>Copy path <span className="text-[var(--color-figma-text-tertiary)]">({node.path})</span></span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
           </button>
-          <button
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              navigator.clipboard.writeText(`var(--${node.path.replace(/\./g, '-')})`).catch(e => console.warn('[clipboard] write failed:', e));
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy as CSS var <span className="text-[var(--color-figma-text-tertiary)]">(var(--{node.path.replace(/\./g, '-')}))</span></span>
-          </button>
-          <button
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              navigator.clipboard.writeText(`$${node.path.replace(/\./g, '-')}`).catch(e => console.warn('[clipboard] write failed:', e));
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy as SCSS var <span className="text-[var(--color-figma-text-tertiary)]">(${node.path.replace(/\./g, '-')})</span></span>
-          </button>
-          <button
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              navigator.clipboard.writeText(`{${node.path}}`).catch(e => console.warn('[clipboard] write failed:', e));
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy as reference <span className="text-[var(--color-figma-text-tertiary)]">({`{${node.path}}`})</span></span>
-          </button>
-          <button
-            data-accel="v"
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              const val = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
-              navigator.clipboard.writeText(val).catch(e => console.warn('[clipboard] write failed:', e));
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy value</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
-          </button>
-          {node.$type === 'color' && typeof displayValue === 'string' && (['hex', 'rgb', 'hsl', 'oklch', 'p3'] as ColorFormat[]).map(fmt => (
-            <button
-              key={fmt}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                navigator.clipboard.writeText(formatHexAs(displayValue, fmt)).catch(e => console.warn('[clipboard] write failed:', e));
-                setContextMenuPos(null);
-              }}
-            >
-              <span>Copy as {fmt === 'hex' ? 'hex' : fmt === 'rgb' ? 'rgb()' : fmt === 'hsl' ? 'hsl()' : fmt === 'oklch' ? 'oklch()' : 'display-p3'}</span>
-            </button>
-          ))}
-          <button
-            data-accel="j"
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              const entry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
-              if (node.$description) entry.$description = node.$description;
-              navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(e => console.warn('[clipboard] write failed:', e));
-              setContextMenuPos(null);
-            }}
-          >
-            <span>Copy as JSON</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">J</span>
-          </button>
+          {/* Compact format picker — CSS var, DTCG ref, SCSS, raw value, JSON */}
+          {(() => {
+            const cssVar = `var(--${node.path.replace(/\./g, '-')})`;
+            const dtcgRef = `{${node.path}}`;
+            const scssVar = `$${node.path.replace(/\./g, '-')}`;
+            const rawVal = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
+            const jsonEntry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
+            if (node.$description) jsonEntry.$description = node.$description;
+            const jsonText = JSON.stringify(jsonEntry, null, 2);
+            const formats: Array<{ label: string; value: string; title: string; accel?: string }> = [
+              { label: 'CSS var', value: cssVar, title: cssVar },
+              { label: '{ref}', value: dtcgRef, title: dtcgRef },
+              { label: '$scss', value: scssVar, title: scssVar },
+              { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v' },
+              { label: 'JSON', value: jsonText, title: 'Copy as JSON snippet', accel: 'j' },
+            ];
+            return (
+              <div className="px-3 py-1.5">
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1 uppercase tracking-wide">Copy as…</div>
+                <div className="flex flex-wrap gap-1">
+                  {formats.map(({ label, value, title, accel }) => (
+                    <button
+                      key={label}
+                      data-accel={accel}
+                      title={title}
+                      className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] rounded border border-[var(--color-figma-border)] transition-colors"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => {
+                        navigator.clipboard.writeText(value).catch(e => console.warn('[clipboard] write failed:', e));
+                        setContextMenuPos(null);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {node.$type === 'color' && typeof displayValue === 'string' && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(['hex', 'rgb', 'hsl', 'oklch', 'p3'] as ColorFormat[]).map(fmt => {
+                      const colorVal = formatHexAs(displayValue, fmt);
+                      return (
+                        <button
+                          key={fmt}
+                          title={colorVal}
+                          className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] rounded border border-[var(--color-figma-border)] transition-colors"
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => {
+                            navigator.clipboard.writeText(colorVal).catch(e => console.warn('[clipboard] write failed:', e));
+                            setContextMenuPos(null);
+                          }}
+                        >
+                          {fmt === 'hex' ? 'hex' : fmt === 'rgb' ? 'rgb()' : fmt === 'hsl' ? 'hsl()' : fmt === 'oklch' ? 'oklch()' : 'p3'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <button
             data-accel="delete"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"

@@ -79,6 +79,7 @@ interface CommandPaletteProps {
   onGoToGroup?: (path: string) => void;
   onCopyTokenPath?: (path: string) => void;
   onCopyTokenCssVar?: (path: string) => void;
+  onCopyTokenRef?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
   onClose: () => void;
 }
@@ -88,7 +89,7 @@ interface CommandPaletteProps {
 // ---------------------------------------------------------------------------
 
 function tokenCssVar(path: string) {
-  return `--${path.replace(/\./g, '-')}`;
+  return `var(--${path.replace(/\./g, '-')})`;
 }
 
 /** Extract leaf name from a dotted path. */
@@ -141,7 +142,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -517,6 +518,16 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
                       onClick={(e) => { e.stopPropagation(); onCopyTokenPath(token.path); onClose(); }}
                     >
                       Path
+                    </button>
+                  )}
+                  {onCopyTokenRef && (
+                    <button
+                      tabIndex={-1}
+                      title={`Copy DTCG alias: {${token.path}}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onCopyTokenRef(token.path); onClose(); }}
+                    >
+                      {'{ref}'}
                     </button>
                   )}
                   {onCopyTokenValue && token.value != null && (

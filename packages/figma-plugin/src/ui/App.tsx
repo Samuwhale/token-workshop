@@ -2816,11 +2816,14 @@ export function App() {
           onCopyTokenPath={(path) => {
             navigator.clipboard.writeText(path).catch((err) => { console.warn('[App] clipboard write failed for token path:', err); });
           }}
+          onCopyTokenRef={(path) => {
+            navigator.clipboard.writeText(`{${path}}`).catch((err) => { console.warn('[App] clipboard write failed for token ref:', err); });
+          }}
           onCopyTokenValue={(value) => {
             navigator.clipboard.writeText(value).catch((err) => { console.warn('[App] clipboard write failed for token value:', err); });
           }}
           onCopyTokenCssVar={(path) => {
-            const cssVar = `--${path.replace(/\./g, '-')}`;
+            const cssVar = `var(--${path.replace(/\./g, '-')})`;
             navigator.clipboard.writeText(cssVar).catch((err) => { console.warn('[App] clipboard write failed for CSS var:', err); });
           }}
           onClose={() => setShowCommandPalette(false)}
