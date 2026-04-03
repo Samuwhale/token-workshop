@@ -87,3 +87,18 @@ Already up to date.
 
   Merging to main: SelectionInspector disables token binding when multi-selection has mixed values
 Already up to date.
+[main d78c6850] chore(backlog): done – SelectionInspector disables token binding when multi-selection has mixed values
+ 8 files changed, 57 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - SelectionInspector disables token binding when multi-selection has mixed values
+- Removed `!isMixed` from the `canBind` guard in `PropertyRow.tsx`. The condition `const canBind = !isBound && !isMixed && ...` prevented the bind button from appearing when multiple selected nodes had different values for a property. The fix allows binding even with mixed values — `handleBindToken` in `SelectionInspector.tsx` already sends `apply-to-selection` to all selected nodes, so the bind correctly unifies all nodes under the chosen token.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L98
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  6 queued · 4 in-progress · last took 1m16s
+═══════════════════════════════════════════════════════════════
+  → Token bind candidate list is hard-capped at 12 entries with no pagination — PropertyRow.tsx:126 slices to 12 results; for token sets with 50+ color tokens users can't see most candidates without typing a precise filter; add a "Show all" expansion or virtual scrolling to the bind dropdown
+  Worktree: /tmp/backlog-82379-8hK8bn
+  Running agent… (started 12:03:46)

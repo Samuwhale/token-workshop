@@ -104,3 +104,10 @@ Already up to date.
   → ComparePanel has no "show differences only" toggle — when comparing tokens with many shared properties the actual differences are buried in identical rows; add a toggle to filter the comparison table to only rows where values differ across the selected tokens (ComparePanel.tsx ~L261-379, rowDiffs at ~L120-131 already computed)
   Worktree: /tmp/backlog-81661-OMrETZ
   Running agent… (started 12:02:56)
+
+  ✓ done: ComparePanel has no "show differences only" toggle
+    Added "Diffs only" toggle button to ComparePanel header; filters all row types (alias, property keys, scopes) using pre-computed diff booleans; disabled when all tokens are identical
+    17 turns · 122s · $0.38
+
+  Merging to main: ComparePanel has no "show differences only" toggle
+Already up to date.

@@ -453,3 +453,13 @@
   - `isMixed` in `canBind` was originally added to match `!isBound`, but mixed is a subset of unbound — it means "at least one node is unbound or bound to something different". Blocking bind for mixed is the opposite of what power users need.
   - The undo path in `handleBindToken` captures `oldBinding` before applying; when `oldBinding === 'mixed'`, the undo branch is skipped (condition `oldBinding !== 'mixed'`), which is reasonable — there's no single previous state to restore.
 ---
+
+## 2026-04-03 - ComparePanel has no "show differences only" toggle
+- Added `showDiffsOnly` state (default `false`) with a "Diffs only" toggle button in the header toolbar, disabled when all values are identical.
+- Computed `aliasDiffers` and `scopesDiffer` alongside existing `rowDiffs` to correctly gate all four row types (type, alias, property keys, scopes) when the toggle is active.
+- The toggle button shows a yellow-tinted active state to indicate the filter is on; `anyDiff` gates the disabled state so the button is greyed out when tokens are identical.
+- Files changed: `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L135-148, ~L253-264, ~L321, ~L363, ~L385, ~L390
+- **Learnings for future iterations:**
+  - `rowDiffs` only covers `propertyKeys`; the alias and scopes rows have no equivalent — compute separate `aliasDiffers`/`scopesDiffer` booleans outside `useMemo` (alias is cheap enough to be inline; scopes needs `useMemo` since it reads `allTokensFlat`).
+  - The flat-value branch is a ternary (`hasStructuredValues ? A : B`) — converting the `B` side to a conditional requires adding `: null` as the third arm (`? A : condition ? B : null`) rather than wrapping with `&&`.
+---

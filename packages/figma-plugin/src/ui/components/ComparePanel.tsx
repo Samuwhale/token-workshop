@@ -132,6 +132,21 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
 
   const anyDiff = Object.values(rowDiffs).some(Boolean);
 
+  // Whether alias references differ across tokens
+  const aliasDiffers = tokens.some(t => t.isAlias) &&
+    new Set(tokens.map(t => t.aliasRef ?? '')).size > 1;
+
+  // Whether scopes differ across tokens
+  const scopesDiffer = useMemo(() => {
+    const scopeVals = tokens.map(t => {
+      const entry = allTokensFlat[t.path];
+      return stableStringify(entry?.$scopes ?? []);
+    });
+    return new Set(scopeVals).size > 1;
+  }, [tokens, allTokensFlat]);
+
+  const [showDiffsOnly, setShowDiffsOnly] = useState(false);
+
   // --- Copy / Export helpers ---
   const [copied, setCopied] = useState(false);
 
@@ -236,6 +251,18 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
         </div>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => setShowDiffsOnly(v => !v)}
+            disabled={!anyDiff}
+            className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
+              showDiffsOnly
+                ? 'bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+            title={anyDiff ? 'Show only rows where values differ' : 'No differences to filter'}
+          >
+            Diffs only
+          </button>
+          <button
             onClick={handleCopy}
             className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             title="Copy comparison as tab-separated table"
@@ -297,8 +324,8 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
               </tr>
             )}
 
-            {/* Alias row — show if any token is an alias */}
-            {tokens.some(t => t.isAlias) && (
+            {/* Alias row — show if any token is an alias (and diffs exist or diffs-only is off) */}
+            {tokens.some(t => t.isAlias) && (!showDiffsOnly || aliasDiffers) && (
               <tr>
                 <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   alias
@@ -313,7 +340,7 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
 
             {/* Value rows */}
             {hasStructuredValues ? (
-              propertyKeys.map(key => {
+              propertyKeys.filter(key => !showDiffsOnly || rowDiffs[key]).map(key => {
                 const isDiff = rowDiffs[key];
                 return (
                   <tr key={key} className={isDiff ? 'bg-yellow-500/8' : ''}>
@@ -333,7 +360,7 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
                   </tr>
                 );
               })
-            ) : (
+            ) : (!showDiffsOnly || rowDiffs['$value']) ? (
               <tr className={rowDiffs['$value'] ? 'bg-yellow-500/8' : ''}>
                 <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[var(--color-figma-text)] bg-yellow-500/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                   value
@@ -352,13 +379,13 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
                   );
                 })}
               </tr>
-            )}
+            ) : null}
 
-            {/* Scopes row if any token has scopes */}
+            {/* Scopes row if any token has scopes (filtered by diffs-only) */}
             {tokens.some(t => {
               const entry = allTokensFlat[t.path];
               return entry?.$scopes && entry.$scopes.length > 0;
-            }) && (
+            }) && (!showDiffsOnly || scopesDiffer) && (
               <tr>
                 <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   scopes
