@@ -469,3 +469,17 @@
 - **Learnings for future iterations:**
   - Check the exact lines cited in the backlog item before implementing — recent sessions may have already addressed the issue.
 ---
+
+## 2026-04-03 - Server renameSet and snapshot restore non-atomic multi-step mutation windows
+- **renameSet fix**: In `token-store.ts`, the rollback branch now only deletes the `$rename-pending.json` marker after a confirmed successful rollback. If rollback itself fails, the marker is left so `recoverPendingRename()` can complete the themes update on next startup. Changed lines ~684-695.
+- **Restore journal**: Added `RestoreJournal` interface and `journalPath` field to `ManualSnapshotStore`. Added `writeRestoreJournal()` (tmp-then-rename, atomic) and `deleteRestoreJournal()` helpers.
+- **Journaled restore()**: Rewrote `restore()` to write a journal before touching any token files, advance `completedSets` checkpoint after each successful set write, and delete the journal only on full success. On crash, the journal survives so recovery can replay remaining sets.
+- **Crash recovery**: Added `recoverPendingRestore(tokenStore)` public method that reads the journal on startup, skips already-completed sets, replays pending ones, and removes the journal when done.
+- **Startup wiring**: In `index.ts`, moved `ManualSnapshotStore` construction before `tokenStore.initialize()` and added `await manualSnapshots.recoverPendingRestore(tokenStore)` immediately after `initialize()` completes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L684, `packages/server/src/services/manual-snapshot.ts` (constructor, new methods, rewritten restore), `packages/server/src/index.ts` ~L49-55
+- **Learnings for future iterations:**
+  - The no-useless-catch lint rule catches `try { ... } catch(e) { throw e; }` wrappers. When you want to leave a resource intact on failure, just put cleanup after the loop — no try/catch needed since cleanup only runs if the loop exits normally.
+  - Writing `completedSets` checkpoints per-set (not just start/end) is the key invariant: recovery needs to know exactly where the restore left off, not just that it started.
+  - The `$rename-pending.json` pattern already existed for renameSet; the restore journal follows the same tmp-then-rename atomic write pattern.
+  - The `recoverPendingRestore()` must run after `tokenStore.initialize()` (so sets are in memory for `restoreSnapshot`) but before the HTTP server starts accepting requests.
+---

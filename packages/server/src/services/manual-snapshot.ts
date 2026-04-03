@@ -14,6 +14,15 @@ export interface ManualSnapshotToken {
   $extensions?: Record<string, unknown>;
 }
 
+interface RestoreJournal {
+  snapshotId: string;
+  snapshotLabel: string;
+  /** Full snapshot data copied at the time restore began */
+  data: Record<string, Record<string, ManualSnapshotToken>>;
+  /** Set names that have already been fully written to disk */
+  completedSets: string[];
+}
+
 export interface ManualSnapshotEntry {
   id: string;
   label: string;
@@ -42,12 +51,14 @@ const MAX_SNAPSHOTS = 20;
 
 export class ManualSnapshotStore {
   private filePath: string;
+  private journalPath: string;
   private snapshots: ManualSnapshotEntry[] = [];
   private loadPromise: Promise<void> | null = null;
 
   constructor(tokenDir: string) {
     const tmDir = path.join(path.resolve(tokenDir), '.tokenmanager');
     this.filePath = path.join(tmDir, 'snapshots.json');
+    this.journalPath = path.join(tmDir, 'restore-journal.json');
   }
 
   private ensureLoaded(): Promise<void> {
@@ -64,6 +75,17 @@ export class ManualSnapshotStore {
     const tmp = `${this.filePath}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(this.snapshots, null, 2), 'utf-8');
     await fs.rename(tmp, this.filePath);
+  }
+
+  private async writeRestoreJournal(journal: RestoreJournal): Promise<void> {
+    await fs.mkdir(path.dirname(this.journalPath), { recursive: true });
+    const tmp = `${this.journalPath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(journal, null, 2), 'utf-8');
+    await fs.rename(tmp, this.journalPath);
+  }
+
+  private async deleteRestoreJournal(): Promise<void> {
+    await fs.unlink(this.journalPath).catch(() => {});
   }
 
   /** Capture the current state of all token sets. */
@@ -184,8 +206,19 @@ export class ManualSnapshotStore {
     const snapshot = this.snapshots.find(s => s.id === id);
     if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
 
-    const restoredSets: string[] = [];
+    // Write journal BEFORE touching any token files. On crash, startup reads this
+    // and replays the sets not yet in completedSets.
+    const journal: RestoreJournal = {
+      snapshotId: snapshot.id,
+      snapshotLabel: snapshot.label,
+      data: snapshot.data,
+      completedSets: [],
+    };
+    await this.writeRestoreJournal(journal);
 
+    const restoredSets: string[] = [];
+    // If this loop throws, the journal is left intact so startup recovery can
+    // replay the remaining sets. deleteRestoreJournal() only runs on success.
     for (const [setName, flatTokens] of Object.entries(snapshot.data)) {
       const items = Object.entries(flatTokens).map(([p, token]) => ({
         path: p,
@@ -193,8 +226,66 @@ export class ManualSnapshotStore {
       }));
       await tokenStore.restoreSnapshot(setName, items);
       restoredSets.push(setName);
+      // Advance the journal checkpoint after each successful set write.
+      journal.completedSets.push(setName);
+      await this.writeRestoreJournal(journal);
     }
 
+    // All sets written — journal is no longer needed.
+    await this.deleteRestoreJournal();
     return { restoredSets };
+  }
+
+  /**
+   * Called during server startup. If a restore-journal.json exists, a previous
+   * restore was interrupted mid-flight. This replays the remaining sets and
+   * removes the journal.
+   */
+  async recoverPendingRestore(tokenStore: TokenStore): Promise<void> {
+    let journal: RestoreJournal;
+    try {
+      const raw = await fs.readFile(this.journalPath, 'utf-8');
+      journal = JSON.parse(raw) as RestoreJournal;
+    } catch {
+      return; // No journal or corrupt — nothing to recover
+    }
+
+    const pending = Object.keys(journal.data).filter(
+      setName => !journal.completedSets.includes(setName)
+    );
+
+    if (pending.length === 0) {
+      // All sets were written — crash happened just before journal deletion.
+      console.warn(
+        `[ManualSnapshotStore] Stale restore journal for "${journal.snapshotLabel}" found; ` +
+        `all sets already complete — cleaning up`
+      );
+      await this.deleteRestoreJournal();
+      return;
+    }
+
+    console.warn(
+      `[ManualSnapshotStore] Recovering incomplete restore of snapshot "${journal.snapshotLabel}" ` +
+      `(${journal.snapshotId}): replaying ${pending.length} set(s): ${pending.join(', ')}`
+    );
+
+    for (const setName of pending) {
+      const flatTokens = journal.data[setName];
+      const items = Object.entries(flatTokens).map(([p, token]) => ({
+        path: p,
+        token: token as Token,
+      }));
+      try {
+        await tokenStore.restoreSnapshot(setName, items);
+        journal.completedSets.push(setName);
+        await this.writeRestoreJournal(journal);
+      } catch (err) {
+        console.error(`[ManualSnapshotStore] Recovery failed for set "${setName}":`, err);
+        // Leave the journal — retry on next startup
+        return;
+      }
+    }
+
+    await this.deleteRestoreJournal();
   }
 }

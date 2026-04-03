@@ -46,8 +46,13 @@ export async function startServer(config: ServerConfig) {
   });
 
   // Initialize services
+  const manualSnapshots = new ManualSnapshotStore(config.tokenDir);
+
   const tokenStore = new TokenStore(config.tokenDir);
   await tokenStore.initialize();
+
+  // Replay any snapshot restore that was interrupted by a previous crash
+  await manualSnapshots.recoverPendingRestore(tokenStore);
 
   const gitSync = new GitSync(config.tokenDir);
 
@@ -58,8 +63,6 @@ export async function startServer(config: ServerConfig) {
 
   const resolverStore = new ResolverStore(config.tokenDir);
   await resolverStore.initialize();
-
-  const manualSnapshots = new ManualSnapshotStore(config.tokenDir);
 
   const tokenLock = new TokenLock();
 

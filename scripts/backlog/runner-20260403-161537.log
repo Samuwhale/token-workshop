@@ -68,3 +68,10 @@ Already up to date.
   → Server `renameSet` and snapshot restore have non-atomic multi-step mutation windows — `renameSet` (token-store.ts:593-623) renames the file then updates `$themes.json` in separate steps with a `.catch(() => {})` rollback that swallows double-failures; snapshot restore (snapshots.ts:50-101) applies sets sequentially so a mid-restore crash leaves mixed old/new data; both need write-ahead journaling or crash-recovery detection on startup
   Worktree: /tmp/backlog-46178-ivwcWp
   Running agent… (started 16:26:02)
+
+  ✓ done: Server renameSet and snapshot restore have non-atomic multi-step mutation windows
+    Fixed renameSet rollback to keep marker when rollback fails; added write-ahead restore journal to ManualSnapshotStore with per-set checkpointing; added recoverPendingRestore() called on startup after tokenStore.initialize()
+    34 turns · 449s · $1.27
+
+  Merging to main: Server renameSet and snapshot restore have non-atomic multi-step mutation windows
+Already up to date.

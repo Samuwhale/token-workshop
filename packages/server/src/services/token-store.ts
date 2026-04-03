@@ -683,14 +683,22 @@ export class TokenStore {
         await this.applyThemesRename(oldName, newName);
       } catch (writeErr) {
         // Themes write failed — attempt to roll back the file rename
-        await fs.rename(newFilePath, oldFilePath).catch((rollbackErr) => {
+        let rollbackSucceeded = false;
+        try {
+          await fs.rename(newFilePath, oldFilePath);
+          rollbackSucceeded = true;
+        } catch (rollbackErr) {
           console.error(
             `[TokenStore] renameSet: file rename rollback also failed after themes write error. ` +
             `"${newName}.tokens.json" may be in an inconsistent state. ` +
             `Original error: ${String(writeErr)}. Rollback error: ${String(rollbackErr)}`
           );
-        });
-        await fs.unlink(markerPath).catch(() => {});
+        }
+        // Only remove the marker if rollback succeeded — if rollback failed the marker
+        // must remain so that recoverPendingRename() can complete the themes update on startup.
+        if (rollbackSucceeded) {
+          await fs.unlink(markerPath).catch(() => {});
+        }
         throw writeErr;
       }
 

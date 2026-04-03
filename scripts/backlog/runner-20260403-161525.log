@@ -109,3 +109,18 @@ Already up to date.
 
   Merging to main: CommandPalette search results mix groups and tokens with no visual section headers
 Already up to date.
+[main 21c807b4] chore(backlog): done – CommandPalette search results mix groups and tokens with no visual section headers
+ 4 files changed, 39 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - CommandPalette search results mix groups and tokens with no visual section headers
+- Stale — already implemented. "Groups" and "Tokens" section labels already exist in CommandPalette.tsx at L469-472 (Groups header, shown when filteredGroups.length > 0 && !isGroupQuery) and L500-503 (Tokens header, shown when both sections have results). No code changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  21 queued · 3 in-progress · last took 58s
+═══════════════════════════════════════════════════════════════
+  → No keyboard shortcut for Delete, Rename, or Duplicate token — common operations like delete (Backspace/Del), rename (F2), and duplicate (Cmd+D) have no keyboard shortcuts despite the tree supporting full keyboard navigation; these are standard shortcuts in Figma's own Variables panel and every file manager (shortcutRegistry.ts, TokenList.tsx)
+  Worktree: /tmp/backlog-45818-EhFNfy
+  Running agent… (started 16:33:30)
