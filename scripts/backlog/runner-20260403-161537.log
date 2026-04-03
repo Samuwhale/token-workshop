@@ -75,3 +75,18 @@ Already up to date.
 
   Merging to main: Server renameSet and snapshot restore have non-atomic multi-step mutation windows
 Already up to date.
+[main 99cfe638] chore(backlog): done – Server renameSet and snapshot restore have non-atomic multi-step mutation windows
+ 8 files changed, 147 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server renameSet and snapshot restore non-atomic multi-step mutation windows
+- **renameSet fix**: In `token-store.ts`, the rollback branch now only deletes the `$rename-pending.json` marker after a confirmed successful rollback. If rollback itself fails, the marker is left so `recoverPendingRename()` can complete the themes update on next startup. Changed lines ~684-695.
+- **Restore journal**: Added `RestoreJournal` interface and `journalPath` field to `ManualSnapshotStore`. Added `writeRestoreJournal()` (tmp-then-rename, atomic) and `deleteRestoreJournal()` helpers.
+- **Journaled restore()**: Rewrote `restore()` to write a journal before touching any token files, advance `completedSets` checkpoint after each successful set write, and delete the journal only on full success. On crash, the journal survives so recovery can replay remaining sets.
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  20 queued · 3 in-progress · last took 7m37s
+═══════════════════════════════════════════════════════════════
+  → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
+  Worktree: /tmp/backlog-46178-qvb9kS
+  Running agent… (started 16:33:39)

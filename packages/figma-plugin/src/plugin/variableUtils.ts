@@ -1,5 +1,6 @@
 import { parseColor } from './colorUtils.js';
 import { rgbToHex } from './colorUtils.js';
+import type { ResolvedTokenValue } from '../shared/types.js';
 
 export function mapTokenTypeToVariableType(tokenType: string): VariableResolvedDataType | null {
   switch (tokenType) {
@@ -31,23 +32,25 @@ export function mapVariableTypeToTokenType(variableType: VariableResolvedDataTyp
   }
 }
 
-export function convertToFigmaValue(value: any, tokenType: string): VariableValue | null {
+export function convertToFigmaValue(value: ResolvedTokenValue, tokenType: string): VariableValue | null {
   switch (tokenType) {
     case 'color': {
-      const color = parseColor(value);
+      const color = parseColor(typeof value === 'string' ? value : String(value));
       return color ? { r: color.rgb.r, g: color.rgb.g, b: color.rgb.b, a: color.a } : null;
     }
     case 'dimension': {
-      const raw = typeof value === 'object' ? value.value : value;
+      const raw = (value !== null && typeof value === 'object' && 'value' in value)
+        ? (value as { value: unknown }).value
+        : value;
       if (typeof raw === 'number') return raw;
-      const parsed = parseFloat(raw);
+      const parsed = parseFloat(String(raw));
       return isNaN(parsed) ? null : parsed;
     }
     case 'number':
     case 'fontWeight':
     case 'percentage': {
       if (typeof value === 'number') return value;
-      const parsed = parseFloat(value);
+      const parsed = parseFloat(String(value));
       return isNaN(parsed) ? null : parsed;
     }
     case 'boolean':
@@ -60,13 +63,15 @@ export function convertToFigmaValue(value: any, tokenType: string): VariableValu
   }
 }
 
-export function convertFromFigmaValue(value: any, variableType: VariableResolvedDataType): any {
+export function convertFromFigmaValue(value: VariableValue, variableType: VariableResolvedDataType): string | number | boolean | null {
   switch (variableType) {
-    case 'COLOR':
+    case 'COLOR': {
       if (value == null) return null;
-      return rgbToHex(value, value.a ?? 1);
+      const c = value as RGBA;
+      return rgbToHex(c, c.a ?? 1);
+    }
     default:
-      return value;
+      return value as string | number | boolean;
   }
 }
 

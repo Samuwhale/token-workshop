@@ -1,3 +1,5 @@
+import type { DimensionValue, ShadowTokenValue } from '../shared/types.js';
+
 // Named CSS colors → 6-digit hex (no #)
 const CSS_NAMED_COLORS: Record<string, string> = {
   aliceblue:'f0f8ff',antiquewhite:'faebd7',aqua:'00ffff',aquamarine:'7fffd4',azure:'f0ffff',
@@ -228,20 +230,20 @@ export function rgbToHex(color: RGB | RGBA, alpha = 1): string {
   return `#${r}${g}${b}`;
 }
 
-export function parseDimValue(dim: any): number {
+export function parseDimValue(dim: string | number | DimensionValue | null | undefined): number {
   if (typeof dim === 'number') return dim;
   if (typeof dim === 'string') {
     const parsed = parseFloat(dim);
     return Number.isNaN(parsed) ? 0 : parsed;
   }
-  if (typeof dim === 'object' && dim.value != null) return dim.value;
+  if (dim != null && typeof dim === 'object' && 'value' in dim) return dim.value;
   return 0;
 }
 
 /** Convert a DTCG shadow token value (single or array) to Figma DropShadowEffect[]. */
-export function shadowTokenToEffects(value: any): DropShadowEffect[] {
+export function shadowTokenToEffects(value: ShadowTokenValue | ShadowTokenValue[]): DropShadowEffect[] {
   const shadows = Array.isArray(value) ? value : [value];
-  return shadows.map((s: any) => {
+  return shadows.map((s) => {
     const color = parseColor(s.color);
     return {
       type: s.type === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',

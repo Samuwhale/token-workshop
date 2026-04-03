@@ -1,25 +1,10 @@
 // Consistency scanner: find nodes with values close-but-not-exactly a token value
-import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, type TokenMapEntry, type ResolvedTokenValue, type ConsistencyMatch, type ConsistencySuggestion } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { rgbToHex, parseDimValue, parseHexRaw } from './colorUtils.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 
-export interface ConsistencyMatch {
-  nodeId: string;
-  nodeName: string;
-  nodeType: string;
-  property: string;
-  actualValue: string | number;
-  tokenValue: string | number;
-}
-
-export interface ConsistencySuggestion {
-  tokenPath: string;
-  tokenType: string;
-  tokenValue: any;
-  property: string;
-  matches: ConsistencyMatch[];
-}
+export type { ConsistencyMatch, ConsistencySuggestion };
 
 // Color: RGB Euclidean distance thresholds (out of max ~441)
 // "2% off" ≈ 5.1 per channel → max dist ≈ 8.8 → use 10 for a bit of leeway
@@ -53,7 +38,7 @@ interface ColorEntry { path: string; hex: string; r: number; g: number; b: numbe
 
 const COLOR_BUCKET_SIZE = COLOR_NEAR_MAX; // 10
 
-function buildColorIndex(colorTokens: [string, { $value: any }][]) {
+function buildColorIndex(colorTokens: [string, TokenMapEntry][]) {
   const buckets = new Map<string, ColorEntry[]>();
 
   for (const [path, entry] of colorTokens) {
@@ -108,17 +93,18 @@ function queryColorIndex(
 }
 
 /** Sorted numeric index for dimension/number tokens — supports range queries via binary search. */
-interface NumericEntry { path: string; rawValue: any; num: number }
+interface NumericEntry { path: string; rawValue: ResolvedTokenValue; num: number }
 
 function buildSortedNumericIndex(
-  tokens: [string, { $value: any }][],
-  parseValue: (v: any) => number,
+  tokens: [string, TokenMapEntry][],
+  parseValue: (v: ResolvedTokenValue) => number,
 ): NumericEntry[] {
   const entries: NumericEntry[] = [];
   for (const [path, entry] of tokens) {
-    const num = parseValue(entry.$value);
+    const val = entry.$value as ResolvedTokenValue;
+    const num = parseValue(val);
     if (Number.isNaN(num) || num <= 0) continue;
-    entries.push({ path, rawValue: entry.$value, num });
+    entries.push({ path, rawValue: val, num });
   }
   entries.sort((a, b) => a.num - b.num);
   return entries;
@@ -153,7 +139,7 @@ function queryNumericIndex(
 // ---------------------------------------------------------------------------
 
 export async function scanConsistency(
-  tokenMap: Record<string, { $value: any; $type: string }>,
+  tokenMap: Record<string, TokenMapEntry>,
   scope: 'selection' | 'page' | 'all-pages',
 ) {
   try {
@@ -175,10 +161,10 @@ export async function scanConsistency(
     }
 
     // Build reverse indexes upfront — O(tokens) once, then O(1) or O(log tokens) per lookup
-    const colorTokens: [string, { $value: any }][] = [];
-    const dimTokens: [string, { $value: any }][] = [];
-    const numTokens: [string, { $value: any }][] = [];
-    const fontWeightTokens: [string, { $value: any }][] = [];
+    const colorTokens: [string, TokenMapEntry][] = [];
+    const dimTokens: [string, TokenMapEntry][] = [];
+    const numTokens: [string, TokenMapEntry][] = [];
+    const fontWeightTokens: [string, TokenMapEntry][] = [];
     // fontFamily: string exact-match index — normalized lowercase → [{path, value}]
     const fontFamilyIndex = new Map<string, { path: string; value: string }[]>();
     for (const [path, entry] of Object.entries(tokenMap)) {
@@ -210,7 +196,7 @@ export async function scanConsistency(
     const addMatch = (
       tokenPath: string,
       tokenType: string,
-      tokenValue: any,
+      tokenValue: ResolvedTokenValue,
       property: string,
       match: ConsistencyMatch,
     ) => {

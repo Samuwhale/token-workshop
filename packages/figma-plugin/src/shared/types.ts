@@ -166,7 +166,7 @@ export interface ApplyToSelectionMessage {
   tokenPath: string;
   tokenType: string;
   targetProperty: BindableProperty;
-  resolvedValue: any;
+  resolvedValue: ResolvedTokenValue;
 }
 
 export interface RemoveBindingMessage {
@@ -190,6 +190,151 @@ export interface TokenMapEntry {
   $name?: string;
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];
+}
+
+// ─── Concrete value types used in the plugin sandbox ─────────────────────────
+
+/** Dimension value shape used in DTCG tokens: `{ value: number; unit: string }` */
+export interface DimensionValue {
+  value: number;
+  unit: string;
+}
+
+/** A single shadow layer in a DTCG shadow token value */
+export interface ShadowTokenValue {
+  color: string;
+  offsetX: DimensionValue | number;
+  offsetY: DimensionValue | number;
+  blur: DimensionValue | number;
+  spread?: DimensionValue | number;
+  type?: 'innerShadow' | 'dropShadow';
+}
+
+/** Typography composite token value */
+export interface TypographyValue {
+  fontFamily?: string | string[];
+  fontWeight?: number | string;
+  fontSize?: number | DimensionValue;
+  lineHeight?: number | DimensionValue;
+  letterSpacing?: number | DimensionValue;
+  fontStyle?: string;
+}
+
+/** Border composite token value */
+export interface BorderValue {
+  color: string;
+  width: DimensionValue | number;
+  style: string;
+}
+
+/**
+ * Union of all resolved DTCG token values that flow through the plugin sandbox.
+ * Covers primitives, dimension objects, composite token shapes, and null.
+ */
+export type ResolvedTokenValue =
+  | string
+  | number
+  | boolean
+  | DimensionValue
+  | ShadowTokenValue
+  | ShadowTokenValue[]
+  | TypographyValue
+  | BorderValue
+  | Record<string, ResolvedTokenValue>
+  | null;
+
+// ─── Variable sync token types ────────────────────────────────────────────────
+
+/**
+ * A single token entry for Figma variable sync (applyVariables).
+ * Represents a resolved, flat token ready to be written as a Figma variable.
+ */
+export interface VariableSyncToken {
+  path: string;
+  $type: string;
+  $value: ResolvedTokenValue;
+  setName?: string;
+  $extensions?: {
+    'com.figma.scopes'?: string[];
+    [key: string]: unknown;
+  };
+  /** Legacy scopes field */
+  $scopes?: string[];
+}
+
+// ─── Variable read-back types ─────────────────────────────────────────────────
+
+/** A single token read back from a Figma variable in read-variables operations. */
+export interface ReadVariableToken {
+  path: string;
+  $type: string;
+  $value: string | number | boolean | null;
+  $description: string;
+  $scopes: string[];
+}
+
+/** A mode within a Figma variable collection (read-back). */
+export interface ReadVariableMode {
+  modeId: string;
+  modeName: string;
+  tokens: ReadVariableToken[];
+}
+
+/** A Figma variable collection with its modes and tokens (read-back). */
+export interface ReadVariableCollection {
+  name: string;
+  modes: ReadVariableMode[];
+}
+
+// ─── Variable export types ────────────────────────────────────────────────────
+
+/** Resolved or aliased mode value for a Figma variable export. */
+export interface ExportedVariableModeValue {
+  /** Resolved scalar value (color hex, number, string, boolean), null if alias */
+  resolvedValue: string | number | boolean | null;
+  /** DTCG reference string e.g. "{colors.primary}", set when isAlias is true */
+  reference?: string;
+  isAlias: boolean;
+}
+
+/** A single Figma variable in export format. */
+export interface ExportedVariableEntry {
+  name: string;
+  path: string;
+  resolvedType: string;
+  $type: string;
+  description?: string;
+  hiddenFromPublishing: boolean;
+  scopes: string[];
+  modeValues: Record<string, ExportedVariableModeValue>;
+}
+
+/** A Figma variable collection in export format. */
+export interface ExportedVariableCollection {
+  name: string;
+  modes: string[];
+  variables: ExportedVariableEntry[];
+}
+
+// ─── Consistency scanner types ────────────────────────────────────────────────
+
+/** A single node that nearly matches a token value but is not bound to it. */
+export interface ConsistencyMatch {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  property: string;
+  actualValue: string | number;
+  tokenValue: string | number;
+}
+
+/** A token that has near-matches across canvas nodes (consistency scanner result). */
+export interface ConsistencySuggestion {
+  tokenPath: string;
+  tokenType: string;
+  tokenValue: ResolvedTokenValue;
+  property: string;
+  matches: ConsistencyMatch[];
 }
 
 /**
@@ -255,7 +400,7 @@ export interface RemapCompleteMessage {
 
 export interface ApplyVariablesMessage {
   type: 'apply-variables';
-  tokens: any[];
+  tokens: VariableSyncToken[];
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
   correlationId?: string;
@@ -344,7 +489,7 @@ export interface BatchBindHeatmapNodesMessage {
   tokenPath: string;
   tokenType: string;
   targetProperty: string;
-  resolvedValue: any;
+  resolvedValue: ResolvedTokenValue;
 }
 
 export interface EyedropperMessage {
@@ -405,7 +550,7 @@ export interface ExtractedTokenEntry {
   property: BindableProperty | 'border';
   tokenType: string;
   suggestedName: string;
-  value: any;
+  value: ResolvedTokenValue;
   layerName: string;
   layerId: string;
   /** Number of layers sharing this exact value (for deduplication) */
@@ -431,7 +576,7 @@ export interface ApplyToNodesMessage {
   tokenPath: string;
   tokenType: string;
   targetProperty: string;
-  resolvedValue: any;
+  resolvedValue: ResolvedTokenValue;
 }
 
 // --- Consistency scanner ---
@@ -441,7 +586,7 @@ export type ConsistencyScope = 'selection' | 'page' | 'all-pages';
 export interface ScanConsistencyMessage {
   type: 'scan-consistency';
   /** Flat resolved token map (path → {$value, $type}) */
-  tokenMap: Record<string, { $value: any; $type: string }>;
+  tokenMap: Record<string, TokenMapEntry>;
   scope: ConsistencyScope;
 }
 
@@ -502,7 +647,7 @@ export interface ApplyVariablesErrorMessage {
 
 export interface VariablesReadMessage {
   type: 'variables-read';
-  collections: any[];
+  collections: ReadVariableCollection[];
   correlationId?: string;
 }
 
@@ -657,7 +802,7 @@ export interface OrphansDeletedMessage {
 
 export interface AllVariablesExportedMessage {
   type: 'all-variables-exported';
-  collections: any[];
+  collections: ExportedVariableCollection[];
 }
 
 export interface StyleSyncProgressMessage {
@@ -688,7 +833,7 @@ export interface ConsistencyScanProgressMessage {
 
 export interface ConsistencyScanResultMessage {
   type: 'consistency-scan-result';
-  suggestions: any[];
+  suggestions: ConsistencySuggestion[];
   totalNodes: number;
 }
 

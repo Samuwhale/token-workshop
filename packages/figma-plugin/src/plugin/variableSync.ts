@@ -1,8 +1,9 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaValue, convertFromFigmaValue, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
+import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, ExportedVariableModeValue, ExportedVariableEntry, ExportedVariableCollection } from '../shared/types.js';
 
-export async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
+export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
   interface VariableSnapshot {
     valuesByMode: Record<string, VariableValue>;
@@ -191,14 +192,14 @@ export async function readFigmaVariables(correlationId?: string) {
     figma.ui.postMessage({ type: 'variables-read-error', error: message, correlationId });
     return;
   }
-  const collections: any[] = [];
+  const collections: ReadVariableCollection[] = [];
 
   for (const collection of localCollections) {
     if (collection.modes.length === 0) continue;
 
-    const modes: any[] = [];
+    const modes: ReadVariableMode[] = [];
     for (const mode of collection.modes) {
-      const tokens: any[] = [];
+      const tokens: ReadVariableToken[] = [];
       for (const varId of collection.variableIds) {
         const variable = await figma.variables.getVariableByIdAsync(varId);
         if (!variable) continue;
@@ -248,37 +249,11 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
   }
 }
 
-interface ExportedModeValue {
-  /** The resolved raw value (color hex, number, string, boolean) */
-  resolvedValue: any;
-  /** If this value is an alias, the DTCG reference string e.g. "{colors.primary}" */
-  reference?: string;
-  /** Whether this value is an alias to another variable */
-  isAlias: boolean;
-}
-
-interface ExportedVariable {
-  name: string;
-  path: string;
-  resolvedType: string;
-  $type: string;
-  description?: string;
-  hiddenFromPublishing: boolean;
-  scopes: string[];
-  modeValues: Record<string, ExportedModeValue>;
-}
-
-interface ExportedCollection {
-  name: string;
-  modes: string[];
-  variables: ExportedVariable[];
-}
-
 function convertExportValue(
-  rawValue: any,
+  rawValue: VariableValue,
   resolvedType: VariableResolvedDataType,
   idToName: Map<string, string>,
-): ExportedModeValue {
+): ExportedVariableModeValue {
   // Check if it's a variable alias
   if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
     const referencedName = idToName.get(rawValue.id);
@@ -306,17 +281,17 @@ export async function exportAllVariables() {
       idToName.set(v.id, v.name.replace(/\//g, '.'));
     }
 
-    const exportedCollections: ExportedCollection[] = [];
+    const exportedCollections: ExportedVariableCollection[] = [];
 
     for (const collection of collections) {
       const modes = collection.modes.map(m => ({ modeId: m.modeId, name: m.name }));
-      const variables: ExportedVariable[] = [];
+      const variables: ExportedVariableEntry[] = [];
 
       for (const varId of collection.variableIds) {
         const variable = await figma.variables.getVariableByIdAsync(varId);
         if (!variable) continue;
 
-        const modeValues: Record<string, ExportedModeValue> = {};
+        const modeValues: Record<string, ExportedVariableModeValue> = {};
 
         for (const mode of modes) {
           const rawValue = variable.valuesByMode[mode.modeId];

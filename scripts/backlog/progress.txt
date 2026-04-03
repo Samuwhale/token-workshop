@@ -483,3 +483,21 @@
   - The `$rename-pending.json` pattern already existed for renameSet; the restore journal follows the same tmp-then-rename atomic write pattern.
   - The `recoverPendingRestore()` must run after `tokenStore.initialize()` (so sets are in memory for `restoreSnapshot`) but before the HTTP server starts accepting requests.
 ---
+
+## 2026-04-03 - Plugin sandbox data pipeline is pervasively `any`-typed
+- Defined `DimensionValue`, `ShadowTokenValue`, `TypographyValue`, `BorderValue`, `ResolvedTokenValue` union, `VariableSyncToken`, `ReadVariableToken/Mode/Collection`, `ExportedVariableModeValue/Entry/Collection`, `ConsistencyMatch`, `ConsistencySuggestion` in `shared/types.ts`.
+- Updated all message interfaces: `ApplyToSelectionMessage`, `BatchBindHeatmapNodesMessage`, `ApplyToNodesMessage`, `ApplyVariablesMessage`, `VariablesReadMessage`, `AllVariablesExportedMessage`, `ScanConsistencyMessage`, `ConsistencyScanResultMessage`, `ExtractedTokenEntry` — all use concrete types instead of `any`.
+- `consistencyScanner.ts`: imports `TokenMapEntry`, `ResolvedTokenValue`, `ConsistencyMatch`, `ConsistencySuggestion` from shared; removed local interface duplicates; `buildColorIndex`, `buildSortedNumericIndex`, `scanConsistency`, `addMatch` all typed. Cast `entry.$value as ResolvedTokenValue` at the `TokenValue | TokenReference` boundary.
+- `variableSync.ts`: `applyVariables(tokens: VariableSyncToken[])`, local `collections/modes/tokens` arrays typed as `ReadVariableCollection/Mode/Token[]`; removed local `ExportedModeValue/Variable/Collection` interfaces; `convertExportValue(rawValue: VariableValue)` typed with Figma's native type.
+- `selectionHandling.ts`: `applyTokenValue(value: ResolvedTokenValue)`, `applyToSelection/applyToNodes(resolvedValue: ResolvedTokenValue)`, `syncBindings(tokenMap: Record<string, TokenMapEntry>)`, `typoValue: TypographyValue`, shadow filter/map typed using `Effect`/`DropShadowEffect`/`InnerShadowEffect`.
+- `colorUtils.ts`: `parseDimValue(dim: string | number | DimensionValue | null | undefined)`, `shadowTokenToEffects(value: ShadowTokenValue | ShadowTokenValue[])`.
+- `variableUtils.ts`: `convertToFigmaValue(value: ResolvedTokenValue)`, `convertFromFigmaValue(value: VariableValue): string | number | boolean | null`.
+- `heatmapScanning.ts`: `batchBindHeatmapNodes(resolvedValue: ResolvedTokenValue)`.
+- `ConsistencyPanel.tsx`: removed local duplicate `ConsistencyMatch`/`ConsistencySuggestion` definitions, imports from `shared/types`.
+- Files changed: `shared/types.ts` ~L193, `plugin/consistencyScanner.ts` ~L1, `plugin/variableSync.ts` ~L5, `plugin/selectionHandling.ts` ~L1, `plugin/colorUtils.ts` ~L1, `plugin/variableUtils.ts` ~L1, `plugin/heatmapScanning.ts` ~L1, `ui/components/ConsistencyPanel.tsx` ~L1
+- **Learnings for future iterations:**
+  - `TokenMapEntry.$value` is `TokenValue | TokenReference` (from core); use `as ResolvedTokenValue` cast at the boundary between core types and the plugin's local union — TypeScript treats them as structurally separate even though they overlap.
+  - `VariableValue` (Figma plugin API type) is the correct parameter type for functions reading back from `variable.valuesByMode[modeId]`. Cast RGBA color values with `const c = value as RGBA` before accessing `.a`.
+  - Re-exporting types with `export type { Foo }` from a plugin file that imports from shared keeps the shared type as the canonical definition, avoiding duplication while maintaining the original module's export surface.
+  - Recursive `type ResolvedTokenValue = ... | Record<string, ResolvedTokenValue>` works in TypeScript ≥3.7 but overlaps structurally with more specific object members (DimensionValue etc.), so discriminating inside switch cases may still require explicit casts.
+---

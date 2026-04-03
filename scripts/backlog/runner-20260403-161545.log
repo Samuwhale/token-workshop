@@ -65,3 +65,10 @@ Already up to date.
   → Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files) — `consistencyScanner.ts` (11 `any`: tokenMap, tokenValue, $value, rawValue, parseValue), `variableSync.ts` (6 `any`: main `applyVariables` entry point, collections, modes, tokens arrays, resolvedValue, rawValue), `selectionHandling.ts` (6 `any`: applyTokenValue value param, tokenMap values), plus scattered casts in colorUtils, heatmapScanning, variableUtils; the entire plugin sandbox has zero compile-time validation of token data flowing through postMessage; define concrete interfaces for token map entries, variable snapshots, and scan results
   Worktree: /tmp/backlog-46580-bRqtMp
   Running agent… (started 16:21:45)
+
+  ✓ done: Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files)
+    Defined 14 concrete interfaces/types in shared/types.ts (ResolvedTokenValue, VariableSyncToken, ReadVariable*, ExportedVariable*, ConsistencyMatch/Suggestion, DimensionValue, ShadowTokenValue, TypographyValue, BorderValue) and replaced all `any` usages across consistencyScanner.ts, variableSync.ts, selectionHandling.ts, colorUtils.ts, variableUtils.ts, heatmapScanning.ts, and ConsistencyPanel.tsx; all 4 validation gates pass.
+    90 turns · 718s · $3.62
+
+  Merging to main: Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files)
+Already up to date.

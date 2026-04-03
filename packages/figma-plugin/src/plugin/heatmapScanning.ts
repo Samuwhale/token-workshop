@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type HeatmapScope } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type HeatmapScope, type ResolvedTokenValue } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
@@ -266,7 +266,7 @@ export async function scanTokenUsage(tokenPath: string) {
   }
 }
 
-export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: any) {
+export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue) {
   // First select the nodes so applyToSelection operates on them
   const nodes: SceneNode[] = [];
   for (const id of nodeIds) {

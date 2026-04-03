@@ -1,22 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { TokenMapEntry } from '../../shared/types';
-
-interface ConsistencyMatch {
-  nodeId: string;
-  nodeName: string;
-  nodeType: string;
-  property: string;
-  actualValue: string | number;
-  tokenValue: string | number;
-}
-
-interface ConsistencySuggestion {
-  tokenPath: string;
-  tokenType: string;
-  tokenValue: any;
-  property: string;
-  matches: ConsistencyMatch[];
-}
+import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
 
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;

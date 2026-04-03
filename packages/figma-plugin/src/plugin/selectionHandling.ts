@@ -1,5 +1,5 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
-import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo } from '../shared/types.js';
+import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
@@ -7,7 +7,7 @@ import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './col
 import { resolveStyleForWeight, fontStyleToWeight } from './fontLoading.js';
 
 // Apply a resolved token value to a specific node property
-export async function applyTokenValue(node: SceneNode, property: string, value: any, tokenType: string) {
+export async function applyTokenValue(node: SceneNode, property: string, value: ResolvedTokenValue, tokenType: string) {
   switch (property) {
     case 'fill':
       if ('fills' in node) {
@@ -157,7 +157,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 }
 
 // Apply token to selected nodes
-export async function applyToSelection(tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: any) {
+export async function applyToSelection(tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue) {
   const selection = figma.currentPage.selection;
   if (selection.length === 0) {
     figma.notify('Select a layer first');
@@ -473,7 +473,7 @@ export async function extractTokensFromSelection() {
       const fontSize = textNode.fontSize;
       if (fontName !== figma.mixed && fontSize !== figma.mixed) {
         const weight = fontStyleToWeight(fontName.style);
-        const typoValue: Record<string, any> = {
+        const typoValue: TypographyValue = {
           fontFamily: fontName.family,
           fontWeight: weight,
           fontSize: { value: fontSize, unit: 'px' },
@@ -505,17 +505,17 @@ export async function extractTokensFromSelection() {
     if ('effects' in node) {
       const effects = n['effects'];
       if (Array.isArray(effects)) {
-        const shadows = effects.filter((e: any) =>
+        const shadows = effects.filter((e: Effect) =>
           (e.type === 'DROP_SHADOW' || e.type === 'INNER_SHADOW') && e.visible !== false
-        );
+        ) as (DropShadowEffect | InnerShadowEffect)[];
         if (shadows.length > 0) {
-          const shadowValue = shadows.map((s: any) => ({
+          const shadowValue = shadows.map((s) => ({
             type: s.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
             color: rgbToHex(s.color, s.color.a ?? 1),
             offsetX: { value: s.offset.x, unit: 'px' },
             offsetY: { value: s.offset.y, unit: 'px' },
             blur: { value: s.radius, unit: 'px' },
-            spread: { value: s.spread ?? 0, unit: 'px' },
+            spread: { value: (s as DropShadowEffect).spread ?? 0, unit: 'px' },
           }));
           entries.push({
             property: 'shadow',
@@ -694,7 +694,7 @@ export async function scanTokenUsageMap() {
 }
 
 // Sync all bindings on the page or selection with latest token values
-export async function syncBindings(tokenMap: Record<string, { $value: any; $type: string }>, scope: 'page' | 'selection') {
+export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scope: 'page' | 'selection') {
   const nodes = collectNodesForScope(scope, node => {
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
@@ -765,7 +765,7 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
             type = resolved.$type;
           }
           try {
-            await applyTokenValue(node, prop, value, type);
+            await applyTokenValue(node, prop, value as ResolvedTokenValue, type);
             nodeUpdated++;
           } catch (err) {
             console.error(`Sync error on ${node.name}.${prop}:`, err);
@@ -945,7 +945,7 @@ export async function applyToNodes(
   tokenPath: string,
   tokenType: string,
   targetProperty: string,
-  resolvedValue: any,
+  resolvedValue: ResolvedTokenValue,
 ) {
   let applied = 0;
   const errors: string[] = [];
