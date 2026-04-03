@@ -126,3 +126,10 @@ Already up to date.
   → PreviewPanel dark mode toggle is not persisted — switching between light/dark resets every time the user changes template tabs or re-opens the panel; persist the dark mode preference in localStorage so it survives across sessions (PreviewPanel.tsx ~L287-315)
   Worktree: /tmp/backlog-81661-O6Ta5p
   Running agent… (started 12:05:07)
+
+  ✓ done: PreviewPanel dark mode toggle is not persisted
+    Initialized darkMode and template from localStorage with lazy useState initializers; writes happen inline at toggle/click sites. Both survive tab switches and panel re-opens.
+    10 turns · 63s · $0.23
+
+  Merging to main: PreviewPanel dark mode toggle is not persisted
+Already up to date.

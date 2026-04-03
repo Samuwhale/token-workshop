@@ -83,9 +83,17 @@ function resolveValue(value: unknown, type: string): string {
   return resolved;
 }
 
+const STORAGE_KEY_TEMPLATE = 'preview-template';
+const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
+
 export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken }: PreviewPanelProps) {
-  const [template, setTemplate] = useState<Template>('colors');
-  const [darkMode, setDarkMode] = useState(false);
+  const [template, setTemplate] = useState<Template>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
+    return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
+  });
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem(STORAGE_KEY_DARK_MODE) === 'true';
+  });
 
   // Build CSS vars object from all tokens
   const cssVars = useMemo(() => {
@@ -233,7 +241,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             {TEMPLATES.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTemplate(t.id)}
+                onClick={() => { setTemplate(t.id); localStorage.setItem(STORAGE_KEY_TEMPLATE, t.id); }}
                 className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
                   template === t.id
                     ? 'bg-[var(--color-figma-accent)] text-white'
@@ -245,7 +253,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             ))}
           </div>
           <button
-            onClick={() => setDarkMode(v => !v)}
+            onClick={() => setDarkMode(v => { const next = !v; localStorage.setItem(STORAGE_KEY_DARK_MODE, String(next)); return next; })}
             title={darkMode ? 'Switch to light' : 'Switch to dark'}
             className={`shrink-0 flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
               darkMode

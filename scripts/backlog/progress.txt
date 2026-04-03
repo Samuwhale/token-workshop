@@ -250,3 +250,11 @@
   - The "X more — type to refine" text was already there as a hint; converting it to a button is minimal change, avoids virtual scrolling complexity, and keeps the component self-contained.
   - Reset `bindShowAll` on query change to avoid stale "Show all" state after the user has already filtered.
 ---
+
+## 2026-04-03 - PreviewPanel dark mode toggle not persisted
+- Persisted both `darkMode` and `template` to localStorage so they survive tab switches and panel re-opens. Initialized both states with lazy initializers reading from localStorage; writes happen inline at each setter call site.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L86-98, ~L248, ~L265
+- **Learnings for future iterations:**
+  - The component unmounts/remounts when switching top-level tabs, so any `useState` with a default value resets. Always use lazy initializers (`useState(() => localStorage.getItem(...))`) for UI preferences that should survive remounts.
+  - Both `template` and `darkMode` were susceptible — fixed together since they're both toolbar-level preferences in the same component.
+---
