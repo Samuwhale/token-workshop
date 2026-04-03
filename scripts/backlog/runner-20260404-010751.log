@@ -250,3 +250,18 @@ Already up to date.
 
   Merging to main: ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
 Already up to date.
+[main cc6688d1] chore(backlog): done – ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
+ 6 files changed, 52 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
+- Added a dedicated unmount `useEffect` that clears `figmaLoadingTimeoutRef.current` on cleanup, preventing stale `setFigmaLoading`/`setError` calls after unmount.
+- Added `AbortController` to the sets-fetch `useEffect` — aborts in-flight fetch on cleanup and silently ignores `AbortError`, preventing `setAvailableSets` calls after unmount.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L239-260
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  10 queued · 2 in-progress · last took 59s
+═══════════════════════════════════════════════════════════════
+  → Lint rule labels duplicated with inconsistent wording across three locations — LintConfigPanel RULE_DEFS says "Raw color values" while AnalyticsPanel RULE_LABELS says "Raw color value"; "Require description" vs "Missing description"; max-alias-depth rule is missing entirely from AnalyticsPanel; extract a shared RULE_REGISTRY constant used by both panels and the server (LintConfigPanel.tsx L18-46, AnalyticsPanel.tsx L43-54, server lint.ts)
+  Worktree: /tmp/backlog-92209-kmhTB2
+  Running agent… (started 01:49:44)

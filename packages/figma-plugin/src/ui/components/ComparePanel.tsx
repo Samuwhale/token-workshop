@@ -316,8 +316,14 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
                       const val = fmtProp(t.resolvedValue, key);
                       return (
                         <td key={t.path} className={`px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] font-mono ${isDiff ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
-                          {key === 'fontFamily' || key === 'color' ? null : null}
-                          {val}
+                          {key === 'color' ? (
+                            <span className="flex items-center gap-1">
+                              <ColorSwatch hex={val} />
+                              {val}
+                            </span>
+                          ) : key === 'fontFamily' ? (
+                            <span style={{ fontFamily: val }} title={val}>{val}</span>
+                          ) : val}
                         </td>
                       );
                     })}

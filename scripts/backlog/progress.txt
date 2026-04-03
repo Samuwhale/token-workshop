@@ -497,3 +497,11 @@
   - `apiFetch` already accepts `RequestInit` (including `signal`), so abort integration is zero-boilerplate.
   - Catching `AbortError` by name (`err.name === 'AbortError'`) is more robust than `instanceof DOMException` in the plugin sandbox environment.
 ---
+
+## 2026-04-04 - ComparePanel line 319 dead ternary renders nothing
+- Replaced dead `{key === 'fontFamily' || key === 'color' ? null : null}` with actual rendering: for `key === 'color'`, wraps value in a flex span with `<ColorSwatch hex={val} />` before the text (matching the pattern used for simple color tokens on line 339); for `key === 'fontFamily'`, wraps value in a span with `style={{ fontFamily: val }}` so the font name is previewed in its own typeface.
+- Files changed: `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L319
+- **Learnings for future iterations:**
+  - The non-structured single-value row already had `ColorSwatch` for color tokens — the structured property rows just needed the same pattern applied per-key.
+  - `ColorSwatch` already handles invalid hex gracefully (returns null), so passing `val` is safe even if the value is '—'.
+---

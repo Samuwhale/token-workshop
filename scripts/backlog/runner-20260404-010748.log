@@ -279,3 +279,10 @@ Already up to date.
   → ComparePanel line 319 dead ternary renders nothing — `{key === 'fontFamily' || key === 'color' ? null : null}` should render inline color swatches or font previews for those property keys in the side-by-side comparison table, instead of being a no-op (ComparePanel.tsx L319)
   Worktree: /tmp/backlog-91949-8LqoN1
   Running agent… (started 01:48:51)
+
+  ✓ done: ComparePanel line 319 dead ternary renders nothing
+    Replaced null:null ternary with ColorSwatch for color keys and fontFamily-styled span for fontFamily keys in structured property rows
+    7 turns · 56s · $0.19
+
+  Merging to main: ComparePanel line 319 dead ternary renders nothing
+Already up to date.
