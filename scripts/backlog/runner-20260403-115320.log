@@ -518,3 +518,10 @@ Already up to date.
 - Added a "merge" import strategy that updates token `$value` and `$type` from the incoming source while preserving local `$description` and `$extensions` — matching how git merge works for structured data.
 - **Server:** `packages/server/src/services/token-store.ts` ~L720: Added `'merge'` to `batchUpsertTokens` strategy type and merge branch in the existing-token handler (updates `$value`/`$type` only, skips `$description`/`$extensions`). `packages/server/src/routes/tokens.ts` ~L444: Extended batch route type and validation to accept `'merge'`.
 - **UI:** `packages/figma-plugin/src/ui/components/ImportPanel.tsx`:
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  24 queued · 4 in-progress · last took 6m26s
+═══════════════════════════════════════════════════════════════
+  → No "duplicate token" action in token tree or command palette — creating a variation of an existing token requires manually creating a new token and re-entering all values; a "Duplicate" action in the token context menu and command palette would copy all properties (value, type, description, extensions) to a new path, matching Figma's Ctrl+D pattern for variables
+  Worktree: /tmp/backlog-80049-VnCMMC
+  Running agent… (started 13:41:00)
