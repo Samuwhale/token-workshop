@@ -461,3 +461,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: duplicated Lab→sRGB math in core, server input validation gaps (generators/lint/search), manual-snapshot restore race+journal leak, hooks missing abort-on-unmount, TokenTreeNode stale closures from eslint-disable, ThemeManager 30+ useState explosion
+Already up to date.

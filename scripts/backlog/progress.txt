@@ -433,3 +433,9 @@
   - The "stable callback ref" pattern (`useRef` + assignment on every render, called from mount effect) is the clean way to call a `useCallback` function from a mount-only effect without listing all its deps.
   - Persisting the "last run at change key" in localStorage enables auto-run staleness detection across component remounts (PublishPanel unmounts/remounts each time you navigate away from the Publish tab).
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: packages/core/src/ (color-math.ts, color-parse.ts, resolver.ts, validator.ts, dtcg-resolver.ts), packages/figma-plugin/src/plugin/ (controller.ts, selectionHandling.ts, variableSync.ts, heatmapScanning.ts), packages/figma-plugin/src/ui/hooks/ (useTokens.ts, useGenerators.ts, useServerConnection.ts, useFigmaSync.ts, useThemeSwitcher.ts, useLint.ts, useGitStatus.ts), packages/server/src/services/ (manual-snapshot.ts, event-bus.ts, stable-stringify.ts, style-dict.ts), packages/server/src/routes/ (generators.ts, lint.ts, tokens.ts, export.ts, snapshots.ts, sse.ts), packages/figma-plugin/src/ui/components/ (TokenTreeNode.tsx, ThemeManager.tsx, ImportPanel.tsx, TokenEditor.tsx)
+- Found 6 items — written to backlog-inbox.md
+- Notable: manual-snapshot.ts restore() has no mutex and can corrupt the restore journal if called concurrently; multiple hooks use AbortSignal.timeout() but lack AbortController cleanup on component unmount (useGenerators, useTokens, useFigmaSync) while sibling hooks (useLint, useThemeSwitcher, useResolvers) do it correctly; Lab→sRGB conversion is duplicated identically between color-math.ts and color-parse.ts
+---

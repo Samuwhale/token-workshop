@@ -417,3 +417,18 @@ Already up to date.
 
   Merging to main: Publish readiness checks go stale silently after token edits
 Already up to date.
+[main 75d5c301] chore(backlog): done – Publish readiness checks go stale silently after token edits
+ 8 files changed, 80 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Publish readiness checks go stale silently after token edits
+- Added `tokenChangeKey?: number` prop to `PublishPanelProps` and passed it from App.tsx.
+- Added `checksRunAtKey` (number | null) and `checksStale` (boolean) state to track when results are outdated.
+- After `runReadinessChecks` succeeds: records `checksRunAtKey = tokenChangeKey`, clears `checksStale`, saves key to `localStorage` (`tm_readiness_change_key`).
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  5 queued · 2 in-progress · last took 9m35s
+═══════════════════════════════════════════════════════════════
+  → No node graph search or filtering — the graph view of generators has no way to find a specific generator or token node; users with many generators must pan/zoom manually to find what they need; the list view has search but graph view has none; add a search input that highlights/zooms-to matching nodes in the graph (GraphPanel.tsx, NodeGraphCanvas.tsx)
+  Worktree: /tmp/backlog-45818-j4HnQm
+  Running agent… (started 18:17:44)
