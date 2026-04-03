@@ -505,3 +505,10 @@ Already up to date.
   → Duplicated Lab→XYZ→sRGB conversion in core package — `color-math.ts:labToHex` (L74-86) and `color-parse.ts:labToSrgbCoords` (L560-572) contain identical math (same constants, same `f3` helper, same matrix); `labToHex` additionally calls `rgbToHex` while `labToSrgbCoords` returns `[r,g,b]` with `clamp01`; consolidate into a single shared function and have both call it to prevent divergence during future edits
   Worktree: /tmp/backlog-46178-oRfy3h
   Running agent… (started 18:31:07)
+
+  ✓ done: Duplicated Lab→XYZ→sRGB conversion in core package
+    Extracted shared labToSrgb() in color-math.ts; labToHex and labToSrgbCoords now both delegate to it, eliminating the duplicated math
+    15 turns · 86s · $0.31
+
+  Merging to main: Duplicated Lab→XYZ→sRGB conversion in core package
+Already up to date.

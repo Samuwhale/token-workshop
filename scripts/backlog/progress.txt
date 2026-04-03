@@ -516,3 +516,11 @@
   - For drag-end undo (where multiple intermediate moves shouldn't each create undo entries), expose a `pushMoveUndo(nodeId, fromX, fromY)` function from the hook that reads the post-drag position from graphRef — canvas captures startX/startY in dragRef and calls this once at pointer-up
   - Position persistence (localStorage) in undo/redo closures must compute new node array explicitly (can't rely on graphRef which hasn't updated yet at that point) — use `graphRef.current.nodes.map(...)` with the known new coords
 ---
+
+## 2026-04-03 - Duplicated Lab→XYZ→sRGB conversion in core package
+- Extracted shared `labToSrgb(L, a, b): [number, number, number]` function in `color-math.ts`; rewrote `labToHex` to call `labToSrgb` + `rgbToHex`; updated `color-parse.ts` to import `labToSrgb` and reduced `labToSrgbCoords` to a one-line delegate. The extra `clamp01` in the old `labToSrgbCoords` was redundant since `srgbFromLinear` already clamps internally.
+- Files changed: `packages/core/src/color-math.ts` ~L74, `packages/core/src/color-parse.ts` ~L33,L560
+- **Learnings for future iterations:**
+  - When two conversion functions share identical math but differ only in output format (hex string vs [r,g,b] tuple), extract the shared math as the "raw coords" function and let the hex variant be a one-liner wrapper.
+  - `srgbFromLinear` in color-math.ts already clamps to [0,1] internally — downstream callers that add an extra `clamp01` are doing redundant work.
+---

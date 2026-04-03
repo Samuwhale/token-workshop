@@ -525,3 +525,18 @@ Already up to date.
 
   Merging to main: Node graph has no undo/redo for node positioning or edge changes
 Already up to date.
+[main 3bc5836b] chore(backlog): done – Node graph has no undo/redo for node positioning or edge changes
+ 9 files changed, 170 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Node graph has no undo/redo for node positioning or edge changes
+- Added full undo/redo support for all graph editor state mutations:
+  - `removeNode`: captures node + all connected edges before deletion; undo re-adds both
+  - `addTransformNode`: undo removes the node (and any edges it acquired)
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  5 queued · 3 in-progress · last took 6m9s
+═══════════════════════════════════════════════════════════════
+  → Server route input validation gaps across generators, lint, and search — generator config validation (`routes/generators.ts` L131-149) accepts `NaN`/`Infinity` via `typeof x === 'number'` checks without `isFinite`; `PUT /api/lint/config` (`routes/lint.ts` L20-24) persists raw `Partial<LintConfig>` with zero schema validation; `GET /api/tokens/search` (`routes/tokens.ts` L29-50) accepts user-provided regex without ReDoS safety checks; all three are boundary validation gaps at the HTTP layer
+  Worktree: /tmp/backlog-46580-F6gLVH
+  Running agent… (started 18:31:48)

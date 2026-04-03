@@ -71,7 +71,8 @@ export function hexToLab(hex: string): [number, number, number] | null {
   return [lab.L, lab.a, lab.b];
 }
 
-export function labToHex(L: number, a: number, b: number): string {
+/** CIE Lab L/a/b → sRGB [r, g, b] (0–1) via D65 XYZ. L is 0–100, a/b are ~−125 to 125. */
+export function labToSrgb(L: number, a: number, b: number): [number, number, number] {
   const fy = (L + 16) / 116;
   const fx = a / 500 + fy;
   const fz = fy - b / 200;
@@ -79,11 +80,15 @@ export function labToHex(L: number, a: number, b: number): string {
   const X = f3(fx) * 0.95047;
   const Y = f3(fy);
   const Z = f3(fz) * 1.08883;
-  return rgbToHex(
+  return [
     fromLinear(3.2406 * X - 1.5372 * Y - 0.4986 * Z),
     fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z),
     fromLinear(0.0557 * X - 0.2040 * Y + 1.0570 * Z),
-  );
+  ];
+}
+
+export function labToHex(L: number, a: number, b: number): string {
+  return rgbToHex(...labToSrgb(L, a, b));
 }
 
 /**
