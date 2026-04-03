@@ -73,3 +73,18 @@ Already up to date.
 
   Merging to main: ExportPanel multi-collection save silently partially succeeds when set creation fails
 Already up to date.
+[main 4c29c221] chore(backlog): done – ExportPanel multi-collection save silently partially succeeds when set creation fails
+ 6 files changed, 42 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel multi-collection save silently partially succeeds when set creation fails
+- Replaced the `.catch(() => console.warn(...))` on set creation with a catch that re-throws for non-409 errors. 409 (set already exists) is silently swallowed — that's fine. All other set creation errors now propagate and abort the loop immediately (fail-fast). Also wrapped the batch save in a `.catch()` that re-throws with the set name in the message, so the error shown to the user identifies which collection failed. The operation is now all-or-nothing: either all collections save or none after the failing one does.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L5 (ApiError import), ~L482–490 (set creation catch), ~L526–530 (batch save catch)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  1 queued · 4 in-progress · last took 1m35s
+═══════════════════════════════════════════════════════════════
+  → Generator multi-brand run leaves non-locked overrides in place on failure — clearNonLockedOverrides is called at line 639 of generator-service.ts only after a successful executeGeneratorMultiBrand loop; if any brand's executeSingleBrand throws, the catch block at the call site logs the error but clearNonLockedOverrides is never called; on the next run the stale non-locked overrides from the failed run are still present, causing unexpected merged output; fix by wrapping the multi-brand loop and clearNonLockedOverrides in try/finally so overrides are always cleared
+  Worktree: /tmp/backlog-81267-NavyJP
+  Running agent… (started 11:57:28)

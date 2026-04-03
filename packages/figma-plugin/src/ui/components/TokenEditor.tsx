@@ -500,9 +500,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   useEffect(() => {
     if (isCreateMode) return; // skip fetch in create mode
+    const controller = new AbortController();
     const fetchToken = async () => {
       try {
-        const data = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
+        const data = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
@@ -548,29 +549,34 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           setReference(token.$value);
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         setError(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
     };
     fetchToken();
+    return () => controller.abort();
   }, [serverUrl, setName, tokenPath, isCreateMode]);
 
   // Fetch reverse dependencies (tokens that reference this one)
   useEffect(() => {
     if (isCreateMode) return;
+    const controller = new AbortController();
     const fetchDependents = async () => {
       setDependentsLoading(true);
       try {
-        const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`);
+        const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`, { signal: controller.signal });
         setDependents(data.dependents ?? []);
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.warn('[TokenEditor] failed to fetch dependents:', err);
       } finally {
         setDependentsLoading(false);
       }
     };
     fetchDependents();
+    return () => controller.abort();
   }, [serverUrl, setName, tokenPath, isCreateMode]);
 
   // Sync alias mode with loaded reference

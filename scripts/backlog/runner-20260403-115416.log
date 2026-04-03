@@ -43,3 +43,10 @@ Already up to date.
   → TokenEditor has no AbortController on token fetch — the useEffect at TokenEditor.tsx:501 fires fetchToken() whenever tokenPath changes but never aborts in-flight requests from a previous path; if the user rapidly switches between tokens (common when navigating the tree), multiple fetches can be in-flight and the last to resolve wins regardless of which was initiated most recently; the wrong token's data can be displayed; fix by creating an AbortController inside the effect and passing its signal to apiFetch, aborting on cleanup
   Worktree: /tmp/backlog-82379-YUC2xL
   Running agent… (started 11:56:22)
+
+  ✓ done: TokenEditor has no AbortController on token fetch
+    Added AbortController + cleanup to both fetch effects; abort errors are silently ignored, other errors still surface normally.
+    12 turns · 72s · $0.24
+
+  Merging to main: TokenEditor has no AbortController on token fetch
+Already up to date.

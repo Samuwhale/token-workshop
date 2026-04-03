@@ -400,3 +400,12 @@
   - `.catch((err) => { if (condition) return; throw err; })` is the idiomatic pattern for selectively suppressing specific errors while re-throwing others — cleaner than try/catch with an if-else.
   - When wrapping re-thrown errors with context (e.g., set name), wrap in `new Error(msg)` rather than re-throwing the original so the UI error message is human-readable.
 ---
+
+## 2026-04-03 - TokenEditor has no AbortController on token fetch
+- Added `AbortController` to both `useEffect`s in `TokenEditor.tsx`: the main token fetch (L501) and the dependents fetch (L560). Each effect creates a controller, passes `{ signal: controller.signal }` to `apiFetch`, returns `() => controller.abort()` as cleanup, and skips `setError`/`console.warn` when the caught error is an `AbortError`. This prevents stale responses from overwriting the currently-displayed token when the user navigates quickly between tokens.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L501, ~L560
+- **Learnings for future iterations:**
+  - `apiFetch` already accepts `options?: RequestInit`, so passing `{ signal }` requires no changes to the utility.
+  - Both fetch effects share the same dep array (`[serverUrl, setName, tokenPath, isCreateMode]`), so both need the same AbortController treatment.
+  - Check `err.name === 'AbortError'` (not `err instanceof DOMException`) for broadest browser compatibility in the Figma plugin sandbox.
+---
