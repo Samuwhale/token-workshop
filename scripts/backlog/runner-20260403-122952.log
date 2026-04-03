@@ -290,3 +290,18 @@ Already up to date.
 
   Merging to main: Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
 Already up to date.
+[main 65189508] chore(backlog): done – Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
+ 6 files changed, 141 insertions(+), 43 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
+- Added crash-recovery marker pattern to `renameSet`: writes `$rename-pending.json` (containing `{oldName, newName}`) before touching any files, then removes it after both steps complete. A crash between file rename and themes update is now recoverable on next startup.
+- Added `recoverPendingRename()` called during `initialize()`: reads the marker, checks which step completed (by testing file existence), and re-applies the themes update if needed. Handles four cases: rename incomplete (clean up marker), rename done/themes not done (reapply themes + cleanup), both files exist (ambiguous — log error, leave marker), neither file exists (stale marker cleanup).
+- Extracted `applyThemesRename(oldName, newName)` as a private helper — used by both `renameSet` and `recoverPendingRename`, eliminating inline duplication.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  17 queued · 4 in-progress · last took 2m30s
+═══════════════════════════════════════════════════════════════
+  → No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
+  Worktree: /tmp/backlog-49887-rKz9Es
+  Running agent… (started 13:35:10)

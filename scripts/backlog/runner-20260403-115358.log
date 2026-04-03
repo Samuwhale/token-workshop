@@ -537,3 +537,10 @@ Already up to date.
   → Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts; reviewing 50 conflicting tokens requires 50 separate clicks; add inline side-by-side value comparison in the diff list rows (VariableSyncSubPanel.tsx ~L35-80)
   Worktree: /tmp/backlog-81661-VswWIP
   Running agent… (started 13:32:57)
+
+  ✓ done: Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts
+    stale — already done. VarDiffRowItem in PublishShared.tsx already renders inline side-by-side Local/Figma value comparison for conflict rows via ValueCell components; no clicks needed.
+    17 turns · 135s · $0.5
+
+  Merging to main: Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts
+Already up to date.

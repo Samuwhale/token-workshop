@@ -556,3 +556,10 @@
   - Extract shared mutation helpers first — the inline themes-update code in `renameSet` made the function long; extraction also made the recovery path trivial to write.
   - Never use `.catch(() => {})` on rollback paths — at minimum log the error. Double-failure scenarios (primary op fails AND rollback fails) require the error chain to be visible.
 ---
+
+## 2026-04-03 - Sync conflict review requires opening each token individually
+- Stale — already done. `VarDiffRowItem` in `PublishShared.tsx` (lines 355-362) already renders inline side-by-side value comparison for conflict rows using `ValueCell` components showing "Local: [swatch?] value → Figma: [swatch?] value". Single-value display is also shown for local-only and figma-only rows. Both `VariableSyncSubPanel` and `StyleSyncSubPanel` use `VarDiffRowItem`, so no clicks are needed to see conflicting values.
+- Files changed: none
+- **Learnings for future iterations:**
+  - `VarDiffRowItem` (PublishShared.tsx ~L336) is the row renderer for all three sync categories; it already handles inline value display for all cases.
+---
