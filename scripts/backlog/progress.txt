@@ -515,3 +515,15 @@
   - Figma `listAvailableFontsAsync()` returns `Font[]` where `fontName.style` is a human-readable style name ("ExtraLight Italic", "Bold", etc.) — multiple styles can map to the same numeric weight, hence using a `Set<number>` per family.
   - Disabling `<option>` elements works in browsers but isn't visually obvious; pairing it with a `✕` suffix text and an amber border on the select gives clear signal without blocking existing data.
 ---
+
+## 2026-04-04 - variableSync.ts O(n) sequential async calls and stale variable cache
+- **`readFigmaVariables`**: replaced O(vars×modes) sequential `getVariableByIdAsync` calls with a single `Promise.all([getLocalVariableCollectionsAsync, getLocalVariablesAsync])` + a `Map<id, Variable>` for O(1) lookup per varId.
+- **`deleteOrphanVariables`**: same fix — replaced sequential `getVariableByIdAsync` per varId with a single `getLocalVariablesAsync` + Map lookup; parallelized the two top-level fetches with `Promise.all`.
+- **`applyVariables` stale cache**: after `createVariable`, push the new `Variable` into `localVariables` so subsequent `findVariableInList` calls (same sync loop) can find just-created entries and avoid duplicate creation.
+- **`exportAllVariables`**: parallelized the two sequential top-level fetches with `Promise.all`; replaced per-varId `getVariableByIdAsync` loop with the already-fetched `allVariables` array via a new `variableById` Map.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` L45, L84-88, L188-231, L233-265, L288-341
+- **Learnings for future iterations:**
+  - The Figma plugin sandbox is single-threaded but `getVariableByIdAsync` is still an async call that yields to the microtask queue each time; batching eliminates that overhead for large variable sets.
+  - `getLocalVariablesAsync()` returns the full Variable array; building a `Map<id, Variable>` from it once is the canonical pattern — no need for per-ID async calls anywhere in the same function.
+  - The stale-cache bug in `applyVariables` was subtle: `localVariables` is populated before the loop, but `createVariable` (synchronous) produces a new Variable that isn't in the snapshot. Pushing it immediately after creation keeps the loop idempotent.
+---

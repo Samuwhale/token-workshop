@@ -83,6 +83,8 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       } else {
         variable = figma.variables.createVariable(figmaName, collection, variableType);
         createdVariableIds.push(variable.id);
+        // Keep the local cache fresh so subsequent findVariableInList calls see just-created variables
+        localVariables.push(variable);
       }
 
       // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
@@ -185,13 +187,21 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
 export async function readFigmaVariables(correlationId?: string) {
   let localCollections: VariableCollection[];
+  let allVariables: Variable[];
   try {
-    localCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    [localCollections, allVariables] = await Promise.all([
+      figma.variables.getLocalVariableCollectionsAsync(),
+      figma.variables.getLocalVariablesAsync(),
+    ]);
   } catch (err) {
     const message = getErrorMessage(err);
     figma.ui.postMessage({ type: 'variables-read-error', error: message, correlationId });
     return;
   }
+
+  // Build a lookup map so each varId resolves in O(1) instead of a sequential async call
+  const variableById = new Map<string, Variable>(allVariables.map(v => [v.id, v]));
+
   const collections: ReadVariableCollection[] = [];
 
   for (const collection of localCollections) {
@@ -201,7 +211,7 @@ export async function readFigmaVariables(correlationId?: string) {
     for (const mode of collection.modes) {
       const tokens: ReadVariableToken[] = [];
       for (const varId of collection.variableIds) {
-        const variable = await figma.variables.getVariableByIdAsync(varId);
+        const variable = variableById.get(varId);
         if (!variable) continue;
         const value = variable.valuesByMode[mode.modeId];
         tokens.push({
@@ -225,16 +235,21 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
     const knownSet = new Set(knownPaths);
     // All collection names managed by TokenManager: the default plus any custom-mapped names
     const managedNames = new Set([VARIABLE_COLLECTION_NAME, ...Object.values(collectionMap)]);
-    const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    const [allCollections, allVariables] = await Promise.all([
+      figma.variables.getLocalVariableCollectionsAsync(),
+      figma.variables.getLocalVariablesAsync(),
+    ]);
     const managedCollections = allCollections.filter(c => managedNames.has(c.name));
     if (managedCollections.length === 0) {
       figma.ui.postMessage({ type: 'orphans-deleted', count: 0, correlationId });
       return;
     }
+    // Build a lookup map so each varId resolves in O(1) instead of a sequential async call
+    const variableById = new Map<string, Variable>(allVariables.map(v => [v.id, v]));
     let deleted = 0;
     for (const collection of managedCollections) {
       for (const varId of collection.variableIds) {
-        const variable = await figma.variables.getVariableByIdAsync(varId);
+        const variable = variableById.get(varId);
         if (!variable) continue;
         const path = variable.name.replace(/\//g, '.');
         if (!knownSet.has(path)) {
@@ -272,13 +287,17 @@ function convertExportValue(
 
 export async function exportAllVariables() {
   try {
-    const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const [collections, allVariables] = await Promise.all([
+      figma.variables.getLocalVariableCollectionsAsync(),
+      figma.variables.getLocalVariablesAsync(),
+    ]);
 
-    // Build a lookup: variable id -> variable name (for resolving aliases)
+    // Build lookups: variable id -> variable name (for resolving aliases) and id -> Variable
     const idToName = new Map<string, string>();
+    const variableById = new Map<string, Variable>();
     for (const v of allVariables) {
       idToName.set(v.id, v.name.replace(/\//g, '.'));
+      variableById.set(v.id, v);
     }
 
     const exportedCollections: ExportedVariableCollection[] = [];
@@ -288,7 +307,7 @@ export async function exportAllVariables() {
       const variables: ExportedVariableEntry[] = [];
 
       for (const varId of collection.variableIds) {
-        const variable = await figma.variables.getVariableByIdAsync(varId);
+        const variable = variableById.get(varId);
         if (!variable) continue;
 
         const modeValues: Record<string, ExportedVariableModeValue> = {};

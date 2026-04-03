@@ -80,3 +80,10 @@ Already up to date.
   → variableSync.ts has O(n) sequential async calls and a stale variable cache — `readFigmaVariables` calls `getVariableByIdAsync` once per variable per mode (O(vars×modes) sequential awaits), `deleteOrphanVariables` does the same, and the sync loop fetches `localVariables` once at L45 but never refreshes it after creating new variables, so `findVariableInList` can miss just-created entries and produce duplicates; batch the per-variable fetches with `Promise.all` and refresh the variable list after each creation (variableSync.ts L45, L204, L237)
   Worktree: /tmp/backlog-91949-Fx5aVr
   Running agent… (started 01:16:04)
+
+  ✓ done: variableSync.ts has O(n) sequential async calls and a stale variable cache
+    Batched all per-varId getVariableByIdAsync calls into single getLocalVariablesAsync + Map lookups in readFigmaVariables, deleteOrphanVariables, and exportAllVariables; fixed stale localVariables cache in applyVariables by pushing newly created variables into the array
+    14 turns · 131s · $0.4
+
+  Merging to main: variableSync.ts has O(n) sequential async calls and a stale variable cache
+Already up to date.

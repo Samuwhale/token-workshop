@@ -75,3 +75,18 @@ Already up to date.
 
   Merging to main: Typography value editor allows selecting font weights unavailable in the chosen font family
 Already up to date.
+[main 889c08e2] chore(backlog): done – Typography value editor allows selecting font weights unavailable in the chosen font family
+ 12 files changed, 125 insertions(+), 39 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Typography value editor allows selecting font weights unavailable in the chosen font family
+- Extended the font data pipeline to carry per-family weight information all the way from the Figma API to the weight dropdown in TypographyEditor.
+- Added `getAvailableFontData()` to `fontLoading.ts` — returns `{ families, weightsByFamily }` using the existing `fontStyleToWeight` mapper to convert style names (e.g. "ExtraLight Italic") to numeric weights (200).
+- Updated `FontsLoadedMessage` in `shared/types.ts` to include `weightsByFamily: Record<string, number[]>`.
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  15 queued · 3 in-progress · last took 4m51s
+═══════════════════════════════════════════════════════════════
+  → Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling — `/sync/conflicts/resolve` (sync.ts L194-212) loops through resolutions calling `resolveFileConflict` sequentially; if resolution #3 fails, files #1-2 are already staged but `finalizeMerge` will fail, leaving the repo in a half-resolved merge state with no recovery path; also does not validate that `file` names correspond to actual conflicted files or that region indices are valid
+  Worktree: /tmp/backlog-92209-0vU92j
+  Running agent… (started 01:16:34)
