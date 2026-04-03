@@ -483,3 +483,18 @@ Already up to date.
 
   Merging to main: BatchEditor cannot batch-edit token values arithmetically
 Already up to date.
+[main 49f79041] chore(backlog): done – BatchEditor cannot batch-edit token values arithmetically
+ 6 files changed, 285 insertions(+), 60 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor cannot batch-edit token values arithmetically
+- Added `applyNumericTransform(value, op, operand)` replacing `scaleValue()` — handles `multiply`, `divide`, `add`, `subtract` for plain numbers, `{ value, unit }` objects, and `"12px"` strings.
+- Added pure local HSL math helpers (`rgbToHslLocal`, `hslToRgbLocal`) and `applyColorAdjust(colorValue, op, amount)` for `lighten`, `darken`, `saturate`, `desaturate`, `hue` operations — all operating on hex colors, preserving the alpha channel.
+- Added `numericOpMode` state (`multiply` | `divide` | `add` | `subtract`, default `multiply`) and a 4-button op-selector UI in the "Transform" row (renamed from "Multiply by").
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  2 queued · 2 in-progress · last took 8m15s
+═══════════════════════════════════════════════════════════════
+  → TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs — the `useEffect` at L47-52 depends only on `[isTabPending]` but reads `canEdit`, `value`, `tokenType`, and calls `onTabActivated`; the `useEffect` at L260 depends only on `[pendingTabEdit]` but reads `node.isGroup`, `node.$type`, `node.$value`, `canInlineEdit`, and `clearPendingTabEdit`; both effects can operate on stale data when their unlisted dependencies change without `isTabPending`/`pendingTabEdit` also changing; fix by adding proper dependencies or extracting stable refs
+  Worktree: /tmp/backlog-45818-TP95MG
+  Running agent… (started 18:37:03)

@@ -550,3 +550,9 @@
   - The `useMemo` for `numericTransformActive` is safer than an inline expression because it prevents re-computation on every render and allows TypeScript to narrow the dependent `op` parameter.
   - HSL math implemented locally avoids import chain TDZ risk in the singlefile bundle — colorUtils.ts re-exports from core which has known TDZ issues.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (3285 lines, 47 useState, 30+ command palette entries, keyboard shortcuts), all server routes (9 route files, 27 token endpoints, 13 generator endpoints, 19 sync endpoints), all UI components (85 files, 52K LOC), all hooks (48 files, 7.7K LOC), ExportPanel, GitSubPanel, SettingsPanel, SelectionInspector, TokenEditor, ValueEditors, SetSwitcher, EmptyState, CommandPalette, QuickApplyPicker, ExtractTokensPanel, TokenFlowPanel, useTokenNavigation
+- Found 12 items — written to backlog-inbox.md
+- Notable: App.tsx command palette useMemo with 30 dependencies is a performance concern; QuickApplyPicker missing unbind is a real workflow gap; color format cycling through 5 formats is surprisingly tedious
+---
