@@ -518,3 +518,11 @@
   - The pattern for cross-render callback guards: `const ref = useRef(value); ref.current = value;` at the top of the hook body. Inside any closure that should validate the "current context" at execution time (not closure-creation time), read `ref.current`. This avoids adding the volatile value to `useCallback` deps (which would constantly re-create callbacks) while still catching stale-context execution.
   - For dialog-open-then-confirm flows, capture any user-context that must not drift (active set, serverUrl) in state when the dialog opens, and use that captured state in the confirm handler. Do NOT rely on the outer hook's prop values in confirm handlers.
 ---
+
+## 2026-04-03 - Consolidate Resolvers sub-tab into Themes
+- Removed the "Resolvers" sub-tab from Define, reducing from 4 to 3 sub-tabs (Tokens, Themes, Generators). Resolver management remains accessible via Themes > Advanced mode toggle, which already rendered `<ResolverContent>` inline using the same resolver state.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L8 (removed import), ~L176 (updated DefineSubTab type), ~L221 (removed sub-tab from TOP_TABS), ~L2415 (removed standalone ResolverPanel rendering block)
+- **Learnings for future iterations:**
+  - Before removing a sub-tab, always check ThemeManager and other panels for existing embedded/advanced-mode views — the functionality may already live inside another tab.
+  - The localStorage fallback in `navigateTo` (line ~301) already handles stale sub-tab values: `topDef?.subTabs.some(s => s.id === stored)` guards access, so no migration code is needed when removing a sub-tab.
+---

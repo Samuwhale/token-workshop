@@ -386,3 +386,10 @@ Already up to date.
   → Consolidate Resolvers sub-tab into Themes — Resolvers are theme-scoped value resolution rules that only make sense in the context of themes; having them as a separate sub-tab under Define forces users to learn an extra concept and navigate away from the theme they're configuring; fold resolver management into ThemeManager as a section or collapsible panel within each dimension, reducing the top-level sub-tab count from 4 to 3
   Worktree: /tmp/backlog-46580-FdiKPH
   Running agent… (started 17:37:03)
+
+  ✓ done: Consolidate Resolvers sub-tab into Themes
+    Removed the Resolvers sub-tab from Define (4→3 sub-tabs); resolver management remains accessible via Themes > Advanced mode toggle which already embedded ResolverContent
+    20 turns · 189s · $0.71
+
+  Merging to main: Consolidate Resolvers sub-tab into Themes
+Already up to date.

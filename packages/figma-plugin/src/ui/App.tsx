@@ -6,7 +6,6 @@ import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import { ThemeCompare } from './components/ThemeCompare';
-import { ResolverPanel } from './components/ResolverPanel';
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -173,7 +172,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolvers';
+type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'audit' | 'consistency' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -218,7 +217,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
-    { id: 'resolvers', label: 'Resolvers' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
@@ -2410,29 +2408,6 @@ export function App() {
               focusGeneratorId={focusGeneratorId}
               onClearFocusGenerator={() => setFocusGeneratorId(null)}
             />
-            </ErrorBoundary>
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'resolvers' && (
-            <ErrorBoundary panelName="Resolvers" onReset={() => navigateTo('define', 'tokens')}>
-              <ResolverPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                sets={sets}
-                resolvers={resolverState.resolvers}
-                activeResolver={resolverState.activeResolver}
-                setActiveResolver={resolverState.setActiveResolver}
-                resolverInput={resolverState.resolverInput}
-                setResolverInput={resolverState.setResolverInput}
-                activeModifiers={resolverState.activeModifiers}
-                resolvedTokens={resolverState.resolvedTokens}
-                resolverError={resolverState.resolverError}
-                loading={resolverState.loading}
-                fetchResolvers={resolverState.fetchResolvers}
-                convertFromThemes={resolverState.convertFromThemes}
-                deleteResolver={resolverState.deleteResolver}
-                getResolverFile={resolverState.getResolverFile}
-                updateResolver={resolverState.updateResolver}
-              />
             </ErrorBoundary>
           )}
           {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'dependencies' && (

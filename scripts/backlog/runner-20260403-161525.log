@@ -301,3 +301,11 @@ Already up to date.
 
   Merging to main: useTokenCrud undo/redo closures capture stale set context
 Already up to date.
+[main 9258a0b2] chore(backlog): done – useTokenCrud undo/redo closures capture stale set context
+ 6 files changed, 92 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - useTokenCrud undo/redo closures capture stale set context
+- Added `setNameRef` and `serverUrlRef` refs (updated on every render) to `useTokenCrud` so that undo/redo callbacks can always read the current set name at execution time.
+- Added set-context validation guards in `restore`/`redo` callbacks of `executeTokenRename`, `executeDelete`, `handleInlineSave`, and `handleDescriptionSave`: if `setNameRef.current !== capturedSet`, the undo/redo is aborted and `onError` is called with a descriptive message explaining which set changed.
+- Also explicitly captured `capturedSet`/`capturedUrl` constants inside `handleInlineSave` and `handleDescriptionSave` (previously relying on the outer `useCallback` closure, which works but was inconsistent with the explicit-capture pattern established in `executeTokenRename`).
