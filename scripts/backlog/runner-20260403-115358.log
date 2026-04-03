@@ -435,3 +435,10 @@ Already up to date.
 
   Merging to main: Generator executeGeneratorMultiBrand has no rollback on partial row failure
 Already up to date.
+[main 2ccb34ed] chore(backlog): done – Generator executeGeneratorMultiBrand has no rollback on partial row failure
+ 6 files changed, 77 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥24) ---
+  → Archived 24 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 56)
