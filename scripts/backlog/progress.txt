@@ -508,3 +508,11 @@
   - The batch "Set all" handler (`handleBulkSetAllInOption`) uses the same mutation-chain queue pattern as the single-set handler so concurrent clicks don't interleave.
   - ESLint lint count actually improved (5 → 4) because some prior warnings may have been in now-corrected regions.
 ---
+
+## 2026-04-03 - AnalyticsPanel token type distribution chart is text-only
+- Enhanced the "By Type" section in AnalyticsPanel: replaced thin `h-1.5` (6px) bars with taller `h-3` (12px) bars, added a color dot swatch next to each type label, added a percentage label (`42%`) between the type name and the count, and upgraded the type label styling to be more legible. The bars now clearly communicate relative proportions at a glance.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L895
+- **Learnings for future iterations:**
+  - The bar chart already existed but used `h-1.5` (6px) which is too thin to read as a chart. Increasing to `h-3` (12px) and adding a percentage label transforms perception from "text with decoration" to "bar chart".
+  - Adding a colored dot swatch next to the type name reinforces the color-coding and improves scannability without cluttering.
+---

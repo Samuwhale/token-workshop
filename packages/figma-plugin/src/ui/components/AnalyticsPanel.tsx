@@ -893,21 +893,34 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
             By Type
           </div>
           <div className="divide-y divide-[var(--color-figma-border)]">
-            {sortedTypes.map(([type, count]) => (
-              <div key={type} className="flex items-center gap-3 px-3 py-2">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-20 truncate">{type}</span>
-                <div className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.round((count / totalTokens) * 100)}%`,
-                      backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK,
-                    }}
-                  />
+            {sortedTypes.map(([type, count]) => {
+              const pct = Math.round((count / totalTokens) * 100);
+              const color = TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK;
+              return (
+                <div key={type} className="px-3 py-2">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                      aria-hidden="true"
+                    />
+                    <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1 truncate">{type}</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{pct}%</span>
+                    <span className="text-[11px] font-semibold text-[var(--color-figma-text)] w-7 text-right shrink-0">{count}</span>
+                  </div>
+                  <div className="h-3 rounded-sm bg-[var(--color-figma-bg-hover)] overflow-hidden">
+                    <div
+                      className="h-full rounded-sm transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: color,
+                        opacity: 0.85,
+                      }}
+                    />
+                  </div>
                 </div>
-                <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right">{count}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -282,3 +282,10 @@ Already up to date.
   → AnalyticsPanel token type distribution chart is text-only — the analytics panel shows token counts by type as plain text rows; a small horizontal bar chart would make relative proportions immediately visible and help identify over/under-represented token types at a glance
   Worktree: /tmp/backlog-81661-8nWRog
   Running agent… (started 12:32:17)
+
+  ✓ done: AnalyticsPanel token type distribution chart is text-only
+    Enhanced "By Type" rows with taller h-3 bars, color dot swatches next to type labels, and percentage labels — chart proportions now immediately visible
+    12 turns · 81s · $0.25
+
+  Merging to main: AnalyticsPanel token type distribution chart is text-only
+Already up to date.
