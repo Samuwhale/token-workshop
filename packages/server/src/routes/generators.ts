@@ -10,6 +10,7 @@ import type {
   OpacityScaleConfig,
   BorderRadiusScaleConfig,
   ZIndexScaleConfig,
+  ShadowScaleConfig,
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
@@ -28,6 +29,7 @@ const VALID_GENERATOR_TYPES: readonly string[] = [
   'opacityScale',
   'borderRadiusScale',
   'zIndexScale',
+  'shadowScale',
   'customScale',
   'accessibleColorPair',
   'darkModeInversion',
@@ -210,6 +212,34 @@ function validateGeneratorConfig(
       if (dupZIndex !== undefined) return { error: `zIndexScale config has duplicate step name: "${dupZIndex}"` };
       const validated: ZIndexScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, value: s.value as number })),
+      };
+      return { validated };
+    }
+    case 'shadowScale': {
+      if (typeof c.color !== 'string') return { error: 'shadowScale config requires "color" as string' };
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) =>
+        isObj(s) &&
+        typeof s.name === 'string' &&
+        typeof s.offsetX === 'number' &&
+        typeof s.offsetY === 'number' &&
+        typeof s.blur === 'number' &&
+        typeof s.spread === 'number' &&
+        typeof s.opacity === 'number'
+      )) {
+        return { error: 'shadowScale config requires "steps" as Array<{name, offsetX, offsetY, blur, spread, opacity}>' };
+      }
+      const dupShadow = findDuplicateStepName(c.steps as Array<{ name: string }>);
+      if (dupShadow !== undefined) return { error: `shadowScale config has duplicate step name: "${dupShadow}"` };
+      const validated: ShadowScaleConfig = {
+        color: c.color as string,
+        steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
+          name: s.name as string,
+          offsetX: s.offsetX as number,
+          offsetY: s.offsetY as number,
+          blur: s.blur as number,
+          spread: s.spread as number,
+          opacity: s.opacity as number,
+        })),
       };
       return { validated };
     }

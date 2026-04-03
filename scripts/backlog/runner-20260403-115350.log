@@ -378,3 +378,18 @@ Already up to date.
 
   Merging to main: Core validateColorModifiers silently drops valid mix operations
 Already up to date.
+[main 547109d5] chore(backlog): done – Core validateColorModifiers silently drops valid mix operations
+ 7 files changed, 44 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Core validateColorModifiers silently drops valid mix operations
+- Removed the spurious `typeof obj.amount === 'number' && isFinite(obj.amount)` precondition from the `mix` branch in `validateColorModifiers`. The `mix` type in `ColorModifierOp` only requires `color` (string) and `ratio` (number) — `amount` is not part of its schema and is not read by `applyColorModifiers`. A valid `{type:'mix', color:'#fff', ratio:0.5}` was being silently dropped.
+- Updated tests: removed `amount: 0` from the mix entry in "returns valid ops unchanged"; updated "drops mix entries missing color or ratio" to not pass spurious `amount`; added explicit regression test "accepts mix without amount field".
+- Files changed: `packages/core/src/color-modifier.ts` ~L32-39, `packages/core/src/__tests__/color-modifier.test.ts` ~L114, ~L136-145
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  6 queued · 4 in-progress · last took 1m23s
+═══════════════════════════════════════════════════════════════
+  → Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs — OperationLog.ensureLoaded has no guard against concurrent first-call races (two requests arriving before the first record() completes both parse the file and the second overwrites the first's append), and ManualSnapshotStore.persist uses plain writeFile instead of the tmp-rename atomic pattern used by OperationLog and DimensionsStore, risking corruption on crash
+  Worktree: /tmp/backlog-81267-inZf4S
+  Running agent… (started 12:39:59)

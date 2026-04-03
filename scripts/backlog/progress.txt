@@ -347,3 +347,12 @@
   - When a union type has a variant without a field, validators must not gate on that field — the type system and the validator must stay in sync.
   - Test inputs that include extra fields (like `amount: 0` on a mix op) can mask missing-field validation bugs by accidentally satisfying the wrong guard.
 ---
+
+## 2026-04-03 - Server generator routes reject valid shadowScale type and root-metadata rollback is broken
+- Added `'shadowScale'` to `VALID_GENERATOR_TYPES` array in `routes/generators.ts` (was missing, causing 400 on POST/PUT for shadow scale generators). Also added `ShadowScaleConfig` import and a full `shadowScale` case in `validateGeneratorConfig` that validates `color` (string) and `steps` (Array<{name, offsetX, offsetY, blur, spread, opacity}>).
+- Fixed the `snapshotGroup(..., '__root__')` sentinel in `routes/tokens.ts` PATCH `/tokens/:set/groups/meta`. When `groupPath` is empty (root-level metadata update), `snapshotGroup` with `'__root__'` matched no real token paths, producing an empty snapshot and making the operation non-rollbackable. Fix: use `snapshotSet` when `groupPath` is empty, `snapshotGroup` otherwise.
+- Files changed: `packages/server/src/routes/generators.ts` ~L14 (import), ~L24 (VALID_GENERATOR_TYPES), ~L216 (shadowScale case in validateGeneratorConfig); `packages/server/src/routes/tokens.ts` ~L269 (snapshotGroup → snapshotSet for root)
+- **Learnings for future iterations:**
+  - `VALID_GENERATOR_TYPES` in `routes/generators.ts` and the `Set` in `services/generator-service.ts` must stay in sync. The route list is a string array for `.includes()`, the service uses a `ReadonlySet` for `.has()` — both need updating when a new type is added to core.
+  - `snapshotGroup` with an empty string prefix `''` would actually match ALL tokens (since every path starts with `''`), but the code used `|| '__root__'` instead of passing `''`, so the empty string branch was never reached. Using `snapshotSet` is the correct and explicit choice for root snapshots.
+---

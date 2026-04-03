@@ -43,3 +43,10 @@ Already up to date.
   → Server generator routes reject valid shadowScale type and root-metadata rollback is broken — VALID_GENERATOR_TYPES is duplicated between routes/generators.ts and services/generator-service.ts with the route list missing 'shadowScale', so POST/PUT for shadow scale generators returns 400 even though the service supports them; separately, snapshotGroup in routes/tokens.ts falls back to the sentinel '__root__' when groupPath is empty, which matches no real token paths, making operation log snapshots empty and root metadata updates non-rollbackable
   Worktree: /tmp/backlog-49887-NVsAWz
   Running agent… (started 12:39:33)
+
+  ✓ done: Server generator routes reject valid shadowScale type and root-metadata rollback is broken
+    Added 'shadowScale' to VALID_GENERATOR_TYPES in routes/generators.ts (with config validator) and replaced snapshotGroup(..., '__root__') with snapshotSet for root-level group metadata updates in routes/tokens.ts
+    23 turns · 100s · $0.63
+
+  Merging to main: Server generator routes reject valid shadowScale type and root-metadata rollback is broken
+Already up to date.

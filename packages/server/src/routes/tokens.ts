@@ -266,9 +266,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const before = await snapshotGroup(fastify.tokenStore, set, groupPath || '__root__');
+        const before = groupPath
+          ? await snapshotGroup(fastify.tokenStore, set, groupPath)
+          : await snapshotSet(fastify.tokenStore, set);
         await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
-        const after = await snapshotGroup(fastify.tokenStore, set, groupPath || '__root__');
+        const after = groupPath
+          ? await snapshotGroup(fastify.tokenStore, set, groupPath)
+          : await snapshotSet(fastify.tokenStore, set);
         await fastify.operationLog.record({
           type: 'group-meta-update',
           description: `Update metadata on "${groupPath || '(root)'}" in ${set}`,
