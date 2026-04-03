@@ -80,3 +80,10 @@ Already up to date.
   → BatchEditor preview is capped at 8 items with no way to expand — power users editing 50+ tokens cannot verify what will change before applying
   Worktree: /tmp/backlog-91634-7wOba4
   Running agent… (started 01:26:11)
+
+  ✓ done: BatchEditor preview is capped at 8 items with no way to expand — power users editing 50+ tokens cannot verify what will change before applying
+    Replaced static "and N more…" text in all 7 preview lists with clickable expand/collapse buttons using a single expandedPreviews Record<string,boolean> state
+    22 turns · 167s · $0.69
+
+  Merging to main: BatchEditor preview is capped at 8 items with no way to expand — power users editing 50+ tokens cannot verify what will change before applying
+Already up to date.

@@ -153,3 +153,19 @@ Already up to date.
 
   Merging to main: Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
 Already up to date.
+[main 7c357333] chore(backlog): done – Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
+ 10 files changed, 188 insertions(+), 117 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/comparisonUtils.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Extract shared comparison utilities from ComparePanel, CrossThemeComparePanel, ThemeCompare
+- Created `packages/figma-plugin/src/ui/shared/comparisonUtils.ts` with three shared utilities:
+  - `resolveThemeOption(option, allTokensFlat, pathToSet, themedSets?)` — merges source+enabled sets and resolves aliases; accepts optional `themedSets` to include non-themed tokens as a base layer (used by CrossThemeComparePanel)
+  - `exportCsvFile(filename, rows)` — RFC 4180 CSV escape + Blob download, replaces identical duplicates in ComparePanel and ThemeCompare
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  13 queued · 3 in-progress · last took 5m48s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
+  Worktree: /tmp/backlog-91949-xZztIm
+  Running agent… (started 01:28:12)

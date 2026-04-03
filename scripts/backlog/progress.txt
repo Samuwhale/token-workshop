@@ -617,3 +617,16 @@
   - `formatTokenValueForDisplay` from `tokenFormatting.ts` already handles all DTCG types; custom `formatThemeValue` copies were unnecessary
   - `useThemeCompare.ts` uses a plain-value flat map (values are scalars/strings, not `TokenMapEntry` objects) — resolution logic there operates on simpler data and is intentionally different
 ---
+
+## 2026-04-04 - BatchEditor preview is capped at 8 items with no way to expand
+- Replaced the static "and N more…" text in all 7 preview lists with clickable expand/collapse buttons that show all items when toggled.
+- Added `expandedPreviews: Record<string, boolean>` state and `togglePreview(key)` helper to BatchEditor.
+- Preview keys: `colorAdjust`, `skippedAlias`, `scale`, `typeIncompat`, `rename`, `aliasFind`, `move`.
+- Button style: `text-[var(--color-figma-accent)] hover:underline` — clearly interactive, consistent with accent color.
+- When expanded, shows "Show less" to collapse back to 8 items.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L173, ~L181, ~L945, ~L1026, ~L1039, ~L1162, ~L1296, ~L1347, ~L1399
+- **Learnings for future iterations:**
+  - A single `Record<string, boolean>` state with string keys covers all preview sections without N separate useState calls.
+  - The pattern: `(expandedPreviews['key'] ? fullList : fullList.slice(0, MAX))` is clean and reusable.
+  - `PREVIEW_MAX` constant stays in place so changing the default cap remains a one-line change.
+---
