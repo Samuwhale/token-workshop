@@ -569,3 +569,14 @@
   - `setTokenCounts` was in the original dep array even though zero base commands reference it — it only applies to the per-set switch commands, so it now correctly lives only in `setCommands`.
   - Stable setState setters (`setShowSetSwitcher`, `setShowManageSets`, etc.) don't need to be in deps; the convention in this codebase (already used in the original) is to omit them.
 ---
+
+## 2026-04-04 - styleSync.ts silently swallows parse failures for color tokens and gradient stops
+- Fixed `applyPaintStyle` to throw with a descriptive error when `parseColor` returns null, instead of silently skipping the paint update. Moved parse call before style creation to avoid leaving empty Figma styles behind on failure.
+- Fixed `applyGradientPaintStyle` to parse all stops upfront, collect failures with their indices and unparseable values, and throw a descriptive error listing each failed stop (e.g., "2 of 5 gradient stops could not be parsed: stop 1 ("#gggggg"), stop 3 (null)"). Also added an upfront check for stops.length < 2. Style is no longer created when stops are invalid.
+- Errors surface through the existing `failures` array in `styles-applied`, which the UI already displays to users as "Push: N/M applied (failed: …)".
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L104, ~L134
+- **Learnings for future iterations:**
+  - Both parse-failure cases share the same error surfacing path: throwing inside the per-token try/catch in `applyStyles` adds the error to `failures[]`, which `useTokenSyncBase.ts` already formats and displays.
+  - Moving validation before side effects (style creation) avoids leaving orphaned empty Figma styles when parse fails.
+  - For gradient stops, collecting all failures before throwing (rather than stopping at the first) gives users a complete picture of what needs fixing.
+---

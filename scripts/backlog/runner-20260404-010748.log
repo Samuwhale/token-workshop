@@ -124,3 +124,10 @@ Already up to date.
   → styleSync.ts silently swallows parse failures for color tokens and gradient stops without user feedback — `parseColor` returning null (L112) causes the style to be skipped with no error/warning logged or surfaced; gradient stops that fail to parse are silently dropped, potentially creating a gradient with fewer stops than intended (e.g., 5→3); should track and report skipped tokens/stops so users know which styles failed (styleSync.ts L104-157)
   Worktree: /tmp/backlog-91949-AA8Usi
   Running agent… (started 01:19:58)
+
+  ✓ done: styleSync.ts silently swallows parse failures for color tokens and gradient stops
+    applyPaintStyle now throws when parseColor returns null; applyGradientPaintStyle pre-validates all stops and throws with per-stop details — both surface via the existing failures[] mechanism in styles-applied
+    14 turns · 139s · $0.39
+
+  Merging to main: styleSync.ts silently swallows parse failures for color tokens and gradient stops
+Already up to date.

@@ -102,6 +102,10 @@ function tokenPathToStyleName(path: string): string {
 // ---------------------------------------------------------------------------
 
 function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
+  const color = parseColor(token.$value as string);
+  if (!color) {
+    throw new Error(`Cannot parse color value: "${token.$value}"`);
+  }
   const name = tokenPathToStyleName(token.path);
   let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
@@ -109,29 +113,40 @@ function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
     style.name = name;
     cache.paintStyles.push(style);
   }
-  const color = parseColor(token.$value as string);
-  if (color) {
-    const newSolid: SolidPaint = { type: 'SOLID', color: color.rgb, opacity: color.a };
-    const existing = style.paints;
-    if (existing.length === 0) {
-      style.paints = [newSolid];
+  const newSolid: SolidPaint = { type: 'SOLID', color: color.rgb, opacity: color.a };
+  const existing = style.paints;
+  if (existing.length === 0) {
+    style.paints = [newSolid];
+  } else {
+    // Update only the first solid paint; preserve gradients, images, and other layers
+    const solidIdx = existing.findIndex(p => p.type === 'SOLID');
+    if (solidIdx >= 0) {
+      const updated = [...existing];
+      updated[solidIdx] = newSolid;
+      style.paints = updated;
     } else {
-      // Update only the first solid paint; preserve gradients, images, and other layers
-      const solidIdx = existing.findIndex(p => p.type === 'SOLID');
-      if (solidIdx >= 0) {
-        const updated = [...existing];
-        updated[solidIdx] = newSolid;
-        style.paints = updated;
-      } else {
-        // No existing solid — prepend the token color while keeping other paint layers
-        style.paints = [newSolid, ...existing];
-      }
+      // No existing solid — prepend the token color while keeping other paint layers
+      style.paints = [newSolid, ...existing];
     }
   }
   style.setPluginData('tokenPath', token.path);
 }
 
 function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): void {
+  const stops = Array.isArray(token.$value) ? token.$value : [];
+  if (stops.length < 2) {
+    throw new Error(`Gradient requires at least 2 stops, got ${stops.length}`);
+  }
+  const parseResults = stops.map((stop, i) => ({ stop, color: parseColor(stop.color as string), index: i }));
+  const failedStops = parseResults.filter(r => !r.color);
+  if (failedStops.length > 0) {
+    const indices = failedStops.map(r => `stop ${r.index} ("${r.stop.color}")`).join(', ');
+    throw new Error(`${failedStops.length} of ${stops.length} gradient stop${failedStops.length > 1 ? 's' : ''} could not be parsed: ${indices}`);
+  }
+  const gradientStops: ColorStop[] = parseResults.map(r => ({
+    position: r.stop.position,
+    color: { ...r.color!.rgb, a: r.color!.a },
+  } as ColorStop));
   const name = tokenPathToStyleName(token.path);
   let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
@@ -139,22 +154,12 @@ function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): 
     style.name = name;
     cache.paintStyles.push(style);
   }
-  const stops = Array.isArray(token.$value) ? token.$value : [];
-  const gradientStops: ColorStop[] = stops
-    .map(stop => {
-      const color = parseColor(stop.color as string);
-      if (!color) return null;
-      return { position: stop.position, color: { ...color.rgb, a: color.a } } as ColorStop;
-    })
-    .filter((s): s is ColorStop => s !== null);
-  if (gradientStops.length >= 2) {
-    style.paints = [{
-      type: 'GRADIENT_LINEAR',
-      gradientTransform: [[1, 0, 0], [0, 1, 0]],
-      gradientStops,
-      opacity: 1,
-    } as GradientPaint];
-  }
+  style.paints = [{
+    type: 'GRADIENT_LINEAR',
+    gradientTransform: [[1, 0, 0], [0, 1, 0]],
+    gradientStops,
+    opacity: 1,
+  } as GradientPaint];
   style.setPluginData('tokenPath', token.path);
 }
 
