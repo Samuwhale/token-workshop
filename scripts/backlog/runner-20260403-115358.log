@@ -471,3 +471,10 @@ Already up to date.
   → ThemeManager auto-fill gives no preview of what will be created — the "Fill gaps" action shows an approval modal but doesn't indicate how many tokens will be created, in which set, or whether existing values will be skipped vs. overwritten; the strategy is hardcoded to 'skip' but users can't see or change this (ThemeManager.tsx ~L814-835, ~L2122-2130)
   Worktree: /tmp/backlog-81661-DjxMJc
   Running agent… (started 13:16:05)
+
+  ✓ done: ThemeManager auto-fill gives no preview of what will be created
+    Added skip/overwrite strategy picker to both fill-gaps confirmation modals; both execute functions now forward the selected strategy to the batch API
+    16 turns · 145s · $0.45
+
+  Merging to main: ThemeManager auto-fill gives no preview of what will be created
+Already up to date.

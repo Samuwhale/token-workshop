@@ -129,6 +129,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [fillingKeys, setFillingKeys] = useState<Set<string>>(new Set());
   // Auto-fill confirmation preview
   const [autoFillPreview, setAutoFillPreview] = useState<AutoFillPreview | null>(null);
+  // Auto-fill strategy: 'skip' leaves existing tokens untouched, 'overwrite' replaces them
+  const [autoFillStrategy, setAutoFillStrategy] = useState<'skip' | 'overwrite'>('skip');
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
@@ -815,7 +817,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   };
 
   /** Execute the auto-fill for a single option after confirmation */
-  const executeAutoFillAll = async (preview: Extract<AutoFillPreview, { mode: 'single-option' }>) => {
+  const executeAutoFillAll = async (preview: Extract<AutoFillPreview, { mode: 'single-option' }>, strategy: 'skip' | 'overwrite') => {
     const { dimId, optionName, targetSet, tokens } = preview;
     const fillKey = `${dimId}:${optionName}:__all__`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
@@ -824,7 +826,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens, strategy: 'skip' }),
+        body: JSON.stringify({ tokens, strategy }),
       });
       debouncedFetchDimensions();
     } catch (err) {
@@ -870,7 +872,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   };
 
   /** Execute the auto-fill for all options after confirmation */
-  const executeAutoFillAllOptions = async (preview: Extract<AutoFillPreview, { mode: 'all-options' }>) => {
+  const executeAutoFillAllOptions = async (preview: Extract<AutoFillPreview, { mode: 'all-options' }>, strategy: 'skip' | 'overwrite') => {
     const { dimId, perSetBatch } = preview;
     const fillKey = `${dimId}:__all_options__`;
     setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
@@ -881,7 +883,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens, strategy: 'skip' }),
+            body: JSON.stringify({ tokens, strategy }),
           })
         )
       );
@@ -2494,6 +2496,30 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       {/* Auto-fill confirmation modal */}
       {autoFillPreview && (() => {
         const dimName = dimensions.find(d => d.id === autoFillPreview.dimId)?.name ?? autoFillPreview.dimId;
+        /** Shared strategy picker rendered in both modal variants */
+        const strategyPicker = (
+          <div className="mt-2 flex flex-col gap-1">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">If a token already exists in the target set:</div>
+            <div className="flex gap-2">
+              {(['skip', 'overwrite'] as const).map(s => (
+                <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="autofill-strategy"
+                    value={s}
+                    checked={autoFillStrategy === s}
+                    onChange={() => setAutoFillStrategy(s)}
+                    className="cursor-pointer"
+                  />
+                  <span className="text-[11px] text-[var(--color-figma-text)]">
+                    {s === 'skip' ? 'Skip (keep existing value)' : 'Overwrite (replace with filled value)'}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+
         if (autoFillPreview.mode === 'single-option') {
           const { optionName, targetSet, tokens } = autoFillPreview;
           return (
@@ -2502,11 +2528,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               wide
               confirmLabel="Fill tokens"
               onCancel={() => setAutoFillPreview(null)}
-              onConfirm={() => executeAutoFillAll(autoFillPreview)}
+              onConfirm={() => executeAutoFillAll(autoFillPreview, autoFillStrategy)}
             >
               <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Writing to <span className="font-mono font-medium text-[var(--color-figma-text)]">{targetSet}</span> (override set for <strong>{optionName}</strong> in <strong>{dimName}</strong>).
+                Writing <strong>{tokens.length}</strong> token{tokens.length !== 1 ? 's' : ''} to <span className="font-mono font-medium text-[var(--color-figma-text)]">{targetSet}</span> (override set for <strong>{optionName}</strong> in <strong>{dimName}</strong>).
               </p>
+              {strategyPicker}
               <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
                 <table className="w-full text-[10px]">
                   <thead>
@@ -2539,11 +2566,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               wide
               confirmLabel="Fill all options"
               onCancel={() => setAutoFillPreview(null)}
-              onConfirm={() => executeAutoFillAllOptions(autoFillPreview)}
+              onConfirm={() => executeAutoFillAllOptions(autoFillPreview, autoFillStrategy)}
             >
               <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Writing to {setEntries.length} set{setEntries.length !== 1 ? 's' : ''} across all options in <strong>{dimName}</strong>.
+                Writing <strong>{totalCount}</strong> token{totalCount !== 1 ? 's' : ''} to {setEntries.length} set{setEntries.length !== 1 ? 's' : ''} across all options in <strong>{dimName}</strong>.
               </p>
+              {strategyPicker}
               <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
                 {setEntries.map(([targetSet, tokens]) => (
                   <div key={targetSet}>

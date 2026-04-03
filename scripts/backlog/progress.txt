@@ -388,3 +388,12 @@
   - `React.ChangeEvent<HTMLInputElement>` does NOT carry `shiftKey`/`ctrlKey` — the native change event is a plain `Event`, not a `MouseEvent`. For modifier-aware checkboxes, move logic to `onClick` and keep `onChange` as a no-op.
   - `displayedLeafNodesRef.current` covers all visible leaf tokens for both tree and table view modes, making it the right source for "select all" without needing to filter `flatItemsRef` for groups.
 ---
+
+## 2026-04-03 - ThemeManager auto-fill gives no preview of what will be created
+- Added strategy selector (Skip / Overwrite) to both "Fill gaps" confirmation modals (single-option and all-options variants). The modal now shows the exact token count and target set in the description text (bolded), and includes a radio button group letting users choose whether existing tokens are skipped or replaced. Both `executeAutoFillAll` and `executeAutoFillAllOptions` now accept a `strategy` parameter that is forwarded to the `/batch` API call. Strategy state (`autoFillStrategy`) persists across modal opens within a session (defaults to 'skip').
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L131, ~L819, ~L874, ~L2500-2600
+- **Learnings for future iterations:**
+  - The batch API already accepted `strategy: 'skip' | 'overwrite'` — only the UI was missing the control.
+  - Shared picker JSX (`strategyPicker`) declared inline in the modal IIFE avoids a separate component for a one-off pattern.
+  - Radio buttons with `name="autofill-strategy"` enforce mutual exclusivity natively without extra state logic.
+---

@@ -526,3 +526,18 @@ Already up to date.
 
   Merging to main: No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
 Already up to date.
+[main 6a3d3a5d] chore(backlog): done – No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
+ 7 files changed, 53 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
+- The range selection logic (`handleTokenSelect` with `{ shift, ctrl }` modifiers) and `lastSelectedPathRef` anchor were already implemented in TokenList.tsx. The gap was that the checkbox `onChange` handler in TokenTreeNode didn't forward modifier keys. Fixed by switching checkbox to handle logic in `onClick` (which carries `shiftKey`/`ctrlKey`/`metaKey`) with a no-op `onChange` for the controlled input. Also added `Ctrl/Cmd+A` select-all shortcut after the `isTyping` guard, using `displayedLeafNodesRef.current` (works for both tree and table view modes).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1043; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1107
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  10 queued · 4 in-progress · last took 4m8s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel readiness checks show pass/fail without guided remediation — users see that "scopes" or "descriptions" checks failed but have no indication of priority (scopes are blocking, descriptions are optional) and no step-by-step workflow; fix labels only appear on hover over failed checks (PublishPanel.tsx ~L316-388, ~L369)
+  Worktree: /tmp/backlog-81267-N9adGW
+  Running agent… (started 13:16:35)
