@@ -410,3 +410,21 @@ Already up to date.
   ✓ product pass: product-pass
     10 items written to inbox — command palette batch actions, Shift+Click range select, draft auto-save, multi-select drag, ThemeManager fill preview, PublishPanel guided remediation, set metadata discoverability, ExportPanel silent mode switch, Tab-to-next inline edit, Find & Replace alias safety
 Already up to date.
+[main eeeedfed] chore(backlog): product pass – product-pass
+ 6 files changed, 37 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 10 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: TokenEditor.tsx (editing UX, keyboard shortcuts, draft recovery), TokenTreeNode.tsx (inline editing, multi-select, drag-and-drop), TokenListModals.tsx (Find & Replace alias safety, batch selection), ThemeManager.tsx (auto-fill preview, coverage terminology), ExportPanel.tsx (mode switching on disconnect), PublishPanel.tsx (readiness check guidance), SetSwitcher.tsx (metadata discoverability), CommandPalette.tsx (missing destructive/batch commands), useDragDrop.ts (multi-select drag), server routes (unused coverage endpoint, batch move)
+- Found 10 items — written to backlog-inbox.md
+- Notable: Find & Replace has no alias-breaking detection — regex renames can silently create dangling alias references that only surface as validation errors later; also Tab key in inline editing closes the edit instead of advancing to the next token, breaking the expected spreadsheet-like sequential editing flow
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  13 queued · 4 in-progress · last took 4m23s
+═══════════════════════════════════════════════════════════════
+  → Generator executeGeneratorMultiBrand has no rollback on partial row failure — each brand row (generator-service.ts:674-726) runs in its own beginBatch/endBatch, so if row 3 of 5 throws, rows 1-2 are already persisted and saveSet'd with no way to undo; the outer finally block still calls clearNonLockedOverrides (line 722) which strips non-locked overrides even though the run was incomplete, changing subsequent re-run behavior; should either wrap all rows in a single snapshot/rollback or skip clearNonLockedOverrides on failure
+  Worktree: /tmp/backlog-81661-6Jc9qa
+  Running agent… (started 13:06:51)

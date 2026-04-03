@@ -466,6 +466,41 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       .sort((a, b) => b[1].length - a[1].length);
   })();
 
+  // Count how many tokens reference each path as an alias (single-level)
+  const aliasRefCounts = (() => {
+    const counts: Record<string, number> = {};
+    for (const entry of Object.values(allTokensUnified)) {
+      const v = entry.$value;
+      if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+        const ref = v.slice(1, -1);
+        counts[ref] = (counts[ref] ?? 0) + 1;
+      }
+    }
+    return counts;
+  })();
+
+  // Suggest best canonical per duplicate group:
+  // priority: most alias refs → most Figma usage → fewest path segments → alphabetical
+  const suggestedCanonicals = (() => {
+    const result: Record<string, string> = {};
+    for (const [hex, tokens] of duplicateGroups) {
+      const scored = tokens.map(t => ({
+        path: t.path,
+        aliasRefs: aliasRefCounts[t.path] ?? 0,
+        figmaUsage: tokenUsageCounts?.[t.path] ?? 0,
+        segments: t.path.split('.').length,
+      }));
+      scored.sort((a, b) =>
+        b.aliasRefs - a.aliasRefs ||
+        b.figmaUsage - a.figmaUsage ||
+        a.segments - b.segments ||
+        a.path.localeCompare(b.path)
+      );
+      result[hex] = scored[0].path;
+    }
+    return result;
+  })();
+
   // Compute unused tokens: zero Figma usage count AND not referenced by any other token as an alias
   const unusedTokens = useMemo(() => {
     if (!tokenUsageCounts || Object.keys(allTokensUnified).length === 0) return [];
@@ -486,6 +521,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       .map(([path, entry]) => ({ path, set: entry.set, $type: entry.$type }))
       .sort((a, b) => a.path.localeCompare(b.path));
   }, [tokenUsageCounts, allTokensUnified]);
+
+  const handleApplyAllSuggestions = () => {
+    const picks: Record<string, string> = {};
+    for (const [hex] of duplicateGroups) {
+      picks[hex] = suggestedCanonicals[hex];
+    }
+    setCanonicalPick(prev => ({ ...prev, ...picks }));
+  };
 
   const handleDeduplicate = async (hex: string, canonical: { path: string; set: string }, others: { path: string; set: string }[]) => {
     setDeduplicating(hex);
@@ -1166,13 +1209,24 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                       </div>
                     </div>
                   ) : (
-                    <button
-                      disabled={bulkDeduplicating}
-                      onClick={() => setConfirmBulkDedup(true)}
-                      className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                    >
-                      {bulkDeduplicating ? 'Promoting…' : `Promote all duplicates to aliases (${totalDuplicateAliases} tokens → ${duplicateGroups.length} canonicals)`}
-                    </button>
+                    <div className="flex flex-col gap-1.5">
+                      <button
+                        disabled={bulkDeduplicating}
+                        onClick={() => setConfirmBulkDedup(true)}
+                        className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                      >
+                        {bulkDeduplicating ? 'Promoting…' : `Promote all duplicates to aliases (${totalDuplicateAliases} tokens → ${duplicateGroups.length} canonicals)`}
+                      </button>
+                      {duplicateGroups.some(([hex, tokens]) => (canonicalPick[hex] ?? tokens[0].path) !== suggestedCanonicals[hex]) && (
+                        <button
+                          onClick={handleApplyAllSuggestions}
+                          className="self-start text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          title="Set each group's canonical to the auto-suggested token (most referenced, then fewest path segments)"
+                        >
+                          Use all suggestions
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -1181,12 +1235,23 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                 const canonicalToken = tokens.find(t => t.path === canonical) ?? tokens[0];
                 const others = tokens.filter(t => t.path !== canonical);
                 const isDeduplying = deduplicating === hex;
+                const suggested = suggestedCanonicals[hex];
+                const isUsingSuggestion = canonical === suggested;
                 return (
                   <div key={hex} className="p-3 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
                       <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{hex}</span>
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)]">— {tokens.length} tokens</span>
+                      {!isUsingSuggestion && (
+                        <button
+                          onClick={() => { setCanonicalPick(prev => ({ ...prev, [hex]: suggested })); if (confirmDedup?.hex === hex) setConfirmDedup(null); }}
+                          className="ml-auto text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+                          title="Auto-select the most-referenced or shortest-path token as canonical"
+                        >
+                          Use suggestion
+                        </button>
+                      )}
                     </div>
                     <div className="flex flex-col gap-0.5">
                       {tokens.map(t => (
@@ -1204,6 +1269,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                             <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
                             {canonical === t.path && (
                               <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
+                            )}
+                            {t.path === suggested && canonical !== t.path && (
+                              <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0" title="Auto-suggested based on alias reference count and path depth">suggested</span>
                             )}
                           </label>
                           {onNavigateToToken && (

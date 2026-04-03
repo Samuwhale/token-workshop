@@ -399,3 +399,10 @@ Already up to date.
   → AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group (AnalyticsPanel.tsx ~L1073-1199)
   Worktree: /tmp/backlog-80049-bJ5pzJ
   Running agent… (started 13:05:00)
+
+  ✓ done: AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group
+    Added auto-suggestion logic (alias ref count → Figma usage → path depth) with per-group "Use suggestion" button, "suggested" badge on recommended token, and "Use all suggestions" bulk button.
+    21 turns · 190s · $0.61
+
+  Merging to main: AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group
+Already up to date.

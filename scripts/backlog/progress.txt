@@ -564,3 +564,12 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: Find & Replace has no alias-breaking detection — regex renames can silently create dangling alias references that only surface as validation errors later; also Tab key in inline editing closes the edit instead of advancing to the next token, breaking the expected spreadsheet-like sequential editing flow
 ---
+
+## 2026-04-03 - AnalyticsPanel duplicate color auto-suggest canonical
+- Added `aliasRefCounts` (IIFE computing how many tokens reference each path as `{alias}`) and `suggestedCanonicals` (IIFE picking best canonical per hex group: most alias refs → most Figma usage → fewest path segments → alphabetical). Added `handleApplyAllSuggestions` handler to bulk-apply suggestions. Per-group UI: shows "suggested" badge on the auto-recommended token when it differs from current canonical, plus a "Use suggestion" button in the group header. Bulk UI: adds "Use all suggestions" button below "Promote all" when any group's canonical differs from its suggestion.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L448 (aliasRefCounts/suggestedCanonicals IIFEs), ~L497 (handleApplyAllSuggestions), ~L1188-1208 (per-group "Use suggestion" button + "suggested" badge), ~L1172-1184 (bulk "Use all suggestions" button)
+- **Learnings for future iterations:**
+  - `aliasRefCounts` only counts direct references (single-level `{path}`) — transitive refs via longer alias chains are not counted, but this is intentional as direct references are the signal that matters for "most depended-on" tokens.
+  - The `suggestedCanonicals` IIFE follows the same pattern as `duplicateGroups` and `colorScales` — plain IIFE after early returns, consistent with the file's existing style (which already uses `useMemo` after early returns too, a pre-existing pattern).
+  - The "Use suggestion" button is hidden when the current canonical already matches the suggestion, keeping the UI clean.
+---
