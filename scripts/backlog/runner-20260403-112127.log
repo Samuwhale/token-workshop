@@ -163,3 +163,10 @@ Already up to date.
 
   Merging to main: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
 Already up to date.
+[main ae1ee2bf] chore(backlog): done – Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+ 5 files changed, 43 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 58)
