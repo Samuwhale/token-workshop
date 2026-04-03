@@ -496,3 +496,11 @@
   - The virtualScroll fixed-height row means adding DOM below an input is impractical — a red border + title tooltip is the right pattern for inline validation errors in table cells.
   - Always re-focus the input after marking an error (`inputRef.current?.focus()`) so the user doesn't have to click back in.
 ---
+
+## 2026-04-03 - Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+- Added set validation to both routes: extract `set` from `request.params`, call `fastify.tokenStore.getSet(set)`, and return 404 if the set doesn't exist — before proceeding to the cross-set query. The dependent queries themselves remain global (cross-set), which is their correct behavior; the fix simply enforces that the set named in the URL actually exists.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L484, ~L498
+- **Learnings for future iterations:**
+  - Standard set validation pattern: `const tokenSet = await fastify.tokenStore.getSet(set); if (!tokenSet) return reply.status(404).send({ error: \`Token set "${set}" not found\` });`
+  - The `:set` param in these dependent routes is semantically "scoped to this set's namespace" but the underlying `getDependents`/`getGroupDependents` are intentionally global. Validating the set param is the right fix (not restricting the query), since callers need confidence the URL is meaningful.
+---

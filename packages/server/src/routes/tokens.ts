@@ -482,6 +482,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/dependents/*', async (request, reply) => {
+    const { set } = request.params;
+    const tokenSet = await fastify.tokenStore.getSet(set);
+    if (!tokenSet) {
+      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    }
     const tokenPath = request.params['*'].split('/').join('.');
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
@@ -496,6 +501,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/tokens/:set/group-dependents/* — get tokens that reference any token under a group prefix
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/group-dependents/*', async (request, reply) => {
+    const { set } = request.params;
+    const tokenSet = await fastify.tokenStore.getSet(set);
+    if (!tokenSet) {
+      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    }
     const groupPath = request.params['*'].split('/').join('.');
     if (!groupPath) {
       return reply.status(400).send({ error: 'Group path is required' });

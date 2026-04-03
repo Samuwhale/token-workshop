@@ -141,3 +141,25 @@ Already up to date.
 
   Merging to main: TokenTableView silently swallows invalid inline edit values with no user feedback
 Already up to date.
+[main 9c5d2d7a] chore(backlog): done – TokenTableView silently swallows invalid inline edit values with no user feedback
+ 6 files changed, 92 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenTableView silently swallows invalid inline edit values with no user feedback
+- Added `editError` state (boolean) to `TokenTableView`. When `commitEdit` detects `parseInlineValue` returns `null`, it sets `editError=true`, re-focuses the input, and returns without closing the cell — keeping the user in edit mode. The input border turns red (`border-red-500`) and a `title` tooltip says "Invalid value for this token type". Error clears automatically when the user modifies the input or cancels. `cancelEdit` also clears `editError`. `startEdit` resets it before opening.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L63, ~L137, ~L148, ~L161, ~L291
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  2 queued · 1 in-progress · last took 1m32s
+═══════════════════════════════════════════════════════════════
+  → Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter — both routes at tokens.ts:484 and 498 declare a `:set` path param but never extract or use it; getDependents and getGroupDependents are called as global cross-set queries regardless of the set in the URL, so requests with a non-existent set name still return results instead of 404; the `:set` param should either be validated (404 if unknown) or removed from the route path to avoid the misleading API contract
+  Worktree: /tmp/backlog-30880-GDpgTB
+  Running agent… (started 11:35:41)
+
+  ✓ done: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+    Added set existence validation (404 if unknown) to both dependent routes before executing the cross-set query
+    10 turns · 65s · $0.22
+
+  Merging to main: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+Already up to date.
