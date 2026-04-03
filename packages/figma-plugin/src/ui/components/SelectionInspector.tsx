@@ -200,7 +200,7 @@ export function SelectionInspector({
 
   // Property filter state
   const [propFilter, setPropFilter] = useState('');
-  const [propFilterMode, setPropFilterMode] = useState<'all' | 'bound' | 'unbound' | 'colors' | 'dimensions'>('all');
+  const [propFilterMode, setPropFilterMode] = useState<'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions'>('all');
 
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
@@ -688,6 +688,9 @@ export function SelectionInspector({
       const binding = getBindingForProperty(rootNodes, prop);
       return !binding;
     }
+    if (propFilterMode === 'mixed') {
+      return getBindingForProperty(rootNodes, prop) === 'mixed';
+    }
     if (propFilterMode === 'colors') return COLOR_PROPS.has(prop);
     if (propFilterMode === 'dimensions') return DIMENSION_PROPS.has(prop);
     return true;
@@ -726,9 +729,17 @@ export function SelectionInspector({
               </span>
             )}
             {mixedBindings > 0 && (
-              <span className="bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)] px-1.5 py-0.5 rounded-full font-medium">
+              <button
+                onClick={() => setPropFilterMode(prev => prev === 'mixed' ? 'all' : 'mixed')}
+                title={propFilterMode === 'mixed' ? 'Show all properties' : 'Show only mixed properties'}
+                className={`px-1.5 py-0.5 rounded-full font-medium transition-colors ${
+                  propFilterMode === 'mixed'
+                    ? 'bg-[var(--color-figma-warning,#f5a623)]/40 text-[var(--color-figma-warning,#f5a623)] ring-1 ring-[var(--color-figma-warning,#f5a623)]/50'
+                    : 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)] hover:bg-[var(--color-figma-warning,#f5a623)]/30'
+                }`}
+              >
                 {mixedBindings} mixed
-              </span>
+              </button>
             )}
           </span>
         )}
@@ -917,6 +928,18 @@ export function SelectionInspector({
               {mode === 'bound' ? 'Bound' : mode === 'unbound' ? 'Unbound' : mode === 'colors' ? 'Colors' : 'Dims'}
             </button>
           ))}
+          {mixedBindings > 0 && (
+            <button
+              onClick={() => setPropFilterMode(prev => prev === 'mixed' ? 'all' : 'mixed')}
+              className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
+                propFilterMode === 'mixed'
+                  ? 'bg-[var(--color-figma-warning,#f5a623)]/20 text-[var(--color-figma-warning,#f5a623)] font-medium'
+                  : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              Mixed
+            </button>
+          )}
         </div>
       )}
 

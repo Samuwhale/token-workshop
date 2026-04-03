@@ -609,3 +609,89 @@ Already up to date.
 
   Merging to main: Multiple UI hooks clear state optimistically before async API calls complete
 Already up to date.
+[main 6e23dd10] chore(backlog): done – Multiple UI hooks clear state optimistically before async API calls complete
+ 8 files changed, 66 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  9 queued · 3 in-progress · last took 4m4s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-45818-OxdONs
+  Running agent… (started 18:53:55)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  9 queued · 3 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-45818-L9yJci
+  Running agent… (started 18:54:01)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  9 queued · 3 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-45818-PbTxgq
+  Running agent… (started 18:54:06)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  9 queued · 3 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-45818-j0XbDc
+  Running agent… (started 18:54:11)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  9 queued · 3 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-45818-Tzpx88
+  Running agent… (started 18:54:17)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

@@ -628,3 +628,74 @@ Already up to date.
   → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
   Worktree: /tmp/backlog-46178-LIECpD
   Running agent… (started 18:53:41)
+
+  · unknown
+    5 turns · 17s · $0.13
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  9 queued · 3 in-progress · last took 22s
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-46178-PDUcps
+  Running agent… (started 18:54:03)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  9 queued · 3 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-46178-hOr11J
+  Running agent… (started 18:54:09)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  9 queued · 3 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-46178-au3esx
+  Running agent… (started 18:54:14)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  9 queued · 3 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-46178-zBacCM
+  Running agent… (started 18:54:20)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

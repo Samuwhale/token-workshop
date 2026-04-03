@@ -1,0 +1,23 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    91949
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-010748.log
+  Passes: enabled (every 15 items)
+
+  Queue:    10 ready · 2 in-progress · 4 failed
+  Done:     1205 total (next code pass in 10, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  10 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-91949-FS1BER
+  Running agent… (started 01:07:48)

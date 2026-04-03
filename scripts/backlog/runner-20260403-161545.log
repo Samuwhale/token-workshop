@@ -666,3 +666,74 @@ Already up to date.
   → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
   Worktree: /tmp/backlog-46580-FHqjoP
   Running agent… (started 18:52:39)
+
+  · unknown
+    6 turns · 114s · $0.24
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  11 queued · 1 in-progress · last took 1m59s
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-46580-GKVllI
+  Running agent… (started 18:54:38)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  11 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-46580-VtAzdh
+  Running agent… (started 18:54:44)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  11 queued · 1 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-46580-fT4Mbj
+  Running agent… (started 18:54:49)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  11 queued · 1 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-46580-pzJzvu
+  Running agent… (started 18:54:54)
+
+  · unknown
+    1 turns · 1s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

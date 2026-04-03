@@ -1,0 +1,23 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    91634
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-010743.log
+  Passes: enabled (every 15 items)
+
+  Queue:    11 ready · 1 in-progress · 4 failed
+  Done:     1205 total (next code pass in 10, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  11 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → Set switcher renders all sets flat with no folder grouping — sets using folder hierarchy names like `brand/colors` and `brand/spacing` appear as a flat alphabetical list instead of collapsible folder groups; at scale this makes the switcher hard to navigate (SetSwitcher.tsx ~L276-296)
+  Worktree: /tmp/backlog-91634-PI98N3
+  Running agent… (started 01:07:43)

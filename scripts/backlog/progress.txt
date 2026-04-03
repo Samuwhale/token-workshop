@@ -444,3 +444,12 @@
   - The `groupOpInProgress` ref pattern (not state) is the right tool for preventing re-entrancy in async callbacks: it doesn't trigger re-renders, it's synchronously reliable, and it survives closure captures since the ref object is stable.
   - For `Promise.all` partial failures, the correct UX is: remove successful rows from the diff table (they're done), keep failed rows visible with their original direction (push/pull) so the user can immediately retry without re-running the full diff comparison.
 ---
+
+## 2026-04-04 - SelectionInspector shows mixed binding count but not which properties are mixed
+- Added 'mixed' filter mode to the property filter bar in SelectionInspector. When a multi-selection has conflicting token bindings, a "Mixed" button appears in the filter bar to instantly show only those properties. The "N mixed" badge in the header is now a clickable button that toggles the same 'mixed' filter (active state shown with stronger background + ring).
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L203, ~L683, ~L729, ~L918
+- **Learnings for future iterations:**
+  - The existing `propFilterMode` type only needed a new `'mixed'` union member; `matchesPropFilter` already had a clean place to insert the new case.
+  - The header badge and filter bar button both toggle the same state, so clicking either one activates/deactivates the mixed filter — consistent with the existing toggle pattern for other mode buttons.
+  - `isFilterActive` and the "clear filters" button required no changes since they already check `propFilterMode !== 'all'`.
+---

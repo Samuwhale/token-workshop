@@ -1,0 +1,30 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    92209
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-010751.log
+  Passes: enabled (every 15 items)
+
+  Queue:    9 ready · 3 in-progress · 4 failed
+  Done:     1205 total (next code pass in 10, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  9 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector shows mixed binding count but not which properties are mixed — the header displays "N mixed bindings" but users must expand every property row to find which ones have conflicting values across the multi-selection; a filter or highlight for mixed-only properties would save significant time (SelectionInspector.tsx ~L718-734)
+  Worktree: /tmp/backlog-92209-NZJ4Vi
+  Running agent… (started 01:07:51)
+
+  ✓ done: SelectionInspector shows mixed binding count but not which properties are mixed
+    Added 'mixed' filter mode — clicking the 'N mixed' header badge or the new 'Mixed' filter button instantly narrows the property list to only conflicting bindings
+    22 turns · 116s · $0.45
+
+  Merging to main: SelectionInspector shows mixed binding count but not which properties are mixed
+Already up to date.
