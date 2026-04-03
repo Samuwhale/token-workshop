@@ -630,3 +630,11 @@
   - Deep-clone tokens via `JSON.parse(JSON.stringify(token))` before writing to target so mutations to one set don't corrupt the other.
   - Visually distinguish Copy (outline style) from Move (solid fill) so users don't accidentally pick the wrong destructive action.
 ---
+
+## 2026-04-03 - color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between lab and lch cases
+- Extracted shared `labToSrgbCoords(L, a, b)` helper function containing the f3/XYZ-to-sRGB logic (D65 illuminant constants, three `fromLinear` calls, `clamp01` clamping). Both `lab` and `lch` switch cases now derive L/a/b from their respective inputs and call the helper, returning its `[r, g, b]` tuple as `coords`.
+- Files changed: `packages/core/src/color-parse.ts` ~L528-571 (cases), ~L581-595 (new helper)
+- **Learnings for future iterations:**
+  - In TypeScript files, regular `function` declarations are hoisted, so helper functions defined after the main function body are still callable from within it — no need to move helpers above their callers.
+  - The only behavioral difference between the two cases was the L/a/b derivation: `lab` reads channels directly, `lch` converts polar (C, H) to Cartesian (a, b) first. Everything downstream was identical.
+---

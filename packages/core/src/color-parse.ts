@@ -526,25 +526,13 @@ export function parseAnyColor(input: string): ParsedColor | null {
     }
 
     case 'lab': {
-      // CIE Lab — convert to sRGB via XYZ. Approximate via OKLAB for simplicity.
+      // CIE Lab — convert to sRGB via XYZ.
       if (channels.length < 3) return null;
       const L = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1))! : parseRawNum(channels[0]);
       const a2 = parseRawNum(channels[1]);
       const b2 = parseRawNum(channels[2]);
       if (L === null || a2 === null || b2 === null) return null;
-      // CIE Lab L is 0-100, a/b are ~-125 to 125
-      // Convert to XYZ then to sRGB
-      const fy = (L + 16) / 116;
-      const fx = a2 / 500 + fy;
-      const fz = fy - b2 / 200;
-      const f3 = (t: number) => (t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787);
-      const X = f3(fx) * 0.95047;
-      const Y = f3(fy);
-      const Z = f3(fz) * 1.08883;
-      const r = fromLinear(3.2406 * X - 1.5372 * Y - 0.4986 * Z);
-      const g = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
-      const b3 = fromLinear(0.0557 * X - 0.2040 * Y + 1.0570 * Z);
-      return { space: 'srgb', coords: [clamp01(r), clamp01(g), clamp01(b3)], alpha: clamp01(alpha) };
+      return { space: 'srgb', coords: labToSrgbCoords(L, a2, b2), alpha: clamp01(alpha) };
     }
 
     case 'lch': {
@@ -557,18 +545,7 @@ export function parseAnyColor(input: string): ParsedColor | null {
       const rad = (H * Math.PI) / 180;
       const a2 = C * Math.cos(rad);
       const b2 = C * Math.sin(rad);
-      // Lab → XYZ → sRGB
-      const fy = (L + 16) / 116;
-      const fx = a2 / 500 + fy;
-      const fz = fy - b2 / 200;
-      const f3 = (t: number) => (t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787);
-      const X = f3(fx) * 0.95047;
-      const Y = f3(fy);
-      const Z = f3(fz) * 1.08883;
-      const r = fromLinear(3.2406 * X - 1.5372 * Y - 0.4986 * Z);
-      const g = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
-      const b3 = fromLinear(0.0557 * X - 0.2040 * Y + 1.0570 * Z);
-      return { space: 'srgb', coords: [clamp01(r), clamp01(g), clamp01(b3)], alpha: clamp01(alpha) };
+      return { space: 'srgb', coords: labToSrgbCoords(L, a2, b2), alpha: clamp01(alpha) };
     }
   }
 
@@ -577,6 +554,21 @@ export function parseAnyColor(input: string): ParsedColor | null {
 
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
+}
+
+/** CIE Lab L/a/b → sRGB [r, g, b] via D65 XYZ. L is 0–100, a/b are ~−125 to 125. */
+function labToSrgbCoords(L: number, a: number, b: number): [number, number, number] {
+  const fy = (L + 16) / 116;
+  const fx = a / 500 + fy;
+  const fz = fy - b / 200;
+  const f3 = (t: number) => (t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787);
+  const X = f3(fx) * 0.95047;
+  const Y = f3(fy);
+  const Z = f3(fz) * 1.08883;
+  const r = fromLinear(3.2406 * X - 1.5372 * Y - 0.4986 * Z);
+  const g = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
+  const b2 = fromLinear(0.0557 * X - 0.2040 * Y + 1.0570 * Z);
+  return [clamp01(r), clamp01(g), clamp01(b2)];
 }
 
 function clamp(v: number, min: number, max: number): number {

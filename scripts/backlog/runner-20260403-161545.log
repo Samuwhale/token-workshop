@@ -223,3 +223,25 @@ Already up to date.
 
   Merging to main: BatchEditor has no bulk copy-to-set operation — tokens can be moved between sets but not copied; "Copy to set" would create duplicates in the target set while preserving originals, useful for forking token sets for new brands or platforms (BatchEditor.tsx ~L1000+)
 Already up to date.
+[main 0a2564a9] chore(backlog): done – BatchEditor has no bulk copy-to-set operation — tokens can be moved between sets but not copied; "Copy to set" would create duplicates in the target set while preserving originals, useful for forking token sets for new brands or platforms (BatchEditor.tsx ~L1000+)
+ 8 files changed, 156 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor has no bulk copy-to-set operation
+- Added "Copy to set" alongside the existing "Move" button in BatchEditor. Copy preserves originals in the source set and overwrites any existing tokens at the same paths in the target set.
+- Added `batchCopyTokens` method to `token-store.ts` — reads tokens from source set, deep-clones them, writes to target set (overwrite), saves only the target. No delete from source.
+- Added `POST /api/tokens/:set/batch-copy` route in `tokens.ts` — snapshots target before/after for operation log, returns `{ ok, copied, operationId }`.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  8 queued · 3 in-progress · last took 3m52s
+═══════════════════════════════════════════════════════════════
+  → color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between `lab` and `lch` cases — lines 528-547 (lab case) and 550-571 (lch case) contain identical f3/XYZ-to-sRGB logic (the `f3` function, X/Y/Z calculation with illuminant D65 constants, and the three `fromLinear` calls); the only difference is how L/a/b are derived from the input channels; extract a shared `labToSrgbCoords(L, a, b)` helper and call it from both cases to eliminate the duplication
+  Worktree: /tmp/backlog-46580-ZFXE7o
+  Running agent… (started 17:18:10)
+
+  ✓ done: color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between lab and lch cases
+    Extracted labToSrgbCoords(L, a, b) helper; both lab and lch cases now call it, eliminating the duplicated f3/XYZ/fromLinear block
+    12 turns · 77s · $0.27
+
+  Merging to main: color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between lab and lch cases
+Already up to date.
