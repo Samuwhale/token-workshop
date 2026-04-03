@@ -409,3 +409,10 @@
   - Adding a `group` field to violations is the cleanest way to let the UI group related violations without parsing message strings.
   - `useMemo` calls that depend on state variables must appear before any conditional early returns. The ESLint `react-hooks/rules-of-hooks` error is the signal — move the hook call earlier in the function body.
 ---
+
+## 2026-04-03 - File-based imports lack per-token conflict resolution UI
+- stale — already done. The per-token conflict resolution UI for file-based imports (JSON, CSS, Tailwind, Styles) is fully implemented at ImportPanel.tsx ~L1812-2048. It includes: per-token accept/merge/reject decisions with a cycling toggle button, search/filter controls (by path, status, token type), value diff display (−/+ style with color swatches), bulk accept/merge/reject actions, and a final import button that routes tokens to the correct batch strategy. The backlog item's description had the two import flows reversed — Variables import is the one with only bulk strategies.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The backlog item description incorrectly stated which import type had per-token UI. When a backlog item says feature X is missing from Y but you find it implemented, check if the item mixed up the two systems.
+---

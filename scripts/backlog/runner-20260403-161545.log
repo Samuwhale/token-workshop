@@ -481,3 +481,18 @@ Already up to date.
 
   Merging to main: AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap
 Already up to date.
+[main 972dd0d0] chore(backlog): done – AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap
+ 7 files changed, 150 insertions(+), 165 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel duplicate detection consolidated with lint no-duplicate-values rule
+- Removed AnalyticsPanel's own duplicate value scanning (custom `duplicateGroups` computation that grouped resolved color tokens by hex, `aliasRefCounts`, `suggestedCanonicals`, and related state/handlers).
+- Added `group?: string` to `LintViolation` (lint.ts ~L37) and `ValidationIssue` (lint.ts ~L342) interfaces, populated with `canonical` path in both `lintTokens` (~L321) and `validateAllTokens` (~L510) for all `no-duplicate-values` violations.
+- AnalyticsPanel now derives duplicate groups from `validateResults` (already loaded via `POST /api/tokens/validate`) by filtering for `rule === 'no-duplicate-values'` and grouping by `v.group` (canonical path).
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  6 queued · 3 in-progress · last took 13m41s
+═══════════════════════════════════════════════════════════════
+  → CSS and Tailwind imports silently skip dynamic expressions with no report — when importing CSS with `calc()` or Tailwind configs with JS functions, the parser drops unsupported values but shows no list of what was skipped; add a post-import summary showing "N tokens imported, M skipped" with an expandable list of skipped entries and their original expressions (ImportPanel.tsx, tokenParsers.ts)
+  Worktree: /tmp/backlog-46580-3FKIyw
+  Running agent… (started 18:14:20)

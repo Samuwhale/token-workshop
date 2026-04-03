@@ -445,3 +445,10 @@ Already up to date.
   → File-based imports (JSON, CSS, Tailwind) lack per-token conflict resolution — Figma Variables import has a full merge UI where users can accept/reject individual conflicting tokens, but file-based imports only offer bulk strategies (overwrite all / skip all / merge); add the same per-token conflict resolution UI for file imports so users can selectively choose which tokens to overwrite (ImportPanel.tsx ~L400-600)
   Worktree: /tmp/backlog-46178-q80nkn
   Running agent… (started 18:12:31)
+
+  ✓ done: File-based imports (JSON, CSS, Tailwind) lack per-token conflict resolution UI
+    stale — already done. Per-token conflict resolution (accept/merge/reject, search/filter, value diff) is fully implemented for file imports at ImportPanel.tsx ~L1812-2048. The backlog description had the two import flows reversed.
+    10 turns · 135s · $0.47
+
+  Merging to main: File-based imports (JSON, CSS, Tailwind) lack per-token conflict resolution UI
+Already up to date.
