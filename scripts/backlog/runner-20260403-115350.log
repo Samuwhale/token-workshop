@@ -28,3 +28,26 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: ExportPanel preview does not update when export filters change
 Already up to date.
+[main 671fb436] chore(backlog): done – ExportPanel preview does not update when export filters change
+ 7 files changed, 79 insertions(+), 6 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-115416.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel preview does not update when export filters change
+- Added a "Refresh preview" button in the preview section header that re-runs `handleExport` with current settings, updating the preview without triggering a download. Button shows a spinner while exporting and is disabled when no platforms are selected, not connected, or currently exporting.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L884
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  4 queued · 4 in-progress · last took 1m20s
+═══════════════════════════════════════════════════════════════
+  → POST /api/tokens/:set/* returns original request body instead of the stored token — tokens.ts:757 returns `token: body` (the raw request payload) rather than the enriched token as persisted; createToken at line 747 calls enrichFormulaExtension which may add $extensions.tokenmanager.formula to formula-string values; any client that caches the POST response to avoid a refetch will have the unenriched version; the PATCH endpoint correctly fetches and returns the stored token (lines 793-794) — the POST endpoint should do the same
+  Worktree: /tmp/backlog-81267-Ctbwgz
+  Running agent… (started 11:55:10)
+
+  ✓ done: POST /api/tokens/:set/* returns original request body instead of the stored token
+    Fetched stored token via getToken after createToken and returned it instead of raw request body, matching the PATCH endpoint pattern
+    6 turns · 36s · $0.13
+
+  Merging to main: POST /api/tokens/:set/* returns original request body instead of the stored token
+Already up to date.

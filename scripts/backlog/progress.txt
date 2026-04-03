@@ -377,3 +377,10 @@
   - The existing `handleExport` already handles fetching and updating `results` state — no new logic was needed, just a UI affordance to call it again after filter changes.
   - The preview header area (platform count label) was the natural anchor for the refresh button since it already communicated result count context.
 ---
+
+## 2026-04-03 - POST /api/tokens/:set/* returns original request body instead of stored token
+- Fetched the stored token after `createToken` using `getToken(set, tokenPath)` and returned it as `token: created` instead of `token: body`. Mirrors the PATCH endpoint pattern at lines 793-794.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L757
+- **Learnings for future iterations:**
+  - POST create endpoints should always return the persisted token (via a follow-up `getToken`) rather than the raw request body, since store operations like `enrichFormulaExtension` may transform the data before persisting.
+---

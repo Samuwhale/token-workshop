@@ -754,7 +754,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return reply.status(201).send({ ok: true, path: tokenPath, set, token: body });
+          const created = await fastify.tokenStore.getToken(set, tokenPath);
+          return reply.status(201).send({ ok: true, path: tokenPath, set, token: created });
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to create token');
         }
