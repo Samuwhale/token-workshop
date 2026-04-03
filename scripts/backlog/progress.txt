@@ -618,3 +618,15 @@
   - When a hook lacks an `onError` prop (like `useFindReplace`), use `console.warn` in undo/redo catch blocks — avoid trying to surface errors through local state that would be stale in a closure
   - The `restore`/`redo` closures are invoked later from the undo stack, not during the original render, so any `setFrError` captured from that render's closure would point to the wrong component instance's state setter
 ---
+
+## 2026-04-03 - BatchEditor has no bulk copy-to-set operation
+- Added "Copy to set" alongside the existing "Move" button in BatchEditor. Copy preserves originals in the source set and overwrites any existing tokens at the same paths in the target set.
+- Added `batchCopyTokens` method to `token-store.ts` — reads tokens from source set, deep-clones them, writes to target set (overwrite), saves only the target. No delete from source.
+- Added `POST /api/tokens/:set/batch-copy` route in `tokens.ts` — snapshots target before/after for operation log, returns `{ ok, copied, operationId }`.
+- Added `copying` state, `canCopy` guard, `handleCopy` async function, and "Copy" button (outlined style to visually distinguish from solid "Move" button) in `BatchEditor.tsx`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L1524 (new `batchCopyTokens` method), `packages/server/src/routes/tokens.ts` ~L441 (new route), `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L97, ~L258, ~L515, ~L1250
+- **Learnings for future iterations:**
+  - For copy (vs move), only snapshot/save the target set — source is untouched so no source snapshot needed.
+  - Deep-clone tokens via `JSON.parse(JSON.stringify(token))` before writing to target so mutations to one set don't corrupt the other.
+  - Visually distinguish Copy (outline style) from Move (solid fill) so users don't accidentally pick the wrong destructive action.
+---

@@ -1523,6 +1523,41 @@ export class TokenStore {
     });
   }
 
+  /**
+   * Copy multiple tokens from one set to another, overwriting any existing tokens at the
+   * same paths in the target set. The source tokens are preserved (not deleted).
+   */
+  async batchCopyTokens(
+    fromSet: string,
+    paths: string[],
+    toSet: string,
+  ): Promise<{ copied: number }> {
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
+    const tokensToCopy: Array<{ path: string; token: Token }> = [];
+    for (const tokenPath of paths) {
+      const token = getTokenAtPath(source.tokens, tokenPath);
+      if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
+      tokensToCopy.push({ path: tokenPath, token: JSON.parse(JSON.stringify(token)) as Token });
+    }
+    const snapshot = this.snapshotSets(toSet);
+    return await this.withBatch(async () => {
+      try {
+        for (const { path: tokenPath, token } of tokensToCopy) {
+          setTokenAtPath(target.tokens, tokenPath, token);
+        }
+        await this.saveSet(toSet);
+        return { copied: tokensToCopy.length };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
+      }
+    });
+  }
+
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);

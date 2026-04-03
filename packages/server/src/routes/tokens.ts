@@ -438,6 +438,43 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // POST /api/tokens/:set/batch-copy — copy multiple tokens to another set, preserving originals
+  fastify.post<{
+    Params: { set: string };
+    Body: { paths: string[]; targetSet: string };
+  }>('/tokens/:set/batch-copy', async (request, reply) => {
+    const { set } = request.params;
+    const { paths, targetSet } = request.body ?? {};
+    if (!Array.isArray(paths) || paths.length === 0) {
+      return reply.status(400).send({ error: 'paths must be a non-empty array' });
+    }
+    if (!targetSet) {
+      return reply.status(400).send({ error: 'targetSet is required' });
+    }
+    return withLock(async () => {
+      try {
+        const beforeTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
+        const result = await fastify.tokenStore.batchCopyTokens(set, paths, targetSet);
+        const afterTarget = await snapshotPaths(fastify.tokenStore, targetSet, paths);
+        const entry = await fastify.operationLog.record({
+          type: 'batch-copy',
+          description: `Copy ${result.copied} token${result.copied === 1 ? '' : 's'} from ${set} to ${targetSet}`,
+          setName: targetSet,
+          affectedPaths: paths,
+          beforeSnapshot: Object.fromEntries(
+            Object.entries(beforeTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          ),
+          afterSnapshot: Object.fromEntries(
+            Object.entries(afterTarget).map(([k, v]) => [`${k}@${targetSet}`, v])
+          ),
+        });
+        return { ok: true, copied: result.copied, operationId: entry.id };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to batch copy tokens');
+      }
+    });
+  });
+
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
   fastify.post<{
     Params: { set: string };

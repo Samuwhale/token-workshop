@@ -94,6 +94,7 @@ export function BatchEditor({
   const [aliasReplaceText, setAliasReplaceText] = useState('');
   const [applying, setApplying] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [aliasReplacing, setAliasReplacing] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -253,7 +254,8 @@ export function BatchEditor({
     scalingActive
   );
 
-  const canMove = targetSet !== '' && !moving;
+  const canMove = targetSet !== '' && !moving && !copying;
+  const canCopy = targetSet !== '' && !moving && !copying;
 
   // Regex parsing for find/replace
   const regexError = useMemo(() => {
@@ -509,6 +511,42 @@ export function BatchEditor({
       setFeedback({ ok: false, msg: 'Move failed — check server connection' });
     } finally {
       setMoving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!connected || !canCopy) return;
+    setCopying(true);
+    setFeedback(null);
+    try {
+      const paths = selectedEntries.map(e => e.path);
+      const result = await apiFetch<{ ok: true; copied: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-copy`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths, targetSet }),
+        },
+      );
+
+      if (onPushUndo) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Copy ${result.copied} token${result.copied === 1 ? '' : 's'} to "${targetSet}"`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
+      }
+      onApply();
+      setFeedback({ ok: true, msg: `Copied ${result.copied} token${result.copied === 1 ? '' : 's'} to "${targetSet}"` });
+      setTargetSet('');
+    } catch (err) {
+      console.warn('[BatchEditor] batch copy failed:', err);
+      setFeedback({ ok: false, msg: 'Copy failed — check server connection' });
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -1189,6 +1227,14 @@ export function BatchEditor({
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            <button
+              onClick={handleCopy}
+              disabled={!connected || !canCopy || copying}
+              title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
+              className="shrink-0 px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {copying ? '…' : 'Copy'}
+            </button>
             <button
               onClick={handleMove}
               disabled={!connected || !canMove || moving}
