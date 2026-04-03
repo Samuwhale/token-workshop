@@ -80,6 +80,11 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate('manualSnapshots', manualSnapshots);
   fastify.decorate('eventBus', eventBus);
 
+  // Forward resolver load errors to the SSE event stream
+  resolverStore.onLoadError((name, message) => {
+    tokenStore.emitEvent({ type: 'file-load-error', setName: `resolver:${name}`, message });
+  });
+
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
     if (event.type === 'token-updated' && event.tokenPath) {

@@ -46,6 +46,8 @@ export interface ResolverMeta {
 export class ResolverStore {
   private dir: string;
   private resolvers: Map<string, ResolverFile> = new Map();
+  private loadErrors: Map<string, { message: string; at: string }> = new Map();
+  private loadErrorListeners = new Set<(name: string, message: string) => void>();
   private watcher: ReturnType<typeof watch> | null = null;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
@@ -69,6 +71,25 @@ export class ResolverStore {
       await this.watcher.close();
       this.watcher = null;
     }
+  }
+
+  /**
+   * Register a listener that fires whenever a resolver file fails to load
+   * (parse error, validation error, or I/O error). Returns an unsubscribe fn.
+   */
+  onLoadError(fn: (name: string, message: string) => void): () => void {
+    this.loadErrorListeners.add(fn);
+    return () => { this.loadErrorListeners.delete(fn); };
+  }
+
+  /** Returns all resolver files that failed to load, keyed by resolver name. */
+  getLoadErrors(): Map<string, { message: string; at: string }> {
+    return new Map(this.loadErrors);
+  }
+
+  private emitLoadError(name: string, message: string): void {
+    this.loadErrors.set(name, { message, at: new Date().toISOString() });
+    for (const fn of this.loadErrorListeners) fn(name, message);
   }
 
   // -----------------------------------------------------------------------
@@ -265,12 +286,18 @@ export class ResolverStore {
       const data = JSON.parse(content);
       const errors = validateResolverFile(data);
       if (errors.length > 0) {
-        console.warn(`[ResolverStore] Invalid resolver file ${filePath}: ${errors.join('; ')}`);
+        const message = errors.join('; ');
+        console.warn(`[ResolverStore] Invalid resolver file ${filePath}: ${message}`);
+        this.emitLoadError(name, message);
         return;
       }
       this.resolvers.set(name, data as ResolverFile);
+      // Clear any prior load error for this resolver on successful load
+      this.loadErrors.delete(name);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.warn(`[ResolverStore] Failed to load ${filePath}:`, err);
+      this.emitLoadError(name, message);
     }
   }
 

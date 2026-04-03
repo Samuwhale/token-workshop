@@ -337,6 +337,10 @@ export function App() {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
   }, []);
+  const onServiceError = useCallback(({ setName, message }: { setName: string; message: string }) => {
+    const label = setName ? `Failed to load "${setName}"` : 'File load error';
+    setErrorToast(`${label}: ${message}`);
+  }, []);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
@@ -362,7 +366,7 @@ export function App() {
     externalRefreshPendingRef.current = true;
     refreshAll();
   }, [refreshAll, allTokensFlat]);
-  useServerEvents(serverUrl, connected, onGeneratorError, refreshAllExternal);
+  useServerEvents(serverUrl, connected, onGeneratorError, refreshAllExternal, onServiceError);
 
   // Show a change-summary toast after an external file change triggers a refresh
   useEffect(() => {

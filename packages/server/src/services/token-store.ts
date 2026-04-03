@@ -144,19 +144,25 @@ export class TokenStore {
     this.watcher.on('change', async (filePath) => {
       if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
-      await this.loadSet(relativePath).catch(err =>
-        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err),
-      );
-      this.scheduleRebuild({ type: 'set-updated', setName: relativePath.replace('.tokens.json', '') });
+      const setName = relativePath.replace('.tokens.json', '');
+      await this.loadSet(relativePath).catch(err => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
+        this.emitEvent({ type: 'file-load-error', setName, message });
+      });
+      this.scheduleRebuild({ type: 'set-updated', setName });
     });
 
     this.watcher.on('add', async (filePath) => {
       if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
-      await this.loadSet(relativePath).catch(err =>
-        console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err),
-      );
-      this.scheduleRebuild({ type: 'set-added', setName: relativePath.replace('.tokens.json', '') });
+      const setName = relativePath.replace('.tokens.json', '');
+      await this.loadSet(relativePath).catch(err => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err);
+        this.emitEvent({ type: 'file-load-error', setName, message });
+      });
+      this.scheduleRebuild({ type: 'set-added', setName });
     });
 
     this.watcher.on('unlink', (filePath) => {
@@ -1755,7 +1761,7 @@ export class TokenStore {
 }
 
 export interface ChangeEvent {
-  type: 'set-added' | 'set-updated' | 'set-removed' | 'token-updated' | 'generator-error';
+  type: 'set-added' | 'set-updated' | 'set-removed' | 'token-updated' | 'generator-error' | 'file-load-error';
   setName: string;
   tokenPath?: string;
   generatorId?: string;

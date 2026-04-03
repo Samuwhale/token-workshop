@@ -469,6 +469,7 @@ export class GeneratorService {
         const message = err instanceof Error ? err.message : String(err);
         this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
         console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
+        tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
       });
     }
   }

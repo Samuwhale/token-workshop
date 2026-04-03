@@ -5,6 +5,11 @@ export interface GeneratorErrorEvent {
   message: string;
 }
 
+export interface ServiceErrorEvent {
+  setName: string;
+  message: string;
+}
+
 const BASE_DELAY = 1000;
 const MAX_DELAY = 30000;
 
@@ -22,9 +27,13 @@ export function useServerEvents(
   connected: boolean,
   onGeneratorError: (event: GeneratorErrorEvent) => void,
   onRefresh?: () => void,
+  onServiceError?: (event: ServiceErrorEvent) => void,
 ) {
   const callbackRef = useRef(onGeneratorError);
   callbackRef.current = onGeneratorError;
+
+  const serviceErrorRef = useRef(onServiceError);
+  serviceErrorRef.current = onServiceError;
 
   const refreshRef = useRef(onRefresh);
   refreshRef.current = onRefresh;
@@ -76,6 +85,13 @@ export function useServerEvents(
         if (data.type === 'generator-error') {
           callbackRef.current({
             generatorId: typeof data.generatorId === 'string' ? data.generatorId : undefined,
+            message: typeof data.message === 'string' ? data.message : 'Unknown error',
+          });
+        }
+
+        if (data.type === 'file-load-error') {
+          serviceErrorRef.current?.({
+            setName: typeof data.setName === 'string' ? data.setName : '',
             message: typeof data.message === 'string' ? data.message : 'Unknown error',
           });
         }

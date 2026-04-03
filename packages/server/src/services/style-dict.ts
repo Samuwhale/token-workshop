@@ -10,6 +10,8 @@ export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json' |
 export interface ExportResult {
   platform: ExportPlatform;
   files: { path: string; content: string }[];
+  /** Set when the platform export failed; files will be empty. */
+  error?: string;
 }
 
 export interface ExportTokensResult {
@@ -286,7 +288,7 @@ export async function exportTokens(
 
       results.push({ platform, files });
     } catch (err) {
-      results.push({ platform, files: [{ path: 'error.txt', content: String(err) }] });
+      results.push({ platform, files: [], error: String(err) });
     }
   }
 

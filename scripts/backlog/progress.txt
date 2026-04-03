@@ -356,3 +356,19 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: six independent `fmtValue`/`formatValue`/`formatTokenValue` implementations across the codebase with subtly different type handling — a consolidation opportunity that affects ComparePanel, CrossThemeComparePanel, tokenListUtils, generatorShared, changeHelpers, and selectionInspectorUtils
 ---
+
+## 2026-04-03 - Server services silently swallow errors in 6+ locations
+- Implemented consistent error propagation across all four problem areas:
+  1. **token-store.ts watcher**: Added `'file-load-error'` to `ChangeEvent` type union; watcher `change`/`add` handlers now emit `file-load-error` events to SSE stream in addition to console.warn.
+  2. **generator-service.ts**: Per-generator catch block now calls `tokenStore.emitEvent({ type: 'generator-error', generatorId, message })` — making it consistent with the existing dependency-graph error path.
+  3. **resolver-store.ts**: Added `loadErrors` map, `loadErrorListeners` set, and `onLoadError()`/`getLoadErrors()` public API. `loadFile` now calls `emitLoadError()` on parse/validation/I/O errors; successful reload clears prior errors. Wired in `index.ts` to forward via `tokenStore.emitEvent({ type: 'file-load-error' })`.
+  4. **style-dict.ts**: Added `error?: string` field to `ExportResult` interface; export failures now set `{ platform, files: [], error: String(err) }` instead of the fake `{ platform, files: [{ path: 'error.txt', content }] }` sentinel.
+  5. **useServerEvents.ts**: Added `ServiceErrorEvent` interface and optional `onServiceError` callback (5th param); handles `file-load-error` SSE events.
+  6. **App.tsx**: Added `onServiceError` callback that shows an error toast; passed to `useServerEvents`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L144, ~L1758; `packages/server/src/services/generator-service.ts` ~L468; `packages/server/src/services/resolver-store.ts` ~L48, ~L67, ~L275; `packages/server/src/index.ts` ~L83; `packages/server/src/services/style-dict.ts` ~L10, ~L289; `packages/figma-plugin/src/ui/hooks/useServerEvents.ts` ~L1; `packages/figma-plugin/src/ui/App.tsx` ~L335
+- **Learnings for future iterations:**
+  - The `ChangeEvent` type union in `token-store.ts` is the canonical error bus for all background service failures — extend it when adding new error categories.
+  - `resolver-store.ts` has no direct reference to `tokenStore`, so it needs its own lightweight listener pattern (`onLoadError`) that `index.ts` bridges to the SSE stream. This is the correct layering — services stay decoupled.
+  - Generator auto-run errors already had an outer catch in `index.ts` that emits to SSE, but inner per-generator catches in `runForSourceToken` silently swallowed errors before they could propagate up. Always check both layers.
+  - `ExportResult.error` is a cleaner discriminated shape than a fake sentinel file — callers can `if (result.error)` instead of scanning file names.
+---
