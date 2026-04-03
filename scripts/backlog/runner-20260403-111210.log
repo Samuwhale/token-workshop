@@ -206,3 +206,19 @@ Already up to date.
 
   Merging to main: Token tree has no "collapse all" / "expand all" shortcut
 Already up to date.
+[main 303e1132] chore(backlog): done – Token tree has no "collapse all" / "expand all" shortcut
+ 5 files changed, 39 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 1040 done — pass skipped (runner PID 31178 already running one)
+
+## 2026-04-03 - Token tree has no "collapse all" / "expand all" shortcut
+- Stale — already fully implemented. `handleExpandAll` and `handleCollapseAll` exist at `TokenList.tsx` ~L175–181. Toolbar buttons are rendered at ~L2007–2028 (tree view only, when groups exist). Keyboard shortcuts `Cmd/Ctrl+→` (expand all) and `Cmd/Ctrl+←` (collapse all) are wired at ~L1211–1219.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  8 queued · 1 in-progress · last took 44s
+═══════════════════════════════════════════════════════════════
+  → Token tree zoom (drill-into-group) has no breadcrumb navigation — zoomRootPath state exists (TokenList.tsx ~L80) and enables drilling into a group, but the only way back is an unlabeled back affordance; users lose track of where they are; render a breadcrumb trail above the token list when zoomed in (e.g., "tokens > colors > brand") with each segment clickable to jump back to that level
+  Worktree: /tmp/backlog-20980-Ha7ERS
+  Running agent… (started 11:49:35)

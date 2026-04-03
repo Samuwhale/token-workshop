@@ -65,3 +65,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: [HIGH] BatchEditor alias overwrite bug; POST token returns unenriched body; ExportPanel partial-save with swallowed set-creation error; TokenEditor missing AbortController on token switch; generator-service clearNonLockedOverrides not called on multi-brand failure
+Already up to date.

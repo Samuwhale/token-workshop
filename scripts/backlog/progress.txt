@@ -324,3 +324,9 @@
 - **Learnings for future iterations:**
   - Before implementing, always verify the feature doesn't already exist — both the handlers and toolbar buttons were present.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: BatchEditor.tsx (alias+opacity conflict), tokens.ts POST route (response body), ExportPanel.tsx (multi-collection save flow), TokenEditor.tsx (fetch abort on token switch), generator-service.ts (clearNonLockedOverrides on failure), AnalyticsPanel.tsx (contrast matrix cap - already in inbox)
+- Found 5 items — written to backlog-inbox.md
+- Notable: BatchEditor.tsx:347-381 has a clear data-loss bug where alias $value (line 348) is silently overwritten by opacity (line 357) or scaling (line 373) when both modes are active — the UI preview says "Will set {alias}" but the alias is never applied
+---

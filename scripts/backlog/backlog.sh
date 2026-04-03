@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N]
+# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--pass-model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N]
 #
 # Concurrency-safe: each agent runs in an isolated git worktree.
 # backlog.md mutations are serialised by file locks.
@@ -23,6 +23,7 @@ trap graceful_stop INT TERM
 
 TOOL="claude"
 MODEL="claude-sonnet-4-6"
+PASS_MODEL=""
 PASSES_ENABLED=1
 PASS_FREQUENCY=10
 
@@ -32,6 +33,8 @@ while [[ $# -gt 0 ]]; do
     --tool=*)           TOOL="${1#*=}"; shift ;;
     --model)            MODEL="$2"; shift 2 ;;
     --model=*)          MODEL="${1#*=}"; shift ;;
+    --pass-model)       PASS_MODEL="$2"; shift 2 ;;
+    --pass-model=*)     PASS_MODEL="${1#*=}"; shift ;;
     --passes)
       case "$2" in
         true|1|yes)   PASSES_ENABLED=1 ;;
@@ -58,6 +61,12 @@ case "$MODEL" in
   sonnet)  MODEL="claude-sonnet-4-6" ;;
   opus)    MODEL="claude-opus-4-6" ;;
 esac
+case "$PASS_MODEL" in
+  default) PASS_MODEL="claude-opus-4-6" ;;
+  sonnet)  PASS_MODEL="claude-sonnet-4-6" ;;
+  opus)    PASS_MODEL="claude-opus-4-6" ;;
+esac
+[ -z "$PASS_MODEL" ] && PASS_MODEL="$MODEL"
 
 if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
   echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."
@@ -669,7 +678,7 @@ run_special_pass() {
     --max-turns 100 \
     --output-format json \
     --json-schema "$JSON_SCHEMA" \
-    --model "$MODEL" \
+    --model "$PASS_MODEL" \
     --append-system-prompt-file "$context_file" \
     < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
   local pass_pid=$!
