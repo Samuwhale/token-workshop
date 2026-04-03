@@ -25,6 +25,8 @@ export interface TokenFlowPanelProps {
   onNavigateToToken?: (path: string) => void;
   /** When set, the panel auto-selects this token path on mount / change */
   initialPath?: string | null;
+  /** True while tokens are being fetched from the server */
+  loading?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,6 +274,7 @@ export function TokenFlowPanel({
   pathToSet,
   onNavigateToToken,
   initialPath,
+  loading = false,
 }: TokenFlowPanelProps) {
   const help = usePanelHelp('token-flow');
   const [selectedPath, setSelectedPath] = useState<string | null>(initialPath ?? null);
@@ -500,21 +503,31 @@ export function TokenFlowPanel({
       )}
 
       {/* Graph area */}
-      {!selectedPath && (
+      {loading && (
+        <div className="flex-1 flex items-center justify-center text-xs opacity-40 px-4 text-center">
+          <div>
+            <div className="flex justify-center mb-2">
+              <span className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" />
+            </div>
+            Loading tokens…
+          </div>
+        </div>
+      )}
+      {!loading && !selectedPath && (
         <div className="flex-1 flex items-center justify-center text-xs opacity-40 px-4 text-center">
           <div>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-30">
               <circle cx="5" cy="12" r="3" /><circle cx="19" cy="6" r="3" /><circle cx="19" cy="18" r="3" />
               <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
             </svg>
-            Search for a token above to visualize its reference graph.
+            Select a token to see its dependency graph.
             <br />
-            See what it references and what depends on it.
+            Search above, then click nodes to explore the chain.
           </div>
         </div>
       )}
 
-      {selectedPath && !graphData && (
+      {!loading && selectedPath && !graphData && (
         <div className="flex-1 flex items-center justify-center text-xs opacity-40">
           Token not found: {selectedPath}
         </div>

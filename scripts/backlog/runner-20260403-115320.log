@@ -208,3 +208,10 @@ Already up to date.
   → TokenFlowPanel (dependency graph) has no loading state and no empty state guidance — when no token is selected the panel shows nothing with no hint about what to do; add "Select a token to see its dependency graph" empty state text
   Worktree: /tmp/backlog-80049-Z1P1jO
   Running agent… (started 12:21:03)
+
+  ✓ done: TokenFlowPanel (dependency graph) has no loading state and no empty state guidance
+    Added loading state via tokensLoading in useTokenDataLoading, spinner UI in TokenFlowPanel; empty state text updated to match spec (prior session had already added the empty state)
+    38 turns · 215s · $0.81
+
+  Merging to main: TokenFlowPanel (dependency graph) has no loading state and no empty state guidance
+Already up to date.

@@ -19,6 +19,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
+  const [tokensLoading, setTokensLoading] = useState(false);
   const flatFetchGenRef = useRef(0);
   const allTokensFlatRef = useRef(allTokensFlat);
   allTokensFlatRef.current = allTokensFlat;
@@ -27,16 +28,21 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
   useEffect(() => {
     if (connected) {
       const gen = ++flatFetchGenRef.current;
+      setTokensLoading(true);
       fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
         if (gen !== flatFetchGenRef.current) return; // stale response
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
         setPerSetFlat(psf);
+        setTokensLoading(false);
       }).catch(err => {
         if (gen !== flatFetchGenRef.current) return;
         if (isNetworkError(err)) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
+        setTokensLoading(false);
       });
+    } else {
+      setTokensLoading(false);
     }
   }, [connected, serverUrl, tokens, markDisconnected]);
 
@@ -62,5 +68,6 @@ export function useTokenDataLoading({ serverUrl, connected, tokens, markDisconne
     perSetFlat,
     filteredSetCount, setFilteredSetCount,
     syncSnapshot,
+    tokensLoading,
   };
 }

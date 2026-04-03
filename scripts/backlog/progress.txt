@@ -428,3 +428,11 @@
   - Per-node rollback pattern: track `nodeUpdated`/`nodeErrors` per node, restore from snapshot if `nodeErrors > 0`, delete snapshot entry to prevent double-restore in outer catch.
   - When updating a paint style's color, always splice rather than replace: `existing.findIndex(p => p.type === 'SOLID')` finds the solid to update; fall back to prepend if none exists.
 ---
+
+## 2026-04-03 - TokenFlowPanel has no loading state and no empty state guidance
+- The empty state (no token selected) already existed from a prior session. Added the missing loading state: `tokensLoading` boolean added to `useTokenDataLoading` hook (set true before fetch, false on resolve/reject/disconnect). Threaded through App.tsx to `TokenFlowPanel` via new `loading` prop. When loading, panel shows a CSS `animate-spin` spinner with "Loading tokens…" text. Empty state text updated to "Select a token to see its dependency graph." to match backlog spec.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L17, ~L59; `packages/figma-plugin/src/ui/App.tsx` ~L321, ~L2209; `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L22, ~L270, ~L502
+- **Learnings for future iterations:**
+  - `useTokenDataLoading` is the single source of truth for flat token state — loading state belongs there, not in the panel itself.
+  - Tailwind `animate-spin` works fine for a loading spinner; just need a circular div with a transparent-except-one-side border.
+---

@@ -267,3 +267,18 @@ Already up to date.
 
   Merging to main: ThemeManager has no drag-and-drop reordering for dimensions or options
 Already up to date.
+[main 5b894b37] chore(backlog): done – ThemeManager has no drag-and-drop reordering for dimensions or options
+ 6 files changed, 160 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Consolidate duplicate fmtValue/formatValue/formatTokenValue formatting functions
+- Created `packages/figma-plugin/src/ui/shared/tokenFormatting.ts` with a single `formatTokenValueForDisplay(type, value, options?)` function that is the superset of all six prior implementations: handles color, dimension (default px), duration (default ms), typography (fontFamily fontSize fontWeight /lineHeight space-joined), shadow (×N prefix for arrays, offsetX/x fallback, color inclusion), gradient, border, and unknown objects (truncated JSON ≤50 chars). Default emptyPlaceholder is '—'.
+- Replaced `fmtValue()` in `ComparePanel.tsx` and `CrossThemeComparePanel.tsx` with thin wrappers delegating to the shared function.
+- Replaced `formatValue()` in `tokenListUtils.ts` and `generatorShared.tsx` with thin wrappers (passing `{ emptyPlaceholder: '' }` to preserve existing null/undefined behavior).
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  8 queued · 3 in-progress · last took 3m22s
+═══════════════════════════════════════════════════════════════
+  → ConsistencyPanel scan scope limited to selection and page — the consistency scanner (which finds hardcoded values close to token values) only supports scanning the current selection or current page; the heatmap coverage scanner supports selection/page/all-pages scope; add "all pages" scope to ConsistencyPanel for comprehensive consistency audits across the entire file
+  Worktree: /tmp/backlog-81267-fm1egj
+  Running agent… (started 12:23:27)

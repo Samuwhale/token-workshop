@@ -318,7 +318,7 @@ export function App() {
   const { selectedNodes } = useSelection();
   const availableFonts = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot } = useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected });
+  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading } = useTokenDataLoading({ serverUrl, connected, tokens, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
     setErrorToast(`Alias target not found: ${aliasPath}`);
   }, []);
@@ -2209,6 +2209,7 @@ export function App() {
             <TokenFlowPanel
               allTokensFlat={themedAllTokensFlat}
               pathToSet={pathToSet}
+              loading={tokensLoading}
               initialPath={flowPanelInitialPath}
               onNavigateToToken={(path) => {
                 const targetSet = pathToSet[path];
