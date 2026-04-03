@@ -263,3 +263,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: GeneratorService stale-overwrite race (HIGH), git-sync no mutual exclusion, TokenStore write guard leaks, useTokenCrud stale undo closures, BatchEditor duplicated handlers + misleading skip counters
 Already up to date.
+[main bf3a2340] chore(backlog): code pass – code-pass
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: generator-service.ts (race conditions, path update logic, concurrency), git-sync.ts (mutual exclusion gaps), token-store.ts + resolver-store.ts (write guard lifecycle, duplicated I/O patterns), BatchEditor.tsx (duplicated handlers, skip counter logic), useTokenCrud.ts (stale undo closures), useTokens.ts (activeSet race), App.tsx (structural assessment — 3235 lines, 43 useState), ExportPanel.tsx (timeout/loading races)
+- Found 5 items — written to backlog-inbox.md
+- Notable: GeneratorService.executeGenerator has a stale-read-then-overwrite race at L603-613 that silently drops concurrent generator config updates; TokenStore write guards on delete/clearAll never get cleared (30s window where watcher ignores external changes); git-sync has zero mutual exclusion across pull/commit/applyDiffChoices
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  10 queued · 3 in-progress · last took 5m39s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] GeneratorService.executeGenerator overwrites concurrent generator updates — at generator-service.ts L603-613, after executing a generator, the code reads `this.generators.get(id)` then spreads it with `lastRunAt`/`lastRunSourceValue`; if another request called `update()` on the same generator between execution start and this final write, those changes are silently overwritten by the stale spread; fix by re-reading the generator inside `withGeneratorLock` or using a compare-and-swap on `updatedAt`
+  Worktree: /tmp/backlog-46580-6LS01J
+  Running agent… (started 17:23:49)

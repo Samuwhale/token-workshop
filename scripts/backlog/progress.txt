@@ -368,3 +368,14 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: GeneratorService.executeGenerator has a stale-read-then-overwrite race at L603-613 that silently drops concurrent generator config updates; TokenStore write guards on delete/clearAll never get cleared (30s window where watcher ignores external changes); git-sync has zero mutual exclusion across pull/commit/applyDiffChoices
 ---
+
+## 2026-04-03 - Generator auto-run failures are fire-and-forget with no persistent record
+- Added persistent recording of generator auto-run failures to the operation log in `index.ts`: the `.catch()` block now calls `operationLog.record({ type: 'generator-auto-run-error', ... })` after emitting the transient SSE event, so failures are stored in `.tokenmanager/operations.json` and visible to clients connecting later.
+- Added a warning/alert icon branch to `OpIcon` in `RecentActionsSource.tsx` for any type containing `'error'` (amber circle with exclamation), checked before the generic `generator`/`run` branch so error entries get a distinct visual.
+- Updated the action row renderer in `HistoryPanel.tsx` to detect `op.type.includes('error')`: error entries show amber description text and a static "Failed" badge instead of the Rollback button (there is nothing to roll back — snapshots are empty).
+- Files changed: `packages/server/src/index.ts` ~L92, `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L56, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L566
+- **Learnings for future iterations:**
+  - `OperationEntry.beforeSnapshot`/`afterSnapshot` accept `{}` for entries with no token diff — no type changes needed for error-only records.
+  - The `OpIcon` pattern-match is ordered; put specific error branches before broad `includes('generator')` catches.
+  - The rollback confirm modal uses `confirmOp.affectedPaths.length` — guard against showing a rollback option for error entries by checking `isError` before rendering the button.
+---

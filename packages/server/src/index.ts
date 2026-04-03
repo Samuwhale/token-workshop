@@ -91,12 +91,24 @@ export async function startServer(config: ServerConfig) {
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
     if (event.type === 'token-updated' && event.tokenPath) {
+      const tokenPath = event.tokenPath;
       generatorService
-        .runForSourceToken(event.tokenPath, tokenStore)
+        .runForSourceToken(tokenPath, tokenStore)
         .catch(err => {
           const message = err instanceof Error ? err.message : String(err);
           console.warn('[Generator] Auto-run failed:', err);
           tokenStore.emitEvent({ type: 'generator-error', setName: '', message });
+          // Record the failure persistently so clients connecting later can see it
+          operationLog.record({
+            type: 'generator-auto-run-error',
+            description: `Generator auto-run failed for "${tokenPath}": ${message}`,
+            setName: '',
+            affectedPaths: [tokenPath],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+          }).catch(logErr => {
+            console.error('[OperationLog] Failed to record generator error:', logErr);
+          });
         });
     }
   });

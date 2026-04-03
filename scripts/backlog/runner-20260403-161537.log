@@ -174,3 +174,10 @@ Already up to date.
   → Generator auto-run failures are fire-and-forget with no persistent record — index.ts L88-99 catches generator auto-run errors with `console.warn` and emits a transient `generator-error` SSE event, but if no client is connected the error is lost; there is no operation log entry, no persistent failure record, and no way for a user who connects later to see that generators failed; record auto-run failures in the operation log or a dedicated error store so the UI can surface them in the history panel
   Worktree: /tmp/backlog-46178-wZfp6D
   Running agent… (started 17:21:18)
+
+  ✓ done: Generator auto-run failures are fire-and-forget with no persistent record
+    Auto-run failures now recorded in operation log (type: generator-auto-run-error) with empty snapshots; HistoryPanel shows amber warning styling and a "Failed" badge instead of a rollback button for error entries
+    25 turns · 239s · $0.96
+
+  Merging to main: Generator auto-run failures are fire-and-forget with no persistent record
+Already up to date.

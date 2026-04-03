@@ -53,6 +53,9 @@ export function OpIcon({ type }: { type: string }) {
   if (type.includes('bulk')) {
     return <svg {...props}><path d="M4 6h16M4 12h16M4 18h16" /></svg>;
   }
+  if (type.includes('error')) {
+    return <svg {...props} className="shrink-0 text-[var(--color-figma-warning,#f59e0b)]"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+  }
   if (type.includes('generator') || type.includes('run')) {
     return <svg {...props}><path d="M5 3l14 9-14 9V3z" /></svg>;
   }

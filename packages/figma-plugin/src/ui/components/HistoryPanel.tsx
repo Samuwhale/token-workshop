@@ -565,6 +565,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         {allEntries.map((entry) => {
           if (entry.kind === 'action') {
             const op = entry.data;
+            const isError = op.type.includes('error');
             return (
               <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
                 <div className="mt-0.5 shrink-0">
@@ -573,7 +574,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <TypePill kind="action" />
-                    <span className={`text-[10px] truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : 'text-[var(--color-figma-text)]'}`}>
+                    <span className={`text-[10px] truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`}>
                       {op.description}
                     </span>
                   </div>
@@ -584,7 +585,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   </div>
                 </div>
                 <div className="shrink-0 mt-0.5 flex items-center gap-1">
-                  {op.rolledBack ? (
+                  {isError ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">
+                      Failed
+                    </span>
+                  ) : op.rolledBack ? (
                     <>
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
                         Rolled back
