@@ -283,3 +283,10 @@ Already up to date.
   → Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback — between the atomic file rename (token-store.ts:593) and the $themes.json update (token-store.ts:615), a server crash leaves themes referencing the old set name with no recovery mechanism; additionally the file-rename rollback on line 618 uses `.catch(() => {})` which silently swallows rename-back failures, so a double failure (themes write fails AND rename-back fails) leaves both files in an inconsistent state with no error logged
   Worktree: /tmp/backlog-49887-FQ87cJ
   Running agent… (started 13:32:40)
+
+  ✓ done: Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
+    Added write-ahead $rename-pending.json marker + startup recovery, extracted applyThemesRename helper, fixed silent .catch(()=>{}) on rollback to log double-failure errors
+    15 turns · 143s · $0.39
+
+  Merging to main: Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
+Already up to date.

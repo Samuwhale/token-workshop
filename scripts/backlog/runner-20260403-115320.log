@@ -484,3 +484,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: inconsistent sanitizeNumber in generator-engine (3 generators skip NaN/Infinity guard), plugin sandbox ~29 any-typed params across 6 files, dtcg-resolver silently swallows cycle/bad-ref errors, server renameSet/snapshot-restore non-atomic mutation windows, ExportPanel timeout race with no correlation ID
 Already up to date.
+[main 45feabe6] chore(backlog): code pass – code-pass
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 duplicate item(s) skipped
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: UI components (TokenEditor, ExportPanel, ImportPanel, SelectionInspector, SetSwitcher, CommandPalette, SyncPanel subpanels), core package (resolver.ts, dtcg-types.ts, dtcg-resolver.ts, generator-engine.ts, color-parse.ts, color-modifier.ts, validator.ts), server routes (tokens, themes, snapshots, sync, export, generators), plugin sandbox (controller.ts, variableSync.ts, consistencyScanner.ts, selectionHandling.ts, heatmapScanning.ts), shared utilities (colorUtils, graphUtils, tokenParsers)
+- Found 5 items — written to backlog-inbox.md
+- Notable: generator-engine.ts applies sanitizeNumber inconsistently — 2 of 5 numeric generators skip it, allowing NaN/Infinity to silently corrupt tokens; dtcg-resolver.ts swallows cycle/bad-ref errors via console.warn returning empty Maps indistinguishable from legitimately empty sets; plugin sandbox has ~29 any-typed parameters across 6 files with zero compile-time validation of the token data pipeline
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  18 queued · 4 in-progress · last took 10m1s
+═══════════════════════════════════════════════════════════════
+  → Import conflict strategy is binary overwrite-or-skip with no field-level merge — when importing tokens that already exist, users must choose "overwrite" (losing local descriptions, extensions, metadata) or "skip" (losing updated values); add a "merge" strategy that keeps local metadata while updating values, matching how git merge works for structured data (ImportPanel.tsx ~L642, ~L777)
+  Worktree: /tmp/backlog-80049-K1O6yH
+  Running agent… (started 13:34:35)

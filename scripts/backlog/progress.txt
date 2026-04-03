@@ -544,3 +544,15 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: generator-engine.ts applies sanitizeNumber inconsistently — 2 of 5 numeric generators skip it, allowing NaN/Infinity to silently corrupt tokens; dtcg-resolver.ts swallows cycle/bad-ref errors via console.warn returning empty Maps indistinguishable from legitimately empty sets; plugin sandbox has ~29 any-typed parameters across 6 files with zero compile-time validation of the token data pipeline
 ---
+
+## 2026-04-03 - Server `renameSet` multi-step file mutation has a crash-unsafe window and silent rollback
+- Added crash-recovery marker pattern to `renameSet`: writes `$rename-pending.json` (containing `{oldName, newName}`) before touching any files, then removes it after both steps complete. A crash between file rename and themes update is now recoverable on next startup.
+- Added `recoverPendingRename()` called during `initialize()`: reads the marker, checks which step completed (by testing file existence), and re-applies the themes update if needed. Handles four cases: rename incomplete (clean up marker), rename done/themes not done (reapply themes + cleanup), both files exist (ambiguous — log error, leave marker), neither file exists (stale marker cleanup).
+- Extracted `applyThemesRename(oldName, newName)` as a private helper — used by both `renameSet` and `recoverPendingRename`, eliminating inline duplication.
+- Fixed silent rollback: replaced `.catch(() => {})` with `.catch((rollbackErr) => { console.error(...) })` that logs both the original write error and the rollback error when a double-failure leaves files inconsistent.
+- Files changed: `packages/server/src/services/token-store.ts` ~L55, ~L64, ~L120, ~L657
+- **Learnings for future iterations:**
+  - The write-ahead marker pattern (write marker → mutate → remove marker) is general: any multi-step file mutation with a crash-unsafe window can use a `.pending.json` sidecar. Recovery checks which steps completed by inspecting file existence.
+  - Extract shared mutation helpers first — the inline themes-update code in `renameSet` made the function long; extraction also made the recovery path trivial to write.
+  - Never use `.catch(() => {})` on rollback paths — at minimum log the error. Double-failure scenarios (primary op fails AND rollback fails) require the error chain to be visible.
+---
