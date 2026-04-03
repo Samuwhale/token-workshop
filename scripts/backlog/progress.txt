@@ -558,3 +558,9 @@
   - `no-duplicate-values` check in `validateAllTokens` needs to group by `type:serializedValue` key across all sets; the canonical token is the shortest path in each duplicate group.
   - Fix buttons should only render when `suggestion` is present for alias-based fixes; `add-description` needs no suggestion.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: TokenEditor.tsx (editing UX, keyboard shortcuts, draft recovery), TokenTreeNode.tsx (inline editing, multi-select, drag-and-drop), TokenListModals.tsx (Find & Replace alias safety, batch selection), ThemeManager.tsx (auto-fill preview, coverage terminology), ExportPanel.tsx (mode switching on disconnect), PublishPanel.tsx (readiness check guidance), SetSwitcher.tsx (metadata discoverability), CommandPalette.tsx (missing destructive/batch commands), useDragDrop.ts (multi-select drag), server routes (unused coverage endpoint, batch move)
+- Found 10 items — written to backlog-inbox.md
+- Notable: Find & Replace has no alias-breaking detection — regex renames can silently create dangling alias references that only surface as validation errors later; also Tab key in inline editing closes the edit instead of advancing to the next token, breaking the expected spreadsheet-like sequential editing flow
+---

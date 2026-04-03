@@ -110,3 +110,18 @@ Already up to date.
 
   Merging to main: Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions
 Already up to date.
+[main 1e541583] chore(backlog): done – Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions
+ 7 files changed, 148 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Validation issues in AnalyticsPanel only offer "Go →" with no quick-fix actions
+- Added one-click fix buttons to validation issue rows in AnalyticsPanel for three mechanical rules:
+  - `require-description`: "Add desc" button PATCHes `{ $description: "" }` on the token
+  - `max-alias-depth`: "Flatten" button PATCHes `{ $value: suggestion }` (resolved direct target)
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  4 queued · 3 in-progress · last took 6m30s
+═══════════════════════════════════════════════════════════════
+  → Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
+  Worktree: /tmp/backlog-49887-IL3CSx
+  Running agent… (started 13:06:11)
