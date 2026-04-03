@@ -142,6 +142,26 @@ export interface SettingsPanelProps {
 }
 
 // ---------------------------------------------------------------------------
+// Import diff helpers
+// ---------------------------------------------------------------------------
+
+type ImportDiffEntry = { key: string; label: string; oldValue: string | null; newValue: string; status: 'added' | 'changed' };
+
+const IMPORT_KEY_LABELS: Record<string, string> = {
+  [STORAGE_KEYS.DENSITY]:              'UI density',
+  [STORAGE_KEYS.COLOR_FORMAT]:         'Color format',
+  [STORAGE_KEYS.ADVANCED_MODE]:        'Advanced mode',
+  [STORAGE_KEYS.CONTRAST_BG]:          'Contrast background',
+  [STORAGE_KEYS.HIDE_DEPRECATED]:      'Hide deprecated tokens',
+  [STORAGE_KEYS.SERVER_URL]:           'Server URL',
+  [STORAGE_KEYS.EXPORT_PLATFORMS]:     'Export platforms',
+  [STORAGE_KEYS.EXPORT_CSS_SELECTOR]:  'CSS selector',
+  [STORAGE_KEYS.EXPORT_ZIP_FILENAME]:  'ZIP filename',
+  [STORAGE_KEYS.EXPORT_NEST_PLATFORM]: 'Nest by platform',
+  [STORAGE_KEYS.UNDO_MAX_HISTORY]:     'Max undo steps',
+};
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -186,6 +206,9 @@ export function SettingsPanel({
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const importFileRef = useRef<HTMLInputElement | null>(null);
+
+  // Pending import diff — set after parsing file, cleared on apply/cancel
+  const [pendingImport, setPendingImport] = useState<{ data: Record<string, string>; diff: ImportDiffEntry[] } | null>(null);
 
   const handleExportSettings = useCallback(() => {
     // Keys that represent user-configurable preferences (not navigation or ephemeral state)
@@ -242,28 +265,45 @@ export function SettingsPanel({
   const handleImportFile = useCallback((file: File) => {
     setImportError(null);
     setImportSuccess(false);
+    setPendingImport(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const raw = e.target?.result;
         if (typeof raw !== 'string') throw new Error('Could not read file');
-        const data = JSON.parse(raw) as Record<string, unknown>;
-        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
           throw new Error('Invalid settings file: expected a JSON object');
         }
-        let applied = 0;
-        for (const [key, value] of Object.entries(data)) {
-          if (key.startsWith('_')) continue; // skip metadata fields
-          if (typeof value !== 'string') continue; // all localStorage values are strings
-          try {
-            localStorage.setItem(key, value);
-            applied++;
-          } catch { /* ignore quota errors */ }
+        // Collect valid (non-metadata, string-valued) entries
+        const data: Record<string, string> = {};
+        for (const [key, value] of Object.entries(parsed)) {
+          if (key.startsWith('_')) continue;
+          if (typeof value !== 'string') continue;
+          data[key] = value;
         }
-        if (applied === 0) throw new Error('No settings found in file');
-        setImportSuccess(true);
-        // Reload after a short delay so the success message is visible
-        setTimeout(() => { window.location.reload(); }, 800);
+        if (Object.keys(data).length === 0) throw new Error('No settings found in file');
+
+        // Build diff: only entries that differ from current localStorage
+        const diff: ImportDiffEntry[] = [];
+        for (const [key, newValue] of Object.entries(data)) {
+          const oldValue = (() => { try { return localStorage.getItem(key); } catch { return null; } })();
+          if (oldValue === newValue) continue; // unchanged
+          let label = IMPORT_KEY_LABELS[key];
+          if (!label) {
+            if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT)) label = `Sort: ${key.slice(STORAGE_PREFIXES.TOKEN_SORT.length)}`;
+            else if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) label = `Filter: ${key.slice(STORAGE_PREFIXES.TOKEN_TYPE_FILTER.length)}`;
+            else if (key.startsWith('tm_pinned:')) label = `Pinned: ${key.slice('tm_pinned:'.length)}`;
+            else label = key;
+          }
+          diff.push({ key, label, oldValue, newValue, status: oldValue === null ? 'added' : 'changed' });
+        }
+
+        if (diff.length === 0) {
+          setImportError('No changes — the imported settings match your current configuration.');
+          return;
+        }
+        setPendingImport({ data, diff });
       } catch (err) {
         setImportError(err instanceof Error ? err.message : 'Failed to import settings');
       }
@@ -271,6 +311,18 @@ export function SettingsPanel({
     reader.onerror = () => setImportError('Failed to read file');
     reader.readAsText(file);
   }, []);
+
+  const handleApplyImport = useCallback(() => {
+    if (!pendingImport) return;
+    let applied = 0;
+    for (const [key, value] of Object.entries(pendingImport.data)) {
+      try { localStorage.setItem(key, value); applied++; } catch { /* quota */ }
+    }
+    if (applied === 0) { setImportError('Failed to write settings'); return; }
+    setPendingImport(null);
+    setImportSuccess(true);
+    setTimeout(() => { window.location.reload(); }, 800);
+  }, [pendingImport]);
 
   // ---- Export defaults (local state from localStorage) ----
   const [exportPlatforms, setExportPlatforms] = useState<Set<string>>(() => {
@@ -628,6 +680,56 @@ export function SettingsPanel({
             )}
             {importError && (
               <p className="text-[10px] text-[var(--color-figma-error)]">{importError}</p>
+            )}
+            {pendingImport && (
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                <div className="flex items-center justify-between px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                    Preview changes ({pendingImport.diff.length} setting{pendingImport.diff.length !== 1 ? 's' : ''})
+                  </span>
+                  <button
+                    onClick={() => setPendingImport(null)}
+                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    aria-label="Dismiss preview"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                  {pendingImport.diff.map(entry => (
+                    <div key={entry.key} className="px-2 py-1.5 flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[9px] font-medium px-1 rounded ${entry.status === 'added' ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'}`}>
+                          {entry.status === 'added' ? 'NEW' : 'CHANGED'}
+                        </span>
+                        <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate">{entry.label}</span>
+                      </div>
+                      {entry.status === 'changed' && entry.oldValue !== null && (
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-0.5">
+                          <span className="text-[var(--color-figma-error)]">−</span> {entry.oldValue}
+                        </span>
+                      )}
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-0.5">
+                        <span className="text-[var(--color-figma-success)]">+</span> {entry.newValue}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                  <button
+                    onClick={() => setPendingImport(null)}
+                    className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleApplyImport}
+                    className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    Apply & reload
+                  </button>
+                </div>
+              </div>
             )}
           </Section>
 

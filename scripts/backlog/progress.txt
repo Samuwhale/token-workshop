@@ -282,3 +282,11 @@
   - Pattern scoring (earlier patterns score higher) works well for token naming: `primary` → 3×10=30 points, `brand` → 2×10=20 points; the highest-scoring token wins.
   - For dimension tokens (spacing, radius, font-size), sorting by numeric value and picking percentile positions (0%, 15%, 45%, 75%) reliably maps to xs/sm/md/lg without needing pattern matching on segment names.
 ---
+
+## 2026-04-03 - SettingsPanel import applies immediately with no preview
+- Added a diff-preview step before applying imported settings. Parsing now builds an `ImportDiffEntry[]` of only changed/added keys (unchanged entries skipped). The preview renders an inline card with a scrollable diff list showing NEW/CHANGED badges, old value (red −), and new value (green +) for each key. Apply & reload / Cancel buttons finalize or discard the import. Module-level `IMPORT_KEY_LABELS` maps storage keys to human-readable names; per-set keys (token-sort, token-type-filter, tm_pinned) get auto-generated labels.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L144 (module-level type/constants), ~L207 (pendingImport state), ~L260 (handleImportFile), ~L312 (handleApplyImport), ~L680 (preview UI in Backup & Restore section)
+- **Learnings for future iterations:**
+  - Moving `useCallback` dependency objects to module level (outside the component) is cleaner than adding them as deps or wrapping in `useMemo`.
+  - The "parse → show diff → confirm → apply" pattern is the canonical approach for destructive import flows; keep it as an inline card (not a modal) for Figma plugin's compact UI.
+---

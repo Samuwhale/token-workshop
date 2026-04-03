@@ -127,3 +127,25 @@ Already up to date.
 
   Merging to main: PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
 Already up to date.
+[main f7e2ec3a] chore(backlog): done – PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
+ 6 files changed, 228 insertions(+), 51 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
+- Added `pickTokenByPatterns` helper and `resolvePreviewSlots` function that scan `allTokensFlat` to intelligently map user tokens to semantic UI roles (primary color, text, surface, border, error, spacing, border-radius, font-size) using pattern matching. Injects results as `--preview-*` CSS custom properties into the wrapper div alongside `cssVars`.
+- Updated `ButtonsTemplate`, `FormsTemplate`, and `CardTemplate` to reference `--preview-*` vars as the first entry in their CSS var chains, keeping the existing hardcoded fallback chains intact. This means: if the user's tokens are detected, they're used; if not, the templates fall back gracefully to generic defaults.
+- Detection heuristics cover common naming conventions: `primary`/`brand`/`accent` for primary color; `surface`/`background`/`canvas` for surface; `border`/`divider`/`separator` for border; `error`/`danger`/`destructive` for error state; spacing tokens sorted by value with percentile selection; border-radius tokens sorted by value; font-size tokens sorted by value.
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  2 queued · 3 in-progress · last took 5m52s
+═══════════════════════════════════════════════════════════════
+  → SettingsPanel import applies immediately with no preview of what will change — importing a settings JSON file (SettingsPanel.tsx ~L242-273) overwrites current lint rules, export defaults, and UI preferences in one shot with no diff/confirmation dialog; show a preview of what settings will be overwritten before applying
+  Worktree: /tmp/backlog-80049-ilyawG
+  Running agent… (started 12:07:54)
+
+  ✓ done: SettingsPanel import applies immediately with no preview of what will change
+    Added diff-preview card before applying: parse → compute changed/added entries → show inline preview with old/new values → Apply & reload or Cancel
+    22 turns · 182s · $0.64
+
+  Merging to main: SettingsPanel import applies immediately with no preview of what will change
+Already up to date.
