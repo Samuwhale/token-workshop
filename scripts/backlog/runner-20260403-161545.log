@@ -600,3 +600,10 @@ Already up to date.
   → Command palette hides keyboard shortcuts during search — when the user types a query, matching commands no longer show their shortcut badges (CommandPalette.tsx ~L739); shortcuts are only visible in the no-query category view, so users never learn shortcuts for commands they search for
   Worktree: /tmp/backlog-46580-qz3Lm3
   Running agent… (started 18:42:42)
+
+  ✓ done: Command palette hides keyboard shortcuts during search
+    stale — already done; both the no-query sections view and filtered commands view already render shortcut kbd badges
+    13 turns · 77s · $0.3
+
+  Merging to main: Command palette hides keyboard shortcuts during search
+Already up to date.

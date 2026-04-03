@@ -521,3 +521,18 @@ Already up to date.
 
   Merging to main: Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount
 Already up to date.
+[main debf7645] chore(backlog): done – Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount
+ 9 files changed, 82 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AbortController cleanup on unmount for useGenerators, useTokens, useFigmaSync, useServerConnection
+- `useGenerators.ts`: added `abortRef`, abort-prev-then-create pattern in `fetchGenerators`, combined with `AbortSignal.timeout(5000)`; effect cleanup aborts on unmount; AbortError swallowed in catch
+- `useTokens.ts`: added `unmountControllerRef` (initialized once, aborted on unmount via cleanup effect); its signal combined with existing disconnect signal in `refreshTokens` via `AbortSignal.any`
+- `useFigmaSync.ts`: added `abortRef` and cleanup effect; `handleApplyGroupScopes` now passes the signal to both the GET and all PATCH calls; AbortError causes early return in catch; `finally` guards setState with `if (!signal.aborted)`
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  11 queued · 3 in-progress · last took 4m0s
+═══════════════════════════════════════════════════════════════
+  → QuickApplyPicker has no "unbind" action — users can bind tokens to properties via quick apply but cannot clear an existing binding from the same flow; they must navigate to the full inspector to unbind, breaking the fast-path intent of the picker (QuickApplyPicker.tsx ~L142-167)
+  Worktree: /tmp/backlog-45818-gACN9A
+  Running agent… (started 18:43:10)

@@ -579,3 +579,10 @@
   - When the abort controller should only fire on unmount (not on each re-invocation), initialize it with `useRef(new AbortController())` and only abort in the cleanup effect — don't replace it per-call.
   - For hooks where the same callback is called from multiple effects, a single `unmountControllerRef` is cleaner than per-effect controllers; combine its signal with other signals using `AbortSignal.any`.
 ---
+
+## 2026-04-03 - Command palette hides keyboard shortcuts during search
+- Stale — already done. Both the no-query sections view (~L739) and the filtered commands view (~L778) already render `{cmd.shortcut && <kbd>...}`. Shortcut badges appear in search results.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Verify current code state before assuming a backlog item is unimplemented — prior sessions may have already addressed it as part of adjacent work.
+---
