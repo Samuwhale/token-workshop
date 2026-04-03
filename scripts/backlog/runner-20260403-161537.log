@@ -342,3 +342,18 @@ Already up to date.
 
   Merging to main: No warning when assigning an empty set as a theme override
 Already up to date.
+[main 09bb6374] chore(backlog): done – No warning when assigning an empty set as a theme override
+ 6 files changed, 45 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No warning when assigning an empty set as a theme override
+- Added an "empty" warning badge to `renderSetRow` in ThemeManager.tsx. When a set's status is `'enabled'` (Override) and its token count (from `setTokenValues`) is 0, a small amber pill badge reading "empty" appears between the set name and the toggle buttons, with a tooltip explaining the coverage gap.
+- `tokenCount` is `null` when the set hasn't been loaded yet (fetch in progress) to avoid false positives during loading.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1249
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  4 queued · 3 in-progress · last took 3m21s
+═══════════════════════════════════════════════════════════════
+  → No bulk generator execution — users with many generators (e.g., 5 color ramps + 3 spacing scales) cannot trigger "re-run all generators" in one action; each must be individually executed or relies on auto-run from source changes; add a "Run all" button to the Generators list view
+  Worktree: /tmp/backlog-46178-kmwby8
+  Running agent… (started 17:52:06)

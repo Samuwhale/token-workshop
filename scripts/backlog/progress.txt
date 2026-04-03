@@ -565,3 +565,15 @@
   - Checking `tokenCount !== null` guards against showing warnings before data loads.
   - Gate 4 (headless UI validation) timed out due to a pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); confirmed pre-existing via `git stash` test; gates 1-3 all passed cleanly.
 ---
+
+## 2026-04-03 - Unify PreviewPanel and TokenDetailPreview into context-aware preview pane
+- Made the split-view PreviewPanel context-aware: when a token is focused (`previewingToken` is set), it renders `TokenDetailPreview` inline in the bottom pane instead of collection templates. When nothing is focused, it renders the normal collection templates (Colors, Type Scale, Buttons, etc.).
+- **PreviewPanel.tsx**: Added `focusedToken`, `pathToSet`, `onClearFocus`, and `onEditToken` props to the interface. Imported `TokenDetailPreview`. Added an early-return branch that renders `TokenDetailPreview` inline when `focusedToken` is set, with `onClose=onClearFocus` (back to collection) and `onNavigateToAlias` wired to `onNavigateToToken` for alias-chain navigation.
+- **App.tsx** (split-view section): Changed `onNavigateToToken` to call `setPreviewingToken` (focus token in preview pane) instead of navigating the list. Added `focusedToken={previewingToken}`, `pathToSet`, `onClearFocus`, and `onEditToken` (which collapses split view and opens editor sidebar) to the PreviewPanel call. Updated split-view TokenList `highlightedToken` to also reflect `previewingToken?.path`.
+- The sidebar/drawer behavior for non-split-view remains unchanged. In split view, clicking the navigate arrow on any color/type/effects swatch now focuses that token's detail in the bottom pane. Clicking "preview" on a token row in the list also focuses it in the bottom pane. "Edit" collapses the split view and opens the editor sidebar.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1, ~L210, ~L358; `packages/figma-plugin/src/ui/App.tsx` ~L2352, ~L2370
+- **Learnings for future iterations:**
+  - Context-aware panel switching is achievable with a single `focusedToken` prop — no new state needed if an existing token-preview state variable (`previewingToken`) is already tracked. Just pass it down.
+  - When "Edit" is triggered from within a split-view inline preview, collapsing the split view first (`setShowPreviewSplit(false)`) and then opening the editor sidebar is the cleanest UX — avoids needing to render the editor inside the preview pane.
+  - Gate 4 (headless UI validation) timed out due to pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); gates 1–3 passed cleanly.
+---

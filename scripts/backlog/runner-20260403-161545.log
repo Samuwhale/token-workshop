@@ -430,3 +430,10 @@ Already up to date.
   → PreviewPanel and TokenDetailPreview serve overlapping purposes — PreviewPanel renders template-based previews (Colors, Type Scale, Buttons, etc.) using CSS variables, while TokenDetailPreview shows a single token's resolved value chain; neither links to the other; consider merging TokenDetailPreview into the token list sidebar and making PreviewPanel the sole "preview" destination, or unify them into a single preview pane that shows context-aware content (single token detail when one is selected, collection preview when viewing a set)
   Worktree: /tmp/backlog-46580-WeeXZw
   Running agent… (started 17:45:09)
+
+  ✓ done: PreviewPanel and TokenDetailPreview serve overlapping purposes — unify them into a single preview pane that shows context-aware content
+    Split-view PreviewPanel now renders TokenDetailPreview inline when a token is focused; swatch navigate buttons and list preview actions both focus tokens in the bottom pane; back-to-collection via close button; edit collapses split view and opens editor sidebar
+    35 turns · 471s · $1.42
+
+  Merging to main: PreviewPanel and TokenDetailPreview serve overlapping purposes — unify them into a single preview pane that shows context-aware content
+Already up to date.

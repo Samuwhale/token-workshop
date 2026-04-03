@@ -2362,7 +2362,7 @@ export function App() {
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                   actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast }}
                   defaultCreateOpen={createFromEmpty}
-                  highlightedToken={highlightedToken}
+                  highlightedToken={previewingToken?.path ?? highlightedToken}
                   showIssuesOnly={showIssuesOnly}
                   editingTokenPath={editingToken?.path}
                   compareHandle={tokenListCompareRef}
@@ -2389,15 +2389,18 @@ export function App() {
                   onActiveThemesChange={setActiveThemes}
                   onGoToTokens={() => navigateTo('define', 'tokens')}
                   onNavigateToToken={(path) => {
-                    const targetSet = pathToSet[path];
-                    navigateTo('define', 'tokens');
-                    setEditingToken(null);
-                    if (targetSet && targetSet !== activeSet) {
-                      setActiveSet(targetSet);
-                      setPendingHighlight(path);
-                    } else {
-                      setHighlightedToken(path);
-                    }
+                    const name = path.split('.').pop();
+                    const set = pathToSet[path] ?? activeSet;
+                    setPreviewingToken({ path, name, set });
+                    setHighlightedToken(path);
+                  }}
+                  focusedToken={previewingToken}
+                  pathToSet={pathToSet}
+                  onClearFocus={() => setPreviewingToken(null)}
+                  onEditToken={(path, name, set) => {
+                    setShowPreviewSplit(false);
+                    setEditingToken({ path, name, set: set ?? activeSet });
+                    setPreviewingToken(null);
                   }}
                 />
                 </ErrorBoundary>

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
+import { TokenDetailPreview } from './TokenDetailPreview';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
@@ -10,6 +11,11 @@ interface PreviewPanelProps {
   onActiveThemesChange?: (themes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
+  /** When set, the panel renders token detail instead of collection templates */
+  focusedToken?: { path: string; name?: string; set: string } | null;
+  pathToSet?: Record<string, string>;
+  onClearFocus?: () => void;
+  onEditToken?: (path: string, name?: string, set?: string) => void;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card' | 'effects';
@@ -207,7 +213,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, focusedToken, pathToSet, onClearFocus, onEditToken }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -355,6 +361,26 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
   const previewSlots = useMemo(() => resolvePreviewSlots(allTokensFlat), [allTokensFlat]);
 
   const isEmpty = Object.keys(allTokensFlat).length === 0;
+
+  // Context-aware: when a token is focused, show its detail instead of collection templates
+  if (focusedToken) {
+    return (
+      <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
+        <TokenDetailPreview
+          tokenPath={focusedToken.path}
+          tokenName={focusedToken.name}
+          setName={focusedToken.set}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          dimensions={dimensions}
+          activeThemes={activeThemes}
+          onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
+          onClose={onClearFocus ?? (() => {})}
+          onNavigateToAlias={(path) => onNavigateToToken?.(path)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
