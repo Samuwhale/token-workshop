@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { STORAGE_KEY, lsGetJson, lsSetJson } from '../shared/storage';
 
 export interface PinnedTokensState {
@@ -16,15 +16,24 @@ export function usePinnedTokens(setName: string): PinnedTokensState {
     lsGetJson<string[]>(STORAGE_KEY.pinnedTokens(setName), [])
   );
 
+  // Keep a ref so the persist effect always has the current setName without
+  // depending on it — prevents writing the old set's pin list to the new
+  // set's localStorage key when setName changes (both effects share the same
+  // render cycle and pinnedList hasn't been reloaded yet).
+  const setNameRef = useRef(setName);
+  setNameRef.current = setName;
+
   // Re-initialize when setName changes
   useEffect(() => {
     setPinnedList(lsGetJson<string[]>(STORAGE_KEY.pinnedTokens(setName), []));
   }, [setName]);
 
-  // Persist to localStorage whenever pinnedList changes
+  // Persist to localStorage whenever pinnedList changes.
+  // Uses setNameRef so this effect does NOT re-run on setName changes —
+  // only on pinnedList changes, which prevents the stale-write race.
   useEffect(() => {
-    lsSetJson(STORAGE_KEY.pinnedTokens(setName), pinnedList);
-  }, [pinnedList, setName]);
+    lsSetJson(STORAGE_KEY.pinnedTokens(setNameRef.current), pinnedList);
+  }, [pinnedList]);
 
   const paths = useMemo(() => new Set(pinnedList), [pinnedList]);
 

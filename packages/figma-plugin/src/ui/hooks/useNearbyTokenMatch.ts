@@ -111,6 +111,13 @@ export function useNearbyTokenMatch(
   const [matches, setMatches] = useState<NearbyMatch[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Keep allTokensFlat in a ref so the debounced search always uses the
+  // current token map without requiring it in the effect's dependency array.
+  // Without this, new tokens added after the effect was last scheduled are
+  // invisible to the search.
+  const allTokensFlatRef = useRef(allTokensFlat);
+  allTokensFlatRef.current = allTokensFlat;
+
   // Serialize input for dependency tracking
   const inputKey = useMemo(() => {
     if (inputValue == null) return '';
@@ -124,10 +131,9 @@ export function useNearbyTokenMatch(
     }
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      setMatches(findNearbyTokens(inputValue, tokenType, allTokensFlat, currentPath));
+      setMatches(findNearbyTokens(inputValue, tokenType, allTokensFlatRef.current, currentPath));
     }, 150);
     return () => clearTimeout(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, inputKey, tokenType, currentPath]);
 
   return matches;

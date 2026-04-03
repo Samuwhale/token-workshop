@@ -356,3 +356,18 @@ Already up to date.
 
   Merging to main: Generator dry-run diff is not surfaced in the UI before first creation
 Already up to date.
+[main 408ec7a3] chore(backlog): done – Generator dry-run diff is not surfaced in the UI before first creation
+ 8 files changed, 93 insertions(+), 21 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator dry-run diff is not surfaced in the UI before first creation
+- Added `existingOverwritePathSet: Set<string>` to `useGeneratorPreview` tracking ALL preview token paths that already exist in the target set (not just value-changed ones). Threaded it through `useGeneratorDialog`. In the confirmation modal: (1) shows an orange warning banner "N existing tokens will be overwritten" for new generators; (2) fixed `newTokens` computation to only include truly new tokens (was incorrectly including existing-same-value tokens); (3) added neutral "X unchanged" badge for tokens that exist at the same value.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L146, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L63, ~L181, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L183, ~L255
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  8 queued · 4 in-progress · last took 5m42s
+═══════════════════════════════════════════════════════════════
+  → Core validateColorModifiers silently drops valid mix operations — the mix branch in color-modifier.ts L33-39 requires an `amount` field that is not part of the ColorModifierOp mix schema and is not used by applyColorModifiers, so a valid {type:'mix', color:'#fff', ratio:0.5} is silently excluded from the output; existing tests mask this by always supplying amount:0
+  Worktree: /tmp/backlog-81267-kTa0cC
+  Running agent… (started 12:38:36)

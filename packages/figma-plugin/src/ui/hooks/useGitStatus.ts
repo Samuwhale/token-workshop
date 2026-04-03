@@ -79,7 +79,7 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
       if ((err as Error).name === 'AbortError') return;
       setGitError(describeError(err, 'Fetch git status'));
     } finally {
-      if (!signal.aborted) setGitLoading(false);
+      setGitLoading(false);
     }
   }, [serverUrl, connected]);
 

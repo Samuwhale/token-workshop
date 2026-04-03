@@ -323,3 +323,18 @@
   - The `overwrittenEntries` mechanism (value-diff detection) was already present and working. The gap was: tokens that already exist with the SAME value were being misclassified as "new". The fix was exposing a full existing-paths Set from the preview hook so the dialog could split tokens into truly-new vs. existing-unchanged vs. existing-changed.
   - `check-overwrites` and `dry-run` server endpoints aren't needed for new generators — client-side comparison against fetched existing tokens is sufficient and already done via `useGeneratorPreview`.
 ---
+
+## 2026-04-03 - UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks
+- Fixed 5 of the 6 described bugs (the 6th — useSetMergeSplit — was stale/incorrect: `finally` always runs in JS even when returning from inside `try`/`catch`, so `mergeLoading` was already correctly reset):
+  1. **usePinnedTokens**: Added `setNameRef` updated on every render; persist effect now depends only on `pinnedList` (not `setName`). When `setName` changes, the persist effect won't fire with the old set's pin list before the re-init effect loads the new set's pins.
+  2. **useGeneratorPreview**: Early-return path for `isMultiBrand && !firstBrandRow` now clears the pending debounce timer, aborts any in-flight fetch, and calls `setPreviewLoading(false)`. Previously, if a debounce timer was pending (loading=true) and the effect cleanup cancelled it, the async `finally` that resets loading never ran.
+  3. **useGitStatus**: Removed the `if (!signal.aborted) setGitLoading(false)` guard in the `finally` block. The guard prevented loading from resetting when a fetch was aborted (e.g., when a new `fetchStatus` starts). Since `fetchStatus` never calls `setGitLoading(true)` explicitly, there's nothing to preserve — always resetting is safe.
+  4. **useTokenSyncBase**: Added `rowsRef` and `dirsRef` (updated on every render); `applyDiff` now reads `rowsRef.current`/`dirsRef.current` instead of closing over `rows`/`dirs`. Removed `rows` and `dirs` from `applyDiff`'s dependency array so the callback stays stable and doesn't recreate on every direction-toggle.
+  5. **useNearbyTokenMatch**: Added `allTokensFlatRef` updated on every render; the debounced `setTimeout` callback now uses `allTokensFlatRef.current`. Removed the `eslint-disable-next-line react-hooks/exhaustive-deps` suppression comment that was hiding the bug.
+  6. **useSetMergeSplit**: No change needed — `finally` in JavaScript always executes even when `return` is inside `try` or `catch`, so `setMergeLoading(false)` was already correctly called in all stale-check early-exit paths.
+- Files changed: `packages/figma-plugin/src/ui/hooks/usePinnedTokens.ts` ~L1,19-37; `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L66-82; `packages/figma-plugin/src/ui/hooks/useGitStatus.ts` ~L81-83; `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L108-126,189-191,263; `packages/figma-plugin/src/ui/hooks/useNearbyTokenMatch.ts` ~L111-131
+- **Learnings for future iterations:**
+  - JavaScript `finally` ALWAYS runs even when you `return` from inside `try` or `catch` — bugs framed as "bypasses finally" due to early return are incorrect; double-check before implementing.
+  - The "debounce-cleared-before-fire" loading bug: when a `useEffect` cleanup cancels a debounce timer, any `setState(true)` that was called before the timer was scheduled becomes permanently stuck unless the early-exit or cleanup path explicitly resets it.
+  - The standard ref pattern for callbacks that need current state without re-creating: `const xRef = useRef(x); xRef.current = x;` assigned unconditionally on every render, then read as `xRef.current` inside the callback — no deps needed for x.
+---

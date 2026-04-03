@@ -66,10 +66,16 @@ export function useGeneratorPreview({
 
   // Debounced preview fetch
   const fetchPreview = useCallback(() => {
-    // For multi-brand without any usable brand row, skip preview
+    // For multi-brand without any usable brand row, skip preview.
+    // Must clear any pending timer and abort any in-flight fetch so that
+    // setPreviewLoading(false) isn't lost (the timer's finally block won't
+    // run if the timer was already cancelled by an effect cleanup).
     if (isMultiBrand && !firstBrandRow) {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      abortRef.current?.abort();
       setPreviewTokens([]);
       setPreviewError('');
+      setPreviewLoading(false);
       return;
     }
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);

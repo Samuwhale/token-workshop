@@ -118,6 +118,14 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
   const configRef = useRef(config);
   configRef.current = config;
 
+  // Keep rows/dirs in refs so applyDiff always reads current values without
+  // needing them in its dependency array (which would recreate the callback
+  // on every user interaction with the direction selectors).
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const dirsRef = useRef(dirs);
+  dirsRef.current = dirs;
+
   // Listen for incremental progress messages from the plugin sandbox
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
@@ -180,8 +188,8 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
 
   const applyDiff = useCallback(async () => {
     const cfg = configRef.current;
-    const dirsSnapshot = dirs;
-    const rowsSnapshot = rows;
+    const dirsSnapshot = dirsRef.current;
+    const rowsSnapshot = rowsRef.current;
     setSyncing(true);
     setError(null);
     setProgress(null);
@@ -252,7 +260,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
       setProgress(null);
       progressRef.current = null;
     }
-  }, [serverUrl, activeSet, rows, dirs]);
+  }, [serverUrl, activeSet]);
 
   const syncCount = Object.values(dirs).filter(d => d !== 'skip').length;
   const pushCount = Object.values(dirs).filter(d => d === 'push').length;
