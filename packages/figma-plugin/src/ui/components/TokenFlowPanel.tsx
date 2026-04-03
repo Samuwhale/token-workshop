@@ -17,6 +17,7 @@ interface FlowNode {
   resolvedHex: string | null; // resolved color hex for swatches
   /** 'source' = upstream ref, 'center' = selected, 'dependent' = downstream */
   role: 'source' | 'center' | 'dependent';
+  isCyclic?: boolean;
 }
 
 export interface TokenFlowPanelProps {
@@ -70,6 +71,42 @@ function buildDependentsMap(
     }
   }
   return map;
+}
+
+/**
+ * DFS cycle detection. Returns all node paths that participate in at least one cycle
+ * reachable from `start`. Works for both upstream (follow references) and downstream
+ * (follow dependents) directions by accepting a `getNeighbors` callback.
+ */
+function detectCycleNodes(
+  start: string,
+  getNeighbors: (path: string) => string[],
+): Set<string> {
+  const cycleNodes = new Set<string>();
+  const visited = new Set<string>();
+  const inStack = new Set<string>();
+  const stackArr: string[] = [];
+
+  function dfs(path: string): void {
+    if (inStack.has(path)) {
+      // Back edge — everything from `path`'s first appearance in the stack to the
+      // current tail is part of this cycle.
+      const idx = stackArr.indexOf(path);
+      for (let i = idx; i < stackArr.length; i++) cycleNodes.add(stackArr[i]);
+      cycleNodes.add(path);
+      return;
+    }
+    if (visited.has(path)) return;
+    visited.add(path);
+    inStack.add(path);
+    stackArr.push(path);
+    for (const neighbor of getNeighbors(path)) dfs(neighbor);
+    stackArr.pop();
+    inStack.delete(path);
+  }
+
+  dfs(start);
+  return cycleNodes;
 }
 
 function tryResolveColor(
@@ -183,25 +220,48 @@ function FlowNodeCard({
   isCenter: boolean;
   onClick: () => void;
 }) {
+  const cyclic = node.isCyclic;
   return (
     <div
       className={`absolute rounded border text-xs select-none transition-shadow ${
-        isCenter
+        cyclic
+          ? 'border-red-500/60 bg-red-500/5'
+          : isCenter
           ? 'border-[var(--color-figma-accent)] shadow-md bg-[var(--color-figma-bg)]'
           : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)] hover:shadow cursor-pointer'
       }`}
       style={{ left: x, top: y, width: NODE_W, height: NODE_H }}
       onClick={isCenter ? undefined : onClick}
-      title={node.path}
+      title={cyclic ? `⚠ Circular dependency: ${node.path}` : node.path}
     >
       <div className="px-2 pt-1.5 flex items-center gap-1.5 truncate">
-        {node.resolvedHex && (
+        {cyclic && (
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="flex-shrink-0 text-red-500"
+            aria-hidden="true"
+          >
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5V10.5z" />
+          </svg>
+        )}
+        {!cyclic && node.resolvedHex && (
           <span
             className="inline-block w-3 h-3 rounded-sm border border-[var(--color-figma-border)] flex-shrink-0"
             style={{ backgroundColor: swatchBgColor(node.resolvedHex) }}
           />
         )}
-        <span className="font-medium truncate">{node.path.split('.').pop()}</span>
+        {cyclic && node.resolvedHex && (
+          <span
+            className="inline-block w-3 h-3 rounded-sm border border-red-500/30 flex-shrink-0 opacity-50"
+            style={{ backgroundColor: swatchBgColor(node.resolvedHex) }}
+          />
+        )}
+        <span className={`font-medium truncate ${cyclic ? 'text-red-500' : ''}`}>
+          {node.path.split('.').pop()}
+        </span>
         <span className="ml-auto opacity-40 flex-shrink-0">{node.$type}</span>
       </div>
       <div className="px-2 pt-0.5 truncate opacity-60" title={formatValue(node.$value)}>
@@ -215,11 +275,9 @@ function FlowNodeCard({
 // SVG edge drawing
 // ---------------------------------------------------------------------------
 
-function FlowEdges({
-  edges,
-}: {
-  edges: { x1: number; y1: number; x2: number; y2: number }[];
-}) {
+type FlowEdge = { x1: number; y1: number; x2: number; y2: number; isCyclic?: boolean };
+
+function FlowEdges({ edges }: { edges: FlowEdge[] }) {
   if (edges.length === 0) return null;
   // Compute bounding box
   let maxX = 0, maxY = 0;
@@ -244,20 +302,30 @@ function FlowEdges({
         >
           <path d="M0 0L10 3.5L0 7z" fill="var(--color-figma-accent)" />
         </marker>
+        <marker
+          id="flow-arrow-cyclic"
+          viewBox="0 0 10 7"
+          refX="10"
+          refY="3.5"
+          markerWidth="8"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M0 0L10 3.5L0 7z" fill="#ef4444" />
+        </marker>
       </defs>
-      {edges.map((e, i) => {
-        return (
-          <path
-            key={i}
-            d={edgePath(e.x1, e.y1, e.x2, e.y2)}
-            fill="none"
-            stroke="var(--color-figma-accent)"
-            strokeWidth="1.5"
-            strokeOpacity="0.5"
-            markerEnd="url(#flow-arrow)"
-          />
-        );
-      })}
+      {edges.map((e, i) => (
+        <path
+          key={i}
+          d={edgePath(e.x1, e.y1, e.x2, e.y2)}
+          fill="none"
+          stroke={e.isCyclic ? '#ef4444' : 'var(--color-figma-accent)'}
+          strokeWidth={e.isCyclic ? 1.5 : 1.5}
+          strokeOpacity={e.isCyclic ? 0.8 : 0.5}
+          strokeDasharray={e.isCyclic ? '4 3' : undefined}
+          markerEnd={e.isCyclic ? 'url(#flow-arrow-cyclic)' : 'url(#flow-arrow)'}
+        />
+      ))}
     </svg>
   );
 }
@@ -296,6 +364,21 @@ export function TokenFlowPanel({
   const graphData = useMemo(() => {
     if (!selectedPath || !allTokensFlat[selectedPath]) return null;
 
+    // Detect cycles before building node lists so we can annotate each node.
+    const upstreamCycleNodes = detectCycleNodes(
+      selectedPath,
+      (path) => {
+        const entry = allTokensFlat[path];
+        return entry ? getDirectReferences(entry.$value) : [];
+      },
+    );
+    const downstreamCycleNodes = detectCycleNodes(
+      selectedPath,
+      (path) => [...(dependentsMap.get(path) ?? [])],
+    );
+    const allCycleNodes = new Set([...upstreamCycleNodes, ...downstreamCycleNodes]);
+    const hasCycles = allCycleNodes.size > 0;
+
     const centerEntry = allTokensFlat[selectedPath];
     const centerNode: FlowNode = {
       path: selectedPath,
@@ -303,6 +386,7 @@ export function TokenFlowPanel({
       $value: centerEntry.$value,
       resolvedHex: tryResolveColor(selectedPath, allTokensFlat),
       role: 'center',
+      isCyclic: allCycleNodes.has(selectedPath),
     };
 
     // Upstream: what this token references (walk full chain)
@@ -322,6 +406,7 @@ export function TokenFlowPanel({
         $value: entry.$value,
         resolvedHex: tryResolveColor(ref, allTokensFlat),
         role: 'source',
+        isCyclic: allCycleNodes.has(ref),
       });
       // Continue walking chain
       const nextRefs = getDirectReferences(entry.$value);
@@ -346,6 +431,7 @@ export function TokenFlowPanel({
         $value: entry.$value,
         resolvedHex: tryResolveColor(dep, allTokensFlat),
         role: 'dependent',
+        isCyclic: allCycleNodes.has(dep),
       });
       // Continue walking chain
       const nextDeps = dependentsMap.get(dep);
@@ -356,7 +442,7 @@ export function TokenFlowPanel({
       }
     }
 
-    return { centerNode, sourceNodes, depNodes };
+    return { centerNode, sourceNodes, depNodes, hasCycles };
   }, [selectedPath, allTokensFlat, dependentsMap]);
 
   // Reset expanded state when selection changes
@@ -419,21 +505,27 @@ export function TokenFlowPanel({
     }));
 
     // Edges: source → center, center → dependent
-    const edges: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (const sp of srcPositions) {
+    const edges: FlowEdge[] = [];
+    for (let i = 0; i < srcPositions.length; i++) {
+      const sp = srcPositions[i];
+      const srcNode = sourceNodes[i];
       edges.push({
         x1: sp.x + NODE_W,
         y1: sp.y + NODE_H / 2,
         x2: centerPos.x,
         y2: centerPos.y + NODE_H / 2,
+        isCyclic: srcNode.isCyclic || centerNode.isCyclic,
       });
     }
-    for (const dp of depPositions) {
+    for (let i = 0; i < depPositions.length; i++) {
+      const dp = depPositions[i];
+      const depNode = depNodes[i];
       edges.push({
         x1: centerPos.x + NODE_W,
         y1: centerPos.y + NODE_H / 2,
         x2: dp.x,
         y2: dp.y + NODE_H / 2,
+        isCyclic: centerNode.isCyclic || depNode.isCyclic,
       });
     }
 
@@ -500,6 +592,19 @@ export function TokenFlowPanel({
           description="Visualize alias reference chains. Search for any token to see what it references (left) and what depends on it (right). Click nodes to navigate the graph."
           onDismiss={help.dismiss}
         />
+      )}
+
+      {/* Cycle warning banner */}
+      {graphData?.hasCycles && (
+        <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-red-500/10 border-b border-red-500/20 text-[11px] text-red-500">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="flex-shrink-0 mt-px" aria-hidden="true">
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5V10.5z" />
+          </svg>
+          <span>
+            <strong>Circular dependency detected.</strong>{' '}
+            Nodes highlighted in red form a cycle — aliases that reference each other will not resolve correctly.
+          </span>
+        </div>
       )}
 
       {/* Graph area */}

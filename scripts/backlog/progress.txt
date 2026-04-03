@@ -365,3 +365,19 @@
   - `onMouseLeave` on the dropdown container is a lightweight dismiss pattern that avoids global event listeners; suitable for small menus anchored to buttons in constrained layouts.
   - `bottom-full mb-1` positions the menu above the trigger button, which is better when the color editor is near the bottom of a panel.
 ---
+
+## 2026-04-03 - TokenFlowPanel does not highlight circular alias dependencies
+- Added `detectCycleNodes` DFS helper that tracks the call stack to find back edges in both upstream (reference) and downstream (dependent) directions.
+- In `graphData` useMemo: run cycle detection for both directions, union the results into `allCycleNodes`, annotate each `FlowNode` with `isCyclic`, and return `hasCycles`.
+- Updated `FlowNode` interface: added `isCyclic?: boolean`.
+- Updated `FlowEdges`: added `FlowEdge` type with `isCyclic?`; cyclic edges render red (`#ef4444`), dashed (`strokeDasharray="4 3"`), with a separate red arrowhead marker.
+- Updated `FlowNodeCard`: cyclic nodes get red border, red icon badge (filled circle-i SVG), red token name text, and a tooltip prefix "⚠ Circular dependency:".
+- Updated layout `useMemo` to propagate `isCyclic` from nodes onto their adjacent edges.
+- Added a red warning banner (below help banner, above graph) that appears whenever `graphData?.hasCycles` — explains that highlighted nodes form a cycle and aliases won't resolve.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L13-21, ~L75-111, ~L173-255, ~L340-430, ~L470-510, ~L580-620
+- **Learnings for future iterations:**
+  - DFS cycle detection with an explicit `inStack` set + `stackArr` for finding the cycle boundary is clean and correct; the back edge is found when `inStack.has(neighbor)`, and `stackArr.indexOf(neighbor)` pinpoints the start of the cycle.
+  - Run cycle detection separately BEFORE building node arrays so each node can be annotated inline during the BFS walk.
+  - Marking edges as cyclic based on endpoint membership (either endpoint isCyclic) is a good approximation when the layout doesn't expose explicit back edges.
+  - The red cyclic edge needs its own SVG `<marker>` since CSS `fill` on a marker element doesn't inherit from the path's `stroke`.
+---
