@@ -245,3 +245,10 @@ Already up to date.
 
   Merging to main: color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between lab and lch cases
 Already up to date.
+[main 6a74e62e] chore(backlog): done – color-parse.ts Lab→XYZ→sRGB conversion is copy-pasted between lab and lch cases
+ 5 files changed, 51 insertions(+), 29 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥27) ---
+  → Archived 27 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 58)
