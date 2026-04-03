@@ -384,3 +384,16 @@
   - Per-node rollback pattern: track `nodeUpdated`/`nodeErrors` per node, restore from snapshot if `nodeErrors > 0`, delete snapshot entry to prevent double-restore in outer catch.
   - When updating a paint style's color, always splice rather than replace: `existing.findIndex(p => p.type === 'SOLID')` finds the solid to update; fall back to prepend if none exists.
 ---
+
+## 2026-04-03 - Core resolver.ts has unsafe type casts on composite token values in 6+ locations
+- Added `assertCompositeValue(value, type, path, role?)` private method with `asserts value is Record<string, unknown>` return type that throws a descriptive error when a composite token's resolved value is not a plain object.
+- Added an early guard after `resolveType()` in `dfsResolve`: when the resolved type is in `COMPOSITE_TOKEN_TYPES`, `assertCompositeValue` is called immediately — catching e.g. a shadow token aliased to a color token before any spread or property access occurs.
+- Replaced the verbose `baseIsObject`/`overrideIsObject` manual checks in the `$extends` block with a call to `assertCompositeValue` for the base value (the override is already covered by the new early guard).
+- Fixed `inferType` at the `unit` check: added `typeof unit === 'string'` guard before the `=== 'ms'` comparison to prevent a confusing wrong-type inferred from a non-string `unit` field.
+- Updated two resolver tests whose `toThrow` regexes matched the removed old error strings to use the more general `/is not a plain object/` pattern.
+- Files changed: `packages/core/src/resolver.ts` ~L297-L335, ~L497-L565; `packages/core/src/__tests__/resolver.test.ts` ~L560, ~L579
+- **Learnings for future iterations:**
+  - TypeScript `asserts value is T` on private methods works fine and correctly narrows the type at call sites.
+  - When adding a guard that fires earlier than an existing guard (e.g. composite type check before $extends merge), the downstream guard becomes partially redundant — only keep the base-value check since the override is caught upstream.
+  - Test regexes for error messages should use a stable substring pattern, not the full message text, so refactoring the message wording doesn't break tests.
+---

@@ -558,7 +558,7 @@ describe('TokenResolver', () => {
 
       const resolver = new TokenResolver(tokens);
       expect(() => resolver.resolve('typo.child')).toThrow(
-        /base token's resolved value is not an object/,
+        /is not a plain object/,
       );
     });
 
@@ -577,7 +577,7 @@ describe('TokenResolver', () => {
 
       const resolver = new TokenResolver(tokens);
       expect(() => resolver.resolve('typo.broken')).toThrow(
-        /own resolved value is not an object/,
+        /is not a plain object/,
       );
     });
 

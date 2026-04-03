@@ -245,3 +245,18 @@ Already up to date.
 
   Merging to main: Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping
 Already up to date.
+[main 8fa95a1a] chore(backlog): done – Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping
+ 9 files changed, 91 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Plugin sandbox overwrites existing Figma variables and paint styles without confirmation or undo grouping
+- Three fixes implemented:
+  1. **styleSync.ts `applyPaintStyle`**: No longer unconditionally replaces `style.paints` with a single SOLID. Now finds the existing solid paint and updates it in-place, preserving gradients, image fills, and other paint layers. If no solid exists, prepends the new one.
+  2. **selectionHandling.ts `syncBindings`**: Per-node rollback on property failure. Previously, a failing `applyTokenValue` call left the node partially mutated (some props applied, some not). Now, if any property fails for a node, all mutations on that node are restored from the pre-operation snapshot. `nodeSnapshots.delete` prevents double-restore in the outer catastrophic-failure catch.
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  11 queued · 4 in-progress · last took 4m40s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager has no drag-and-drop reordering for dimensions or options — dimension order and option order can only be changed via the reorder API endpoints (PUT /api/themes/dimensions-order, PUT /api/themes/dimensions/:id/options-order) but the ThemeManager UI provides no interactive reordering UI; add drag-to-reorder handles on dimension rows and option pills, similar to the existing token drag-drop in TokenList
+  Worktree: /tmp/backlog-81267-IRIKy5
+  Running agent… (started 12:20:05)

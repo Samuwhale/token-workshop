@@ -294,6 +294,14 @@ export class TokenResolver {
       let resolvedValue = this.resolveValue(token.$value, path);
       const $type = this.resolveType(token, path);
 
+      // Composite token types (shadow, typography, border, etc.) must resolve to
+      // plain objects. Catch misuse early — e.g. a shadow token aliasing a color
+      // token produces a string value, which would silently corrupt downstream
+      // consumers or throw a cryptic error during spread / property access.
+      if (COMPOSITE_TOKEN_TYPES.has($type)) {
+        this.assertCompositeValue(resolvedValue, $type, path);
+      }
+
       // Apply $extends inheritance: merge base token value with local overrides
       const extendsPath = TokenResolver.getExtendsPath(token);
       if (extendsPath) {
@@ -320,22 +328,9 @@ export class TokenResolver {
           );
         }
 
-        // Validate that both values are objects — composite types must resolve to objects
-        const baseIsObject = typeof baseResolved.$value === 'object' && baseResolved.$value !== null && !Array.isArray(baseResolved.$value);
-        const overrideIsObject = typeof resolvedValue === 'object' && resolvedValue !== null && !Array.isArray(resolvedValue);
-
-        if (!baseIsObject) {
-          throw new Error(
-            `Token "${path}" extends "${extendsPath}" but the base token's resolved value is not an object. ` +
-            `Expected a composite object value for type "${baseResolved.$type}".`,
-          );
-        }
-        if (!overrideIsObject) {
-          throw new Error(
-            `Token "${path}" extends "${extendsPath}" but its own resolved value is not an object. ` +
-            `Expected a composite object value for type "${$type}".`,
-          );
-        }
+        // Both values must be plain objects (assertCompositeValue already ran for
+        // resolvedValue above; repeat for the base to get a precise error location).
+        this.assertCompositeValue(baseResolved.$value, baseResolved.$type, extendsPath, 'base value (from $extends target)');
 
         resolvedValue = { ...(baseResolved.$value as Record<string, unknown>), ...(resolvedValue as Record<string, unknown>) };
       }
@@ -482,6 +477,39 @@ export class TokenResolver {
     return this.inferType(token.$value);
   }
 
+  /**
+   * Asserts that `value` is a non-null, non-array plain object — the shape
+   * required by all composite token types (shadow, typography, border,
+   * transition, composition).
+   *
+   * Throws a descriptive resolution error when the value is a primitive or
+   * array, for example when a user accidentally aliases a composite token to a
+   * color token, causing the resolved value to be a string instead of an
+   * object. Without this guard the spread/property-access at the call site
+   * would silently produce wrong output or throw a cryptic JS error.
+   *
+   * @param value   - The resolved value to check.
+   * @param type    - The expected composite token type (used in the message).
+   * @param path    - The token path being resolved (used in the message).
+   * @param role    - Optional label describing which value is being checked
+   *                  (e.g. "base value (from $extends target)").
+   */
+  private assertCompositeValue(
+    value: unknown,
+    type: TokenType,
+    path: string,
+    role = 'resolved value',
+  ): asserts value is Record<string, unknown> {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new Error(
+        `Token "${path}" has type "${type}" but its ${role} is not a plain object ` +
+        `(got ${JSON.stringify(value)}). ` +
+        `Composite token types (${[...COMPOSITE_TOKEN_TYPES].join(', ')}) must resolve to ` +
+        `an object — check that any alias resolves to a compatible composite type, not a primitive.`,
+      );
+    }
+  }
+
   private inferType(value: unknown): TokenType {
     if (typeof value === 'string') return TOKEN_TYPES.STRING;
     if (typeof value === 'number') return TOKEN_TYPES.NUMBER;
@@ -525,9 +553,11 @@ export class TokenResolver {
       if ('timingFunction' in v || transitionHits >= 2) return TOKEN_TYPES.TRANSITION;
 
       if ('value' in v && 'unit' in v) {
-        const unit = (v as { unit: string }).unit;
-        if (unit === 'ms' || unit === 's') return TOKEN_TYPES.DURATION;
-        return TOKEN_TYPES.DIMENSION;
+        const unit = v['unit'];
+        if (typeof unit === 'string') {
+          if (unit === 'ms' || unit === 's') return TOKEN_TYPES.DURATION;
+          return TOKEN_TYPES.DIMENSION;
+        }
       }
     }
 

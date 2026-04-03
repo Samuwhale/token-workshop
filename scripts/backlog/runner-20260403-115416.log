@@ -183,3 +183,10 @@ Already up to date.
   → Core resolver.ts has unsafe type casts on composite token values in 6+ locations — lines 340, 367, 454, 469, 509, 528 cast token `$value` to `Record<string, unknown>` without runtime type checks; if a token has a primitive $value where an object is expected (e.g., a color token in a shadow group due to user error), the spread/property access silently produces wrong output or throws a confusing runtime error; add type guards before the casts or use a helper like `assertCompositeValue(value, expectedType, path)` that throws a clear resolution error
   Worktree: /tmp/backlog-82379-GtbAuf
   Running agent… (started 12:17:06)
+
+  ✓ done: Core resolver.ts has unsafe type casts on composite token values in 6+ locations
+    Added assertCompositeValue() helper with TypeScript asserts return type; early guard fires after resolveType() for all composite tokens; $extends block simplified; inferType unit check now verifies string type; two tests updated to match new error message pattern.
+    16 turns · 180s · $0.52
+
+  Merging to main: Core resolver.ts has unsafe type casts on composite token values in 6+ locations
+Already up to date.
