@@ -538,3 +538,9 @@
   - Composite token `$value` can be objects or arrays with nested string fields — the alias scanner needs to recurse into them (not just check if `$value` is a string).
   - Esbuild (Vite build) does NOT type-check — TypeScript errors like undefined variables are invisible at build time and only surface at runtime.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: UI components (TokenEditor, ExportPanel, ImportPanel, SelectionInspector, SetSwitcher, CommandPalette, SyncPanel subpanels), core package (resolver.ts, dtcg-types.ts, dtcg-resolver.ts, generator-engine.ts, color-parse.ts, color-modifier.ts, validator.ts), server routes (tokens, themes, snapshots, sync, export, generators), plugin sandbox (controller.ts, variableSync.ts, consistencyScanner.ts, selectionHandling.ts, heatmapScanning.ts), shared utilities (colorUtils, graphUtils, tokenParsers)
+- Found 5 items — written to backlog-inbox.md
+- Notable: generator-engine.ts applies sanitizeNumber inconsistently — 2 of 5 numeric generators skip it, allowing NaN/Infinity to silently corrupt tokens; dtcg-resolver.ts swallows cycle/bad-ref errors via console.warn returning empty Maps indistinguishable from legitimately empty sets; plugin sandbox has ~29 any-typed parameters across 6 files with zero compile-time validation of the token data pipeline
+---

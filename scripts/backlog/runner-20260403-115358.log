@@ -522,3 +522,18 @@ Already up to date.
 
   Merging to main: Find & Replace doesn't warn when replacements would break alias references
 Already up to date.
+[main eb4d27fa] chore(backlog): done – Find & Replace doesn't warn when replacements would break alias references
+ 8 files changed, 107 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Find & Replace doesn't warn when replacements would break alias references
+- Added `frAliasImpact` to `useFindReplace.ts`: scans all loaded tokens across sets for `$value` strings (including composite object/array values) that contain `{oldPath}` alias references to paths being renamed. Returns a `{ tokenCount }` — the number of tokens (excluding the renamed ones themselves) that reference renamed paths.
+- Added an info banner in the Find & Replace modal that appears when `frTarget === 'names'` and `frAliasImpact.tokenCount > 0`: "ℹ N other tokens reference the renamed paths — their alias values will be updated automatically." Uses sky/blue styling to distinguish from the amber empty-replacement warning.
+- Also fixed a latent bug: `frTarget`, `frValuePreview`, `frValueCount`, and `onSetFrTarget` were in the `TokenListModalsProps` interface and passed as JSX props, but were never added to the component's destructuring block. This caused silent runtime failures whenever the Find & Replace modal was opened (ReferenceError in strict mode). The destructuring omission was from the previous session's implementation.
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  14 queued · 3 in-progress · last took 10m10s
+═══════════════════════════════════════════════════════════════
+  → Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts; reviewing 50 conflicting tokens requires 50 separate clicks; add inline side-by-side value comparison in the diff list rows (VariableSyncSubPanel.tsx ~L35-80)
+  Worktree: /tmp/backlog-81661-VswWIP
+  Running agent… (started 13:32:57)

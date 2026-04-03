@@ -481,3 +481,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: inconsistent sanitizeNumber in generator-engine (3 generators skip NaN/Infinity guard), plugin sandbox ~29 any-typed params across 6 files, dtcg-resolver silently swallows cycle/bad-ref errors, server renameSet/snapshot-restore non-atomic mutation windows, ExportPanel timeout race with no correlation ID
+Already up to date.
