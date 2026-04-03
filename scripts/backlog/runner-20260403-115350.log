@@ -289,3 +289,26 @@ Already up to date.
 
   Merging to main: ConsistencyPanel scan scope limited to selection and page
 Already up to date.
+[main 499cfe01] chore(backlog): done – ConsistencyPanel scan scope limited to selection and page
+ 8 files changed, 58 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+  Milestone: 1074 done — pass skipped (runner PID 82379 already running one)
+
+## 2026-04-03 - ConsistencyPanel scan scope limited to selection and page
+- Added "All pages" scope to ConsistencyPanel. Updated `ScanScope` type to include `'all-pages'`, added a `ConsistencyScope` export in `shared/types.ts`, updated `scanConsistency()` in `consistencyScanner.ts` to iterate `figma.root.children` when scope is `'all-pages'`, and updated the toolbar button group in `ConsistencyPanel.tsx` to include a third "All pages" button.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L415, `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L155, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L26, ~L246
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  5 queued · 3 in-progress · last took 2m37s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel has no "copy to clipboard" option — the export flow (ExportPanel.tsx) generates files for download as a ZIP but offers no way to copy the generated CSS/SCSS/JSON output directly to clipboard; for quick integration tasks users want to copy a single platform's output without downloading and extracting a ZIP
+  Worktree: /tmp/backlog-81267-yS7Z81
+  Running agent… (started 12:26:05)
+
+  ✓ done: ExportPanel has no "copy to clipboard" option
+    stale — already done. Per-file Copy button exists in the preview footer (L974) and Copy All button in the action bar (L1292) both fully implemented.
+    14 turns · 73s · $0.39
+
+  Merging to main: ExportPanel has no "copy to clipboard" option
+Already up to date.
