@@ -36,15 +36,29 @@ ensure_pkg_node_modules() {
     local pkg_name
     pkg_name=$(basename "$pkg")
     local main_pkg_nm="$MAIN_ROOT/packages/$pkg_name/node_modules"
-    if [ ! -d "${pkg}node_modules" ] && [ -d "$main_pkg_nm" ]; then
-      ln -s "$main_pkg_nm" "${pkg}node_modules"
-      CREATED_LINKS+=("${pkg}node_modules")
+    local local_nm="${pkg}node_modules"
+    # Skip if already a symlink pointing to the right place
+    [ -L "$local_nm" ] && continue
+    # Skip if a real node_modules with .bin exists (proper install)
+    [ -d "${local_nm}/.bin" ] && continue
+    if [ -d "$main_pkg_nm" ]; then
+      # Move any existing vite/vitest cache dirs out of the way, then symlink
+      if [ -d "$local_nm" ]; then
+        rm -rf "${local_nm}.bak" 2>/dev/null
+        mv "$local_nm" "${local_nm}.bak"
+      fi
+      ln -s "$main_pkg_nm" "$local_nm"
+      CREATED_LINKS+=("$local_nm")
     fi
   done
 }
 cleanup_pkg_links() {
   for link in "${CREATED_LINKS[@]:-}"; do
     rm -f "$link" 2>/dev/null
+    # Restore any backed-up cache dir
+    if [ -d "${link}.bak" ]; then
+      mv "${link}.bak" "$link" 2>/dev/null
+    fi
   done
 }
 trap cleanup_pkg_links EXIT

@@ -580,3 +580,18 @@
   - When a panel has an internal view toggle (Coverage/Suggestions), the right fix for discoverability is to hoist the toggle to the navigation level (sub-tabs) rather than keeping it buried. This makes the feature visible without any extra clicks.
   - The `ApplySubTab` union type and `TOP_TABS` array are the two places to update when adding Apply sub-tabs; the router condition in the JSX is the third.
 ---
+
+## 2026-04-03 - Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
+- Added `TOGGLE_PREVIEW: '⌘P'` to `SHORTCUT_KEYS` and a registry entry in the Global section of `SHORTCUT_REGISTRY`.
+- Added `Cmd+P` keyboard handler in App.tsx's `keyboardShortcutRef` block (with `e.preventDefault()` to block browser print dialog).
+- Added "Show/Hide preview panel" command in the `commands` useMemo array with the `⌘P` shortcut displayed; label updates dynamically based on `showPreviewSplit` state.
+- Restyled the preview toggle button from an icon-only `w-7 h-7` square to a labeled button matching the command palette trigger — shows the `⌘P` shortcut text next to the eye icon.
+- Also fixed two pre-existing worktree issues: added `packages/figma-plugin/vitest.config.ts` with the `@tokenmanager/core` alias (so vitest can resolve workspace deps without pnpm); fixed `scripts/backlog/validate.sh` `ensure_pkg_node_modules` to handle packages where local `node_modules` exists as a real dir (vite cache) rather than always skipping them.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L49,86; `packages/figma-plugin/src/ui/App.tsx` ~L695,905,1205,1095; `packages/figma-plugin/vitest.config.ts` (new); `scripts/backlog/validate.sh` ~L33
+- **Learnings for future iterations:**
+  - The preview toggle button lived next to the palette trigger but was icon-only while the palette button showed a shortcut label — matching the button style makes discoverability consistent.
+  - `Cmd+P` in Figma plugin iframes doesn't trigger browser print, but `e.preventDefault()` is still correct hygiene to block any default.
+  - Dynamic command label ("Show" vs "Hide") requires `showPreviewSplit` in the `useMemo` deps array.
+  - vitest.config.ts without `import { defineConfig } from 'vitest/config'` (plain `export default {}`) avoids the chicken-and-egg issue where the vitest bundler can't resolve `vitest/config` in the temp directory.
+  - validate.sh `ensure_pkg_node_modules` skips packages whose local `node_modules` is a non-empty real dir (vite/vitest cache). Fix: check for `.bin` presence instead of directory existence, and back up/restore the cache dir around the symlink lifecycle.
+---

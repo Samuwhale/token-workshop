@@ -47,6 +47,7 @@ export const SHORTCUT_KEYS = {
   SHOW_SHORTCUTS:        '?',
   TOGGLE_QUICK_APPLY:    '⌘⇧A',
   QUICK_SWITCH_SET:      '⌘⇧S',
+  TOGGLE_PREVIEW:        '⌘P',
   // Navigation
   GO_TO_DEFINE:          '⌘1',
   GO_TO_APPLY:           '⌘2',
@@ -82,6 +83,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'OPEN_PALETTE',          group: 'Global',          description: 'Open command palette',           mac: SHORTCUT_KEYS.OPEN_PALETTE },
   { id: 'PASTE_TOKENS',          group: 'Global',          description: 'Paste tokens',                   mac: SHORTCUT_KEYS.PASTE_TOKENS },
   { id: 'OPEN_SETTINGS',         group: 'Global',          description: 'Open settings',                  mac: SHORTCUT_KEYS.OPEN_SETTINGS },
+  { id: 'TOGGLE_PREVIEW',        group: 'Global',          description: 'Toggle preview panel',           mac: SHORTCUT_KEYS.TOGGLE_PREVIEW },
   { id: 'UNDO',                  group: 'Global',          description: 'Undo',                           mac: '⌘Z',                                  displayOnly: true },
   { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y',                  displayOnly: true },
 

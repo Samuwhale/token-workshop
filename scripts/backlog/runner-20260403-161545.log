@@ -201,3 +201,18 @@ Already up to date.
 
   Merging to main: Consistency Panel is buried inside Binding Audit sub-tab
 Already up to date.
+[main 6b4cc7bd] chore(backlog): done – Consistency Panel is buried inside Binding Audit sub-tab
+ 7 files changed, 83 insertions(+), 66 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Consistency Panel is buried inside Binding Audit sub-tab
+- Added "Consistency" as a first-class sub-tab under the Apply top-tab (alongside Inspect, Binding Audit, Dependencies).
+- ConsistencyPanel is now rendered directly from App.tsx when `activeSubTab === 'consistency'`, no longer nested inside BindingAuditPanel's internal Coverage/Suggestions toggle.
+- Simplified BindingAuditPanel to a thin wrapper around HeatmapPanel only (removed the Coverage/Suggestions toggle entirely).
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  12 queued · 3 in-progress · last took 3m16s
+═══════════════════════════════════════════════════════════════
+  → BatchEditor has no bulk copy-to-set operation — tokens can be moved between sets but not copied; "Copy to set" would create duplicates in the target set while preserving originals, useful for forking token sets for new brands or platforms (BatchEditor.tsx ~L1000+)
+  Worktree: /tmp/backlog-46580-q65del
+  Running agent… (started 17:14:18)

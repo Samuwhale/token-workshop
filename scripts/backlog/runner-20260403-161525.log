@@ -162,3 +162,10 @@ Already up to date.
   → Preview panel is only accessible via a small toggle button in the Tokens tab — the split-view preview is a powerful feature (template galleries for colors, typography, buttons, forms, cards, effects) but there's no command palette entry, no keyboard shortcut, and the toggle button is not labeled; add a Cmd+P shortcut and a "Toggle preview" command palette entry (PreviewPanel.tsx, App.tsx)
   Worktree: /tmp/backlog-45818-eMU4gA
   Running agent… (started 17:06:24)
+
+  ✓ done: Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
+    Added Cmd+P keyboard shortcut, "Show/Hide preview panel" command palette entry, and labeled the toggle button with the ⌘P shortcut text to match the command palette trigger button style
+    68 turns · 489s · $1.88
+
+  Merging to main: Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
+Already up to date.

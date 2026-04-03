@@ -697,6 +697,11 @@ export function App() {
       e.preventDefault();
       setShowCommandPalette(v => !v);
     }
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'p') {
+      e.preventDefault();
+      setShowPreviewSplit(v => !v);
+      setOverflowPanel(null);
+    }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
       e.preventDefault();
       navigateTo('apply', 'inspect');
@@ -908,6 +913,14 @@ export function App() {
         handler: () => navigateTo('ship', 'export'),
       },
       {
+        id: 'toggle-preview',
+        label: showPreviewSplit ? 'Hide preview panel' : 'Show preview panel',
+        description: 'Split-view with live token previews — colors, typography, buttons, and more',
+        category: 'View',
+        shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW),
+        handler: () => { setShowPreviewSplit(v => !v); setOverflowPanel(null); },
+      },
+      {
         id: 'settings',
         label: 'Open Settings',
         description: 'UI preferences, server, lint rules, and export defaults',
@@ -1115,7 +1128,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, dimensions]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
@@ -1240,19 +1253,20 @@ export function App() {
         {/* Preview split-view toggle */}
         <button
           onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
-          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 mr-0.5 my-1 rounded transition-colors text-[10px] ${
             showPreviewSplit
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Preview: split-view with live token preview"
+          title={`Toggle preview panel (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)})`}
           aria-label="Toggle preview split view"
           aria-pressed={showPreviewSplit}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
+          <span className={showPreviewSplit ? 'opacity-80' : 'opacity-50'}>{adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)}</span>
         </button>
 
         {/* Command palette trigger */}
