@@ -595,3 +595,14 @@
   - vitest.config.ts without `import { defineConfig } from 'vitest/config'` (plain `export default {}`) avoids the chicken-and-egg issue where the vitest bundler can't resolve `vitest/config` in the temp directory.
   - validate.sh `ensure_pkg_node_modules` skips packages whose local `node_modules` is a non-empty real dir (vite/vitest cache). Fix: check for `.bin` presence instead of directory existence, and back up/restore the cache dir around the symlink lifecycle.
 ---
+
+## 2026-04-03 - SettingsPanel server connection redundant affordances
+- Removed the "Press Enter to connect, or click Save & Connect below." hint line that documented two separate affordances for the same action.
+- Renamed "Save & Connect" button to "Connect" to match the simpler, clearer intent.
+- Merged the two helper text paragraphs into one: "Run `npm start` in the TokenManager directory, then press Enter or click Connect."
+- Improved the error troubleshooting block from a single sentence into a bullet list: run npm start, check the port, check for firewall blocks.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L518-566
+- **Learnings for future iterations:**
+  - When two affordances (Enter key + button) exist for the same action, the hint text tends to acknowledge both and becomes confusing. Remove the meta-explanation and instead make the single button the obvious call-to-action, relying on Enter as an implicit shortcut.
+  - Troubleshooting hints as a bullet list are more scannable than a paragraph, especially when users are in a frustrated "why doesn't this work" state.
+---

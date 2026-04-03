@@ -516,10 +516,7 @@ export function SettingsPanel({
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
             />
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Press <kbd className="font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-0.5">Enter</kbd> to connect, or click Save &amp; Connect below.
-            </p>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Run <span className="font-mono">npm start</span> in the TokenManager directory first.
+              Run <span className="font-mono">npm start</span> in the TokenManager directory, then press Enter or click Connect.
             </p>
             {connectResult === 'ok' && (
               <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
@@ -533,9 +530,11 @@ export function SettingsPanel({
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   Cannot reach server
                 </div>
-                <p className="text-[var(--color-figma-text-secondary)] leading-relaxed">
-                  Check the URL above, then make sure the server is running (<span className="font-mono">npm start</span>).
-                </p>
+                <ul className="text-[var(--color-figma-text-secondary)] leading-relaxed list-disc list-inside space-y-0.5">
+                  <li>Run <span className="font-mono">npm start</span> in the TokenManager directory</li>
+                  <li>Check the URL matches your server (default: port 9400)</li>
+                  <li>Make sure no firewall is blocking localhost</li>
+                </ul>
               </div>
             )}
             <div className="flex gap-2">
@@ -562,7 +561,7 @@ export function SettingsPanel({
                 disabled={checking}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
               >
-                {checking ? 'Connecting\u2026' : 'Save & Connect'}
+                {checking ? 'Connecting\u2026' : 'Connect'}
               </button>
             </div>
           </Section>

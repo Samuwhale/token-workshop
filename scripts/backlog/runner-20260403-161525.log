@@ -169,3 +169,25 @@ Already up to date.
 
   Merging to main: Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
 Already up to date.
+[main ff5ffd9c] chore(backlog): done – Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
+ 9 files changed, 80 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Preview panel toggle: Cmd+P shortcut, command palette entry, labeled button
+- Added `TOGGLE_PREVIEW: '⌘P'` to `SHORTCUT_KEYS` and a registry entry in the Global section of `SHORTCUT_REGISTRY`.
+- Added `Cmd+P` keyboard handler in App.tsx's `keyboardShortcutRef` block (with `e.preventDefault()` to block browser print dialog).
+- Added "Show/Hide preview panel" command in the `commands` useMemo array with the `⌘P` shortcut displayed; label updates dynamically based on `showPreviewSplit` state.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  11 queued · 3 in-progress · last took 8m16s
+═══════════════════════════════════════════════════════════════
+  → SettingsPanel server connection has redundant "Enter to connect" and "Save & Connect" button — two different affordances for the same action (connecting to a server URL) creates confusion; consolidate into a single "Connect" button with Enter-key support, and add clear success/error feedback with troubleshooting hints (SettingsPanel.tsx ~L503-567)
+  Worktree: /tmp/backlog-45818-SbABhF
+  Running agent… (started 17:14:39)
+
+  ✓ done: SettingsPanel server connection has redundant "Enter to connect" and "Save & Connect" button
+    Removed duplicate hint text, renamed button from "Save & Connect" to "Connect", improved error troubleshooting hints as a bullet list
+    8 turns · 61s · $0.2
+
+  Merging to main: SettingsPanel server connection has redundant "Enter to connect" and "Save & Connect" button
+Already up to date.
