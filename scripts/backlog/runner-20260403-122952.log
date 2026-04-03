@@ -88,3 +88,18 @@ Already up to date.
 
   Merging to main: No PluginResponse discriminated union for controller→UI messages
 Already up to date.
+[main e9d5d841] chore(backlog): done – No PluginResponse discriminated union for controller→UI messages
+ 7 files changed, 120 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No PluginResponse discriminated union for controller→UI messages
+- Added 9 missing interface definitions to `shared/types.ts`: `AppliedToSelectionMessage`, `OrphansDeletedMessage`, `AllVariablesExportedMessage`, `StyleSyncProgressMessage`, `TokenUsageMapMessage`, `TokenUsageResultMessage`, `ConsistencyScanProgressMessage`, `ConsistencyScanResultMessage`, `ConsistencyScanErrorMessage`.
+- Fixed 2 type-string mismatches: `LayerSearchResultMessage` had `type: 'layer-search-result'` but plugin sends `'search-layers-result'`; `FindPeersResultMessage` had `type: 'find-peers-result'` but plugin sends `'peers-for-property-result'`. Added missing `property: string` field to `FindPeersResultMessage`.
+- Fixed 3 shape mismatches: `ComponentCoverageResultMessage` had `coverage: any` instead of actual fields; `VariablesReadMessage` had `tokens: any[]` instead of `collections: any[]`; `SyncCompleteResponseMessage` was missing `error?`, `rolledBack?`, `rollbackError?` fields. Also made `VariablesAppliedMessage.total` and `failures` optional to match what variableSync.ts actually sends.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  5 queued · 3 in-progress · last took 5m57s
+═══════════════════════════════════════════════════════════════
+  → Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions — for rules like require-description, max-alias-depth, and no-duplicate-values the fix is mechanical and could be applied inline (e.g., "Add empty description", "Flatten alias to direct target", "Convert to alias of canonical token"); adding one-click fix buttons would turn the validation panel from diagnostic to actionable (AnalyticsPanel.tsx ~L784-795)
+  Worktree: /tmp/backlog-49887-kv9UdB
+  Running agent… (started 12:59:41)

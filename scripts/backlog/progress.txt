@@ -491,3 +491,17 @@
   - When a `ControllerMessage` union existed but was incomplete, the type-string mismatches (e.g., `'layer-search-result'` vs `'search-layers-result'`) were invisible because UI handlers used untyped `msg: any` — always grep both the controller send site AND the UI listen site to verify the literal type string matches.
   - Interface shapes should be verified against both the postMessage call site AND the UI handler's property access (e.g., `msg.collections` vs interface's `tokens`) — both can drift independently.
 ---
+
+## 2026-04-03 - No unified set management — set creation, deletion, rename, reorder, and duplication scattered across UI
+- Extended `SetSwitcher.tsx` from a read-only spotlight into a two-mode panel (Switch | Manage). The Switch mode retains existing UX (fuzzy search, arrow-key navigation, Enter to switch, Escape to close). The Manage mode shows all sets with per-row action buttons (move up ↑, move down ↓, rename ✎, duplicate ⎘, delete 🗑), token counts, folder-prefix dimming, and an inline "New set" create form.
+- Added `showManageSets` / `setShowManageSets` to `useModalVisibility.ts` so "Manage sets" can open the panel in manage mode directly.
+- Added `createSetByName` callback in `App.tsx` that calls `POST /api/sets` directly (accepts a name param, unlike the existing `handleCreateSet` which reads from `useSetTabs` local state).
+- Wired all existing management hooks (`startRename`, `handleDuplicateSet`, `startDelete`, `handleReorderSet`) as props to SetSwitcher — no logic duplication. Existing confirm-delete/rename dialogs still render from App.tsx on top of the panel.
+- Added "Manage sets…" command to the command palette (category: Sets).
+- Cmd+Shift+S opens switch mode; command palette "Manage sets" opens manage mode; mode toggle button inside the panel lets users flip between them.
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` (full rewrite), `packages/figma-plugin/src/ui/hooks/useModalVisibility.ts` ~L12, `packages/figma-plugin/src/ui/App.tsx` ~L330 (destructure), ~L578 (createSetByName), ~L780 (command), ~L707 (keyboard shortcut), ~L2845 (render)
+- **Learnings for future iterations:**
+  - The existing `handleCreateSet` in `useSetTabs` reads `newSetName` from its own internal state — it can't accept a name parameter. A separate `createSetByName` callback in App.tsx using `apiFetch` directly is the cleanest solution when the create form lives outside that hook.
+  - The manage panel correctly reuses all existing modal flows (confirm-delete, rename dialog) by delegating to App.tsx callbacks. Those modals render at a higher z-index so they layer over the SetSwitcher overlay correctly without any extra work.
+  - State setter functions from `useState` (e.g. `setShowManageSets`) are stable references — they don't need to be added to `useMemo` deps arrays and ESLint won't warn about them.
+---

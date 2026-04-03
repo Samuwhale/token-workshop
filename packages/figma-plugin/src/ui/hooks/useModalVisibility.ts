@@ -10,6 +10,7 @@ export function useModalVisibility() {
   const [showQuickApply, setShowQuickApply] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showSetSwitcher, setShowSetSwitcher] = useState(false);
+  const [showManageSets, setShowManageSets] = useState(false);
 
   return {
     showPasteModal, setShowPasteModal,
@@ -21,5 +22,6 @@ export function useModalVisibility() {
     showQuickApply, setShowQuickApply,
     showClearConfirm, setShowClearConfirm,
     showSetSwitcher, setShowSetSwitcher,
+    showManageSets, setShowManageSets,
   };
 }

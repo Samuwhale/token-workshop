@@ -327,7 +327,7 @@ export function App() {
   const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias, handleNavigateBack, navHistory } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
-  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher } = useModalVisibility();
+  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const paletteRecentlyTouched = useRecentlyTouched();
   const palettePinnedTokens = usePinnedTokens(activeSet);
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
@@ -575,6 +575,17 @@ export function App() {
   const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen });
   const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });
 
+  // Create set by name — used by the Manage Sets panel
+  const createSetByName = useCallback(async (name: string) => {
+    await apiFetch(`${serverUrl}/api/sets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+      signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+    });
+    refreshTokens();
+    setSuccessToast(`Created set "${name}"`);
+  }, [serverUrl, getDisconnectSignal, refreshTokens, setSuccessToast]);
 
   // Per-set type breakdown for tab tooltips
   const setByTypeCounts = useMemo(() => {
@@ -693,6 +704,7 @@ export function App() {
     }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
       e.preventDefault();
+      setShowManageSets(false);
       setShowSetSwitcher(v => !v);
     }
     if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
@@ -778,6 +790,13 @@ export function App() {
         category: 'Sets',
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
         handler: () => setShowSetSwitcher(true),
+      },
+      {
+        id: 'manage-sets',
+        label: 'Manage sets\u2026',
+        description: `Create, rename, duplicate, reorder, and delete sets`,
+        category: 'Sets',
+        handler: () => setShowManageSets(true),
       },
       {
         id: 'paste-tokens',
@@ -2824,8 +2843,8 @@ export function App() {
         </div>
       )}
 
-      {/* Set Switcher */}
-      {showSetSwitcher && (
+      {/* Set Switcher / Manage Sets */}
+      {(showSetSwitcher || showManageSets) && (
         <SetSwitcher
           sets={sets}
           activeSet={activeSet}
@@ -2833,7 +2852,15 @@ export function App() {
             setActiveSet(set);
             navigateTo('define', 'tokens');
           }}
-          onClose={() => setShowSetSwitcher(false)}
+          onClose={() => { setShowSetSwitcher(false); setShowManageSets(false); }}
+          initialMode={showManageSets ? 'manage' : 'switch'}
+          onRename={startRename}
+          onDuplicate={handleDuplicateSet}
+          onDelete={startDelete}
+          onReorder={handleReorderSet}
+          onCreateSet={createSetByName}
+          setTokenCounts={setTokenCounts}
+          setDescriptions={setDescriptions}
         />
       )}
 

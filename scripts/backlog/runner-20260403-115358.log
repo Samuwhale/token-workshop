@@ -369,3 +369,10 @@ Already up to date.
   → No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment; a dedicated "Manage Sets" panel or enhanced SetSwitcher with CRUD actions would reduce the scavenger hunt (SetSwitcher.tsx, TokenList.tsx, ThemeManager.tsx)
   Worktree: /tmp/backlog-81661-hyX3zJ
   Running agent… (started 12:53:48)
+
+  ✓ done: No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment
+    Extended SetSwitcher into a two-mode panel (Switch | Manage) with per-row CRUD actions (rename, duplicate, delete, move up/down) and inline create form; added "Manage sets" command palette entry; all logic delegates to existing App.tsx hooks
+    38 turns · 513s · $1.57
+
+  Merging to main: No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment
+Already up to date.
