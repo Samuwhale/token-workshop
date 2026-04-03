@@ -13,6 +13,7 @@ export type ShortcutGroup =
   | 'Global'
   | 'Navigation'
   | 'Command Palette'
+  | 'Token Search'
   | 'Inspect'
   | 'Token List'
   | 'Token Editor'
@@ -27,6 +28,7 @@ export interface ShortcutEntry {
    * Mac display string — the canonical form, e.g. '⌘K', '⌘⇧V'.
    * Pass through adaptShortcut() at render time to get a platform-aware label.
    * For entries with multiple alternates (Redo), use altMac.
+   * For qualifier entries this is the example syntax string, e.g. 'type:color'.
    */
   mac: string;
   /** Optional alternate shortcut shown after a '/' separator in the modal */
@@ -36,6 +38,11 @@ export interface ShortcutEntry {
    * named SHORTCUT_KEYS constant — e.g. navigation keys, mouse gestures.
    */
   displayOnly?: true;
+  /**
+   * When true, this entry describes a search qualifier (not a keyboard shortcut).
+   * The modal renders these with code styling instead of kbd styling.
+   */
+  qualifier?: true;
 }
 
 /** Mac display strings for every named shortcut. Import these in handler files. */
@@ -102,6 +109,22 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'PALETTE_TOKEN_MODE',    group: 'Command Palette', description: 'Switch to token search',         mac: '>',     displayOnly: true },
   { id: 'PALETTE_CLOSE',         group: 'Command Palette', description: 'Close palette',                  mac: 'Esc',   displayOnly: true },
 
+  // ── Token Search qualifiers ──────────────────────────────────────────────
+  { id: 'QUALIFIER_TYPE',        group: 'Token Search',    description: 'Filter by token type',                       mac: 'type:color',          displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_ALIAS',   group: 'Token Search',    description: 'Only reference (alias) tokens',              mac: 'has:alias',           displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_DIRECT',  group: 'Token Search',    description: 'Only direct-value tokens',                   mac: 'has:direct',          displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_DUP',     group: 'Token Search',    description: 'Only tokens with duplicate values',          mac: 'has:duplicate',       displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_DESC',    group: 'Token Search',    description: 'Only tokens with a description',             mac: 'has:description',     displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_EXT',     group: 'Token Search',    description: 'Only tokens with extensions',                mac: 'has:extension',       displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_GEN',     group: 'Token Search',    description: 'Only generator-produced tokens',             mac: 'has:generated',       displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_HAS_UNUSED',  group: 'Token Search',    description: 'Tokens with no Figma usage or dependents',   mac: 'has:unused',          displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_VALUE',       group: 'Token Search',    description: 'Search within token values',                 mac: 'value:#ff0000',       displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_DESC',        group: 'Token Search',    description: 'Search within descriptions',                 mac: 'desc:primary',        displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_PATH',        group: 'Token Search',    description: 'Filter by path prefix',                      mac: 'path:colors.brand',   displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_NAME',        group: 'Token Search',    description: 'Search by leaf name only',                   mac: 'name:500',            displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_GENERATOR',   group: 'Token Search',    description: 'Filter by generator name',                   mac: 'generator:color-ramp', displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_GROUP',       group: 'Token Search',    description: 'Navigate to a group path',                   mac: 'group:colors.brand',  displayOnly: true, qualifier: true },
+
   // ── Inspect ──────────────────────────────────────────────────────────────
   { id: 'TOGGLE_QUICK_APPLY',    group: 'Inspect',         description: 'Quick apply token to selection', mac: SHORTCUT_KEYS.TOGGLE_QUICK_APPLY },
   { id: 'CREATE_FROM_SELECTION', group: 'Inspect',         description: 'Create token from selection',    mac: SHORTCUT_KEYS.CREATE_FROM_SELECTION },
@@ -139,6 +162,7 @@ const GROUP_ORDER: ShortcutGroup[] = [
   'Global',
   'Navigation',
   'Command Palette',
+  'Token Search',
   'Inspect',
   'Token List',
   'Token Editor',

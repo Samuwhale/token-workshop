@@ -391,3 +391,15 @@
   - The timeout pattern for one-shot plugin message responses: declare `let handled = false`, assign `const timeout = setTimeout(...)` AFTER `handler` definition (closure captures by reference — safe because handler only runs asynchronously), add `window.addEventListener('message', handler)` + `postMessage(...)` last. No double-fire because `if (handled) return` guards.
   - `ml-auto` juggling in a shared toolbar: use a derived boolean to decide which element owns `ml-auto` rather than complex ternaries in each element's className.
 ---
+
+## 2026-04-04 - Token search qualifiers undocumented outside command palette
+- Added a "Token Search Qualifiers" section to the keyboard shortcuts modal listing all 14 qualifiers (type:, has:alias, has:direct, has:duplicate, has:description, has:extension, has:generated, has:unused, value:, desc:, path:, name:, generator:, group:) with their example syntax and descriptions.
+- Added `qualifier?: true` flag to `ShortcutEntry` interface so the modal can render qualifier entries using `<code>` (monospace) styling instead of `<kbd>` (keyboard key) styling.
+- Added `'Token Search'` to `ShortcutGroup` type and `GROUP_ORDER` array, inserted between 'Command Palette' and 'Inspect'.
+- Added a sub-header note in the modal: "Use in command palette token mode (> prefix)" to clarify context.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L12, ~L36, ~L103, ~L152; `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L38
+- **Learnings for future iterations:**
+  - Qualifier entries need visual differentiation from keyboard shortcuts — `<code>` with `font-mono` vs `<kbd>` with `font-sans` cleanly distinguishes syntax strings from key combos.
+  - Adding a `qualifier?: true` discriminator to `ShortcutEntry` keeps the registry as a single source of truth without needing a separate data structure for qualifiers.
+  - Qualifier example strings (e.g., `type:color`) pass through `adaptShortcut()` unchanged since that function only transforms `⌘`/`⇧` symbols — no special handling needed.
+---

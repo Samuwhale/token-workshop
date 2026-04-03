@@ -109,3 +109,18 @@ Already up to date.
 
   Merging to main: No "Extract and Bind Unbound" fast-path in SelectionInspector
 Already up to date.
+[main e8da6d29] chore(backlog): done – No "Extract and Bind Unbound" fast-path in SelectionInspector
+ 4 files changed, 166 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No "Extract and Bind Unbound" fast-path in SelectionInspector
+- Added "Extract X unbound" button to the SelectionInspector sync controls bar. When clicked, it sends `extract-tokens-from-selection` to the plugin, filters extracted tokens to only those with unbound properties (cross-referencing current `rootNodes` binding state), creates tokens via API with suggested names, and fires `apply-to-nodes` to bind them — all in one step with no review UI.
+- Button only appears when `connected && activeSet && unboundWithValueCount > 0` (computed via `useMemo`). Shows "Extracting…" while in progress, success summary ("✓ Created N, bound N") or error inline after completion, each dismissible with ×.
+- The existing "Extract" button (full panel) remains; the new button sits to its left and takes `ml-auto` to push the group right. The "Extract" button conditionally removes its own `ml-auto` when the fast-path element is visible.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  8 queued · 2 in-progress · last took 8m29s
+═══════════════════════════════════════════════════════════════
+  → No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
+  Worktree: /tmp/backlog-91634-2NLkAz
+  Running agent… (started 01:37:35)

@@ -213,3 +213,10 @@ Already up to date.
   → Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
   Worktree: /tmp/backlog-91949-INSPOX
   Running agent… (started 01:35:37)
+
+  ✓ done: Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
+    Added "Token Search Qualifiers" section to KeyboardShortcutsModal listing all 14 qualifiers with monospace code styling, via new qualifier flag in ShortcutEntry and GROUP_ORDER entry in shortcutRegistry.ts
+    15 turns · 187s · $0.52
+
+  Merging to main: Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
+Already up to date.

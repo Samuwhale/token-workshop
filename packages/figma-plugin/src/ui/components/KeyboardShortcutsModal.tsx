@@ -38,15 +38,26 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
           {SHORTCUT_SECTIONS.map(section => (
             <div key={section.header}>
               <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
-                {section.header}
+                {section.header === 'Token Search' ? 'Token Search Qualifiers' : section.header}
               </div>
-              {section.shortcuts.map(({ mac, altMac, description }) => (
+              {section.header === 'Token Search' && (
+                <div className="px-3 pb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Use in command palette token mode (<code className="font-mono">{'>'}</code> prefix)
+                </div>
+              )}
+              {section.shortcuts.map(({ mac, altMac, description, qualifier }) => (
                 <div key={description} className="flex items-center justify-between px-3 py-1.5">
                   <span className="text-[11px] text-[var(--color-figma-text)]">{description}</span>
                   <div className="flex items-center gap-1 shrink-0">
-                    <kbd className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans">
-                      {adaptShortcut(mac)}
-                    </kbd>
+                    {qualifier ? (
+                      <code className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-mono">
+                        {mac}
+                      </code>
+                    ) : (
+                      <kbd className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans">
+                        {adaptShortcut(mac)}
+                      </kbd>
+                    )}
                     {altMac && (
                       <>
                         <span className="text-[10px] text-[var(--color-figma-text-secondary)]">/</span>
