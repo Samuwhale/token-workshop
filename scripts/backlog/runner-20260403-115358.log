@@ -222,3 +222,18 @@ Already up to date.
 
   Merging to main: No way to search or filter tokens by value in the command palette
 Already up to date.
+[main da6a0f03] chore(backlog): done – No way to search or filter tokens by value in the command palette
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenFlowPanel has no loading state and no empty state guidance
+- The empty state (no token selected) already existed from a prior session. Added the missing loading state: `tokensLoading` boolean added to `useTokenDataLoading` hook (set true before fetch, false on resolve/reject/disconnect). Threaded through App.tsx to `TokenFlowPanel` via new `loading` prop. When loading, panel shows a CSS `animate-spin` spinner with "Loading tokens…" text. Empty state text updated to "Select a token to see its dependency graph." to match backlog spec.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L17, ~L59; `packages/figma-plugin/src/ui/App.tsx` ~L321, ~L2209; `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L22, ~L270, ~L502
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  6 queued · 3 in-progress · last took 2m50s
+═══════════════════════════════════════════════════════════════
+  → Batch editor has no "set description" or "set extensions" operations — BatchEditor.tsx supports rename, move, delete, change type, scale values, and set opacity, but there's no way to bulk-add or bulk-edit `$description` or `$extensions` across selected tokens; power users managing hundreds of tokens need batch description editing for documentation compliance
+  Worktree: /tmp/backlog-81661-KEPHJN
+  Running agent… (started 12:25:20)

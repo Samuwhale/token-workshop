@@ -23,7 +23,7 @@ interface ConsistencyPanelProps {
   onSelectNode: (nodeId: string) => void;
 }
 
-type ScanScope = 'selection' | 'page';
+type ScanScope = 'selection' | 'page' | 'all-pages';
 
 const PROPERTY_LABELS: Record<string, string> = {
   fill: 'Fill',
@@ -244,17 +244,21 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
         {/* Scope toggle */}
         <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px]">
-          {(['page', 'selection'] as ScanScope[]).map(s => (
+          {([
+            { value: 'page', label: 'Page' },
+            { value: 'selection', label: 'Selection' },
+            { value: 'all-pages', label: 'All pages' },
+          ] as { value: ScanScope; label: string }[]).map(({ value: s, label }) => (
             <button
               key={s}
               onClick={() => setScope(s)}
-              className={`px-2 py-1 capitalize transition-colors ${
+              className={`px-2 py-1 transition-colors ${
                 scope === s
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
             >
-              {s === 'page' ? 'Full page' : 'Selection'}
+              {label}
             </button>
           ))}
         </div>

@@ -154,16 +154,24 @@ function queryNumericIndex(
 
 export async function scanConsistency(
   tokenMap: Record<string, { $value: any; $type: string }>,
-  scope: 'selection' | 'page',
+  scope: 'selection' | 'page' | 'all-pages',
 ) {
   try {
     // Collect nodes
-    const roots = scope === 'selection'
-      ? figma.currentPage.selection
-      : figma.currentPage.children;
     const nodes: SceneNode[] = [];
-    for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
-      nodes.push(node);
+    if (scope === 'all-pages') {
+      for (const page of figma.root.children) {
+        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES })) {
+          nodes.push(node);
+        }
+      }
+    } else {
+      const roots = scope === 'selection'
+        ? figma.currentPage.selection
+        : figma.currentPage.children;
+      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
+        nodes.push(node);
+      }
     }
 
     // Build reverse indexes upfront — O(tokens) once, then O(1) or O(log tokens) per lookup

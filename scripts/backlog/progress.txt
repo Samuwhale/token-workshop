@@ -443,3 +443,11 @@
   - `emptyPlaceholder` option bridges the '—' vs '' disagreement between callers without breaking existing behavior.
   - `isDimensionLike` is intentionally defined locally in tokenFormatting.ts (not imported from generatorShared or core) to avoid the no-re-exports-from-core rule and keep the shared utility self-contained.
 ---
+
+## 2026-04-03 - ConsistencyPanel scan scope limited to selection and page
+- Added "All pages" scope to ConsistencyPanel. Updated `ScanScope` type to include `'all-pages'`, added a `ConsistencyScope` export in `shared/types.ts`, updated `scanConsistency()` in `consistencyScanner.ts` to iterate `figma.root.children` when scope is `'all-pages'`, and updated the toolbar button group in `ConsistencyPanel.tsx` to include a third "All pages" button.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L415, `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L155, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L26, ~L246
+- **Learnings for future iterations:**
+  - Pattern for "all pages" in the plugin sandbox: iterate `figma.root.children` (each page), then walk `page.children` — mirrors exactly what `heatmapScanning.ts` does.
+  - Scope button group: use an array of `{value, label}` objects instead of mapping raw strings + computing labels inline — cleaner for 3+ options with non-obvious labels.
+---

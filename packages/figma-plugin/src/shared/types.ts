@@ -412,11 +412,13 @@ export interface ApplyToNodesMessage {
 
 // --- Consistency scanner ---
 
+export type ConsistencyScope = 'selection' | 'page' | 'all-pages';
+
 export interface ScanConsistencyMessage {
   type: 'scan-consistency';
   /** Flat resolved token map (path → {$value, $type}) */
   tokenMap: Record<string, { $value: any; $type: string }>;
-  scope: 'selection' | 'page';
+  scope: ConsistencyScope;
 }
 
 export interface GetAvailableFontsMessage {

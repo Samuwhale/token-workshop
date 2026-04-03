@@ -282,3 +282,10 @@ Already up to date.
   → ConsistencyPanel scan scope limited to selection and page — the consistency scanner (which finds hardcoded values close to token values) only supports scanning the current selection or current page; the heatmap coverage scanner supports selection/page/all-pages scope; add "all pages" scope to ConsistencyPanel for comprehensive consistency audits across the entire file
   Worktree: /tmp/backlog-81267-fm1egj
   Running agent… (started 12:23:27)
+
+  ✓ done: ConsistencyPanel scan scope limited to selection and page
+    Added "All pages" scope to ConsistencyPanel — updated ScanScope type, scanConsistency() sandbox handler (iterates figma.root.children), and toolbar button group UI
+    17 turns · 150s · $0.46
+
+  Merging to main: ConsistencyPanel scan scope limited to selection and page
+Already up to date.
