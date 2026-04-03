@@ -455,3 +455,11 @@
   - When a tab is renamed, also check command palette entries (around `GRAPH_TEMPLATES.map`) and `ErrorBoundary panelName` strings — they don't update automatically.
   - The legacy `TABS` array (L203-208) may coexist with `TOP_TABS` — check both for stale labels.
 ---
+
+## 2026-04-03 - TokenEditor shows no dirty/unsaved indicator
+- Upgraded the existing tiny dot indicator (w-1.5 h-1.5 rounded-full) to a visible "Unsaved" text badge with accent-colored border and background. Badge appears next to the token name in the drawer header when `isDirty` is true.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L937
+- **Learnings for future iterations:**
+  - The dot indicator already existed — the fix was a visual upgrade, not a new feature.
+  - Badge pattern: `px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none` gives a subtle but readable pill badge using the accent color with low-opacity fill and border.
+---

@@ -936,10 +936,12 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
               {isDirty && (
                 <span
-                  className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0"
+                  className="shrink-0 px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
                   title="Unsaved changes"
                   aria-label="Unsaved changes"
-                />
+                >
+                  Unsaved
+                </span>
               )}
             </div>
           )}
