@@ -547,3 +547,18 @@ Already up to date.
 
   Merging to main: Server route input validation gaps across generators, lint, and search
 Already up to date.
+[main dbf6da24] chore(backlog): done – Server route input validation gaps across generators, lint, and search
+ 8 files changed, 144 insertions(+), 29 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server route input validation gaps across generators, lint, and search
+- Added `isFiniteNum()` helper to `generators.ts` and replaced all `typeof x === 'number'` checks in `validateGeneratorConfig` with `isFiniteNum(x)` — covers colorRamp steps/lightEnd/darkEnd/chromaBoost/lightnessCurve/sourceStep, typeScale ratio/roundTo/exponents, spacingScale/opacityScale/borderRadiusScale/zIndexScale/shadowScale/customScale numeric step fields, and darkModeInversion chromaBoost.
+- Added full schema validation to `PUT /api/lint/config` in `lint.ts`: validates body is a plain object, rejects unknown top-level keys, validates `lintRules` is an object, rejects unknown rule keys, validates `enabled` is boolean, `severity` is one of `error|warning|info`, and `options` is an object.
+- Added input length/count limits to `GET /api/tokens/search` in `tokens.ts`: `q` capped at 500 chars, comma-separated list params capped at 20 items each, each item capped at 200 chars.
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  3 queued · 2 in-progress · last took 4m32s
+═══════════════════════════════════════════════════════════════
+  → Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount — `useGenerators.ts` (L245-256) uses only `AbortSignal.timeout(5000)` with no unmount abort; `useTokens.ts:refreshTokens` (L64-101) similarly has no unmount cancellation; `useFigmaSync.ts` (L119-143) runs a batch PATCH loop with no abort mechanism if the component unmounts mid-loop; `useServerConnection.ts:markDisconnected` (L58-66) calls `checkConnection()` without abort — contrast with `useLint`, `useThemeSwitcher`, `useResolvers` which correctly use `AbortController` refs with effect cleanup; the inconsistency should be fixed by adding the same abort-on-unmount pattern to all hooks that do async fetches
+  Worktree: /tmp/backlog-46580-V4wWP7
+  Running agent… (started 18:36:20)

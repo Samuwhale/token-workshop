@@ -29,6 +29,9 @@ interface BatchEditorProps {
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
+type NumericOpMode = 'multiply' | 'divide' | 'add' | 'subtract';
+type ColorAdjustOp = 'lighten' | 'darken' | 'saturate' | 'desaturate' | 'hue';
+
 /** Set the alpha channel on a hex color string. Handles both #RRGGBB and #RRGGBBAA. */
 function applyColorOpacity(colorValue: unknown, opacityPercent: number): string | null {
   if (typeof colorValue !== 'string') return null;
@@ -42,23 +45,85 @@ function applyColorOpacity(colorValue: unknown, opacityPercent: number): string 
   return `#${rgb}${alphaHex}`;
 }
 
-/** Scale a dimension or number value by a factor. */
-function scaleValue(value: unknown, factor: number): unknown {
+/** Apply an arithmetic operation to a dimension or number value. */
+function applyNumericTransform(value: unknown, op: NumericOpMode, operand: number): unknown {
   if (typeof value === 'number') {
-    return parseFloat((value * factor).toFixed(6));
+    let result: number;
+    switch (op) {
+      case 'multiply': result = value * operand; break;
+      case 'divide': result = value / operand; break;
+      case 'add': result = value + operand; break;
+      case 'subtract': result = value - operand; break;
+    }
+    return parseFloat(result!.toFixed(6));
   }
   if (typeof value === 'object' && value !== null && 'value' in value && 'unit' in value) {
     const dim = value as { value: number; unit: string };
-    return { value: parseFloat((dim.value * factor).toFixed(6)), unit: dim.unit };
+    const transformed = applyNumericTransform(dim.value, op, operand) as number;
+    return { value: transformed, unit: dim.unit };
   }
   if (typeof value === 'string') {
     const match = value.match(/^(-?\d+(?:\.\d+)?)(.*)$/);
     if (match) {
-      const scaled = parseFloat(match[1]) * factor;
-      return `${parseFloat(scaled.toFixed(6))}${match[2]}`;
+      const transformed = applyNumericTransform(parseFloat(match[1]), op, operand) as number;
+      return `${parseFloat(transformed.toFixed(6))}${match[2]}`;
     }
   }
   return null;
+}
+
+// Pure HSL ↔ RGB math (no external imports).
+function rgbToHslLocal(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  switch (max) {
+    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: h = ((b - r) / d + 2) / 6; break;
+    default: h = ((r - g) / d + 4) / 6; break;
+  }
+  return { h, s, l };
+}
+
+function hslToRgbLocal(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  if (s === 0) return { r: l, g: l, b: l };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hue2rgb = (t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return { r: hue2rgb(h + 1 / 3), g: hue2rgb(h), b: hue2rgb(h - 1 / 3) };
+}
+
+/** Adjust a hex color's hue/saturation/lightness. Returns new hex or null if not a plain hex color. */
+function applyColorAdjust(colorValue: unknown, op: ColorAdjustOp, amount: number): string | null {
+  if (typeof colorValue !== 'string') return null;
+  const raw = colorValue.replace('#', '');
+  if (raw.length !== 6 && raw.length !== 8) return null;
+  const r = parseInt(raw.slice(0, 2), 16) / 255;
+  const g = parseInt(raw.slice(2, 4), 16) / 255;
+  const b = parseInt(raw.slice(4, 6), 16) / 255;
+  const alphaHex = raw.length === 8 ? raw.slice(6, 8) : '';
+  let { h, s, l } = rgbToHslLocal(r, g, b);
+  const delta = amount / 100;
+  switch (op) {
+    case 'lighten': l = Math.min(1, l + delta); break;
+    case 'darken': l = Math.max(0, l - delta); break;
+    case 'saturate': s = Math.min(1, s + delta); break;
+    case 'desaturate': s = Math.max(0, s - delta); break;
+    case 'hue': h = ((h + amount / 360) % 1 + 1) % 1; break;
+  }
+  const { r: nr, g: ng, b: nb } = hslToRgbLocal(h, s, l);
+  const toHex2 = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16).padStart(2, '0');
+  return `#${toHex2(nr)}${toHex2(ng)}${toHex2(nb)}${alphaHex}`;
 }
 
 const PREVIEW_MAX = 8;
@@ -97,6 +162,9 @@ export function BatchEditor({
   const [copying, setCopying] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [aliasReplacing, setAliasReplacing] = useState(false);
+  const [numericOpMode, setNumericOpMode] = useState<NumericOpMode>('multiply');
+  const [colorAdjustOp, setColorAdjustOp] = useState<ColorAdjustOp>('lighten');
+  const [colorAdjustAmt, setColorAdjustAmt] = useState('');
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [batchScopes, setBatchScopes] = useState<string[]>([]);
@@ -146,7 +214,7 @@ export function BatchEditor({
   }, [selectedEntries]);
 
   // Collect scalable tokens whose values contain alias references (e.g. {spacing.base}).
-  // scaleValue() returns null for these, so they are skipped during scaling.
+  // applyNumericTransform() returns null for these, so they are skipped during transforms.
   const skippedAliasTokens = useMemo(() => {
     if (!hasScalable) return [];
     return selectedEntries.filter(({ entry }) => {
@@ -220,29 +288,54 @@ export function BatchEditor({
     return { currentTypes, count: selectedEntries.length, incompatible };
   }, [newType, selectedEntries]);
 
-  // Dry-run: compute scaled values for preview
+  // Dry-run: compute numeric transform values for preview
   const scalePreview = useMemo(() => {
-    if (!hasScalable || !scaleFactor) return null;
-    const factor = parseFloat(scaleFactor);
-    if (isNaN(factor) || factor <= 0) return null;
+    if (!numericTransformActive) return null;
+    const operand = parseFloat(scaleFactor);
+    if (isNaN(operand)) return null;
     return selectedEntries
       .filter(({ entry }) => entry.$type === 'dimension' || entry.$type === 'number')
       .map(({ path, entry }) => {
-        const scaled = scaleValue(entry.$value, factor);
-        if (scaled === null) return null;
-        return { path, from: entry.$value, to: scaled };
+        const result = applyNumericTransform(entry.$value, numericOpMode, operand);
+        if (result === null) return null;
+        return { path, from: entry.$value, to: result };
       })
       .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
-  }, [hasScalable, scaleFactor, selectedEntries]);
+  }, [numericTransformActive, scaleFactor, numericOpMode, selectedEntries]);
+
+  // Dry-run: compute color adjust values for preview
+  const colorAdjustPreview = useMemo(() => {
+    if (!colorAdjustActive) return null;
+    const amount = parseFloat(colorAdjustAmt);
+    if (isNaN(amount)) return null;
+    return selectedEntries
+      .filter(({ entry }) => entry.$type === 'color')
+      .map(({ path, entry }) => {
+        const result = applyColorAdjust(entry.$value, colorAdjustOp, amount);
+        if (result === null) return null;
+        return { path, from: entry.$value, to: result };
+      })
+      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
+  }, [colorAdjustActive, colorAdjustAmt, colorAdjustOp, selectedEntries]);
 
   const aliasActive = aliasRef !== '' && isAlias(aliasRef);
 
   const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
-  const scalingActive = hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
 
-  // Alias mode is mutually exclusive with value-modifying operations (opacity, scale).
+  // For multiply/divide the operand must be non-zero; for add/subtract any number is valid.
+  const numericTransformActive = useMemo(() => {
+    if (!hasScalable || scaleFactor === '') return false;
+    const n = parseFloat(scaleFactor);
+    if (isNaN(n)) return false;
+    if (numericOpMode === 'multiply' || numericOpMode === 'divide') return n !== 0;
+    return true;
+  }, [hasScalable, scaleFactor, numericOpMode]);
+
+  const colorAdjustActive = hasColors && colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+
+  // Alias mode is mutually exclusive with value-modifying operations (opacity, scale, color adjust).
   // If both are active simultaneously, the alias would be silently overwritten.
-  const aliasConflict = aliasActive && (opacityActive || scalingActive);
+  const aliasConflict = aliasActive && (opacityActive || numericTransformActive || colorAdjustActive);
 
   const hasOp = !aliasConflict && (
     description.trim() !== '' ||
@@ -251,7 +344,8 @@ export function BatchEditor({
     batchExtensions.some(e => e.key.trim() !== '') ||
     aliasActive ||
     opacityActive ||
-    scalingActive
+    numericTransformActive ||
+    colorAdjustActive
   );
 
   const canMove = targetSet !== '' && !moving && !copying;
@@ -329,7 +423,7 @@ export function BatchEditor({
   const handleApply = async () => {
     if (!connected || applying || !hasOp) return;
     if (aliasConflict) {
-      setFeedback({ ok: false, msg: 'Alias conflicts with opacity/scale — disable one to apply' });
+      setFeedback({ ok: false, msg: 'Alias conflicts with value transforms — disable one to apply' });
       return;
     }
 
@@ -376,28 +470,41 @@ export function BatchEditor({
         patch.$value = aliasRef;
       }
 
-      if (opacityActive) {
+      // Color value transforms: opacity and HSL adjust are applied sequentially to the
+      // running value so they can be composed (e.g., lighten then set opacity).
+      if (opacityActive || colorAdjustActive) {
         if (entry.$type === 'color') {
-          const pct = parseFloat(opacityPct);
-          if (!isNaN(pct)) {
-            const newColor = applyColorOpacity(entry.$value, pct);
-            if (newColor !== null) {
-              patch.$value = newColor;
-              patch.$type = entry.$type;
+          let cv: unknown = entry.$value;
+          if (opacityActive) {
+            const pct = parseFloat(opacityPct);
+            if (!isNaN(pct)) {
+              const nc = applyColorOpacity(cv, pct);
+              if (nc !== null) cv = nc;
             }
+          }
+          if (colorAdjustActive) {
+            const amount = parseFloat(colorAdjustAmt);
+            if (!isNaN(amount)) {
+              const nc = applyColorAdjust(cv, colorAdjustOp, amount);
+              if (nc !== null) cv = nc;
+            }
+          }
+          if (cv !== entry.$value) {
+            patch.$value = cv;
+            patch.$type = entry.$type;
           }
         } else {
           skippedNotColor++;
         }
       }
 
-      if (scalingActive) {
+      if (numericTransformActive) {
         if (entry.$type === 'dimension' || entry.$type === 'number') {
-          const factor = parseFloat(scaleFactor);
-          if (!isNaN(factor) && factor > 0) {
-            const scaled = scaleValue(entry.$value, factor);
-            if (scaled !== null) {
-              patch.$value = scaled;
+          const operand = parseFloat(scaleFactor);
+          if (!isNaN(operand)) {
+            const result = applyNumericTransform(entry.$value, numericOpMode, operand);
+            if (result !== null) {
+              patch.$value = result;
               patch.$type = entry.$type;
             }
           }
@@ -412,12 +519,12 @@ export function BatchEditor({
     }
 
     if (ops.length === 0) {
-      if (scalingActive && scaleAliasCount === scalableCount) {
-        setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use reference values' });
-      } else if (opacityActive && !hasColors) {
-        setFeedback({ ok: false, msg: 'No color tokens in selection — cannot apply opacity' });
-      } else if (scalingActive && !hasScalable) {
-        setFeedback({ ok: false, msg: 'No numeric tokens in selection — cannot scale' });
+      if (numericTransformActive && scaleAliasCount === scalableCount) {
+        setFeedback({ ok: false, msg: 'Cannot transform — all selected tokens use reference values' });
+      } else if ((opacityActive || colorAdjustActive) && !hasColors) {
+        setFeedback({ ok: false, msg: 'No color tokens in selection — cannot apply color transform' });
+      } else if (numericTransformActive && !hasScalable) {
+        setFeedback({ ok: false, msg: 'No numeric tokens in selection — cannot transform' });
       }
       return;
     }
@@ -448,7 +555,7 @@ export function BatchEditor({
       }
       onApply();
 
-      const skippedAliases = scalingActive ? scaleAliasCount : 0;
+      const skippedAliases = numericTransformActive ? scaleAliasCount : 0;
       const totalSkipped = skippedAliases + skippedNotColor + skippedNotNumeric;
       const skipParts: string[] = [];
       if (skippedAliases > 0) {
@@ -467,6 +574,7 @@ export function BatchEditor({
       setDescription('');
       setOpacityPct('');
       setScaleFactor('');
+      setColorAdjustAmt('');
       setAliasInput('');
       setAliasRef('');
       setNewType('');
@@ -800,40 +908,120 @@ export function BatchEditor({
         </>
       )}
 
-      {/* Scale — when any selected token is dimension or number */}
+      {/* Color adjust — lighten/darken/saturate/desaturate/hue shift — when any selected token is color */}
+      {hasColors && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Color adjust</span>
+            <select
+              value={colorAdjustOp}
+              onChange={e => setColorAdjustOp(e.target.value as ColorAdjustOp)}
+              className="h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] shrink-0"
+            >
+              <option value="lighten">Lighten</option>
+              <option value="darken">Darken</option>
+              <option value="saturate">Saturate</option>
+              <option value="desaturate">Desaturate</option>
+              <option value="hue">Shift hue</option>
+            </select>
+            <input
+              type="number"
+              aria-label={colorAdjustOp === 'hue' ? 'Hue shift in degrees' : 'Amount in percent'}
+              step="1"
+              value={colorAdjustAmt}
+              onChange={e => setColorAdjustAmt(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
+              placeholder={colorAdjustOp === 'hue' ? '°' : '%'}
+              className="w-16 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            {colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt)) && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                {colorAdjustOp === 'hue' ? `${colorAdjustAmt}°` : `${colorAdjustAmt}%`}
+              </span>
+            )}
+          </div>
+          {colorAdjustPreview && colorAdjustPreview.length > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {colorAdjustPreview.slice(0, PREVIEW_MAX).map(({ path, from, to }) => (
+                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                  <span
+                    className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: String(from) }}
+                    title={String(from)}
+                  />
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span
+                    className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: String(to) }}
+                    title={String(to)}
+                  />
+                  <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                </div>
+              ))}
+              {colorAdjustPreview.length > PREVIEW_MAX && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {colorAdjustPreview.length - PREVIEW_MAX} more…</div>
+              )}
+            </div>
+          )}
+          {!allColors && colorAdjustAmt !== '' && (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Numeric transform — when any selected token is dimension or number */}
       {hasScalable && (
         <>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Multiply by</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Transform</span>
+            {/* Operation selector */}
+            <div className="flex rounded border border-[var(--color-figma-border)] overflow-hidden shrink-0">
+              {([['multiply', '×'], ['divide', '÷'], ['add', '+'], ['subtract', '−']] as [NumericOpMode, string][]).map(([op, sym], i) => (
+                <button
+                  key={op}
+                  type="button"
+                  onClick={() => setNumericOpMode(op)}
+                  aria-label={op}
+                  title={op.charAt(0).toUpperCase() + op.slice(1)}
+                  className={`w-6 h-6 text-[11px] font-medium transition-colors ${
+                    numericOpMode === op
+                      ? 'bg-[var(--color-figma-accent)] text-white'
+                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))] hover:text-[var(--color-figma-text)]'
+                  }${i > 0 ? ' border-l border-[var(--color-figma-border)]' : ''}`}
+                >
+                  {sym}
+                </button>
+              ))}
+            </div>
             <input
               type="number"
-              aria-label="Scale factor"
-              min="0.001"
+              aria-label="Transform operand"
               step="0.1"
               value={scaleFactor}
               onChange={e => setScaleFactor(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
-              placeholder="e.g. 1.5"
+              placeholder={numericOpMode === 'add' || numericOpMode === 'subtract' ? 'e.g. 4' : 'e.g. 1.5'}
               className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none ${
-                scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0)
+                scaleFactor !== '' && !numericTransformActive
                   ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
                   : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
               }`}
             />
-            {scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0) ? (
-              <span className="text-[10px] text-[var(--color-figma-error)]">must be &gt; 0</span>
-            ) : scaleFactor && !isNaN(parseFloat(scaleFactor)) ? (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                ×{scaleFactor}
-              </span>
+            {scaleFactor !== '' && !numericTransformActive && !isNaN(parseFloat(scaleFactor)) ? (
+              <span className="text-[10px] text-[var(--color-figma-error)]">cannot be 0</span>
+            ) : scaleFactor !== '' && isNaN(parseFloat(scaleFactor)) ? (
+              <span className="text-[10px] text-[var(--color-figma-error)]">invalid</span>
             ) : null}
           </div>
-          {scaleAliasCount > 0 && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0 && (
+          {scaleAliasCount > 0 && numericTransformActive && (
             <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
               <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
                 {scaleAliasCount === scalableCount
-                  ? 'All scalable tokens use reference values and cannot be scaled:'
-                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be scaled):`}
+                  ? 'All numeric tokens use reference values and cannot be transformed:'
+                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be transformed):`}
               </span>
               {skippedAliasTokens.slice(0, PREVIEW_MAX).map(({ path, entry }) => (
                 <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
@@ -929,7 +1117,7 @@ export function BatchEditor({
         {aliasActive && !showAliasAutocomplete && (
           aliasConflict ? (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)] leading-snug">
-              Alias cannot be combined with {opacityActive && scalingActive ? 'opacity and scale' : opacityActive ? 'opacity' : 'scale'} — disable one to apply
+              Alias cannot be combined with value transforms — disable one to apply
             </div>
           ) : (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
@@ -1026,7 +1214,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity' : ''}${hasScalable ? ', scale factor' : ''}, or alias to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity or color adjust' : ''}${hasScalable ? ', transform' : ''}, or alias to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">

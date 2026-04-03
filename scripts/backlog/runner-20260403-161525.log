@@ -476,3 +476,10 @@ Already up to date.
   → BatchEditor cannot batch-edit token values arithmetically — while batch operations support description changes, type changes, and alias assignment, there's no way to arithmetically transform selected values (e.g., "multiply all selected dimensions by 1.5" or "lighten all selected colors by 10%"); add value transformation operations for numeric and color types (BatchEditor.tsx ~L100-200)
   Worktree: /tmp/backlog-45818-tLhj3h
   Running agent… (started 18:28:48)
+
+  ✓ done: BatchEditor cannot batch-edit token values arithmetically
+    Added ×/÷/+/− numeric transform op selector (replacing "Multiply by") and new Color adjust section (lighten/darken/saturate/desaturate/hue shift) with live swatch previews; all 4 validation gates pass.
+    44 turns · 488s · $1.83
+
+  Merging to main: BatchEditor cannot batch-edit token values arithmetically
+Already up to date.

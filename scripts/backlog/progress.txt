@@ -535,3 +535,18 @@
   - For `PUT` body validation, Fastify doesn't enforce body types at runtime — the generic `<{ Body: SomeType }>` is TypeScript-only. Always add explicit runtime validation before persisting config objects.
   - The search `q` parameter uses `.includes()` (substring, not regex), so ReDoS isn't the actual risk — but the boundary gap of unvalidated length is still real. The 500-char cap is sufficient.
 ---
+
+## 2026-04-03 - BatchEditor cannot batch-edit token values arithmetically
+- Added `applyNumericTransform(value, op, operand)` replacing `scaleValue()` — handles `multiply`, `divide`, `add`, `subtract` for plain numbers, `{ value, unit }` objects, and `"12px"` strings.
+- Added pure local HSL math helpers (`rgbToHslLocal`, `hslToRgbLocal`) and `applyColorAdjust(colorValue, op, amount)` for `lighten`, `darken`, `saturate`, `desaturate`, `hue` operations — all operating on hex colors, preserving the alpha channel.
+- Added `numericOpMode` state (`multiply` | `divide` | `add` | `subtract`, default `multiply`) and a 4-button op-selector UI in the "Transform" row (renamed from "Multiply by").
+- Added `colorAdjustOp` and `colorAdjustAmt` state with a new "Color adjust" section (select + number input) that shows a live before/after color swatch preview.
+- Updated `numericTransformActive` derived value (replaces `scalingActive`) to validate operand correctly: `multiply`/`divide` require non-zero, `add`/`subtract` accept any number.
+- Updated `aliasConflict` to include `colorAdjustActive`. Updated `handleApply` to compose color transforms sequentially (opacity → color adjust) on a running value.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L32-125 (helpers), ~L99 (state), ~L244 (derived), ~L264 (previews), ~L473-514 (apply), ~L905-970 (color adjust UI), ~L980-1055 (transform UI)
+- **Learnings for future iterations:**
+  - Alias conflict detection must be extended whenever a new value-modifying operation is added — otherwise alias silently wins.
+  - Color transforms composed sequentially (opacity then HSL adjust) give more predictable results than applying both to the original value independently.
+  - The `useMemo` for `numericTransformActive` is safer than an inline expression because it prevents re-computation on every render and allows TypeScript to narrow the dependent `op` parameter.
+  - HSL math implemented locally avoids import chain TDZ risk in the singlefile bundle — colorUtils.ts re-exports from core which has known TDZ issues.
+---
