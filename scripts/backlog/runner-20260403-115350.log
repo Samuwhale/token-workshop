@@ -541,3 +541,10 @@ Already up to date.
   → PublishPanel readiness checks show pass/fail without guided remediation — users see that "scopes" or "descriptions" checks failed but have no indication of priority (scopes are blocking, descriptions are optional) and no step-by-step workflow; fix labels only appear on hover over failed checks (PublishPanel.tsx ~L316-388, ~L369)
   Worktree: /tmp/backlog-81267-N9adGW
   Running agent… (started 13:16:35)
+
+  ✓ done: PublishPanel readiness checks show pass/fail without guided remediation — users see that "scopes" or "descriptions" checks failed but have no indication of priority (scopes are blocking, descriptions are optional) and no step-by-step workflow; fix labels only appear on hover over failed checks (PublishPanel.tsx ~L316-388, ~L369)
+    Added blocking/optional priority distinction with inline badges, contextual banners guiding next action, always-visible detail text, and reordered checks by triage priority
+    14 turns · 147s · $0.43
+
+  Merging to main: PublishPanel readiness checks show pass/fail without guided remediation — users see that "scopes" or "descriptions" checks failed but have no indication of priority (scopes are blocking, descriptions are optional) and no step-by-step workflow; fix labels only appear on hover over failed checks (PublishPanel.tsx ~L316-388, ~L369)
+Already up to date.

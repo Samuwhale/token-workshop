@@ -478,3 +478,18 @@ Already up to date.
 
   Merging to main: ThemeManager auto-fill gives no preview of what will be created
 Already up to date.
+[main d55410e8] chore(backlog): done – ThemeManager auto-fill gives no preview of what will be created
+ 6 files changed, 70 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ThemeManager auto-fill gives no preview of what will be created
+- Added strategy selector (Skip / Overwrite) to both "Fill gaps" confirmation modals (single-option and all-options variants). The modal now shows the exact token count and target set in the description text (bolded), and includes a radio button group letting users choose whether existing tokens are skipped or replaced. Both `executeAutoFillAll` and `executeAutoFillAllOptions` now accept a `strategy` parameter that is forwarded to the `/batch` API call. Strategy state (`autoFillStrategy`) persists across modal opens within a session (defaults to 'skip').
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L131, ~L819, ~L874, ~L2500-2600
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  9 queued · 4 in-progress · last took 2m32s
+═══════════════════════════════════════════════════════════════
+  → Set metadata (description, Figma collection, Figma mode) only accessible via context menu — users must right-click a set tab to discover "Edit set info"; there's no visible affordance in SetSwitcher manage mode or in the token list header, making it effectively invisible to new users (App.tsx ~L2521-2579, SetSwitcher.tsx)
+  Worktree: /tmp/backlog-81661-ScVTBF
+  Running agent… (started 13:18:37)

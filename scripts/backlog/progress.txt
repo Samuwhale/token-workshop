@@ -397,3 +397,18 @@
   - Shared picker JSX (`strategyPicker`) declared inline in the modal IIFE avoids a separate component for a one-off pattern.
   - Radio buttons with `name="autofill-strategy"` enforce mutual exclusivity natively without extra state logic.
 ---
+
+## 2026-04-03 - PublishPanel readiness checks show pass/fail without guided remediation
+- Added `blocking: boolean` field to `ReadinessCheck` interface to distinguish required vs optional checks. Marked `all-vars`, `orphans`, and `scopes` as `blocking: true`; `descriptions` as `blocking: false`.
+- Reordered checks: blocking checks (all-vars, orphans, scopes) appear before optional ones (descriptions) to match triage priority.
+- Added `readinessBlockingFails` derived count and updated the header dot/badge to distinguish error (blocking) from warning (optional-only) states.
+- Added a contextual banner below the check button: red warning when blocking issues exist, yellow advisory when only optional issues remain.
+- Each failing check now shows a "Required" (red) or "Optional" (yellow) badge inline next to the label — always visible, not on hover.
+- Detail/remediation text is now always visible on fail (was already inline, but icon color now also differentiates blocking vs optional).
+- Fix buttons are always visible when applicable (not hidden on hover).
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L36-44, ~L186-223, ~L278-280, ~L330-395
+- **Learnings for future iterations:**
+  - The `blocking` boolean on `ReadinessCheck` is a clean way to encode priority without a numeric weight — binary distinction suffices for this UX.
+  - Two banner variants (blocking vs optional-only) map cleanly to the two distinct user actions needed: "you must fix these" vs "you can publish now".
+  - Reordering checks in the array is the simplest way to enforce visual priority — no sorting logic needed.
+---

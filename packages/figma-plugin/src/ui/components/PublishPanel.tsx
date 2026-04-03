@@ -37,6 +37,8 @@ interface ReadinessCheck {
   id: string;
   label: string;
   status: 'pass' | 'fail' | 'pending';
+  /** true = must fix before publish; false = recommended but not blocking */
+  blocking: boolean;
   count?: number;
   detail?: string;
   fixLabel?: string;
@@ -187,8 +189,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         {
           id: 'all-vars',
           label: 'All tokens have Figma variables',
+          blocking: true,
           status: missingInFigma.length === 0 ? 'pass' : 'fail',
           count: missingInFigma.length || undefined,
+          detail: missingInFigma.length > 0 ? 'Some local tokens are not yet pushed to Figma. Use the fix button to create the missing variables now.' : undefined,
           fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
           onFix: missingInFigma.length > 0 ? () => {
             const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value, setName: activeSet }));
@@ -196,28 +200,32 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           } : undefined,
         },
         {
-          id: 'scopes',
-          label: 'Scopes set for every variable',
-          status: missingScopes.length === 0 ? 'pass' : 'fail',
-          count: missingScopes.length || undefined,
-          detail: missingScopes.length > 0 ? 'Open Figma Variables panel \u2192 select each variable \u2192 set scopes to limit where it can be applied.' : undefined,
-        },
-        {
-          id: 'descriptions',
-          label: 'Descriptions populated',
-          status: missingDescriptions.length === 0 ? 'pass' : 'fail',
-          count: missingDescriptions.length || undefined,
-          detail: missingDescriptions.length > 0 ? 'Add $description fields to tokens in the token editor, then re-sync to Figma.' : undefined,
-        },
-        {
           id: 'orphans',
           label: 'No orphan Figma variables',
+          blocking: true,
           status: orphans.length === 0 ? 'pass' : 'fail',
           count: orphans.length || undefined,
+          detail: orphans.length > 0 ? 'Figma contains variables that no longer exist in the token set. Delete them to keep Figma in sync.' : undefined,
           fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
           onFix: orphans.length > 0 ? () => {
             setOrphanConfirm({ orphanPaths: orphans.map(o => o.path), localPaths });
           } : undefined,
+        },
+        {
+          id: 'scopes',
+          label: 'Scopes set for every variable',
+          blocking: true,
+          status: missingScopes.length === 0 ? 'pass' : 'fail',
+          count: missingScopes.length || undefined,
+          detail: missingScopes.length > 0 ? 'Open the Figma Variables panel \u2192 select each variable \u2192 set scopes to control where it can be applied (e.g. Fill, Stroke, Gap).' : undefined,
+        },
+        {
+          id: 'descriptions',
+          label: 'Descriptions populated',
+          blocking: false,
+          status: missingDescriptions.length === 0 ? 'pass' : 'fail',
+          count: missingDescriptions.length || undefined,
+          detail: missingDescriptions.length > 0 ? 'Add $description fields to tokens in the token editor, then re-sync to Figma. Descriptions help designers understand how to use each variable.' : undefined,
         },
       ];
       setReadinessChecks(checks);
@@ -269,6 +277,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
+  const readinessBlockingFails = readinessChecks.filter(c => c.status === 'fail' && c.blocking).length;
 
   /* ── Sub-tab status badges ─────────────────────────────────────────────── */
 
@@ -321,12 +330,19 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
               readinessLoading ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' :
               readinessFails === 0 && readinessPasses > 0 ? 'bg-[var(--color-figma-success)]' :
-              readinessFails > 0 ? 'bg-[var(--color-figma-error)]' :
+              readinessBlockingFails > 0 ? 'bg-[var(--color-figma-error)]' :
+              readinessFails > 0 ? 'bg-yellow-500' :
               'bg-[var(--color-figma-border)]'
             }`} />
             <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Publish Readiness</span>
-            {readinessFails > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessFails} issue{readinessFails !== 1 ? 's' : ''}</span>
+            {readinessBlockingFails > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessBlockingFails} blocking</span>
+            )}
+            {readinessFails > readinessBlockingFails && readinessBlockingFails === 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-700 font-medium">{readinessFails} optional</span>
+            )}
+            {readinessFails > readinessBlockingFails && readinessBlockingFails > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-700 font-medium">+{readinessFails - readinessBlockingFails} optional</span>
             )}
             {readinessFails === 0 && readinessPasses > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
@@ -346,41 +362,77 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         )}
 
         {readinessChecks.length > 0 && (
-          <div className="mt-2 divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
-            {readinessChecks.map(check => (
-              <div key={check.id} className="flex items-center gap-2 px-3 py-2 bg-[var(--color-figma-bg)]">
-                <span className={`shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
-                  {check.status === 'pass' ? (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  ) : (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  )}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>
-                  {check.count !== undefined && check.status === 'fail' && (
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
-                  )}
-                  {check.detail && check.status === 'fail' && (
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">{check.detail}</div>
-                  )}
+          <>
+            {readinessBlockingFails > 0 && (
+              <div className="mt-2 flex items-start gap-1.5 px-2.5 py-2 rounded bg-[var(--color-figma-error)]/8 border border-[var(--color-figma-error)]/20">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-0.5 text-[var(--color-figma-error)]">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+                </svg>
+                <div className="text-[10px] text-[var(--color-figma-error)] leading-relaxed">
+                  <span className="font-medium">{readinessBlockingFails} required {readinessBlockingFails === 1 ? 'issue' : 'issues'} must be resolved before publishing.</span>
+                  {' '}Fix items marked <span className="font-medium">Required</span> first, then re-check.
                 </div>
-                {check.fixLabel && check.onFix && (
-                  <button
-                    onClick={check.onFix}
-                    disabled={orphansDeleting}
-                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
-                  >
-                    {orphansDeleting && check.id === 'orphans' ? 'Deleting\u2026' : check.fixLabel}
-                  </button>
-                )}
               </div>
-            ))}
-          </div>
+            )}
+            {readinessFails > 0 && readinessBlockingFails === 0 && (
+              <div className="mt-2 flex items-center gap-1.5 px-2.5 py-2 rounded bg-[var(--color-figma-warning)]/8 border border-[var(--color-figma-warning)]/20">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-yellow-600">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+                </svg>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                  Optional improvements remain. You can publish now or address them first.
+                </span>
+              </div>
+            )}
+            <div className="mt-2 divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
+              {readinessChecks.map(check => (
+                <div key={check.id} className={`px-3 py-2 ${check.status === 'fail' ? 'bg-[var(--color-figma-bg)]' : 'bg-[var(--color-figma-bg)]'}`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`shrink-0 mt-0.5 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : check.blocking ? 'text-[var(--color-figma-error)]' : 'text-yellow-600'}`}>
+                      {check.status === 'pass' ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-[var(--color-figma-text)]">{check.label}</span>
+                        {check.status === 'fail' && (
+                          <span className={`text-[9px] px-1 py-0 rounded font-medium leading-4 ${
+                            check.blocking
+                              ? 'bg-[var(--color-figma-error)]/12 text-[var(--color-figma-error)]'
+                              : 'bg-yellow-400/15 text-yellow-700'
+                          }`}>
+                            {check.blocking ? 'Required' : 'Optional'}
+                          </span>
+                        )}
+                        {check.count !== undefined && check.status === 'fail' && (
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{check.count} affected</span>
+                        )}
+                      </div>
+                      {check.detail && check.status === 'fail' && (
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">{check.detail}</div>
+                      )}
+                    </div>
+                    {check.fixLabel && check.onFix && (
+                      <button
+                        onClick={check.onFix}
+                        disabled={orphansDeleting}
+                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40 mt-0.5"
+                      >
+                        {orphansDeleting && check.id === 'orphans' ? 'Deleting\u2026' : check.fixLabel}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
