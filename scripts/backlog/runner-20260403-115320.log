@@ -268,3 +268,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    10 items written to inbox — ExportPanel import/export conflation, missing generator Edit button, Publish All blocked by Git conflicts, scattered set management, HistoryPanel commit cap, no quick-fix on validation issues, hidden auto-fill buttons, no inline token editing, manual duplicate canonical selection, contrast matrix pagination
+Already up to date.

@@ -398,3 +398,9 @@
   - The upstream-failed check must use `failedIds` accumulated during the current run, not `generatorErrors` — the latter persists across runs and could cause false skips on the next successful upstream execution.
   - Skipped generators are added to `failedIds` so that transitive downstream chains are also skipped correctly.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: TokenEditor.tsx (creation flow, path autocomplete, batch editor, save-and-create-another), token tree interactions (drag-drop, multi-select, copy/paste, undo/redo — all fully implemented), PublishPanel.tsx (Variables/Styles/Git sub-tabs, Publish All orchestration, orphan detection), ExportPanel.tsx (dual-mode: platforms export vs Figma Variables import), PublishModals.tsx + PublishShared.tsx, GitSubPanel.tsx (merge conflicts, file selection), ThemeManager.tsx (dimensions, options, set assignment 3-state, coverage gaps, auto-fill, drag reorder), SetSwitcher.tsx (read-only fuzzy search), EmptyState.tsx + QuickStartWizard.tsx (onboarding), GraphPanel.tsx (template browser, pipeline view, NodeGraphCanvas, GeneratorPipelineCard actions), TokenGeneratorDialog.tsx (create/edit flow, multi-brand, live preview), AnalyticsPanel.tsx (token summary, color contrast matrix, duplicate detection, validation issues, unused tokens), HistoryPanel.tsx (merged timeline, rollback/redo, snapshots, commit history), LintConfigPanel.tsx + lint.ts (5 configurable rules + 4 structural checks)
+- Found 10 items — written to backlog-inbox.md
+- Notable: ExportPanel conflates platform export with Figma Variables import in one tab — Mode B reads FROM Figma and writes TO server, which is the opposite direction of "export"; also GeneratorPipelineCard has rerun/preview/duplicate/delete but no Edit button, forcing users through TokenEditor's derived groups section to edit a generator
+---

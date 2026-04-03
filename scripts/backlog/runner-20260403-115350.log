@@ -444,3 +444,18 @@ Already up to date.
 
   Merging to main: Generator service does not clear generatorErrors on delete
 Already up to date.
+[main ff9dee11] chore(backlog): done – Generator service does not clear generatorErrors on delete
+ 5 files changed, 58 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator service does not clear generatorErrors on delete
+- Fixed two bugs in `packages/server/src/services/generator-service.ts`:
+  1. `delete()` now calls `this.generatorErrors.delete(id)` so stale error state doesn't leak if a new generator is created with the same ID later.
+  2. `runForSourceToken()` now tracks `failedIds` (a Set) and skips any downstream generator whose `sourceToken` starts with a failed upstream generator's `targetGroup + '.'`. Skipped generators get their own error entry ("Skipped: upstream generator failed") and a `generator-error` event so the UI reflects the skip. Previously, downstream generators executed against stale/unchanged output.
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  2 queued · 3 in-progress · last took 1m30s
+═══════════════════════════════════════════════════════════════
+  → 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions across UI hooks and components — useTokens.ts:119, useWindowExpand.ts:19, useTokenNavigation.ts:27, useNearbyTokenMatch.ts:130, PublishPanel.tsx:1121/1298/1734, HistoryPanel.tsx:746/1254, SetSwitcher.tsx:40, SelectionInspector.tsx:270/298/562, PublishModals.tsx:186/360, PublishShared.tsx:124; each suppression hides a potential stale-closure bug and should be audited — either fix the deps array or document why suppression is safe with a comment
+  Worktree: /tmp/backlog-81267-CdvoWc
+  Running agent… (started 12:44:28)
