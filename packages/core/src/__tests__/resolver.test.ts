@@ -350,14 +350,24 @@ describe('TokenResolver', () => {
       expect(resolver.resolve('c').$value).toBe(15);
     });
 
-    it('extracts numeric value from a dimension token', () => {
+    it('reconstructs DimensionValue from a dimension formula token', () => {
       const tokens: Record<string, Token> = {
         'spacing.base': makeToken({ value: 8, unit: 'px' }, 'dimension'),
         'spacing.lg': makeToken('{spacing.base} * 2', 'dimension'),
       };
 
       const resolver = new TokenResolver(tokens);
-      expect(resolver.resolve('spacing.lg').$value).toBe(16);
+      expect(resolver.resolve('spacing.lg').$value).toEqual({ value: 16, unit: 'px' });
+    });
+
+    it('reconstructs DurationValue from a duration formula token', () => {
+      const tokens: Record<string, Token> = {
+        'anim.base': makeToken({ value: 200, unit: 'ms' }, 'duration'),
+        'anim.slow': makeToken('{anim.base} * 3', 'duration'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(resolver.resolve('anim.slow').$value).toEqual({ value: 600, unit: 'ms' });
     });
 
     it('handles parentheses in formulas', () => {

@@ -15,6 +15,8 @@ import type {
   TokenType,
   TokenValue,
   ResolvedToken,
+  DimensionValue,
+  DurationValue,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -294,6 +296,19 @@ export class TokenResolver {
       let resolvedValue = this.resolveValue(token.$value, path);
       const $type = this.resolveType(token, path);
 
+      // Formula tokens that reference dimension/duration values return a plain
+      // number from evalExpr. Reconstruct the typed {value, unit} object so that
+      // downstream consumers receive a properly-typed DimensionValue/DurationValue.
+      if (typeof resolvedValue === 'number' && typeof token.$value === 'string' && isFormula(token.$value)) {
+        if ($type === 'dimension') {
+          const unit = this.extractFormulaUnit(token.$value) ?? 'px';
+          resolvedValue = { value: resolvedValue, unit } as DimensionValue;
+        } else if ($type === 'duration') {
+          const unit = this.extractFormulaUnit(token.$value) ?? 'ms';
+          resolvedValue = { value: resolvedValue, unit } as DurationValue;
+        }
+      }
+
       // Composite token types (shadow, typography, border, etc.) must resolve to
       // plain objects. Catch misuse early — e.g. a shadow token aliasing a color
       // token produces a string value, which would silently corrupt downstream
@@ -448,6 +463,24 @@ export class TokenResolver {
     if (typeof value === 'object' && value !== null && 'value' in value) {
       const v = (value as { value: unknown }).value;
       return typeof v === 'number' ? v : null;
+    }
+    return null;
+  }
+
+  /**
+   * For a formula string, find the first resolved reference that carries a
+   * structured {value, unit} object and return its unit string.  Used to
+   * reconstruct the typed value after evalExpr returns a plain number.
+   */
+  private extractFormulaUnit(formula: string): string | null {
+    const matches = formula.matchAll(makeReferenceGlobalRegex());
+    for (const m of matches) {
+      const resolved = this.resolved.get(m[1]);
+      if (!resolved) continue;
+      const val = resolved.$value;
+      if (typeof val === 'object' && val !== null && 'unit' in val) {
+        return (val as { unit: string }).unit;
+      }
     }
     return null;
   }

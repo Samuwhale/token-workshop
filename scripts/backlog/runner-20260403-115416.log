@@ -221,3 +221,17 @@ Already up to date.
   → [HIGH] UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks — usePinnedTokens persist effect writes old set's pin list to the new set's localStorage key on setName change (corrupts data), useGeneratorPreview leaves previewLoading stuck true on early exit, useSetMergeSplit mergeLoading never resets when the stale-check guard returns inside try (bypasses finally), useGitStatus gitLoading stays true forever when the last fetch is aborted, useTokenSyncBase applyDiff closes over stale rows/dirs state instead of using refs, and useNearbyTokenMatch uses stale allTokensFlat in its debounced callback so new tokens are invisible
   Worktree: /tmp/backlog-82379-fNiHr1
   Running agent… (started 12:28:46)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    6 turns · 62s · $0.17
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - Batch editor has no "set description" or "set extensions" operations
+- `$description` was already implemented (text input at top of BatchEditor). Added generic `$extensions` key-value batch editor: collapsible "Extensions" section with + Add extension key button, per-row key (monospace, namespace-style) + value inputs (JSON-parsed if valid, else string). Custom extensions are merged with Figma scopes into a single `$extensions` patch object. `hasOp` check and apply-reset both updated. Footer hint text updated to mention extensions.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L101, ~L249, ~L351, ~L462, ~L688
+- **Learnings for future iterations:**
+
+  Stopped after 7 iterations (1076 total items completed).

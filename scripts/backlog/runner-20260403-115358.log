@@ -244,3 +244,25 @@ Already up to date.
 
   Merging to main: Batch editor has no "set description" or "set extensions" operations
 Already up to date.
+[main c4a9be9e] chore(backlog): done – Batch editor has no "set description" or "set extensions" operations
+ 6 files changed, 118 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Batch editor has no "set description" or "set extensions" operations
+- `$description` was already implemented (text input at top of BatchEditor). Added generic `$extensions` key-value batch editor: collapsible "Extensions" section with + Add extension key button, per-row key (monospace, namespace-style) + value inputs (JSON-parsed if valid, else string). Custom extensions are merged with Figma scopes into a single `$extensions` patch object. `hasOp` check and apply-reset both updated. Footer hint text updated to mention extensions.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L101, ~L249, ~L351, ~L462, ~L688
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  8 queued · 4 in-progress · last took 3m46s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Core resolver formula evaluation permanently loses units — a dimension formula like "{spacing.base} * 2" resolves to the bare number 16 instead of {value: 16, unit: 'px'} because evalExpr returns a plain number and resolveValue does not reconstruct the typed value object; all downstream consumers expecting a DimensionValue or DurationValue from formula tokens get a number and break silently
+  Worktree: /tmp/backlog-81661-XJ3zUG
+  Running agent… (started 12:29:06)
+
+  ✓ done: Core resolver formula evaluation permanently loses units
+    Added unit reconstruction in resolver.ts: after evalExpr returns a plain number for a dimension/duration formula token, extractFormulaUnit() retrieves the unit from the first resolved reference and wraps the result in {value, unit}. All 4 validation gates pass.
+    15 turns · 184s · $0.46
+
+  Merging to main: Core resolver formula evaluation permanently loses units
+Already up to date.

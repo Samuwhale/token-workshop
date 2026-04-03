@@ -473,3 +473,12 @@
   - When merging two `$extensions` sources (Figma scopes + custom keys), build a single `extPatch` accumulator to avoid one overwriting the other.
   - JSON.parse with a catch for string fallback is the right pattern for free-form extension values.
 ---
+
+## 2026-04-03 - Core resolver formula evaluation permanently loses units
+- Fixed `resolveValue` in `packages/core/src/resolver.ts` to reconstruct the typed `{value, unit}` object after formula evaluation for `dimension` and `duration` token types. Added `extractFormulaUnit(formula)` helper that scans the formula's references and returns the unit from the first resolved structured value. The reconstruction runs in the main DFS resolve loop after `resolveValue` and `resolveType` are both determined. Updated the existing test (was asserting raw `16`) to assert `{value: 16, unit: 'px'}`, and added a parallel test for `duration` tokens.
+- Files changed: `packages/core/src/resolver.ts` ~L14, ~L294, ~L467; `packages/core/src/__tests__/resolver.test.ts` ~L353
+- **Learnings for future iterations:**
+  - Formula evaluation (`evalExpr`) is intentionally type-unaware — it returns a plain number. The typed reconstruction must happen in the caller that knows both the result and the token's `$type`.
+  - `extractFormulaUnit` works by scanning already-resolved references in `this.resolved`; this is safe because the DFS guarantees all dependencies are resolved before the current token runs.
+  - The test file had a misnamed test ("extracts numeric value") that was actually validating the buggy behavior — rename alongside the fix to prevent confusion.
+---

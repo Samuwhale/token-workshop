@@ -1,0 +1,23 @@
+NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    49887
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-122952.log
+  Passes: enabled (every 12 items)
+
+  Queue:    8 ready · 4 in-progress · 3 failed
+  Done:     1076 total (next code pass in 4, product pass in 10)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  8 queued · 4 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks — usePinnedTokens persist effect writes old set's pin list to the new set's localStorage key on setName change (corrupts data), useGeneratorPreview leaves previewLoading stuck true on early exit, useSetMergeSplit mergeLoading never resets when the stale-check guard returns inside try (bypasses finally), useGitStatus gitLoading stays true forever when the last fetch is aborted, useTokenSyncBase applyDiff closes over stale rows/dirs state instead of using refs, and useNearbyTokenMatch uses stale allTokensFlat in its debounced callback so new tokens are invisible
+  Worktree: /tmp/backlog-49887-gQsfEf
+  Running agent… (started 12:29:53)
