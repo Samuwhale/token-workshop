@@ -261,3 +261,10 @@ Already up to date.
   → HSL/RGB color conversion is implemented three separate times — `srgbToHsl()`/`hslToSrgb()` in `packages/core/src/color-parse.ts`, `rgbToHsl()`/`hslToRgb()` in `packages/figma-plugin/src/ui/shared/colorUtils.ts`, and `hslToRgbValues()` in `packages/figma-plugin/src/plugin/colorUtils.ts`; the UI colorUtils already imports other functions from core (hexToRgb, rgbToHex, hexToLab) so there's no bundling barrier — remove the duplicate UI implementations and use core's; the plugin sandbox copy is necessary (separate runtime) but should be marked as intentional
   Worktree: /tmp/backlog-49887-mbYBSs
   Running agent… (started 13:29:44)
+
+  ✓ done: HSL/RGB color conversion implemented three separate times
+    Exported hslToSrgb/srgbToHsl from core, removed duplicate implementations from UI colorUtils (importing from core instead), updated ColorPicker.tsx to use core directly, marked plugin sandbox copy as intentional
+    33 turns · 169s · $0.67
+
+  Merging to main: HSL/RGB color conversion implemented three separate times
+Already up to date.

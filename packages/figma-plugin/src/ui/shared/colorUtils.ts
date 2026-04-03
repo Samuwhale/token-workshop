@@ -20,51 +20,22 @@ import {
   rgbToLab,
   hexToLab,
   labToHex,
+  hslToSrgb,
+  srgbToHsl,
 } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
-// HSL conversions
+// HSL conversions (implementations live in @tokenmanager/core: hslToSrgb, srgbToHsl)
 // ---------------------------------------------------------------------------
-
-/** sRGB (0-1 each) → HSL. H in 0-360, S/L in 0-100. */
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return { h: 0, s: 0, l: l * 100 };
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-  else if (max === g) h = ((b - r) / d + 2) / 6;
-  else h = ((r - g) / d + 4) / 6;
-  return { h: h * 360, s: s * 100, l: l * 100 };
-}
-
-/** HSL (H 0-360, S 0-100, L 0-100) → sRGB (0-1 each). */
-export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
-  const S = s / 100, L = l / 100;
-  if (S === 0) return { r: L, g: L, b: L };
-  const hue2rgb = (p: number, q: number, t: number) => {
-    if (t < 0) t += 1; if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-  const q = L < 0.5 ? L * (1 + S) : L + S - L * S;
-  const p = 2 * L - q;
-  const H = h / 360;
-  return { r: hue2rgb(p, q, H + 1 / 3), g: hue2rgb(p, q, H), b: hue2rgb(p, q, H - 1 / 3) };
-}
 
 export function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
   const rgb = hexToRgb(hex);
   if (!rgb) return null;
-  return rgbToHsl(rgb.r, rgb.g, rgb.b);
+  return srgbToHsl(rgb.r, rgb.g, rgb.b);
 }
 
 export function hslToHex(h: number, s: number, l: number): string {
-  const { r, g, b } = hslToRgb(h, s, l);
+  const { r, g, b } = hslToSrgb(h, s, l);
   return rgbToHex(r, g, b);
 }
 
@@ -86,7 +57,7 @@ export function formatHexAs(colorStr: string, format: ColorFormat): string {
       return `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`;
     }
     if (format === 'hsl') {
-      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      const hsl = srgbToHsl(rgb.r, rgb.g, rgb.b);
       return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
     }
     // oklch/p3 need core parser
@@ -109,7 +80,7 @@ function formatWideGamut(colorStr: string, format: ColorFormat): string {
       }
       case 'hsl': {
         const srgb = toSrgb(parsed);
-        const hsl = rgbToHsl(srgb.coords[0], srgb.coords[1], srgb.coords[2]);
+        const hsl = srgbToHsl(srgb.coords[0], srgb.coords[1], srgb.coords[2]);
         return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
       }
       case 'oklch': return serializeColor(toOklch(parsed));

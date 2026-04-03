@@ -111,6 +111,8 @@ export {
   oklabToLinearSrgb,
   oklabToOklch,
   oklchToOklab,
+  hslToSrgb,
+  srgbToHsl,
 } from './color-parse.js';
 
 // Resolver

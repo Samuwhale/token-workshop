@@ -608,3 +608,18 @@ Already up to date.
 
   Merging to main: Alias reference detection manually reimplemented 20+ times across the codebase instead of using core's isReference() and parseReference()
 Already up to date.
+[main a8cf30f5] chore(backlog): done – Alias reference detection manually reimplemented 20+ times across the codebase instead of using core's isReference() and parseReference()
+ 19 files changed, 113 insertions(+), 76 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Alias reference detection manually reimplemented 20+ times across the codebase
+- Consolidated all `startsWith('{') && endsWith('}')` alias reference checks to use `isReference()`/`parseReference()` from `@tokenmanager/core` and `isAlias()`/`extractAliasPath()` from `shared/resolveAlias.ts`.
+- `resolveAlias.ts` now delegates `isAlias()` to `isReference()` and `extractAliasPath()` to `parseReference()` from core — single canonical implementation.
+- Server files (`lint.ts`, `style-dict.ts`) import `isReference`/`parseReference` directly from `@tokenmanager/core`; removed the local `isAlias()` function in `lint.ts`.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  16 queued · 3 in-progress · last took 8m8s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
+  Worktree: /tmp/backlog-81267-IzQhAH
+  Running agent… (started 13:32:34)

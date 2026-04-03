@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
-import { hexToRgb, rgbToHex } from '@tokenmanager/core';
+import { hexToRgb, rgbToHex, hslToSrgb } from '@tokenmanager/core';
 import {
-  hslToRgb,
   hexToHsl,
   hslToHex,
   hexToLch,
@@ -93,7 +92,7 @@ function drawColorArea(canvas: HTMLCanvasElement, hue: number) {
     const l = 100 - (y / (h - 1)) * 100; // top=100 (white), bottom=0 (black)
     for (let x = 0; x < w; x++) {
       const s = (x / (w - 1)) * 100;
-      const { r, g, b } = hslToRgb(hue, s, l);
+      const { r, g, b } = hslToSrgb(hue, s, l);
       const i = (y * w + x) * 4;
       img.data[i] = Math.round(clamp(r, 0, 1) * 255);
       img.data[i + 1] = Math.round(clamp(g, 0, 1) * 255);

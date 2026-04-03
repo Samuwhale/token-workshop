@@ -132,7 +132,7 @@ function oklabToLinearP3(L: number, a: number, b: number): { r: number; g: numbe
 // HSL conversions
 // ---------------------------------------------------------------------------
 
-function hslToSrgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+export function hslToSrgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
   const S = s / 100, L = l / 100;
   if (S === 0) return { r: L, g: L, b: L };
   const hue2rgb = (p: number, q: number, t: number) => {
@@ -148,7 +148,7 @@ function hslToSrgb(h: number, s: number, l: number): { r: number; g: number; b: 
   return { r: hue2rgb(p, q, H + 1 / 3), g: hue2rgb(p, q, H), b: hue2rgb(p, q, H - 1 / 3) };
 }
 
-function srgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+export function srgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const l = (max + min) / 2;
   if (max === min) return { h: 0, s: 0, l: l * 100 };
