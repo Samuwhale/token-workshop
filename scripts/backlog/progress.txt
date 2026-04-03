@@ -294,3 +294,11 @@
   - `redoEntries` in `useRecentOperations` is ordered with most-recently-rolled-back last; reversing it before slicing gives most-recent-first ordering for the palette.
   - Lint baseline improved by 1 (5 → 4 errors) as a side effect of this change — the deps array fix resolved a react-hooks/exhaustive-deps warning.
 ---
+
+## 2026-04-03 - AnalyticsPanel unused tokens delete actions
+- Added per-row delete icon buttons (trash SVG, red, revealed on row hover via absolute positioning) and a "Delete all" button with inline confirmation (shows token count + Confirm/Cancel) in the unused tokens section header. Both call `DELETE /api/tokens/:set/path` directly. In-flight deletes show a spinner. After deletion, `reloadKey` is incremented to refresh the analytics data.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L96, ~L489, ~L1213
+- **Learnings for future iterations:**
+  - "Delete all" confirmation inline pattern (no modal needed): replace the trigger button with a "Count? Confirm / Cancel" row in-place — keeps context without overlay overhead.
+  - Row hover delete button uses `absolute right-1 top-0 bottom-0` + `opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto` (matches the established hover action button pattern).
+---

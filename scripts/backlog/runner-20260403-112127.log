@@ -283,3 +283,25 @@ Already up to date.
 
   Merging to main: No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path; once an operation is rolled back, it is gone; users expect redo to work symmetrically with undo; implement a redo stack in useUndo that captures rolled-back operations and re-applies them on demand (useUndo hook, HistoryPanel.tsx, CommandPalette.tsx)
 Already up to date.
+[main 279914d3] chore(backlog): done – No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path; once an operation is rolled back, it is gone; users expect redo to work symmetrically with undo; implement a redo stack in useUndo that captures rolled-back operations and re-applies them on demand (useUndo hook, HistoryPanel.tsx, CommandPalette.tsx)
+ 7 files changed, 71 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No redo (Cmd+Y / Cmd+Shift+Z) — the undo stack works via rollback but there is no redo path
+- The core redo implementation was already complete: `useUndo` had `executeRedo`, `future` stack, `canRedo`, `redoSlot`; App.tsx wired up keyboard shortcuts and the UndoToast; HistoryPanel/RecentActionsSource showed redo buttons. The only missing piece was **redo commands in the CommandPalette**.
+- Added `redoableItems: Array<{ origOpId, description }>` to `useRecentOperations` return value — derived from `redoEntries` with `useMemo`.
+- Updated App.tsx to destructure `redoableItems` and added two redo command groups to the `cmds` array: (1) local redo from `redoSlot` as "Redo: X" with ⇧⌘Z shortcut hint; (2) server redo from `redoableItems` (reversed, most recent first) as "Redo: X" / "Re-apply: X". Both in category 'Undo'. Updated `useMemo` deps to include `canRedo`, `redoSlot`, `executeRedo`, `redoableItems`, `handleServerRedo`.
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  11 queued · 1 in-progress · last took 4m48s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel shows unused tokens but provides no delete action — the unusedTokens list is computed (AnalyticsPanel.tsx ~L422-440) and displayed, but users must manually navigate to each token to delete it; add a "Delete all unused" button (with confirmation) and per-row delete icons to the unused tokens list so the common cleanup workflow doesn't require leaving the Analytics panel
+  Worktree: /tmp/backlog-30880-IeRbEd
+  Running agent… (started 11:46:32)
+
+  ✓ done: AnalyticsPanel shows unused tokens but provides no delete action
+    Added per-row trash icon (hover-revealed) and inline "Delete all" with confirmation to the unused tokens list in AnalyticsPanel.tsx
+    16 turns · 118s · $0.39
+
+  Merging to main: AnalyticsPanel shows unused tokens but provides no delete action
+Already up to date.

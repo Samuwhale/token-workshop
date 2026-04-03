@@ -94,6 +94,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCo
   const [showSuppressed, setShowSuppressed] = useState(false);
   const [allTokensUnified, setAllTokensUnified] = useState<Record<string, { $value: unknown; $type: string; set: string }>>({});
   const [showUnused, setShowUnused] = useState(false);
+  const [confirmDeleteAllUnused, setConfirmDeleteAllUnused] = useState(false);
+  const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set()); // 'all' or 'set:path'
   const hasAutoValidated = useRef(false);
   const lastValidatedKey = useRef(0);
 
@@ -483,6 +485,34 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCo
     } catch (err) {
       console.warn('[AnalyticsPanel] bulk deduplicate failed:', err);
       setBulkDeduplicating(false);
+    }
+  };
+
+  const handleDeleteUnusedToken = async (path: string, set: string) => {
+    const key = `${set}:${path}`;
+    setDeletingUnused(prev => new Set([...prev, key]));
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
+      setReloadKey(k => k + 1);
+    } catch (err) {
+      console.warn('[AnalyticsPanel] delete unused token failed:', err);
+    } finally {
+      setDeletingUnused(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
+
+  const handleDeleteAllUnused = async () => {
+    setDeletingUnused(new Set(['__all__']));
+    try {
+      await Promise.all(unusedTokens.map(({ path, set }) =>
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' })
+      ));
+      setConfirmDeleteAllUnused(false);
+      setReloadKey(k => k + 1);
+    } catch (err) {
+      console.warn('[AnalyticsPanel] delete all unused tokens failed:', err);
+    } finally {
+      setDeletingUnused(new Set());
     }
   };
 
@@ -1207,24 +1237,67 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenUsageCo
               </div>
             ) : (
               <>
-                <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-                  {unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents — potential deletion candidates.
+                <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
+                  <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} with zero Figma usage and no alias dependents — potential deletion candidates.</span>
+                  {!confirmDeleteAllUnused ? (
+                    <button
+                      onClick={() => setConfirmDeleteAllUnused(true)}
+                      className="shrink-0 text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                    >
+                      Delete all
+                    </button>
+                  ) : (
+                    <div className="shrink-0 flex items-center gap-1">
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">Delete {unusedTokens.length}?</span>
+                      <button
+                        onClick={handleDeleteAllUnused}
+                        disabled={deletingUnused.has('__all__')}
+                        className="text-[9px] px-2 py-0.5 rounded bg-[var(--color-figma-error)] text-white hover:opacity-80 disabled:opacity-40 transition-opacity"
+                      >
+                        {deletingUnused.has('__all__') ? 'Deleting…' : 'Confirm'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteAllUnused(false)}
+                        className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
-                  {unusedTokens.map(({ path, set, $type }) => (
-                    <button
-                      key={`${set}:${path}`}
-                      onClick={() => onNavigateToToken?.(path, set)}
-                      disabled={!onNavigateToToken}
-                      className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default"
-                    >
-                      <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1">{path}</span>
-                      <span className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{$type}</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{set}</span>
-                      </span>
-                    </button>
-                  ))}
+                  {unusedTokens.map(({ path, set, $type }) => {
+                    const key = `${set}:${path}`;
+                    const isDeleting = deletingUnused.has(key) || deletingUnused.has('__all__');
+                    return (
+                      <div key={key} className="group relative flex items-center hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                        <button
+                          onClick={() => onNavigateToToken?.(path, set)}
+                          disabled={!onNavigateToToken || isDeleting}
+                          className="flex-1 flex items-center justify-between px-3 py-1.5 text-left disabled:cursor-default"
+                        >
+                          <span className={`text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1 ${isDeleting ? 'opacity-40' : ''}`}>{path}</span>
+                          <span className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{$type}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{set}</span>
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUnusedToken(path, set)}
+                          disabled={isDeleting}
+                          title="Delete token"
+                          className="absolute right-1 top-0 bottom-0 flex items-center px-1.5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity disabled:opacity-40"
+                          aria-label={`Delete ${path}`}
+                        >
+                          {isDeleting ? (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                          ) : (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)]" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}
