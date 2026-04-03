@@ -176,3 +176,18 @@ Already up to date.
 
   Merging to main: Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side but have no command palette entries
 Already up to date.
+[main ed03b21b] chore(backlog): done – Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side but have no command palette entries
+ 8 files changed, 143 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Command palette has no destructive or batch actions
+- Added three new command palette entries in App.tsx:
+  1. "Delete token: <path>" — appears when `highlightedToken` belongs to the active set; triggers a ConfirmModal then calls `POST /api/tokens/:set/bulk-delete` with undo/redo wired via `pushUndo`.
+  2. "Delete N selected tokens" — appears when multi-select is active (> 0 tokens selected in TokenList); uses same bulk-delete flow.
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  7 queued · 3 in-progress · last took 6m1s
+═══════════════════════════════════════════════════════════════
+  → Drag-and-drop only supports single-token moves — useDragDrop tracks a single dragSource and validates all sources are siblings (line 171-174), so users cannot select multiple tokens across groups and drag them together; the server's POST /api/tokens/:set/batch-move endpoint supports batch moves but the UI never calls it for drag operations (useDragDrop.ts ~L28, ~L59-157)
+  Worktree: /tmp/backlog-49887-hrUpHC
+  Running agent… (started 13:15:38)

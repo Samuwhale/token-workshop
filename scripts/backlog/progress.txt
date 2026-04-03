@@ -374,3 +374,9 @@
   - `export` command already existed before this item — the backlog item was partially stale for that sub-item.
   - The `useMemo` deps for `commands` must include all new state values and setter refs used inside; forgetting them causes stale closures in command handlers.
 ---
+- Files changed: `packages/server/src/services/generator-service.ts` ~L674
+- **Learnings for future iterations:**
+  - `restoreSnapshot` takes `Array<{ path, token: Token | null }>` — null entries delete the path. To fully revert a run you need both the original values AND null entries for any paths that were created during the run (not present in the pre-run snapshot).
+  - `snapshotSets`/`restoreSnapshots` are private on TokenStore; the public `getFlatTokensForSet` + `restoreSnapshot` pair achieves the same result for external callers.
+  - Guarding side-effectful cleanup (like `clearNonLockedOverrides`) with a `succeeded` flag in finally is cleaner than restructuring try/catch — the finally still runs exactly once and the flag makes intent explicit.
+---
