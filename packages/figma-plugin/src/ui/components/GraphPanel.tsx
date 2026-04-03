@@ -6,6 +6,7 @@ import { isDimensionLike } from './generators/generatorShared';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
+import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -1012,11 +1013,12 @@ function DryRunPreview({ diff, onConfirmRun, onClose, running }: {
   );
 }
 
-function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; onRefresh: () => void }) {
+function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allSets, activeSet, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; allSets: string[]; activeSet: string; onRefresh: () => void }) {
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewDiff, setPreviewDiff] = useState<DryRunDiff | null>(null);
@@ -1191,6 +1193,13 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
           {previewLoading ? 'Loading…' : previewDiff ? 'Hide preview' : 'Preview output'}
         </button>
         <button
+          onClick={() => setShowEditDialog(true)}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          title="Edit generator settings"
+        >
+          Edit
+        </button>
+        <button
           onClick={handleDuplicate}
           disabled={duplicating}
           className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
@@ -1221,6 +1230,17 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, onRe
           onConfirmRun={handleRerun}
           onClose={() => setPreviewDiff(null)}
           running={running}
+        />
+      )}
+
+      {showEditDialog && (
+        <TokenGeneratorDialog
+          serverUrl={serverUrl}
+          allSets={allSets}
+          activeSet={activeSet}
+          existingGenerator={generator}
+          onClose={() => setShowEditDialog(false)}
+          onSaved={() => { setShowEditDialog(false); onRefresh(); }}
         />
       )}
     </div>
@@ -1292,6 +1312,7 @@ function exportGraphAsSVG(generators: TokenGenerator[], activeSet: string): void
 export interface GraphPanelProps {
   serverUrl: string;
   activeSet: string;
+  allSets: string[];
   generators: TokenGenerator[];
   connected: boolean;
   onRefresh: () => void;
@@ -1314,6 +1335,7 @@ function templateIdForTokenType(tokenType: string | null | undefined): string {
 export function GraphPanel({
   serverUrl,
   activeSet,
+  allSets,
   generators,
   connected,
   onRefresh,
@@ -1543,7 +1565,7 @@ export function GraphPanel({
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
               {filteredGenerators.length > 0
                 ? filteredGenerators.map(gen => (
-                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} onRefresh={onRefresh} />
+                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} allSets={allSets} activeSet={activeSet} onRefresh={onRefresh} />
                   ))
                 : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">

@@ -456,3 +456,17 @@
   - "Trigger-only" patterns (dep = boolean flag that fires an action) are safe to suppress when all other referenced values are read from a closure captured at the same render as the trigger state update.
   - Listing specific object properties in `useMemo` deps (instead of the whole object) is a valid performance optimization when the object is recreated each render but only a subset of properties affects the computation.
 ---
+
+## 2026-04-03 - GeneratorPipelineCard has no Edit button
+- Added an "Edit" button to `GeneratorPipelineCard` in the actions row (between "Preview output" and "Duplicate"). Clicking it opens `TokenGeneratorDialog` with `existingGenerator={generator}`, rendering as a full-screen modal overlay. On save, closes the dialog and calls `onRefresh()`.
+- Added `showEditDialog` state to `GeneratorPipelineCard`.
+- Added `allSets` and `activeSet` props to both `GeneratorPipelineCard` and `GraphPanelProps`.
+- Updated `GraphPanel` to destructure and thread `allSets` + `activeSet` down to `GeneratorPipelineCard`.
+- Imported `TokenGeneratorDialog` at the top of `GraphPanel.tsx`.
+- Updated `App.tsx` to pass `allSets={sets}` to `<GraphPanel>`.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1, ~L1015, ~L1177, ~L1218, ~L1295, ~L1330, ~L1550; `packages/figma-plugin/src/ui/App.tsx` ~L2229
+- **Learnings for future iterations:**
+  - `TokenGeneratorDialog` already had `existingGenerator?: TokenGenerator` — it was designed for editing from the start, just never wired up from the pipeline view.
+  - `TokenGeneratorDialog` renders as `fixed inset-0` overlay so it's safe to instantiate inside any card component without worrying about z-index stacking from a parent container.
+  - When adding props to a deeply nested card component, thread the new props from the top-level panel props interface down through the parent render.
+---

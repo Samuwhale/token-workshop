@@ -65,3 +65,19 @@ Already up to date.
   → No PluginResponse discriminated union for controller→UI messages — shared/types.ts defines PluginMessage (UI→controller, 35 types) but has no corresponding outbound type; at least 6 response types (applied-to-nodes, search-layers-result, peers-for-property-result, removed-binding-from-node, select-next-sibling-result, scan-token-usage-result) are posted from controller.ts/selectionHandling.ts/heatmapScanning.ts without type declarations, making it impossible for UI code to type-guard responses
   Worktree: /tmp/backlog-49887-k0txtO
   Running agent… (started 12:41:20)
+
+  · unknown
+    101 turns · 740s · $4.02
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions audit
+- Audited all 15 active suppression sites (the 16th at useNearbyTokenMatch.ts:130 was already fixed / didn't exist).
+- **Fixed one suppression cleanly**: `useTokenNavigation.ts:27` — simplified `if (createFromEmpty) setCreateFromEmpty(false)` to unconditional `setCreateFromEmpty(false)` (React no-ops if already false), added stable `setCreateFromEmpty` to deps, removed suppression entirely. Lint error count dropped from 5 to 4.
+- **Documented 14 remaining suppressions** with inline `// Safe:` comments explaining why each suppression is intentional:
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  8 queued · 3 in-progress · last took 12m25s
+═══════════════════════════════════════════════════════════════
+  → No PluginResponse discriminated union for controller→UI messages — shared/types.ts defines PluginMessage (UI→controller, 35 types) but has no corresponding outbound type; at least 6 response types (applied-to-nodes, search-layers-result, peers-for-property-result, removed-binding-from-node, select-next-sibling-result, scan-token-usage-result) are posted from controller.ts/selectionHandling.ts/heatmapScanning.ts without type declarations, making it impossible for UI code to type-guard responses
+  Worktree: /tmp/backlog-49887-xLKmvy
+  Running agent… (started 12:53:45)

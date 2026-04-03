@@ -326,3 +326,10 @@ Already up to date.
 - Renamed the "Extract Figma" mode button label to "Import from Figma" in the segmented control toggle (~L606). The description already accurately described the import behavior; only the button label was misleading.
 - Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L606
 - **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  8 queued · 3 in-progress · last took 1m8s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel "Publish All" is blocked by Git merge conflicts even when Variables and Styles diffs are ready — Git VCS state should not gate unrelated Figma sync operations; either allow partial publish (Variables + Styles only) or surface a clear "resolve conflicts first" action rather than silently disabling the button (PublishPanel.tsx ~L128-130)
+  Worktree: /tmp/backlog-80049-1h6787
+  Running agent… (started 12:51:23)

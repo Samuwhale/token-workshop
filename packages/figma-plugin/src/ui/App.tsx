@@ -2229,6 +2229,7 @@ export function App() {
             <GraphPanel
               serverUrl={serverUrl}
               activeSet={activeSet}
+              allSets={sets}
               generators={generators}
               connected={connected}
               onRefresh={() => { refreshAll(); refreshGenerators(); }}
