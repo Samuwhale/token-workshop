@@ -13,6 +13,8 @@ interface ValidationIssue {
   severity: 'error' | 'warning' | 'info';
   message: string;
   suggestedFix?: string;
+  /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
+  suggestion?: string;
 }
 
 interface SetStats {
@@ -98,6 +100,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [showUnused, setShowUnused] = useState(false);
   const [confirmDeleteAllUnused, setConfirmDeleteAllUnused] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set()); // 'all' or 'set:path'
+  const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set()); // issue keys currently being fixed
   const hasAutoValidated = useRef(false);
   const lastValidatedKey = useRef(0);
   const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -367,6 +370,24 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const sortedTypes = Object.entries(allByType).sort((a, b) => b[1] - a[1]);
 
   const suppressKey = (issue: ValidationIssue) => `${issue.rule}:${issue.setName}:${issue.path}`;
+
+  const applyFix = async (issue: ValidationIssue) => {
+    const key = suppressKey(issue);
+    const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${issue.path.split('.').map(encodeURIComponent).join('/')}`;
+    setFixingKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+    try {
+      if (issue.suggestedFix === 'add-description') {
+        await apiFetch(tokenUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ $description: '' }) });
+      } else if ((issue.suggestedFix === 'flatten-alias-chain' || issue.suggestedFix === 'extract-to-alias') && issue.suggestion) {
+        await apiFetch(tokenUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ $value: issue.suggestion }) });
+      }
+      await runValidate();
+    } catch {
+      // silently leave result stale; re-validate button remains
+    } finally {
+      setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
 
   const activeIssues = validateResults
     ? validateResults.filter(i => !suppressedKeys.has(suppressKey(i)))
@@ -781,6 +802,25 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                         >
                           Suppress
                         </button>
+                        {(issue.suggestedFix === 'add-description' ||
+                          ((issue.suggestedFix === 'flatten-alias-chain' || issue.suggestedFix === 'extract-to-alias') && !!issue.suggestion)
+                        ) && (
+                          <button
+                            onClick={() => applyFix(issue)}
+                            disabled={fixingKeys.has(suppressKey(issue))}
+                            className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                            title={
+                              issue.suggestedFix === 'add-description' ? 'Add an empty $description field' :
+                              issue.suggestedFix === 'flatten-alias-chain' ? `Point directly to ${issue.suggestion}` :
+                              `Alias to ${issue.suggestion}`
+                            }
+                          >
+                            {fixingKeys.has(suppressKey(issue)) ? '…' :
+                              issue.suggestedFix === 'add-description' ? 'Add desc' :
+                              issue.suggestedFix === 'flatten-alias-chain' ? 'Flatten' :
+                              'Make alias'}
+                          </button>
+                        )}
                         {onNavigateToToken && (
                           <button
                             onClick={() => {

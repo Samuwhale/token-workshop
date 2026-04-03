@@ -384,3 +384,18 @@ Already up to date.
 
   Merging to main: No inline token value editing in the token list
 Already up to date.
+[main 41560447] chore(backlog): done – No inline token value editing in the token list
+ 5 files changed, 25 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ThemeManager coverage gap auto-fill buttons hidden behind hover
+- Applied faint-always-visible pattern to the per-token "Fill" and "Create" buttons in `renderCoverageRow`. Changed `opacity-0 group-hover/fill:opacity-100` to `opacity-40 group-hover/fill:opacity-100 pointer-events-none group-hover/fill:pointer-events-auto` on both buttons. The "Fill all gaps" header button was already always visible and needed no change.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L2092, ~L2104
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  5 queued · 3 in-progress · last took 2m24s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group (AnalyticsPanel.tsx ~L1073-1199)
+  Worktree: /tmp/backlog-80049-bJ5pzJ
+  Running agent… (started 13:05:00)

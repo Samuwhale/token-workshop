@@ -538,3 +538,23 @@
   - The "fetch limit+1 to detect hasMore" pattern is cleaner than counting: no extra count query needed.
   - `GitCommitsSource` has a `filterTokenPath` mode (per-token history) that is separate from commit message search — hide the search input when `filterTokenPath` is active to avoid conflicting filter modes.
 ---
+
+## 2026-04-03 - Validation issues in AnalyticsPanel only offer "Go →" with no quick-fix actions
+- Added one-click fix buttons to validation issue rows in AnalyticsPanel for three mechanical rules:
+  - `require-description`: "Add desc" button PATCHes `{ $description: "" }` on the token
+  - `max-alias-depth`: "Flatten" button PATCHes `{ $value: suggestion }` (resolved direct target)
+  - `no-duplicate-values`: "Make alias" button PATCHes `{ $value: suggestion }` (canonical alias)
+- Updated server `ValidationIssue` interface to include `suggestedFix?` and `suggestion?` fields
+- Updated `validateAllTokens` in `lint.ts` to:
+  - Include `suggestedFix`/`suggestion` on `max-alias-depth` issues (using `resolveAliasTarget`)
+  - Run `require-description` check when enabled in lint config (disabled by default)
+  - Run `no-duplicate-values` check when enabled in lint config (post-loop, cross-set aware)
+  - Cache `allFlatTokens` map to avoid rebuilding it per-iteration
+- Updated client `ValidationIssue` interface to include `suggestion?`
+- Fix buttons are hover-visible only (matching Suppress button pattern), show "…" while in-flight, re-run validate on success
+- Files changed: `packages/server/src/services/lint.ts` ~L338, ~L383-460, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L9, ~L102, ~L372-393, ~L800-820
+- **Learnings for future iterations:**
+  - `validateAllTokens` (structural validator) and `lintTokens` (per-set lint rules) are separate functions in `lint.ts` — the former runs cross-set, the latter per-set. When adding fix support to the analytics panel, extend `validateAllTokens` rather than making the client call lint per-set.
+  - `no-duplicate-values` check in `validateAllTokens` needs to group by `type:serializedValue` key across all sets; the canonical token is the shortest path in each duplicate group.
+  - Fix buttons should only render when `suggestion` is present for alias-based fixes; `add-description` needs no suggestion.
+---

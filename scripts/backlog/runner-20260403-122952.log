@@ -103,3 +103,10 @@ Already up to date.
   → Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions — for rules like require-description, max-alias-depth, and no-duplicate-values the fix is mechanical and could be applied inline (e.g., "Add empty description", "Flatten alias to direct target", "Convert to alias of canonical token"); adding one-click fix buttons would turn the validation panel from diagnostic to actionable (AnalyticsPanel.tsx ~L784-795)
   Worktree: /tmp/backlog-49887-kv9UdB
   Running agent… (started 12:59:41)
+
+  ✓ done: Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions
+    Added one-click fix buttons (Add desc / Flatten / Make alias) for require-description, max-alias-depth, and no-duplicate-values; extended server validateAllTokens to include suggestedFix+suggestion fields and run the two lint rules cross-set
+    37 turns · 382s · $1.3
+
+  Merging to main: Validation issues in AnalyticsPanel only offer "Go →" navigation with no quick-fix actions
+Already up to date.

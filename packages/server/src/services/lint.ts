@@ -341,6 +341,9 @@ export interface ValidationIssue {
   path: string;
   rule: string;
   message: string;
+  suggestedFix?: string;
+  /** Concrete fix target — e.g. the alias path to use. */
+  suggestion?: string;
 }
 
 function detectCycles(
@@ -387,6 +390,12 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
       allTokensMap[entry.path] = { token: entry.token, setName: entry.setName };
     }
   }
+  // Flat token map for alias resolution helpers
+  const allFlatTokens: Record<string, Token> = Object.fromEntries(
+    Object.entries(allTokensMap).map(([k, v]) => [k, v.token])
+  );
+
+  const cfg = config ?? DEFAULT_LINT_CONFIG;
 
   for (const { path: tokenPath, token, setName } of allTokensList) {
     // Missing $type
@@ -428,17 +437,21 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
       }
 
       // Alias depth
-      const maxAliasDepthRule = (config ?? DEFAULT_LINT_CONFIG).lintRules['max-alias-depth'];
+      const maxAliasDepthRule = cfg.lintRules['max-alias-depth'];
       if (maxAliasDepthRule?.enabled !== false) {
         const maxDepth = (maxAliasDepthRule?.options?.maxDepth as number | undefined) ?? 3;
-        const depth = getAliasDepth(tokenPath, Object.fromEntries(Object.entries(allTokensMap).map(([k, v]) => [k, v.token])));
+        const depth = getAliasDepth(tokenPath, allFlatTokens);
         if (depth > maxDepth) {
+          const resolvedTarget = resolveAliasTarget(tokenPath, allFlatTokens);
+          const suggestion = resolvedTarget && resolvedTarget !== tokenPath ? `{${resolvedTarget}}` : undefined;
           issues.push({
             severity: maxAliasDepthRule?.severity ?? 'warning',
             setName,
             path: tokenPath,
             rule: 'max-alias-depth',
-            message: `Alias chain depth is ${depth} (recommended max: ${maxDepth}).`,
+            message: `Alias chain depth is ${depth} (recommended max: ${maxDepth}).${suggestion ? ` Point directly to ${suggestion} to flatten.` : ''}`,
+            suggestedFix: 'flatten-alias-chain',
+            suggestion,
           });
         }
       }
@@ -453,6 +466,53 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
           rule: 'type-mismatch',
           message: `Value does not match declared type "${token.$type}".`,
         });
+      }
+    }
+
+    // require-description
+    const requireDescRule = cfg.lintRules['require-description'];
+    if (requireDescRule?.enabled) {
+      if (!token.$description) {
+        issues.push({
+          severity: requireDescRule.severity ?? 'info',
+          setName,
+          path: tokenPath,
+          rule: 'require-description',
+          message: `Token "${tokenPath}" is missing a $description.`,
+          suggestedFix: 'add-description',
+        });
+      }
+    }
+  }
+
+  // no-duplicate-values (needs all tokens seen first)
+  const noDupRule = cfg.lintRules['no-duplicate-values'];
+  if (noDupRule?.enabled) {
+    const severity = noDupRule.severity ?? 'info';
+    const valueMap = new Map<string, Array<{ path: string; setName: string }>>();
+    for (const { path: tokenPath, token, setName } of allTokensList) {
+      if (isAlias(token.$value)) continue;
+      const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
+      if (!valueMap.has(key)) valueMap.set(key, []);
+      valueMap.get(key)!.push({ path: tokenPath, setName });
+    }
+    for (const [, entries] of valueMap) {
+      if (entries.length > 1) {
+        const sortedByLength = [...entries].sort((a, b) => a.path.length - b.path.length);
+        const canonical = sortedByLength[0].path;
+        for (const { path: tokenPath, setName } of entries) {
+          const others = entries.filter(e => e.path !== tokenPath).map(e => e.path);
+          const aliasTarget = tokenPath === canonical ? sortedByLength[1].path : canonical;
+          issues.push({
+            severity,
+            setName,
+            path: tokenPath,
+            rule: 'no-duplicate-values',
+            message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
+            suggestedFix: 'extract-to-alias',
+            suggestion: `{${aliasTarget}}`,
+          });
+        }
       }
     }
   }
