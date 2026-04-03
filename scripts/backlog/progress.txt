@@ -527,3 +527,11 @@
   - `getLocalVariablesAsync()` returns the full Variable array; building a `Map<id, Variable>` from it once is the canonical pattern — no need for per-ID async calls anywhere in the same function.
   - The stale-cache bug in `applyVariables` was subtle: `localVariables` is populated before the loop, but `createVariable` (synchronous) produces a new Variable that isn't in the snapshot. Pushing it immediately after creation keeps the loop idempotent.
 ---
+
+## 2026-04-04 - ResolverStore file watcher race between async onFileChange and sync onFileRemove
+- Fixed the create-then-quickly-delete race condition in `ResolverStore`. Added `_fileDeleteGen: Map<string, number>` field that is incremented each time `onFileRemove` fires for a path. `onFileChange` captures the generation before the async `loadFile` call; `loadFile` now accepts an optional `expectedDeleteGen` parameter and discards the result (skips `resolvers.set`) if the generation changed while `fs.readFile` was in-flight.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L54, ~L286, ~L325, ~L334
+- **Learnings for future iterations:**
+  - JS event loop is single-threaded but async I/O creates interleaving: `onFileRemove` (sync) can fire and delete from the Map while `onFileChange`'s `await fs.readFile` is pending, then the completed read re-adds a stale entry. A simple generation counter solves this without locks.
+  - The generation approach generalises: capture gen before any await, increment on invalidation, check after await. Works for any "cancel in-flight async update" scenario.
+---

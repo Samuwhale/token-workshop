@@ -87,3 +87,25 @@ Already up to date.
 
   Merging to main: variableSync.ts has O(n) sequential async calls and a stale variable cache
 Already up to date.
+[main 27f94159] chore(backlog): done – variableSync.ts has O(n) sequential async calls and a stale variable cache
+ 6 files changed, 64 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - variableSync.ts O(n) sequential async calls and stale variable cache
+- **`readFigmaVariables`**: replaced O(vars×modes) sequential `getVariableByIdAsync` calls with a single `Promise.all([getLocalVariableCollectionsAsync, getLocalVariablesAsync])` + a `Map<id, Variable>` for O(1) lookup per varId.
+- **`deleteOrphanVariables`**: same fix — replaced sequential `getVariableByIdAsync` per varId with a single `getLocalVariablesAsync` + Map lookup; parallelized the two top-level fetches with `Promise.all`.
+- **`applyVariables` stale cache**: after `createVariable`, push the new `Variable` into `localVariables` so subsequent `findVariableInList` calls (same sync loop) can find just-created entries and avoid duplicate creation.
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  14 queued · 3 in-progress · last took 2m17s
+═══════════════════════════════════════════════════════════════
+  → ResolverStore file watcher has a race between async `onFileChange` and sync `onFileRemove` — if a resolver file is created then quickly deleted, `onFileChange` starts an async `loadFile`, `onFileRemove` synchronously deletes the entry, then when `loadFile` completes it re-adds the deleted resolver with stale data; the resolver appears in memory despite the file being gone from disk (resolver-store.ts L318-329)
+  Worktree: /tmp/backlog-91949-StnaGF
+  Running agent… (started 01:18:22)
+
+  ✓ done: ResolverStore file watcher has a race between async onFileChange and sync onFileRemove
+    Added _fileDeleteGen counter: onFileRemove increments it, onFileChange captures it before the async load, loadFile discards the result if the counter changed — resolver no longer re-appears in memory after being deleted
+    13 turns · 90s · $0.31
+
+  Merging to main: ResolverStore file watcher has a race between async onFileChange and sync onFileRemove
+Already up to date.

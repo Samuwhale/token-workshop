@@ -52,6 +52,8 @@ export class ResolverStore {
   private loadErrorListeners = new Set<(name: string, message: string) => void>();
   private watcher: ReturnType<typeof watch> | null = null;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  /** Incremented each time a file is removed; lets in-flight loadFile calls detect stale results. */
+  private _fileDeleteGen: Map<string, number> = new Map();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -281,11 +283,16 @@ export class ResolverStore {
     return results;
   }
 
-  private async loadFile(filePath: string): Promise<void> {
+  private async loadFile(filePath: string, expectedDeleteGen?: number): Promise<void> {
     const name = this.pathToName(filePath);
     if (!name) return;
     try {
       const content = await fs.readFile(filePath, 'utf-8');
+      // If the file was removed while we were reading, discard the result so the
+      // resolver is not re-added to memory after onFileRemove already deleted it.
+      if (expectedDeleteGen !== undefined && (this._fileDeleteGen.get(filePath) ?? 0) !== expectedDeleteGen) {
+        return;
+      }
       const data = JSON.parse(content);
       const errors = validateResolverFile(data);
       if (errors.length > 0) {
@@ -318,7 +325,10 @@ export class ResolverStore {
   private async onFileChange(filePath: string): Promise<void> {
     if (!filePath.endsWith('.resolver.json')) return;
     if (this._writingFiles.has(filePath)) { this._clearWriteGuard(filePath); return; }
-    await this.loadFile(filePath);
+    // Capture delete generation before the async load so we can discard stale results
+    // if the file is removed while loadFile is in-flight (create-then-quickly-delete race).
+    const genAtStart = this._fileDeleteGen.get(filePath) ?? 0;
+    await this.loadFile(filePath, genAtStart);
   }
 
   private onFileRemove(filePath: string): void {
@@ -326,5 +336,7 @@ export class ResolverStore {
     if (this._writingFiles.has(filePath)) { this._clearWriteGuard(filePath); return; }
     const name = this.pathToName(filePath);
     if (name) this.resolvers.delete(name);
+    // Bump the generation so any concurrent onFileChange loadFile will discard its result.
+    this._fileDeleteGen.set(filePath, (this._fileDeleteGen.get(filePath) ?? 0) + 1);
   }
 }
