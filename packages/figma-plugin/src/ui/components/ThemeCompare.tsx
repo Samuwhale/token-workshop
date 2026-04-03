@@ -13,6 +13,10 @@ interface ThemeCompareProps {
   onEditToken?: (set: string, path: string) => void;
   /** Open the token editor in create mode with pre-filled values */
   onCreateToken?: (path: string, set: string, type: string, value?: string) => void;
+  /** Pre-select option A on mount (key format: "{dimId}:{optionName}") */
+  initialOptionKeyA?: string;
+  /** Pre-select option B on mount (key format: "{dimId}:{optionName}") */
+  initialOptionKeyB?: string;
 }
 
 // Flat list of all options across all dimensions for the compare selectors
@@ -82,9 +86,9 @@ function ColorSwatch({ hex }: { hex: string }) {
   );
 }
 
-export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken }: ThemeCompareProps) {
-  const [optionKeyA, setOptionKeyA] = useState<string>('');
-  const [optionKeyB, setOptionKeyB] = useState<string>('');
+export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken, initialOptionKeyA, initialOptionKeyB }: ThemeCompareProps) {
+  const [optionKeyA, setOptionKeyA] = useState<string>(initialOptionKeyA ?? '');
+  const [optionKeyB, setOptionKeyB] = useState<string>(initialOptionKeyB ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 

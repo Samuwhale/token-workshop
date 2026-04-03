@@ -452,3 +452,10 @@ Already up to date.
   → Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
   Worktree: /tmp/backlog-46580-Ka6LPc
   Running agent… (started 17:53:07)
+
+  ✓ done: Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
+    Added a faint-always-visible "Compare" button to each dimension row header (ThemeManager), plus "Compare theme options…" and per-dimension compare commands to the command palette with pre-selection support in ThemeCompare
+    47 turns · 445s · $1.59
+
+  Merging to main: Theme comparison panel is buried and hard to discover — the side-by-side token diff across theme options is a powerful feature but is only accessible by toggling a compare mode inside ThemeManager; surface it as a prominent action (e.g., "Compare options" button on each dimension row) or make it accessible from the command palette
+Already up to date.

@@ -351,6 +351,9 @@ export function App() {
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
+  const [themeCompareKey, setThemeCompareKey] = useState(0);
+  const [themeCompareDefaultA, setThemeCompareDefaultA] = useState('');
+  const [themeCompareDefaultB, setThemeCompareDefaultB] = useState('');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [focusGeneratorId, setFocusGeneratorId] = useState<string | null>(null);
@@ -964,6 +967,31 @@ export function App() {
         category: 'Navigation',
         handler: () => navigateTo('define', 'themes'),
       },
+      // Compare theme options — shown when dimensions exist
+      ...(dimensions.length > 0 ? [{
+        id: 'compare-theme-options',
+        label: 'Compare theme options\u2026',
+        description: 'Side-by-side token diff across theme options',
+        category: 'Themes',
+        handler: () => {
+          setThemesView('compare');
+          navigateTo('define', 'themes');
+        },
+      }] : []),
+      // Per-dimension compare shortcuts when there are ≥2 options
+      ...dimensions.filter(d => d.options.length >= 2).map(d => ({
+        id: `compare-dim-${d.id}`,
+        label: `Compare ${d.name}: ${d.options[0].name} vs ${d.options[1].name}`,
+        description: `See token differences across ${d.name} options`,
+        category: 'Themes',
+        handler: () => {
+          setThemeCompareDefaultA(`${d.id}:${d.options[0].name}`);
+          setThemeCompareDefaultB(`${d.id}:${d.options[1].name}`);
+          setThemeCompareKey(k => k + 1);
+          setThemesView('compare');
+          navigateTo('define', 'themes');
+        },
+      })),
       {
         id: 'heatmap',
         label: 'Canvas Heatmap',
@@ -1143,7 +1171,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setThemesView, setThemeCompareDefaultA, setThemeCompareDefaultB, setThemeCompareKey]);
 
   // Flat token list for command palette — active set only (default mode)
   const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {
@@ -2541,9 +2569,12 @@ export function App() {
                 ) : (
                   <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
                     <ThemeCompare
+                      key={themeCompareKey}
                       dimensions={dimensions}
                       allTokensFlat={allTokensFlat}
                       pathToSet={pathToSet}
+                      initialOptionKeyA={themeCompareDefaultA}
+                      initialOptionKeyB={themeCompareDefaultB}
                       onEditToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }}
                       onCreateToken={(path, set, type, value) => {
                         navigateTo('define', 'tokens');

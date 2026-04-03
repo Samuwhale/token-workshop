@@ -321,3 +321,15 @@
   - Sequential (not parallel) calls are correct here to avoid concurrent writes to the same token file; the server has a promise-chain mutex but sequential UI calls simplify error attribution per generator.
   - Gate 4 (headless UI validation) timed out due to a pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); gates 1-3 all passed cleanly.
 ---
+
+## 2026-04-03 - Theme comparison panel is buried and hard to discover
+- Added three discoverability surfaces for the theme comparison feature:
+  1. **Dimension row "Compare" button** (ThemeManager.tsx ~L1736): Each dimension with ≥2 options now shows a faint "Compare" button (faint-always-visible pattern: `opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto`) that opens the internal compare mode (`showCompare=true`) with the dimension's first two options pre-selected as A/B.
+  2. **Command palette commands** (App.tsx ~L970): Added "Compare theme options…" (navigates to Themes > Compare view) and per-dimension "Compare [dim.name]: [optA] vs [optB]" commands that navigate to the compare view with specific options pre-selected.
+  3. **Pre-selection support** in ThemeCompare.tsx: Added `initialOptionKeyA` and `initialOptionKeyB` props; paired with `themeCompareKey` counter in App.tsx to force remount with fresh initial state when triggered from command palette.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L8, ~L85; `packages/figma-plugin/src/ui/App.tsx` ~L353, ~L970, ~L1174, ~L2571; `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1736
+- **Learnings for future iterations:**
+  - The faint-always-visible button pattern (`opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto`) is ideal for feature discoverability without cluttering UI at rest.
+  - ThemeCompare is conditionally rendered (ternary in App.tsx), so it remounts each time the user switches to the compare view — using `useState(initialProp)` works for initial selection, but a `key` counter is needed to force remount when the user wants to switch pre-selected options while already on the compare view.
+  - Adding per-dimension command palette entries (filtered by `d.options.length >= 2`) gives power users fast keyboard access to specific dimension comparisons.
+---

@@ -1733,6 +1733,26 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </button>
                             </div>
                           )}
+                          {dim.options.length >= 2 && (
+                            <button
+                              onClick={() => {
+                                setShowCompare(true);
+                                setShowPreview(false);
+                                setCompareOptA({ dimId: dim.id, optionName: dim.options[0].name });
+                                setCompareOptB({ dimId: dim.id, optionName: dim.options[1].name });
+                              }}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                              title={`Compare ${dim.name} options`}
+                              aria-label={`Compare ${dim.name} options`}
+                            >
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                <path d="M9 12h6" />
+                              </svg>
+                              Compare
+                            </button>
+                          )}
                           <button
                             onClick={() => executeDeleteDimension(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
