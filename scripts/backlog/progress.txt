@@ -453,3 +453,12 @@
   - The stable callback ref pattern for keyboard shortcuts (`keyboardShortcutRef.current = fn`) reads current state on every render, so new state variables (`commandPaletteInitialQuery`) are safely accessible inside the handler without extra deps.
   - Resetting `commandPaletteInitialQuery` on Cmd+K is necessary; otherwise a prior Cmd+Shift+F open would leave `>` as the initial query for all future Cmd+K opens.
 ---
+
+## 2026-04-04 - SettingsPanel handleApplyImport writes arbitrary localStorage keys without validation
+- Added `IMPORTABLE_EXACT_KEYS` Set and `isAllowedImportKey(key)` function above `IMPORT_KEY_LABELS` constant. The whitelist covers the 11 fixed preference keys exported by `handleExportSettings`, plus dynamic prefix matches for `token-sort:*`, `token-type-filter:*`, and `tm_pinned:*`.
+- Applied `isAllowedImportKey` in `handleImportFile` when building `data` (primary filter) and again in `handleApplyImport` as defense-in-depth (secondary filter on the already-filtered `pendingImport.data`).
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L150 (new whitelist/validator), ~L302 (handleImportFile filter), ~L339 (handleApplyImport filter)
+- **Learnings for future iterations:**
+  - Two-layer validation (parse stage + apply stage) follows defense-in-depth: the parse stage keeps bad keys out of the React state, the apply stage is a last-resort guard if state is ever tampered or the function is called from unexpected paths.
+  - The whitelist Set should mirror exactly what `handleExportSettings` produces — keeping both in sync ensures round-trip fidelity without admitting extra keys.
+---

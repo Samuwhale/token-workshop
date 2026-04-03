@@ -147,6 +147,30 @@ export interface SettingsPanelProps {
 
 type ImportDiffEntry = { key: string; label: string; oldValue: string | null; newValue: string; status: 'added' | 'changed' };
 
+/** Exact localStorage keys that are allowed to be imported. */
+const IMPORTABLE_EXACT_KEYS = new Set<string>([
+  STORAGE_KEYS.DENSITY,
+  STORAGE_KEYS.COLOR_FORMAT,
+  STORAGE_KEYS.ADVANCED_MODE,
+  STORAGE_KEYS.CONTRAST_BG,
+  STORAGE_KEYS.HIDE_DEPRECATED,
+  STORAGE_KEYS.SERVER_URL,
+  STORAGE_KEYS.EXPORT_PLATFORMS,
+  STORAGE_KEYS.EXPORT_CSS_SELECTOR,
+  STORAGE_KEYS.EXPORT_ZIP_FILENAME,
+  STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+  STORAGE_KEYS.UNDO_MAX_HISTORY,
+]);
+
+/** Returns true only for keys that the export produces and safe to import. */
+function isAllowedImportKey(key: string): boolean {
+  if (IMPORTABLE_EXACT_KEYS.has(key)) return true;
+  if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT)) return true;
+  if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) return true;
+  if (key.startsWith('tm_pinned:')) return true;
+  return false;
+}
+
 const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.DENSITY]:              'UI density',
   [STORAGE_KEYS.COLOR_FORMAT]:         'Color format',
@@ -275,11 +299,12 @@ export function SettingsPanel({
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
           throw new Error('Invalid settings file: expected a JSON object');
         }
-        // Collect valid (non-metadata, string-valued) entries
+        // Collect valid (non-metadata, string-valued, whitelisted) entries
         const data: Record<string, string> = {};
         for (const [key, value] of Object.entries(parsed)) {
           if (key.startsWith('_')) continue;
           if (typeof value !== 'string') continue;
+          if (!isAllowedImportKey(key)) continue;
           data[key] = value;
         }
         if (Object.keys(data).length === 0) throw new Error('No settings found in file');
@@ -316,6 +341,7 @@ export function SettingsPanel({
     if (!pendingImport) return;
     let applied = 0;
     for (const [key, value] of Object.entries(pendingImport.data)) {
+      if (!isAllowedImportKey(key)) continue; // defense-in-depth: skip any non-whitelisted keys
       try { localStorage.setItem(key, value); applied++; } catch { /* quota */ }
     }
     if (applied === 0) { setImportError('Failed to write settings'); return; }

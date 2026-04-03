@@ -206,3 +206,18 @@ Already up to date.
 
   Merging to main: No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
 Already up to date.
+[main 2ba7fec1] chore(backlog): done – No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
+ 8 files changed, 37 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No keyboard shortcut to jump directly to token search mode
+- Added `⌘⇧F` (Cmd+Shift+F) shortcut that opens the command palette pre-filled with `>` to land directly in token search mode, skipping the manual `>` prefix step.
+- Added `OPEN_TOKEN_SEARCH: '⌘⇧F'` to `SHORTCUT_KEYS` and a corresponding registry entry in the Global group of `SHORTCUT_REGISTRY`.
+- Added `initialQuery?: string` prop to `CommandPalette` — used as the initial `useState` value so the input is pre-populated on mount.
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  13 queued · 3 in-progress · last took 3m31s
+═══════════════════════════════════════════════════════════════
+  → generator-service.ts has multiple error-handling gaps that can lose data or mislead users — `updateBulkTokenPaths` silently returns count=0 when regex compilation fails instead of reporting the error (L260); `executeGenerator` clears `generatorErrors` before subsequent `clearNonLockedOverrides` runs, so if that secondary operation fails the error is lost (L598 vs L635); `executeGeneratorMultiBrand` swallows rollback errors with `.catch(() => {})` leaving partial state on failure (L762); all three patterns should propagate errors to callers
+  Worktree: /tmp/backlog-92209-G7ZiKF
+  Running agent… (started 01:44:28)

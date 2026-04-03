@@ -161,3 +161,17 @@ Already up to date.
 - Stale — already done. Commit 0c93ee1f ("styleSync.ts silently swallows parse failures for color tokens and gradient stops") already added `throw new Error(...)` in both `applyPaintStyle` (when `parseColor` returns null) and `applyGradientPaintStyle` (when stops fail to parse). `setPluginData` is therefore never reached on failure — no ghost bindings are created.
 - Files changed: none (no changes needed)
 - **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  14 queued · 2 in-progress · last took 1m23s
+═══════════════════════════════════════════════════════════════
+  → SettingsPanel `handleApplyImport` writes arbitrary keys to localStorage without validating against an allowed-key whitelist, then auto-reloads the page after 800ms — a crafted export file can inject any localStorage key (not just settings prefixed keys), potentially corrupting app state or overwriting unrelated data; should validate imported keys against the known `STORAGE_KEYS` and `STORAGE_PREFIXES` before writing (SettingsPanel.tsx L315-325)
+  Worktree: /tmp/backlog-91634-68NbH8
+  Running agent… (started 01:44:26)
+
+  ✓ done: SettingsPanel handleApplyImport writes arbitrary localStorage keys without validation
+    Added IMPORTABLE_EXACT_KEYS whitelist and isAllowedImportKey() validator; applied at both parse stage and apply stage for defense-in-depth
+    14 turns · 98s · $0.31
+
+  Merging to main: SettingsPanel handleApplyImport writes arbitrary localStorage keys without validation
+Already up to date.
