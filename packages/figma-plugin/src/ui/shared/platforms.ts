@@ -14,4 +14,6 @@ export const PLATFORMS: Platform[] = [
   { id: 'scss', label: 'SCSS', description: 'SCSS variables', example: '$color-brand: #0066ff;' },
   { id: 'less', label: 'LESS', description: 'LESS variables', example: '@color-brand: #0066ff;' },
   { id: 'typescript', label: 'TypeScript', description: 'ES6 const exports', example: 'export const colorBrand = "#0066ff";' },
+  { id: 'tailwind', label: 'Tailwind CSS', description: 'Tailwind config (theme.extend)', example: 'colors: { brand: { primary: "#0066ff" } }' },
+  { id: 'css-in-js', label: 'CSS-in-JS', description: 'styled-components / Emotion theme object', example: 'export const theme = { color: { brand: "#0066ff" } } as const;' },
 ];

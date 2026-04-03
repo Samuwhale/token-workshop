@@ -410,3 +410,16 @@
   - Pre-existing `TS2503: Cannot find namespace 'React'` errors exist in hooks that use `React.DragEvent`/`React.Dispatch` without importing React — this is baseline noise in this tsconfig, matches pattern in `useSetTabs.ts` and `useTokenSyncBase.ts`
   - `useMemo` for computed values (like `compareRows`) can be cleanly extracted into the hook that owns the underlying state — the hook just returns the memoized value
 ---
+
+## 2026-04-03 - Export panel missing Tailwind config and CSS-in-JS output formats
+- Added `tailwind` and `css-in-js` as two new export platforms (10 total now).
+- `tailwind` generates `tailwind.config.js` with `module.exports = { theme: { extend: { colors: {...}, spacing: {...}, ... } } }` — tokens are grouped by their DTCG `$type` and mapped to Tailwind theme section keys (color→colors, spacing→spacing, fontFamily→fontFamily, fontSize→fontSize, fontWeight→fontWeight, lineHeight→lineHeight, letterSpacing→letterSpacing, borderRadius→borderRadius, borderWidth→borderWidth, opacity→opacity, boxShadow→boxShadow, duration→transitionDuration, cubicBezier→transitionTimingFunction, dimension→spacing).
+- `css-in-js` generates `theme.ts` with `export const theme = { ... } as const; export type Theme = typeof theme;` — all tokens as a nested TypeScript object keyed by their dotted paths, compatible with styled-components ThemeProvider and Emotion's theme.
+- Both formats bypass Style Dictionary entirely and use custom generators: `buildFlatTokenList` (resolves alias references), `setNested`, `serializeJsValue`, `generateTailwindConfig`, `generateCssInJs`.
+- Files changed: `packages/server/src/services/style-dict.ts` ~L8, L22, L65-180, L315-330; `packages/server/src/routes/export.ts` ~L5; `packages/figma-plugin/src/ui/shared/platforms.ts` ~L17; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L387
+- **Learnings for future iterations:**
+  - Custom export formats that bypass Style Dictionary need to be handled before the SD loop in `exportTokens`. The SD loop's `if (!config) continue` guard safely skips platforms not in `PLATFORM_CONFIGS`, so no extra branching needed — just add the custom handling before the loop.
+  - `PLATFORM_CONFIGS` must be typed as `Partial<Record<ExportPlatform, any>>` (not `Record`) when new platform IDs are added to `ExportPlatform` but not to the configs map.
+  - Alias resolution for custom platforms: use `buildFlatValueMap` + `isReference`/`resolveRefValue` from `@tokenmanager/core` — the same utility functions used for gradient stop resolution.
+  - Tokens with unrecognized `$type` for Tailwind (e.g., `shadow`, `gradient`, `typography`) are silently skipped; users get only the tokens that map cleanly to Tailwind sections.
+---

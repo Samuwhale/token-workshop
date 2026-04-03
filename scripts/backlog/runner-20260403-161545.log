@@ -644,3 +644,10 @@ Already up to date.
   → Export panel is missing Tailwind config and CSS-in-JS output formats — only 8 platforms are supported (CSS, SCSS, Less, JSON, TS, Dart, iOS-Swift, Android); Tailwind config and CSS-in-JS (styled-components/Emotion object syntax) are common export targets for frontend teams (ExportPanel.tsx ~L387-390, server export.ts)
   Worktree: /tmp/backlog-46580-rkA82K
   Running agent… (started 18:48:21)
+
+  ✓ done: Export panel is missing Tailwind config and CSS-in-JS output formats
+    Added tailwind (tailwind.config.js with theme.extend grouped by $type) and css-in-js (theme.ts with nested as-const object) as two new export platforms, bypassing Style Dictionary with custom generators
+    17 turns · 251s · $0.71
+
+  Merging to main: Export panel is missing Tailwind config and CSS-in-JS output formats
+Already up to date.

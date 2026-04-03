@@ -586,3 +586,23 @@ Already up to date.
 
   Merging to main: ThemeManager.tsx custom hook extraction (useThemeDragDrop, useThemeBulkOps, useThemeCompare)
 Already up to date.
+[main 7acb5247] chore(backlog): done – ThemeManager.tsx custom hook extraction (useThemeDragDrop, useThemeBulkOps, useThemeCompare)
+ 11 files changed, 792 insertions(+), 580 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/themeManagerTypes.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeCompare.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeDragDrop.ts
+  ✓ Merged and marked done
+
+## 2026-04-03 - ThemeManager.tsx custom hook extraction (useThemeDragDrop, useThemeBulkOps, useThemeCompare)
+- Extracted 4 custom hooks from ThemeManager.tsx (was 36 hooks/refs in a single function body):
+  - `useThemeDragDrop`: drag-and-drop + button-reorder for both dimensions and options (4 state vars + 10 handlers)
+  - `useThemeCompare`: comparison panel state + `compareRows` useMemo (5 state vars + computed rows)
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  12 queued · 3 in-progress · last took 13m7s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies" and proceeds with the rename — if the preview fetch fails (L141-143), `data` defaults to `{count:0, changes:[]}` and `executeTokenRename` runs immediately without showing the confirmation dialog, silently breaking any alias references the server would have reported; should show an error and block the rename until preview succeeds (useTokenCrud.ts L134-155)
+  Worktree: /tmp/backlog-46178-klmbRL
+  Running agent… (started 18:52:23)

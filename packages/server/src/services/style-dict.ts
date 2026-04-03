@@ -5,7 +5,7 @@ import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
 import { makeReferenceGlobalRegex, resolveRefValue, isReference } from '@tokenmanager/core';
 
-export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json' | 'scss' | 'less' | 'typescript';
+export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json' | 'scss' | 'less' | 'typescript' | 'tailwind' | 'css-in-js';
 
 export interface ExportResult {
   platform: ExportPlatform;
@@ -19,7 +19,7 @@ export interface ExportTokensResult {
   warnings: string[];
 }
 
-const PLATFORM_CONFIGS: Record<ExportPlatform, any> = {
+const PLATFORM_CONFIGS: Partial<Record<ExportPlatform, any>> = {
   css: {
     transformGroup: 'css',
     buildPath: 'css/',
@@ -61,6 +61,117 @@ const PLATFORM_CONFIGS: Record<ExportPlatform, any> = {
     files: [{ destination: 'tokens.ts', format: 'javascript/es6' }],
   },
 };
+
+/** Maps DTCG $type values to Tailwind CSS theme section keys. */
+const TAILWIND_THEME_KEYS: Record<string, string> = {
+  color: 'colors',
+  spacing: 'spacing',
+  dimension: 'spacing',
+  fontFamily: 'fontFamily',
+  fontSize: 'fontSize',
+  fontWeight: 'fontWeight',
+  lineHeight: 'lineHeight',
+  letterSpacing: 'letterSpacing',
+  borderRadius: 'borderRadius',
+  borderWidth: 'borderWidth',
+  opacity: 'opacity',
+  boxShadow: 'boxShadow',
+  duration: 'transitionDuration',
+  cubicBezier: 'transitionTimingFunction',
+};
+
+type FlatToken = { path: string; value: unknown; type?: string };
+
+/**
+ * Build a flat list of tokens from a merged DTCG token object, resolving
+ * alias references using the provided flat value map.
+ */
+function buildFlatTokenList(
+  obj: Record<string, any>,
+  flatMap: Record<string, unknown>,
+  prefix = '',
+  inheritedType?: string,
+): FlatToken[] {
+  const tokens: FlatToken[] = [];
+  for (const [key, val] of Object.entries(obj)) {
+    if (key.startsWith('$')) continue;
+    const tokenPath = prefix ? `${prefix}.${key}` : key;
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      if ('$value' in val) {
+        let value = val.$value;
+        if (typeof value === 'string' && isReference(value)) {
+          const resolved = resolveRefValue(value, flatMap);
+          if (resolved !== undefined) value = resolved;
+        }
+        tokens.push({ path: tokenPath, value, type: (val.$type as string | undefined) ?? inheritedType });
+      } else {
+        tokens.push(...buildFlatTokenList(val, flatMap, tokenPath, (val.$type as string | undefined) ?? inheritedType));
+      }
+    }
+  }
+  return tokens;
+}
+
+/** Set a value at a nested path within an object, creating intermediate objects as needed. */
+function setNested(obj: Record<string, any>, segments: string[], value: unknown): void {
+  let cur = obj;
+  for (let i = 0; i < segments.length - 1; i++) {
+    const seg = segments[i];
+    if (typeof cur[seg] !== 'object' || cur[seg] === null || Array.isArray(cur[seg])) cur[seg] = {};
+    cur = cur[seg] as Record<string, any>;
+  }
+  cur[segments[segments.length - 1]] = value;
+}
+
+/** Serialize a JS value to a formatted JS/TS source string with indentation. */
+function serializeJsValue(val: unknown, indent: number): string {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val === 'string') return JSON.stringify(val);
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '[]';
+    return `[${val.map(item => serializeJsValue(item, indent + 2)).join(', ')}]`;
+  }
+  if (typeof val === 'object') {
+    const entries = Object.entries(val as Record<string, unknown>);
+    if (entries.length === 0) return '{}';
+    const pad = ' '.repeat(indent + 2);
+    const closePad = ' '.repeat(indent);
+    const lines = entries.map(([k, v]) => `${pad}${JSON.stringify(k)}: ${serializeJsValue(v, indent + 2)}`);
+    return `{\n${lines.join(',\n')}\n${closePad}}`;
+  }
+  return JSON.stringify(val);
+}
+
+/**
+ * Generate a Tailwind CSS v3 config file from a flat token list.
+ * Tokens are grouped by $type and placed in the appropriate theme.extend section.
+ * Tokens with unrecognized $type are skipped.
+ */
+function generateTailwindConfig(tokens: FlatToken[]): string {
+  const themeExtend: Record<string, any> = {};
+  for (const token of tokens) {
+    const tailwindKey = token.type ? TAILWIND_THEME_KEYS[token.type] : undefined;
+    if (!tailwindKey) continue;
+    if (!(tailwindKey in themeExtend)) themeExtend[tailwindKey] = {};
+    setNested(themeExtend[tailwindKey], token.path.split('.'), token.value);
+  }
+  const themeContent = serializeJsValue({ extend: themeExtend }, 2);
+  return `/** @type {import('tailwindcss').Config} */\nmodule.exports = {\n  theme: ${themeContent},\n};\n`;
+}
+
+/**
+ * Generate a CSS-in-JS theme object compatible with styled-components and Emotion.
+ * All tokens are placed in a nested TypeScript const object keyed by their paths.
+ */
+function generateCssInJs(tokens: FlatToken[]): string {
+  const themeObj: Record<string, any> = {};
+  for (const token of tokens) {
+    setNested(themeObj, token.path.split('.'), token.value);
+  }
+  const themeContent = serializeJsValue(themeObj, 0);
+  return `export const theme = ${themeContent} as const;\n\nexport type Theme = typeof theme;\n`;
+}
 
 /**
  * Build a flat path→rawValue lookup from a merged DTCG token object.
@@ -242,6 +353,19 @@ export async function exportTokens(
   await fs.rename(cssTokenFileTmp, cssTokenFile);
 
   const results: ExportResult[] = [];
+
+  // Handle custom platforms that bypass Style Dictionary
+  const flatMapForCustom = buildFlatValueMap(resolvedMerged);
+  const flatTokenList = buildFlatTokenList(resolvedMerged, flatMapForCustom);
+  for (const platform of platforms) {
+    if (platform === 'tailwind') {
+      const content = generateTailwindConfig(flatTokenList);
+      results.push({ platform, files: [{ path: 'tailwind.config.js', content }] });
+    } else if (platform === 'css-in-js') {
+      const content = generateCssInJs(flatTokenList);
+      results.push({ platform, files: [{ path: 'theme.ts', content }] });
+    }
+  }
 
   for (const platform of platforms) {
     const config = PLATFORM_CONFIGS[platform];

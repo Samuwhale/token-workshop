@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { exportTokens, type ExportPlatform, type CssExportOptions } from '../services/style-dict.js';
 import type { TokenGroup } from '@tokenmanager/core';
 
-const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript'];
+const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript', 'tailwind', 'css-in-js'];
 
 /**
  * Recursively filter a token group, keeping only tokens whose resolved $type

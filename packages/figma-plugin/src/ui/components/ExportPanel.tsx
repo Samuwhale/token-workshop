@@ -387,6 +387,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const PLATFORM_FOLDERS: Record<string, string> = {
     css: 'css', dart: 'dart', 'ios-swift': 'ios', android: 'android',
     json: 'json', scss: 'scss', less: 'less', typescript: 'ts',
+    tailwind: 'tailwind', 'css-in-js': 'css-in-js',
   };
 
   const handleDownloadZip = () => {
