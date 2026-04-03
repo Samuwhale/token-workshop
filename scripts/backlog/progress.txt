@@ -362,3 +362,21 @@
   - Guard the handler against disconnected state rather than hiding the command entirely — keeping the command visible with a "Connect to server first" description is more discoverable than making it conditional.
   - Gate 4 (headless UI validation) has a pre-existing browser timeout failure in this sandbox — confirmed by prior sessions.
 ---
+
+## 2026-04-03 - Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
+- Created `CanvasAuditPanel.tsx` that wraps both `HeatmapPanel` and `ConsistencyPanel` with an internal tab bar ("Coverage" / "Consistency"). The component accepts all props from both panels and passes them through to the appropriate child.
+- Updated `App.tsx`:
+  - `ApplySubTab` type: replaced `'audit' | 'consistency'` with `'canvas-audit'`
+  - `TOP_TABS`: replaced two separate sub-tabs ("Binding Audit", "Consistency") with one `{ id: 'canvas-audit', label: 'Canvas Audit' }`
+  - Imports: replaced `HeatmapPanel` + `ConsistencyPanel` direct imports with `CanvasAuditPanel`
+  - Command palette: merged two nav commands into one "Canvas Audit" entry (triggers heatmap scan on open)
+  - Header heatmap toggle button: updated to toggle `'canvas-audit'` sub-tab
+  - Sub-tab click handler: updated `'audit'` check to `'canvas-audit'` for heatmap scan trigger
+  - Render blocks: replaced two separate `ErrorBoundary` + panel blocks with one `CanvasAuditPanel` block
+- `HeatmapPanel.tsx` and `ConsistencyPanel.tsx` are retained unchanged and now used exclusively by `CanvasAuditPanel.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/CanvasAuditPanel.tsx` (new); `packages/figma-plugin/src/ui/App.tsx` ~L29, ~L176, ~L222, ~L996, ~L1368, ~L1516, ~L2611
+- **Learnings for future iterations:**
+  - When merging two sibling sub-tabs, the cleanest approach is a thin wrapper component with its own internal tab bar rather than lifting both panels' state into the wrapper. Each child manages its own state independently.
+  - The `initialTab` prop on the wrapper allows the command palette to deep-link into a specific internal tab if needed in the future.
+  - Gate 4 (headless UI) has a pre-existing browser timeout failure in this sandbox — gates 1–3 (tests, build, lint) are the reliable signal.
+---

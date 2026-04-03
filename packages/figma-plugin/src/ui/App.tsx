@@ -27,8 +27,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PreviewPanel } from './components/PreviewPanel';
-import { HeatmapPanel } from './components/HeatmapPanel';
-import { ConsistencyPanel } from './components/ConsistencyPanel';
+import { CanvasAuditPanel } from './components/CanvasAuditPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -173,7 +172,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators';
-type ApplySubTab = 'inspect' | 'audit' | 'consistency' | 'dependencies';
+type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
@@ -220,8 +219,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
-    { id: 'audit', label: 'Binding Audit' },
-    { id: 'consistency', label: 'Consistency' },
+    { id: 'canvas-audit', label: 'Canvas Audit' },
     { id: 'dependencies', label: 'Dependencies' },
   ]},
   { id: 'ship', label: 'Ship', subTabs: [
@@ -993,18 +991,11 @@ export function App() {
         },
       })),
       {
-        id: 'heatmap',
-        label: 'Canvas Heatmap',
-        description: 'Token adoption overlay on the canvas',
+        id: 'canvas-audit',
+        label: 'Canvas Audit',
+        description: 'Token coverage and near-match consistency for the canvas',
         category: 'Navigation',
-        handler: () => { navigateTo('apply', 'audit'); triggerHeatmapScan(); },
-      },
-      {
-        id: 'consistency',
-        label: 'Token Consistency',
-        description: 'Find hardcoded values that could be replaced with tokens',
-        category: 'Navigation',
-        handler: () => navigateTo('apply', 'consistency'),
+        handler: () => { navigateTo('apply', 'canvas-audit'); triggerHeatmapScan(); },
       },
       {
         id: 'publish',
@@ -1369,24 +1360,24 @@ export function App() {
           )}
         </button>
 
-        {/* Heatmap toggle */}
+        {/* Canvas Audit toggle */}
         <button
           onClick={() => {
-            if (activeTopTab === 'apply' && activeSubTab === 'audit') {
+            if (activeTopTab === 'apply' && activeSubTab === 'canvas-audit') {
               navigateTo('apply', 'inspect');
             } else {
-              navigateTo('apply', 'audit');
+              navigateTo('apply', 'canvas-audit');
               triggerHeatmapScan();
             }
           }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            activeTopTab === 'apply' && activeSubTab === 'audit'
+            activeTopTab === 'apply' && activeSubTab === 'canvas-audit'
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Binding audit: coverage and suggestions"
-          aria-label="Toggle binding audit"
-          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'audit'}
+          title="Canvas audit: coverage and consistency"
+          aria-label="Toggle canvas audit"
+          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-audit'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -1521,7 +1512,7 @@ export function App() {
                 onClick={() => {
                   guardEditorAction(() => {
                     setSubTab(sub.id);
-                    if (sub.id === 'audit') triggerHeatmapScan();
+                    if (sub.id === 'canvas-audit') triggerHeatmapScan();
                   });
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
@@ -2615,10 +2606,10 @@ export function App() {
               </ErrorBoundary>
           )}
 
-          {/* Binding Audit sub-tab (Apply > Binding Audit) */}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'audit' && (
-              <ErrorBoundary panelName="Binding Audit" onReset={() => navigateTo('apply', 'inspect')}>
-              <HeatmapPanel
+          {/* Canvas Audit sub-tab (Apply > Canvas Audit) — combines coverage heatmap + consistency scanner */}
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'canvas-audit' && (
+              <ErrorBoundary panelName="Canvas Audit" onReset={() => navigateTo('apply', 'inspect')}>
+              <CanvasAuditPanel
                 result={heatmapResult}
                 loading={heatmapLoading}
                 progress={heatmapProgress}
@@ -2633,15 +2624,6 @@ export function App() {
                   if (!entry) return;
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
-                availableTokens={allTokensFlat}
-              />
-              </ErrorBoundary>
-          )}
-
-          {/* Consistency sub-tab (Apply > Consistency) */}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'consistency' && (
-              <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
-              <ConsistencyPanel
                 availableTokens={allTokensFlat}
                 onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
               />

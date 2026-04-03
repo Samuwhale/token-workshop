@@ -400,3 +400,10 @@ Already up to date.
   → Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel — both scan Figma layers for token binding issues (Heatmap shows coverage status, Consistency finds near-match values); merging them reduces cognitive overhead ("where do I go to check my canvas?") and lets the combined panel show coverage bars alongside actionable near-match suggestions in one view (HeatmapPanel.tsx, ConsistencyPanel.tsx, App.tsx sub-tab definitions)
   Worktree: /tmp/backlog-46178-5YMQ3v
   Running agent… (started 18:05:00)
+
+  ✓ done: Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
+    Created CanvasAuditPanel.tsx with Coverage/Consistency internal tabs; updated App.tsx types, TOP_TABS, command palette, toggle button, and render blocks. Tests, build, and lint all pass.
+    31 turns · 234s · $0.91
+
+  Merging to main: Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
+Already up to date.

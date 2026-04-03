@@ -395,3 +395,18 @@ Already up to date.
 
   Merging to main: Auto-generated docs page is invisible from the plugin UI
 Already up to date.
+[main 79967c10] chore(backlog): done – Auto-generated docs page is invisible from the plugin UI
+ 6 files changed, 60 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Auto-generated docs page invisible from plugin UI
+- Added a "View style guide" command palette entry in the Help category that calls `window.open(`${serverUrl}/docs`, '_blank', 'noopener,noreferrer')`.
+- Description updates dynamically: "Open http://localhost:9400/docs in browser" when connected, "Connect to server first" when disconnected. Handler is a no-op when disconnected.
+- Added `connected` and `serverUrl` to the `commands` useMemo dependency array so the description and handler stay current.
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  9 queued · 3 in-progress · last took 3m27s
+═══════════════════════════════════════════════════════════════
+  → Publish readiness checks go stale silently after token edits — the pre-publish gate requires manually clicking "Run checks" each time; after editing tokens or syncing, the previous check results stay on screen with no staleness indicator; add an "outdated" badge when tokens have changed since last check, and optionally auto-run checks when the Publish tab becomes active (PublishPanel.tsx ~L326-356)
+  Worktree: /tmp/backlog-45818-ODF0vC
+  Running agent… (started 18:08:08)
