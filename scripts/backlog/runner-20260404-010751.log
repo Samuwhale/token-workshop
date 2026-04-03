@@ -141,3 +141,18 @@ Already up to date.
 
   Merging to main: No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
 Already up to date.
+[main 4e36ed07] chore(backlog): done – No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
+ 5 files changed, 28 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No inline token value editing
+- Item is stale — already implemented. Inline editing fully exists for color, number, dimension, string, boolean, fontFamily, fontWeight, duration, and asset types.
+- `canInlineEdit` flag gates inline editing: requires non-group, non-alias token with a simple type and `onInlineSave` wired.
+- Color: click on swatch → `ColorPicker` modal inline. Number/dimension: click value span → numeric input with +/- steppers. String/other: click value span → text input. Boolean: click → immediate toggle.
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  10 queued · 3 in-progress · last took 2m55s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel has no side-by-side diff view for comparing two arbitrary points in history — users can see what changed in a single commit but cannot compare state-at-commit-A vs state-at-commit-B
+  Worktree: /tmp/backlog-92209-LdVqZ2
+  Running agent… (started 01:29:15)

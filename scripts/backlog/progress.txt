@@ -648,3 +648,15 @@
 - **Learnings for future iterations:**
   - This feature was already in place — always verify by reading the implementation before treating backlog items as pending.
 ---
+
+## 2026-04-04 - ResolverPanel has no command palette entry or keyboard shortcut
+- Added `'resolver'` as a sub-tab under `define` (Define > Resolver) so the panel is directly navigable.
+- Added `ResolverPanel` import to App.tsx and a rendering block for `activeTopTab === 'define' && activeSubTab === 'resolver'`, passing the full `resolverState` spread.
+- Added command palette entry `{ id: 'resolver', label: 'Open DTCG Resolver', category: 'Navigation', shortcut: '⌘⇧R' }` in `baseCommands`.
+- Added `⌘⇧R` keydown handler in the global keyboard handler (`e.shiftKey && e.key === 'r'` → `navigateTo('define', 'resolver')`).
+- Added `GO_TO_RESOLVER: '⌘⇧R'` to `SHORTCUT_KEYS` in `shortcutRegistry.ts` and a Navigation group entry in `SHORTCUT_REGISTRY`.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L54, ~L95; `packages/figma-plugin/src/ui/App.tsx` ~L8, ~L175, ~L219, ~L752, ~L990, ~L2614
+- **Learnings for future iterations:**
+  - Adding a new sub-tab requires: (1) extend the `DefineSubTab` type, (2) add entry to `TOP_TABS`, (3) add rendering block, (4) add command palette entry, (5) add keyboard shortcut key + registry entry + handler. No changes to `DEFAULT_SUB_TABS` or `SUB_TAB_STORAGE` needed since the new sub-tab is under an existing top-tab.
+  - `resolverState` is already computed in App.tsx from `useResolvers`; standalone `ResolverPanel` accepts the same props as the embedded `ResolverContent`, so wiring is a direct spread.
+---

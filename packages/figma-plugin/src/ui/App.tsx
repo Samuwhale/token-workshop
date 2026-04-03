@@ -5,6 +5,7 @@ import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
+import { ResolverPanel } from './components/ResolverPanel';
 import { UnifiedComparePanel } from './components/UnifiedComparePanel';
 import type { CompareMode } from './components/UnifiedComparePanel';
 import { PublishPanel } from './components/PublishPanel';
@@ -172,7 +173,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'compare';
+type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'compare' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -218,6 +219,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
     { id: 'compare', label: 'Compare' },
+    { id: 'resolver', label: 'Resolver' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
@@ -753,6 +755,10 @@ export function App() {
       setShowManageSets(false);
       setShowSetSwitcher(v => !v);
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'r') {
+      e.preventDefault();
+      navigateTo('define', 'resolver');
+    }
     if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       setShowKeyboardShortcuts(v => !v);
@@ -987,6 +993,14 @@ export function App() {
         description: 'Manage design themes and set assignments',
         category: 'Navigation',
         handler: () => navigateTo('define', 'themes'),
+      },
+      {
+        id: 'resolver',
+        label: 'Open DTCG Resolver',
+        description: 'Configure DTCG v2025.10 resolver rules and preview resolved tokens',
+        category: 'Navigation',
+        shortcut: adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER),
+        handler: () => navigateTo('define', 'resolver'),
       },
       {
         id: 'canvas-audit',
@@ -2612,6 +2626,31 @@ export function App() {
             </div>
           )}
 
+
+          {/* Resolver sub-tab (Define > Resolver) */}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'resolver' && (
+            <ErrorBoundary panelName="Resolver" onReset={() => navigateTo('define', 'tokens')}>
+              <ResolverPanel
+                serverUrl={serverUrl}
+                connected={connected}
+                sets={sets}
+                resolvers={resolverState.resolvers}
+                activeResolver={resolverState.activeResolver}
+                setActiveResolver={resolverState.setActiveResolver}
+                resolverInput={resolverState.resolverInput}
+                setResolverInput={resolverState.setResolverInput}
+                activeModifiers={resolverState.activeModifiers}
+                resolvedTokens={resolverState.resolvedTokens}
+                resolverError={resolverState.resolverError}
+                loading={resolverState.loading}
+                fetchResolvers={resolverState.fetchResolvers}
+                convertFromThemes={resolverState.convertFromThemes}
+                deleteResolver={resolverState.deleteResolver}
+                getResolverFile={resolverState.getResolverFile}
+                updateResolver={resolverState.updateResolver}
+              />
+            </ErrorBoundary>
+          )}
 
           {/* Compare sub-tab (Define > Compare) */}
           {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'compare' && (

@@ -52,6 +52,7 @@ export const SHORTCUT_KEYS = {
   GO_TO_DEFINE:          '⌘1',
   GO_TO_APPLY:           '⌘2',
   GO_TO_SHIP:            '⌘3',
+  GO_TO_RESOLVER:        '⌘⇧R',
   // Inspect / Selection
   CREATE_FROM_SELECTION: '⌘T',
   TOGGLE_DEEP_INSPECT:   '⌘⇧D',
@@ -92,6 +93,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Define',                   mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply',                    mac: SHORTCUT_KEYS.GO_TO_APPLY },
   { id: 'GO_TO_SHIP',            group: 'Navigation',      description: 'Go to Ship',                     mac: SHORTCUT_KEYS.GO_TO_SHIP },
+  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open DTCG Resolver',             mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_SET',      group: 'Navigation',      description: 'Quick-switch token set',         mac: SHORTCUT_KEYS.QUICK_SWITCH_SET },
 
   // ── Command Palette ──────────────────────────────────────────────────────

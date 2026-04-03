@@ -184,3 +184,17 @@ Already up to date.
 - Replaced the static "and N more…" text in all 7 preview lists with clickable expand/collapse buttons that show all items when toggled.
 - Added `expandedPreviews: Record<string, boolean>` state and `togglePreview(key)` helper to BatchEditor.
 - Preview keys: `colorAdjust`, `skippedAlias`, `scale`, `typeIncompat`, `rename`, `aliasFind`, `move`.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  11 queued · 2 in-progress · last took 1m0s
+═══════════════════════════════════════════════════════════════
+  → ResolverPanel has no command palette entry or keyboard shortcut — it is only reachable via ThemeManager then scrolling to the Advanced section, making DTCG resolver configuration nearly invisible to users who do not know it exists
+  Worktree: /tmp/backlog-91949-iFpiro
+  Running agent… (started 01:29:13)
+
+  ✓ done: ResolverPanel has no command palette entry or keyboard shortcut — it is only reachable via ThemeManager then scrolling to the Advanced section, making DTCG resolver configuration nearly invisible to users who do not know it exists
+    Added Define > Resolver sub-tab, command palette entry "Open DTCG Resolver", and ⌘⇧R keyboard shortcut; all 4 validation gates pass
+    30 turns · 376s · $0.86
+
+  Merging to main: ResolverPanel has no command palette entry or keyboard shortcut — it is only reachable via ThemeManager then scrolling to the Advanced section, making DTCG resolver configuration nearly invisible to users who do not know it exists
+Already up to date.
