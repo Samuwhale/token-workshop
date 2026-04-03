@@ -260,3 +260,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: GeneratorService stale-overwrite race (HIGH), git-sync no mutual exclusion, TokenStore write guard leaks, useTokenCrud stale undo closures, BatchEditor duplicated handlers + misleading skip counters
+Already up to date.

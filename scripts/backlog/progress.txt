@@ -362,3 +362,9 @@
   - The multi-set import path via `setCollectionData` is fully reusable for any non-Figma multi-set source — just populate `CollectionData[]` with one collection per logical grouping and `ModeData[]` for each set.
   - Fixing the hardcoded `'figma-variables'` source tag in `handleImportVariables` to use the `source` state variable enables correct provenance tracking without any new code.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: generator-service.ts (race conditions, path update logic, concurrency), git-sync.ts (mutual exclusion gaps), token-store.ts + resolver-store.ts (write guard lifecycle, duplicated I/O patterns), BatchEditor.tsx (duplicated handlers, skip counter logic), useTokenCrud.ts (stale undo closures), useTokens.ts (activeSet race), App.tsx (structural assessment — 3235 lines, 43 useState), ExportPanel.tsx (timeout/loading races)
+- Found 5 items — written to backlog-inbox.md
+- Notable: GeneratorService.executeGenerator has a stale-read-then-overwrite race at L603-613 that silently drops concurrent generator config updates; TokenStore write guards on delete/clearAll never get cleared (30s window where watcher ignores external changes); git-sync has zero mutual exclusion across pull/commit/applyDiffChoices
+---

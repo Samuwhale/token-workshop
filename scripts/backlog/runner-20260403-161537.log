@@ -159,3 +159,18 @@ Already up to date.
 
   Merging to main: No Tokens Studio import format — EmptyState.tsx line 133 mentions "Tokens Studio" as a supported format but ImportPanel has no dedicated Tokens Studio importer
 Already up to date.
+[main 1c428763] chore(backlog): done – No Tokens Studio import format — EmptyState.tsx line 133 mentions "Tokens Studio" as a supported format but ImportPanel has no dedicated Tokens Studio importer
+ 7 files changed, 313 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No Tokens Studio import format
+- Added a dedicated Tokens Studio JSON importer. Added `parseTokensStudioFile`, `isTokensStudioFormat`, and `flattenTsGroup` to `tokenParsers.ts`. Handles both old Tokens Studio format (`value`/`type`) and new format (`$value`/`$type`), respects `$metadata.tokenSetOrder`, skips `$themes`/`$metadata`/`$sets` top-level keys, and maps non-standard type names (e.g. `fontSizes` → `dimension`, `boxShadow` → `shadow`) to DTCG equivalents.
+- Single-set TS files go through the existing flat-list import flow; multi-set files populate the collection/modes UI (same as Figma Variables import) with each TS set as a mode and the set name as the default target set name.
+- `processJsonFile` now auto-detects Tokens Studio format before attempting DTCG parsing, so dragging any `.json` file onto the panel routes correctly.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  6 queued · 2 in-progress · last took 8m50s
+═══════════════════════════════════════════════════════════════
+  → Generator auto-run failures are fire-and-forget with no persistent record — index.ts L88-99 catches generator auto-run errors with `console.warn` and emits a transient `generator-error` SSE event, but if no client is connected the error is lost; there is no operation log entry, no persistent failure record, and no way for a user who connects later to see that generators failed; record auto-run failures in the operation log or a dedicated error store so the UI can surface them in the history panel
+  Worktree: /tmp/backlog-46178-wZfp6D
+  Running agent… (started 17:21:18)
