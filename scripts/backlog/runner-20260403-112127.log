@@ -112,3 +112,10 @@ Already up to date.
   → PreviewPanel cannot visualize shadow, gradient, or transition tokens — the preview templates (colors, type-scale, buttons, forms, card) do not include any token types from `shadow`, `gradient`, or `transition`/`animation`; users who heavily use these token types have no way to see live previews before applying to Figma; add a "Effects" preview template that renders shadow token swatches and transition timing demos, and add gradient swatches to the existing colors template (PreviewPanel.tsx template list ~L13)
   Worktree: /tmp/backlog-30880-ALccw9
   Running agent… (started 11:31:03)
+
+  ✓ done: PreviewPanel cannot visualize shadow, gradient, or transition tokens
+    Added Effects template with ShadowSwatch cards and TransitionRow hover demos; added GradientSwatch section to Colors template. All 4 validation gates passed.
+    14 turns · 179s · $0.47
+
+  Merging to main: PreviewPanel cannot visualize shadow, gradient, or transition tokens
+Already up to date.

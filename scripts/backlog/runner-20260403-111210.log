@@ -162,3 +162,18 @@ Already up to date.
 
   Merging to main: HistoryPanel has no search within operations
 Already up to date.
+[main 91a06427] chore(backlog): done – HistoryPanel has no search within operations
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - HistoryPanel has no search within operations
+- Stale — already implemented. `RecentActionsSource.tsx` already has a `searchPath` text input (line 219) that filters server operations by description, set name, and affected paths (lines 95-104). It also has a `filterType` dropdown for operation type filtering and a clear-filters button. The filter bar renders inside the collapsible "Server operations" section.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  4 queued · 1 in-progress · last took 45s
+═══════════════════════════════════════════════════════════════
+  → Merge the HistoryPanel's three sub-tabs into a unified change timeline — "Recent Actions", "Git Commits", and "Snapshots" serve the same user goal (understand what changed and recover from mistakes) but exist as three disconnected views with different mental models; users must know which tab to check depending on how a change was made; replace the three-tab layout with a single chronological timeline that interleaves all three event types with visual type labels, while keeping the existing rollback and checkout actions per entry (HistoryPanel.tsx ~L177)
+  Worktree: /tmp/backlog-20980-liMbU3
+  Running agent… (started 11:31:29)

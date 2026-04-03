@@ -12,7 +12,7 @@ interface PreviewPanelProps {
   onNavigateToToken?: (path: string) => void;
 }
 
-type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card';
+type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card' | 'effects';
 
 const TEMPLATES: { id: Template; label: string }[] = [
   { id: 'colors', label: 'Colors' },
@@ -20,6 +20,7 @@ const TEMPLATES: { id: Template; label: string }[] = [
   { id: 'buttons', label: 'Buttons' },
   { id: 'forms', label: 'Forms' },
   { id: 'card', label: 'Card' },
+  { id: 'effects', label: 'Effects' },
 ];
 
 /** Convert a token path to a CSS custom property name */
@@ -122,6 +123,46 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       groups[prefix].push({ path, value: resolved });
     }
     return groups;
+  }, [allTokensFlat, resolveAlias]);
+
+  // Collect gradient tokens
+  const gradientTokens = useMemo(() => {
+    const result: { path: string; value: string }[] = [];
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (entry.$type !== 'gradient') continue;
+      const raw = String(entry.$value ?? '');
+      const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
+      if (!resolved) continue;
+      result.push({ path, value: resolved });
+    }
+    return result;
+  }, [allTokensFlat, resolveAlias]);
+
+  // Collect shadow tokens
+  const shadowTokens = useMemo(() => {
+    const SHADOW_TYPES = new Set(['shadow', 'boxShadow', 'innerShadow']);
+    const result: { path: string; value: string }[] = [];
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (!SHADOW_TYPES.has(entry.$type ?? '')) continue;
+      const resolved = resolveValue(entry.$value, entry.$type ?? '');
+      if (!resolved) continue;
+      result.push({ path, value: resolved });
+    }
+    return result;
+  }, [allTokensFlat]);
+
+  // Collect transition/animation/duration tokens
+  const effectTimingTokens = useMemo(() => {
+    const TIMING_TYPES = new Set(['transition', 'animation', 'duration', 'cubicBezier']);
+    const result: { path: string; value: string; type: string }[] = [];
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (!TIMING_TYPES.has(entry.$type ?? '')) continue;
+      const raw = String(entry.$value ?? '');
+      const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
+      if (!resolved) continue;
+      result.push({ path, value: resolved, type: entry.$type ?? '' });
+    }
+    return result;
   }, [allTokensFlat, resolveAlias]);
 
   // Collect typography tokens: fontSize entries + sibling fontWeight/lineHeight/letterSpacing/fontFamily
@@ -260,11 +301,12 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             style={cssVars as React.CSSProperties}
             className={`rounded-lg overflow-hidden ${darkMode ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}
           >
-            {template === 'colors' && <ColorsTemplate groups={colorGroups} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
+            {template === 'colors' && <ColorsTemplate groups={colorGroups} gradients={gradientTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
             {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
             {template === 'buttons' && <ButtonsTemplate darkMode={darkMode} />}
             {template === 'forms' && <FormsTemplate darkMode={darkMode} />}
             {template === 'card' && <CardTemplate darkMode={darkMode} />}
+            {template === 'effects' && <EffectsTemplate shadows={shadowTokens} timings={effectTimingTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
           </div>
         )}
       </div>
@@ -304,9 +346,9 @@ function ColorGroup({ group, tokens, darkMode, onNavigateToToken }: { group: str
   );
 }
 
-function ColorsTemplate({ groups, darkMode, onGoToTokens, onNavigateToToken }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean; onGoToTokens?: () => void; onNavigateToToken?: (path: string) => void }) {
+function ColorsTemplate({ groups, gradients, darkMode, onGoToTokens, onNavigateToToken }: { groups: Record<string, { path: string; value: string }[]>; gradients: { path: string; value: string }[]; darkMode: boolean; onGoToTokens?: () => void; onNavigateToToken?: (path: string) => void }) {
   const groupEntries = Object.entries(groups);
-  if (groupEntries.length === 0) {
+  if (groupEntries.length === 0 && gradients.length === 0) {
     return (
       <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
         <span>No color tokens found. Add tokens with <code className="font-mono">$type: &quot;color&quot;</code>.</span>
@@ -326,6 +368,19 @@ function ColorsTemplate({ groups, darkMode, onGoToTokens, onNavigateToToken }: {
       {groupEntries.map(([group, tokens]) => (
         <ColorGroup key={group} group={group} tokens={tokens} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
       ))}
+      {gradients.length > 0 && (
+        <div>
+          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+            Gradients
+            <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({gradients.length})</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {gradients.map(({ path, value }) => (
+              <GradientSwatch key={path} path={path} value={value} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -347,6 +402,54 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
       <div
         className="w-10 h-10 rounded-md border border-black/10 shadow-sm cursor-pointer relative"
         style={{ backgroundColor: `var(${cssVar}, ${value})` }}
+        title={`Click to copy CSS variable\n${cssVar}: ${value}`}
+        onClick={() => handleCopy(`var(${cssVar})`, 'var')}
+      >
+        {copied && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
+            {copied}
+          </div>
+        )}
+        {onNavigateToToken && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onNavigateToToken(path); }}
+            title={`Go to token: ${path}`}
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+      <span
+        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+        title={`Click to copy value: ${value}`}
+        onClick={() => handleCopy(value, 'value')}
+      >
+        {leafName}
+      </span>
+    </div>
+  );
+}
+
+function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: string; value: string; darkMode: boolean; onNavigateToToken?: (path: string) => void }) {
+  const leafName = path.split('.').pop() ?? path;
+  const cssVar = toCssVar(path);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = useCallback((text: string, label: string) => {
+    copyText(text).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1200);
+    });
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center gap-1 w-16 group relative">
+      <div
+        className="w-16 h-10 rounded-md border border-black/10 shadow-sm cursor-pointer relative"
+        style={{ background: `var(${cssVar}, ${value})` }}
         title={`Click to copy CSS variable\n${cssVar}: ${value}`}
         onClick={() => handleCopy(`var(${cssVar})`, 'var')}
       >
@@ -660,6 +763,167 @@ function CardTemplate({ darkMode }: { darkMode: boolean }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Effects ─────────────────────────────────────────────────────────────────
+
+function ShadowSwatch({ path, value, darkMode, onNavigateToToken }: { path: string; value: string; darkMode: boolean; onNavigateToToken?: (path: string) => void }) {
+  const leafName = path.split('.').pop() ?? path;
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = useCallback((text: string, label: string) => {
+    copyText(text).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1200);
+    });
+  }, []);
+
+  return (
+    <div
+      className={`group relative flex flex-col gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+        darkMode ? 'border-neutral-700 hover:border-neutral-500' : 'border-neutral-200 hover:border-neutral-300'
+      }`}
+      onClick={() => handleCopy(value, 'copied')}
+      title={`${path}\n${value}\nClick to copy`}
+    >
+      {/* Shadow demo box */}
+      <div className="flex items-center justify-center h-14">
+        <div
+          className={`w-12 h-8 rounded-md ${darkMode ? 'bg-neutral-700' : 'bg-white'}`}
+          style={{ boxShadow: value }}
+        />
+      </div>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
+        <div className={`text-[9px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+      </div>
+      {copied && (
+        <div className="absolute top-1 right-1 text-[9px] text-green-500 font-medium">{copied}</div>
+      )}
+      {onNavigateToToken && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNavigateToToken(path); }}
+          title={`Go to token: ${path}`}
+          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        >
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TransitionRow({ path, value, type, darkMode, onNavigateToToken }: { path: string; value: string; type: string; darkMode: boolean; onNavigateToToken?: (path: string) => void }) {
+  const leafName = path.split('.').pop() ?? path;
+
+  // Build a usable transition/animation CSS string
+  const transitionValue = type === 'duration'
+    ? `all ${value} ease`
+    : type === 'cubicBezier'
+    ? `all 0.3s cubic-bezier(${value})`
+    : value; // raw transition value
+
+  return (
+    <div className="group flex items-center gap-3">
+      <div className="w-28 shrink-0">
+        <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
+        <div className={`text-[9px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+        <div className={`text-[9px] uppercase tracking-wide ${darkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>{type}</div>
+      </div>
+      {/* Hover demo: a box that slides on hover using the token's transition */}
+      <div className="relative flex-1 h-8 overflow-hidden rounded">
+        <div
+          className={`absolute left-0 top-0 h-full w-6 rounded flex items-center justify-center text-[9px] ${
+            darkMode ? 'bg-[var(--color-figma-accent,#0d99ff)]' : 'bg-[var(--color-figma-accent,#0d99ff)]'
+          } text-white`}
+          style={{ transition: transitionValue }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.left = 'calc(100% - 24px)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.left = '0'; }}
+          title="Hover to preview transition"
+        >
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </div>
+        <div className={`absolute inset-0 rounded border ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`} style={{ pointerEvents: 'none' }} />
+      </div>
+      {onNavigateToToken && (
+        <button
+          onClick={() => onNavigateToToken(path)}
+          title={`Go to token: ${path}`}
+          className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${darkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-400 hover:text-neutral-600'}`}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EffectsTemplate({ shadows, timings, darkMode, onGoToTokens, onNavigateToToken }: {
+  shadows: { path: string; value: string }[];
+  timings: { path: string; value: string; type: string }[];
+  darkMode: boolean;
+  onGoToTokens?: () => void;
+  onNavigateToToken?: (path: string) => void;
+}) {
+  const hasContent = shadows.length > 0 || timings.length > 0;
+
+  if (!hasContent) {
+    return (
+      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+        <span>
+          No effect tokens found. Add tokens with{' '}
+          <code className="font-mono">$type: &quot;shadow&quot;</code>,{' '}
+          <code className="font-mono">&quot;transition&quot;</code>, or{' '}
+          <code className="font-mono">&quot;duration&quot;</code>.
+        </span>
+        {onGoToTokens && (
+          <button
+            onClick={onGoToTokens}
+            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+          >
+            Go to Tokens →
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 flex flex-col gap-5">
+      {shadows.length > 0 && (
+        <div>
+          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+            Shadows
+            <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({shadows.length})</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {shadows.map(({ path, value }) => (
+              <ShadowSwatch key={path} path={path} value={value} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
+            ))}
+          </div>
+        </div>
+      )}
+      {timings.length > 0 && (
+        <div>
+          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+            Transitions &amp; Durations
+            <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({timings.length}) — hover arrows to preview</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {timings.map(({ path, value, type }) => (
+              <TransitionRow key={path} path={path} value={value} type={type} darkMode={darkMode} onNavigateToToken={onNavigateToToken} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

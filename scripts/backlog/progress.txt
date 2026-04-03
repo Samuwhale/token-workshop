@@ -479,3 +479,12 @@
 - **Learnings for future iterations:**
   - Always read the full component before implementing — the filter was already present from a prior session.
 ---
+
+## 2026-04-03 - PreviewPanel cannot visualize shadow, gradient, or transition tokens
+- Added "Effects" template tab showing shadow swatches (box with `box-shadow` applied, click-to-copy) and a Transitions & Durations section (hover-animated demo box that slides using the token's transition value). Also added gradient swatches to the Colors template as a "Gradients" subsection below color groups.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L15, ~L88, ~L126, ~L135, ~L165, ~L310, ~L333, ~L420, ~L595 (new `GradientSwatch`, `ShadowSwatch`, `TransitionRow`, `EffectsTemplate` components)
+- **Learnings for future iterations:**
+  - The `resolveValue` helper in PreviewPanel already handles shadow objects (single and array), so shadow tokens render correctly without extra formatting logic.
+  - For transition/duration demos, a hover-based sliding element avoids the need for CSS keyframe animation (which requires a `<style>` tag injection), keeping all styling within inline React styles.
+  - Gradient token `$value` is a CSS gradient string (e.g. `linear-gradient(...)`), so it works directly as a `background` style value — use `background` not `backgroundColor`.
+---
