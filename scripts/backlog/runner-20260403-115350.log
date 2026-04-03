@@ -312,3 +312,18 @@ Already up to date.
 
   Merging to main: ExportPanel has no "copy to clipboard" option
 Already up to date.
+[main 430dcb73] chore(backlog): done – ExportPanel has no "copy to clipboard" option
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel has no "copy to clipboard" option
+- Stale — already implemented. The preview footer already has a per-file "Copy" button (`handleCopyFile`, L974) that copies the active file's content to clipboard with a "Copied" confirmation state. The action bar already has a "Copy All" button (`handleCopyAllPlatformResults`, L1292) that copies all files concatenated with file headers. Both `copiedFile` state and clipboard handlers (`handleCopyFile`, `handleCopyAllPlatformResults`) are fully implemented.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  4 queued · 3 in-progress · last took 1m20s
+═══════════════════════════════════════════════════════════════
+  → Theme dimension option management requires too many clicks — adding a new option to a theme dimension and assigning sets has no bulk assignment UI; adding a new theme variant to a design system with many sets requires individual clicks per set; add a "Copy assignments from existing option" action or a batch set-assignment modal
+  Worktree: /tmp/backlog-81267-cykt4x
+  Running agent… (started 12:27:24)

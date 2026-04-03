@@ -458,3 +458,9 @@
 - **Learnings for future iterations:**
   - The per-file copy button lives inside the code preview block footer (not the action bar), which can make it easy to overlook during a code scan — read the full preview section before concluding copy is missing.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: all server routes (tokens, sets, themes, generators, resolvers, sync, lint, sse), all server services (token-store, generator-service, resolver-store, operation-log, manual-snapshot, event-bus, lint, style-dict), all UI hooks (43 files), UI shared utilities, all plugin sandbox files (controller, variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner), core package (resolver, dtcg-types, color-modifier, generator-engine, eval-expr, dtcg-resolver)
+- Found 6 items — written to backlog-inbox.md
+- Notable: Plugin ↔ UI message contract is broken in multiple places (4+ unhandled message types, field name mismatches causing "undefined" in error UI, fire-and-forget without correlationId); also found that core resolver formula evaluation permanently drops units from dimension/duration tokens
+---

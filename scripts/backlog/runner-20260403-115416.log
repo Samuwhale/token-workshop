@@ -199,3 +199,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: plugin↔UI message contract broken (unhandled types, field mismatches, fire-and-forget), UI hooks stale-closure bugs across 6+ hooks (HIGH), core resolver formula drops units (HIGH), core validateColorModifiers drops valid mix ops, server generator route rejects shadowScale + root rollback broken, server OperationLog/ManualSnapshotStore concurrency bugs
+Already up to date.
