@@ -379,3 +379,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — highlights: merge HeatmapPanel+ConsistencyPanel, surface hidden /docs style guide, consolidate 3 comparison UIs, add dependency impact preview before delete/rename, stale publish readiness checks
+Already up to date.

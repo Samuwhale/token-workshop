@@ -367,3 +367,20 @@ Already up to date.
 
   Merging to main: No token value history per token
 Already up to date.
+[main 4daa42e2] chore(backlog): done – No token value history per token
+ 10 files changed, 271 insertions(+), 212 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenHistorySection.tsx
+  ✓ Merged and marked done
+
+## 2026-04-03 - No token value history per token
+- Extracted `TokenHistorySection`, `HistoryValueChip`, `HistoryEntryData`, and `formatRelativeTime` from `TokenEditor.tsx` into a new shared `TokenHistorySection.tsx` component.
+- Added a collapsible "History" section to `TokenDetailPreview` that fetches per-token history via `GET /api/operations/token-history?path=<tokenPath>`. Shows before→after value diffs with color swatches for color tokens, relative timestamps, and "rolled back" badges. Lazy-loads on first expand with pagination ("Load more").
+- Added `serverUrl?: string` prop to `TokenDetailPreview` — section renders only when `serverUrl` is provided, so call sites without server connectivity are unaffected.
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  0 queued · 2 in-progress · last took 8m32s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 46178) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

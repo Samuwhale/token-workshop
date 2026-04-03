@@ -345,3 +345,9 @@
   - `TokenHistorySection` was already implemented in `TokenEditor.tsx` — the backlog item mainly required surfacing it in `TokenDetailPreview` too.
   - Gate 4 (headless UI validation) has a pre-existing browser timeout failure in the sandbox environment — confirmed by testing the unmodified codebase.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (command palette, shortcuts, navigation), ThemeManager.tsx (dimensions, resolvers, comparison), ExportPanel.tsx + PublishPanel.tsx (export/publish flow, readiness checks), AnalyticsPanel.tsx, ConsistencyPanel.tsx, HeatmapPanel.tsx, TokenFlowPanel.tsx, SelectionInspector.tsx, TokenEditor.tsx, ValueEditors.tsx, TokenTreeNode.tsx, BatchEditor.tsx, useFindReplace.ts, ImportPanel.tsx, GraphPanel.tsx, NodeGraphCanvas.tsx, docs.ts routes
+- Found 11 items — written to backlog-inbox.md
+- Notable: The auto-generated HTML style guide at /docs is a complete, well-rendered page with color swatches and typography specimens, but is completely invisible from the plugin UI — no link, button, or command palette entry points to it. Also, HeatmapPanel and ConsistencyPanel both scan Figma layers for binding issues and could be merged into a single "Canvas Audit" panel.
+---
