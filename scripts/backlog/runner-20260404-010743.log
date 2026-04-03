@@ -213,3 +213,25 @@ Already up to date.
 
   Merging to main: TokenStore file watcher mutations race with route-handler mutations
 Already up to date.
+[main 6ab507a0] chore(backlog): done – TokenStore file watcher mutations race with route-handler mutations
+ 7 files changed, 63 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - TokenStore file watcher mutations race with route-handler mutations
+- Moved the `TokenLock` ownership into `TokenStore` as a public `readonly lock` field. All three watcher callbacks (`change`, `add`, `unlink`) now wrap their `this.sets` mutations and `scheduleRebuild` calls inside `void this.lock.withLock(async () => { ... })`. This serializes external-file-edit callbacks behind any in-progress route handler that already holds the lock, preventing `loadSet()` from overwriting in-flight route mutations.
+- In `index.ts`, replaced `const tokenLock = new TokenLock()` with `const tokenLock = tokenStore.lock` so route handlers and watcher callbacks share the exact same promise-chain mutex. No route files required changes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L17 (import), ~L39 (lock field), ~L220-250 (watcher callbacks); `packages/server/src/index.ts` ~L67 (lock assignment)
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  11 queued · 3 in-progress · last took 4m12s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel mixes three recovery mechanisms (git commits, manual snapshots, server operation log) in one timeline with different undo semantics and no explanation of which applies when — users cannot tell whether to use Rollback, Restore, or git Revert for their situation; add contextual labels or a brief inline legend explaining the three mechanisms and when each is appropriate (HistoryPanel.tsx)
+  Worktree: /tmp/backlog-91634-mH2OYy
+  Running agent… (started 01:55:15)
+
+  ✓ done: HistoryPanel mixes three recovery mechanisms without explanation
+    Added collapsible inline legend (toggled by info button in toolbar) explaining Action/Rollback, Commit/git Revert, Snapshot/Restore, and Local/⌘Z with when-to-use descriptions for each
+    15 turns · 124s · $0.42
+
+  Merging to main: HistoryPanel mixes three recovery mechanisms without explanation
+Already up to date.

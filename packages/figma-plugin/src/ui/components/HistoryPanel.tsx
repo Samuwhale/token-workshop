@@ -219,6 +219,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   // Local undo stack visibility
   const [localOpen, setLocalOpen] = useState(true);
 
+  // Legend visibility
+  const [showLegend, setShowLegend] = useState(false);
+
   const fetchTimeline = useCallback(async (search = '') => {
     if (!connected) return;
     setTimelineLoading(true);
@@ -510,6 +513,21 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               Compare
             </button>
             <button
+              onClick={() => setShowLegend(v => !v)}
+              title={showLegend ? 'Hide legend' : 'What do Rollback, Restore, and git Revert mean?'}
+              aria-pressed={showLegend}
+              className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-colors ${
+                showLegend
+                  ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]'
+                  : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+            </button>
+            <button
               onClick={() => fetchTimeline(debouncedCommitSearch)}
               className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
@@ -546,6 +564,51 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               View diff
             </button>
           )}
+        </div>
+      )}
+
+      {/* Legend */}
+      {showLegend && (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_60%,transparent)]">
+          <div className="px-3 pt-2 pb-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-1.5">Recovery mechanisms</p>
+            <div className="space-y-1.5">
+              <div className="flex items-start gap-2">
+                <TypePill kind="action" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--color-figma-text)]">Server action log · <span className="font-medium">Rollback</span></p>
+                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">Precisely reverses one server-side edit without affecting others. Works across sessions. Best for: "I just made an edit I want to undo."</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <TypePill kind="commit" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--color-figma-text)]">Git commits · <span className="font-medium">git Revert</span></p>
+                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">Restores tokens to the state at a specific git commit. Creates a new commit — preserves history. Best for: "I want to go back to a specific saved version."</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <TypePill kind="snapshot" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--color-figma-text)]">Manual snapshots · <span className="font-medium">Restore</span></p>
+                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">Replaces all tokens with the snapshot's full state. Persists across sessions but not in git. Best for: "I saved a checkpoint before a big change."</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">Local</span>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--color-figma-text)]">This session · <span className="font-medium">⌘Z / Ctrl+Z</span></p>
+                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">In-memory undo stack. Fast and immediate but lost on page refresh. Best for: "I just made a mistake moments ago."</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowLegend(false)}
+            className="w-full py-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 

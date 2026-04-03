@@ -533,3 +533,15 @@
   - `void promise` is the correct pattern for fire-and-forget async calls inside synchronous event callbacks (chokidar `on` handlers) without making the handler itself async.
   - Watcher `unlink` had no `await` inside (just a synchronous `sets.delete()`), but wrapping it in the lock is still correct to prevent it from interleaving with mid-`await` points in route handlers that have already read the set but not yet finished their write cycle.
 ---
+
+## 2026-04-04 - HistoryPanel mixes three recovery mechanisms without explanation
+- Added a collapsible inline legend (toggled by an info button in the toolbar) that explains all four recovery mechanisms: Action/Rollback (server op log, precise per-operation undo), Commit/git Revert (git history, creates new commit), Snapshot/Restore (manual full-state checkpoint), and Local/⌘Z (in-memory, lost on refresh).
+- `showLegend` state (default false) added near other section-open states.
+- Info button (circle-i SVG) added in the toolbar between Compare and Refresh; highlights when active.
+- Legend section renders between the compare-mode banner and the timeline, with a Dismiss button at the bottom.
+- Each legend row uses the existing `TypePill` component for visual consistency.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L220 (state), ~L513 (toolbar button), ~L554 (legend section)
+- **Learnings for future iterations:**
+  - Re-using the `TypePill` component in the legend creates an exact visual match to the timeline entries, reinforcing the connection between label and meaning.
+  - Defaulting the legend to collapsed keeps the panel clean for experienced users while remaining discoverable via the info button tooltip text.
+---
