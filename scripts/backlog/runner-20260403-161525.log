@@ -250,3 +250,10 @@ Already up to date.
   → Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop — useFindReplace.ts L326-337 iterates `setNames` with an `ac.signal.aborted` break guard, but the undo registration at L344-370 uses `capturedSets = Object.keys(renamedBySet)` which correctly only includes sets where `renamed > 0`; however the redo handler at L360-370 calls bulk-rename on all `capturedSets` which may include sets that were only partially renamed (the abort can occur after the API call for a set succeeds but before the response count is processed); track exactly which sets completed successfully and only register undo/redo for those
   Worktree: /tmp/backlog-45818-h8YINM
   Running agent… (started 17:20:40)
+
+  ✓ done: Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop
+    Wrapped each apiFetch call in inner try/catch inside both the names and values per-set loops; AbortErrors convert to wasAborted=true;break so post-loop undo registration always runs for completed sets, with a partial-success message shown when aborted mid-loop.
+    16 turns · 284s · $0.69
+
+  Merging to main: Find & Replace across all sets registers undo for all targeted sets even when the user aborts mid-loop
+Already up to date.

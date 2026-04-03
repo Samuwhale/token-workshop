@@ -181,3 +181,18 @@ Already up to date.
 
   Merging to main: Generator auto-run failures are fire-and-forget with no persistent record
 Already up to date.
+[main 3e29416c] chore(backlog): done – Generator auto-run failures are fire-and-forget with no persistent record
+ 8 files changed, 65 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator auto-run failures are fire-and-forget with no persistent record
+- Added persistent recording of generator auto-run failures to the operation log in `index.ts`: the `.catch()` block now calls `operationLog.record({ type: 'generator-auto-run-error', ... })` after emitting the transient SSE event, so failures are stored in `.tokenmanager/operations.json` and visible to clients connecting later.
+- Added a warning/alert icon branch to `OpIcon` in `RecentActionsSource.tsx` for any type containing `'error'` (amber circle with exclamation), checked before the generic `generator`/`run` branch so error entries get a distinct visual.
+- Updated the action row renderer in `HistoryPanel.tsx` to detect `op.type.includes('error')`: error entries show amber description text and a static "Failed" badge instead of the Rollback button (there is nothing to roll back — snapshots are empty).
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  9 queued · 3 in-progress · last took 4m6s
+═══════════════════════════════════════════════════════════════
+  → useThemeSwitcher re-fetches themes on every render because `tokens` (unknown[]) is a new array reference each time — the effect at useThemeSwitcher.ts:83 depends on `[fetchThemesInner, tokens]` but `tokens` is a TokenNode[] recreated by `buildTree` on every fetch; this causes an unnecessary `/api/themes` call on every token change; replace the `tokens` dependency with `tokenRevision` (a stable incrementing number already exposed by useTokens) or remove it entirely since the effect already re-runs when `connected`/`serverUrl` change via `fetchThemesInner`
+  Worktree: /tmp/backlog-46178-NNqBLZ
+  Running agent… (started 17:25:25)

@@ -323,21 +323,31 @@ export function useFindReplace({
 
           let totalRenamed = 0;
           const renamedBySet: Record<string, number> = {};
+          let namesAborted = false;
           for (const sn of setNames) {
-            if (ac.signal.aborted) break;
-            const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
-              signal: ac.signal,
-            });
-            const count = data.renamed ?? 0;
-            totalRenamed += count;
-            if (count > 0) renamedBySet[sn] = count;
+            if (ac.signal.aborted) { namesAborted = true; break; }
+            try {
+              const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
+                signal: ac.signal,
+              });
+              const count = data.renamed ?? 0;
+              totalRenamed += count;
+              if (count > 0) renamedBySet[sn] = count;
+            } catch (err) {
+              if (ac.signal.aborted) { namesAborted = true; break; }
+              throw err;
+            }
           }
 
           if (totalRenamed === 0) {
-            setFrError('No token paths matched the search pattern in any set');
+            setFrError(namesAborted
+              ? (didTimeout
+                  ? `Operation timed out after ${BULK_RENAME_TIMEOUT_MS / 1000}s — no tokens were renamed`
+                  : 'Operation was cancelled — no tokens were renamed')
+              : 'No token paths matched the search pattern in any set');
             return;
           }
 
@@ -379,6 +389,15 @@ export function useFindReplace({
               },
             });
           }
+
+          if (namesAborted) {
+            const completedCount = Object.keys(renamedBySet).length;
+            setFrError(didTimeout
+              ? `Timed out — renamed ${totalRenamed} token${totalRenamed !== 1 ? 's' : ''} in ${completedCount} of ${setNames.length} set${setNames.length !== 1 ? 's' : ''}`
+              : `Cancelled — renamed ${totalRenamed} token${totalRenamed !== 1 ? 's' : ''} in ${completedCount} of ${setNames.length} set${setNames.length !== 1 ? 's' : ''}`);
+            onRefresh();
+            return;
+          }
         }
       } else {
         // Values mode: use batch-update per set
@@ -395,25 +414,35 @@ export function useFindReplace({
 
         let totalUpdated = 0;
         const updatedBySet: Record<string, Array<{ path: string; oldValue: string; newValue: string; originalValue: unknown }>> = {};
+        let valuesAborted = false;
 
         for (const [sn, matches] of matchesBySet) {
-          if (ac.signal.aborted) break;
-          const patches = matches.map(m => ({
-            path: m.path,
-            patch: { $value: deserializeValue(m.originalValue, m.newValue) },
-          }));
-          await apiFetch<{ ok: true; updated: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patches }),
-            signal: ac.signal,
-          });
-          totalUpdated += matches.length;
-          updatedBySet[sn] = matches;
+          if (ac.signal.aborted) { valuesAborted = true; break; }
+          try {
+            const patches = matches.map(m => ({
+              path: m.path,
+              patch: { $value: deserializeValue(m.originalValue, m.newValue) },
+            }));
+            await apiFetch<{ ok: true; updated: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ patches }),
+              signal: ac.signal,
+            });
+            totalUpdated += matches.length;
+            updatedBySet[sn] = matches;
+          } catch (err) {
+            if (ac.signal.aborted) { valuesAborted = true; break; }
+            throw err;
+          }
         }
 
         if (totalUpdated === 0) {
-          setFrError('No token values were updated');
+          setFrError(valuesAborted
+            ? (didTimeout
+                ? `Operation timed out after ${BULK_RENAME_TIMEOUT_MS / 1000}s — no values were updated`
+                : 'Operation was cancelled — no values were updated')
+            : 'No token values were updated');
           return;
         }
 
@@ -455,6 +484,16 @@ export function useFindReplace({
               onRefresh();
             },
           });
+        }
+
+        if (valuesAborted) {
+          const completedCount = Object.keys(updatedBySet).length;
+          const setTotal = matchesBySet.size;
+          setFrError(didTimeout
+            ? `Timed out — updated ${totalUpdated} value${totalUpdated !== 1 ? 's' : ''} in ${completedCount} of ${setTotal} set${setTotal !== 1 ? 's' : ''}`
+            : `Cancelled — updated ${totalUpdated} value${totalUpdated !== 1 ? 's' : ''} in ${completedCount} of ${setTotal} set${setTotal !== 1 ? 's' : ''}`);
+          onRefresh();
+          return;
         }
       }
 

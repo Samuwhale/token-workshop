@@ -379,3 +379,15 @@
   - The `OpIcon` pattern-match is ordered; put specific error branches before broad `includes('generator')` catches.
   - The rollback confirm modal uses `confirmOp.affectedPaths.length` — guard against showing a rollback option for error entries by checking `isError` before rendering the button.
 ---
+
+## 2026-04-03 - Find & Replace across all sets registers undo only for completed sets
+- Root cause: when user cancels mid-loop, `apiFetch` with an in-flight request throws an AbortError that propagated to the outer catch block, bypassing the undo registration code entirely — even though sets that completed before the abort had their tokens renamed on the server.
+- Fix: wrapped each `apiFetch` call inside the per-set loop in a try/catch; AbortErrors convert to `wasAborted = true; break` so the loop exits cleanly and post-loop undo registration always runs.
+- After undo registration, if `wasAborted` and `totalRenamed > 0`, show a partial success message ("Cancelled — renamed N tokens in K of M sets") and call `onRefresh`, then `return` to skip the full-success dialog-close path.
+- Applied the same pattern to both the names/bulk-rename loop (L326-343) and the values/batch-update loop (L419-437).
+- `capturedSets = Object.keys(renamedBySet)` correctly captures only sets where the API call returned successfully with `count > 0`; partially-completed sets (API aborted mid-request server-side) are not included, which is correct — we can't be sure of their state.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L326, ~L419
+- **Learnings for future iterations:**
+  - Inner try/catch on each loop iteration's `await` is the right pattern for interruptible multi-step async loops: convert AbortErrors to a flag+break, rethrow other errors, then let post-loop code (undo registration, status reporting) always run.
+  - `ac.signal.aborted` checked both at loop top AND in the inner catch covers all abort timing: abort fires before fetch starts, or fires while fetch is in-flight.
+---
