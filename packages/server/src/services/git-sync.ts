@@ -196,10 +196,24 @@ export function resolveConflictContent(
 export class GitSync {
   private dir: string;
   private git: SimpleGit;
+  /** Promise-chain mutex — all git-mutating operations serialize behind this. */
+  private lockChain: Promise<void> = Promise.resolve();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
     this.git = simpleGit({ baseDir: this.dir, timeout: { block: GIT_NETWORK_TIMEOUT_MS } });
+  }
+
+  /**
+   * Run `fn` exclusively: each call chains behind the previous one so that
+   * concurrent git-mutating operations (add/checkout/commit/push) never interleave.
+   * Errors propagate to the caller but do NOT break the lock chain — subsequent
+   * callers still get their turn.
+   */
+  private withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.lockChain.then(() => fn());
+    this.lockChain = next.then(() => {}, () => {});
+    return next;
   }
 
   /** Validate a branch name is safe (not a flag, not empty, no control chars). */
@@ -233,7 +247,7 @@ export class GitSync {
   }
 
   async init(): Promise<void> {
-    await this.git.init();
+    return this.withLock(() => this.git.init());
   }
 
   async status() {
@@ -241,33 +255,37 @@ export class GitSync {
   }
 
   async commit(message: string, files?: string[]): Promise<string> {
-    if (files && files.length > 0) {
-      this.validatePaths(files);
-      await this.git.add(files);
-    } else {
-      await this.git.add('.');
-    }
-    const result = await this.git.commit(message);
-    return result.commit;
+    return this.withLock(async () => {
+      if (files && files.length > 0) {
+        this.validatePaths(files);
+        await this.git.add(files);
+      } else {
+        await this.git.add('.');
+      }
+      const result = await this.git.commit(message);
+      return result.commit;
+    });
   }
 
   async push(): Promise<void> {
-    await wrapNetworkOp('push', this.git.push());
+    return this.withLock(() => wrapNetworkOp('push', this.git.push()));
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
-    try {
-      await wrapNetworkOp('pull', this.git.pull());
-      return { conflicts: [] };
-    } catch (err) {
-      if (err instanceof GitTimeoutError) throw err;
-      // Check if the pull resulted in merge conflicts
-      const conflicted = await this.getConflictedFiles();
-      if (conflicted.length > 0) {
-        return { conflicts: conflicted };
+    return this.withLock(async () => {
+      try {
+        await wrapNetworkOp('pull', this.git.pull());
+        return { conflicts: [] };
+      } catch (err) {
+        if (err instanceof GitTimeoutError) throw err;
+        // Check if the pull resulted in merge conflicts
+        const conflicted = await this.getConflictedFiles();
+        if (conflicted.length > 0) {
+          return { conflicts: conflicted };
+        }
+        throw err;
       }
-      throw err;
-    }
+    });
   }
 
   /** List files with unresolved merge conflicts. */
@@ -303,34 +321,38 @@ export class GitSync {
 
   /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
   async resolveFileConflict(file: string, choices: Record<number, 'ours' | 'theirs'>): Promise<void> {
-    this.validatePaths([file]);
-    const filePath = path.resolve(this.dir, file);
-    const content = await fs.readFile(filePath, 'utf-8');
-    const resolved = resolveConflictContent(content, choices);
-    const tmp = `${filePath}.tmp`;
-    await fs.writeFile(tmp, resolved, 'utf-8');
-    await fs.rename(tmp, filePath);
-    await this.git.add([file]);
+    return this.withLock(async () => {
+      this.validatePaths([file]);
+      const filePath = path.resolve(this.dir, file);
+      const content = await fs.readFile(filePath, 'utf-8');
+      const resolved = resolveConflictContent(content, choices);
+      const tmp = `${filePath}.tmp`;
+      await fs.writeFile(tmp, resolved, 'utf-8');
+      await fs.rename(tmp, filePath);
+      await this.git.add([file]);
+    });
   }
 
   /** Abort the current merge. */
   async abortMerge(): Promise<void> {
-    await this.git.merge(['--abort']);
+    return this.withLock(() => this.git.merge(['--abort']));
   }
 
   /** Finalize merge after all conflicts resolved — creates the merge commit. */
   async finalizeMerge(): Promise<void> {
-    // Check if any conflicts remain
-    const remaining = await this.getConflictedFiles();
-    if (remaining.length > 0) {
-      throw new Error(`Cannot finalize merge: ${remaining.length} file(s) still have conflicts`);
-    }
-    try {
-      await this.git.commit('Merge remote changes (conflicts resolved)');
-    } catch (err) {
-      console.warn('[GitSync] Finalize merge commit failed:', err);
-      throw err;
-    }
+    return this.withLock(async () => {
+      // Check if any conflicts remain
+      const remaining = await this.getConflictedFiles();
+      if (remaining.length > 0) {
+        throw new Error(`Cannot finalize merge: ${remaining.length} file(s) still have conflicts`);
+      }
+      try {
+        await this.git.commit('Merge remote changes (conflicts resolved)');
+      } catch (err) {
+        console.warn('[GitSync] Finalize merge commit failed:', err);
+        throw err;
+      }
+    });
   }
 
   async getCurrentBranch(): Promise<string> {
@@ -344,13 +366,17 @@ export class GitSync {
   }
 
   async checkout(branch: string): Promise<void> {
-    this.validateBranchName(branch);
-    await this.git.checkout(branch);
+    return this.withLock(() => {
+      this.validateBranchName(branch);
+      return this.git.checkout(branch);
+    });
   }
 
   async createBranch(branch: string): Promise<void> {
-    this.validateBranchName(branch);
-    await this.git.checkoutLocalBranch(branch);
+    return this.withLock(() => {
+      this.validateBranchName(branch);
+      return this.git.checkoutLocalBranch(branch);
+    });
   }
 
   async log(limit = 20, offset = 0, search?: string) {
@@ -401,11 +427,13 @@ export class GitSync {
   }
 
   async setRemote(url: string): Promise<void> {
-    try {
-      await this.git.addRemote('origin', url);
-    } catch {
-      await this.git.remote(['set-url', 'origin', url]);
-    }
+    return this.withLock(async () => {
+      try {
+        await this.git.addRemote('origin', url);
+      } catch {
+        await this.git.remote(['set-url', 'origin', url]);
+      }
+    });
   }
 
   async getRemote(): Promise<string | null> {
@@ -590,64 +618,66 @@ export class GitSync {
 
   /** Apply direction choices: push, pull, or skip per file */
   async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<ApplyDiffResult> {
-    const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
-    const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
-    this.validatePaths([...toPull, ...toPush]);
+    return this.withLock(async () => {
+      const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
+      const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
+      this.validatePaths([...toPull, ...toPush]);
 
-    const result: ApplyDiffResult = {
-      pullFailedFiles: [],
-      pullCommitFailed: false,
-      pushCommitFailed: false,
-      pushFailed: false,
-    };
+      const result: ApplyDiffResult = {
+        pullFailedFiles: [],
+        pullCommitFailed: false,
+        pushCommitFailed: false,
+        pushFailed: false,
+      };
 
-    if (toPull.length > 0) {
-      // Checkout individual files from remote
-      const branch = await this.getCurrentBranch();
-      for (const file of toPull) {
-        try {
-          await this.git.raw(['checkout', `origin/${branch}`, '--', file]);
-        } catch (err) {
-          console.warn(`[GitSync] Failed to checkout file "${file}":`, err);
-          result.pullFailedFiles.push(file);
+      if (toPull.length > 0) {
+        // Checkout individual files from remote
+        const branch = await this.getCurrentBranch();
+        for (const file of toPull) {
+          try {
+            await this.git.raw(['checkout', `origin/${branch}`, '--', file]);
+          } catch (err) {
+            console.warn(`[GitSync] Failed to checkout file "${file}":`, err);
+            result.pullFailedFiles.push(file);
+          }
+        }
+        const pulledFiles = toPull.filter(f => !result.pullFailedFiles.includes(f));
+        if (pulledFiles.length > 0) {
+          await this.git.add(pulledFiles);
+          try {
+            await this.git.commit(`chore: pull ${pulledFiles.length} file(s) from remote`);
+          } catch (err) {
+            console.warn('[GitSync] Pull commit failed (may have no changes):', err);
+            result.pullCommitFailed = true;
+            result.pullCommitError = String(err);
+          }
         }
       }
-      const pulledFiles = toPull.filter(f => !result.pullFailedFiles.includes(f));
-      if (pulledFiles.length > 0) {
-        await this.git.add(pulledFiles);
+      // 'push' direction: stage only the selected files, commit, then push
+      if (toPush.length > 0) {
+        await this.git.add(toPush);
+        let pushCommitSucceeded = false;
         try {
-          await this.git.commit(`chore: pull ${pulledFiles.length} file(s) from remote`);
+          await this.git.commit(`chore: push ${toPush.length} file(s) to remote`);
+          pushCommitSucceeded = true;
         } catch (err) {
-          console.warn('[GitSync] Pull commit failed (may have no changes):', err);
-          result.pullCommitFailed = true;
-          result.pullCommitError = String(err);
+          console.warn('[GitSync] Push commit failed (may have no changes):', err);
+          result.pushCommitFailed = true;
+          result.pushCommitError = String(err);
+        }
+        if (pushCommitSucceeded) {
+          try {
+            await wrapNetworkOp('push', this.git.push());
+          } catch (err) {
+            console.warn('[GitSync] Push to remote failed:', err);
+            result.pushFailed = true;
+            result.pushError = String(err);
+            if (err instanceof GitTimeoutError) throw err;
+          }
         }
       }
-    }
-    // 'push' direction: stage only the selected files, commit, then push
-    if (toPush.length > 0) {
-      await this.git.add(toPush);
-      let pushCommitSucceeded = false;
-      try {
-        await this.git.commit(`chore: push ${toPush.length} file(s) to remote`);
-        pushCommitSucceeded = true;
-      } catch (err) {
-        console.warn('[GitSync] Push commit failed (may have no changes):', err);
-        result.pushCommitFailed = true;
-        result.pushCommitError = String(err);
-      }
-      if (pushCommitSucceeded) {
-        try {
-          await wrapNetworkOp('push', this.git.push());
-        } catch (err) {
-          console.warn('[GitSync] Push to remote failed:', err);
-          result.pushFailed = true;
-          result.pushError = String(err);
-          if (err instanceof GitTimeoutError) throw err;
-        }
-      }
-    }
 
-    return result;
+      return result;
+    });
   }
 }

@@ -442,3 +442,14 @@
   - `GitTimeoutError` extends `HttpError` so `handleRouteError` automatically maps it to 408 — no route-level `instanceof` check needed.
   - Re-throwing `GitTimeoutError` from inside `applyDiffChoices`'s internal push catch is necessary because that catch sets `result.pushFailed` for the partial-failure path — but a timeout should abort the whole operation, not silently mark it as a soft failure.
 ---
+
+## 2026-04-03 - git-sync.ts operations have no mutual exclusion
+- Added a `withLock<T>(fn)` promise-chain mutex to the `GitSync` class. All git-mutating operations now serialize behind a single `lockChain` promise so concurrent calls can never interleave git add/checkout/commit commands.
+- Methods wrapped: `init`, `commit`, `push`, `pull`, `resolveFileConflict`, `abortMerge`, `finalizeMerge`, `checkout`, `createBranch`, `setRemote`, `applyDiffChoices`. Read-only methods (`status`, `log`, `fetch`, `getConflictedFiles`, etc.) are left unlocked.
+- The lock pattern: `next = lockChain.then(() => fn()); lockChain = next.then(() => {}, () => {}); return next;` — errors propagate to callers but never break the chain for subsequent callers.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L199
+- **Learnings for future iterations:**
+  - The same promise-chain mutex pattern from TokenStore (`withLock`) works identically here — no external deps needed.
+  - Only operations that mutate the git index (staging area), working tree, or history need the lock. Pure-read operations (diff, log, show) are safe to run concurrently.
+  - `this.lockChain = next.then(() => {}, () => {})` (not `.catch(() => {})`) ensures the chain stays in the fulfilled state regardless of outcome, preventing subsequent callers from being blocked by a rejected promise.
+---

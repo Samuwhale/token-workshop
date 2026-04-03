@@ -225,3 +225,25 @@ Already up to date.
 
   Merging to main: Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely
 Already up to date.
+[main 06d393cf] chore(backlog): done – Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely
+ 8 files changed, 90 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Git-sync operations timeout and hang indefinitely on network partition
+- Configured `simpleGit` with `timeout: { block: 30000 }` (30s) so the git subprocess is killed after 30 seconds on any operation.
+- Added `GitTimeoutError` (HTTP 408) to `packages/server/src/errors.ts` — stores operation name and timeout duration in the message.
+- Added `isTimeoutError(err)` (checks `err.message` for "timeout"/"timed out") and `wrapNetworkOp<T>(op, promise)` helper at the top of `git-sync.ts` — detects simple-git timeout kills and re-throws as `GitTimeoutError`.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  4 queued · 2 in-progress · last took 3m43s
+═══════════════════════════════════════════════════════════════
+  → git-sync.ts operations have no mutual exclusion — pull(), applyDiffChoices(), resolveFileConflict(), and commit() can run concurrently without any locking; interleaved git add/checkout/commit commands can corrupt the staging area and produce wrong commits; this is separate from the existing "no timeout" backlog item; add a process-level mutex (e.g., promise-chain lock like TokenStore's `withLock`) around all git-mutating operations so they serialize correctly
+  Worktree: /tmp/backlog-46178-5khHSf
+  Running agent… (started 17:30:22)
+
+  ✓ done: git-sync.ts operations have no mutual exclusion — pull(), applyDiffChoices(), resolveFileConflict(), and commit() can run concurrently without any locking
+    Added promise-chain mutex `withLock` to GitSync class; all 11 git-mutating methods now serialize correctly behind a single lockChain
+    14 turns · 119s · $0.4
+
+  Merging to main: git-sync.ts operations have no mutual exclusion — pull(), applyDiffChoices(), resolveFileConflict(), and commit() can run concurrently without any locking
+Already up to date.
