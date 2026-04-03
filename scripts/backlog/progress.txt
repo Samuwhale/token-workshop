@@ -453,3 +453,15 @@
   - The header badge and filter bar button both toggle the same state, so clicking either one activates/deactivates the mixed filter — consistent with the existing toggle pattern for other mode buttons.
   - `isFilterActive` and the "clear filters" button required no changes since they already check `propFilterMode !== 'all'`.
 ---
+
+## 2026-04-04 - Git sub-panel does not show commits ahead/behind remote
+- Added `ahead` and `behind` counts to the git status API response and displayed them as small inline badges in the branch row of GitSubPanel.
+- Server: added `ahead: status.ahead, behind: status.behind` to `/api/sync/status` response in `sync.ts` (line ~104). `simple-git`'s `StatusResult` already exposes these fields from `git status`—no new method needed.
+- Types: added `ahead: number; behind: number` fields to `GitStatus.status` interface in `useGitStatus.ts` (line ~10).
+- UI: replaced the single right-side container in the branch row with a flex group that shows the existing "Clean"/"N changes" label plus conditional `↑N` (accent/blue) and `↓N` (amber) pill badges when ahead/behind > 0 and a remote is configured. Badges include hover titles with commit count details.
+- Files changed: `packages/server/src/routes/sync.ts` ~L104; `packages/figma-plugin/src/ui/hooks/useGitStatus.ts` ~L10; `packages/figma-plugin/src/ui/components/publish/GitSubPanel.tsx` ~L66
+- **Learnings for future iterations:**
+  - `simple-git`'s `status()` return value (`StatusResult`) already includes `ahead` and `behind` integer fields populated from `git status`—no separate `git rev-list --count` call is needed.
+  - The ahead/behind counts reflect locally cached remote tracking refs, not live remote state. They update after fetch/pull/push. This matches standard git UX (e.g., VS Code's branch indicator shows the same values without auto-fetching).
+  - When both ahead and behind are 0, showing nothing is the right choice—the user can see "Clean" or "N changes" for local state without cluttering the branch row for the common in-sync case.
+---

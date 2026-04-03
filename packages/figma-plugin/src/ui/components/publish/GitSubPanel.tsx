@@ -63,10 +63,20 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 </svg>
                 <span className="text-[11px] font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className={`text-[10px] font-medium ${git.allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
                   {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                 </span>
+                {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
+                  <span title={`${git.gitStatus.status!.ahead} commit${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ahead of remote`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                    ↑{git.gitStatus.status!.ahead}
+                  </span>
+                )}
+                {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
+                  <span title={`${git.gitStatus.status!.behind} commit${git.gitStatus.status!.behind !== 1 ? 's' : ''} behind remote`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-500/10 text-amber-600">
+                    ↓{git.gitStatus.status!.behind}
+                  </span>
+                )}
                 <button
                   onClick={() => { git.setGitLoading(true); git.fetchStatus(); }}
                   disabled={git.gitLoading}

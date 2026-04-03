@@ -13,6 +13,8 @@ export interface GitStatus {
     not_added: string[];
     staged: string[];
     isClean: boolean;
+    ahead: number;
+    behind: number;
   } | null;
 }
 

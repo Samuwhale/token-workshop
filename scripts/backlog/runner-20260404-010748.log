@@ -21,3 +21,10 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
   → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
   Worktree: /tmp/backlog-91949-FS1BER
   Running agent… (started 01:07:48)
+
+  ✓ done: Git sub-panel does not show commits ahead/behind remote
+    Added ↑N/↓N badge pills to the branch row using simple-git's built-in ahead/behind fields already returned by status()
+    29 turns · 157s · $0.83
+
+  Merging to main: Git sub-panel does not show commits ahead/behind remote
+Already up to date.

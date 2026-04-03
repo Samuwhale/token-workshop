@@ -108,6 +108,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           not_added: status.not_added,
           staged: status.staged,
           isClean: status.isClean(),
+          ahead: status.ahead,
+          behind: status.behind,
         },
       };
     } catch (err) {

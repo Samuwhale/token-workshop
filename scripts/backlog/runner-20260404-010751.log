@@ -28,3 +28,21 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: SelectionInspector shows mixed binding count but not which properties are mixed
 Already up to date.
+[main 577e4cfd] chore(backlog): done – SelectionInspector shows mixed binding count but not which properties are mixed
+ 10 files changed, 342 insertions(+), 6 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260404-010743.log
+ create mode 100644 scripts/backlog/runner-20260404-010748.log
+ create mode 100644 scripts/backlog/runner-20260404-010751.log
+  ✓ Merged and marked done
+
+## 2026-04-04 - SelectionInspector shows mixed binding count but not which properties are mixed
+- Added 'mixed' filter mode to the property filter bar in SelectionInspector. When a multi-selection has conflicting token bindings, a "Mixed" button appears in the filter bar to instantly show only those properties. The "N mixed" badge in the header is now a clickable button that toggles the same 'mixed' filter (active state shown with stronger background + ring).
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L203, ~L683, ~L729, ~L918
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  8 queued · 3 in-progress · last took 2m7s
+═══════════════════════════════════════════════════════════════
+  → No bulk token creation API — tokens can only be created one at a time via `POST /tokens/:set/*`; importing or generating tokens that need atomic multi-token creation must loop individual requests, which is slow and non-atomic (routes/tokens.ts)
+  Worktree: /tmp/backlog-92209-lfpmnH
+  Running agent… (started 01:09:58)
