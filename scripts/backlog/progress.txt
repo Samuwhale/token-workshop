@@ -477,3 +477,9 @@
   - The `renameSet` `try/finally` pattern is the correct one for all operations: start the guard before the fs operation, clear it in `finally` after completion. Don't rely on watcher callbacks to be the sole guard-clearing mechanism.
   - The watcher 'unlink' handler calling `sets.delete(name)` after we've already deleted it is idempotent (Map.delete on missing key is a no-op); the extra `scheduleRebuild` emission is acceptable noise.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (tab structure, navigation), TokenEditor.tsx (edit flow), TokenList.tsx (tree interactions), ThemeManager.tsx (theme/dimension UX), SetSwitcher.tsx (set switching), BindingAuditPanel.tsx (redundancy), HeatmapPanel.tsx, ConsistencyPanel.tsx, AnalyticsPanel.tsx (overlap), PreviewPanel.tsx + TokenDetailPreview.tsx (overlap), GraphPanel.tsx + TokenGeneratorDialog.tsx (generator UX), CommandPalette.tsx + shortcutRegistry.ts (shortcuts), SettingsPanel.tsx, ExportPanel.tsx, PublishPanel.tsx, server routes and services
+- Found 12 items — written to backlog-inbox.md
+- Notable: BindingAuditPanel is a pure pass-through wrapper (47 lines, zero added logic) that should be deleted; Resolvers sub-tab is an extra concept that belongs inside ThemeManager; AnalyticsPanel duplicate detection and lint no-duplicate-values rule do the same thing in two places
+---

@@ -269,3 +269,18 @@ Already up to date.
 
   Merging to main: TokenStore write guards leak on delete and clearAll
 Already up to date.
+[main 50eb7d7e] chore(backlog): done – TokenStore write guards leak on delete and clearAll
+ 7 files changed, 49 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenStore write guards leak on delete and clearAll
+- Added `try/finally` blocks to `deleteSet()` and `clearAll()` in `token-store.ts` to call `_clearWriteGuard()` after each `fs.unlink` completes (success or throw), rather than relying on the chokidar 'unlink' watcher event to clear the guard. This eliminates the window where a file restored externally (e.g., `git checkout`) could be silently suppressed.
+- Refactored `ResolverStore.delete()` in `resolver-store.ts` to move `_startWriteGuard` outside the try/catch and add a `finally` block — guard is now cleared on both success and error paths (previously only cleared on the error path).
+- Files changed: `packages/server/src/services/token-store.ts` ~L623, ~L648; `packages/server/src/services/resolver-store.ts` ~L155
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  1 queued · 2 in-progress · last took 3m0s
+═══════════════════════════════════════════════════════════════
+  → BatchEditor handleMove and handleCopy are near-identical 35-line functions with divergent skip-counter logic — BatchEditor.tsx handleMove (L481-515) and handleCopy (L517-551) share identical structure (same params, error handling, undo registration) differing only in the API endpoint and feedback message; additionally the rename path computation at L558-560 duplicates the `renameChanges` useMemo at L271-291; the opacity/scale skip counters (`skippedTypeIncompat`) conflate "type not applicable" with "type incompatible" and produce misleading user feedback when both opacity and scale are active; extract a shared `createBatchHandler('move'|'copy')` factory function, unify rename computation, and fix the skip-counter labels to distinguish "not a color token" from "uses reference value"
+  Worktree: /tmp/backlog-46178-HTJZlC
+  Running agent… (started 17:35:28)

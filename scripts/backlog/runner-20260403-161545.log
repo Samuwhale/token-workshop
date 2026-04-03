@@ -342,3 +342,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — consolidation (BindingAuditPanel removal, Resolvers into Themes, preview unification, analytics dedup), missing features (cross-set search, token value history, bulk generator run, copy-as-CSS-var), and UX friction (remember last type, empty set warning, inline generator edit, buried theme comparison)
+Already up to date.
