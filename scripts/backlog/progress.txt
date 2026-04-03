@@ -325,3 +325,13 @@
   - `jsonErrorInfo` state needs to be initialized and synced in the external-change branch, not just on user input, so that tokens loaded with pre-existing invalid extensions still show the caret.
   - The caret snippet uses `whitespace-pre` and `' '.repeat(col - 1)` — no library needed.
 ---
+
+## 2026-04-03 - SelectionInspector "mixed" binding state gives no detail
+- Added `getMixedBindingValues(nodes, prop)` helper to `selectionInspectorUtils.ts` that returns distinct binding values (or null for unbound) with their layer counts, sorted bound-first alphabetically.
+- Converted the "Mixed" italic span in `PropertyRow.tsx` to a clickable button with a chevron icon that toggles an expandable detail panel below the row.
+- The detail panel shows each distinct binding path (font-mono), with a color swatch for color tokens, and a "N layers" count badge. Unbound layers are shown as italic "unbound" in secondary text color.
+- Files changed: `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L22, `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L82, ~L262, ~L374
+- **Learnings for future iterations:**
+  - The IIFE pattern (`{isMixed && showMixedDetail && (() => { ... })()}`) keeps JSX inline while allowing local variable declarations (like `mixedValues`) without polluting the component scope.
+  - `resolveBindingDisplay` already handles color swatch extraction — reuse it for the detail panel rows rather than duplicating resolve logic.
+---

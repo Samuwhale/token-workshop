@@ -349,3 +349,10 @@ Already up to date.
   → SelectionInspector "mixed" binding state gives no detail — when multiple layers are selected with different bindings on the same property, the inspector shows "mixed" with no way to see what the actual different values are without deselecting layers one at a time; show a tooltip or expandable list of the distinct values (SelectionInspector.tsx ~L362-366)
   Worktree: /tmp/backlog-49887-rSoJ2M
   Running agent… (started 13:39:28)
+
+  ✓ done: SelectionInspector "mixed" binding state gives no detail
+    Added clickable "Mixed" button with chevron that expands a detail panel showing each distinct binding path, color swatch, and layer count across the selected nodes.
+    19 turns · 123s · $0.51
+
+  Merging to main: SelectionInspector "mixed" binding state gives no detail
+Already up to date.

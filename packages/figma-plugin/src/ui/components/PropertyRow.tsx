@@ -22,6 +22,7 @@ import {
   scoreBindCandidate,
   collectSiblingBindings,
   collectBoundPrefixes,
+  getMixedBindingValues,
   SUGGESTED_NAMES,
   suggestTokenPath,
 } from './selectionInspectorUtils';
@@ -85,6 +86,7 @@ export function PropertyRow({
   const [bindQuery, setBindQuery] = useState('');
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
   const [bindShowAll, setBindShowAll] = useState(false);
+  const [showMixedDetail, setShowMixedDetail] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -260,7 +262,20 @@ export function PropertyRow({
                 {resolvedDisplay ?? formatCurrentValue(prop, value)}
               </span>
             ) : isMixed ? (
-              <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] italic">Mixed</span>
+              <button
+                onClick={() => setShowMixedDetail(v => !v)}
+                title="Click to see distinct bindings across selected layers"
+                className="flex items-center gap-0.5 text-[10px] text-[var(--color-figma-warning,#f5a623)] italic hover:underline"
+              >
+                Mixed
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`shrink-0 transition-transform ${showMixedDetail ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+              </button>
             ) : (
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
                 {formatCurrentValue(prop, value)}
@@ -355,6 +370,44 @@ export function PropertyRow({
         </div>
         )}
       </div>
+
+      {/* Mixed binding detail */}
+      {isMixed && showMixedDetail && (() => {
+        const mixedValues = getMixedBindingValues(rootNodes, prop);
+        return (
+          <div className="mx-2 mb-1 rounded border border-[var(--color-figma-warning,#f5a623)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
+            <div className="px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-warning,#f5a623)]/5">
+              <span className="text-[9px] text-[var(--color-figma-warning,#f5a623)] font-medium">
+                Distinct bindings across {rootNodes.length} layers
+              </span>
+            </div>
+            <div className="flex flex-col divide-y divide-[var(--color-figma-border)]/30">
+              {mixedValues.map(({ binding: b, count }) => {
+                const display = b ? resolveBindingDisplay(b, tokenMap) : null;
+                const swatchC = display?.resolvedColor ?? null;
+                return (
+                  <div key={b ?? '__unbound__'} className="flex items-center gap-1.5 px-2 py-1">
+                    {swatchC ? (
+                      <div
+                        className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                        style={{ backgroundColor: swatchC }}
+                      />
+                    ) : (
+                      <div className="w-3 h-3 shrink-0" />
+                    )}
+                    <span className={`text-[10px] font-mono truncate flex-1 ${b ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] italic'}`}>
+                      {b ?? 'unbound'}
+                    </span>
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">
+                      {count} {count === 1 ? 'layer' : 'layers'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Binding error feedback */}
       {bindingError && (

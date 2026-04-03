@@ -24,6 +24,23 @@ export function getCurrentValue(nodes: SelectionNodeInfo[], prop: BindableProper
   return nodes[0].currentValues[prop];
 }
 
+/** Returns the distinct binding values (or null for unbound) with layer counts, for a mixed-state property. */
+export function getMixedBindingValues(nodes: SelectionNodeInfo[], prop: BindableProperty): { binding: string | null; count: number }[] {
+  const counts = new Map<string | null, number>();
+  for (const node of nodes) {
+    const val = node.bindings[prop] || null;
+    counts.set(val, (counts.get(val) ?? 0) + 1);
+  }
+  // Sort: bound entries first (alphabetically), then unbound last
+  return Array.from(counts.entries())
+    .map(([binding, count]) => ({ binding, count }))
+    .sort((a, b) => {
+      if (a.binding === null && b.binding !== null) return 1;
+      if (a.binding !== null && b.binding === null) return -1;
+      return (a.binding ?? '').localeCompare(b.binding ?? '');
+    });
+}
+
 export function getMergedCapabilities(nodes: SelectionNodeInfo[]): NodeCapabilities {
   if (nodes.length === 0) {
     return { hasFills: false, hasStrokes: false, hasAutoLayout: false, isText: false, hasEffects: false };
