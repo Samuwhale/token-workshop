@@ -75,6 +75,7 @@ export interface GroupEntry {
 interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
+  allSetTokens?: TokenEntry[];
   pinnedTokens?: TokenEntry[];
   recentTokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
@@ -145,11 +146,12 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
   const [showAllQualifiers, setShowAllQualifiers] = useState(false);
+  const [searchAllSets, setSearchAllSets] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [recent] = useState<RecentEntry[]>(() => loadRecent());
@@ -167,13 +169,16 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
   const isTokenMode = query.startsWith('>');
   const tokenQuery = isTokenMode ? query.slice(1).trim() : '';
 
+  // Active token list: all-sets or current-set
+  const activeTokenList = searchAllSets && allSetTokens ? allSetTokens : tokens;
+
   const MAX_TOKEN_BROWSE = 100;
 
   // Derive unique group paths from tokens
   const groups: GroupEntry[] = useMemo(() => {
-    if (!tokens.length) return [];
+    if (!activeTokenList.length) return [];
     const groupMap = new Map<string, { count: number; sets: Set<string> }>();
-    for (const t of tokens) {
+    for (const t of activeTokenList) {
       const parts = t.path.split('.');
       // Build every ancestor group path (all but the leaf)
       for (let i = 1; i < parts.length; i++) {
@@ -187,7 +192,7 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
     return Array.from(groupMap.entries())
       .map(([path, { count, sets }]) => ({ path, childCount: count, sets: Array.from(sets) }))
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokens]);
+  }, [activeTokenList]);
 
   // Parse structured qualifiers from the token query
   const parsedTokenQuery = useMemo(() => parseStructuredQuery(tokenQuery), [tokenQuery]);
@@ -201,10 +206,10 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
   const groupQueryText = isGroupQuery ? tokenQuery.slice(6).trim().toLowerCase() : '';
 
   const { filteredTokens, totalTokenMatches } = useMemo(() => {
-    if (!isTokenMode || !tokens.length || isGroupQuery) return { filteredTokens: [], totalTokenMatches: 0 };
+    if (!isTokenMode || !activeTokenList.length || isGroupQuery) return { filteredTokens: [], totalTokenMatches: 0 };
 
     // Apply structural qualifiers first
-    const base = hasQualifiers ? filterTokensStructured(tokens, parsedTokenQuery) : tokens;
+    const base = hasQualifiers ? filterTokensStructured(activeTokenList, parsedTokenQuery) : activeTokenList;
 
     const freeText = parsedTokenQuery.text;
     if (!freeText && !hasQualifiers) {
@@ -222,7 +227,7 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
     return { filteredTokens: matched.slice(0, visibleCount), totalTokenMatches: matched.length };
-  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers, isGroupQuery, visibleCount]);
+  }, [isTokenMode, activeTokenList, parsedTokenQuery, hasQualifiers, isGroupQuery, visibleCount]);
 
   // Group search results
   const { filteredGroups, totalGroupMatches } = useMemo(() => {
@@ -408,7 +413,9 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isTokenMode ? 'Search tokens… (try type:color, has:ref, path:brand)' : 'Search commands… (type > for tokens)'}
+            placeholder={isTokenMode
+              ? (searchAllSets ? 'Search all sets… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
+              : 'Search commands… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
             className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
@@ -425,7 +432,7 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
 
         {/* Qualifier hint chips — persistent reference row */}
         {isTokenMode && (
-          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap">
+          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
             <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
             {(showAllQualifiers ? QUERY_QUALIFIERS : QUERY_QUALIFIERS.slice(0, 6)).map(q => (
               <button
@@ -444,6 +451,19 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
             >
               {showAllQualifiers ? 'fewer' : `+${QUERY_QUALIFIERS.length - 6} more`}
             </button>
+            {allSetTokens && (
+              <button
+                className={`ml-auto text-[10px] px-1.5 py-0.5 rounded border transition-colors shrink-0 font-medium ${
+                  searchAllSets
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+                onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
+                title={searchAllSets ? 'Searching all sets — click to search active set only' : 'Search across all token sets'}
+              >
+                {searchAllSets ? 'All sets' : 'All sets'}
+              </button>
+            )}
           </div>
         )}
 
@@ -453,16 +473,29 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
           {isTokenMode && (
             <>
               {(hasQualifiers || parsedTokenQuery.text || isGroupQuery) && (filteredTokens.length > 0 || filteredGroups.length > 0) && (
-                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-1.5">
                   {isGroupQuery
                     ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
                     : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
                   }
+                  {searchAllSets && <span className="text-[var(--color-figma-accent)] opacity-70">across all sets</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
                 <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
-                  {tokenQuery ? `No tokens or groups match "${tokenQuery}"` : 'Type a token path to search (or group: for groups)'}
+                  {tokenQuery
+                    ? `No tokens or groups match "${tokenQuery}"${!searchAllSets && allSetTokens ? ' in this set' : ''}`
+                    : `Type a token path to search${searchAllSets ? ' across all sets' : ''} (or group: for groups)`}
+                  {tokenQuery && !searchAllSets && allSetTokens && (
+                    <div className="mt-1.5">
+                      <button
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                        onClick={() => { setSearchAllSets(true); setVisibleCount(100); }}
+                      >
+                        Search all sets
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               {/* Group results */}
@@ -759,7 +792,10 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
             <>
               <span>↑↓ navigate</span>
               <span>↵ go to token/group</span>
-              <span className="opacity-60">type: has: value: path: name: group:</span>
+              {searchAllSets
+                ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all sets</span>
+                : <span className="opacity-60">type: has: value: path: name: group:</span>
+              }
               <span>ESC close</span>
             </>
           ) : (

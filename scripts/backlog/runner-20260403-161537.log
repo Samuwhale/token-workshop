@@ -322,3 +322,16 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ⚠ Rate limit hit during code pass — skipping
+
+## 2026-04-03 - No "copy token path as CSS variable" keyboard shortcut
+- Added Cmd+Shift+C shortcut to copy the focused/selected token(s) as CSS custom property references (e.g., `var(--color-brand-primary)`). Multiple selections produce one `var(--...)` per line.
+- Added `TOKEN_COPY_CSS_VAR: '⌘⇧C'` constant and a registry entry ("Copy token path as CSS var") to the shortcut registry.
+- Added `copyCssFeedback` state and `copyTokensAsCssVarRef` ref alongside the existing JSON copy machinery in TokenList.
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  6 queued · 3 in-progress · last took 9m30s
+═══════════════════════════════════════════════════════════════
+  → No warning when assigning an empty set as a theme override — ThemeManager allows users to assign an empty token set as an "enabled" (override) source for a dimension option without any visual warning; this creates silent coverage gaps where theme switching produces no visible change; show a warning badge or tooltip on the set assignment row when the assigned set contains zero tokens
+  Worktree: /tmp/backlog-46178-n4nvZM
+  Running agent… (started 17:48:45)

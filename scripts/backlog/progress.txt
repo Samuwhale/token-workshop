@@ -540,3 +540,18 @@
   - The shortcut must check `e.shiftKey` explicitly in both the new Cmd+Shift+C handler AND the existing Cmd+C handler (which already guards `!e.shiftKey`) — no conflict.
   - Gate 4 (headless UI validation) timed out due to a pre-existing environment issue (networkidle timeout on 3.5 MB single-file HTML); gates 1-3 all passed cleanly.
 ---
+
+## 2026-04-03 - No cross-set token search from the command palette
+- Added "Search all sets" toggle to the command palette token mode (`>` prefix).
+- Default token mode now searches only the active set (uses `perSetFlat[activeSet]`), making results focused and fast.
+- Clicking the "All sets" button in the qualifier hints bar switches to searching all sets simultaneously, with set name badges prominently shown on each result.
+- When no results are found in active-set mode, a "Search all sets" link appears in the empty state to quickly enable cross-set search.
+- Match count bar shows "across all sets" label when in all-sets mode; footer shows "searching all sets" instead of qualifier hint.
+- Placeholder text updates to reflect the current scope ("Search all sets…" vs "Search tokens…").
+- On selection in all-sets mode, existing `onGoToToken` handler already switches set + scrolls — no changes needed there.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L75, ~L148, ~L168, ~L178, ~L210, ~L430, ~L455, ~L465, ~L757, ~L775; `packages/figma-plugin/src/ui/App.tsx` ~L1148
+- **Learnings for future iterations:**
+  - `allTokensFlat` (from `useTokenDataLoading`) already contains tokens from all sets via `fetchAllTokensFlatWithSets`. The "first set wins" de-duplication in `pathToSet` means shared token paths are attributed to the first set. For active-set-only searching, use `perSetFlat[activeSet]` directly to get accurate per-set tokens regardless of position in the set loading order.
+  - Adding a scope-toggle to a search component is cleanly done by: (a) computing two token lists — scoped and unscoped, (b) passing both as separate props, (c) maintaining toggle state locally in the component, (d) switching the `activeTokenList` derivation. No additional server calls needed.
+  - The `networkidle` timeout in `validate.mjs` is pre-existing — the plugin UI's API polling prevents the `waitUntil: 'networkidle'` condition from being satisfied within the 15s timeout. All code gates (tests, build, lint) pass.
+---

@@ -415,3 +415,18 @@ Already up to date.
 
   Merging to main: No "copy token path as CSS variable" keyboard shortcut
 Already up to date.
+[main 78db3e10] chore(backlog): done – No "copy token path as CSS variable" keyboard shortcut
+ 7 files changed, 96 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No "copy token path as CSS variable" keyboard shortcut
+- Added Cmd+Shift+C shortcut to copy the focused/selected token(s) as CSS custom property references (e.g., `var(--color-brand-primary)`). Multiple selections produce one `var(--...)` per line.
+- Added `TOKEN_COPY_CSS_VAR: '⌘⇧C'` constant and a registry entry ("Copy token path as CSS var") to the shortcut registry.
+- Added `copyCssFeedback` state and `copyTokensAsCssVarRef` ref alongside the existing JSON copy machinery in TokenList.
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  7 queued · 2 in-progress · last took 4m49s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel and TokenDetailPreview serve overlapping purposes — PreviewPanel renders template-based previews (Colors, Type Scale, Buttons, etc.) using CSS variables, while TokenDetailPreview shows a single token's resolved value chain; neither links to the other; consider merging TokenDetailPreview into the token list sidebar and making PreviewPanel the sole "preview" destination, or unify them into a single preview pane that shows context-aware content (single token detail when one is selected, collection preview when viewing a set)
+  Worktree: /tmp/backlog-46580-WeeXZw
+  Running agent… (started 17:45:09)

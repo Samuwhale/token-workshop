@@ -1145,7 +1145,20 @@ export function App() {
     return cmds;
   }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit]);
 
-  // Flat token list for command palette token search mode
+  // Flat token list for command palette — active set only (default mode)
+  const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {
+    const setFlat = perSetFlat[activeSet] ?? {};
+    return Object.entries(setFlat).map(([path, entry]) => ({
+      path,
+      type: entry.$type || 'unknown',
+      value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
+      set: activeSet,
+      isAlias: isAlias(entry.$value),
+      generatorName: derivedTokenPaths.get(path)?.name,
+    }));
+  }, [perSetFlat, activeSet, derivedTokenPaths]);
+
+  // All-sets flat token list for command palette "Search all sets" mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
     return Object.entries(allTokensFlat).map(([path, entry]) => ({
       path,
@@ -3039,7 +3052,8 @@ export function App() {
       {showCommandPalette && (
         <CommandPalette
           commands={commands}
-          tokens={paletteTokens}
+          tokens={activeSetPaletteTokens}
+          allSetTokens={paletteTokens}
           pinnedTokens={pinnedPaletteTokens}
           recentTokens={recentPaletteTokens}
           onGoToToken={(path) => {

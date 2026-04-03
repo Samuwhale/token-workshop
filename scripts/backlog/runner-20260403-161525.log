@@ -316,3 +316,10 @@ Already up to date.
   → No cross-set token search from the command palette — the command palette (Cmd+K) only searches tokens in the active set; users managing tokens across 10+ sets cannot quickly jump to a token by name without first switching sets; add a "Search all sets" mode to the command palette that shows results with set name badges and switches set + scrolls to the token on selection
   Worktree: /tmp/backlog-45818-j90FD1
   Running agent… (started 17:40:17)
+
+  ✓ done: No cross-set token search from the command palette
+    Added "Search all sets" toggle to command palette token mode — default searches active set only, toggle expands to all sets with set badges; empty-state shows "Search all sets" fallback link
+    45 turns · 513s · $1.69
+
+  Merging to main: No cross-set token search from the command palette
+Already up to date.
