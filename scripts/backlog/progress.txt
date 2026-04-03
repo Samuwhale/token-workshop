@@ -419,3 +419,12 @@
   - `figma.mixed` is a Symbol — always guard against it before any JSON serialization. `typeof val === 'symbol'` is a reliable check, or use `val === figma.mixed` directly in plugin code.
   - When a count metric has a dedicated array/set (like `missingTokens`), use `.length` in the response rather than a redundant counter — avoids them getting out of sync.
 ---
+
+## 2026-04-03 - applyToSelection has no rollback on partial failure
+- Refactored `applyToSelection` to capture a per-node snapshot via `captureNodeProps` before mutating, and call `restoreNodeProps` in the catch block if `applyTokenValue` throws — matching the pattern already used in `syncBindings`. Failed nodes are rolled back atomically; successful nodes are not affected. Error messages already included the node name, so per-node failure reporting was already in place.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L169
+- **Learnings for future iterations:**
+  - `captureNodeProps` and `restoreNodeProps` are private helpers in the same file — no import or export changes needed, just call them directly.
+  - Snapshot before the try block, restore in the catch block — identical pattern to `syncBindings`'s per-node rollback at ~L782.
+  - The `composition` token type applies multiple sub-properties; `captureNodeProps([targetProperty])` only captures the top-level property name (e.g., "composition"), which may not fully snapshot all affected sub-properties. This is an accepted limitation consistent with how `syncBindings` handles it.
+---

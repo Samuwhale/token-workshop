@@ -167,6 +167,8 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
   let applied = 0;
   const errors: string[] = [];
   for (const node of selection) {
+    // Snapshot the relevant property before mutating so we can roll back on failure
+    const snap = captureNodeProps(node, [targetProperty]);
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
       node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
@@ -175,6 +177,10 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
       const msg = getErrorMessage(err);
       errors.push(`${node.name}: ${msg}`);
       console.error(`Failed to apply ${tokenPath} to ${node.name}:`, err);
+      // Roll back any partial mutation on this node
+      await restoreNodeProps(node, snap).catch(re =>
+        console.error('[applyToSelection] rollback failed for', node.name, re)
+      );
     }
   }
 

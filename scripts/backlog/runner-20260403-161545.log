@@ -311,3 +311,25 @@ Already up to date.
 
   Merging to main: syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
 Already up to date.
+[main 61dca5e1] chore(backlog): done – syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
+ 7 files changed, 58 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - syncBindings silently counts missing tokens as "skipped" and captureNodeProps fails on figma.mixed
+- Fixed two distinct bugs in `selectionHandling.ts`:
+  1. **figma.mixed in captureNodeProps**: `JSON.parse(JSON.stringify(val))` silently drops `figma.mixed` (a Symbol) — changed to detect `val === figma.mixed` and store the reference directly in the snapshot. `restoreNodeProps` already assigns values back directly, so it can restore `figma.mixed` correctly.
+  2. **Missing tokens counted as skipped**: Removed the `skipped++` increment from the missing-token branch — `missingTokens.length` in the sync-complete message is the authoritative count. Updated `figma.notify` summary to show missing tokens as a distinct part (e.g., "2 missing tokens") rather than folding them into "skipped".
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  5 queued · 3 in-progress · last took 2m13s
+═══════════════════════════════════════════════════════════════
+  → selectionHandling.ts applyToSelection has no rollback on partial failure — applyToSelection (line 159-190) iterates selected nodes and applies token values one at a time; if the 3rd of 5 nodes throws, nodes 1-2 are already mutated and the function reports "Applied to 2 layer(s); 1 failed" but cannot undo the partial application; syncBindings (line 697+) has a snapshot-based rollback mechanism but applyToSelection does not use it; refactor applyToSelection to use the same captureNodeProps/restoreNodeProps pattern so partial failures can be fully rolled back, or at minimum report which specific nodes failed so the user can manually fix them
+  Worktree: /tmp/backlog-46580-3mKgwg
+  Running agent… (started 17:28:13)
+
+  ✓ done: applyToSelection has no rollback on partial failure
+    Added captureNodeProps snapshot before each node mutation and restoreNodeProps rollback in the catch block, matching the syncBindings pattern
+    11 turns · 84s · $0.27
+
+  Merging to main: applyToSelection has no rollback on partial failure
+Already up to date.
