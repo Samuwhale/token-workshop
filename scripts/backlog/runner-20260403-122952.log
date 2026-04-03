@@ -81,3 +81,10 @@ Already up to date.
   → No PluginResponse discriminated union for controller→UI messages — shared/types.ts defines PluginMessage (UI→controller, 35 types) but has no corresponding outbound type; at least 6 response types (applied-to-nodes, search-layers-result, peers-for-property-result, removed-binding-from-node, select-next-sibling-result, scan-token-usage-result) are posted from controller.ts/selectionHandling.ts/heatmapScanning.ts without type declarations, making it impossible for UI code to type-guard responses
   Worktree: /tmp/backlog-49887-xLKmvy
   Running agent… (started 12:53:45)
+
+  ✓ done: No PluginResponse discriminated union for controller→UI messages
+    Added 9 missing interfaces and fixed 5 shape/type-string mismatches in ControllerMessage union; also fixed useVariableSync extractCollections bug
+    50 turns · 349s · $1.34
+
+  Merging to main: No PluginResponse discriminated union for controller→UI messages
+Already up to date.

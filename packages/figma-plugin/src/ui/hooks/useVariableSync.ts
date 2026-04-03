@@ -17,13 +17,13 @@ interface UseVariableSyncOptions {
   modeMap: Record<string, string>;
 }
 
-const extractTokens = (msg: any): any[] => msg.tokens ?? [];
+const extractCollections = (msg: any): any[] => msg.collections ?? [];
 
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
     timeout: 10000,
-    extractResponse: extractTokens,
+    extractResponse: extractCollections,
   });
 
   const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number }>({

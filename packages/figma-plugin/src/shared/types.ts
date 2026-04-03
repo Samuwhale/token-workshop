@@ -432,6 +432,8 @@ export interface GetAvailableFontsMessage {
 export interface ControllerErrorMessage {
   type: 'error';
   message: string;
+  /** Handler name that produced the error, used for debugging */
+  handler?: string;
 }
 
 export interface FontsLoadedMessage {
@@ -459,10 +461,10 @@ export interface VariableSyncProgressMessage {
 export interface VariablesAppliedMessage {
   type: 'variables-applied';
   count: number;
-  total: number;
+  total?: number;
   created?: number;
   overwritten?: number;
-  failures: { path: string; error: string }[];
+  failures?: { path: string; error: string }[];
   correlationId?: string;
 }
 
@@ -476,7 +478,7 @@ export interface ApplyVariablesErrorMessage {
 
 export interface VariablesReadMessage {
   type: 'variables-read';
-  tokens: any[];
+  collections: any[];
   correlationId?: string;
 }
 
@@ -525,6 +527,9 @@ export interface SyncCompleteResponseMessage {
   skipped: number;
   errors: number;
   missingTokens: string[];
+  error?: string;
+  rolledBack?: boolean;
+  rollbackError?: string;
 }
 
 export interface RemapCompleteResponseMessage {
@@ -571,7 +576,10 @@ export interface CanvasHeatmapResultMessage {
 export interface ComponentCoverageResultMessage {
   type: 'component-coverage-result';
   correlationId?: string;
-  coverage: any;
+  totalComponents: number;
+  tokenizedComponents: number;
+  untokenized: { id: string; name: string; hardcodedCount: number }[];
+  totalUntokenized: number;
 }
 
 export interface ExtractedTokensResponseMessage {
@@ -585,7 +593,7 @@ export interface SelectionResponseMessage {
 }
 
 export interface LayerSearchResultMessage {
-  type: 'layer-search-result';
+  type: 'search-layers-result';
   results: LayerSearchResult[];
   correlationId?: string;
 }
@@ -604,9 +612,65 @@ export interface AvailableFontsMessage {
 }
 
 export interface FindPeersResultMessage {
-  type: 'find-peers-result';
+  type: 'peers-for-property-result';
   nodeIds: string[];
+  property: string;
   correlationId?: string;
+}
+
+export interface AppliedToSelectionMessage {
+  type: 'applied-to-selection';
+  count: number;
+  errors: string[];
+  targetProperty: string;
+}
+
+export interface OrphansDeletedMessage {
+  type: 'orphans-deleted';
+  count: number;
+  correlationId?: string;
+}
+
+export interface AllVariablesExportedMessage {
+  type: 'all-variables-exported';
+  collections: any[];
+}
+
+export interface StyleSyncProgressMessage {
+  type: 'style-sync-progress';
+  current: number;
+  total: number;
+  correlationId?: string;
+}
+
+export interface TokenUsageMapMessage {
+  type: 'token-usage-map';
+  usageMap: Record<string, number>;
+}
+
+export interface TokenUsageResultMessage {
+  type: 'token-usage-result';
+  tokenPath: string;
+  layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[];
+  total: number;
+  componentNames: string[];
+}
+
+export interface ConsistencyScanProgressMessage {
+  type: 'consistency-scan-progress';
+  processed: number;
+  total: number;
+}
+
+export interface ConsistencyScanResultMessage {
+  type: 'consistency-scan-result';
+  suggestions: any[];
+  totalNodes: number;
+}
+
+export interface ConsistencyScanErrorMessage {
+  type: 'consistency-scan-error';
+  error: string;
 }
 
 /** Discriminated union of all Controller→UI (plugin sandbox → iframe) messages */
@@ -620,13 +684,17 @@ export type ControllerMessage =
   | ApplyVariablesErrorMessage
   | VariablesReadMessage
   | VariablesReadErrorMessage
+  | StyleSyncProgressMessage
   | StylesAppliedMessage
   | StylesApplyErrorMessage
   | StylesReadMessage
   | StylesReadErrorMessage
+  | OrphansDeletedMessage
+  | AllVariablesExportedMessage
   | SyncProgressResponseMessage
   | SyncCompleteResponseMessage
   | RemapCompleteResponseMessage
+  | AppliedToSelectionMessage
   | AppliedToNodesMessage
   | RemovedBindingFromNodeMessage
   | SelectNextSiblingResultMessage
@@ -638,7 +706,12 @@ export type ControllerMessage =
   | LayerSearchResultMessage
   | TokenVariableBindingsMessage
   | AvailableFontsMessage
-  | FindPeersResultMessage;
+  | FindPeersResultMessage
+  | TokenUsageMapMessage
+  | TokenUsageResultMessage
+  | ConsistencyScanProgressMessage
+  | ConsistencyScanResultMessage
+  | ConsistencyScanErrorMessage;
 
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
