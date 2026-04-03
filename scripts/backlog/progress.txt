@@ -660,3 +660,15 @@
   - Adding a new sub-tab requires: (1) extend the `DefineSubTab` type, (2) add entry to `TOP_TABS`, (3) add rendering block, (4) add command palette entry, (5) add keyboard shortcut key + registry entry + handler. No changes to `DEFAULT_SUB_TABS` or `SUB_TAB_STORAGE` needed since the new sub-tab is under an existing top-tab.
   - `resolverState` is already computed in App.tsx from `useResolvers`; standalone `ResolverPanel` accepts the same props as the embedded `ResolverContent`, so wiring is a direct spread.
 ---
+
+## 2026-04-04 - HistoryPanel has no side-by-side diff view for comparing two arbitrary points in history
+- Added "Compare" mode to the HistoryPanel timeline. A "Compare" toggle button in the toolbar activates selection mode. Commits show "Set A" / "Set B" buttons on hover. A status banner guides the user through the two-step selection. Once both commits are picked, a `CommitCompareView` opens automatically (or via "View diff" in the banner).
+- `CommitCompareView` renders a two-card header showing commit A and B metadata side-by-side, then a full diff grouped by token set using the existing `Section`, `ChangeRow`, `ValueDiff`, and `ChangeSummaryBadges` components — same visual style as the single-commit detail view.
+- Added `diffBetweenCommits(fromHash, toHash)` method to `git-sync.ts` using `git diff --name-status fromHash toHash` (vs `diff-tree` for single commits), fetching file content at both hashes with the existing `showFileAtCommit`.
+- Added `GET /api/sync/compare?from=<hash>&to=<hash>` endpoint in `sync.ts` that calls the new method, runs through the existing `buildTokenDiff`, and returns `{ from, to, changes, fileCount }`.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L494, `packages/server/src/routes/sync.ts` ~L272, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L198, ~L347, ~L490, ~L668, ~L1504
+- **Learnings for future iterations:**
+  - `git diff --name-status A B` (two refs, no `..`) gives the diff from A to B inclusive; `A..B` is equivalent for simple linear histories but `--name-status A B` is safer and more explicit.
+  - The existing `buildTokenDiff` function is reusable for any source of `FileDiff[]` objects — no changes needed to it.
+  - The compare view intentionally has no restore buttons (read-only diff); keeping it simpler reduces accidental state mutations when users are just exploring history.
+---

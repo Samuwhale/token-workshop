@@ -156,3 +156,10 @@ Already up to date.
   → HistoryPanel has no side-by-side diff view for comparing two arbitrary points in history — users can see what changed in a single commit but cannot compare state-at-commit-A vs state-at-commit-B
   Worktree: /tmp/backlog-92209-LdVqZ2
   Running agent… (started 01:29:15)
+
+  ✓ done: HistoryPanel has no side-by-side diff view for comparing two arbitrary points in history — users can see what changed in a single commit but cannot compare state-at-commit-A vs state-at-commit-B
+    Added Compare mode toggle to HistoryPanel timeline with A/B commit selection and a CommitCompareView component; backed by a new GET /api/sync/compare?from&to endpoint and diffBetweenCommits method in git-sync.ts.
+    41 turns · 449s · $1.66
+
+  Merging to main: HistoryPanel has no side-by-side diff view for comparing two arbitrary points in history — users can see what changed in a single commit but cannot compare state-at-commit-A vs state-at-commit-B
+Already up to date.

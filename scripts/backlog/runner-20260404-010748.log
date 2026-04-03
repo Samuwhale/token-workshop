@@ -198,3 +198,18 @@ Already up to date.
 
   Merging to main: ResolverPanel has no command palette entry or keyboard shortcut — it is only reachable via ThemeManager then scrolling to the Advanced section, making DTCG resolver configuration nearly invisible to users who do not know it exists
 Already up to date.
+[main 7745ee38] chore(backlog): done – ResolverPanel has no command palette entry or keyboard shortcut — it is only reachable via ThemeManager then scrolling to the Advanced section, making DTCG resolver configuration nearly invisible to users who do not know it exists
+ 7 files changed, 87 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ResolverPanel has no command palette entry or keyboard shortcut
+- Added `'resolver'` as a sub-tab under `define` (Define > Resolver) so the panel is directly navigable.
+- Added `ResolverPanel` import to App.tsx and a rendering block for `activeTopTab === 'define' && activeSubTab === 'resolver'`, passing the full `resolverState` spread.
+- Added command palette entry `{ id: 'resolver', label: 'Open DTCG Resolver', category: 'Navigation', shortcut: '⌘⇧R' }` in `baseCommands`.
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  9 queued · 3 in-progress · last took 6m25s
+═══════════════════════════════════════════════════════════════
+  → Token search qualifiers in the command palette (type:color, has:ref, path:brand, value:#, has:description, has:generated) are documented only in a collapsible hint inside the palette — they should be listed in the keyboard shortcuts modal and help docs
+  Worktree: /tmp/backlog-91949-INSPOX
+  Running agent… (started 01:35:37)

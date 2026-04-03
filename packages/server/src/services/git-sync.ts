@@ -490,6 +490,33 @@ export class GitSync {
     }
   }
 
+  /** Get token file diffs between two arbitrary commits (fromHash → toHash). */
+  async diffBetweenCommits(fromHash: string, toHash: string): Promise<Array<{
+    file: string;
+    status: 'A' | 'M' | 'D';
+    before: string | null;
+    after: string | null;
+  }>> {
+    const raw = await this.git.raw(['diff', '--name-status', fromHash, toHash]);
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+
+    for (const line of lines) {
+      const parsed = parseStatusLine(line);
+      if (!parsed) continue;
+      const { filePath } = parsed;
+      if (!filePath.endsWith('.tokens.json')) continue;
+
+      const s = normalizeGitStatus(parsed.status);
+      if (!s) continue;
+      const before = s !== 'A' ? await this.showFileAtCommit(fromHash, filePath) : null;
+      const after = s !== 'D' ? await this.showFileAtCommit(toHash, filePath) : null;
+      results.push({ file: filePath, status: s, before, after });
+    }
+
+    return results;
+  }
+
   /** Get the list of changed .tokens.json files in a commit with their before/after JSON content. */
   async getTokenFileDiffs(commitHash: string): Promise<Array<{
     file: string;

@@ -269,6 +269,25 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/sync/compare — token-level diff between two arbitrary commits
+  // Query params: from=<hash>&to=<hash>
+  fastify.get<{ Querystring: { from: string; to: string } }>('/sync/compare', async (request, reply) => {
+    const { from, to } = request.query;
+    if (!from || !to) {
+      return reply.status(400).send({ error: 'Missing required query params: from, to' });
+    }
+    if (!/^[0-9a-f]{4,40}$/i.test(from) || !/^[0-9a-f]{4,40}$/i.test(to)) {
+      return reply.status(400).send({ error: 'Invalid commit hash' });
+    }
+    try {
+      const fileDiffs = await fastify.gitSync.diffBetweenCommits(from, to);
+      const changes = buildTokenDiff(fileDiffs);
+      return { from, to, changes, fileCount: fileDiffs.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to compare commits', detail: String(err) });
+    }
+  });
+
   // POST /api/sync/log/:hash/restore — restore tokens to their state before this commit
   // Body: { tokens?: Array<{ path: string; set: string }> }
   // If tokens is omitted, restores ALL changed tokens in the commit.

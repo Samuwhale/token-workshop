@@ -200,6 +200,12 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
   const [selectedSnapshotLabel, setSelectedSnapshotLabel] = useState<string | null>(null);
 
+  // Compare mode
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareA, setCompareA] = useState<CommitEntry | null>(null);
+  const [compareB, setCompareB] = useState<CommitEntry | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
+
   // Rollback confirm
   const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
   const [rollingBack, setRollingBack] = useState<string | null>(null);
@@ -336,6 +342,23 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     );
   }
 
+  // Compare view
+  if (showCompare && compareA && compareB) {
+    return (
+      <CommitCompareView
+        serverUrl={serverUrl}
+        commitA={compareA}
+        commitB={compareB}
+        onBack={() => {
+          setShowCompare(false);
+          setCompareMode(false);
+          setCompareA(null);
+          setCompareB(null);
+        }}
+      />
+    );
+  }
+
   // Build merged timeline
   type TimelineItem =
     | { kind: 'action'; ts: number; data: OperationEntry }
@@ -468,6 +491,25 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               )}
             </div>
             <button
+              onClick={() => {
+                setCompareMode(m => {
+                  if (m) { setCompareA(null); setCompareB(null); }
+                  return !m;
+                });
+              }}
+              className={`shrink-0 flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors ${
+                compareMode
+                  ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]'
+                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              }`}
+              title={compareMode ? 'Exit compare mode' : 'Compare two commits'}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 20V10M12 20V4M6 20v-6" />
+              </svg>
+              Compare
+            </button>
+            <button
               onClick={() => fetchTimeline(debouncedCommitSearch)}
               className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
@@ -476,6 +518,36 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           </>
         )}
       </div>
+
+      {/* Compare mode banner */}
+      {compareMode && (
+        <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)] border-b border-[var(--color-figma-border)]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+            <path d="M18 20V10M12 20V4M6 20v-6" />
+          </svg>
+          {!compareA ? (
+            <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+              Click <span className="font-semibold text-[var(--color-figma-accent)]">Set A</span> on a commit to start comparing
+            </span>
+          ) : !compareB ? (
+            <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span className="font-mono text-[var(--color-figma-text)]">{compareA.hash.slice(0, 7)}</span> selected as A — now click <span className="font-semibold text-[var(--color-figma-success)]">Set B</span>
+            </span>
+          ) : (
+            <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+              Comparing <span className="font-mono text-[var(--color-figma-text)]">{compareA.hash.slice(0, 7)}</span> → <span className="font-mono text-[var(--color-figma-text)]">{compareB.hash.slice(0, 7)}</span>
+            </span>
+          )}
+          {compareA && compareB && (
+            <button
+              onClick={() => setShowCompare(true)}
+              className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            >
+              View diff
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="flex-1 overflow-y-auto">
@@ -625,6 +697,74 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
           if (entry.kind === 'commit') {
             const commit = entry.data;
+            if (compareMode) {
+              const isA = compareA?.hash === commit.hash;
+              const isB = compareB?.hash === commit.hash;
+              const isSelected = isA || isB;
+              const canSetA = !isA;
+              const canSetB = compareA !== null && !isB && !isA;
+              return (
+                <div
+                  key={`commit-${commit.hash}`}
+                  className={`flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] transition-colors group ${isSelected ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                      <circle cx="12" cy="12" r="4" /><line x1="1.05" y1="12" x2="7" y2="12" /><line x1="17.01" y1="12" x2="22.96" y2="12" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {isA && (
+                        <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
+                      )}
+                      {isB && (
+                        <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
+                      )}
+                      <TypePill kind="commit" />
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                      <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-1">
+                    {canSetA && (
+                      <button
+                        onClick={() => setCompareA(commit)}
+                        className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
+                      >
+                        {compareA === null ? 'Set A' : 'Swap A'}
+                      </button>
+                    )}
+                    {canSetB && (
+                      <button
+                        onClick={() => {
+                          setCompareB(commit);
+                          setShowCompare(true);
+                        }}
+                        className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
+                      >
+                        Set B
+                      </button>
+                    )}
+                    {isA && !isB && (
+                      <button
+                        onClick={() => setCompareA(null)}
+                        className="text-[9px] px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                        title="Clear A"
+                      >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
             return (
               <button
                 key={`commit-${commit.hash}`}
@@ -1356,6 +1496,149 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Commit Compare View — side-by-side diff between two arbitrary commits
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function CommitCompareView({
+  serverUrl,
+  commitA,
+  commitB,
+  onBack,
+}: {
+  serverUrl: string;
+  commitA: CommitEntry;
+  commitB: CommitEntry;
+  onBack: () => void;
+}) {
+  const [changes, setChanges] = useState<TokenChange[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiFetch<{ changes?: TokenChange[]; fileCount?: number }>(
+      `${serverUrl}/api/sync/compare?from=${encodeURIComponent(commitA.hash)}&to=${encodeURIComponent(commitB.hash)}`
+    ).then(data => {
+      if (cancelled) return;
+      const c = data.changes ?? [];
+      setChanges(c);
+      const sections: Record<string, boolean> = {};
+      const sets = new Set(c.map(ch => ch.set));
+      for (const s of sets) sections[s] = true;
+      setOpenSections(sections);
+    }).catch(err => {
+      if (cancelled) return;
+      setError(String((err as Error).message || err));
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [serverUrl, commitA.hash, commitB.hash]);
+
+  const toggleSection = useCallback((key: string) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-[11px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate min-w-0">
+          Comparing commits
+        </span>
+      </div>
+
+      {/* Commit A / B info cards */}
+      <div className="shrink-0 grid grid-cols-2 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
+        <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
+            <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
+          </div>
+          <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitA.message}>{commitA.message}</p>
+          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
+        </div>
+        <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
+            <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
+          </div>
+          <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitB.message}>{commitB.message}</p>
+          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
+        </div>
+      </div>
+
+      {/* Diff content */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        {loading && (
+          <div className="flex items-center justify-center py-8 gap-2">
+            <Spinner size="md" className="text-[var(--color-figma-accent)]" />
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Computing diff…</p>
+          </div>
+        )}
+        {!loading && error && (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
+          </div>
+        )}
+        {!loading && !error && changes !== null && changes.length === 0 && (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-[11px] text-[var(--color-figma-text-tertiary)]">No token differences between these two commits.</p>
+          </div>
+        )}
+        {!loading && !error && changes !== null && changes.length > 0 && (() => {
+          const summary = summarizeChanges(changes);
+          const bySet = new Map<string, TokenChange[]>();
+          for (const change of changes) {
+            if (!bySet.has(change.set)) bySet.set(change.set, []);
+            bySet.get(change.set)!.push(change);
+          }
+          return (
+            <>
+              {/* Summary bar */}
+              <div className="flex items-center gap-2 px-1 py-1">
+                <ChangeSummaryBadges {...summary} />
+                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">across {bySet.size} set{bySet.size !== 1 ? 's' : ''}</span>
+              </div>
+              {Array.from(bySet.entries()).map(([setName, setChanges]) => {
+                const setSummary = summarizeChanges(setChanges);
+                return (
+                  <Section
+                    key={setName}
+                    title={setName}
+                    open={openSections[setName] ?? true}
+                    onToggle={() => toggleSection(setName)}
+                    badge={<ChangeSummaryBadges {...setSummary} />}
+                  >
+                    <div className="divide-y divide-[var(--color-figma-border)]">
+                      {setChanges.map((change, i) => (
+                        <ChangeRow key={`${change.path}-${i}`} change={change} />
+                      ))}
+                    </div>
+                  </Section>
+                );
+              })}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
