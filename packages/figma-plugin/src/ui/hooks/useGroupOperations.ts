@@ -100,7 +100,8 @@ export function useGroupOperations({
         return;
       }
     } catch (err) {
-      console.warn('[useGroupOperations] group rename preview failed:', err);
+      onError?.(err instanceof ApiError ? err.message : 'Could not fetch rename preview — please try again');
+      return;
     }
     await executeGroupRename(oldGroupPath, newGroupPath);
   }, [connected, serverUrl, setName, executeGroupRename]);

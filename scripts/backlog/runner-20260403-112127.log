@@ -170,3 +170,25 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 58)
+[main 2efcdb78] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 35 insertions(+), 262 deletions(-)
+  Milestone: 1035 done — pass skipped (runner PID 31178 already running one)
+
+## 2026-04-03 - Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+- Added set validation to both routes: extract `set` from `request.params`, call `fastify.tokenStore.getSet(set)`, and return 404 if the set doesn't exist — before proceeding to the cross-set query. The dependent queries themselves remain global (cross-set), which is their correct behavior; the fix simply enforces that the set named in the URL actually exists.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L484, ~L498
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  1 queued · 1 in-progress · last took 1m15s
+═══════════════════════════════════════════════════════════════
+  → useGroupOperations group rename preview error silently falls through to executing the rename — when the rename-preview fetch fails (useGroupOperations.ts:102-104), the error is only logged to console and the code continues to call executeGroupRename without a confirmation dialog; this means a group rename that has alias dependents can proceed without showing the "N aliases will be updated" confirmation if the preview endpoint is temporarily unreachable, silently updating or breaking aliases across multiple sets; should show an error toast and abort instead of falling through when preview fails
+  Worktree: /tmp/backlog-30880-cCcRM4
+  Running agent… (started 11:36:57)
+
+  ✓ done: useGroupOperations group rename preview error silently falls through to executing the rename
+    Replaced console.warn + fall-through with onError toast + early return in the preview catch block, so a preview failure now shows an error and aborts the rename.
+    7 turns · 39s · $0.15
+
+  Merging to main: useGroupOperations group rename preview error silently falls through to executing the rename
+Already up to date.

@@ -270,3 +270,10 @@
   - Standard set validation pattern: `const tokenSet = await fastify.tokenStore.getSet(set); if (!tokenSet) return reply.status(404).send({ error: \`Token set "${set}" not found\` });`
   - The `:set` param in these dependent routes is semantically "scoped to this set's namespace" but the underlying `getDependents`/`getGroupDependents` are intentionally global. Validating the set param is the right fix (not restricting the query), since callers need confidence the URL is meaningful.
 ---
+
+## 2026-04-03 - useGroupOperations group rename preview error silently falls through
+- When the rename-preview fetch failed, the catch block only logged a console.warn then continued to call `executeGroupRename` — silently executing a rename that could break aliases. Fixed by replacing the console.warn with `onError?.(...)` and returning early, so the rename is aborted and the user sees an error toast.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGroupOperations.ts` ~L102-105
+- **Learnings for future iterations:**
+  - In async handlers with optional error callbacks, catch blocks that only log are almost always bugs — they should always either re-throw, call onError, or return early. A fall-through after a catch is only safe when the operation is genuinely non-critical to the main flow.
+---

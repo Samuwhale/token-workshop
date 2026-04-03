@@ -35,3 +35,20 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  · product pass: no result — skipped
+
+## 2026-04-03 - Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* ignore the :set URL parameter
+- Added set validation to both routes: extract `set` from `request.params`, call `fastify.tokenStore.getSet(set)`, and return 404 if the set doesn't exist — before proceeding to the cross-set query. The dependent queries themselves remain global (cross-set), which is their correct behavior; the fix simply enforces that the set named in the URL actually exists.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L484, ~L498
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  0 queued · 2 in-progress · last took 15m40s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items found — running discovery passes to replenish backlog…
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
