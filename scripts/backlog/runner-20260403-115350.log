@@ -178,3 +178,18 @@ Already up to date.
 
   Merging to main: ResolverPanel has no edit flow for existing resolvers
 Already up to date.
+[main d2cdf149] chore(backlog): done – ResolverPanel has no edit flow for existing resolvers
+ 8 files changed, 273 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ResolverPanel has no edit flow for existing resolvers
+- Added inline edit mode to ResolverPanel: pencil icon button appears on hover for each resolver row (alongside the existing delete button). Clicking it fetches the full resolver file from `GET /api/resolvers/:name`, pre-populates a form with description and per-modifier settings (description + default context selector), then PUTs the updated file on Save.
+- Added `getResolverFile(name)` and `updateResolver(name, file)` to `useResolvers.ts` hook and exposed both in return value.
+- Added `getResolverFile?` and `updateResolver?` as optional props to `ResolverContentProps` (optional so existing ThemeManager usages without these props still type-check).
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  3 queued · 3 in-progress · last took 5m8s
+═══════════════════════════════════════════════════════════════
+  → Keyboard shortcut definitions are scattered across 5+ files with no single source of truth — handlers live in App.tsx, TokenList.tsx, TokenEditor.tsx, SelectionInspector.tsx, and CommandPalette.tsx while KeyboardShortcutsModal.tsx has its own static display list; adding or changing a shortcut requires updating multiple files and the documentation can easily drift from reality; consolidate into a single shortcut registry that both handlers and the help modal consume
+  Worktree: /tmp/backlog-81267-garGHx
+  Running agent… (started 12:07:25)

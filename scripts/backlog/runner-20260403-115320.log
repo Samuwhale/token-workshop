@@ -120,3 +120,10 @@ Already up to date.
   → PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens — ButtonsTemplate (PreviewPanel.tsx:582) uses hardcoded `var(--color-primary, #0066ff)` with generic fallbacks; if the user's tokens use different naming conventions the templates render entirely from hardcoded fallbacks; either dynamically map the user's actual tokens to template slots or let users assign tokens to template properties
   Worktree: /tmp/backlog-80049-KOEvWI
   Running agent… (started 12:02:31)
+
+  ✓ done: PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
+    Added resolvePreviewSlots() that intelligently detects semantic token roles (primary, text, surface, border, error, spacing, radius, font-size) via pattern matching, injects them as --preview-* CSS vars into the wrapper div, and updated all three templates to use --preview-* as primary references with existing fallback chains preserved
+    21 turns · 315s · $0.86
+
+  Merging to main: PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
+Already up to date.

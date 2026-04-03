@@ -59,6 +59,127 @@ function formatCompositeValue(value: Record<string, unknown>): string | null {
   return null;
 }
 
+/**
+ * Given a token store, find the best-matching token path for a set of
+ * positive/negative patterns. Returns a `var(--css-name)` string or null.
+ */
+function pickTokenByPatterns(
+  allTokensFlat: Record<string, TokenMapEntry>,
+  types: string[],
+  positivePatterns: RegExp[],
+  negativePatterns: RegExp[] = [],
+): string | null {
+  let best: { cssVar: string; score: number } | null = null;
+  for (const [path, entry] of Object.entries(allTokensFlat)) {
+    if (!types.includes(entry.$type ?? '')) continue;
+    const lower = path.toLowerCase();
+    if (negativePatterns.some(r => r.test(lower))) continue;
+    let score = 0;
+    for (let i = 0; i < positivePatterns.length; i++) {
+      if (positivePatterns[i].test(lower)) score += (positivePatterns.length - i) * 10;
+    }
+    if (score > 0 && (!best || score > best.score)) best = { cssVar: toCssVar(path), score };
+  }
+  return best ? `var(${best.cssVar})` : null;
+}
+
+/**
+ * Scan user tokens and produce `--preview-*` CSS custom properties that
+ * map semantic UI roles (primary color, text color, border…) to the
+ * user's actual tokens regardless of their naming convention.
+ */
+function resolvePreviewSlots(allTokensFlat: Record<string, TokenMapEntry>): Record<string, string> {
+  const slots: Record<string, string> = {};
+  const set = (key: string, val: string | null) => { if (val) slots[`--preview-${key}`] = val; };
+  const C = ['color'];
+  const D = ['dimension', 'number', 'spacing'];
+
+  // ── Color slots ──────────────────────────────────────────────────────────
+  set('primary', pickTokenByPatterns(allTokensFlat, C,
+    [/\bprimary\b/, /\bbrand\b/, /\baccent\b/],
+    [/\b(on|text|fg|foreground|background|bg|surface|muted|secondary)\b/]
+  ));
+  set('on-primary', pickTokenByPatterns(allTokensFlat, C,
+    [/\bon[-_]?primary\b/, /\bprimary[-_]?fg\b/, /\bprimary[-_]?foreground\b/, /\bon[-_]?brand\b/]
+  ));
+  set('surface', pickTokenByPatterns(allTokensFlat, C,
+    [/\bsurface\b/, /\bbackground\b/, /\bbg\b/, /\bcanvas\b/],
+    [/[-_](?:2|sub|subtle|muted|elevated)\b/, /\b(?:text|on|content)\b/]
+  ));
+  set('surface-sub', pickTokenByPatterns(allTokensFlat, C,
+    [/\bsurface[-_]?(?:2|sub|subtle|elevated|muted)\b/, /\bneutral[-_]?(?:50|100)\b/, /\bgr[ae]y[-_]?(?:50|100)\b/]
+  ));
+  set('text', pickTokenByPatterns(allTokensFlat, C,
+    [/\btext(?:[-_](?:primary|default|base))?\b/, /\bforeground\b/, /\bcontent\b/, /\bonbackground\b/],
+    [/\b(?:secondary|2|muted|subtle|disabled|placeholder|hint)\b/]
+  ));
+  set('text-secondary', pickTokenByPatterns(allTokensFlat, C,
+    [/\btext[-_]?(?:secondary|2|muted|subtle)\b/, /\bforeground[-_]?(?:2|secondary)\b/, /\bmuted\b/, /\bsubtle\b/]
+  ));
+  set('border', pickTokenByPatterns(allTokensFlat, C,
+    [/\bborder(?:[-_](?:default|base))?\b/, /\boutline\b/, /\bdivider\b/, /\bseparator\b/],
+    [/\b(?:focus|active|hover|error|danger|input)\b/]
+  ));
+  set('error', pickTokenByPatterns(allTokensFlat, C,
+    [/\berror\b/, /\bdanger\b/, /\bdestructive\b/, /\bnegative\b/]
+  ));
+
+  // ── Spacing slots: find dimension tokens in a "spacing" group, sort by value ──
+  const spacingEntries = Object.entries(allTokensFlat)
+    .filter(([path, e]) => {
+      const type = e.$type ?? '';
+      return (type === 'dimension' || type === 'number' || type === 'spacing')
+        && path.split('.')[0].toLowerCase().includes('spac');
+    })
+    .map(([path, e]) => ({ path, num: parseFloat(String(e.$value ?? '')) }))
+    .filter(({ num }) => !isNaN(num))
+    .sort((a, b) => a.num - b.num);
+  if (spacingEntries.length >= 2) {
+    const sm = spacingEntries[Math.max(0, Math.floor(spacingEntries.length * 0.15))];
+    const md = spacingEntries[Math.floor(spacingEntries.length * 0.45)];
+    const lg = spacingEntries[Math.min(spacingEntries.length - 1, Math.floor(spacingEntries.length * 0.75))];
+    set('spacing-sm', `var(${toCssVar(sm.path)})`);
+    set('spacing-md', `var(${toCssVar(md.path)})`);
+    set('spacing-lg', `var(${toCssVar(lg.path)})`);
+  }
+
+  // ── Border radius slots ───────────────────────────────────────────────────
+  const radiusEntries = Object.entries(allTokensFlat)
+    .filter(([path, e]) => {
+      const type = e.$type ?? '';
+      const lp = path.toLowerCase();
+      return (type === 'dimension' || type === 'borderRadius')
+        && (lp.includes('radius') || lp.includes('rounded') || lp.includes('corner'));
+    })
+    .map(([path, e]) => ({ path, num: parseFloat(String(e.$value ?? '')) }))
+    .filter(({ num }) => !isNaN(num) && num < 100)
+    .sort((a, b) => a.num - b.num);
+  if (radiusEntries.length >= 1) {
+    const sm = radiusEntries[0];
+    const md = radiusEntries[Math.floor(radiusEntries.length * 0.5)];
+    const lg = radiusEntries[Math.min(radiusEntries.length - 1, Math.floor(radiusEntries.length * 0.85))];
+    set('radius-sm', `var(${toCssVar(sm.path)})`);
+    set('radius-md', `var(${toCssVar(md.path)})`);
+    set('radius-lg', `var(${toCssVar(lg.path)})`);
+  }
+
+  // ── Font size slots ───────────────────────────────────────────────────────
+  const fontSizeEntries = Object.entries(allTokensFlat)
+    .filter(([, e]) => ['fontSize', 'fontSizes', 'fontsize'].includes(e.$type ?? ''))
+    .map(([path, e]) => ({ path, num: parseFloat(String(e.$value ?? '')) }))
+    .filter(({ num }) => !isNaN(num))
+    .sort((a, b) => a.num - b.num);
+  if (fontSizeEntries.length >= 1) {
+    set('font-size-xs', `var(${toCssVar(fontSizeEntries[0].path)})`);
+    if (fontSizeEntries.length >= 2)
+      set('font-size-sm', `var(${toCssVar(fontSizeEntries[Math.min(1, fontSizeEntries.length - 1)].path)})`);
+    if (fontSizeEntries.length >= 3)
+      set('font-size-base', `var(${toCssVar(fontSizeEntries[Math.floor(fontSizeEntries.length * 0.4)].path)})`);
+  }
+
+  return slots;
+}
+
 /** Resolve a token value for use in CSS */
 function resolveValue(value: unknown, type: string): string {
   // Structured DTCG objects (dimension, shadow, typography, etc.)
@@ -230,6 +351,9 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       });
   }, [allTokensFlat]);
 
+  // Resolve semantic slot mappings from the user's actual tokens
+  const previewSlots = useMemo(() => resolvePreviewSlots(allTokensFlat), [allTokensFlat]);
+
   const isEmpty = Object.keys(allTokensFlat).length === 0;
 
   return (
@@ -306,7 +430,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           </div>
         ) : (
           <div
-            style={cssVars as React.CSSProperties}
+            style={{ ...cssVars, ...previewSlots } as React.CSSProperties}
             className={`rounded-lg overflow-hidden ${darkMode ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}
           >
             {template === 'colors' && <ColorsTemplate groups={colorGroups} gradients={gradientTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
@@ -588,10 +712,16 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
 // ─── Buttons ─────────────────────────────────────────────────────────────────
 
 function ButtonsTemplate({ darkMode }: { darkMode: boolean }) {
+  const clrPrimary = 'var(--preview-primary, var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff))))';
+  const clrOnPrimary = 'var(--preview-on-primary, var(--color-on-primary, var(--color-white, #ffffff)))';
+  const clrSurfaceSub = 'var(--preview-surface-sub, var(--color-surface-2, var(--color-neutral-100, var(--color-grey-100, #f0f0f0))))';
+  const clrText = 'var(--preview-text, var(--color-text, var(--color-neutral-900, #111111)))';
+  const clrError = 'var(--preview-error, var(--color-error, var(--color-danger, var(--color-red-500, #ef4444))))';
+
   const base = {
-    padding: 'var(--spacing-2, var(--spacing-8, 8px)) var(--spacing-4, var(--spacing-16, 16px))',
-    borderRadius: 'var(--border-radius-md, var(--radius-md, var(--radius-2, 6px)))',
-    fontSize: 'var(--font-size-sm, var(--font-size-14, var(--typography-size-sm, 13px)))',
+    padding: 'var(--preview-spacing-sm, var(--spacing-2, 8px)) var(--preview-spacing-md, var(--spacing-4, 16px))',
+    borderRadius: 'var(--preview-radius-md, var(--border-radius-md, var(--radius-md, var(--radius-2, 6px))))',
+    fontSize: 'var(--preview-font-size-sm, var(--font-size-sm, var(--font-size-14, var(--typography-size-sm, 13px))))',
     fontWeight: 'var(--font-weight-medium, 500)',
     cursor: 'default',
     border: '1px solid transparent',
@@ -601,32 +731,32 @@ function ButtonsTemplate({ darkMode }: { darkMode: boolean }) {
   return (
     <div className="p-4 flex flex-col gap-4">
       <PreviewSection label="Primary" darkMode={darkMode}>
-        <button style={{ ...base, background: 'var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))', color: 'var(--color-on-primary, var(--color-white, #ffffff))' }}>
+        <button style={{ ...base, background: clrPrimary, color: clrOnPrimary }}>
           Button
         </button>
-        <button style={{ ...base, background: 'var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))', color: 'var(--color-on-primary, #ffffff)', opacity: 0.7 }}>
+        <button style={{ ...base, background: clrPrimary, color: clrOnPrimary, opacity: 0.7 }}>
           Hover
         </button>
-        <button style={{ ...base, background: 'var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))', color: 'var(--color-on-primary, #ffffff)', opacity: 0.5 }}>
+        <button style={{ ...base, background: clrPrimary, color: clrOnPrimary, opacity: 0.5 }}>
           Disabled
         </button>
       </PreviewSection>
       <PreviewSection label="Secondary" darkMode={darkMode}>
-        <button style={{ ...base, background: 'transparent', color: 'var(--color-primary, var(--color-brand-500, #0066ff))', border: '1px solid var(--color-primary, var(--color-brand-500, #0066ff))' }}>
+        <button style={{ ...base, background: 'transparent', color: clrPrimary, border: `1px solid ${clrPrimary}` }}>
           Outlined
         </button>
-        <button style={{ ...base, background: 'var(--color-surface-2, var(--color-neutral-100, var(--color-grey-100, #f0f0f0)))', color: 'var(--color-text, var(--color-neutral-900, #111111))' }}>
+        <button style={{ ...base, background: clrSurfaceSub, color: clrText }}>
           Secondary
         </button>
-        <button style={{ ...base, background: 'transparent', color: 'var(--color-text, var(--color-neutral-900, #111111))' }}>
+        <button style={{ ...base, background: 'transparent', color: clrText }}>
           Ghost
         </button>
       </PreviewSection>
       <PreviewSection label="Destructive" darkMode={darkMode}>
-        <button style={{ ...base, background: 'var(--color-error, var(--color-danger, var(--color-red-500, #ef4444)))', color: '#ffffff' }}>
+        <button style={{ ...base, background: clrError, color: 'var(--preview-on-primary, #ffffff)' }}>
           Delete
         </button>
-        <button style={{ ...base, background: 'transparent', color: 'var(--color-error, var(--color-danger, #ef4444))', border: '1px solid var(--color-error, var(--color-danger, #ef4444))' }}>
+        <button style={{ ...base, background: 'transparent', color: clrError, border: `1px solid ${clrError}` }}>
           Cancel
         </button>
       </PreviewSection>
@@ -637,23 +767,31 @@ function ButtonsTemplate({ darkMode }: { darkMode: boolean }) {
 // ─── Forms ────────────────────────────────────────────────────────────────────
 
 function FormsTemplate({ darkMode }: { darkMode: boolean }) {
+  const clrBorder = 'var(--preview-border, var(--color-border, var(--color-neutral-200, var(--color-grey-300, #d1d5db))))';
+  const clrSurface = 'var(--preview-surface, var(--color-surface, var(--color-white, var(--color-bg, transparent))))';
+  const clrText = 'var(--preview-text, var(--color-text, var(--color-neutral-900, inherit)))';
+  const clrTextSec = 'var(--preview-text-secondary, var(--color-text-secondary, var(--color-neutral-600, var(--color-grey-600, #4b5563))))';
+  const clrError = 'var(--preview-error, var(--color-error, var(--color-danger, #ef4444)))';
+  const clrPrimary = 'var(--preview-primary, var(--color-primary, var(--color-brand-500, #0066ff)))';
+  const clrOnPrimary = 'var(--preview-on-primary, var(--color-on-primary, #ffffff))';
+
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: 'var(--spacing-2, 8px) var(--spacing-3, 12px)',
-    borderRadius: 'var(--border-radius-sm, var(--radius-sm, 4px))',
-    fontSize: 'var(--font-size-sm, 13px)',
-    border: '1px solid var(--color-border, var(--color-neutral-200, var(--color-grey-300, #d1d5db)))',
-    background: 'var(--color-surface, var(--color-white, var(--color-bg, transparent)))',
-    color: 'var(--color-text, var(--color-neutral-900, inherit))',
+    padding: 'var(--preview-spacing-sm, var(--spacing-2, 8px)) var(--preview-spacing-sm, var(--spacing-3, 12px))',
+    borderRadius: 'var(--preview-radius-sm, var(--border-radius-sm, var(--radius-sm, 4px)))',
+    fontSize: 'var(--preview-font-size-sm, var(--font-size-sm, 13px))',
+    border: `1px solid ${clrBorder}`,
+    background: clrSurface,
+    color: clrText,
     outline: 'none',
     pointerEvents: 'none' as const,
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 'var(--font-size-xs, 11px)',
+    fontSize: 'var(--preview-font-size-xs, var(--font-size-xs, 11px))',
     fontWeight: 'var(--font-weight-medium, 500)',
-    color: 'var(--color-text-secondary, var(--color-neutral-600, var(--color-grey-600, #4b5563)))',
+    color: clrTextSec,
     marginBottom: '4px',
   };
 
@@ -669,8 +807,8 @@ function FormsTemplate({ darkMode }: { darkMode: boolean }) {
       </div>
       <div>
         <label style={labelStyle}>With error</label>
-        <input readOnly value="invalid input" style={{ ...inputStyle, borderColor: 'var(--color-error, var(--color-danger, #ef4444))' }} />
-        <span style={{ fontSize: 'var(--font-size-xs, 11px)', color: 'var(--color-error, var(--color-danger, #ef4444))', marginTop: '3px', display: 'block' }}>
+        <input readOnly value="invalid input" style={{ ...inputStyle, borderColor: clrError }} />
+        <span style={{ fontSize: 'var(--preview-font-size-xs, var(--font-size-xs, 11px))', color: clrError, marginTop: '3px', display: 'block' }}>
           This field is required
         </span>
       </div>
@@ -681,11 +819,11 @@ function FormsTemplate({ darkMode }: { darkMode: boolean }) {
       <button
         style={{
           marginTop: '4px',
-          padding: 'var(--spacing-2, 8px) var(--spacing-4, 16px)',
-          borderRadius: 'var(--border-radius-md, var(--radius-md, 6px))',
-          background: 'var(--color-primary, var(--color-brand-500, #0066ff))',
-          color: 'var(--color-on-primary, #ffffff)',
-          fontSize: 'var(--font-size-sm, 13px)',
+          padding: 'var(--preview-spacing-sm, var(--spacing-2, 8px)) var(--preview-spacing-md, var(--spacing-4, 16px))',
+          borderRadius: 'var(--preview-radius-md, var(--border-radius-md, var(--radius-md, 6px)))',
+          background: clrPrimary,
+          color: clrOnPrimary,
+          fontSize: 'var(--preview-font-size-sm, var(--font-size-sm, 13px))',
           fontWeight: 'var(--font-weight-medium, 500)',
           border: 'none',
           cursor: 'default',
@@ -701,19 +839,25 @@ function FormsTemplate({ darkMode }: { darkMode: boolean }) {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function CardTemplate({ darkMode }: { darkMode: boolean }) {
+  const clrPrimary = 'var(--preview-primary, var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff))))';
+  const clrOnPrimary = 'var(--preview-on-primary, var(--color-on-primary, #ffffff))';
+  const clrText = 'var(--preview-text, var(--color-text, var(--color-neutral-900, inherit)))';
+  const clrTextSec = 'var(--preview-text-secondary, var(--color-text-secondary, var(--color-neutral-600, var(--color-grey-500, #6b7280))))';
+  const clrBorder = darkMode
+    ? 'var(--preview-border, var(--color-border, var(--color-neutral-700, #374151)))'
+    : 'var(--preview-border, var(--color-border, var(--color-neutral-200, var(--color-grey-200, #e5e7eb))))';
   const cardBg = darkMode
-    ? 'var(--color-surface, var(--color-neutral-800, var(--color-grey-800, #1f2937)))'
-    : 'var(--color-surface, var(--color-white, var(--color-bg-card, #ffffff)))';
-  const cardBorder = darkMode
-    ? 'var(--color-border, var(--color-neutral-700, #374151))'
-    : 'var(--color-border, var(--color-neutral-200, var(--color-grey-200, #e5e7eb)))';
+    ? 'var(--preview-surface-sub, var(--color-surface, var(--color-neutral-800, var(--color-grey-800, #1f2937))))'
+    : 'var(--preview-surface, var(--color-surface, var(--color-white, var(--color-bg-card, #ffffff))))';
+  const radiusMd = 'var(--preview-radius-md, var(--border-radius-md, var(--radius-md, 6px)))';
+  const radiusLg = 'var(--preview-radius-lg, var(--border-radius-lg, var(--radius-lg, var(--radius-4, 12px))))';
 
   return (
     <div className="p-4">
       <div style={{
         background: cardBg,
-        border: `1px solid ${cardBorder}`,
-        borderRadius: 'var(--border-radius-lg, var(--radius-lg, var(--radius-4, 12px)))',
+        border: `1px solid ${clrBorder}`,
+        borderRadius: radiusLg,
         overflow: 'hidden',
         maxWidth: '260px',
         boxShadow: 'var(--shadow-md, 0 2px 8px rgba(0,0,0,0.08))',
@@ -721,21 +865,21 @@ function CardTemplate({ darkMode }: { darkMode: boolean }) {
         {/* Card image placeholder */}
         <div style={{
           height: '100px',
-          background: 'var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))',
+          background: clrPrimary,
           opacity: 0.2,
         }} />
-        <div style={{ padding: 'var(--spacing-4, 16px)' }}>
+        <div style={{ padding: 'var(--preview-spacing-md, var(--spacing-4, 16px))' }}>
           <h3 style={{
-            fontSize: 'var(--font-size-base, var(--font-size-16, 15px))',
+            fontSize: 'var(--preview-font-size-base, var(--font-size-base, var(--font-size-16, 15px)))',
             fontWeight: 'var(--font-weight-semibold, 600)',
-            color: 'var(--color-text, var(--color-neutral-900, inherit))',
+            color: clrText,
             marginBottom: '6px',
           }}>
             Card Title
           </h3>
           <p style={{
-            fontSize: 'var(--font-size-sm, 12px)',
-            color: 'var(--color-text-secondary, var(--color-neutral-600, var(--color-grey-500, #6b7280)))',
+            fontSize: 'var(--preview-font-size-sm, var(--font-size-sm, 12px))',
+            color: clrTextSec,
             marginBottom: '14px',
             lineHeight: 1.5,
           }}>
@@ -745,10 +889,10 @@ function CardTemplate({ darkMode }: { darkMode: boolean }) {
             <button style={{
               flex: 1,
               padding: '7px 12px',
-              borderRadius: 'var(--border-radius-md, var(--radius-md, 6px))',
-              background: 'var(--color-primary, var(--color-brand-500, #0066ff))',
-              color: 'var(--color-on-primary, #ffffff)',
-              fontSize: 'var(--font-size-xs, 11px)',
+              borderRadius: radiusMd,
+              background: clrPrimary,
+              color: clrOnPrimary,
+              fontSize: 'var(--preview-font-size-xs, var(--font-size-xs, 11px))',
               fontWeight: 'var(--font-weight-medium, 500)',
               border: 'none',
               cursor: 'default',
@@ -758,12 +902,12 @@ function CardTemplate({ darkMode }: { darkMode: boolean }) {
             <button style={{
               flex: 1,
               padding: '7px 12px',
-              borderRadius: 'var(--border-radius-md, var(--radius-md, 6px))',
+              borderRadius: radiusMd,
               background: 'transparent',
-              color: 'var(--color-text, var(--color-neutral-900, inherit))',
-              fontSize: 'var(--font-size-xs, 11px)',
+              color: clrText,
+              fontSize: 'var(--preview-font-size-xs, var(--font-size-xs, 11px))',
               fontWeight: 'var(--font-weight-medium, 500)',
-              border: `1px solid ${cardBorder}`,
+              border: `1px solid ${clrBorder}`,
               cursor: 'default',
             }}>
               Cancel

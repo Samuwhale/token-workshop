@@ -271,3 +271,14 @@
   - The `modifiers` field in `ResolverFile` is optional; `updatedMod.description` should use `delete` (not `undefined`) to cleanly remove the key before serialization.
   - Making new props optional on `ResolverContentProps` avoids the need to update every call site that doesn't need them — only App.tsx needs the update.
 ---
+
+## 2026-04-03 - PreviewPanel Buttons/Forms/Card templates are static CSS demos that don't reflect the user's actual tokens
+- Added `pickTokenByPatterns` helper and `resolvePreviewSlots` function that scan `allTokensFlat` to intelligently map user tokens to semantic UI roles (primary color, text, surface, border, error, spacing, border-radius, font-size) using pattern matching. Injects results as `--preview-*` CSS custom properties into the wrapper div alongside `cssVars`.
+- Updated `ButtonsTemplate`, `FormsTemplate`, and `CardTemplate` to reference `--preview-*` vars as the first entry in their CSS var chains, keeping the existing hardcoded fallback chains intact. This means: if the user's tokens are detected, they're used; if not, the templates fall back gracefully to generic defaults.
+- Detection heuristics cover common naming conventions: `primary`/`brand`/`accent` for primary color; `surface`/`background`/`canvas` for surface; `border`/`divider`/`separator` for border; `error`/`danger`/`destructive` for error state; spacing tokens sorted by value with percentile selection; border-radius tokens sorted by value; font-size tokens sorted by value.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L62-L170 (new helpers), ~L230 (useMemo), ~L308 (wrapper style), ~L682-L760 (ButtonsTemplate), ~L761-L828 (FormsTemplate), ~L831-L905 (CardTemplate)
+- **Learnings for future iterations:**
+  - CSS custom properties cascade: injecting `--preview-*` vars into the parent div's `style` makes them available to all child template components without prop-drilling — no component API changes needed.
+  - Pattern scoring (earlier patterns score higher) works well for token naming: `primary` → 3×10=30 points, `brand` → 2×10=20 points; the highest-scoring token wins.
+  - For dimension tokens (spacing, radius, font-size), sorting by numeric value and picking percentile positions (0%, 15%, 45%, 75%) reliably maps to xs/sm/md/lg without needing pattern matching on segment names.
+---
