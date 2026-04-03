@@ -354,3 +354,18 @@ Already up to date.
 
   Merging to main: GeneratorPipelineCard has no Edit button
 Already up to date.
+[main dc101e5d] chore(backlog): done – GeneratorPipelineCard has no Edit button
+ 9 files changed, 81 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - GeneratorPipelineCard has no Edit button
+- Added an "Edit" button to `GeneratorPipelineCard` in the actions row (between "Preview output" and "Duplicate"). Clicking it opens `TokenGeneratorDialog` with `existingGenerator={generator}`, rendering as a full-screen modal overlay. On save, closes the dialog and calls `onRefresh()`.
+- Added `showEditDialog` state to `GeneratorPipelineCard`.
+- Added `allSets` and `activeSet` props to both `GeneratorPipelineCard` and `GraphPanelProps`.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  7 queued · 3 in-progress · last took 2m41s
+═══════════════════════════════════════════════════════════════
+  → No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment; a dedicated "Manage Sets" panel or enhanced SetSwitcher with CRUD actions would reduce the scavenger hunt (SetSwitcher.tsx, TokenList.tsx, ThemeManager.tsx)
+  Worktree: /tmp/backlog-81661-hyX3zJ
+  Running agent… (started 12:53:48)

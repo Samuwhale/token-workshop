@@ -470,3 +470,11 @@
   - `TokenGeneratorDialog` renders as `fixed inset-0` overlay so it's safe to instantiate inside any card component without worrying about z-index stacking from a parent container.
   - When adding props to a deeply nested card component, thread the new props from the top-level panel props interface down through the parent render.
 ---
+
+## 2026-04-03 - PublishPanel "Publish All" is blocked by Git merge conflicts
+- Added `effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts` to exclude git from publish-all when conflicts exist. Changed `publishAllSections` to use this value so the banner appears when only Variables + Styles are ready. Removed `publishAllBlocked` guard — the button is never disabled. Updated `runPublishAll` to skip the git step when `hasMergeConflicts` (instead of early-returning with an error). Updated banner label to "Publish Variables + Styles" / button to "Publish without Git" when conflicts present. Changed the conflict note from a red error to a neutral info message ("Git excluded — N conflicts must be resolved in the Git tab first"). Removed unused `PublishAllPreviewModal` import (shadowed by local definition). Updated the local modal to show a neutral "Git excluded" note, removed `mergeConflictCount > 0` from the confirm button's `disabled`, and changed the label to "Publish without Git".
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L13 (import), ~L119-131 (effectiveHasGitDiffChanges), ~L132-158 (runPublishAll), ~L407-444 (banner UI), ~L820-825 (modal call), ~L1543-1617 (local modal component)
+- **Learnings for future iterations:**
+  - The local `PublishAllPreviewModal` in PublishPanel.tsx shadows the same-named export from PublishModals.tsx. The import was unused but not causing a build error — likely because the local function declaration hoists over the import binding in the module scope without triggering a TS error in this project's config.
+  - "Partial publish" pattern: when one operation subset has a blocker, compute an `effective*` variant of the flag that excludes that subset, recalculate the availability count from effective flags, and use an informational note (not a blocking error) to explain what's excluded.
+---

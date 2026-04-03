@@ -333,3 +333,10 @@ Already up to date.
   → PublishPanel "Publish All" is blocked by Git merge conflicts even when Variables and Styles diffs are ready — Git VCS state should not gate unrelated Figma sync operations; either allow partial publish (Variables + Styles only) or surface a clear "resolve conflicts first" action rather than silently disabling the button (PublishPanel.tsx ~L128-130)
   Worktree: /tmp/backlog-80049-1h6787
   Running agent… (started 12:51:23)
+
+  ✓ done: PublishPanel "Publish All" is blocked by Git merge conflicts even when Variables and Styles diffs are ready
+    Implemented partial publish: when merge conflicts exist, git is excluded from publish-all and Variables + Styles proceed normally; button relabeled "Publish without Git" with a neutral informational note instead of a blocking disabled state.
+    25 turns · 334s · $0.84
+
+  Merging to main: PublishPanel "Publish All" is blocked by Git merge conflicts even when Variables and Styles diffs are ready
+Already up to date.
