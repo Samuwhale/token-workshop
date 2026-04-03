@@ -428,3 +428,14 @@
   - Detecting "deleted" tokens requires scanning the full target group in the store for tokens tagged with this generator's ID but absent from the preview — snapshotGroup already does this traversal but returns all tokens; filtering by extension.generatorId narrows to generator-owned ones
   - Placing the `DryRunPreview` component definition before `GeneratorPipelineCard` avoids forward-reference TypeScript errors; the `DryRunDiff` interface must also be defined first
 ---
+
+## 2026-04-03 - Command palette has no "jump to next validation issue" action
+- Added `jumpToNextIssue` callback in App.tsx that cycles through `lintViolations` (from `useLint` for the active set) using a `lintIssueIndexRef` ref. On each call it increments the index (with wrap-around), navigates to 'define'/'tokens', calls `setHighlightedToken(path)` to scroll/expand to the token, and shows a toast like "✗ Issue 2/5: <message>". The ref resets to -1 via a `useEffect` when `activeSet` changes so cycling restarts on set switch.
+- Added F8 keyboard shortcut handler in the stable `keyboardShortcutRef.current` block.
+- Added "Jump to Next Issue" command to the commands array (category: 'Tokens', shortcut: 'F8') with a live description showing the current violation count.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L348 (ref + effect), ~L751 (jumpToNextIssue callback), ~L701 (F8 shortcut), ~L878 (command entry), ~L998 (useMemo deps)
+- **Learnings for future iterations:**
+  - `useLint` only lints the active set — cross-set violation cycling would require the AnalyticsPanel's ValidationIssue type (which includes setName). For same-set cycling `setHighlightedToken` is sufficient; no `setPendingHighlight` needed.
+  - The stable callback ref pattern (`keyboardShortcutRef.current = fn`) means the F8 handler always sees the latest `jumpToNextIssue` closure without re-registering the event listener.
+  - Adding a command to the `commands` useMemo requires adding both the new value AND the callback to the deps array — easy to miss.
+---

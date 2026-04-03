@@ -45,3 +45,10 @@ Already up to date.
   → Command palette has no "jump to next validation issue" action — fixing validation errors requires switching to the Analytics panel, finding each broken token, and navigating to it manually; add a "Next issue" command (or F8-style keyboard shortcut) that selects and scrolls to the next token with an active lint/validation violation, enabling a fast "fix and advance" workflow without leaving the token tree (CommandPalette.tsx, AnalyticsPanel.tsx lintViolations data)
   Worktree: /tmp/backlog-80049-HzgijP
   Running agent… (started 11:54:15)
+
+  ✓ done: Command palette has no "jump to next validation issue" action
+    Added F8 shortcut + command palette entry that cycles through lintViolations in the active set, navigating to each token in the tree with a toast showing issue N/M and its message
+    32 turns · 278s · $0.91
+
+  Merging to main: Command palette has no "jump to next validation issue" action
+Already up to date.

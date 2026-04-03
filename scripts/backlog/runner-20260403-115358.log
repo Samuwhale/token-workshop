@@ -28,3 +28,19 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: Generator panel has no dry-run preview mode
 Already up to date.
+[main 29c96a9e] chore(backlog): done – Generator panel has no dry-run preview mode
+ 8 files changed, 260 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator panel dry-run preview mode
+- Added `dryRun()` method to `GeneratorService` that computes a full diff (created/updated/unchanged/deleted) without persisting — compares `computeResults()` output against the token store, and detects deleted tokens by scanning for generator-tagged tokens in the target group not present in the preview output
+- Added `POST /api/generators/:id/dry-run` route in generators.ts (registered before `:id/check-overwrites` and `:id/run` to ensure static sub-segment wins)
+- Added `DryRunDiff` interface, `DryRunPreview` component, and `handlePreviewOutput` to `GeneratorPipelineCard` in GraphPanel.tsx; the card now has a "Preview output" button in the actions bar that fetches the diff inline, shows summary pills (+N new, ~M changed, -K removed, =P unchanged) that are clickable to expand detail lists with old→new values, and a "Run (apply N changes)" confirm button
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  0 queued · 2 in-progress · last took 4m58s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)

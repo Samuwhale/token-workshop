@@ -346,6 +346,9 @@ export function App() {
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const lintConfig = useLintConfig(serverUrl, connected);
+  // Tracks the current position for "next issue" cycling — reset when set changes
+  const lintIssueIndexRef = useRef(-1);
+  useEffect(() => { lintIssueIndexRef.current = -1; }, [activeSet]);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
@@ -691,6 +694,10 @@ export function App() {
       e.preventDefault();
       openOverflowPanel('settings');
     }
+    if (e.key === 'F8' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      jumpToNextIssue();
+    }
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => keyboardShortcutRef.current(e);
@@ -727,6 +734,22 @@ export function App() {
     setMenuOpen(false);
     setOverflowPanel(panel);
   }, []);
+
+  const jumpToNextIssue = useCallback(() => {
+    if (lintViolations.length === 0) {
+      setErrorToast('No validation issues in the current set');
+      return;
+    }
+    lintIssueIndexRef.current = (lintIssueIndexRef.current + 1) % lintViolations.length;
+    const violation = lintViolations[lintIssueIndexRef.current];
+    navigateTo('define', 'tokens');
+    setEditingToken(null);
+    setHighlightedToken(violation.path);
+    const n = lintIssueIndexRef.current + 1;
+    const total = lintViolations.length;
+    const icon = violation.severity === 'error' ? '✗' : violation.severity === 'warning' ? '⚠' : 'ℹ';
+    setSuccessToast(`${icon} Issue ${n}/${total}: ${violation.message}`);
+  }, [lintViolations, navigateTo, setEditingToken, setHighlightedToken, setErrorToast, setSuccessToast]);
 
   const commands: Command[] = useMemo(() => {
     const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
@@ -849,6 +872,16 @@ export function App() {
         handler: () => { setShowIssuesOnly(v => !v); navigateTo('define', 'tokens'); },
       },
       {
+        id: 'next-issue',
+        label: 'Jump to Next Issue',
+        description: lintViolations.length > 0
+          ? `Cycle through ${lintViolations.length} validation issue${lintViolations.length === 1 ? '' : 's'} in the current set`
+          : 'No validation issues in the current set',
+        category: 'Tokens',
+        shortcut: 'F8',
+        handler: jumpToNextIssue,
+      },
+      {
         id: 'validate',
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
@@ -938,7 +971,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
