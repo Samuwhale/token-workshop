@@ -399,6 +399,15 @@ export function App() {
   const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, []);
   const editorIsDirtyRef = useRef(false);
   const editorCloseRef = useRef<() => void>(() => { if (!editorIsDirtyRef.current) handleEditorClose(); });
+  // Pending navigation action — set when user tries to navigate away from a dirty editor
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(null);
+  const guardEditorAction = useCallback((fn: () => void) => {
+    if (editorIsDirtyRef.current) {
+      setPendingNavAction(() => fn);
+    } else {
+      fn();
+    }
+  }, []);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
@@ -938,7 +947,7 @@ export function App() {
             key={tab.id}
             role="tab"
             aria-selected={activeTopTab === tab.id && overflowPanel === null}
-            onClick={() => navigateTo(tab.id)}
+            onClick={() => guardEditorAction(() => navigateTo(tab.id))}
             className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
               activeTopTab === tab.id && overflowPanel === null
                 ? 'bg-[var(--color-figma-accent)] text-white'
@@ -1182,8 +1191,10 @@ export function App() {
                 role="tab"
                 aria-selected={activeSubTab === sub.id}
                 onClick={() => {
-                  setSubTab(sub.id);
-                  if (sub.id === 'audit') triggerHeatmapScan();
+                  guardEditorAction(() => {
+                    setSubTab(sub.id);
+                    if (sub.id === 'audit') triggerHeatmapScan();
+                  });
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
                   activeSubTab === sub.id
@@ -1243,7 +1254,7 @@ export function App() {
                 ) : (
                   <>
                     <button
-                      onClick={() => setActiveSet(set)}
+                      onClick={() => guardEditorAction(() => setActiveSet(set))}
                       onContextMenu={e => openSetMenu(set, e)}
                       title={(() => {
                         const parts: string[] = [setDescriptions[set] || set];
@@ -1313,7 +1324,7 @@ export function App() {
               <button
                 role="menuitem"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); }}
+                onClick={() => guardEditorAction(() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); })}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Generate tokens…
@@ -1512,7 +1523,7 @@ export function App() {
                       ) : (
                         <div className="flex items-center">
                           <button
-                            onClick={() => setActiveSet(set)}
+                            onClick={() => guardEditorAction(() => setActiveSet(set))}
                             onContextMenu={e => openSetMenu(set, e)}
                             title={(() => {
                               const parts: string[] = [setDescriptions[set] || set];
@@ -1587,7 +1598,7 @@ export function App() {
                           ) : (
                             <div className="flex items-center">
                               <button
-                                onClick={() => setActiveSet(set)}
+                                onClick={() => guardEditorAction(() => setActiveSet(set))}
                                 onContextMenu={e => openSetMenu(set, e)}
                                 title={(() => {
                                   const parts: string[] = [setDescriptions[set] || leaf];
@@ -2420,6 +2431,24 @@ export function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Unsaved editor changes guard */}
+      {pendingNavAction && (
+        <ConfirmModal
+          title="You have unsaved changes"
+          description="Your edits have not been saved and will be lost if you continue."
+          confirmLabel="Discard changes"
+          cancelLabel="Keep editing"
+          danger
+          onConfirm={() => {
+            const action = pendingNavAction;
+            setPendingNavAction(null);
+            handleEditorClose();
+            action();
+          }}
+          onCancel={() => setPendingNavAction(null)}
+        />
       )}
 
       {/* Delete set confirmation */}

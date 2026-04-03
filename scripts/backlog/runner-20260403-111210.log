@@ -1,0 +1,31 @@
+./scripts/backlog/backlog.sh: line 217: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    20980
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-111210.log
+
+  Queue:    13 ready · 0
+0 in-progress · 3 failed
+  Done:     1019 total (next code pass in 1, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  13 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-20980-RrU3in
+  Running agent… (started 11:12:10)
+
+  ✓ done: TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation
+    Added guardEditorAction in App.tsx; top tab, sub-tab, set switch, and context menu navigations now show a "Discard changes / Keep editing" ConfirmModal when the editor is dirty
+    39 turns · 341s · $1.07
+
+  Merging to main: TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation
+Already up to date.

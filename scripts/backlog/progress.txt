@@ -345,3 +345,15 @@
   - The `onMouseDown` + `e.preventDefault()` pattern inside `AliasAutocomplete` items prevents the input from blurring when a dropdown row is clicked, allowing the `onBlur` → 150ms timeout pattern to work correctly for click-outside dismissal.
   - When extracting the query for `AliasAutocomplete`, strip leading `{` and trailing `}` from the input value — the component expects bare text after the opening brace.
 ---
+
+## 2026-04-03 - TokenEditor unsaved changes guard
+- Added `pendingNavAction` state and `guardEditorAction` callback in App.tsx. Any navigation that would discard open editor edits now routes through `guardEditorAction`, which shows a "You have unsaved changes" ConfirmModal (danger variant, "Discard changes" / "Keep editing") instead of silently losing work.
+- Guarded: top-level tab bar clicks (`navigateTo`), sub-tab bar clicks (`setSubTab`), all three set-switching buttons (`setActiveSet`), and the context menu "Generate tokens" item (which combines `setActiveSet` + `navigateTo`).
+- On confirm: calls `handleEditorClose()` to discard edits and reset state, then executes the pending action.
+- The backdrop click and back button were already guarded (TokenEditor sets `closeRef.current = handleBack`, which shows its own internal 3-button discard dialog).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L401, ~L954, ~L1192, ~L1257, ~L1526, ~L1601, ~L1325, ~L2437
+- **Learnings for future iterations:**
+  - `closeRef.current` is reassigned to `handleBack` inside TokenEditor on every render, so the backdrop click is already guarded by TokenEditor's internal discard dialog — no duplicate guard needed in App.tsx.
+  - When storing a function in React state, always use the updater form: `setState(() => fn)` not `setState(fn)`, otherwise React calls fn as an updater function.
+  - `handleEditorClose` must be called before executing the pending action so `editingToken` is cleared first (prevents stale editor state after navigation).
+---

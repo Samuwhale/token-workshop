@@ -1,0 +1,21 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    21315
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-111222.log
+
+  Queue:    12 ready · 1 in-progress · 3 failed
+  Done:     1019 total (next code pass in 1, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  12 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
+  Worktree: /tmp/backlog-21315-QfHfdu
+  Running agent… (started 11:12:22)

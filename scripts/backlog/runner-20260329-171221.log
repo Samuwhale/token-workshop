@@ -1,0 +1,96 @@
+./scripts/backlog/backlog.sh: line 217: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    67759
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-171221.log
+
+  Queue:    13 ready · 0
+0 in-progress · 3 failed
+  Done:     1019 total (next code pass in 1, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  13 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-67759-8l8zvQ
+  Running agent… (started 17:12:21)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  13 queued · 0
+0 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-67759-dezTAl
+  Running agent… (started 17:12:26)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  12 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-67759-D95KQy
+  Running agent… (started 17:12:32)
+
+  · unknown
+    1 turns · 1s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  12 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-67759-fZSTNa
+  Running agent… (started 17:12:38)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  12 queued · 1 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenEditor has no "unsaved changes" guard — closing the editor drawer (back button, tab switch, set change) while `isDirty` is true silently discards edits with no confirmation; add a "You have unsaved changes — discard or save?" confirmation before navigating away, consistent with how other destructive actions are guarded in the app (TokenEditor.tsx `isDirty` state, drawer close handler in App.tsx)
+  Worktree: /tmp/backlog-67759-DoV8Vl
+  Running agent… (started 17:12:44)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

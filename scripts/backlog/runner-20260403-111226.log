@@ -1,0 +1,21 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    21545
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-111226.log
+
+  Queue:    11 ready · 2 in-progress · 3 failed
+  Done:     1019 total (next code pass in 1, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  11 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
+  Worktree: /tmp/backlog-21545-hXdbJ5
+  Running agent… (started 11:12:26)

@@ -1,0 +1,92 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    68069
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-171222.log
+
+  Queue:    11 ready · 2 in-progress · 3 failed
+  Done:     1019 total (next code pass in 1, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  11 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
+  Worktree: /tmp/backlog-68069-kC2vae
+  Running agent… (started 17:12:23)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  11 queued · 2 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
+  Worktree: /tmp/backlog-68069-oYAaBO
+  Running agent… (started 17:12:29)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  11 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
+  Worktree: /tmp/backlog-68069-v1vUkv
+  Running agent… (started 17:12:35)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  11 queued · 2 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → No unused token detection anywhere in the product — there is no view showing tokens that have zero usage in Figma designs (from `tokenUsageCounts`) AND are not referenced by any other token (no alias dependents); these are deletion candidates that accumulate silently as designs evolve; add an "Unused tokens" section to AnalyticsPanel or a `has:unused` qualifier to the search filter that surfaces tokens meeting both criteria
+  Worktree: /tmp/backlog-68069-ffdNr1
+  Running agent… (started 17:12:40)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-03-29 - BatchEditor cannot set selected tokens to an alias reference
+- Added an "Alias" value-mode row to BatchEditor. A text input accepts a bare path (e.g. `color.brand.primary`) or `{path}` format and derives the canonical `{path}` reference. On focus/type it opens an `AliasAutocomplete` dropdown (reusing the existing component) positioned absolutely below the input. On select the field fills with `{path}` and the dropdown closes. `aliasActive` feeds into `hasOp` so the Apply button enables. In `handleApply`, when `aliasActive`, the patch sets `$value = aliasRef` for every selected token regardless of type. A preview line shows "Will set {ref} on N tokens" when a valid alias is chosen and the autocomplete is closed. State is cleared on successful apply.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1, ~L81, ~L230, ~L316, ~L412, ~L733
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  12 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
+  Worktree: /tmp/backlog-68069-9RxJ7V
+  Running agent… (started 17:12:46)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)
