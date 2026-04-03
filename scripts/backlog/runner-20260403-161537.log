@@ -313,3 +313,12 @@ Already up to date.
 
   Merging to main: Token creation dialog should remember last-used type
 Already up to date.
+[main 437bb64f] chore(backlog): done – Token creation dialog should remember last-used type
+ 4 files changed, 31 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1170 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

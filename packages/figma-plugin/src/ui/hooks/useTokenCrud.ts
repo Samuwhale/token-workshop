@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
@@ -58,6 +58,17 @@ export function useTokenCrud({
   const [copyingToken, setCopyingToken] = useState<string | null>(null);
   const [moveTokenTargetSet, setMoveTokenTargetSet] = useState('');
   const [copyTokenTargetSet, setCopyTokenTargetSet] = useState('');
+  // moveFromSet/copyFromSet capture the source set when the dialog opens so that
+  // a set-switch between "open dialog" and "confirm" doesn't silently target the wrong set.
+  const [moveFromSet, setMoveFromSet] = useState('');
+  const [copyFromSet, setCopyFromSet] = useState('');
+
+  // Refs that always reflect the current setName/serverUrl so that undo/redo callbacks
+  // can validate they are still operating in the correct set context.
+  const setNameRef = useRef(setName);
+  setNameRef.current = setName;
+  const serverUrlRef = useRef(serverUrl);
+  serverUrlRef.current = serverUrl;
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
@@ -80,6 +91,10 @@ export function useTokenCrud({
       onPushUndo({
         description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
         restore: async () => {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
           try {
             await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
               method: 'POST',
@@ -93,6 +108,10 @@ export function useTokenCrud({
           }
         },
         redo: async () => {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
           try {
             await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
               method: 'POST',
@@ -220,6 +239,10 @@ export function useTokenCrud({
         onPushUndo({
           description: undoDescription,
           restore: async () => {
+            if (setNameRef.current !== capturedSet) {
+              onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+              return;
+            }
             await Promise.all(
               captured.map(({ path, data }) =>
                 apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
@@ -291,10 +314,16 @@ export function useTokenCrud({
       return;
     }
     if (onPushUndo && oldEntry) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
       onPushUndo({
         description: `Edit ${path}`,
         restore: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
@@ -302,7 +331,11 @@ export function useTokenCrud({
           onRefresh();
         },
         redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: type, $value: newValue }),
@@ -331,10 +364,16 @@ export function useTokenCrud({
     }
     if (onPushUndo && oldEntry) {
       const oldDesc = (oldEntry as unknown as Record<string, unknown>).$description ?? '';
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
       onPushUndo({
         description: `Edit description of ${path}`,
         restore: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $description: oldDesc }),
@@ -342,7 +381,11 @@ export function useTokenCrud({
           onRefresh();
         },
         redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          if (setNameRef.current !== capturedSet) {
+            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            return;
+          }
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $description: description }),
@@ -428,13 +471,18 @@ export function useTokenCrud({
     const otherSets = sets.filter(s => s !== setName);
     setMoveTokenTargetSet(otherSets[0] ?? '');
     setMovingToken(tokenPath);
+    // Capture the source set at dialog-open time so a set-switch before confirmation
+    // cannot silently move a token from the wrong set.
+    setMoveFromSet(setName);
   }, [sets, setName]);
 
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTokenTargetSet || !connected) { setMovingToken(null); return; }
+    // Use moveFromSet (captured when the dialog opened) rather than the current setName so
+    // that a set-switch between dialog-open and confirm doesn't move from the wrong set.
     onSetOperationLoading('Moving token…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+      await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(moveFromSet)}/tokens/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTokenTargetSet }),
@@ -447,18 +495,22 @@ export function useTokenCrud({
     setMovingToken(null);
     onRefresh();
     onSetOperationLoading(null);
-  }, [movingToken, moveTokenTargetSet, connected, serverUrl, setName, onRefresh, onSetOperationLoading, onError]);
+  }, [movingToken, moveTokenTargetSet, moveFromSet, connected, onRefresh, onSetOperationLoading, onError]);
 
   const handleRequestCopyToken = useCallback((tokenPath: string) => {
     const otherSets = sets.filter(s => s !== setName);
     setCopyTokenTargetSet(otherSets[0] ?? '');
     setCopyingToken(tokenPath);
+    // Capture the source set at dialog-open time so a set-switch before confirmation
+    // cannot silently copy a token from the wrong set.
+    setCopyFromSet(setName);
   }, [sets, setName]);
 
   const handleConfirmCopyToken = useCallback(async () => {
     if (!copyingToken || !copyTokenTargetSet || !connected) { setCopyingToken(null); return; }
+    // Use copyFromSet (captured when the dialog opened) rather than the current setName.
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/copy`, {
+      await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(copyFromSet)}/tokens/copy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenPath: copyingToken, targetSet: copyTokenTargetSet }),
@@ -469,7 +521,7 @@ export function useTokenCrud({
     }
     setCopyingToken(null);
     onRefresh();
-  }, [copyingToken, copyTokenTargetSet, connected, serverUrl, setName, onRefresh, onError]);
+  }, [copyingToken, copyTokenTargetSet, copyFromSet, connected, onRefresh, onError]);
 
   return {
     // State
@@ -489,6 +541,8 @@ export function useTokenCrud({
     setMoveTokenTargetSet,
     copyTokenTargetSet,
     setCopyTokenTargetSet,
+    moveFromSet,
+    copyFromSet,
     // Callbacks
     executeTokenRename,
     handleRenameToken,

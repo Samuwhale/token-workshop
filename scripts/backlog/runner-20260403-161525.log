@@ -294,3 +294,10 @@ Already up to date.
   → useTokenCrud undo/redo closures capture stale set context — in useTokenCrud.ts, executeTokenRename (L78-79), handleConfirmMoveToken (L434), and handleConfirmCopyToken (L459) capture `setName` and `serverUrl` at operation time; if the user switches to a different set before undoing, the undo handler operates on the originally-captured set rather than the current one; either capture the set name inside the undo/redo callback (reading from a ref), or validate that the current set still matches the captured set before executing undo
   Worktree: /tmp/backlog-45818-Df2h0o
   Running agent… (started 17:34:17)
+
+  ✓ done: useTokenCrud undo/redo closures capture stale set context
+    Added setNameRef guard to abort undo/redo when active set differs from captured set; added moveFromSet/copyFromSet state to fix stale set in move/copy confirm handlers
+    30 turns · 352s · $1.06
+
+  Merging to main: useTokenCrud undo/redo closures capture stale set context
+Already up to date.

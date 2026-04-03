@@ -507,3 +507,14 @@
 - **Learnings for future iterations:**
   - Check `useTokenCreate.ts` for localStorage-based persistence before implementing — group and type are both already persisted.
 ---
+
+## 2026-04-03 - useTokenCrud undo/redo closures capture stale set context
+- Added `setNameRef` and `serverUrlRef` refs (updated on every render) to `useTokenCrud` so that undo/redo callbacks can always read the current set name at execution time.
+- Added set-context validation guards in `restore`/`redo` callbacks of `executeTokenRename`, `executeDelete`, `handleInlineSave`, and `handleDescriptionSave`: if `setNameRef.current !== capturedSet`, the undo/redo is aborted and `onError` is called with a descriptive message explaining which set changed.
+- Also explicitly captured `capturedSet`/`capturedUrl` constants inside `handleInlineSave` and `handleDescriptionSave` (previously relying on the outer `useCallback` closure, which works but was inconsistent with the explicit-capture pattern established in `executeTokenRename`).
+- Fixed `handleConfirmMoveToken` and `handleConfirmCopyToken`: added `moveFromSet`/`copyFromSet` state variables that capture the source `setName` when the dialog opens (`handleRequestMoveToken`/`handleRequestCopyToken`). The confirm handlers now use these captured values (and `serverUrlRef.current`) instead of the potentially-stale `setName`/`serverUrl` from the `useCallback` closure, preventing silent cross-set move/copy if the active set changes between dialog-open and confirm.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L63, ~L68, ~L94, ~L111, ~L242, ~L317, ~L367, ~L476, ~L485, ~L506, ~L513
+- **Learnings for future iterations:**
+  - The pattern for cross-render callback guards: `const ref = useRef(value); ref.current = value;` at the top of the hook body. Inside any closure that should validate the "current context" at execution time (not closure-creation time), read `ref.current`. This avoids adding the volatile value to `useCallback` deps (which would constantly re-create callbacks) while still catching stale-context execution.
+  - For dialog-open-then-confirm flows, capture any user-context that must not drift (active set, serverUrl) in state when the dialog opens, and use that captured state in the confirm handler. Do NOT rely on the outer hook's prop values in confirm handlers.
+---
