@@ -513,3 +513,14 @@
   - Context menu accelerator hints (single letter "R") and standalone keyboard shortcuts (F2) serve different purposes — the menu hint should show the standalone shortcut so users discover it can be used outside the menu.
   - When a duplicate prop/parameter causes a build failure (`"X" cannot be bound multiple times in the same parameter list`), both the interface and the destructuring must be deduplicated, not just one.
 ---
+
+## 2026-04-03 - Token editor save failure has no retry affordance
+- Added `saveRetryArgs: [boolean, boolean] | null` state to track whether the current error is from a server/network save failure (retryable) vs a validation failure (not retryable). Set in the `handleSave` catch block; cleared at save start and on validation errors.
+- Updated the error alert div to use `flex items-start gap-2`, wrapping the message in `<span className="flex-1">` and appending a "Retry" button that calls `handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1])` when `saveRetryArgs` is set.
+- Also fixed a pre-existing build-breaking bug: `allTokensFlat` was declared twice in `TokenGeneratorDialogProps` interface and twice in the component destructuring, causing esbuild to fail with "cannot be bound multiple times". Removed the duplicate interface entry and destructuring binding.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L748, ~L1132-1136, ~L1177, ~L1205, ~L1389-1400; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L57-69, ~L162-171
+- **Learnings for future iterations:**
+  - Use `[boolean, boolean] | null` state (not a ref) to track retryable save args so React re-renders the error UI. `null` = no retry available, non-null = show Retry button.
+  - Distinguish retryable (server/network) errors from non-retryable (validation) ones by clearing `saveRetryArgs` in all validation-error branches and only setting it in the catch block of the actual API call.
+  - Pre-existing `allTokensFlat` duplicate in `TokenGeneratorDialog.tsx` was blocking builds — the fix was to remove the earlier duplicate interface entry (the one with the outdated description) and the earlier destructuring binding.
+---

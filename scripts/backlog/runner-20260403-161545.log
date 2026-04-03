@@ -87,3 +87,10 @@ Already up to date.
   → Token editor save failure has no retry affordance — when saving fails (server error, validation, conflict), the user sees an error message but must manually re-trigger save; add a "Retry" button next to the error message, matching the pattern used in PublishModals (TokenEditor.tsx ~L1067-1070)
   Worktree: /tmp/backlog-46580-RRMdm6
   Running agent… (started 16:33:51)
+
+  ✓ done: Token editor save failure has no retry affordance
+    Added saveRetryArgs state to TokenEditor; shows "Retry" button in error alert only for server/network save failures; also fixed pre-existing build-breaking duplicate allTokensFlat binding in TokenGeneratorDialog.tsx
+    57 turns · 380s · $1.38
+
+  Merging to main: Token editor save failure has no retry affordance
+Already up to date.

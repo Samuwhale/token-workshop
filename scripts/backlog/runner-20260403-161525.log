@@ -131,3 +131,18 @@ Already up to date.
 
   Merging to main: No keyboard shortcut for Delete, Rename, or Duplicate token
 Already up to date.
+[main 996dad96] chore(backlog): done – No keyboard shortcut for Delete, Rename, or Duplicate token
+ 9 files changed, 69 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No keyboard shortcut for Delete, Rename, or Duplicate token
+- Added F2 shortcut for inline rename in `handleRowKeyDown` (TokenTreeNode.tsx). Delete/Backspace and Cmd+D were already implemented but undocumented.
+- Added TOKEN_RENAME ('F2'), TOKEN_DELETE ('⌫'), TOKEN_DUPLICATE ('⌘D') constants to SHORTCUT_KEYS in shortcutRegistry.ts, plus registry entries so they appear in the keyboard shortcuts help modal.
+- Updated context menu rename hint from "R" (context-menu accelerator) to "F2" (the standalone shortcut), making the persistent shortcut visible to users.
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  18 queued · 3 in-progress · last took 5m41s
+═══════════════════════════════════════════════════════════════
+  → Preview panel is only accessible via a small toggle button in the Tokens tab — the split-view preview is a powerful feature (template galleries for colors, typography, buttons, forms, cards, effects) but there's no command palette entry, no keyboard shortcut, and the toggle button is not labeled; add a Cmd+P shortcut and a "Toggle preview" command palette entry (PreviewPanel.tsx, App.tsx)
+  Worktree: /tmp/backlog-45818-kV2ofB
+  Running agent… (started 16:39:12)

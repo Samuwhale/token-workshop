@@ -54,8 +54,6 @@ export interface TokenGeneratorDialogProps {
   sourceTokenValue?: any;
   allSets: string[];
   activeSet: string;
-  /** Token map for source token autocomplete — optional; omit to fall back to plain text input */
-  allTokensFlat?: Record<string, TokenMapEntry>;
   existingGenerator?: TokenGenerator;
   /** Pre-fill from a quick-start template */
   template?: GeneratorTemplate;
