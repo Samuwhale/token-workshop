@@ -433,3 +433,10 @@
   - The IIFE pattern `{(() => { ... return sections.map(...); })()}` works cleanly for inline multi-step computation in JSX without extracting a helper function.
   - Dead code in the form of duplicate exported components creates confusion about which version is canonical — always check for duplicate definitions when investigating a component.
 ---
+
+## 2026-04-04 - styleSync.ts writes setPluginData unconditionally on parse failure
+- Stale — already done. Commit 0c93ee1f ("styleSync.ts silently swallows parse failures for color tokens and gradient stops") already added `throw new Error(...)` in both `applyPaintStyle` (when `parseColor` returns null) and `applyGradientPaintStyle` (when stops fail to parse). `setPluginData` is therefore never reached on failure — no ghost bindings are created.
+- Files changed: none (no changes needed)
+- **Learnings for future iterations:**
+  - Check git log for the specific file before implementing — a closely related prior backlog item may have already addressed the bug.
+---

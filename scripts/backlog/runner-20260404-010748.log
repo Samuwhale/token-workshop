@@ -250,3 +250,10 @@ Already up to date.
 - Added `contrastGroupFilter` (string, default `'all'`) and `contrastSortMode` (`'luminance' | 'failures'`, default `'luminance'`) state variables.
 - Inside the matrix IIFE, derived `availableGroups` (unique first path segments) and `filteredTokens`/`displayTokens` applying filter then sort before paginating.
 - "Sort: Most failures" mode pre-computes per-token failure counts (O(N²) same as existing pair enumeration) then sorts descending so worst-contrast-offenders appear first.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  16 queued · 2 in-progress · last took 4m10s
+═══════════════════════════════════════════════════════════════
+  → Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards, while sibling hooks (useLint.ts, useThemeSwitcher.ts, useResolvers.ts) implement the correct pattern; this causes potential setState-on-unmounted-component warnings and stale closure bugs across all async data-fetching hooks; standardize all hooks to check `signal.aborted` before any setState in finally/then blocks and clean up abort refs consistently
+  Worktree: /tmp/backlog-91949-cVgG40
+  Running agent… (started 01:43:02)

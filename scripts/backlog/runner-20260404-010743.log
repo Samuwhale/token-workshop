@@ -131,3 +131,25 @@ Already up to date.
 
   Merging to main: No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
 Already up to date.
+[main 986d8be5] chore(backlog): done – No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
+ 7 files changed, 52 insertions(+), 153 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No combined preview before Publish All
+- The feature was partially implemented: `PublishAllPreviewModal` existed and was wired to the Publish All button, but the git section only showed file counts ("↑ 3 files pushed") with no file names listed. Variables and styles sections already used `SyncDiffSummary` to show individual items.
+- Enhanced the git section in `PublishAllPreviewModal` (in PublishPanel.tsx) to render the actual file names grouped by push/pull direction, using the same list-in-bordered-box pattern as `SyncDiffSummary`.
+- Removed dead duplicate `PublishAllPreviewModal` from `PublishModals.tsx` (was exported but never imported; an identical-but-older version lived in PublishPanel.tsx). Also removed the now-unused `SyncDiffSummary` import from PublishModals.tsx.
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  15 queued · 3 in-progress · last took 5m29s
+═══════════════════════════════════════════════════════════════
+  → styleSync.ts writes `setPluginData('tokenPath', token.path)` unconditionally even when paint/gradient value parsing fails — in `applyPaintStyle` (L131) if `parseColor` returns null, the style's visual is unchanged but metadata claims it's bound to the token; in `applyGradientPaintStyle` (L158) if fewer than 2 gradient stops parse successfully, the style isn't updated but metadata is still written; this creates ghost bindings where Figma styles appear linked to tokens without reflecting their values
+  Worktree: /tmp/backlog-91634-bYZ2KD
+  Running agent… (started 01:43:04)
+
+  ✓ done: styleSync.ts writes setPluginData unconditionally on parse failure
+    stale — already done; commit 0c93ee1f already added throws in applyPaintStyle and applyGradientPaintStyle preventing setPluginData from being reached on parse failure
+    9 turns · 76s · $0.23
+
+  Merging to main: styleSync.ts writes setPluginData unconditionally on parse failure
+Already up to date.

@@ -199,3 +199,9 @@ Already up to date.
   → No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
   Worktree: /tmp/backlog-92209-27Ioyg
   Running agent… (started 01:40:57)
+
+  ✓ done: No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
+    Added ⌘⇧F shortcut that opens the command palette pre-filled with ">" for instant token search mode; registered in SHORTCUT_KEYS, SHORTCUT_REGISTRY, and keyboard handler in App.tsx
+    23 turns · 204s · $0.6
+
+  Merging to main: No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
