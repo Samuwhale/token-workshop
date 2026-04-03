@@ -106,3 +106,19 @@ Already up to date.
   → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
   Worktree: /tmp/backlog-46178-RFBqC9
   Running agent… (started 16:44:29)
+
+  · unknown
+    101 turns · 924s · $2.86
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-03 - ResolverPanel hidden behind ThemeManager Advanced toggle
+- Added 'resolvers' as a dedicated sub-tab under the Define top-tab (alongside Tokens, Themes, Generators).
+- Updated `DefineSubTab` type to include `'resolvers'`, added entry to `TOP_TABS` array, imported `ResolverPanel` directly in App.tsx, and added a conditional render block that passes all `resolverState` props to `ResolverPanel`.
+- `ResolverPanel` (standalone variant with header) is used instead of `ResolverContent` (the embedded headerless variant used inside ThemeManager's advanced mode), keeping the ThemeManager advanced mode intact for users who arrive there.
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  16 queued · 3 in-progress · last took 15m30s
+═══════════════════════════════════════════════════════════════
+  → Token editor auto-focus is missing in edit mode — when opening the editor to edit an existing token, no field receives focus; users must click to start editing; in create mode autoFocus works on the path field, but edit mode should focus the value field or the first editable field (TokenEditor.tsx ~L1244)
+  Worktree: /tmp/backlog-46178-bVTtpB
+  Running agent… (started 16:59:59)

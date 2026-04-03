@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { TokenList } from './components/TokenList';
+import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
@@ -446,6 +447,8 @@ export function App() {
   }, []);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
+  // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
+  const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback((direction: 1 | -1) => {
     if (!editingToken) return;
@@ -1049,6 +1052,30 @@ export function App() {
         category: 'Tokens',
         handler: () => { setFlowPanelInitialPath(highlightedToken); navigateTo('apply', 'dependencies'); },
       }] : []),
+      // Compare tokens (multi-select)
+      {
+        id: 'compare-tokens',
+        label: 'Compare tokens\u2026',
+        description: 'Enter multi-select mode and compare two or more tokens side-by-side',
+        category: 'Tokens',
+        handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
+      },
+      // Compare token across themes (only when theme dimensions exist and a token is focused)
+      ...(dimensions.length > 0 && highlightedToken ? [{
+        id: 'compare-across-themes',
+        label: `Compare across themes: ${highlightedToken}`,
+        description: 'See how this token\u2019s value varies across all theme options',
+        category: 'Tokens',
+        handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCrossThemeCompare(highlightedToken); },
+      }] : []),
+      // Compare any token across themes (no focused token — prompt user)
+      ...(dimensions.length > 0 && !highlightedToken ? [{
+        id: 'compare-across-themes-pick',
+        label: 'Compare token across themes\u2026',
+        description: 'Focus a token first, then run this command to compare its values across theme options',
+        category: 'Tokens',
+        handler: () => { navigateTo('define', 'tokens'); },
+      }] : []),
       // Server-side undo: recent operations with rollback
       ...recentOperations
         .filter(op => !op.rolledBack)
@@ -1079,7 +1106,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, dimensions]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
@@ -2209,6 +2236,7 @@ export function App() {
                     highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                     showIssuesOnly={showIssuesOnly}
                     editingTokenPath={editingToken?.path}
+                    compareHandle={tokenListCompareRef}
                   />
                 </div>
                 <div
@@ -2271,6 +2299,7 @@ export function App() {
                 highlightedToken={highlightedToken}
                 showIssuesOnly={showIssuesOnly}
                 editingTokenPath={editingToken?.path}
+                compareHandle={tokenListCompareRef}
               />
             )
           )}
@@ -2285,6 +2314,7 @@ export function App() {
                   highlightedToken={highlightedToken}
                   showIssuesOnly={showIssuesOnly}
                   editingTokenPath={editingToken?.path}
+                  compareHandle={tokenListCompareRef}
                 />
               </div>
               <div

@@ -146,3 +146,19 @@ Already up to date.
   → Preview panel is only accessible via a small toggle button in the Tokens tab — the split-view preview is a powerful feature (template galleries for colors, typography, buttons, forms, cards, effects) but there's no command palette entry, no keyboard shortcut, and the toggle button is not labeled; add a Cmd+P shortcut and a "Toggle preview" command palette entry (PreviewPanel.tsx, App.tsx)
   Worktree: /tmp/backlog-45818-kV2ofB
   Running agent… (started 16:39:12)
+
+  · unknown
+    1 turns · 4s · $3.86
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - ResolverPanel hidden behind ThemeManager Advanced toggle
+- Added 'resolvers' as a dedicated sub-tab under the Define top-tab (alongside Tokens, Themes, Generators).
+- Updated `DefineSubTab` type to include `'resolvers'`, added entry to `TOP_TABS` array, imported `ResolverPanel` directly in App.tsx, and added a conditional render block that passes all `resolverState` props to `ResolverPanel`.
+- `ResolverPanel` (standalone variant with header) is used instead of `ResolverContent` (the embedded headerless variant used inside ThemeManager's advanced mode), keeping the ThemeManager advanced mode intact for users who arrive there.
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  16 queued · 3 in-progress · last took 27m12s
+═══════════════════════════════════════════════════════════════
+  → Preview panel is only accessible via a small toggle button in the Tokens tab — the split-view preview is a powerful feature (template galleries for colors, typography, buttons, forms, cards, effects) but there's no command palette entry, no keyboard shortcut, and the toggle button is not labeled; add a Cmd+P shortcut and a "Toggle preview" command palette entry (PreviewPanel.tsx, App.tsx)
+  Worktree: /tmp/backlog-45818-eMU4gA
+  Running agent… (started 17:06:24)

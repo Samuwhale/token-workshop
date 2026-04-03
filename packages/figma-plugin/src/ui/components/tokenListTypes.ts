@@ -1,3 +1,4 @@
+import type React from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -114,6 +115,14 @@ export interface TokenListActions {
   onSelectionChange?: (paths: string[]) => void;
 }
 
+/** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
+export interface TokenListImperativeHandle {
+  /** Enter multi-select mode and open ComparePanel */
+  openCompareMode: () => void;
+  /** Open CrossThemeComparePanel for a specific token path */
+  openCrossThemeCompare: (path: string) => void;
+}
+
 export interface TokenListProps {
   ctx: TokenListCtx;
   data: TokenListData;
@@ -123,6 +132,8 @@ export interface TokenListProps {
   showIssuesOnly?: boolean;
   /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */
   editingTokenPath?: string | null;
+  /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
+  compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
 }
 
 export type DeleteConfirm =

@@ -133,3 +133,26 @@ Already up to date.
 
   Merging to main: ResolverPanel is hidden behind ThemeManager's "Advanced" toggle
 Already up to date.
+[main 6b011db6] chore(backlog): done – ResolverPanel is hidden behind ThemeManager's "Advanced" toggle
+ 7 files changed, 94 insertions(+), 6 deletions(-)
+ delete mode 120000 packages/figma-plugin/node_modules
+  ✓ Merged and marked done
+
+## 2026-04-03 - ResolverPanel hidden behind ThemeManager Advanced toggle
+- Added 'resolvers' as a dedicated sub-tab under the Define top-tab (alongside Tokens, Themes, Generators).
+- Updated `DefineSubTab` type to include `'resolvers'`, added entry to `TOP_TABS` array, imported `ResolverPanel` directly in App.tsx, and added a conditional render block that passes all `resolverState` props to `ResolverPanel`.
+- `ResolverPanel` (standalone variant with header) is used instead of `ResolverContent` (the embedded headerless variant used inside ThemeManager's advanced mode), keeping the ThemeManager advanced mode intact for users who arrive there.
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  16 queued · 3 in-progress · last took 5m10s
+═══════════════════════════════════════════════════════════════
+  → ComparePanel and CrossThemeComparePanel are only accessible via right-click context menu — no command palette entries, no keyboard shortcuts, and no visible buttons in the main UI; these are powerful features (multi-token diff and cross-theme comparison) that most users will never discover; add command palette entries and consider an icon button in the token list toolbar (ComparePanel.tsx, CrossThemeComparePanel.tsx, App.tsx)
+  Worktree: /tmp/backlog-46580-HcffJL
+  Running agent… (started 16:57:24)
+
+  ✓ done: ComparePanel and CrossThemeComparePanel are only accessible via right-click context menu — no command palette entries, no keyboard shortcuts, and no visible buttons in the main UI
+    Added imperative handle ref pattern to expose compare actions from TokenList; added 3 command palette entries (compare tokens, compare across themes with/without focused token); added Compare icon button to normal tree-view toolbar; fixed pre-existing vitest worktree test failure with vitest.config.ts alias
+    80 turns · 584s · $2.58
+
+  Merging to main: ComparePanel and CrossThemeComparePanel are only accessible via right-click context menu — no command palette entries, no keyboard shortcuts, and no visible buttons in the main UI
+Already up to date.

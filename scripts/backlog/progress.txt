@@ -534,3 +534,15 @@
   - The `ResolverPanel` component already had both a standalone (`ResolverPanel`) and embeddable (`ResolverContent`) export — surfacing it as a first-class tab only required changes in App.tsx, no changes to the panel itself.
   - Validate.sh gate 1 fails in this worktree due to a pre-existing `@tokenmanager/core` resolution error in vitest (vitest lacks the `resolve.alias` that `build.mjs` provides). Lint gate passes at baseline (5 errors).
 ---
+
+## 2026-04-03 - ComparePanel and CrossThemeComparePanel discovery (command palette + toolbar button)
+- Added `TokenListImperativeHandle` interface to `tokenListTypes.ts` with `openCompareMode()` and `openCrossThemeCompare(path)` methods, plus `compareHandle` prop to `TokenListProps`.
+- In `TokenList.tsx`, populated `compareHandle.current` via `useEffect` (setState setters are stable, so deps only include `compareHandle`). Added a "Compare" icon button (two-column SVG icon) to the normal toolbar (tree view only), before the spacer, with separator.
+- In `App.tsx`, created `tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null)` and passed it to all three `TokenList` instances as `compareHandle`. Added three command palette entries: "Compare tokens…" (always visible, enters multi-select + compare mode), "Compare across themes: {token}" (when theme dimensions exist AND a token is focused), and "Compare token across themes…" (when dimensions exist but no focused token, navigates to tokens tab). Added `dimensions` to the `commands` `useMemo` deps array.
+- Also added `vitest.config.ts` to `packages/figma-plugin` with `@tokenmanager/core` alias — fixes pre-existing test failure where vitest couldn't resolve the workspace package (Vite build had the alias in `build.mjs` but vitest didn't).
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L118-137, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1820-1838 (ref populate), ~L2188-2207 (toolbar button), `packages/figma-plugin/src/ui/App.tsx` ~L4-5 (import), ~L450 (ref), ~L1055-1087 (commands), ~L2240/2301/2316 (compareHandle prop), `packages/figma-plugin/vitest.config.ts` (new file)
+- **Learnings for future iterations:**
+  - Imperative handle pattern (ref populated in useEffect) is the cleanest way to expose actions from a deeply-stateful component without lifting state or complex prop-drilling. `useState` setters are stable references, so `useEffect([compareHandle])` is sufficient.
+  - The `vitest.config.ts` with `resolve.alias` for workspace packages fixes the pre-existing worktree test failure. Add this pattern whenever a new package is added that vitest tests need to import from `@tokenmanager/core`.
+  - For command palette entries that are contextual on highlighted token, use spread conditionals: `...(condition ? [{ id, label, handler }] : [])`. Keep the non-contextual base command always visible so users can discover the feature even without a focused token.
+---

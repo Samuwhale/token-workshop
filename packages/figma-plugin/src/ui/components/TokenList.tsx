@@ -51,6 +51,7 @@ export function TokenList({
   highlightedToken,
   showIssuesOnly,
   editingTokenPath,
+  compareHandle,
 }: TokenListProps) {
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [applying, setApplying] = useState(false);
@@ -1820,6 +1821,22 @@ export function TokenList({
     setCompareAcrossThemesPath(path);
   }, []);
 
+  // Expose imperative compare actions to the parent via compareHandle ref
+  useEffect(() => {
+    if (!compareHandle) return;
+    compareHandle.current = {
+      openCompareMode: () => {
+        setSelectMode(true);
+        setShowCompare(true);
+        setShowBatchEditor(false);
+      },
+      openCrossThemeCompare: (path: string) => {
+        setCompareAcrossThemesPath(path);
+      },
+    };
+    return () => { compareHandle.current = null; };
+  }, [compareHandle]);
+
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), []);
 
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
@@ -2181,6 +2198,25 @@ export function TokenList({
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Resolved
+                  </button>
+                </>
+              )}
+
+              {/* Compare button — enters multi-select mode to compare tokens */}
+              {viewMode === 'tree' && (
+                <>
+                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
+                  <button
+                    onClick={() => { setSelectMode(true); setShowCompare(true); setShowBatchEditor(false); }}
+                    title="Compare tokens — enter select mode to compare two or more tokens side-by-side"
+                    aria-label="Compare tokens"
+                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/>
+                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                      <line x1="12" y1="3" x2="12" y2="21"/>
+                    </svg>
                   </button>
                 </>
               )}
