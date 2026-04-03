@@ -500,3 +500,18 @@ Already up to date.
 
   Merging to main: Set metadata only accessible via context menu — no visible affordance in SetSwitcher manage mode
 Already up to date.
+[main 77155227] chore(backlog): done – Set metadata only accessible via context menu — no visible affordance in SetSwitcher manage mode
+ 7 files changed, 56 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Set metadata only accessible via context menu — no visible affordance in manage mode
+- Added an "Edit set info" info-circle icon button to SetSwitcher's manage mode action row (alongside move/rename/duplicate/delete). Clicking it closes the SetSwitcher and opens the metadata modal (description, Figma collection, Figma mode).
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L14 (new `onEditInfo` prop), ~L143 (`canManage` guard), ~L219 (pass to ManageView), ~L310 (ManageViewProps), ~L324 (destructure), ~L399 (new button before Rename)
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  6 queued · 3 in-progress · last took 4m10s
+═══════════════════════════════════════════════════════════════
+  → Find & Replace doesn't warn when replacements would break alias references — the regex-based find/replace shows a preview of path changes but doesn't check whether any renamed paths are referenced as alias targets by other tokens; breaking aliases silently creates dangling references that only surface later as validation errors (TokenListModals.tsx ~L818-820)
+  Worktree: /tmp/backlog-81661-YQ4LUy
+  Running agent… (started 13:22:47)

@@ -557,3 +557,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    10 items written to inbox — 1 HIGH (onNavigateToToken param order bug), 9 feature/UX gaps across sync, import, export, graph, editor, inspector, and analytics panels
+Already up to date.

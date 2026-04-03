@@ -439,3 +439,9 @@
   - When opening a modal from inside another modal (SetSwitcher → metadata), close the source modal first to avoid nested overlay stacking.
   - `canManage` in SetSwitcher controls whether the Switch/Manage mode toggle appears — include `onEditInfo` in that check so the manage button shows even if only info editing is wired up.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (navigation architecture, modal management, overflow panels, editor layout), SetSwitcher.tsx (set creation flow, folder hierarchy), SettingsPanel.tsx (settings duplication with ExportPanel), ExportPanel.tsx (dual modes, filter state, presets), CommandPalette.tsx (token search qualifiers, bulk ops), TokenEditor.tsx (alias picker limits, extensions validation, conflict detection), BatchEditor.tsx (alias scaling, type conversion), SelectionInspector.tsx (mixed bindings, deep inspection, peer suggestions), ImportPanel.tsx (conflict strategies, mode naming), VariableSyncSubPanel.tsx (conflict diff visibility), GraphPanel.tsx (pipeline card actions, wizard state), AnalyticsPanel.tsx (stale results, onNavigateToToken param order), ThemeManager.tsx (onNavigateToToken param order mismatch), server routes (all 13 route files, unwired endpoints)
+- Found 10 items — written to backlog-inbox.md
+- Notable: onNavigateToToken callback has reversed parameter order between AnalyticsPanel `(path, set)` and ThemeManager `(set, tokenPath)` — a silent bug where one caller is passing arguments in the wrong order; also sync conflict review requires opening each token individually with no inline value diff
+---
