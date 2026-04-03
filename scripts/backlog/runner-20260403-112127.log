@@ -349,3 +349,19 @@ Already up to date.
 
   Merging to main: BatchEditor silently skips alias tokens during scale operations and only reports the skip count post-apply
 Already up to date.
+[main 25e48f38] chore(backlog): done – BatchEditor silently skips alias tokens during scale operations and only reports the skip count post-apply
+ 6 files changed, 69 insertions(+), 3 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-115320.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor silently skips alias tokens during scale operations
+- Stale — already implemented. `skippedAliasTokens` useMemo (BatchEditor.tsx ~L144-155) and a pre-apply warning banner (BatchEditor.tsx ~L746-763) already show which tokens will be skipped before Apply is clicked, including the full list of skipped paths and their reference values. This was likely added during the "BatchEditor shows no indication of which tokens were skipped for type-incompatible operations" session.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  9 queued · 2 in-progress · last took 1m6s
+═══════════════════════════════════════════════════════════════
+  → Generator panel has no dry-run preview mode — users must actually run a generator to see what tokens it would create; for generators targeting existing groups this overwrites values without any preview; add a "Preview output" action that shows a diff of what tokens would be created/updated/deleted without committing the change (GraphPanel.tsx ~L200-400, generator run endpoint)
+  Worktree: /tmp/backlog-30880-jDdQrr
+  Running agent… (started 11:53:26)

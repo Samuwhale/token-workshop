@@ -233,12 +233,21 @@ export function BatchEditor({
 
   const aliasActive = aliasRef !== '' && aliasRef.startsWith('{') && aliasRef.endsWith('}');
 
-  const hasOp = description.trim() !== '' ||
+  const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
+  const scalingActive = hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
+
+  // Alias mode is mutually exclusive with value-modifying operations (opacity, scale).
+  // If both are active simultaneously, the alias would be silently overwritten.
+  const aliasConflict = aliasActive && (opacityActive || scalingActive);
+
+  const hasOp = !aliasConflict && (
+    description.trim() !== '' ||
     newType !== '' ||
     batchScopes.length > 0 ||
     aliasActive ||
-    (hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
-    (hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
+    opacityActive ||
+    scalingActive
+  );
 
   const canMove = targetSet !== '' && !moving;
 
@@ -313,6 +322,10 @@ export function BatchEditor({
 
   const handleApply = async () => {
     if (!connected || applying || !hasOp) return;
+    if (aliasConflict) {
+      setFeedback({ ok: false, msg: 'Alias conflicts with opacity/scale — disable one to apply' });
+      return;
+    }
 
     // If a type change is included and we haven't confirmed yet, show the confirmation
     if (newType !== '' && !showTypeConfirm) {
@@ -325,9 +338,6 @@ export function BatchEditor({
     type Op = { path: string; patch: Record<string, unknown>; oldEntry: TokenMapEntry };
     const ops: Op[] = [];
     let skippedTypeIncompat = 0;
-
-    const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
-    const scalingActive = hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
 
     for (const { path, entry } of selectedEntries) {
       const patch: Record<string, unknown> = {};
@@ -842,9 +852,15 @@ export function BatchEditor({
           </div>
         )}
         {aliasActive && !showAliasAutocomplete && (
-          <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-            Will set <span className="font-mono text-[var(--color-figma-text)]">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
-          </div>
+          aliasConflict ? (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)] leading-snug">
+              Alias cannot be combined with {opacityActive && scalingActive ? 'opacity and scale' : opacityActive ? 'opacity' : 'scale'} — disable one to apply
+            </div>
+          ) : (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              Will set <span className="font-mono text-[var(--color-figma-text)]">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
+            </div>
+          )
         )}
       </div>
 

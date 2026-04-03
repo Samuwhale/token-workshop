@@ -353,3 +353,12 @@
 - **Learnings for future iterations:**
   - The pre-apply alias-skip warning and the post-apply skip count both coexist; the item was written before the pre-apply UI was added.
 ---
+
+## 2026-04-03 - BatchEditor silently overwrites alias $value when opacity or scaling is also active
+- Root cause: `patch.$value = aliasRef` was set on line 348, then `opacityActive` (line 357) and `scalingActive` (line 368) both unconditionally overwrote `patch.$value` with their computed values. The UI preview said "Will set {alias} on N tokens" but the alias was never actually applied.
+- Fix: extracted `opacityActive` and `scalingActive` as component-scope constants (from inline variables inside `handleApply`). Added `aliasConflict = aliasActive && (opacityActive || scalingActive)`. When conflict exists: (1) `hasOp` returns false blocking Apply, (2) the alias preview is replaced with a red error message naming the conflicting operation(s), (3) `handleApply` guards with early return and error feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L234, ~L247, ~L314, ~L854
+- **Learnings for future iterations:**
+  - When multiple `if` blocks all mutate the same field (`patch.$value`), later blocks silently win — easy to miss. Moving state to component scope and computing conflict flags up-front makes the interaction explicit.
+  - `hasOp` must account for conflict state to prevent the Apply button from appearing enabled when no operation will actually succeed.
+---

@@ -80,3 +80,10 @@ Already up to date.
   → [HIGH] BatchEditor silently overwrites alias $value when opacity or scaling is also active — when aliasActive is true, patch.$value is set to the alias ref (BatchEditor.tsx:348), but if opacityActive is also true the value is immediately overwritten with the opacity-modified hex (line 357); same for scalingActive (line 373); the UI preview at line 844 misleadingly says "Will set {alias} on N tokens" but the alias is never applied; fix by making alias mode mutually exclusive with opacity/scaling, or by applying alias only when no value-modifying operation is also active, and showing an error if both are enabled simultaneously
   Worktree: /tmp/backlog-31178-kkb4VV
   Running agent… (started 11:51:29)
+
+  ✓ done: BatchEditor silently overwrites alias $value when opacity or scaling is also active
+    Made alias mode mutually exclusive with opacity/scaling: computed aliasConflict flag at component scope, blocked Apply when conflict exists, replaced alias preview with inline red error naming the conflicting operation(s)
+    17 turns · 114s · $0.46
+
+  Merging to main: BatchEditor silently overwrites alias $value when opacity or scaling is also active
+Already up to date.
