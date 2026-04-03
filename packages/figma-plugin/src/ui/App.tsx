@@ -63,6 +63,7 @@ import { useLintConfig } from './hooks/useLintConfig';
 import { useRecentlyTouched } from './hooks/useRecentlyTouched';
 import { usePinnedTokens } from './hooks/usePinnedTokens';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
+import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { adaptShortcut } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
@@ -651,6 +652,22 @@ export function App() {
 
   const { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
 
+
+  // Catch-all: warn in the console when the plugin sandbox sends a message type that
+  // is not in the ControllerMessage union. This fires during development and helps
+  // catch missing type definitions or misspelled message types before they become
+  // silent data-loss bugs.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data?.pluginMessage;
+      if (!msg || typeof msg.type !== 'string') return;
+      if (!KNOWN_CONTROLLER_MESSAGE_TYPES.has(msg.type)) {
+        console.warn(`[plugin] Unhandled controller message type: "${msg.type}"`, msg);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes
   useEffect(() => {

@@ -247,3 +247,18 @@ Already up to date.
 
   Merging to main: git-sync.ts operations have no mutual exclusion — pull(), applyDiffChoices(), resolveFileConflict(), and commit() can run concurrently without any locking
 Already up to date.
+[main 214e9865] chore(backlog): done – git-sync.ts operations have no mutual exclusion — pull(), applyDiffChoices(), resolveFileConflict(), and commit() can run concurrently without any locking
+ 5 files changed, 167 insertions(+), 104 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - git-sync.ts operations have no mutual exclusion
+- Added a `withLock<T>(fn)` promise-chain mutex to the `GitSync` class. All git-mutating operations now serialize behind a single `lockChain` promise so concurrent calls can never interleave git add/checkout/commit commands.
+- Methods wrapped: `init`, `commit`, `push`, `pull`, `resolveFileConflict`, `abortMerge`, `finalizeMerge`, `checkout`, `createBranch`, `setRemote`, `applyDiffChoices`. Read-only methods (`status`, `log`, `fetch`, `getConflictedFiles`, etc.) are left unlocked.
+- The lock pattern: `next = lockChain.then(() => fn()); lockChain = next.then(() => {}, () => {}); return next;` — errors propagate to callers but never break the chain for subsequent callers.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  3 queued · 2 in-progress · last took 2m6s
+═══════════════════════════════════════════════════════════════
+  → TokenStore write guards leak on delete and clearAll — deleteSet() (token-store.ts L623) and clearAll() (L648) call `_startWriteGuard()` but never call `_clearWriteGuard()` on success; guards only expire via the 30-second timeout fallback; during that window the chokidar watcher silently ignores external changes to those paths (e.g., git checkout restoring deleted files); ResolverStore has the same pattern on its delete success path (L155-162); fix by calling `_clearWriteGuard()` after the fs operation completes in both stores
+  Worktree: /tmp/backlog-46178-8FArtC
+  Running agent… (started 17:32:28)

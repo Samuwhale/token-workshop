@@ -384,6 +384,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     }
+    default: {
+      // Should be unreachable — validateMessage() returns early for unknown types.
+      // This default branch is a compile-time exhaustiveness guard.
+      const _exhaustive: never = msg;
+      console.warn('[controller] Unhandled message type in switch:', (_exhaustive as { type: string }).type);
+    }
   }
 };
 

@@ -768,10 +768,9 @@ export interface LayerSearchResultMessage {
 }
 
 export interface TokenVariableBindingsMessage {
-  type: 'token-variable-bindings';
+  type: 'token-variable-bindings-result';
   tokenPath: string;
-  bindings: { nodeId: string; nodeName: string; property: string }[];
-  correlationId?: string;
+  variables: { name: string; collection: string; resolvedType: string }[];
 }
 
 export interface AvailableFontsMessage {
@@ -881,6 +880,48 @@ export type ControllerMessage =
   | ConsistencyScanProgressMessage
   | ConsistencyScanResultMessage
   | ConsistencyScanErrorMessage;
+
+/** Runtime set of all known Controller→UI message type strings.
+ *  Keep in sync with the `ControllerMessage` union above. */
+export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>([
+  'error',
+  'fonts-loaded',
+  'active-themes-loaded',
+  'eyedropper-result',
+  'variable-sync-progress',
+  'variables-applied',
+  'apply-variables-error',
+  'variables-read',
+  'variables-read-error',
+  'style-sync-progress',
+  'styles-applied',
+  'styles-apply-error',
+  'styles-read',
+  'styles-read-error',
+  'orphans-deleted',
+  'all-variables-exported',
+  'sync-progress',
+  'sync-complete',
+  'remap-complete',
+  'applied-to-selection',
+  'applied-to-nodes',
+  'removed-binding-from-node',
+  'select-next-sibling-result',
+  'canvas-heatmap-progress',
+  'canvas-heatmap-result',
+  'component-coverage-result',
+  'extracted-tokens',
+  'selection',
+  'search-layers-result',
+  'token-variable-bindings-result',
+  'available-fonts',
+  'peers-for-property-result',
+  'token-usage-map',
+  'token-usage-result',
+  'consistency-scan-progress',
+  'consistency-scan-result',
+  'consistency-scan-error',
+]);
 
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =

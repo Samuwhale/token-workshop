@@ -272,3 +272,10 @@ Already up to date.
   → Plugin sandbox message protocol has unmatched response types — `search-layers-result`, `peers-for-property-result`, `consistency-scan-progress`, `consistency-scan-result`, and `consistency-scan-error` are sent from the sandbox via `figma.ui.postMessage` but are not defined in the `PluginMessage` union type in `types.ts`; additionally `applied-to-selection` (selectionHandling.ts:188) is sent but not in MESSAGE_SCHEMA; the UI `onmessage` handler silently ignores unknown types so these responses are potentially dropped; audit all `figma.ui.postMessage` calls against the PluginMessage union and MESSAGE_SCHEMA, add missing types, and add a catch-all warning for unhandled message types in the UI handler
   Worktree: /tmp/backlog-45818-PVqQ89
   Running agent… (started 17:25:32)
+
+  ✓ done: Plugin sandbox message protocol has unmatched response types
+    Fixed TokenVariableBindingsMessage type/field mismatch ('token-variable-bindings'→'token-variable-bindings-result', bindings→variables); added KNOWN_CONTROLLER_MESSAGE_TYPES Set export; added catch-all console.warn in App.tsx for unknown controller message types; added exhaustiveness default case to controller switch.
+    43 turns · 519s · $1.5
+
+  Merging to main: Plugin sandbox message protocol has unmatched response types
+Already up to date.

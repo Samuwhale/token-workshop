@@ -453,3 +453,17 @@
   - Only operations that mutate the git index (staging area), working tree, or history need the lock. Pure-read operations (diff, log, show) are safe to run concurrently.
   - `this.lockChain = next.then(() => {}, () => {})` (not `.catch(() => {})`) ensures the chain stays in the fulfilled state regardless of outcome, preventing subsequent callers from being blocked by a rejected promise.
 ---
+
+## 2026-04-03 - Plugin sandbox message protocol audit — missing types and catch-all warning
+- Fixed `TokenVariableBindingsMessage` in `types.ts`: type string was `'token-variable-bindings'` but sandbox (`variableSync.ts`) sends `'token-variable-bindings-result'`, and UI handler (`TokenUsages.tsx`) expects the same. Also corrected the field name from `bindings: { nodeId, nodeName, property }[]` to `variables: { name, collection, resolvedType }[]` to match what `scanTokenVariableBindings()` actually sends.
+- Added `KNOWN_CONTROLLER_MESSAGE_TYPES` Set export from `types.ts` (after `ControllerMessage` union) — a runtime set of all 37 known Controller→UI message type strings, typed as `Set<ControllerMessage['type']>` so any invalid string literal causes a compile error.
+- Added catch-all warning `useEffect` in `App.tsx` that fires `console.warn('[plugin] Unhandled controller message type: "X"', msg)` for any incoming plugin message whose `type` is not in `KNOWN_CONTROLLER_MESSAGE_TYPES`. Runs once on mount, covers the entire lifetime of the plugin UI.
+- Added `default:` case to controller's `figma.ui.onmessage` switch with a `const _exhaustive: never = msg` exhaustiveness guard and a console.warn. Since all 35 `PluginMessage` variants are handled in the switch, this branch is unreachable at runtime but causes a TypeScript compile error if a new variant is added to `PluginMessage` without adding a corresponding case.
+- Confirmed `search-layers-result`, `peers-for-property-result`, `consistency-scan-progress`, `consistency-scan-result`, `consistency-scan-error`, and `applied-to-selection` were already present in the `ControllerMessage` union — the backlog item was correct that they were missing but all had been added since the item was filed.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L770, ~L885; `packages/figma-plugin/src/ui/App.tsx` ~L65, ~L656; `packages/figma-plugin/src/plugin/controller.ts` ~L387
+- **Learnings for future iterations:**
+  - `PluginMessage` is UI→Controller; `ControllerMessage` is Controller→UI. They're separate unions. The backlog item's claim that types were missing from `PluginMessage` was a direction confusion — they were correctly absent from `PluginMessage` and present in `ControllerMessage`.
+  - The real bug was in `TokenVariableBindingsMessage` — both the type discriminant string AND the payload field name were wrong relative to the actual implementation.
+  - A `Set<ControllerMessage['type']>` constant is the simplest way to get both runtime usability and compile-time validation of the set's contents (each element must be a valid `ControllerMessage['type']`).
+  - The exhaustiveness guard pattern `const _exhaustive: never = msg` in a switch `default` works when TypeScript's control-flow analysis narrows `msg` to `never` (i.e., all union variants are handled). With 35 `PluginMessage` variants all handled, this fires correctly.
+---
