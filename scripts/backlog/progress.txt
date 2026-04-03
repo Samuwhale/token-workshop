@@ -578,3 +578,15 @@
 - **Learnings for future iterations:**
   - Check git log for the target file before implementing — a prior backlog session may have already addressed the item under a matching commit message.
 ---
+
+## 2026-04-03 - No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope
+- Added named export presets to the platforms mode of ExportPanel.tsx. Presets capture: selected platforms, CSS selector, selected sets, selected types, path prefix, nest-by-platform, and zip filename. UI: a "Presets" section at the top of platforms mode with inline "Save current" that expands a name input, preset pills (click to load, hover reveals X to delete). Presets persist to localStorage via new `EXPORT_PRESETS` key.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L34 — added `EXPORT_PRESETS` key
+  - `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L46, ~L553, ~L680 — added `ExportPreset` interface, preset state + handlers, preset section UI
+- **Learnings for future iterations:**
+  - Preset IDs use `Date.now() + Math.random().toString(36)` — no crypto needed for UI-only IDs.
+  - `selectedSets` and `selectedTypes` are `null` (= all) or a `Set<string>` in memory; serialize to `string[] | null` in JSON for localStorage.
+  - The "save current" inline expand pattern (toggle + focus via `setTimeout(() => ref.current?.focus(), 0)`) works cleanly without a separate modal.
+  - Delete button uses `opacity-0 group-hover:opacity-100` so it's only visible on hover — prevents visual clutter with many presets.
+---

@@ -305,3 +305,10 @@ Already up to date.
   → No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
   Worktree: /tmp/backlog-49887-rKz9Es
   Running agent… (started 13:35:10)
+
+  ✓ done: No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
+    Added named export presets to platforms mode: save/load/delete presets that capture all 7 export options, persisted to localStorage
+    23 turns · 122s · $0.6
+
+  Merging to main: No export presets — each export requires re-selecting platforms, type filters, path prefixes, and set scope; power users running the same export weekly must manually reconstruct their configuration every time; add named export presets that persist platform/filter/option combinations to localStorage (ExportPanel.tsx ~L115-152)
+Already up to date.

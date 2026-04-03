@@ -45,6 +45,18 @@ interface SavePreviewItem {
 type ExportMode = 'platforms' | 'figma-variables';
 type SavePhase = 'idle' | 'preview-loading' | 'preview' | 'saving';
 
+interface ExportPreset {
+  id: string;
+  name: string;
+  platforms: string[];
+  cssSelector: string;
+  selectedSets: string[] | null; // null = all sets
+  selectedTypes: string[] | null; // null = all types
+  pathPrefix: string;
+  nestByPlatform: boolean;
+  zipFilename: string;
+}
+
 function buildZipBlob(files: { path: string; content: string }[]): Blob {
   const crcTable = (() => {
     const t = new Uint32Array(256);
@@ -549,6 +561,52 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return String(modeVal.resolvedValue);
   };
 
+  // Export presets
+  const [presets, setPresets] = useState<ExportPreset[]>(() =>
+    lsGetJson<ExportPreset[]>(STORAGE_KEYS.EXPORT_PRESETS, [])
+  );
+  const [showSavePreset, setShowSavePreset] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const savePresetInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist presets
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.EXPORT_PRESETS, presets);
+  }, [presets]);
+
+  const handleSavePreset = () => {
+    const name = presetName.trim();
+    if (!name) return;
+    const preset: ExportPreset = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      platforms: [...selected],
+      cssSelector,
+      selectedSets: selectedSets === null ? null : [...selectedSets],
+      selectedTypes: selectedTypes === null ? null : [...selectedTypes],
+      pathPrefix,
+      nestByPlatform,
+      zipFilename,
+    };
+    setPresets(prev => [...prev, preset]);
+    setPresetName('');
+    setShowSavePreset(false);
+  };
+
+  const handleLoadPreset = (preset: ExportPreset) => {
+    setSelected(new Set(preset.platforms));
+    setCssSelector(preset.cssSelector);
+    setSelectedSets(preset.selectedSets === null ? null : new Set(preset.selectedSets));
+    setSelectedTypes(preset.selectedTypes === null ? null : new Set(preset.selectedTypes));
+    setPathPrefix(preset.pathPrefix);
+    setNestByPlatform(preset.nestByPlatform);
+    setZipFilename(preset.zipFilename);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    setPresets(prev => prev.filter(p => p.id !== id));
+  };
+
   // Track when we auto-switch mode due to disconnection
   const [modeAutoSwitched, setModeAutoSwitched] = useState(false);
 
@@ -649,6 +707,92 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {/* Platform export mode */}
         {mode === 'platforms' && (
           <>
+            {/* Export presets */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                  Presets
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSavePreset(v => !v);
+                    setPresetName('');
+                    setTimeout(() => savePresetInputRef.current?.focus(), 0);
+                  }}
+                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                >
+                  Save current
+                </button>
+              </div>
+
+              {showSavePreset && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <input
+                    ref={savePresetInputRef}
+                    type="text"
+                    value={presetName}
+                    onChange={e => setPresetName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSavePreset();
+                      if (e.key === 'Escape') { setShowSavePreset(false); setPresetName(''); }
+                    }}
+                    placeholder="Preset name…"
+                    className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  />
+                  <button
+                    onClick={handleSavePreset}
+                    disabled={!presetName.trim()}
+                    className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => { setShowSavePreset(false); setPresetName(''); }}
+                    className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    aria-label="Cancel"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {presets.length === 0 && !showSavePreset && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                  No presets yet. Configure your export settings and click "Save current" to create one.
+                </div>
+              )}
+
+              {presets.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {presets.map(preset => (
+                    <div key={preset.id} className="group flex items-center gap-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+                      <button
+                        onClick={() => handleLoadPreset(preset)}
+                        title={`Load preset: ${preset.name}`}
+                        className="px-2 py-1 text-[10px] text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        {preset.name}
+                      </button>
+                      <button
+                        onClick={() => handleDeletePreset(preset.id)}
+                        title="Delete preset"
+                        className="px-1 py-1 opacity-0 group-hover:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                        aria-label={`Delete preset ${preset.name}`}
+                      >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">

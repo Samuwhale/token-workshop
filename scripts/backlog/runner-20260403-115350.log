@@ -652,3 +652,18 @@ Already up to date.
 
   Merging to main: GraphPanel generator pipeline cards have no inline Edit button
 Already up to date.
+[main 2f121644] chore(backlog): done – GraphPanel generator pipeline cards have no inline Edit button
+ 4 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - GraphPanel generator pipeline cards have no inline Edit button
+- Stale — already implemented. The Edit button exists at `GeneratorPipelineCard` lines ~L1196-1201 in `GraphPanel.tsx`, with `showEditDialog` state and `TokenGeneratorDialog` rendered when open. This was added in commit `dc101e5d` ("chore(backlog): done – GeneratorPipelineCard has no Edit button").
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  15 queued · 3 in-progress · last took 35s
+═══════════════════════════════════════════════════════════════
+  → Token editor Extensions JSON field has no real-time syntax validation — invalid JSON in the custom extensions textarea is only caught at save time with "Invalid JSON in Extensions — fix before saving"; add inline validation on change with syntax error highlighting, matching how JSON editors work in VS Code (TokenEditor.tsx ~L1060-1071)
+  Worktree: /tmp/backlog-81267-3B6BKF
+  Running agent… (started 13:36:59)
