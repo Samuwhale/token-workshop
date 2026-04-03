@@ -43,3 +43,10 @@ Already up to date.
   → `dtcg-resolver.ts` `loadSource` silently swallows cycle and bad-reference errors via `console.warn` — when an internal `$ref` pointer creates a cycle (line 253) or resolves to a non-set target (line 261), the function logs a warning and returns an empty Map; since no caller checks for empty results vs. genuinely empty sets, the resolver silently drops entire token sources with no way for the UI to surface the problem; should throw typed errors or return a result-with-diagnostics that callers can display
   Worktree: /tmp/backlog-45818-VPxl7r
   Running agent… (started 16:24:08)
+
+  ✓ done: dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors via console.warn
+    Replaced console.warn with a ResolverDiagnostic[] accumulator; resolveTokens now returns ResolverResult { tokens, diagnostics }; route passes diagnostics to clients
+    35 turns · 207s · $0.75
+
+  Merging to main: dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors via console.warn
+Already up to date.

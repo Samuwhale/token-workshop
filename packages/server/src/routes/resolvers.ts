@@ -176,7 +176,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'input object is required' });
       }
       try {
-        const tokens = await fastify.resolverStore.resolve(
+        const { tokens, diagnostics } = await fastify.resolverStore.resolve(
           req.params.name,
           input,
           fastify.tokenStore,
@@ -189,7 +189,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
             ...(token.$description ? { $description: token.$description } : {}),
           };
         }
-        return { tokens: flat };
+        return { tokens: flat, diagnostics };
       } catch (err: unknown) {
         const e = err as Error & { statusCode?: number };
         return reply.status(e.statusCode || 500).send({ error: e.message });

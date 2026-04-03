@@ -13,6 +13,7 @@ import type {
   ResolverInput,
   ResolverModifier,
   Token,
+  ResolverResult,
 } from '@tokenmanager/core';
 import {
   validateResolverFile,
@@ -173,7 +174,7 @@ export class ResolverStore {
     name: string,
     input: ResolverInput,
     tokenStore: TokenStore,
-  ): Promise<Record<string, Token>> {
+  ): Promise<ResolverResult> {
     const file = this.resolvers.get(name);
     if (!file) {
       throw Object.assign(new Error(`Resolver "${name}" not found.`), { statusCode: 404 });

@@ -126,7 +126,7 @@ export {
   resolveTokens as resolveResolverTokens,
   resolveTokensFull as resolveResolverTokensFull,
 } from './dtcg-resolver.js';
-export type { ExternalFileLoader } from './dtcg-resolver.js';
+export type { ExternalFileLoader, ResolverDiagnostic, ResolverResult } from './dtcg-resolver.js';
 
 // Validator
 export { TokenValidator } from './validator.js';

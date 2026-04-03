@@ -122,6 +122,25 @@ export function getDefaultResolverInput(file: ResolverFile): ResolverInput {
 export type ExternalFileLoader = (filePath: string) => Promise<DTCGGroup>;
 
 /**
+ * A diagnostic message produced during token resolution.
+ * Severity "error" means a source was skipped (cycle or bad reference);
+ * "warning" is reserved for softer issues.
+ */
+export interface ResolverDiagnostic {
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+/**
+ * The result of resolving tokens: the merged flat token map plus any
+ * diagnostics collected during resolution (e.g. cycle errors, bad $ref).
+ */
+export interface ResolverResult {
+  tokens: Record<string, Token>;
+  diagnostics: ResolverDiagnostic[];
+}
+
+/**
  * Resolve tokens using a ResolverFile and a set of modifier inputs.
  *
  * Algorithm:
@@ -136,7 +155,7 @@ export async function resolveTokens(
   file: ResolverFile,
   input: ResolverInput,
   loadExternal: ExternalFileLoader,
-): Promise<Record<string, Token>> {
+): Promise<ResolverResult> {
   // Step 1: Validate
   const fileErrors = validateResolverFile(file);
   if (fileErrors.length > 0) {
@@ -146,6 +165,8 @@ export async function resolveTokens(
   if (inputErrors.length > 0) {
     throw new Error(`Invalid resolver input: ${inputErrors.join('; ')}`);
   }
+
+  const diagnostics: ResolverDiagnostic[] = [];
 
   // Step 2: Flatten — walk resolutionOrder, merge sources
   const merged = new Map<string, DTCGToken>();
@@ -168,7 +189,7 @@ export async function resolveTokens(
 
     // Merge each source into the flat map (later overrides earlier)
     for (const source of sources) {
-      const tokens = await loadSource(source, file, loadExternal);
+      const tokens = await loadSource(source, file, loadExternal, new Set(), diagnostics);
       for (const [path, token] of tokens) {
         merged.set(path, token);
       }
@@ -176,9 +197,9 @@ export async function resolveTokens(
   }
 
   // Step 3: Convert to Token records and resolve aliases
-  const tokenRecords: Record<string, Token> = {};
+  const tokens: Record<string, Token> = {};
   for (const [path, dtcgToken] of merged) {
-    tokenRecords[path] = {
+    tokens[path] = {
       $value: dtcgToken.$value as Token['$value'],
       $type: dtcgToken.$type as TokenType | undefined,
       ...(dtcgToken.$description ? { $description: dtcgToken.$description } : {}),
@@ -186,21 +207,28 @@ export async function resolveTokens(
     };
   }
 
-  return tokenRecords;
+  return { tokens, diagnostics };
 }
 
 /**
  * Fully resolve tokens (including alias resolution) using a ResolverFile.
+ * Returns both the resolved token map and any diagnostics collected during source loading.
  */
 export async function resolveTokensFull(
   file: ResolverFile,
   input: ResolverInput,
   loadExternal: ExternalFileLoader,
-): Promise<Map<string, { path: string; $type: string; $value: unknown; rawValue: unknown }>> {
-  const tokens = await resolveTokens(file, input, loadExternal);
+): Promise<{
+  resolved: Map<string, { path: string; $type: string; $value: unknown; rawValue: unknown }>;
+  diagnostics: ResolverDiagnostic[];
+}> {
+  const { tokens, diagnostics } = await resolveTokens(file, input, loadExternal);
   const resolver = new TokenResolver(tokens, 'resolver');
-  const resolved = resolver.resolveAll();
-  return resolved as Map<string, { path: string; $type: string; $value: unknown; rawValue: unknown }>;
+  const resolved = resolver.resolveAll() as Map<
+    string,
+    { path: string; $type: string; $value: unknown; rawValue: unknown }
+  >;
+  return { resolved, diagnostics };
 }
 
 // ---------------------------------------------------------------------------
@@ -238,38 +266,45 @@ function resolveInternalPointer(ref: string, file: ResolverFile): InternalTarget
  *
  * @param visited - set of internal $ref strings already on the call stack;
  *   prevents infinite recursion when sets reference each other cyclically.
+ * @param diagnostics - accumulator for errors/warnings; cycle and bad-reference
+ *   errors are pushed here so callers can surface them to the UI.
  */
 async function loadSource(
   source: ResolverSource,
   file: ResolverFile,
   loadExternal: ExternalFileLoader,
   visited: Set<string> = new Set(),
+  diagnostics: ResolverDiagnostic[] = [],
 ): Promise<Map<string, DTCGToken>> {
   if ('$ref' in source && typeof source.$ref === 'string') {
     const ref = source.$ref;
     // Internal pointer
     if (ref.startsWith('#/')) {
       if (visited.has(ref)) {
-        console.warn(
-          `[dtcg-resolver] Cycle detected: internal pointer "${ref}" was already visited. ` +
+        diagnostics.push({
+          severity: 'error',
+          message:
+            `Cycle detected: internal pointer "${ref}" was already visited. ` +
             `Cycle path: ${[...visited].join(' → ')} → ${ref}. Source will be skipped.`,
-        );
+        });
         return new Map();
       }
       const target = resolveInternalPointer(ref, file);
       if (!target || target.kind !== 'set') {
-        console.warn(
-          `[dtcg-resolver] Internal pointer "${ref}" did not resolve to a set` +
+        diagnostics.push({
+          severity: 'error',
+          message:
+            `Internal pointer "${ref}" did not resolve to a set` +
             (target ? ` (resolved to kind "${target.kind}")` : ' (not found)') +
             '. Source will be skipped.',
-        );
+        });
         return new Map();
       }
       // Merge all sources from the referenced set
       const childVisited = new Set(visited).add(ref);
       const result = new Map<string, DTCGToken>();
       for (const s of target.value.sources) {
-        for (const [path, token] of await loadSource(s, file, loadExternal, childVisited)) {
+        for (const [path, token] of await loadSource(s, file, loadExternal, childVisited, diagnostics)) {
           result.set(path, token);
         }
       }

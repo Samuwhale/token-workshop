@@ -53,3 +53,18 @@ Already up to date.
 
   Merging to main: Inline base values are disconnected from the token graph
 Already up to date.
+[main ac0291f3] chore(backlog): done – Inline base values are disconnected from the token graph
+ 8 files changed, 152 insertions(+), 41 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Inline base values are disconnected from the token graph
+- Added `allTokensFlat` and `pathToSet` optional props to `TokenGeneratorDialogProps`.
+- Replaced the plain text source-token input with a searchable `AliasAutocomplete` dropdown: opens on focus/type, filtered by type (`color` or `dimension` based on generator type), selects on click/Enter.
+- Re-styled the source-token section with an accent border and "Recommended" badge to make it visually primary.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  19 queued · 3 in-progress · last took 6m58s
+═══════════════════════════════════════════════════════════════
+  → Server `renameSet` and snapshot restore have non-atomic multi-step mutation windows — `renameSet` (token-store.ts:593-623) renames the file then updates `$themes.json` in separate steps with a `.catch(() => {})` rollback that swallows double-failures; snapshot restore (snapshots.ts:50-101) applies sets sequentially so a mid-restore crash leaves mixed old/new data; both need write-ahead journaling or crash-recovery detection on startup
+  Worktree: /tmp/backlog-46178-ivwcWp
+  Running agent… (started 16:26:02)

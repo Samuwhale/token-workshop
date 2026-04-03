@@ -440,3 +440,12 @@
   - `matchingTokens` for dimension must handle both `"16px"` string format and `{ value, unit }` object format since DTCG dimension values vary.
   - Threading `allTokensFlat` down through intermediate components (`GeneratorPipelineCard`) requires updating both the component's prop type and the render call-site.
 ---
+
+## 2026-04-03 - dtcg-resolver.ts loadSource silently swallows cycle and bad-reference errors
+- Replaced `console.warn` in `loadSource` with a `ResolverDiagnostic[]` accumulator threaded through the call stack. Added `ResolverDiagnostic` (`{ severity, message }`) and `ResolverResult` (`{ tokens, diagnostics }`) types. Changed `resolveTokens` return type from `Promise<Record<string, Token>>` to `Promise<ResolverResult>`. Updated `resolveTokensFull` similarly. Updated `resolver-store.ts:resolve()` to return `Promise<ResolverResult>`. Updated the `/resolvers/:name/resolve` route to include `diagnostics` in the JSON response so callers can surface errors in the UI.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L124-141 (types), ~L154-211 (resolveTokens), ~L213-232 (resolveTokensFull), ~L265-310 (loadSource); `packages/core/src/index.ts` ~L129 (exports); `packages/server/src/services/resolver-store.ts` ~L12-16 (import), ~L172-196 (resolve); `packages/server/src/routes/resolvers.ts` ~L179-192 (route)
+- **Learnings for future iterations:**
+  - Threading a mutable `diagnostics: T[]` array through internal async helpers is clean — no return-type gymnastics, no extra wrapper types at the recursive call sites. Just pass the same array reference down.
+  - Cycle detection and bad-reference errors should be `severity: 'error'` (source is silently dropped), not `'warning'` — the distinction matters for UI display.
+  - The route response shape becomes `{ tokens, diagnostics }` — clients that previously destructured `tokens` directly need to update, but since no users exist yet this is fine.
+---
