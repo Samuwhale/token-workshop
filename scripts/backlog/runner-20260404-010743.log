@@ -184,3 +184,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: TokenStore watcher/route race condition [HIGH], server route error handling inconsistency (27 inline vs 70 handleRouteError), plugin sandbox silent error swallowing (4+ functions), TokenStore saveSet write serialization gap, core resolver undefined-in-reference-set bug
+Already up to date.

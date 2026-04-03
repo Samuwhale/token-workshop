@@ -505,3 +505,9 @@
   - The non-structured single-value row already had `ColorSwatch` for color tokens — the structured property rows just needed the same pattern applied per-key.
   - `ColorSwatch` already handles invalid hex gracefully (returns null), so passing `val` is safe even if the value is '—'.
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: all server services (token-store.ts 1858L, generator-service.ts 899L, git-sync.ts 802L, manual-snapshot.ts 291L, resolver-store.ts 342L, operation-log.ts 453L), all server routes (13 route files, 48 withLock calls, 27 inline status-500 vs 70 handleRouteError), core package (resolver.ts, dtcg-resolver.ts, validator.ts, color-parse.ts), plugin sandbox (controller.ts, variableSync.ts 383L, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: TokenStore has no internal mutex — file watcher callbacks mutate this.sets concurrently with route handlers that hold the route-level lock but not any store-internal lock; this is the root cause class for multiple potential data-loss scenarios
+---

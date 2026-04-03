@@ -286,3 +286,18 @@ Already up to date.
 
   Merging to main: ComparePanel line 319 dead ternary renders nothing
 Already up to date.
+[main 443d8443] chore(backlog): done – ComparePanel line 319 dead ternary renders nothing
+ 6 files changed, 41 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ComparePanel line 319 dead ternary renders nothing
+- Replaced dead `{key === 'fontFamily' || key === 'color' ? null : null}` with actual rendering: for `key === 'color'`, wraps value in a flex span with `<ColorSwatch hex={val} />` before the text (matching the pattern used for simple color tokens on line 339); for `key === 'fontFamily'`, wraps value in a span with `style={{ fontFamily: val }}` so the font name is previewed in its own typeface.
+- Files changed: `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L319
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  9 queued · 2 in-progress · last took 1m3s
+═══════════════════════════════════════════════════════════════
+  → Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step that shows overwrites and semantic mapping options together, reducing back-and-forth for the most common generator workflow (useGeneratorSave.ts, TokenGeneratorDialog.tsx)
+  Worktree: /tmp/backlog-91949-13RuF9
+  Running agent… (started 01:49:54)
