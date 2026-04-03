@@ -2460,6 +2460,7 @@ export function App() {
               generators={generators}
               connected={connected}
               onRefresh={() => { refreshAll(); refreshGenerators(); }}
+              onPushUndo={pushUndo}
               pendingTemplateId={pendingGraphTemplate}
               onApplyTemplate={() => setPendingGraphTemplate(null)}
               pendingGroupPath={pendingGraphFromGroup?.groupPath ?? null}

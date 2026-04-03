@@ -518,3 +518,10 @@ Already up to date.
   → Node graph has no undo/redo for node positioning or edge changes — moving nodes, adding/deleting edges, and adding transform nodes in the graph editor have no undo support; accidentally deleting an edge or moving a node requires manual reconstruction; the graph state changes should integrate with the existing undo system (NodeGraphCanvas.tsx, useNodeGraph.ts)
   Worktree: /tmp/backlog-46580-VLCh2t
   Running agent… (started 18:25:40)
+
+  ✓ done: Node graph has no undo/redo for node positioning or edge changes
+    Added undo/redo for all graph mutations: node move (at drag end), remove node+edges, add transform node, connect/disconnect edges; integrated with existing useUndo stack via onPushUndo prop threaded from App.tsx → GraphPanel → NodeGraphCanvas → useNodeGraph
+    42 turns · 360s · $1.31
+
+  Merging to main: Node graph has no undo/redo for node positioning or edge changes
+Already up to date.

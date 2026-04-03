@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratorTemplate, BorderRadiusScaleConfig, CustomScaleConfig, ContrastCheckConfig } from '../hooks/useGenerators';
+import type { UndoSlot } from '../hooks/useUndo';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
@@ -1261,6 +1262,7 @@ export interface GraphPanelProps {
   generators: TokenGenerator[];
   connected: boolean;
   onRefresh: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
   onApplyTemplate?: (templateId: string) => void;
   pendingTemplateId?: string | null;
   pendingGroupPath?: string | null;
@@ -1284,6 +1286,7 @@ export function GraphPanel({
   generators,
   connected,
   onRefresh,
+  onPushUndo,
   onApplyTemplate,
   pendingTemplateId,
   pendingGroupPath,
@@ -1638,6 +1641,7 @@ export function GraphPanel({
             activeSet={activeSet}
             serverUrl={serverUrl}
             onRefresh={onRefresh}
+            onPushUndo={onPushUndo}
             searchQuery={searchQuery}
           />
         )}

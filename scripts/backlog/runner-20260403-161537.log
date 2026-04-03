@@ -489,3 +489,19 @@ Already up to date.
 
   Merging to main: Consolidate three comparison UIs into unified comparison view
 Already up to date.
+[main 8da36261] chore(backlog): done – Consolidate three comparison UIs into unified comparison view
+ 9 files changed, 308 insertions(+), 120 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-03 - Consolidate three comparison UIs into unified comparison view
+- Created `UnifiedComparePanel.tsx` — a wrapper with mode selector tabs ("Token values" | "Token × themes" | "Theme options") that delegates to the existing ComparePanel, CrossThemeComparePanel, and ThemeCompare components. Each mode shows a helpful empty-state prompt when no data is pre-loaded.
+- Added `'compare'` as a new sub-tab under the "Define" top-level tab in App.tsx (`DefineSubTab` type and `TOP_TABS`).
+- Replaced `themesView`/`themeCompareKey/DefaultA/B` state in App.tsx with unified compare state: `compareMode`, `compareTokenPaths`, `compareTokenPath`, `compareThemeKey/DefaultA/B`.
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  6 queued · 3 in-progress · last took 12m11s
+═══════════════════════════════════════════════════════════════
+  → Duplicated Lab→XYZ→sRGB conversion in core package — `color-math.ts:labToHex` (L74-86) and `color-parse.ts:labToSrgbCoords` (L560-572) contain identical math (same constants, same `f3` helper, same matrix); `labToHex` additionally calls `rgbToHex` while `labToSrgbCoords` returns `[r,g,b]` with `clamp01`; consolidate into a single shared function and have both call it to prevent divergence during future edits
+  Worktree: /tmp/backlog-46178-oRfy3h
+  Running agent… (started 18:31:07)

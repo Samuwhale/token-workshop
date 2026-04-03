@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
+import type { UndoSlot } from '../../hooks/useUndo';
 import type { TransformOp, PortDirection } from './nodeGraphTypes';
 import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
@@ -145,12 +146,14 @@ export interface NodeGraphCanvasProps {
   activeSet: string;
   serverUrl: string;
   onRefresh: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
   searchQuery?: string;
 }
 
 export function NodeGraphCanvas({
   generators,
   activeSet,
+  onPushUndo,
   searchQuery = '',
 }: NodeGraphCanvasProps) {
   const {
@@ -159,6 +162,7 @@ export function NodeGraphCanvas({
     removeNode,
     addTransformNode,
     updateTransformParam,
+    pushMoveUndo,
     addEdge: addEdgeAction,
     removeEdge,
     selectedNodeId,
@@ -172,7 +176,7 @@ export function NodeGraphCanvas({
     finishWiring,
     cancelWiring,
     persistPositions,
-  } = useNodeGraph(generators, activeSet);
+  } = useNodeGraph(generators, activeSet, onPushUndo);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -298,14 +302,16 @@ export function NodeGraphCanvas({
         setIsPanning(false);
       }
       if (dragRef.current) {
+        const { nodeId, nodeX, nodeY } = dragRef.current;
         dragRef.current = null;
         persistPositions();
+        pushMoveUndo(nodeId, nodeX, nodeY);
       }
       if (wiring) {
         cancelWiring();
       }
     },
-    [wiring, cancelWiring, persistPositions],
+    [wiring, cancelWiring, persistPositions, pushMoveUndo],
   );
 
   // ---------------------------------------------------------------------------

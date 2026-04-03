@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
+import type { UndoSlot } from '../../hooks/useUndo';
 import type {
   NodeGraphState,
   GraphNode,
@@ -53,6 +54,8 @@ export interface UseNodeGraphResult {
   removeNode: (id: string) => void;
   addTransformNode: (op: TransformOp, x: number, y: number) => void;
   updateTransformParam: (nodeId: string, key: string, value: number | string) => void;
+  /** Push an undo slot for a completed node move (call at drag end). */
+  pushMoveUndo: (nodeId: string, fromX: number, fromY: number) => void;
   // Edge manipulation
   addEdge: (edge: GraphEdge) => void;
   removeEdge: (id: string) => void;
@@ -76,6 +79,7 @@ export interface UseNodeGraphResult {
 export function useNodeGraph(
   generators: TokenGenerator[],
   activeSet: string,
+  onPushUndo?: (slot: UndoSlot) => void,
 ): UseNodeGraphResult {
   // Derive initial state from generators, applying saved positions
   const initialGraph = useMemo(() => {
@@ -94,6 +98,14 @@ export function useNodeGraph(
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [wiring, setWiring] = useState<WiringState | null>(null);
+
+  // Always-current ref for use in undo closures (avoids stale closure issues)
+  const graphRef = useRef(graph);
+  graphRef.current = graph;
+  const onPushUndoRef = useRef(onPushUndo);
+  onPushUndoRef.current = onPushUndo;
+  const activeSetRef = useRef(activeSet);
+  activeSetRef.current = activeSet;
 
   // Keep graph in sync when generators change
   const prevGenIdsRef = useRef<string>(generators.map(g => g.id).join(','));
@@ -132,11 +144,33 @@ export function useNodeGraph(
   }, []);
 
   const removeNode = useCallback((id: string) => {
+    const node = graphRef.current.nodes.find(n => n.id === id);
+    if (!node) return;
+    const connectedEdges = graphRef.current.edges.filter(
+      e => e.fromNodeId === id || e.toNodeId === id,
+    );
     setGraph(prev => ({
       nodes: prev.nodes.filter(n => n.id !== id),
       edges: prev.edges.filter(e => e.fromNodeId !== id && e.toNodeId !== id),
     }));
     setSelectedNodeId(prev => (prev === id ? null : prev));
+    onPushUndoRef.current?.({
+      description: `Remove "${node.label}"`,
+      restore: async () => {
+        setGraph(prev => ({
+          nodes: [...prev.nodes, node],
+          edges: [...prev.edges, ...connectedEdges],
+        }));
+        setSelectedNodeId(id);
+      },
+      redo: async () => {
+        setGraph(prev => ({
+          nodes: prev.nodes.filter(n => n.id !== id),
+          edges: prev.edges.filter(e => e.fromNodeId !== id && e.toNodeId !== id),
+        }));
+        setSelectedNodeId(curr => (curr === id ? null : curr));
+      },
+    });
   }, []);
 
   const addTransformNode = useCallback((op: TransformOp, x: number, y: number) => {
@@ -146,6 +180,21 @@ export function useNodeGraph(
       nodes: [...prev.nodes, node],
     }));
     setSelectedNodeId(node.id);
+    onPushUndoRef.current?.({
+      description: `Add "${op}" transform`,
+      restore: async () => {
+        setGraph(prev => ({
+          ...prev,
+          nodes: prev.nodes.filter(n => n.id !== node.id),
+          edges: prev.edges.filter(e => e.fromNodeId !== node.id && e.toNodeId !== node.id),
+        }));
+        setSelectedNodeId(curr => (curr === node.id ? null : curr));
+      },
+      redo: async () => {
+        setGraph(prev => ({ ...prev, nodes: [...prev.nodes, node] }));
+        setSelectedNodeId(node.id);
+      },
+    });
   }, []);
 
   const updateTransformParam = useCallback((nodeId: string, key: string, value: number | string) => {
@@ -160,21 +209,81 @@ export function useNodeGraph(
   }, []);
 
   const addEdge = useCallback((edge: GraphEdge) => {
+    // Capture displaced edges before mutation (one connection per input port rule)
+    const displaced = graphRef.current.edges.filter(
+      e => e.toNodeId === edge.toNodeId && e.toPortId === edge.toPortId,
+    );
     setGraph(prev => {
-      // Remove any existing edges to the same input port (one connection per input)
       const filtered = prev.edges.filter(
         e => !(e.toNodeId === edge.toNodeId && e.toPortId === edge.toPortId),
       );
       return { ...prev, edges: [...filtered, edge] };
     });
+    onPushUndoRef.current?.({
+      description: 'Connect edge',
+      restore: async () => {
+        setGraph(prev => ({
+          ...prev,
+          edges: [...prev.edges.filter(e => e.id !== edge.id), ...displaced],
+        }));
+      },
+      redo: async () => {
+        setGraph(prev => {
+          const filtered = prev.edges.filter(
+            e => !(e.toNodeId === edge.toNodeId && e.toPortId === edge.toPortId),
+          );
+          return { ...prev, edges: [...filtered, edge] };
+        });
+      },
+    });
   }, []);
 
   const removeEdge = useCallback((id: string) => {
+    const edge = graphRef.current.edges.find(e => e.id === id);
     setGraph(prev => ({
       ...prev,
       edges: prev.edges.filter(e => e.id !== id),
     }));
     setSelectedEdgeId(prev => (prev === id ? null : prev));
+    if (edge) {
+      onPushUndoRef.current?.({
+        description: 'Remove edge',
+        restore: async () => {
+          setGraph(prev => ({ ...prev, edges: [...prev.edges, edge] }));
+        },
+        redo: async () => {
+          setGraph(prev => ({ ...prev, edges: prev.edges.filter(e => e.id !== id) }));
+          setSelectedEdgeId(curr => (curr === id ? null : curr));
+        },
+      });
+    }
+  }, []);
+
+  // Push undo for a node move (called by canvas at drag end with original position)
+  const pushMoveUndo = useCallback((nodeId: string, fromX: number, fromY: number) => {
+    const currentNode = graphRef.current.nodes.find(n => n.id === nodeId);
+    if (!currentNode) return;
+    const toX = currentNode.x;
+    const toY = currentNode.y;
+    if (fromX === toX && fromY === toY) return;
+    const set = activeSetRef.current;
+    onPushUndoRef.current?.({
+      description: 'Move node',
+      restore: async () => {
+        setGraph(prev => ({
+          ...prev,
+          nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x: fromX, y: fromY } : n)),
+        }));
+        savePositions(set, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: fromX, y: fromY } : n)));
+      },
+      redo: async () => {
+        setGraph(prev => ({
+          ...prev,
+          nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x: toX, y: toY } : n)),
+        }));
+        savePositions(set, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: toX, y: toY } : n)));
+      },
+    });
   }, []);
 
   // Wiring
@@ -272,6 +381,7 @@ export function useNodeGraph(
     removeNode,
     addTransformNode,
     updateTransformParam,
+    pushMoveUndo,
     addEdge,
     removeEdge,
     selectedNodeId,

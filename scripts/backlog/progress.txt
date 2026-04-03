@@ -496,3 +496,23 @@
   - Moving a panel from an overlay (ComparePanel/CrossThemeComparePanel were overlays in TokenList) to a dedicated tab means the "close" button semantics change — pass a callback that clears the data to reset to empty-state rather than hiding the panel.
   - Empty-state prompts with a direct "Go to Tokens" button are more useful than just text instructions when the tab has no data to show.
 ---
+
+## 2026-04-03 - Node graph has no undo/redo for node positioning or edge changes
+- Added full undo/redo support for all graph editor state mutations:
+  - `removeNode`: captures node + all connected edges before deletion; undo re-adds both
+  - `addTransformNode`: undo removes the node (and any edges it acquired)
+  - `addEdge` (via wiring): captures displaced edges (one-per-input-port rule) before mutation; undo removes the new edge and restores displaced ones
+  - `removeEdge` (Delete/Backspace key): undo re-adds the edge
+  - `moveNode`: added `pushMoveUndo(nodeId, fromX, fromY)` to hook — called by canvas at drag end, reads new position from `graphRef`, skips if node didn't move; also persists positions to localStorage in undo/redo handlers
+- Architecture: used `onPushUndoRef` and `graphRef` patterns so all callbacks keep empty deps arrays without stale closures
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/nodeGraph/useNodeGraph.ts` ~L1-330
+  - `packages/figma-plugin/src/ui/components/nodeGraph/NodeGraphCanvas.tsx` ~L143-310
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1257-1643
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2440
+- **Learnings for future iterations:**
+  - For mutations that displace other state (addEdge's one-per-port rule), always capture the displaced state BEFORE calling setGraph — the functional update callback runs asynchronously so you can't read it back synchronously
+  - Use `graphRef.current` + `onPushUndoRef.current` (ref pattern) to avoid adding deps to useCallback while still accessing current values at execution time
+  - For drag-end undo (where multiple intermediate moves shouldn't each create undo entries), expose a `pushMoveUndo(nodeId, fromX, fromY)` function from the hook that reads the post-drag position from graphRef — canvas captures startX/startY in dragRef and calls this once at pointer-up
+  - Position persistence (localStorage) in undo/redo closures must compute new node array explicitly (can't rely on graphRef which hasn't updated yet at that point) — use `graphRef.current.nodes.map(...)` with the known new coords
+---
