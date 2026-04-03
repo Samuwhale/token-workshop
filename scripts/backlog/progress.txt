@@ -380,3 +380,11 @@
   - `snapshotSets`/`restoreSnapshots` are private on TokenStore; the public `getFlatTokensForSet` + `restoreSnapshot` pair achieves the same result for external callers.
   - Guarding side-effectful cleanup (like `clearNonLockedOverrides`) with a `succeeded` flag in finally is cleaner than restructuring try/catch — the finally still runs exactly once and the flag makes intent explicit.
 ---
+
+## 2026-04-03 - No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
+- The range selection logic (`handleTokenSelect` with `{ shift, ctrl }` modifiers) and `lastSelectedPathRef` anchor were already implemented in TokenList.tsx. The gap was that the checkbox `onChange` handler in TokenTreeNode didn't forward modifier keys. Fixed by switching checkbox to handle logic in `onClick` (which carries `shiftKey`/`ctrlKey`/`metaKey`) with a no-op `onChange` for the controlled input. Also added `Ctrl/Cmd+A` select-all shortcut after the `isTyping` guard, using `displayedLeafNodesRef.current` (works for both tree and table view modes).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1043; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1107
+- **Learnings for future iterations:**
+  - `React.ChangeEvent<HTMLInputElement>` does NOT carry `shiftKey`/`ctrlKey` — the native change event is a plain `Event`, not a `MouseEvent`. For modifier-aware checkboxes, move logic to `onClick` and keep `onChange` as a no-op.
+  - `displayedLeafNodesRef.current` covers all visible leaf tokens for both tree and table view modes, making it the right source for "select all" without needing to filter `flatItemsRef` for groups.
+---

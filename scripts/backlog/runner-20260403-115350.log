@@ -519,3 +519,10 @@ Already up to date.
   → No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode — selecting multiple tokens requires clicking each checkbox individually; the tree supports multi-select via checkboxes but has no range selection (Shift+Click first and last) or select-all shortcut, which are standard in every tree/list UI (TokenTreeNode.tsx ~L1044-1049, TokenList.tsx)
   Worktree: /tmp/backlog-81267-jnDXfj
   Running agent… (started 13:12:27)
+
+  ✓ done: No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
+    Fixed checkbox to pass shiftKey/ctrlKey/metaKey via onClick (onChange lacks MouseEvent); added Ctrl/Cmd+A select-all shortcut using displayedLeafNodesRef — range selection logic was already in place
+    24 turns · 240s · $0.69
+
+  Merging to main: No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode
+Already up to date.

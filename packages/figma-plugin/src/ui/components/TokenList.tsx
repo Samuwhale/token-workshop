@@ -1107,6 +1107,14 @@ export function TokenList({
     // Don't handle shortcuts when typing in a form field
     if (isTyping) return;
 
+    // Cmd/Ctrl+A: select all visible leaf tokens (auto-enters select mode)
+    if (e.key === 'a' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      if (!selectMode) setSelectMode(true);
+      setSelectedPaths(new Set(displayedLeafNodesRef.current.map(n => n.path)));
+      return;
+    }
+
     // m: toggle multi-select mode
     if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();

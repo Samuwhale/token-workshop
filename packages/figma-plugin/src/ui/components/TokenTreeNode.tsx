@@ -1044,8 +1044,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={() => onToggleSelect(node.path)}
-          onClick={(e) => e.stopPropagation()}
+          onChange={() => {}} // controlled; onClick handles logic with modifier support
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(node.path, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey });
+          }}
           aria-label={`Select token ${node.path}`}
           className="shrink-0 cursor-pointer"
         />

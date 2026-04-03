@@ -453,3 +453,21 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: alias detection duplicated 20+ times, plugin sandbox pervasive any-typing, HSL/RGB color conversion triplicated, HistoryPanel silent error swallowing, renameSet non-atomic file mutation
 Already up to date.
+[main 8da22ce7] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - Command palette has no destructive or batch actions
+- Added three new command palette entries in App.tsx:
+  1. "Delete token: <path>" — appears when `highlightedToken` belongs to the active set; triggers a ConfirmModal then calls `POST /api/tokens/:set/bulk-delete` with undo/redo wired via `pushUndo`.
+  2. "Delete N selected tokens" — appears when multi-select is active (> 0 tokens selected in TokenList); uses same bulk-delete flow.
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  11 queued · 4 in-progress · last took 9m14s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager auto-fill gives no preview of what will be created — the "Fill gaps" action shows an approval modal but doesn't indicate how many tokens will be created, in which set, or whether existing values will be skipped vs. overwritten; the strategy is hardcoded to 'skip' but users can't see or change this (ThemeManager.tsx ~L814-835, ~L2122-2130)
+  Worktree: /tmp/backlog-81661-DjxMJc
+  Running agent… (started 13:16:05)
