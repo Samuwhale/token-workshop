@@ -288,3 +288,10 @@ Already up to date.
   → CrossThemeComparePanel and ThemeCompare show missing/differing tokens but offer no "create missing" or "fill gap" bulk action — users must manually navigate to the token editor for each gap; add a "Create missing overrides" button that batch-creates alias tokens for gaps shown in the comparison view (CrossThemeComparePanel.tsx, ThemeCompare.tsx)
   Worktree: /tmp/backlog-92209-Wku8ew
   Running agent… (started 01:52:49)
+
+  ✓ done: CrossThemeComparePanel and ThemeCompare show missing/differing tokens but offer no "create missing" or "fill gap" bulk action
+    Added "+ N missing in A/B" bulk buttons to ThemeCompare and "+ N missing" to CrossThemeComparePanel; both call the batch API directly and call onTokensCreated to trigger refresh
+    36 turns · 384s · $1.36
+
+  Merging to main: CrossThemeComparePanel and ThemeCompare show missing/differing tokens but offer no "create missing" or "fill gap" bulk action
+Already up to date.

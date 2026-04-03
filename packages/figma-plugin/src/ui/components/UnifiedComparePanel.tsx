@@ -34,6 +34,11 @@ interface UnifiedComparePanelProps {
 
   /** Navigate back to Tokens tab (used in empty-state prompts) */
   onGoToTokens: () => void;
+
+  /** Server URL for bulk token creation actions */
+  serverUrl?: string;
+  /** Called after tokens are batch-created so the caller can refresh */
+  onTokensCreated?: () => void;
 }
 
 const MODES: { id: CompareMode; label: string }[] = [
@@ -58,6 +63,8 @@ export function UnifiedComparePanel({
   onEditToken,
   onCreateToken,
   onGoToTokens,
+  serverUrl,
+  onTokensCreated,
 }: UnifiedComparePanelProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -129,6 +136,8 @@ export function UnifiedComparePanel({
               pathToSet={pathToSet}
               dimensions={dimensions}
               onClose={onClearTokenPath}
+              serverUrl={serverUrl}
+              onTokensCreated={onTokensCreated}
             />
           )
         )}
@@ -143,6 +152,8 @@ export function UnifiedComparePanel({
             initialOptionKeyB={themeOptionsDefaultB}
             onEditToken={onEditToken}
             onCreateToken={onCreateToken}
+            serverUrl={serverUrl}
+            onTokensCreated={onTokensCreated}
           />
         )}
       </div>

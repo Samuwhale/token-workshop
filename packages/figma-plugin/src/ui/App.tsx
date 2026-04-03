@@ -2682,6 +2682,8 @@ export function App() {
                   setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
                 }}
                 onGoToTokens={() => navigateTo('define', 'tokens')}
+                serverUrl={serverUrl}
+                onTokensCreated={refreshAll}
               />
             </ErrorBoundary>
           )}

@@ -5,6 +5,7 @@ import { isAlias } from '../../shared/resolveAlias';
 import { swatchBgColor } from '../shared/colorUtils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { resolveThemeOption, copyToClipboard } from '../shared/comparisonUtils';
+import { apiFetch } from '../shared/apiFetch';
 
 interface CrossThemeComparePanelProps {
   tokenPath: string;
@@ -13,6 +14,10 @@ interface CrossThemeComparePanelProps {
   pathToSet: Record<string, string>;
   dimensions: ThemeDimension[];
   onClose: () => void;
+  /** Server URL for direct batch token creation */
+  serverUrl?: string;
+  /** Called after tokens are batch-created so the caller can refresh */
+  onTokensCreated?: () => void;
 }
 
 interface OptionResult {
@@ -38,8 +43,12 @@ export function CrossThemeComparePanel({
   pathToSet,
   dimensions,
   onClose,
+  serverUrl,
+  onTokensCreated,
 }: CrossThemeComparePanelProps) {
   const [copied, setCopied] = useState(false);
+  const [creatingMissing, setCreatingMissing] = useState(false);
+  const [createResult, setCreateResult] = useState<string | null>(null);
 
   // Collect all set names used by any dimension option
   const themedSets = useMemo(() => {
@@ -110,6 +119,50 @@ export function CrossThemeComparePanel({
     });
   }, [results, tokenType]);
 
+  const missingResults = useMemo(() => results.filter(r => r.missing), [results]);
+
+  const handleCreateMissingOverrides = useCallback(async () => {
+    if (!serverUrl || missingResults.length === 0) return;
+    const baseEntry = allTokensFlat[tokenPath];
+    if (!baseEntry) return;
+
+    // Determine target set for each missing option; collect unique sets
+    const targetSets = new Set<string>();
+    for (const r of missingResults) {
+      const dim = dimensions.find(d => d.id === r.dimId);
+      const opt = dim?.options.find(o => o.name === r.optionName);
+      if (!opt) continue;
+      const enabled = Object.entries(opt.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
+      const targetSet = enabled[0] ?? Object.entries(opt.sets).filter(([, s]) => s === 'source').map(([n]) => n)[0];
+      if (targetSet) targetSets.add(targetSet);
+    }
+
+    if (targetSets.size === 0) return;
+
+    setCreatingMissing(true);
+    setCreateResult(null);
+    let totalCreated = 0;
+    try {
+      for (const set of targetSets) {
+        const tokens = [{ path: tokenPath, $type: baseEntry.$type, $value: baseEntry.$value }];
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tokens, strategy: 'overwrite' }),
+        });
+        totalCreated++;
+      }
+      setCreateResult(`Created in ${totalCreated} set${totalCreated !== 1 ? 's' : ''}`);
+      setTimeout(() => setCreateResult(null), 3000);
+      onTokensCreated?.();
+    } catch {
+      setCreateResult('Failed');
+      setTimeout(() => setCreateResult(null), 3000);
+    } finally {
+      setCreatingMissing(false);
+    }
+  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, onTokensCreated]);
+
   if (dimensions.length === 0) {
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
@@ -138,6 +191,21 @@ export function CrossThemeComparePanel({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">across themes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
+          {serverUrl && missingResults.length > 0 && (
+            <>
+              {createResult && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{createResult}</span>
+              )}
+              <button
+                onClick={handleCreateMissingOverrides}
+                disabled={creatingMissing}
+                title={`Create overrides for ${missingResults.length} missing option${missingResults.length !== 1 ? 's' : ''}`}
+                className="text-[10px] px-2 py-0.5 rounded font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+              >
+                {creatingMissing ? 'Creating…' : `+ ${missingResults.length} missing`}
+              </button>
+            </>
+          )}
           <button
             onClick={handleCopyTsv}
             className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

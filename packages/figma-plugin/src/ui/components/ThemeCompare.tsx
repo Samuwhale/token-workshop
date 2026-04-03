@@ -4,6 +4,7 @@ import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { resolveThemeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
+import { apiFetch } from '../shared/apiFetch';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 
 interface ThemeCompareProps {
@@ -18,6 +19,10 @@ interface ThemeCompareProps {
   initialOptionKeyA?: string;
   /** Pre-select option B on mount (key format: "{dimId}:{optionName}") */
   initialOptionKeyB?: string;
+  /** Server URL for direct batch token creation */
+  serverUrl?: string;
+  /** Called after tokens are batch-created so the caller can refresh */
+  onTokensCreated?: () => void;
 }
 
 // Flat list of all options across all dimensions for the compare selectors
@@ -49,7 +54,7 @@ function ColorSwatch({ hex }: { hex: string }) {
   );
 }
 
-export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken, initialOptionKeyA, initialOptionKeyB }: ThemeCompareProps) {
+export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken, initialOptionKeyA, initialOptionKeyB, serverUrl, onTokensCreated }: ThemeCompareProps) {
   const [optionKeyA, setOptionKeyA] = useState<string>(initialOptionKeyA ?? '');
   const [optionKeyB, setOptionKeyB] = useState<string>(initialOptionKeyB ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -132,6 +137,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
   const labelB = flatOptions.find(o => o.key === optionKeyB)?.label ?? 'B';
 
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [bulkCreating, setBulkCreating] = useState<'A' | 'B' | null>(null);
+  const [bulkCreateResult, setBulkCreateResult] = useState<string | null>(null);
 
   const buildTsv = useCallback((rows: typeof filteredDiffs) => {
     const header = ['Token Path', 'Type', labelA, labelB].join('\t');
@@ -163,6 +170,48 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
       [header, ...rows],
     );
   }, [filteredDiffs, labelA, labelB]);
+
+  // Missing tokens in each option (from currently filtered view)
+  const missingInA = useMemo(
+    () => filteredDiffs.filter(d => d.valueA === undefined),
+    [filteredDiffs],
+  );
+  const missingInB = useMemo(
+    () => filteredDiffs.filter(d => d.valueB === undefined),
+    [filteredDiffs],
+  );
+
+  const handleCreateMissing = useCallback(async (side: 'A' | 'B') => {
+    if (!serverUrl) return;
+    const isA = side === 'A';
+    const targetSet = isA ? targetSetForOption(optionKeyA) : targetSetForOption(optionKeyB);
+    if (!targetSet) return;
+    const missing = isA ? missingInA : missingInB;
+    if (missing.length === 0) return;
+
+    setBulkCreating(side);
+    setBulkCreateResult(null);
+    try {
+      const tokens = missing.map(d => ({
+        path: d.path,
+        $type: d.type,
+        $value: isA ? d.valueB : d.valueA,
+      }));
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens, strategy: 'overwrite' }),
+      });
+      setBulkCreateResult(`Created ${tokens.length} token${tokens.length !== 1 ? 's' : ''}`);
+      setTimeout(() => setBulkCreateResult(null), 3000);
+      onTokensCreated?.();
+    } catch {
+      setBulkCreateResult('Failed');
+      setTimeout(() => setBulkCreateResult(null), 3000);
+    } finally {
+      setBulkCreating(null);
+    }
+  }, [serverUrl, optionKeyA, optionKeyB, missingInA, missingInB, targetSetForOption, onTokensCreated]);
 
   return (
     <div className="flex flex-col h-full">
@@ -229,6 +278,33 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                 ? `${diffs.length} differing token${diffs.length !== 1 ? 's' : ''}`
                 : `${filteredDiffs.length} of ${diffs.length}`}
             </span>
+            {serverUrl && (missingInA.length > 0 || missingInB.length > 0) && (
+              <>
+                {missingInA.length > 0 && (
+                  <button
+                    onClick={() => handleCreateMissing('A')}
+                    disabled={bulkCreating !== null}
+                    title={`Create ${missingInA.length} token${missingInA.length !== 1 ? 's' : ''} missing from ${labelA} (using ${labelB}'s values)`}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+                  >
+                    {bulkCreating === 'A' ? 'Creating…' : `+ ${missingInA.length} missing in A`}
+                  </button>
+                )}
+                {missingInB.length > 0 && (
+                  <button
+                    onClick={() => handleCreateMissing('B')}
+                    disabled={bulkCreating !== null}
+                    title={`Create ${missingInB.length} token${missingInB.length !== 1 ? 's' : ''} missing from ${labelB} (using ${labelA}'s values)`}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+                  >
+                    {bulkCreating === 'B' ? 'Creating…' : `+ ${missingInB.length} missing in B`}
+                  </button>
+                )}
+                {bulkCreateResult && (
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{bulkCreateResult}</span>
+                )}
+              </>
+            )}
             <div className="ml-auto flex items-center gap-1">
               <button
                 onClick={handleCopy}

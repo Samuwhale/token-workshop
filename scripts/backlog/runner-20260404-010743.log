@@ -235,3 +235,18 @@ Already up to date.
 
   Merging to main: HistoryPanel mixes three recovery mechanisms without explanation
 Already up to date.
+[main cb3eb736] chore(backlog): done – HistoryPanel mixes three recovery mechanisms without explanation
+ 5 files changed, 100 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - HistoryPanel mixes three recovery mechanisms without explanation
+- Added a collapsible inline legend (toggled by an info button in the toolbar) that explains all four recovery mechanisms: Action/Rollback (server op log, precise per-operation undo), Commit/git Revert (git history, creates new commit), Snapshot/Restore (manual full-state checkpoint), and Local/⌘Z (in-memory, lost on refresh).
+- `showLegend` state (default false) added near other section-open states.
+- Info button (circle-i SVG) added in the toolbar between Compare and Refresh; highlights when active.
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  10 queued · 3 in-progress · last took 2m10s
+═══════════════════════════════════════════════════════════════
+  → ImportPanel is 2133 lines with 49 useState calls — the conflict resolution UI, source selection, progress tracking, and results display should be decomposed into focused sub-components with shared context, similar to the TokenList extraction pattern; the current monolith makes every change risky and forces new contributors to understand the entire file to modify one flow (ImportPanel.tsx)
+  Worktree: /tmp/backlog-91634-c7wN8j
+  Running agent… (started 01:57:26)

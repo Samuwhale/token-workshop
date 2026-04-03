@@ -545,3 +545,15 @@
   - Re-using the `TypePill` component in the legend creates an exact visual match to the timeline entries, reinforcing the connection between label and meaning.
   - Defaulting the legend to collapsed keeps the panel clean for experienced users while remaining discoverable via the info button tooltip text.
 ---
+
+## 2026-04-04 - CrossThemeComparePanel and ThemeCompare bulk "Create missing overrides"
+- Added "Create N missing in A/B" bulk buttons to ThemeCompare's filter bar: collects all filtered diff rows where a side is absent, calls `/api/tokens/{set}/batch` with the other side's value, shows inline feedback
+- Added "+ N missing" bulk button to CrossThemeComparePanel's sticky header: for each missing option finds its target set (first enabled set, fallback source), creates the base token value as an override in each unique set, shows inline feedback
+- Added `serverUrl?: string` and `onTokensCreated?: () => void` props to both components and to UnifiedComparePanel
+- Wired `serverUrl` and `onTokensCreated={refreshAll}` from App.tsx → UnifiedComparePanel → CrossThemeComparePanel/ThemeCompare
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` (props, state, `missingInA`/`missingInB` memos, `handleCreateMissing`, button UI), `packages/figma-plugin/src/ui/components/CrossThemeComparePanel.tsx` (props, state, `missingResults` memo, `handleCreateMissingOverrides`, button in header), `packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx` (two new props, pass-through), `packages/figma-plugin/src/ui/App.tsx` (~L2685, two new props)
+- **Learnings for future iterations:**
+  - CrossThemeComparePanel shows one token across all themes; "create missing" groups by unique target set since the same set might cover multiple missing options — deduplication prevents duplicate batch calls for the same set
+  - ThemeCompare's bulk create uses the filtered diff list (not all diffs), so type/search filters correctly scope what gets created
+  - The `onTokensCreated` callback pattern (rather than internal refresh) keeps components free of refresh logic and lets App.tsx decide what to refresh (refreshAll vs refreshTokens)
+---
