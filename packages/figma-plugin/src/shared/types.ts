@@ -608,6 +608,7 @@ export interface ControllerErrorMessage {
 export interface FontsLoadedMessage {
   type: 'fonts-loaded';
   families: string[];
+  weightsByFamily: Record<string, number[]>;
 }
 
 export interface ActiveThemesLoadedMessage {

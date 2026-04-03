@@ -62,3 +62,21 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — key finds: ExtractTokensPanel doesn't bind tokens back to selection, three comparison components duplicate resolution/diff logic, BatchEditor preview capped at 8 items, no inline token editing, analytics staleness not surfaced, Publish All has no combined preview
 Already up to date.
+[main ad3ab649] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: TokenEditor.tsx, ValueEditors.tsx (editing UX, validation, composite tokens), ThemeManager.tsx (dimensions, coverage, comparison, empty states), ImportPanel.tsx + ExportPanel.tsx (import/export workflows), BatchEditor.tsx (batch operations, preview limits), HistoryPanel.tsx (history navigation, restore), AnalyticsPanel.tsx (analytics actionability, staleness), SettingsPanel.tsx + shortcutRegistry.ts (settings, shortcuts), CommandPalette.tsx (commands, discoverability), PublishPanel.tsx + GitSubPanel.tsx + VariableSyncSubPanel.tsx (publish safety), ResolverPanel.tsx (discoverability), TokenFlowPanel.tsx + ConsistencyPanel.tsx (overlap), ExtractTokensPanel.tsx + SelectionInspector.tsx (extract-bind workflow), ComparePanel.tsx + CrossThemeComparePanel.tsx + UnifiedComparePanel.tsx (comparison duplication)
+- Found 12 items — written to backlog-inbox.md
+- Notable: ExtractTokensPanel creates tokens but never binds them back to the selection, forcing a manual round-trip through SelectionInspector — this is the biggest workflow gap in the inspect-to-bind pipeline. Also, three separate comparison components each reimplement token resolution and diff logic independently.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  16 queued · 3 in-progress · last took 5m32s
+═══════════════════════════════════════════════════════════════
+  → variableSync.ts has O(n) sequential async calls and a stale variable cache — `readFigmaVariables` calls `getVariableByIdAsync` once per variable per mode (O(vars×modes) sequential awaits), `deleteOrphanVariables` does the same, and the sync loop fetches `localVariables` once at L45 but never refreshes it after creating new variables, so `findVariableInList` can miss just-created entries and produce duplicates; batch the per-variable fetches with `Promise.all` and refresh the variable list after each creation (variableSync.ts L45, L204, L237)
+  Worktree: /tmp/backlog-91949-Fx5aVr
+  Running agent… (started 01:16:04)

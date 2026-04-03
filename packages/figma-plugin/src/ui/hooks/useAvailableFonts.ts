@@ -2,17 +2,19 @@ import { useState, useEffect } from 'react';
 
 /**
  * Requests available font families from the Figma plugin sandbox.
- * Returns a sorted, deduplicated list of family names.
- * Falls back to an empty array when running outside Figma (standalone).
+ * Returns families (sorted list) and weightsByFamily (numeric weights per family).
+ * Falls back to empty values when running outside Figma (standalone).
  */
-export function useAvailableFonts(): string[] {
+export function useAvailableFonts(): { families: string[]; weightsByFamily: Record<string, number[]> } {
   const [families, setFamilies] = useState<string[]>([]);
+  const [weightsByFamily, setWeightsByFamily] = useState<Record<string, number[]>>({});
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage;
       if (msg?.type === 'fonts-loaded' && Array.isArray(msg.families)) {
         setFamilies(msg.families);
+        setWeightsByFamily(msg.weightsByFamily ?? {});
       }
     };
 
@@ -22,5 +24,5 @@ export function useAvailableFonts(): string[] {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  return families;
+  return { families, weightsByFamily };
 }

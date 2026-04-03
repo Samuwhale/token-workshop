@@ -500,3 +500,18 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: ExtractTokensPanel creates tokens but never binds them back to the selection, forcing a manual round-trip through SelectionInspector — this is the biggest workflow gap in the inspect-to-bind pipeline. Also, three separate comparison components each reimplement token resolution and diff logic independently.
 ---
+
+## 2026-04-04 - Typography value editor allows selecting font weights unavailable in the chosen font family
+- Extended the font data pipeline to carry per-family weight information all the way from the Figma API to the weight dropdown in TypographyEditor.
+- Added `getAvailableFontData()` to `fontLoading.ts` — returns `{ families, weightsByFamily }` using the existing `fontStyleToWeight` mapper to convert style names (e.g. "ExtraLight Italic") to numeric weights (200).
+- Updated `FontsLoadedMessage` in `shared/types.ts` to include `weightsByFamily: Record<string, number[]>`.
+- Updated `controller.ts` to call `getAvailableFontData()` and post both fields; updated `useAvailableFonts.ts` hook to return `{ families, weightsByFamily }` (gracefully handles old `msg.weightsByFamily ?? {}`).
+- Destructured in `App.tsx` as `{ families: availableFonts, weightsByFamily: fontWeightsByFamily }` and threaded `fontWeightsByFamily` through `TokenEditor` → `TypographyEditor`.
+- In `TypographyEditor`: computes `availableWeights` (array for selected family, or `null` when no data), detects `weightUnavailable` (selected weight not in the available list), disables unavailable options in the dropdown with a `✕` suffix, highlights the select border in amber, and shows a small warning message below.
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L41, `packages/figma-plugin/src/shared/types.ts` ~L608, `packages/figma-plugin/src/plugin/controller.ts` ~L349, `packages/figma-plugin/src/ui/hooks/useAvailableFonts.ts`, `packages/figma-plugin/src/ui/App.tsx` ~L324, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L476, `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L532
+- **Learnings for future iterations:**
+  - `FONT_WEIGHTS` module-level const is safe to reference inside `TypographyEditor` even though it's declared later in the same file — function bodies only execute after full module initialization, so no TDZ risk.
+  - `fontStyleToWeight` already existed in `fontLoading.ts` for resolving Figma style names; reuse it for weight-set computation instead of reinventing.
+  - Figma `listAvailableFontsAsync()` returns `Font[]` where `fontName.style` is a human-readable style name ("ExtraLight Italic", "Bold", etc.) — multiple styles can map to the same numeric weight, hence using a `Set<number>` per family.
+  - Disabling `<option>` elements works in browsers but isn't visually obvious; pairing it with a `✕` suffix text and an amber border on the select gives clear signal without blocking existing data.
+---

@@ -529,7 +529,7 @@ function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, Toke
   return raw;
 }
 
-export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[] }) {
+export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
   const rawVal = typeof value === 'object' ? value : {};
   // When extending, merge base + overrides for display, but only emit overrides on change
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -551,6 +551,18 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
   const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
   const fontSize = !isFontSizeAlias && typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
   const isFontWeightAlias = typeof val.fontWeight === 'string' && val.fontWeight.startsWith('{');
+
+  // Determine available weights for the selected font family (if font data is available)
+  const availableWeights: number[] | null = useMemo(() => {
+    if (!fontWeightsByFamily) return null;
+    const rawFamily = val.fontFamily;
+    const family = Array.isArray(rawFamily) ? rawFamily[0] : (typeof rawFamily === 'string' ? rawFamily : null);
+    if (!family || typeof family !== 'string' || family.startsWith('{')) return null;
+    return fontWeightsByFamily[family] ?? null;
+  }, [fontWeightsByFamily, val.fontFamily]);
+
+  const currentWeight = typeof val.fontWeight === 'number' ? val.fontWeight : (parseInt(String(val.fontWeight)) || 400);
+  const weightUnavailable = !isFontWeightAlias && availableWeights !== null && !availableWeights.includes(currentWeight);
 
   const [sampleText, setSampleText] = useState('The quick brown fox jumps over the lazy dog');
 
@@ -675,21 +687,27 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
               pathToSet={pathToSet}
             />
           ) : (
-            <select
-              value={val.fontWeight ?? 400}
-              onChange={e => update('fontWeight', parseInt(e.target.value))}
-              className={inputClass}
-            >
-              <option value={100}>100 Thin</option>
-              <option value={200}>200 ExtraLight</option>
-              <option value={300}>300 Light</option>
-              <option value={400}>400 Regular</option>
-              <option value={500}>500 Medium</option>
-              <option value={600}>600 SemiBold</option>
-              <option value={700}>700 Bold</option>
-              <option value={800}>800 ExtraBold</option>
-              <option value={900}>900 Black</option>
-            </select>
+            <div>
+              <select
+                value={val.fontWeight ?? 400}
+                onChange={e => update('fontWeight', parseInt(e.target.value))}
+                className={inputClass + (weightUnavailable ? ' border-amber-400' : '')}
+              >
+                {FONT_WEIGHTS.map(fw => {
+                  const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
+                  return (
+                    <option key={fw.value} value={fw.value} disabled={unavailable}>
+                      {fw.label}{unavailable ? ' ✕' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+              {weightUnavailable && (
+                <div className="mt-0.5 text-[10px] text-amber-500 leading-tight">
+                  Weight {currentWeight} not available in this font family
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

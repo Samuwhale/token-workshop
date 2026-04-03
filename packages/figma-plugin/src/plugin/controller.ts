@@ -3,7 +3,7 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables, scanTokenVariableBindings } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { getAvailableFontFamilies, invalidateFontCache } from './fontLoading.js';
+import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
@@ -347,8 +347,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'get-available-fonts': {
       try {
         invalidateFontCache();
-        const families = await getAvailableFontFamilies();
-        figma.ui.postMessage({ type: 'fonts-loaded', families });
+        const { families, weightsByFamily } = await getAvailableFontData();
+        figma.ui.postMessage({ type: 'fonts-loaded', families, weightsByFamily });
       } catch (e) {
         reportError('get-available-fonts', e);
       }

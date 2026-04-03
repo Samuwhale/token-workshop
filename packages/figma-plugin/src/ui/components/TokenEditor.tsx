@@ -474,6 +474,8 @@ interface TokenEditorProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   /** Available font families from Figma for the font picker. */
   availableFonts?: string[];
+  /** Available numeric weights per font family (keyed by family name). */
+  fontWeightsByFamily?: Record<string, number[]>;
   /** Map of derived token paths to the generator that produces them. */
   derivedTokenPaths?: Map<string, TokenGenerator>;
   /** Ref that will be assigned the handleBack function so parents can trigger guarded close (e.g. from a backdrop click). */
@@ -482,7 +484,7 @@ interface TokenEditorProps {
   onShowReferences?: (path: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], derivedTokenPaths, closeRef, onShowReferences }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -1376,7 +1378,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               return (<>
                 {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
                 {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
-                {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={baseValue} availableFonts={availableFonts} />}
+                {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={baseValue} availableFonts={availableFonts} fontWeightsByFamily={fontWeightsByFamily} />}
                 {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={baseValue} />}
                 {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={baseValue} />}
                 {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}

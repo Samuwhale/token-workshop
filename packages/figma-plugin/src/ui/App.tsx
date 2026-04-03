@@ -321,7 +321,7 @@ export function App() {
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
   const { selectedNodes } = useSelection();
-  const availableFonts = useAvailableFonts();
+  const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
   const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
@@ -2364,6 +2364,7 @@ export function App() {
                     perSetFlat={perSetFlat}
                     onRefresh={refreshAll}
                     availableFonts={availableFonts}
+                    fontWeightsByFamily={fontWeightsByFamily}
                     derivedTokenPaths={derivedTokenPaths}
                     onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
                   />
@@ -2694,6 +2695,7 @@ export function App() {
                 perSetFlat={perSetFlat}
                 onRefresh={refreshAll}
                 availableFonts={availableFonts}
+                fontWeightsByFamily={fontWeightsByFamily}
                 derivedTokenPaths={derivedTokenPaths}
                 onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
               />

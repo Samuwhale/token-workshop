@@ -68,3 +68,10 @@ Already up to date.
   → Typography value editor allows selecting font weights unavailable in the chosen font family — the weight dropdown offers all standard weights (100-900) regardless of what the selected fontFamily supports; no validation or warning when picking an unavailable weight (ValueEditors.tsx ~L656)
   Worktree: /tmp/backlog-92209-nHboyq
   Running agent… (started 01:11:42)
+
+  ✓ done: Typography value editor allows selecting font weights unavailable in the chosen font family
+    Extended font data pipeline to include per-family weights; TypographyEditor now disables unavailable weight options and shows an amber warning when the current weight is not supported by the selected font family
+    55 turns · 285s · $1.35
+
+  Merging to main: Typography value editor allows selecting font weights unavailable in the chosen font family
+Already up to date.

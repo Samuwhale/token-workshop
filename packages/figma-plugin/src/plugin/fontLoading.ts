@@ -47,6 +47,26 @@ export async function getAvailableFontFamilies(): Promise<string[]> {
   return Array.from(seen).sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Returns font families and the numeric weights available for each family.
+ * Weights are derived from font style names via fontStyleToWeight.
+ */
+export async function getAvailableFontData(): Promise<{ families: string[]; weightsByFamily: Record<string, number[]> }> {
+  const fonts = await getAvailableFonts();
+  const weightSets = new Map<string, Set<number>>();
+  for (const f of fonts) {
+    const family = f.fontName.family;
+    if (!weightSets.has(family)) weightSets.set(family, new Set());
+    weightSets.get(family)!.add(fontStyleToWeight(f.fontName.style));
+  }
+  const families = Array.from(weightSets.keys()).sort((a, b) => a.localeCompare(b));
+  const weightsByFamily: Record<string, number[]> = {};
+  for (const [family, weights] of weightSets) {
+    weightsByFamily[family] = Array.from(weights).sort((a, b) => a - b);
+  }
+  return { families, weightsByFamily };
+}
+
 export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
   const targetWeight = typeof weight === 'number' ? weight : parseInt(weight, 10);
   try {
