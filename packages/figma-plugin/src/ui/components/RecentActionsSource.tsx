@@ -31,7 +31,7 @@ interface RecentActionsSourceProps {
 }
 
 /** Icon for each operation type */
-function OpIcon({ type }: { type: string }) {
+export function OpIcon({ type }: { type: string }) {
   const className = 'shrink-0 text-[var(--color-figma-text-tertiary)]';
   const props = { width: 10, height: 10, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className, 'aria-hidden': true as const };
 

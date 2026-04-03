@@ -302,3 +302,18 @@
   - "Delete all" confirmation inline pattern (no modal needed): replace the trigger button with a "Count? Confirm / Cancel" row in-place — keeps context without overlay overhead.
   - Row hover delete button uses `absolute right-1 top-0 bottom-0` + `opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto` (matches the established hover action button pattern).
 ---
+
+## 2026-04-03 - Merge the HistoryPanel's three sub-tabs into a unified change timeline
+- Replaced the three-tab layout ("Recent Actions", "Git Commits", "Snapshots") with a single chronological timeline that interleaves all three event types, sorted by timestamp descending.
+- Key changes:
+  - `HistoryPanel`: removed tab bar and `HistorySource` type; fetches commits+snapshots in parallel via `fetchTimeline()`; merges with `recentOperations` props into `TimelineItem[]` sorted by `ts`; navigates to commit detail or snapshot compare via `selectedCommitHash`/`selectedSnapshotId` state; rollback confirm dialog moved here; inline "Save state" toolbar replaces SnapshotsSource list-view save button; "This session" local undo section kept collapsible at top.
+  - `TypePill` component added: colored pill per entry kind ("Action" = accent blue, "Commit" = purple, "Snapshot" = success green).
+  - `GitCommitsSource`: added `initialSelectedHash`, `initialSelectedCommit`, `onBack`, `skipListFetch` props; auto-fetches detail on mount when `initialSelectedHash` is set; `handleBack` calls `onBack()` when provided; `skipListFetch` skips the commit list fetch to avoid redundant API call.
+  - `SnapshotsSource`: added `initialComparingId`, `initialComparingLabel`, `onBack` props; `handleCompare` converted to `useCallback`; auto-compares on mount when `initialComparingId` is set; `loadSnapshots` fetch guarded by `!initialComparingId`; back button and "Keep changes" call `onBack()` when provided.
+  - `RecentActionsSource`: exported `OpIcon` so it can be reused in the unified timeline.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L119-L1450, `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L34
+- **Learnings for future iterations:**
+  - When converting a tabbed panel to a unified view, keep each source's detail/compare sub-view as-is and add `initialSelectedX` + `onBack` props to jump directly into that sub-view from the parent timeline — this avoids rewriting complex diff/restore logic.
+  - Skipping expensive list fetches (`skipListFetch`) when a component is mounted only for its detail view avoids redundant API calls and prevents loading state flicker.
+  - `handleCompare` (and similar side-effect-initiating functions used in `useEffect`) should be `useCallback` so the effect dependency array is correct without eslint suppression.
+---

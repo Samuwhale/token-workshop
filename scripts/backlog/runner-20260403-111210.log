@@ -177,3 +177,10 @@ Already up to date.
   → Merge the HistoryPanel's three sub-tabs into a unified change timeline — "Recent Actions", "Git Commits", and "Snapshots" serve the same user goal (understand what changed and recover from mistakes) but exist as three disconnected views with different mental models; users must know which tab to check depending on how a change was made; replace the three-tab layout with a single chronological timeline that interleaves all three event types with visual type labels, while keeping the existing rollback and checkout actions per entry (HistoryPanel.tsx ~L177)
   Worktree: /tmp/backlog-20980-liMbU3
   Running agent… (started 11:31:29)
+
+  ✓ done: Merge the HistoryPanel's three sub-tabs into a unified change timeline
+    Replaced tab bar with a single chronological timeline interleaving Actions, Commits, and Snapshots with TypePill labels; clicking any entry drills into the existing detail/compare view via initialSelectedHash/initialComparingId props; all rollback/checkout actions preserved.
+    47 turns · 1034s · $2.85
+
+  Merging to main: Merge the HistoryPanel's three sub-tabs into a unified change timeline
+Already up to date.

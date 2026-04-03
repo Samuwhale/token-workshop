@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from './Spinner';
 import { ValueDiff } from './ValueDiff';
-import { RecentActionsSource } from './RecentActionsSource';
+import { ConfirmModal } from './ConfirmModal';
+import { OpIcon } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
 import {
   type ChangeStatus,
@@ -116,9 +117,21 @@ function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
   };
 }
 
-/* ── Source tab type ────────────────────────────────────────────────────── */
+/* ── Type pill ──────────────────────────────────────────────────────────── */
 
-type HistorySource = 'actions' | 'commits' | 'snapshots';
+function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' }) {
+  const styles: Record<string, string> = {
+    action: 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]',
+    commit: 'bg-[color-mix(in_srgb,#a855f7_14%,transparent)] text-[#a855f7]',
+    snapshot: 'bg-[color-mix(in_srgb,var(--color-figma-success)_14%,transparent)] text-[var(--color-figma-success)]',
+  };
+  const labels: Record<string, string> = { action: 'Action', commit: 'Commit', snapshot: 'Snapshot' };
+  return (
+    <span className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded ${styles[kind]}`}>
+      {labels[kind]}
+    </span>
+  );
+}
 
 /* ── Main Panel ─────────────────────────────────────────────────────────── */
 
@@ -164,7 +177,85 @@ interface HistoryPanelProps {
 }
 
 export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo }: HistoryPanelProps) {
-  const [source, setSource] = useState<HistorySource>('actions');
+  // Timeline data fetched inside this panel
+  const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
+  const [timelineSnapshots, setTimelineSnapshots] = useState<SnapshotSummary[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(true);
+
+  // Navigation state
+  const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null);
+  const [selectedCommitEntry, setSelectedCommitEntry] = useState<CommitEntry | null>(null);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
+  const [selectedSnapshotLabel, setSelectedSnapshotLabel] = useState<string | null>(null);
+
+  // Rollback confirm
+  const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
+  const [rollingBack, setRollingBack] = useState<string | null>(null);
+  const [redoing, setRedoing] = useState<string | null>(null);
+
+  // Inline save-snapshot
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [saveLabel, setSaveLabel] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Local undo stack visibility
+  const [localOpen, setLocalOpen] = useState(true);
+
+  const fetchTimeline = useCallback(async () => {
+    if (!connected) return;
+    setTimelineLoading(true);
+    try {
+      const [commitsData, snapshotsData] = await Promise.all([
+        apiFetch<{ commits?: CommitEntry[] }>(`${serverUrl}/api/sync/log?limit=50`).catch(() => ({ commits: [] as CommitEntry[] })),
+        apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`).catch(() => ({ snapshots: [] as SnapshotSummary[] })),
+      ]);
+      setTimelineCommits(commitsData.commits ?? []);
+      setTimelineSnapshots(snapshotsData.snapshots ?? []);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }, [serverUrl, connected]);
+
+  useEffect(() => {
+    fetchTimeline();
+  }, [fetchTimeline]);
+
+  const handleRollback = useCallback(async (opId: string) => {
+    setRollingBack(opId);
+    setConfirmOp(null);
+    try {
+      await onRollback?.(opId);
+    } finally {
+      setRollingBack(null);
+    }
+  }, [onRollback]);
+
+  const handleRedo = useCallback(async (opId: string) => {
+    if (!onServerRedo) return;
+    setRedoing(opId);
+    try {
+      await onServerRedo(opId);
+    } finally {
+      setRedoing(null);
+    }
+  }, [onServerRedo]);
+
+  const handleSaveSnapshot = async () => {
+    const label = saveLabel.trim() || `Snapshot ${new Date().toLocaleString()}`;
+    setSaving(true);
+    try {
+      await apiFetch(`${serverUrl}/api/snapshots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label }),
+      });
+      setSaveLabel('');
+      setShowSaveInput(false);
+      await fetchTimeline();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!connected) {
     return (
@@ -174,28 +265,77 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     );
   }
 
+  // Commit detail view
+  if (selectedCommitHash) {
+    return (
+      <GitCommitsSource
+        serverUrl={serverUrl}
+        onPushUndo={onPushUndo}
+        onRefreshTokens={onRefreshTokens}
+        filterTokenPath={filterTokenPath ?? undefined}
+        initialSelectedHash={selectedCommitHash}
+        initialSelectedCommit={selectedCommitEntry ?? undefined}
+        onBack={() => { setSelectedCommitHash(null); setSelectedCommitEntry(null); fetchTimeline(); }}
+        skipListFetch
+      />
+    );
+  }
+
+  // Snapshot compare view
+  if (selectedSnapshotId) {
+    return (
+      <SnapshotsSource
+        serverUrl={serverUrl}
+        onPushUndo={onPushUndo}
+        onRefreshTokens={onRefreshTokens}
+        filterTokenPath={filterTokenPath ?? undefined}
+        initialComparingId={selectedSnapshotId}
+        initialComparingLabel={selectedSnapshotLabel ?? undefined}
+        onBack={() => { setSelectedSnapshotId(null); setSelectedSnapshotLabel(null); fetchTimeline(); }}
+      />
+    );
+  }
+
+  // Build merged timeline
+  type TimelineItem =
+    | { kind: 'action'; ts: number; data: OperationEntry }
+    | { kind: 'commit'; ts: number; data: CommitEntry }
+    | { kind: 'snapshot'; ts: number; data: SnapshotSummary };
+
+  const allEntries: TimelineItem[] = [
+    ...(recentOperations ?? []).map(op => ({
+      kind: 'action' as const,
+      ts: new Date(op.timestamp).getTime(),
+      data: op,
+    })),
+    ...timelineCommits.map(c => ({
+      kind: 'commit' as const,
+      ts: new Date(c.date).getTime(),
+      data: c,
+    })),
+    ...timelineSnapshots.map(s => ({
+      kind: 'snapshot' as const,
+      ts: new Date(s.timestamp).getTime(),
+      data: s,
+    })),
+  ].sort((a, b) => b.ts - a.ts);
+
+  const hasLocal = (undoDescriptions ?? []).length > 0;
+  const isEmpty = allEntries.length === 0 && !hasLocal;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Source tab bar */}
-      <div className="shrink-0 flex border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        {([
-          { id: 'actions' as const, label: 'Recent Actions' },
-          { id: 'commits' as const, label: 'Git Commits' },
-          { id: 'snapshots' as const, label: 'Snapshots' },
-        ]).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSource(tab.id)}
-            className={`flex-1 px-3 py-2 text-[11px] font-medium transition-colors ${
-              source === tab.id
-                ? 'text-[var(--color-figma-text)] border-b-2 border-[var(--color-figma-accent)]'
-                : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Rollback confirm modal */}
+      {confirmOp && (
+        <ConfirmModal
+          title="Roll back operation?"
+          description={`"${confirmOp.description}" affected ${confirmOp.affectedPaths.length} path${confirmOp.affectedPaths.length !== 1 ? 's' : ''}. This will restore tokens to their state before this operation.`}
+          confirmLabel="Roll Back"
+          danger
+          onConfirm={() => handleRollback(confirmOp.id)}
+          onCancel={() => setConfirmOp(null)}
+        />
+      )}
 
       {/* Token filter banner */}
       {filterTokenPath && (
@@ -221,29 +361,259 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         </div>
       )}
 
-      {/* Source content */}
-      {source === 'actions' ? (
-        <RecentActionsSource
-          recentOperations={recentOperations ?? []}
-          onRollback={onRollback ?? (() => {})}
-          undoDescriptions={undoDescriptions ?? []}
-          onSwitchTab={setSource}
-          total={totalOperations}
-          hasMore={hasMoreOperations}
-          onLoadMore={onLoadMoreOperations}
-          redoableOpIds={redoableOpIds}
-          onServerRedo={onServerRedo}
-        />
-      ) : source === 'commits' ? (
-        <GitCommitsSource
-          serverUrl={serverUrl}
-          onPushUndo={onPushUndo}
-          onRefreshTokens={onRefreshTokens}
-          filterTokenPath={filterTokenPath ?? undefined}
-        />
-      ) : (
-        <SnapshotsSource serverUrl={serverUrl} onPushUndo={onPushUndo} onRefreshTokens={onRefreshTokens} filterTokenPath={filterTokenPath ?? undefined} />
-      )}
+      {/* Toolbar */}
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        {showSaveInput ? (
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <input
+              className="flex-1 min-w-0 px-2 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              placeholder="Snapshot label (optional)"
+              value={saveLabel}
+              onChange={e => setSaveLabel(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSaveSnapshot();
+                if (e.key === 'Escape') { setShowSaveInput(false); setSaveLabel(''); }
+              }}
+              autoFocus
+            />
+            <button
+              onClick={handleSaveSnapshot}
+              disabled={saving}
+              className="shrink-0 px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              onClick={() => { setShowSaveInput(false); setSaveLabel(''); }}
+              className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => setShowSaveInput(true)}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              title="Save current token state as a snapshot"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              Save state
+            </button>
+            <span className="flex-1" />
+            <button
+              onClick={fetchTimeline}
+              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+            >
+              Refresh
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Timeline */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Local undo stack */}
+        {hasLocal && (
+          <div className="border-b border-[var(--color-figma-border)]">
+            <button
+              onClick={() => setLocalOpen(o => !o)}
+              className="w-full flex items-center gap-1.5 px-3 py-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <svg
+                width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${localOpen ? 'rotate-90' : ''}`}
+                aria-hidden="true"
+              >
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                This session
+              </span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                ({undoDescriptions!.length})
+              </span>
+            </button>
+            {localOpen && (
+              <div className="pb-1">
+                {[...(undoDescriptions!)].reverse().map((desc, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-1.5">
+                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate min-w-0">{desc}</span>
+                    {i === 0 && (
+                      <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] font-medium">
+                        Undo available
+                      </span>
+                    )}
+                    <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                      Local
+                    </span>
+                  </div>
+                ))}
+                <p className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+                  Local actions are undoable with ⌘Z but lost on refresh.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading state */}
+        {timelineLoading && allEntries.length === 0 && (
+          <div className="flex items-center justify-center py-8 gap-2">
+            <Spinner size="md" className="text-[var(--color-figma-accent)]" />
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading history…</p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!timelineLoading && isEmpty && (
+          <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No history yet.</p>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              Edits, git commits, and saved states will appear here.
+            </p>
+          </div>
+        )}
+
+        {/* Merged timeline entries */}
+        {allEntries.map((entry) => {
+          if (entry.kind === 'action') {
+            const op = entry.data;
+            return (
+              <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
+                <div className="mt-0.5 shrink-0">
+                  <OpIcon type={op.type} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <TypePill kind="action" />
+                    <span className={`text-[10px] truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : 'text-[var(--color-figma-text)]'}`}>
+                      {op.description}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{op.setName}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {op.affectedPaths.length} path{op.affectedPaths.length !== 1 ? 's' : ''}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
+                  </div>
+                </div>
+                <div className="shrink-0 mt-0.5 flex items-center gap-1">
+                  {op.rolledBack ? (
+                    <>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                        Rolled back
+                      </span>
+                      {redoableOpIds?.has(op.id) && onServerRedo && (
+                        <button
+                          onClick={() => handleRedo(op.id)}
+                          disabled={redoing !== null || rollingBack !== null}
+                          title="Redo this operation"
+                          className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        >
+                          {redoing === op.id ? (
+                            <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span>
+                          ) : 'Redo'}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmOp(op)}
+                      disabled={rollingBack !== null}
+                      className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                    >
+                      {rollingBack === op.id ? (
+                        <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span>
+                      ) : 'Rollback'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          if (entry.kind === 'commit') {
+            const commit = entry.data;
+            return (
+              <button
+                key={`commit-${commit.hash}`}
+                onClick={() => { setSelectedCommitHash(commit.hash); setSelectedCommitEntry(commit); }}
+                className="w-full text-left flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+              >
+                <div className="mt-0.5 shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4" /><line x1="1.05" y1="12" x2="7" y2="12" /><line x1="17.01" y1="12" x2="22.96" y2="12" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <TypePill kind="commit" />
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                    <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                  </div>
+                </div>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+            );
+          }
+
+          // snapshot entry
+          const snapshot = entry.data;
+          return (
+            <button
+              key={`snapshot-${snapshot.id}`}
+              onClick={() => { setSelectedSnapshotId(snapshot.id); setSelectedSnapshotLabel(snapshot.label); }}
+              className="w-full text-left flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+            >
+              <div className="mt-0.5 shrink-0">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <TypePill kind="snapshot" />
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
+                </div>
+              </div>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          );
+        })}
+
+        {/* Load more server operations */}
+        {hasMoreOperations && onLoadMoreOperations && (
+          <div className="px-3 py-2">
+            <button
+              onClick={onLoadMoreOperations}
+              className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Load more actions{totalOperations != null ? ` (${totalOperations - (recentOperations?.length ?? 0)} remaining)` : ''}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -252,16 +622,20 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
    Git Commits source
    ══════════════════════════════════════════════════════════════════════════ */
 
-function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath }: {
+function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialSelectedHash, initialSelectedCommit, onBack, skipListFetch }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
   filterTokenPath?: string;
+  initialSelectedHash?: string;
+  initialSelectedCommit?: CommitEntry;
+  onBack?: () => void;
+  skipListFetch?: boolean;
 }) {
-  const [commits, setCommits] = useState<CommitEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [commits, setCommits] = useState<CommitEntry[]>(initialSelectedCommit ? [initialSelectedCommit] : []);
+  const [loading, setLoading] = useState(!skipListFetch);
   const [error, setError] = useState<string | null>(null);
-  const [selectedHash, setSelectedHash] = useState<string | null>(null);
+  const [selectedHash, setSelectedHash] = useState<string | null>(initialSelectedHash ?? null);
   const [detail, setDetail] = useState<CommitDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -304,9 +678,10 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   }, [serverUrl]);
 
   useEffect(() => {
+    if (skipListFetch) return;
     fetchCommits();
     return () => { abortRef.current?.abort(); };
-  }, [fetchCommits]);
+  }, [fetchCommits, skipListFetch]);
 
   // When debouncedFilterPath changes, eagerly fetch all commit details to build filter map
   useEffect(() => {
@@ -363,16 +738,28 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
     }
   }, [serverUrl]);
 
+  // Auto-fetch detail when mounted from the unified timeline
+  useEffect(() => {
+    if (initialSelectedHash) {
+      fetchDetail(initialSelectedHash);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount
+
   const handleSelectCommit = useCallback((hash: string) => {
     setSelectedHash(hash);
     fetchDetail(hash);
   }, [fetchDetail]);
 
   const handleBack = useCallback(() => {
+    if (onBack) {
+      onBack();
+      return;
+    }
     setSelectedHash(null);
     setDetail(null);
     setDetailError(null);
-  }, []);
+  }, [onBack]);
 
   const toggleSection = useCallback((key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -770,11 +1157,11 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
    Snapshots source
    ══════════════════════════════════════════════════════════════════════════ */
 
-function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath }: { serverUrl: string; onPushUndo?: (slot: UndoSlot) => void; onRefreshTokens?: () => void; filterTokenPath?: string }) {
+function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialComparingId, initialComparingLabel, onBack }: { serverUrl: string; onPushUndo?: (slot: UndoSlot) => void; onRefreshTokens?: () => void; filterTokenPath?: string; initialComparingId?: string; initialComparingLabel?: string; onBack?: () => void; }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [comparing, setComparing] = useState<string | null>(null);
+  const [comparing, setComparing] = useState<string | null>(initialComparingId ?? null);
   const [changes, setChanges] = useState<TokenChange[] | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [reverting, setReverting] = useState(false);
@@ -805,8 +1192,10 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
   }, [serverUrl]);
 
   useEffect(() => {
-    loadSnapshots();
-  }, [loadSnapshots]);
+    if (!initialComparingId) {
+      loadSnapshots();
+    }
+  }, [loadSnapshots, initialComparingId]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -835,7 +1224,7 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
     }
   };
 
-  const handleCompare = async (id: string) => {
+  const handleCompare = useCallback(async (id: string) => {
     setComparing(id);
     setDiffLoading(true);
     setChanges(null);
@@ -855,7 +1244,15 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
     } finally {
       setDiffLoading(false);
     }
-  };
+  }, [serverUrl]);
+
+  // Auto-compare when mounted from the unified timeline
+  useEffect(() => {
+    if (initialComparingId) {
+      handleCompare(initialComparingId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount
 
   const handleRevert = async () => {
     if (!comparing) return;
@@ -906,6 +1303,10 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
   };
 
   const handleKeepChanges = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
     setComparing(null);
     setChanges(null);
     showSuccess('Changes kept');
@@ -940,7 +1341,7 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <button
             className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            onClick={() => { setComparing(null); setChanges(null); }}
+            onClick={() => { if (onBack) { onBack(); } else { setComparing(null); setChanges(null); } }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -948,8 +1349,8 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
             Back
           </button>
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">/</span>
-          <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1 min-w-0" title={snapshot?.label}>
-            {snapshot?.label ?? 'Compare'}
+          <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1 min-w-0" title={snapshot?.label ?? initialComparingLabel}>
+            {snapshot?.label ?? initialComparingLabel ?? 'Compare'}
           </span>
         </div>
 

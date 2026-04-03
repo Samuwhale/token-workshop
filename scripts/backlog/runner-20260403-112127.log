@@ -305,3 +305,18 @@ Already up to date.
 
   Merging to main: AnalyticsPanel shows unused tokens but provides no delete action
 Already up to date.
+[main bd15fe0f] chore(backlog): done – AnalyticsPanel shows unused tokens but provides no delete action
+ 5 files changed, 121 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel unused tokens delete actions
+- Added per-row delete icon buttons (trash SVG, red, revealed on row hover via absolute positioning) and a "Delete all" button with inline confirmation (shows token count + Confirm/Cancel) in the unused tokens section header. Both call `DELETE /api/tokens/:set/path` directly. In-flight deletes show a spinner. After deletion, `reloadKey` is incremented to refresh the analytics data.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L96, ~L489, ~L1213
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  10 queued · 1 in-progress · last took 2m7s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel validation results go stale after fixes are applied without auto-revalidation — resultsStale state exists (AnalyticsPanel.tsx ~L89) and is set when tokens change via SSE, but validation is never automatically re-run after the user fixes an issue; users must manually hit "Validate" again to see current status; add an auto-revalidate after any token mutation that changes validation-relevant data (broken aliases, missing types, circular refs)
+  Worktree: /tmp/backlog-30880-mLBw8K
+  Running agent… (started 11:48:39)
