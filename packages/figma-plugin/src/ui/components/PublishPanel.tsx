@@ -234,6 +234,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     setOrphanConfirm(null);
     setOrphansDeleting(true);
     setReadinessError(null);
+    // Clear any stale handlers from a previous invocation so a late plugin response
+    // from an earlier timed-out attempt cannot interfere with this new run.
+    orphansPendingRef.current.clear();
     const MAX_RETRIES = 2;
     const TIMEOUTS = [10000, 20000, 30000];
     let succeeded = false;

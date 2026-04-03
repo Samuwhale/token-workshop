@@ -421,3 +421,10 @@ Already up to date.
   → PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors — executeOrphanDeletion (PublishPanel.tsx ~L235-269) creates a new correlationId per retry attempt but old promise handlers in orphansPendingRef are not invalidated, so a late response from a timed-out attempt can resolve with stale data; separately, all three modal types in PublishModals.tsx (~L207, ~L408, ~L580) use `try { await onConfirm() } finally { setBusy(false) }` which never surfaces errors to the user — the modal clears loading state and the user gets no feedback that the operation failed
   Worktree: /tmp/backlog-80049-lRh3ax
   Running agent… (started 13:08:18)
+
+  ✓ done: PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors
+    Cleared orphansPendingRef on each executeOrphanDeletion invocation to invalidate stale handlers; added error state + inline display to all four publish modal types (SyncPreviewModal, GitPreviewModal, CommitPreviewModal, publish-all modal)
+    44 turns · 326s · $1.18
+
+  Merging to main: PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors
+Already up to date.

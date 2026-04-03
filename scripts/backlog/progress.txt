@@ -346,3 +346,14 @@
   - `withBatch` pattern: snapshot → `withBatch(async () => { try { ...work... } catch { restoreSnapshots; throw; } })`. The snapshot restore happens inside the fn's catch, so `withBatch`'s finally always rebuilds with the correct (possibly restored) in-memory state.
   - `bulkRename` had a comment claiming it rebuilt flat tokens mid-batch for a circular ref check — but `rebuildFlatTokens()` inside a batch was always a NOP. The circular check used stale pre-rename data. This pre-existing issue is now documented (comment updated) but not fixed (out of scope).
 ---
+
+## 2026-04-03 - PublishPanel orphan deletion retry race condition and modal errors silently swallowed
+- Fixed the race condition in `executeOrphanDeletion` by calling `orphansPendingRef.current.clear()` at the start of each invocation, ensuring stale handlers from a previous call cannot be triggered by a late plugin response during a new retry sequence.
+- Added `const [confirmError, setConfirmError] = useState<string | null>(null)` to all four modal types in PublishModals.tsx (SyncPreviewModal, GitPreviewModal, CommitPreviewModal, and the publish-all modal). Updated each `handleConfirm` to catch errors with `catch (err) { setConfirmError(getErrorMessage(err)); }` and display the error inline above the button row with `<p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">`.
+- Added `import { getErrorMessage } from '../../shared/utils';` to PublishModals.tsx.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L235, `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L1, ~L26, ~L138, ~L189, ~L215, ~L322, ~L367, ~L421, ~L527, ~L585, ~L597, ~L673
+- **Learnings for future iterations:**
+  - The `orphansPendingRef` race described in the backlog is primarily a safety concern (not a live bug in single-threaded JS), but `.clear()` at invocation start is the right defensive pattern for any ref-based pending-callback map.
+  - `ConfirmModal` already has error handling — the pattern to replicate is `catch (err) { setError(getErrorMessage(err)); }` without re-throwing, so `finally { setBusy(false); }` still runs and the modal stays open for the user to retry.
+  - Error display is placed BEFORE the `border-t` footer div (not inside it) so it doesn't affect the button layout.
+---

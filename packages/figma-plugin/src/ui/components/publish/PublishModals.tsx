@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ConfirmModal } from '../ConfirmModal';
 import { isHexColor, DiffSwatch, truncateValue, SyncDiffSummary, TokenChangeRow } from './PublishShared';
+import { getErrorMessage } from '../../shared/utils';
 import type { PreviewRow } from './PublishShared';
 
 export type { PreviewRow };
@@ -23,6 +24,7 @@ export function SyncPreviewModal({
   confirmLabel?: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const pushAdds = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'local-only');
   const pushUpdates = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'conflict');
   const pullAdds = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'figma-only');
@@ -122,6 +124,9 @@ export function SyncPreviewModal({
             ))
           )}
         </div>
+        {confirmError && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">{confirmError}</p>
+        )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           {onConfirm ? (
             <>
@@ -135,7 +140,8 @@ export function SyncPreviewModal({
               <button
                 onClick={async () => {
                   setBusy(true);
-                  try { await onConfirm(); } finally { setBusy(false); }
+                  setConfirmError(null);
+                  try { await onConfirm(); } catch (err) { setConfirmError(getErrorMessage(err)); } finally { setBusy(false); }
                 }}
                 disabled={busy || sections.length === 0}
                 className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
@@ -180,6 +186,7 @@ export function GitPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPreview();
@@ -206,7 +213,8 @@ export function GitPreviewModal({
 
   const handleConfirm = async () => {
     setBusy(true);
-    try { await onConfirm(); } finally { setBusy(false); }
+    setConfirmError(null);
+    try { await onConfirm(); } catch (err) { setConfirmError(getErrorMessage(err)); } finally { setBusy(false); }
   };
 
   return (
@@ -311,6 +319,9 @@ export function GitPreviewModal({
           )}
         </div>
 
+        {confirmError && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">{confirmError}</p>
+        )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           <button
             onClick={onCancel}
@@ -354,6 +365,7 @@ export function CommitPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -407,7 +419,8 @@ export function CommitPreviewModal({
 
   const handleConfirm = async () => {
     setBusy(true);
-    try { await onConfirm(); } finally { setBusy(false); }
+    setConfirmError(null);
+    try { await onConfirm(); } catch (err) { setConfirmError(getErrorMessage(err)); } finally { setBusy(false); }
   };
 
   return (
@@ -509,6 +522,9 @@ export function CommitPreviewModal({
           )}
         </div>
 
+        {confirmError && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">{confirmError}</p>
+        )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           <button
             onClick={onCancel}
@@ -567,6 +583,7 @@ export function PublishAllPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -579,7 +596,8 @@ export function PublishAllPreviewModal({
 
   const handleConfirm = async () => {
     setBusy(true);
-    try { await onConfirm(); } finally { setBusy(false); }
+    setConfirmError(null);
+    try { await onConfirm(); } catch (err) { setConfirmError(getErrorMessage(err)); } finally { setBusy(false); }
   };
 
   return (
@@ -652,6 +670,9 @@ export function PublishAllPreviewModal({
           )}
         </div>
 
+        {confirmError && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">{confirmError}</p>
+        )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           <button
             onClick={onCancel}

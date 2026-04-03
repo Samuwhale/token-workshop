@@ -504,3 +504,18 @@ Already up to date.
 
   Merging to main: TokenStore batchUpsertTokens never triggers rebuildFlatTokens
 Already up to date.
+[main 5eea2832] chore(backlog): done – TokenStore batchUpsertTokens never triggers rebuildFlatTokens
+ 4 files changed, 281 insertions(+), 287 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenStore batchUpsertTokens never triggers rebuildFlatTokens
+- Root cause: `rebuildFlatTokens()` inside a batch is a NOP (defers via `_pendingRebuild = true`), and `endBatch()` only rebuilds if `_pendingRebuild` was set. `batchUpsertTokens` never called `rebuildFlatTokens()` inside or after the batch, so `_pendingRebuild` stayed false and the flat token cache + resolver were never updated after import.
+- Fix: removed `_pendingRebuild` entirely; changed `endBatch()` to unconditionally call `rebuildFlatTokens()` when `_batchDepth` reaches 0; added private `withBatch<T>(fn)` helper that wraps `beginBatch()`/`endBatch()` with guaranteed rebuild on completion.
+- Converted all 13 internal `beginBatch()`/`endBatch()` pairs in `token-store.ts` to use `withBatch` and removed all now-redundant explicit `rebuildFlatTokens()` calls from batch try/catch blocks. Public `beginBatch()`/`endBatch()` API kept for external callers (generator-service), which also benefit from `endBatch()` now always rebuilding.
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  9 queued · 3 in-progress · last took 9m5s
+═══════════════════════════════════════════════════════════════
+  → No Shift+Click range selection or Ctrl/Cmd+A in multi-select mode — selecting multiple tokens requires clicking each checkbox individually; the tree supports multi-select via checkboxes but has no range selection (Shift+Click first and last) or select-all shortcut, which are standard in every tree/list UI (TokenTreeNode.tsx ~L1044-1049, TokenList.tsx)
+  Worktree: /tmp/backlog-81267-jnDXfj
+  Running agent… (started 13:12:27)
