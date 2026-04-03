@@ -169,3 +169,10 @@ Already up to date.
   → AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
   Worktree: /tmp/backlog-91949-xZztIm
   Running agent… (started 01:28:12)
+
+  ✓ done: AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
+    stale — already done; resultsStale is fully surfaced via amber button styling, warning banner, and dimmed results section
+    9 turns · 54s · $0.2
+
+  Merging to main: AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
+Already up to date.

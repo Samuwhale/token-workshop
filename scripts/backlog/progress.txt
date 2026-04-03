@@ -630,3 +630,10 @@
   - The pattern: `(expandedPreviews['key'] ? fullList : fullList.slice(0, MAX))` is clean and reusable.
   - `PREVIEW_MAX` constant stays in place so changing the default cap remains a one-line change.
 ---
+- `useThemeCompare.ts` left unchanged — it uses a different data model (`setTokenValues: Record<string, Record<string, any>>` with inline alias resolution rather than `TokenMapEntry`+`resolveAllAliases`), so sharing resolution logic would require a separate, incompatible adapter
+- Files changed: `packages/figma-plugin/src/ui/shared/comparisonUtils.ts` (new), `ComparePanel.tsx` ~L5, ~L156, `CrossThemeComparePanel.tsx` ~L5, ~L33, ~L87, ~L128, `ThemeCompare.tsx` ~L1, ~L39, ~L61, ~L97, ~L143, ~L173
+- **Learnings for future iterations:**
+  - `resolveThemeOption` with optional `themedSets` covers two subtly different resolution strategies (with/without unthemed base layer) behind one API — optional parameter avoids needing two separate functions
+  - `formatTokenValueForDisplay` from `tokenFormatting.ts` already handles all DTCG types; custom `formatThemeValue` copies were unnecessary
+  - `useThemeCompare.ts` uses a plain-value flat map (values are scalars/strings, not `TokenMapEntry` objects) — resolution logic there operates on simpler data and is intentionally different
+---
