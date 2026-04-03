@@ -272,3 +272,19 @@ Already up to date.
 
   Merging to main: Lint rule labels duplicated with inconsistent wording across three locations
 Already up to date.
+[main 894271ab] chore(backlog): done – Lint rule labels duplicated with inconsistent wording across three locations
+ 8 files changed, 123 insertions(+), 63 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/lintRules.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Lint rule labels duplicated with inconsistent wording across three locations
+- Created `packages/figma-plugin/src/ui/shared/lintRules.ts` as the single source of truth for lint rule metadata (`LINT_RULE_REGISTRY` array + `LINT_RULE_BY_ID` lookup). Each entry has `id`, `label`, `description` (for config UI), `tip` (for analytics violation display), and optional `options`.
+- Updated `LintConfigPanel.tsx` to import `LINT_RULE_REGISTRY` and remove the local `RULE_DEFS` and `OptionMeta`/`RuleMeta` interfaces.
+- Updated `AnalyticsPanel.tsx` to import `LINT_RULE_BY_ID` and replace the local lint-rule section of `RULE_LABELS` with a `getRuleLabel()` helper that merges validation-only labels with the shared registry. This also adds the missing `max-alias-depth` lint rule entry.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  12 queued · 3 in-progress · last took 3m5s
+═══════════════════════════════════════════════════════════════
+  → CrossThemeComparePanel and ThemeCompare show missing/differing tokens but offer no "create missing" or "fill gap" bulk action — users must manually navigate to the token editor for each gap; add a "Create missing overrides" button that batch-creates alias tokens for gaps shown in the comparison view (CrossThemeComparePanel.tsx, ThemeCompare.tsx)
+  Worktree: /tmp/backlog-92209-Wku8ew
+  Running agent… (started 01:52:49)

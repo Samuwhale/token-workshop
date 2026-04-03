@@ -523,3 +523,13 @@
   - Validation-only rules (missing-type, broken-alias, etc.) don't belong in the configurable lint registry — keep them as a local constant in the analytics panel and merge at lookup time via a helper.
   - The server's lint.ts only needs rule IDs and options — it has no UI labels, so the shared registry stays UI-layer only.
 ---
+
+## 2026-04-04 - TokenStore file watcher mutations race with route-handler mutations
+- Moved the `TokenLock` ownership into `TokenStore` as a public `readonly lock` field. All three watcher callbacks (`change`, `add`, `unlink`) now wrap their `this.sets` mutations and `scheduleRebuild` calls inside `void this.lock.withLock(async () => { ... })`. This serializes external-file-edit callbacks behind any in-progress route handler that already holds the lock, preventing `loadSet()` from overwriting in-flight route mutations.
+- In `index.ts`, replaced `const tokenLock = new TokenLock()` with `const tokenLock = tokenStore.lock` so route handlers and watcher callbacks share the exact same promise-chain mutex. No route files required changes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L17 (import), ~L39 (lock field), ~L220-250 (watcher callbacks); `packages/server/src/index.ts` ~L67 (lock assignment)
+- **Learnings for future iterations:**
+  - The key insight: two independently-created `TokenLock` instances do NOT share a chain — they're separate mutexes. The fix must ensure a single shared chain, not two coordinated ones.
+  - `void promise` is the correct pattern for fire-and-forget async calls inside synchronous event callbacks (chokidar `on` handlers) without making the handler itself async.
+  - Watcher `unlink` had no `await` inside (just a synchronous `sets.delete()`), but wrapping it in the lock is still correct to prevent it from interleaving with mid-`await` points in route handlers that have already read the set but not yet finished their write cycle.
+---

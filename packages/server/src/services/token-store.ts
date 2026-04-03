@@ -15,6 +15,7 @@ import {
   COMPOSITE_TOKEN_TYPES,
 } from '@tokenmanager/core';
 import { NotFoundError, ConflictError, BadRequestError } from '../errors.js';
+import { TokenLock } from './token-lock.js';
 import {
   validateTokenPath,
   pathExistsAt,
@@ -35,6 +36,8 @@ import { isSafeRegex } from './token-tree-utils.js';
 export { isSafeRegex };
 
 export class TokenStore {
+  /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
+  readonly lock = new TokenLock();
   private dir: string;
   private sets: Map<string, TokenSet> = new Map();
   private flatTokens: Map<string, Array<{ token: Token; setName: string }>> = new Map();
@@ -215,36 +218,42 @@ export class TokenStore {
       awaitWriteFinish: { stabilityThreshold: 200 },
     });
 
-    this.watcher.on('change', async (filePath) => {
+    this.watcher.on('change', (filePath) => {
       if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       const setName = relativePath.replace('.tokens.json', '');
-      await this.loadSet(relativePath).catch(err => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
-        this.emitEvent({ type: 'file-load-error', setName, message });
+      void this.lock.withLock(async () => {
+        await this.loadSet(relativePath).catch(err => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
+          this.emitEvent({ type: 'file-load-error', setName, message });
+        });
+        this.scheduleRebuild({ type: 'set-updated', setName });
       });
-      this.scheduleRebuild({ type: 'set-updated', setName });
     });
 
-    this.watcher.on('add', async (filePath) => {
+    this.watcher.on('add', (filePath) => {
       if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       const setName = relativePath.replace('.tokens.json', '');
-      await this.loadSet(relativePath).catch(err => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err);
-        this.emitEvent({ type: 'file-load-error', setName, message });
+      void this.lock.withLock(async () => {
+        await this.loadSet(relativePath).catch(err => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err);
+          this.emitEvent({ type: 'file-load-error', setName, message });
+        });
+        this.scheduleRebuild({ type: 'set-added', setName });
       });
-      this.scheduleRebuild({ type: 'set-added', setName });
     });
 
     this.watcher.on('unlink', (filePath) => {
       if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       const name = relativePath.replace('.tokens.json', '');
-      this.sets.delete(name);
-      this.scheduleRebuild({ type: 'set-removed', setName: name });
+      void this.lock.withLock(async () => {
+        this.sets.delete(name);
+        this.scheduleRebuild({ type: 'set-removed', setName: name });
+      });
     });
 
     this.watcher.on('error', (err) => {

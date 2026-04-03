@@ -206,3 +206,10 @@ Already up to date.
   → [HIGH] TokenStore file watcher mutations race with route-handler mutations — chokidar `change`/`add` callbacks call `loadSet()` which directly mutates `this.sets` via `this.sets.set(name, ...)` (token-store.ts L180) outside the route-level `withLock` mutex; if an external file edit fires the watcher while a route handler is mid-mutation (between `await` points), `loadSet` overwrites the in-memory set with disk state, discarding the route handler's uncommitted changes; additionally `scheduleRebuild` runs `rebuildFlatTokens` on a 50ms debounce timer (L188) that can fire during a batched route operation — the `_batchDepth > 0` guard prevents the rebuild but the `loadSet` mutation still happens; TokenStore needs its own internal async mutex or the watcher callbacks need to be suspended during route-level lock acquisitions (token-store.ts L169-194, L218-248)
   Worktree: /tmp/backlog-91634-AXfXkh
   Running agent… (started 01:51:03)
+
+  ✓ done: TokenStore file watcher mutations race with route-handler mutations
+    Moved TokenLock ownership into TokenStore as a public `lock` field; all three watcher callbacks now serialize through `this.lock.withLock()`; index.ts reuses `tokenStore.lock` so route handlers and watchers share one mutex chain
+    25 turns · 242s · $0.65
+
+  Merging to main: TokenStore file watcher mutations race with route-handler mutations
+Already up to date.

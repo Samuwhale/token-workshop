@@ -64,7 +64,10 @@ export async function startServer(config: ServerConfig) {
   const resolverStore = new ResolverStore(config.tokenDir);
   await resolverStore.initialize();
 
-  const tokenLock = new TokenLock();
+  // Reuse the lock that lives inside TokenStore — watcher callbacks and route handlers
+  // all serialize through the same chain, preventing watcher loadSet() from overwriting
+  // in-flight route-handler mutations.
+  const tokenLock = tokenStore.lock;
 
   const dimensionsStore = createDimensionsStore(config.tokenDir);
 
