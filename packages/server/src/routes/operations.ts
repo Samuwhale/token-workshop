@@ -12,6 +12,22 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
     return { operations: entries, total, hasMore: offset + entries.length < total };
   });
 
+  // GET /api/operations/token-history — value timeline for a specific token path
+  // Must be registered before /operations/:id/rollback to avoid :id capturing "token-history"
+  fastify.get<{
+    Querystring: { path?: string; limit?: string; offset?: string };
+  }>('/operations/token-history', async (request, reply) => {
+    const tokenPath = request.query.path;
+    if (!tokenPath) {
+      reply.code(400);
+      return { error: 'Missing required query param: path' };
+    }
+    const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '20', 10) || 20), 100);
+    const offset = Math.max(0, parseInt(request.query.offset ?? '0', 10) || 0);
+    const { entries, total } = await fastify.operationLog.getTokenHistory(tokenPath, limit, offset);
+    return { entries, total, hasMore: offset + entries.length < total };
+  });
+
   // POST /api/operations/:id/rollback — rollback an operation
   fastify.post<{ Params: { id: string } }>('/operations/:id/rollback', async (request, reply) => {
     return withLock(async () => {

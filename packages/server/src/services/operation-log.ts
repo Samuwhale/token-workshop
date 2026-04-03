@@ -65,6 +65,18 @@ export interface OperationSummary {
   rolledBack: boolean;
 }
 
+/** A single entry in a per-token value timeline. */
+export interface TokenHistoryEntry {
+  id: string;
+  timestamp: string;
+  type: string;
+  description: string;
+  setName: string;
+  rolledBack: boolean;
+  before: import('@tokenmanager/core').Token | null;
+  after: import('@tokenmanager/core').Token | null;
+}
+
 const MAX_ENTRIES = 50;
 
 export class OperationLog {
@@ -134,6 +146,32 @@ export class OperationLog {
   async getById(id: string): Promise<OperationEntry | undefined> {
     await this.ensureLoaded();
     return this.entries.find(e => e.id === id);
+  }
+
+  /** Get the value-change history for a specific token path (newest first). */
+  async getTokenHistory(
+    tokenPath: string,
+    limit = 20,
+    offset = 0,
+  ): Promise<{ entries: TokenHistoryEntry[]; total: number }> {
+    await this.ensureLoaded();
+    // Filter to operations that affected this path and had a value change
+    const matching = this.entries
+      .filter(e => e.affectedPaths.includes(tokenPath))
+      .reverse(); // newest first
+    const total = matching.length;
+    const page = matching.slice(offset, offset + limit);
+    const entries: TokenHistoryEntry[] = page.map(e => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      type: e.type,
+      description: e.description,
+      setName: e.setName,
+      rolledBack: e.rolledBack,
+      before: e.beforeSnapshot[tokenPath]?.token ?? null,
+      after: e.afterSnapshot[tokenPath]?.token ?? null,
+    }));
+    return { entries, total };
   }
 
   // ---------------------------------------------------------------------------

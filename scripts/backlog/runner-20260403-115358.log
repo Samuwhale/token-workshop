@@ -148,3 +148,10 @@ Already up to date.
   → No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
   Worktree: /tmp/backlog-81661-JPW5rk
   Running agent… (started 12:06:17)
+
+  ✓ done: No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
+    Added collapsible History section to TokenEditor with lazy-loaded timeline from new GET /api/operations/token-history endpoint; shows before→after values with color swatches, timestamps, and rolled-back badges
+    37 turns · 289s · $1.12
+
+  Merging to main: No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
+Already up to date.

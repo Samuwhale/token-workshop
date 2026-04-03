@@ -296,3 +296,15 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: operation-log rollback (operation-log.ts:285-326) is not transactional — if executeSteps throws during structural rollback, token snapshot capture runs against partially-modified state with no recovery; also plugin sandbox has 3 message handlers (search-layers, find-peers-for-property, eyedropper) missing try-catch that can crash the entire message loop
 ---
+
+## 2026-04-03 - No per-token value changelog
+- Added `getTokenHistory(path, limit, offset)` to `OperationLog` service — filters stored entries by `affectedPaths` and returns before/after snapshots for that specific path only, newest first.
+- Added `TokenHistoryEntry` interface to `operation-log.ts`.
+- Added `GET /api/operations/token-history?path=X&limit=N&offset=M` route in `operations.ts` — registered before `:id/rollback` to avoid Fastify param capture.
+- Added `TokenHistorySection` component (inline in `TokenEditor.tsx`) — collapsible section with lazy-fetch, timeline list showing timestamp + description + before→after values with color swatches, rolled-back badge, and "Load more" pagination. Renders after `TokenUsages` in non-create-mode.
+- Files changed: `packages/server/src/services/operation-log.ts`, `packages/server/src/routes/operations.ts`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L384
+- **Learnings for future iterations:**
+  - `HistoryValueChip` is a minimal value renderer (not reusing ValueDiff) since history needs a compact inline chip, not a full diff block.
+  - The `useRef(false)` fetched-guard prevents double-fetching when re-opening the section — reset it to `false` before refreshing after rollback so the data reloads.
+  - Fastify route registration order matters: register `/operations/token-history` before `/operations/:id/rollback` so the literal segment isn't consumed as a param.
+---

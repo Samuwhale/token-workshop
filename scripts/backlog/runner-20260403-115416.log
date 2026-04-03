@@ -127,3 +127,22 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: non-transactional rollback (HIGH), server silent error swallowing (6+ locations), plugin sandbox unprotected handlers (3), plugin data-loss overwrites, duplicate sync boilerplate (3 hooks), core resolver unsafe casts (6+ locations)
 Already up to date.
+[main 5240da48] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → Priority item(s) appended (no existing [ ] items found)
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: packages/server/src/services/ (all 13 service files — token-store, generator-service, resolver-store, operation-log, git-sync, style-dict, event-bus, token-lock, etc.), packages/figma-plugin/src/ui/hooks/ (all 48 hooks — sync hooks, crud hooks, drag-drop, lint, navigation, etc.), packages/core/src/ (resolver, dtcg-resolver, eval-expr, color-modifier, color-parse, validator), packages/figma-plugin/src/plugin/ (controller, variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner, colorUtils)
+- Found 6 items — written to backlog-inbox.md
+- Notable: operation-log rollback (operation-log.ts:285-326) is not transactional — if executeSteps throws during structural rollback, token snapshot capture runs against partially-modified state with no recovery; also plugin sandbox has 3 message handlers (search-layers, find-peers-for-property, eyedropper) missing try-catch that can crash the entire message loop
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  6 queued · 4 in-progress · last took 7m23s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Operation-log rollback is not transactional — if `executeSteps()` throws during structural rollback (operation-log.ts:299), the subsequent token snapshot capture (line 303) runs against partially-modified state, recording an inconsistent `currentSnapshot` for the rollback entry; a failed rollback leaves both structural state and tokens in an unpredictable half-rolled-back state with no recovery path; wrap the structural-steps + snapshot-capture + token-restore sequence in a try/catch that reverts structural steps (using the already-computed `inverseSteps`) on failure
+  Worktree: /tmp/backlog-82379-w96TIW
+  Running agent… (started 12:11:09)
