@@ -176,3 +176,11 @@ Already up to date.
 
   Merging to main: AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
 Already up to date.
+[main 78127d41] chore(backlog): done – AnalyticsPanel validation results go stale after token edits but there is no visible staleness indicator — the resultsStale flag exists in state but is never surfaced in the UI, so users do not know they are looking at outdated data
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - BatchEditor preview is capped at 8 items with no way to expand
+- Replaced the static "and N more…" text in all 7 preview lists with clickable expand/collapse buttons that show all items when toggled.
+- Added `expandedPreviews: Record<string, boolean>` state and `togglePreview(key)` helper to BatchEditor.
+- Preview keys: `colorAdjust`, `skippedAlias`, `scale`, `typeIncompat`, `rename`, `aliasFind`, `move`.

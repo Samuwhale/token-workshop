@@ -134,3 +134,10 @@ Already up to date.
   → No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
   Worktree: /tmp/backlog-92209-5bBymg
   Running agent… (started 01:26:19)
+
+  ✓ done: No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
+    stale — already done: inline editing is fully implemented for color (ColorPicker), number/dimension (numeric input with steppers), string (text input), and boolean (toggle); canInlineEdit + handleInlineSave wired throughout TokenList/TokenTreeNode
+    19 turns · 169s · $0.57
+
+  Merging to main: No inline token value editing — every edit requires opening the full TokenEditor sidebar; double-click on a value cell in the tree should open a minimal inline editor for simple types (color, number, dimension, string)
+Already up to date.

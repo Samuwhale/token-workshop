@@ -637,3 +637,14 @@
   - `formatTokenValueForDisplay` from `tokenFormatting.ts` already handles all DTCG types; custom `formatThemeValue` copies were unnecessary
   - `useThemeCompare.ts` uses a plain-value flat map (values are scalars/strings, not `TokenMapEntry` objects) — resolution logic there operates on simpler data and is intentionally different
 ---
+
+## 2026-04-04 - No inline token value editing
+- Item is stale — already implemented. Inline editing fully exists for color, number, dimension, string, boolean, fontFamily, fontWeight, duration, and asset types.
+- `canInlineEdit` flag gates inline editing: requires non-group, non-alias token with a simple type and `onInlineSave` wired.
+- Color: click on swatch → `ColorPicker` modal inline. Number/dimension: click value span → numeric input with +/- steppers. String/other: click value span → text input. Boolean: click → immediate toggle.
+- Double-click on row name area → `activateInlineEdit()` for simple types, full editor for complex types.
+- `handleInlineSave` in `useTokenCrud.ts` PATCHes the API with full undo/redo support.
+- Files changed: none (no changes needed)
+- **Learnings for future iterations:**
+  - This feature was already in place — always verify by reading the implementation before treating backlog items as pending.
+---
