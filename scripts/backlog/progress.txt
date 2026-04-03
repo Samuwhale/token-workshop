@@ -335,3 +335,10 @@
   - The IIFE pattern (`{isMixed && showMixedDetail && (() => { ... })()}`) keeps JSX inline while allowing local variable declarations (like `mixedValues`) without polluting the component scope.
   - `resolveBindingDisplay` already handles color swatch extraction — reuse it for the detail panel rows rather than duplicating resolve logic.
 ---
+
+## 2026-04-03 - Import from Figma Variables has no mode-name customization UI
+- Stale — already implemented. The Variables import preview already has inline editable text inputs for each mode's target set name (`modeSetNames` state, `defaultSetName()` fallback, input at ImportPanel.tsx ~L1315-1323). Users can rename modes before committing the import. "existing"/"new" badges update live. The `handleImportVariables` handler uses the custom names when creating sets.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item references specific line numbers (e.g., ~L625-632), those lines may have drifted as code grew — always read the full render section, not just the referenced lines, before declaring missing.
+---

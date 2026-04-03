@@ -356,3 +356,18 @@ Already up to date.
 
   Merging to main: SelectionInspector "mixed" binding state gives no detail
 Already up to date.
+[main 2477ea7f] chore(backlog): done – SelectionInspector "mixed" binding state gives no detail
+ 5 files changed, 96 insertions(+), 1 deletion(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - SelectionInspector "mixed" binding state gives no detail
+- Added `getMixedBindingValues(nodes, prop)` helper to `selectionInspectorUtils.ts` that returns distinct binding values (or null for unbound) with their layer counts, sorted bound-first alphabetically.
+- Converted the "Mixed" italic span in `PropertyRow.tsx` to a clickable button with a chevron icon that toggles an expandable detail panel below the row.
+- The detail panel shows each distinct binding path (font-mono), with a color swatch for color tokens, and a "N layers" count badge. Unbound layers are shown as italic "unbound" in secondary text color.
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  23 queued · 3 in-progress · last took 2m11s
+═══════════════════════════════════════════════════════════════
+  → No token picker for generator source selection — both the template ApplyForm (GraphPanel.tsx ~L687-693) and the full TokenGeneratorDialog require users to type the exact dot-delimited token path from memory; add a searchable token picker/dropdown component filterable by type (color, dimension) that can be used in both flows; this is the single highest-friction point in generator creation
+  Worktree: /tmp/backlog-49887-m1y923
+  Running agent… (started 13:41:38)
