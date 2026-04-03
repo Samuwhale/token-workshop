@@ -365,3 +365,17 @@ Already up to date.
   → Generator panel has no dry-run preview mode — users must actually run a generator to see what tokens it would create; for generators targeting existing groups this overwrites values without any preview; add a "Preview output" action that shows a diff of what tokens would be created/updated/deleted without committing the change (GraphPanel.tsx ~L200-400, generator run endpoint)
   Worktree: /tmp/backlog-30880-jDdQrr
   Running agent… (started 11:53:26)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    3 turns · 24s · $0.13
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - BatchEditor silently overwrites alias $value when opacity or scaling is also active
+- Root cause: `patch.$value = aliasRef` was set on line 348, then `opacityActive` (line 357) and `scalingActive` (line 368) both unconditionally overwrote `patch.$value` with their computed values. The UI preview said "Will set {alias} on N tokens" but the alias was never actually applied.
+- Fix: extracted `opacityActive` and `scalingActive` as component-scope constants (from inline variables inside `handleApply`). Added `aliasConflict = aliasActive && (opacityActive || scalingActive)`. When conflict exists: (1) `hasOp` returns false blocking Apply, (2) the alias preview is replaced with a red error message naming the conflicting operation(s), (3) `handleApply` guards with early return and error feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L234, ~L247, ~L314, ~L854
+
+  Stopped after 21 iterations (1044 total items completed).

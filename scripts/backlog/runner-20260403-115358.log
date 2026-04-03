@@ -1,0 +1,23 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    81661
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-115358.log
+  Passes: enabled (every 12 items)
+
+  Queue:    7 ready · 3 in-progress · 3 failed
+  Done:     1044 total (next code pass in 12, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  7 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → Generator panel has no dry-run preview mode — users must actually run a generator to see what tokens it would create; for generators targeting existing groups this overwrites values without any preview; add a "Preview output" action that shows a diff of what tokens would be created/updated/deleted without committing the change (GraphPanel.tsx ~L200-400, generator run endpoint)
+  Worktree: /tmp/backlog-81661-sLlTHN
+  Running agent… (started 11:53:59)

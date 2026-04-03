@@ -87,3 +87,18 @@ Already up to date.
 
   Merging to main: BatchEditor silently overwrites alias $value when opacity or scaling is also active
 Already up to date.
+[main 37d58de3] chore(backlog): done – BatchEditor silently overwrites alias $value when opacity or scaling is also active
+ 6 files changed, 60 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor silently overwrites alias $value when opacity or scaling is also active
+- Root cause: `patch.$value = aliasRef` was set on line 348, then `opacityActive` (line 357) and `scalingActive` (line 368) both unconditionally overwrote `patch.$value` with their computed values. The UI preview said "Will set {alias} on N tokens" but the alias was never actually applied.
+- Fix: extracted `opacityActive` and `scalingActive` as component-scope constants (from inline variables inside `handleApply`). Added `aliasConflict = aliasActive && (opacityActive || scalingActive)`. When conflict exists: (1) `hasOp` returns false blocking Apply, (2) the alias preview is replaced with a red error message naming the conflicting operation(s), (3) `handleApply` guards with early return and error feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L234, ~L247, ~L314, ~L854
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  8 queued · 2 in-progress · last took 16m21s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager dimension list has no search/filter UI despite the state existing — dimSearch state and a ref are declared in ThemeManager.tsx (~L138-139) but the search input is never rendered; users with many theme dimensions cannot filter by name or coverage status; implement the search input using the existing state and add a "show only dimensions with gaps" toggle
+  Worktree: /tmp/backlog-31178-cy9fMV
+  Running agent… (started 11:53:31)

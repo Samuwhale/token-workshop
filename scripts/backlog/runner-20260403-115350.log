@@ -1,0 +1,23 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    81267
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-115350.log
+  Passes: enabled (every 12 items)
+
+  Queue:    7 ready · 3 in-progress · 3 failed
+  Done:     1044 total (next code pass in 12, product pass in 6)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  7 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → ExportPanel preview does not update when export filters change — after an export is generated the preview tab shows a file sample, but changing the type filter, path prefix, or platform selection does not refresh it (ExportPanel.tsx ~L287); users must click Export again just to see the effect of filter changes; add a "Refresh preview" button that re-runs the export with current settings and updates the preview without requiring a download
+  Worktree: /tmp/backlog-81267-IW1HDP
+  Running agent… (started 11:53:50)

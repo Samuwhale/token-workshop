@@ -362,3 +362,10 @@
   - When multiple `if` blocks all mutate the same field (`patch.$value`), later blocks silently win — easy to miss. Moving state to component scope and computing conflict flags up-front makes the interaction explicit.
   - `hasOp` must account for conflict state to prevent the Apply button from appearing enabled when no operation will actually succeed.
 ---
+
+## 2026-04-03 - ThemeManager has no "fill all coverage gaps" one-click action per dimension
+- Feature already fully implemented: `handleAutoFillAllOptions(dimId)` at ThemeManager.tsx ~L728 aggregates fillable tokens across all options in a dimension into a per-set batch; `executeAutoFillAllOptions` at ~L763 fires the batch API calls; a "Fill all options (N)" banner at ~L1610 renders when `multiOptionGaps && totalDimFillable > 0`. No changes made.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Backlog items can be stale when the feature was implemented in a prior session — always search for the handler by name before implementing.
+---
