@@ -169,3 +169,10 @@ Already up to date.
   → Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side (POST /api/tokens/:set/bulk-delete, GET /api/tokens/:set/dependents/*, POST /api/export) but have no command palette entries; users must navigate to the token tree context menu for every destructive operation (CommandPalette.tsx ~L75-86, tokens.ts ~L807, ~L487)
   Worktree: /tmp/backlog-49887-BqHS6U
   Running agent… (started 13:09:37)
+
+  ✓ done: Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side but have no command palette entries
+    Added "Delete token", "Delete N selected tokens", and "Show dependencies" commands to palette; export was already present; wired TokenList selection state to App.tsx via new onSelectionChange prop
+    50 turns · 354s · $1.42
+
+  Merging to main: Command palette has no destructive or batch actions — delete token, bulk delete, export, and show dependents are all available server-side but have no command palette entries
+Already up to date.

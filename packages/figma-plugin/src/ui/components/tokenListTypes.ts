@@ -110,6 +110,8 @@ export interface TokenListActions {
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
+  /** Called whenever the multi-select set changes — exposes selection to parent (e.g. command palette bulk-delete) */
+  onSelectionChange?: (paths: string[]) => void;
 }
 
 export interface TokenListProps {

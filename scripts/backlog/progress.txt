@@ -357,3 +357,20 @@
   - `ConfirmModal` already has error handling — the pattern to replicate is `catch (err) { setError(getErrorMessage(err)); }` without re-throwing, so `finally { setBusy(false); }` still runs and the modal stays open for the user to retry.
   - Error display is placed BEFORE the `border-t` footer div (not inside it) so it doesn't affect the button layout.
 ---
+
+## 2026-04-03 - Command palette has no destructive or batch actions
+- Added three new command palette entries in App.tsx:
+  1. "Delete token: <path>" — appears when `highlightedToken` belongs to the active set; triggers a ConfirmModal then calls `POST /api/tokens/:set/bulk-delete` with undo/redo wired via `pushUndo`.
+  2. "Delete N selected tokens" — appears when multi-select is active (> 0 tokens selected in TokenList); uses same bulk-delete flow.
+  3. "Show dependencies: <path>" — appears when any token is highlighted; navigates to `apply/dependencies` via `setFlowPanelInitialPath` + `navigateTo`.
+- Export was already a command (`id: 'export'`, navigates to `ship/export`) — no change needed.
+- Added `onSelectionChange?: (paths: string[]) => void` to `TokenListActions` and a `useEffect` in `TokenList.tsx` to fire it when `selectedPaths` changes.
+- Added `tokenListSelection` state and `paletteDeleteConfirm` state in App.tsx; wired `onSelectionChange: onTokenListSelectionChange` to all three TokenList instances.
+- Added `<ConfirmModal>` for `paletteDeleteConfirm` with danger styling before the existing unsaved-changes modal.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L112, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L49, ~L716, `packages/figma-plugin/src/ui/App.tsx` ~L491, ~L777, ~L833, ~L1020, ~L1054, ~L2206
+- **Learnings for future iterations:**
+  - `highlightedToken` in App.tsx tracks the currently focused token; `pathToSet[highlightedToken] === activeSet` gates commands to only the active set (cross-set delete would require more complex UX).
+  - The `onDisplayedLeafNodesChange` pattern is the right model for exposing internal TokenList state to App.tsx — same `useEffect` approach works for `selectedPaths`.
+  - `export` command already existed before this item — the backlog item was partially stale for that sub-item.
+  - The `useMemo` deps for `commands` must include all new state values and setter refs used inside; forgetting them causes stale closures in command handlers.
+---

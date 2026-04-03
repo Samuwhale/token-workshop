@@ -428,3 +428,18 @@ Already up to date.
 
   Merging to main: PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors
 Already up to date.
+[main d0b4457f] chore(backlog): done – PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors
+ 7 files changed, 64 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - PublishPanel orphan deletion retry race condition and modal errors silently swallowed
+- Fixed the race condition in `executeOrphanDeletion` by calling `orphansPendingRef.current.clear()` at the start of each invocation, ensuring stale handlers from a previous call cannot be triggered by a late plugin response during a new retry sequence.
+- Added `const [confirmError, setConfirmError] = useState<string | null>(null)` to all four modal types in PublishModals.tsx (SyncPreviewModal, GitPreviewModal, CommitPreviewModal, and the publish-all modal). Updated each `handleConfirm` to catch errors with `catch (err) { setConfirmError(getErrorMessage(err)); }` and display the error inline above the button row with `<p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words">`.
+- Added `import { getErrorMessage } from '../../shared/utils';` to PublishModals.tsx.
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  8 queued · 3 in-progress · last took 5m33s
+═══════════════════════════════════════════════════════════════
+  → Token editor loses unsaved changes silently when the panel closes — switching sets, clicking another token, or navigating away discards in-progress edits with only a "discard changes?" confirm if isDirty is set; there is no draft auto-save to sessionStorage or recovery mechanism if the user accidentally closes the panel (TokenEditor.tsx ~L938-939, App.tsx ~L520)
+  Worktree: /tmp/backlog-80049-lNBDWD
+  Running agent… (started 13:13:51)
