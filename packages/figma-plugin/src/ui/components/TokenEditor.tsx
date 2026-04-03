@@ -1911,6 +1911,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           sourceTokenValue={aliasMode ? null : value}
           allSets={allSets}
           activeSet={setName}
+          allTokensFlat={allTokensFlat}
           existingGenerator={editingGeneratorInDialog}
           template={duplicateTemplate}
           onClose={() => { setShowGeneratorDialog(false); setDuplicateTemplate(undefined); }}

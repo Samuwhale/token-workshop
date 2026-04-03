@@ -28,3 +28,21 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: No resolved-value preview for source token in TokenGeneratorDialog
 Already up to date.
+[main cc112ce5] chore(backlog): done – No resolved-value preview for source token in TokenGeneratorDialog
+ 11 files changed, 439 insertions(+), 5 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-161525.log
+ create mode 100644 scripts/backlog/runner-20260403-161537.log
+ create mode 100644 scripts/backlog/runner-20260403-161545.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - No resolved-value preview for source token in TokenGeneratorDialog
+- When a source token is bound (dialog opened from a token, `sourceTokenPath` + `sourceTokenValue` props provided), the dialog now shows the resolved value inline alongside the path.
+- In the header subtitle: a 3×3px color swatch + `= #RRGGBB` is shown next to the path for color tokens; `= 16px` for dimension/fontSize tokens. Only visible when `editableSourcePath === sourceTokenPath` (path matches initial binding).
+- In the "Source token" binding section: a small bordered preview row shows a larger swatch + full hex/dimension value with a "resolved" label. This only renders when the preview is valid (color or dimension, path unchanged).
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  23 queued · 3 in-progress · last took 3m27s
+═══════════════════════════════════════════════════════════════
+  → Inline base values are disconnected from the token graph — when users type a raw hex or dimension as an inline value, that value is orphaned inside the generator config and not referenceable as a token; encourage source token binding over inline values by promoting the picker and de-emphasizing the raw input; consider auto-suggesting existing tokens that match the entered value
+  Worktree: /tmp/backlog-46178-8GMfBG
+  Running agent… (started 16:19:05)

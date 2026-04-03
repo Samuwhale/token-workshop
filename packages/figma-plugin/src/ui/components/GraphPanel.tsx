@@ -1054,7 +1054,7 @@ function DryRunPreview({ diff, onConfirmRun, onClose, running }: {
   );
 }
 
-function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allSets, activeSet, onRefresh }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; allSets: string[]; activeSet: string; onRefresh: () => void }) {
+function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allSets, activeSet, onRefresh, allTokensFlat }: { generator: TokenGenerator; isFocused?: boolean; focusRef?: React.RefObject<HTMLDivElement | null>; serverUrl: string; allSets: string[]; activeSet: string; onRefresh: () => void; allTokensFlat?: Record<string, TokenMapEntry> }) {
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
@@ -1279,6 +1279,7 @@ function GeneratorPipelineCard({ generator, isFocused, focusRef, serverUrl, allS
           serverUrl={serverUrl}
           allSets={allSets}
           activeSet={activeSet}
+          allTokensFlat={allTokensFlat}
           existingGenerator={generator}
           onClose={() => setShowEditDialog(false)}
           onSaved={() => { setShowEditDialog(false); onRefresh(); }}
@@ -1609,7 +1610,7 @@ export function GraphPanel({
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
               {filteredGenerators.length > 0
                 ? filteredGenerators.map(gen => (
-                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} allSets={allSets} activeSet={activeSet} onRefresh={onRefresh} />
+                    <GeneratorPipelineCard key={gen.id} generator={gen} isFocused={gen.id === highlightedGeneratorId} focusRef={focusRef} serverUrl={serverUrl} allSets={allSets} activeSet={activeSet} onRefresh={onRefresh} allTokensFlat={allTokensFlat} />
                   ))
                 : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">

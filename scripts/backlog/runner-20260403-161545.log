@@ -21,3 +21,10 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
   → Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499 says "Enter a base value or bind a source token" when no source is bound, but there is no mechanism to bind one from the dialog; either add the token picker here or reword the subtitle to match actual capabilities
   Worktree: /tmp/backlog-46580-MbcPoK
   Running agent… (started 16:15:45)
+
+  ✓ done: Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499
+    Added AliasAutocomplete picker to the source token input, filtered by generator type; passes allTokensFlat from TokenEditor and GraphPanel call sites
+    54 turns · 243s · $1.16
+
+  Merging to main: Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499
+Already up to date.

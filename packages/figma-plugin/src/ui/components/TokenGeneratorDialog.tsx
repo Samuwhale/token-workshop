@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
@@ -37,6 +37,8 @@ import { DarkModeInversionConfigEditor } from './generators/DarkModeInversionGen
 import { GenericPreview } from './generators/generatorShared';
 import { PRIMARY_TYPES, ADVANCED_TYPES, VALUE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
+import { AliasAutocomplete } from './AliasAutocomplete';
+import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Main dialog
@@ -50,6 +52,8 @@ export interface TokenGeneratorDialogProps {
   sourceTokenValue?: any;
   allSets: string[];
   activeSet: string;
+  /** Token map for source token autocomplete — optional; omit to fall back to plain text input */
+  allTokensFlat?: Record<string, TokenMapEntry>;
   existingGenerator?: TokenGenerator;
   /** Pre-fill from a quick-start template */
   template?: GeneratorTemplate;
@@ -151,6 +155,7 @@ export function TokenGeneratorDialog({
   sourceTokenValue,
   allSets,
   activeSet,
+  allTokensFlat,
   existingGenerator,
   template,
   onBack,
@@ -232,6 +237,9 @@ export function TokenGeneratorDialog({
   const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [sourcePickerQuery, setSourcePickerQuery] = useState('');
+  const sourceInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
     if (isDirtyRef.current) {
@@ -573,22 +581,57 @@ export function TokenGeneratorDialog({
           {typeNeedsValue && !isMultiBrand && (
             <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
               <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">Source token</span>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={editableSourcePath}
-                  onChange={e => setEditableSourcePath(e.target.value)}
-                  placeholder="e.g. colors.brand.primary"
-                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
-                />
-                {editableSourcePath && (
-                  <button
-                    onClick={() => setEditableSourcePath('')}
-                    aria-label="Clear source token"
-                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                  </button>
+              <div className="relative">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    ref={sourceInputRef}
+                    type="text"
+                    value={showSourcePicker ? sourcePickerQuery : editableSourcePath}
+                    onChange={e => {
+                      setSourcePickerQuery(e.target.value);
+                      if (allTokensFlat) setShowSourcePicker(true);
+                      else setEditableSourcePath(e.target.value);
+                    }}
+                    onFocus={() => {
+                      if (allTokensFlat) {
+                        setSourcePickerQuery('');
+                        setShowSourcePicker(true);
+                      }
+                    }}
+                    onBlur={() => setTimeout(() => setShowSourcePicker(false), 150)}
+                    placeholder={allTokensFlat ? 'Search tokens…' : 'e.g. colors.brand.primary'}
+                    aria-label="Source token path"
+                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                  {editableSourcePath && !showSourcePicker && (
+                    <button
+                      onClick={() => { setEditableSourcePath(''); setSourcePickerQuery(''); }}
+                      aria-label="Clear source token"
+                      className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                  )}
+                </div>
+                {showSourcePicker && allTokensFlat && (
+                  <AliasAutocomplete
+                    query={sourcePickerQuery}
+                    allTokensFlat={allTokensFlat}
+                    filterType={
+                      selectedType === 'colorRamp' ? 'color'
+                      : selectedType === 'typeScale' ? 'dimension'
+                      : selectedType === 'spacingScale' ? 'dimension'
+                      : selectedType === 'borderRadiusScale' ? 'dimension'
+                      : selectedType === 'opacityScale' ? 'number'
+                      : undefined
+                    }
+                    onSelect={path => {
+                      setEditableSourcePath(path);
+                      setSourcePickerQuery('');
+                      setShowSourcePicker(false);
+                    }}
+                    onClose={() => setShowSourcePicker(false)}
+                  />
                 )}
               </div>
               {/* Resolved value preview */}

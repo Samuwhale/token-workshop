@@ -390,3 +390,12 @@
   - `sourceDimUnit` must be extracted from `sourceTokenValue.unit` when it's an object; default to `'px'` for plain numbers.
   - Showing the preview only when path is unmodified prevents showing stale data when the user types a different path.
 ---
+
+## 2026-04-03 - Dialog subtitle promises "bind a source token" but no UI exists for it
+- Added `allTokensFlat?: Record<string, TokenMapEntry>` prop to `TokenGeneratorDialogProps` and wired it through to an `AliasAutocomplete` dropdown on the source token input. When `allTokensFlat` is provided, the input shows a searchable token picker on focus (filtered by generator type: color for colorRamp, dimension for typeScale/spacingScale/borderRadiusScale, number for opacityScale). The subtitle already said "bind a source token" — now that's true via the picker rather than requiring users to type a path manually.
+- Updated `GeneratorPipelineCard` in `GraphPanel.tsx` to accept and forward `allTokensFlat` so the edit-generator dialog also gets the picker.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1-42 (imports/prop), ~L47-64 (interface), ~L150-165 (destructure), ~L237-243 (state), ~L554-610 (source token section); `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1057 (GeneratorPipelineCard signature), ~L1278-1286 (TokenGeneratorDialog call), ~L1612 (render call site); `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1906 (allTokensFlat prop)
+- **Learnings for future iterations:**
+  - The `AliasAutocomplete` query field doubles as the display value when the picker is open (like a combobox) — use a boolean `showPicker` flag to switch between displaying the committed value and the live query.
+  - `setTimeout(() => setShowPicker(false), 150)` on `onBlur` is needed so `onMouseDown` in the autocomplete list fires before the blur hides the dropdown.
+---
