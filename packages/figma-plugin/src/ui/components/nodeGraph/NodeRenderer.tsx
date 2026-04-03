@@ -279,6 +279,7 @@ function TransformParamsInline({
 export interface NodeRendererProps {
   node: GraphNode;
   isSelected: boolean;
+  isHighlighted?: boolean;
   onSelect: (id: string) => void;
   onPortPointerDown: (nodeId: string, portId: string, direction: PortDirection, cx: number, cy: number) => void;
   onPortPointerUp: (nodeId: string, portId: string, direction: PortDirection) => void;
@@ -293,6 +294,7 @@ export interface NodeRendererProps {
 export function NodeRenderer({
   node,
   isSelected,
+  isHighlighted,
   onSelect,
   onPortPointerDown,
   onPortPointerUp,
@@ -324,6 +326,21 @@ export function NodeRenderer({
         rx={6}
         fill="rgba(0,0,0,0.06)"
       />
+      {/* Highlight ring for search matches */}
+      {isHighlighted && (
+        <rect
+          x={-4}
+          y={-4}
+          width={node.width + 8}
+          height={h + 8}
+          rx={10}
+          fill="none"
+          stroke="#f59e0b"
+          strokeWidth={2}
+          strokeOpacity={0.9}
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
       {/* Body */}
       <rect
         x={0}

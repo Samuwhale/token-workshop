@@ -439,3 +439,15 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: manual-snapshot.ts restore() has no mutex and can corrupt the restore journal if called concurrently; multiple hooks use AbortSignal.timeout() but lack AbortController cleanup on component unmount (useGenerators, useTokens, useFigmaSync) while sibling hooks (useLint, useThemeSwitcher, useResolvers) do it correctly; Lab→sRGB conversion is duplicated identically between color-math.ts and color-parse.ts
 ---
+
+## 2026-04-03 - No node graph search or filtering
+- Added search input to the graph view that highlights and zooms to matching generator/source/output nodes.
+- `NodeRenderer.tsx`: Added `isHighlighted?: boolean` prop; renders an amber (`#f59e0b`) outer glow ring (4px outset, `rx=10`) around the node body when highlighted.
+- `NodeGraphCanvas.tsx`: Added `searchQuery?: string` prop; computes `matchedNodeIds` via `useMemo` (matches against `node.label`, `sourceTokenPath`, `targetGroup`, `generatorType`); added a `useEffect` that zooms/pans to the bounding box of matched nodes when the query changes; passes `isHighlighted` to each `NodeRenderer`.
+- `GraphPanel.tsx`: Moved the search input from the list-view-only block to a shared section above both graph and list views; the placeholder text adapts per view mode ("highlights and zooms to matches" hint in graph mode); passes `searchQuery` to `NodeGraphCanvas`.
+- Files changed: `packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx` ~L279,328; `packages/figma-plugin/src/ui/components/nodeGraph/NodeGraphCanvas.tsx` ~L143,195,520; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1606,1617
+- **Learnings for future iterations:**
+  - When zooming to a subset of nodes, use the same bounding-box math as `fitToView` but scoped to the filtered node list; a 60px padding avoids the matched nodes being flush with the viewport edge.
+  - The `matchedNodeIds` `useEffect` dependency list intentionally excludes `graph.nodes` and `containerSize` to only trigger on query changes — omit the exhaustive-deps rule with `// eslint-disable-next-line` since triggering on every pan would reset zoom while the user is exploring.
+  - The highlight ring must be rendered BEFORE the body rect in SVG (so the body draws on top and the ring only shows around the outer edge), but in this implementation the ring is before the body so it shows as a surrounding halo — which is the correct visual order for SVG painters model.
+---

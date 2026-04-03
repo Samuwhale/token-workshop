@@ -464,3 +464,21 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: duplicated Lab→sRGB math in core, server input validation gaps (generators/lint/search), manual-snapshot restore race+journal leak, hooks missing abort-on-unmount, TokenTreeNode stale closures from eslint-disable, ThemeManager 30+ useState explosion
 Already up to date.
+[main 95c71d16] chore(backlog): code pass – code-pass
+ 6 files changed, 34 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: packages/core/src/ (color-math.ts, color-parse.ts, resolver.ts, validator.ts, dtcg-resolver.ts), packages/figma-plugin/src/plugin/ (controller.ts, selectionHandling.ts, variableSync.ts, heatmapScanning.ts), packages/figma-plugin/src/ui/hooks/ (useTokens.ts, useGenerators.ts, useServerConnection.ts, useFigmaSync.ts, useThemeSwitcher.ts, useLint.ts, useGitStatus.ts), packages/server/src/services/ (manual-snapshot.ts, event-bus.ts, stable-stringify.ts, style-dict.ts), packages/server/src/routes/ (generators.ts, lint.ts, tokens.ts, export.ts, snapshots.ts, sse.ts), packages/figma-plugin/src/ui/components/ (TokenTreeNode.tsx, ThemeManager.tsx, ImportPanel.tsx, TokenEditor.tsx)
+- Found 6 items — written to backlog-inbox.md
+- Notable: manual-snapshot.ts restore() has no mutex and can corrupt the restore journal if called concurrently; multiple hooks use AbortSignal.timeout() but lack AbortController cleanup on component unmount (useGenerators, useTokens, useFigmaSync) while sibling hooks (useLint, useThemeSwitcher, useResolvers) do it correctly; Lab→sRGB conversion is duplicated identically between color-math.ts and color-parse.ts
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  10 queued · 3 in-progress · last took 6m25s
+═══════════════════════════════════════════════════════════════
+  → Three separate comparison UIs serve overlapping purposes — ComparePanel (snapshot vs current), CrossThemeComparePanel (single token across theme options), and ThemeCompare (two options side-by-side) are three different components with different entry points and different layouts; consolidate into a single comparison view with selectable comparison modes (what vs what) so users don't need to learn three different mental models (ComparePanel.tsx, CrossThemeComparePanel.tsx, ThemeCompare.tsx)
+  Worktree: /tmp/backlog-46178-AOeLQg
+  Running agent… (started 18:18:56)

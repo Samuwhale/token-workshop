@@ -432,3 +432,10 @@ Already up to date.
   → No node graph search or filtering — the graph view of generators has no way to find a specific generator or token node; users with many generators must pan/zoom manually to find what they need; the list view has search but graph view has none; add a search input that highlights/zooms-to matching nodes in the graph (GraphPanel.tsx, NodeGraphCanvas.tsx)
   Worktree: /tmp/backlog-45818-j4HnQm
   Running agent… (started 18:17:44)
+
+  ✓ done: No node graph search or filtering
+    Added shared search bar above both graph and list views; graph view highlights matching nodes with an amber glow ring and auto-pans/zooms to their bounding box
+    48 turns · 258s · $1.56
+
+  Merging to main: No node graph search or filtering
+Already up to date.

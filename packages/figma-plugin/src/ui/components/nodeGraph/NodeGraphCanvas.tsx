@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { TransformOp, PortDirection } from './nodeGraphTypes';
 import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType } from './nodeGraphTypes';
@@ -145,11 +145,13 @@ export interface NodeGraphCanvasProps {
   activeSet: string;
   serverUrl: string;
   onRefresh: () => void;
+  searchQuery?: string;
 }
 
 export function NodeGraphCanvas({
   generators,
   activeSet,
+  searchQuery = '',
 }: NodeGraphCanvasProps) {
   const {
     graph,
@@ -180,6 +182,48 @@ export function NodeGraphCanvas({
   const dragRef = useRef<{ nodeId: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; graphX: number; graphY: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 600, h: 400 });
+
+  // ---------------------------------------------------------------------------
+  // Search — compute matched node IDs
+  // ---------------------------------------------------------------------------
+  const matchedNodeIds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return new Set<string>();
+    return new Set(
+      graph.nodes
+        .filter(n =>
+          n.label.toLowerCase().includes(q) ||
+          (n.sourceTokenPath ?? '').toLowerCase().includes(q) ||
+          (n.targetGroup ?? '').toLowerCase().includes(q) ||
+          (n.generatorType ?? '').toLowerCase().includes(q),
+        )
+        .map(n => n.id),
+    );
+  }, [searchQuery, graph.nodes]);
+
+  // Zoom to matched nodes when query changes
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q || matchedNodeIds.size === 0) return;
+    const matchedNodes = graph.nodes.filter(n => matchedNodeIds.has(n.id));
+    if (matchedNodes.length === 0) return;
+    const PAD = 60;
+    const minX = Math.min(...matchedNodes.map(n => n.x));
+    const minY = Math.min(...matchedNodes.map(n => n.y));
+    const maxX = Math.max(...matchedNodes.map(n => n.x + n.width));
+    const maxY = Math.max(...matchedNodes.map(n => n.y + (n.height || nodeHeight(n))));
+    const graphW = maxX - minX + PAD * 2;
+    const graphH = maxY - minY + PAD * 2;
+    const scaleX = containerSize.w / graphW;
+    const scaleY = containerSize.h / graphH;
+    const newZoom = Math.max(0.3, Math.min(1.5, Math.min(scaleX, scaleY)));
+    setPan({
+      x: (containerSize.w - graphW * newZoom) / 2 - (minX - PAD) * newZoom,
+      y: (containerSize.h - graphH * newZoom) / 2 - (minY - PAD) * newZoom,
+    });
+    setZoom(newZoom);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, matchedNodeIds]);
 
   // Track container size
   useEffect(() => {
@@ -513,6 +557,7 @@ export function NodeGraphCanvas({
               <NodeRenderer
                 node={node}
                 isSelected={selectedNodeId === node.id}
+                isHighlighted={matchedNodeIds.size > 0 && matchedNodeIds.has(node.id)}
                 onSelect={setSelectedNodeId}
                 onPortPointerDown={handlePortPointerDown}
                 onPortPointerUp={handlePortPointerUp}
