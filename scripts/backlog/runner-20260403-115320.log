@@ -362,3 +362,18 @@ Already up to date.
 
   Merging to main: HistoryPanel fetches only the last 50 Git commits with no pagination or search — users with active repos quickly exceed this limit and lose visibility into older changes; add "Load more" pagination and a commit message search filter (HistoryPanel.tsx ~L209, ~L542-570)
 Already up to date.
+[main ffa06336] chore(backlog): done – HistoryPanel fetches only the last 50 Git commits with no pagination or search — users with active repos quickly exceed this limit and lose visibility into older changes; add "Load more" pagination and a commit message search filter (HistoryPanel.tsx ~L209, ~L542-570)
+ 8 files changed, 235 insertions(+), 31 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - HistoryPanel fetches only the last 50 Git commits with no pagination or search
+- Added server-side `offset` and `search` (via `--grep --regexp-ignore-case`) query params to `GET /api/sync/log`; returns `hasMore` by fetching `limit+1` and trimming to `limit`.
+- Updated `git-sync.ts` `log()` to accept `offset` and `search` params, passing `--skip` and `--grep` to simple-git.
+- In the main `HistoryPanel` timeline: added `commitSearch` input in the toolbar (debounced, 300ms), resets offset on search change, and a "Load more commits" button that appends the next batch of 50 to the timeline.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  3 queued · 3 in-progress · last took 5m32s
+═══════════════════════════════════════════════════════════════
+  → No inline token value editing in the token list — changing any token value requires opening the full TokenEditor panel; double-click on a value cell should open a minimal inline editor (text input for simple types, color picker for colors) that saves on blur/Enter, matching the interaction model of spreadsheets and Figma's native variable table (TokenTreeNode.tsx, TokenList.tsx)
+  Worktree: /tmp/backlog-80049-Osr5Km
+  Running agent… (started 13:02:36)

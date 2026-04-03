@@ -475,3 +475,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    4 items written to inbox: [HIGH] batchUpsertTokens stale cache + 41-site rebuild inconsistency, generator multi-brand partial failure with no rollback, PublishPanel/PublishModals race condition + swallowed errors, DTCG resolver infinite recursion on circular internal $ref pointers
+Already up to date.
