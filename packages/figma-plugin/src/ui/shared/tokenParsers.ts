@@ -1,4 +1,4 @@
-import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, isReference, type DTCGGroup } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,7 +24,7 @@ export interface ParseResult {
 
 export function inferType(value: string): { $type: string; $value: unknown } {
   const trimmed = value.trim();
-  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+  if (isReference(trimmed)) {
     return { $type: 'color', $value: trimmed }; // alias — type unknown at parse time
   }
   if (/^#([0-9a-fA-F]{3,8})$/.test(trimmed)) {

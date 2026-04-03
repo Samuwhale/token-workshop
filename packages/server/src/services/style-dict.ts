@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
-import { makeReferenceGlobalRegex, resolveRefValue } from '@tokenmanager/core';
+import { makeReferenceGlobalRegex, resolveRefValue, isReference } from '@tokenmanager/core';
 
 export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json' | 'scss' | 'less' | 'typescript';
 
@@ -101,7 +101,7 @@ function resolveGradientStopAliases(merged: Record<string, any>): Record<string,
     }
     return (val as Array<{ color: unknown; position: unknown } & Record<string, unknown>>).map(stop => {
       const color = stop.color;
-      if (typeof color === 'string' && color.startsWith('{') && color.endsWith('}')) {
+      if (isReference(color)) {
         return { ...stop, color: resolveRefValue(color, flatMap) ?? color };
       }
       return stop;

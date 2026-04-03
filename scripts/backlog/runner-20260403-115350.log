@@ -601,3 +601,10 @@ Already up to date.
   → Alias reference detection is manually reimplemented 20+ times across the codebase instead of using core's `isReference()` and `parseReference()` — UI components (TokenEditor.tsx 8x, AliasPicker.tsx 5x, TokenList.tsx 2x, AnalyticsPanel.tsx 2x, BatchEditor.tsx, ColorModifiersEditor.tsx), server (token-tree-utils.ts 2x, style-dict.ts), and shared (tokenParsers.ts) all manually check `startsWith('{') && endsWith('}')` instead of importing from `@tokenmanager/core/dtcg-types`; consolidate to the single core implementation to eliminate subtle divergence risk (e.g. some checks trim whitespace, others don't)
   Worktree: /tmp/backlog-81267-ZkXzSv
   Running agent… (started 13:24:26)
+
+  ✓ done: Alias reference detection manually reimplemented 20+ times across the codebase instead of using core's isReference() and parseReference()
+    Consolidated all startsWith/endsWith alias checks to isAlias()/extractAliasPath() from resolveAlias.ts (which now delegates to core's isReference/parseReference) across 13 files; server files use isReference/parseReference directly from @tokenmanager/core; lint improved from 5 to 4 baseline errors
+    90 turns · 480s · $2.47
+
+  Merging to main: Alias reference detection manually reimplemented 20+ times across the codebase instead of using core's isReference() and parseReference()
+Already up to date.

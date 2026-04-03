@@ -242,3 +242,22 @@ Already up to date.
 
   Merging to main: Tab key in inline token editing closes the edit instead of moving to the next token
 Already up to date.
+[main f9f0501b] chore(backlog): done – Tab key in inline token editing closes the edit instead of moving to the next token
+ 8 files changed, 137 insertions(+), 2 deletions(-)
+  ✓ Merged and marked done
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - Tab key in inline token editing closes the edit instead of moving to the next token
+- Implemented spreadsheet-style Tab navigation for inline token value editing (both regular and multi-mode columns).
+- Added `pendingTabEdit`, `clearPendingTabEdit`, and `onTabToNext` to `TokenTreeContextType` for cross-component Tab navigation coordination.
+- `handleTabToNext` in `TokenList.tsx` finds the next/prev leaf node in `flatItems`, scrolls it into view (virtual-scroll aware using `itemOffsetsRef` + `virtualListRef`), then sets `pendingTabEdit`.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  17 queued · 3 in-progress · last took 7m58s
+═══════════════════════════════════════════════════════════════
+  → HSL/RGB color conversion is implemented three separate times — `srgbToHsl()`/`hslToSrgb()` in `packages/core/src/color-parse.ts`, `rgbToHsl()`/`hslToRgb()` in `packages/figma-plugin/src/ui/shared/colorUtils.ts`, and `hslToRgbValues()` in `packages/figma-plugin/src/plugin/colorUtils.ts`; the UI colorUtils already imports other functions from core (hexToRgb, rgbToHex, hexToLab) so there's no bundling barrier — remove the duplicate UI implementations and use core's; the plugin sandbox copy is necessary (separate runtime) but should be marked as intentional
+  Worktree: /tmp/backlog-49887-mbYBSs
+  Running agent… (started 13:29:44)

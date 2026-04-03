@@ -40,7 +40,7 @@ function findNearbyTokens(
     if (path === excludePath) continue;
     if (entry.$type !== tokenType) continue;
     // Skip aliases — suggest only primitives
-    if (typeof entry.$value === 'string' && entry.$value.startsWith('{') && entry.$value.endsWith('}')) continue;
+    if (isAlias(entry.$value)) continue;
 
     // Resolve the candidate's value
     const resolved = resolveTokenValue(entry.$value, entry.$type || tokenType, allTokensFlat);

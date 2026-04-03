@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 
 export function resolveAliasChain(
   ref: string,
   allTokensFlat: Record<string, TokenMapEntry>,
   visited = new Set<string>()
 ): { path: string; value: any; type: string }[] {
-  const path = ref.startsWith('{') && ref.endsWith('}') ? ref.slice(1, -1) : ref;
+  const path = extractAliasPath(ref) ?? ref;
   if (visited.has(path)) return [];
   visited.add(path);
   const entry = allTokensFlat[path];
   if (!entry) return [{ path, value: undefined, type: 'unknown' }];
   const v = entry.$value;
   const current = { path, value: v, type: entry.$type as string };
-  if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+  if (isAlias(v)) {
     return [current, ...resolveAliasChain(v, allTokensFlat, visited)];
   }
   return [current];
@@ -111,7 +112,7 @@ export function AliasPicker({
             Circular reference: <span className="font-mono">{aliasHasCycle.join(' \u2192 ')}</span>
           </p>
         )}
-        {!showAutocomplete && !aliasHasCycle && reference.startsWith('{') && reference.endsWith('}') && (() => {
+        {!showAutocomplete && !aliasHasCycle && isAlias(reference) && (() => {
           const chain = resolveAliasChain(reference, allTokensFlat);
           const lastHop = chain[chain.length - 1];
           if (chain.length > 0 && lastHop.value === undefined) {
@@ -130,7 +131,7 @@ export function AliasPicker({
         })()}
         </>
       )}
-      {aliasMode && !aliasHasCycle && reference.startsWith('{') && reference.endsWith('}') && (() => {
+      {aliasMode && !aliasHasCycle && isAlias(reference) && (() => {
         const chain = resolveAliasChain(reference, allTokensFlat);
         if (chain.length === 0) return null;
         return (
@@ -167,7 +168,7 @@ export function AliasPicker({
         );
       })()}
       {!aliasMode && reference && (() => {
-        const chain = reference.startsWith('{') && reference.endsWith('}') ? resolveAliasChain(reference, allTokensFlat) : [];
+        const chain = isAlias(reference) ? resolveAliasChain(reference, allTokensFlat) : [];
         return (
           <div className="relative mt-1"
             onMouseEnter={() => setShowChainPopover(true)}

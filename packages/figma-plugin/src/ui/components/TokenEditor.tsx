@@ -17,7 +17,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import { COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
 import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor, FontStyleEditor, TextDecorationEditor, TextTransformEditor, PercentageEditor, LinkEditor, LetterSpacingEditor, LineHeightEditor, CubicBezierEditor, TransitionEditor, CustomEditor, VALUE_FORMAT_HINTS } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
-import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
+import { resolveTokenValue, isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
 import { TokenUsages } from './TokenUsages';
@@ -37,7 +37,7 @@ function detectAliasCycle(
 ): string[] | null {
   const visited = new Set<string>([currentTokenPath]);
   const chain: string[] = [currentTokenPath];
-  let current = ref.startsWith('{') && ref.endsWith('}') ? ref.slice(1, -1) : ref;
+  let current = isAlias(ref) ? extractAliasPath(ref)! : ref;
   while (true) {
     if (visited.has(current)) {
       const cycleStart = chain.indexOf(current);
@@ -48,8 +48,8 @@ function detectAliasCycle(
     const entry = allTokensFlat[current];
     if (!entry) return null;
     const v = entry.$value;
-    if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
-      current = v.slice(1, -1);
+    if (isAlias(v)) {
+      current = extractAliasPath(v)!;
     } else {
       return null;
     }
@@ -309,7 +309,7 @@ function ThemeValuesSection({
                 <div className="px-3 py-2 flex flex-col gap-1.5">
                   {dimEntries.map(({ optionName, targetSet, rawEntry }) => {
                     const rawValue = rawEntry?.$value;
-                    const isAliasVal = typeof rawValue === 'string' && rawValue.startsWith('{') && rawValue.endsWith('}');
+                    const isAliasVal = isAlias(rawValue);
                     const editedValue = edits[optionName];
                     const displayValue = editedValue !== undefined ? editedValue : rawToString(rawValue);
                     const isDirtyRow = editedValue !== undefined;
@@ -700,7 +700,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     if (!isCreateMode) return '';
     const t = initialType || 'color';
     // Pre-fill from initialValue when provided (and not an alias — aliases are handled via reference state)
-    if (initialValue && !(initialValue.startsWith('{') && initialValue.endsWith('}'))) {
+    if (initialValue && !isAlias(initialValue)) {
       return parseInitialValueForType(t, initialValue);
     }
     if (t === 'color') return '#000000';
@@ -712,11 +712,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   });
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState(() => {
-    if (isCreateMode && initialValue && initialValue.startsWith('{') && initialValue.endsWith('}')) return initialValue;
+    if (isCreateMode && initialValue && isAlias(initialValue)) return initialValue;
     return '';
   });
   const [aliasMode, setAliasMode] = useState(() => {
-    if (isCreateMode && initialValue && initialValue.startsWith('{') && initialValue.endsWith('}')) return true;
+    if (isCreateMode && initialValue && isAlias(initialValue)) return true;
     return false;
   });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -800,7 +800,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         const otherExtText = Object.keys(otherExt).length > 0 ? JSON.stringify(otherExt, null, 2) : '';
         setExtensionsJsonText(otherExtText);
         initialServerSnapshotRef.current = JSON.stringify(token ?? null);
-        const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
+        const ref = isAlias(token?.$value) ? token.$value : '';
         if (ref) setReference(ref);
         initialRef.current = {
           value: token?.$value ?? '',
@@ -814,7 +814,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           lifecycle: loadedLifecycle,
           extendsPath: loadedExtends,
         };
-        if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
+        if (isAlias(token?.$value)) {
           setReference(token.$value);
         }
         // Check for a saved draft that differs from the current server state
@@ -905,7 +905,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   }, [isDirty, setName, tokenPath, isCreateMode, tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
 
   const aliasHasCycle = useMemo((): string[] | null => {
-    if (!aliasMode || !reference.startsWith('{') || !reference.endsWith('}')) return null;
+    if (!aliasMode || !isAlias(reference)) return null;
     const currentPath = isCreateMode ? editPath.trim() : tokenPath;
     if (!currentPath) return null;
     return detectAliasCycle(reference, currentPath, allTokensFlat);
@@ -1327,7 +1327,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           )}
         </button>}
         {aliasMode && reference && tokenType === 'color' && (() => {
-          const refPath = reference.startsWith('{') && reference.endsWith('}') ? reference.slice(1, -1) : null;
+          const refPath = extractAliasPath(reference);
           const resolved = refPath ? resolveRefValue(refPath, colorFlatMap) : null;
           if (!resolved) return null;
           return (
@@ -1587,7 +1587,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         )}
 
         {/* Color modifiers — available for alias and direct color values */}
-        {tokenType === 'color' && (aliasMode ? (reference.startsWith('{') && reference.endsWith('}')) : (typeof value === 'string' && value.length > 0)) && (
+        {tokenType === 'color' && (aliasMode ? isAlias(reference) : (typeof value === 'string' && value.length > 0)) && (
           <ColorModifiersEditor
             reference={aliasMode ? reference : undefined}
             colorFlatMap={aliasMode ? colorFlatMap : undefined}

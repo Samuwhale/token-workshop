@@ -6,6 +6,7 @@ import type { DeleteConfirm } from '../components/tokenListTypes';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 
 export interface UseTokenCrudParams {
   connected: boolean;
@@ -129,8 +130,8 @@ export function useTokenCrud({
     const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
       if (tokenPath === path) return false;
       const val = token.$value;
-      if (typeof val !== 'string' || !val.startsWith('{')) return false;
-      return val.slice(1, -1) === path;
+      if (!isAlias(val)) return false;
+      return extractAliasPath(val) === path;
     }).length;
     setDeleteConfirm({ type: 'token', path, orphanCount });
   }, [connected, allTokensFlat]);
@@ -146,9 +147,8 @@ export function useTokenCrud({
     const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
       if (selectedPaths.has(tokenPath)) return false;
       const val = token.$value;
-      if (typeof val !== 'string' || !val.startsWith('{')) return false;
-      const aliasPath = val.slice(1, -1);
-      return selectedPaths.has(aliasPath);
+      if (!isAlias(val)) return false;
+      return selectedPaths.has(extractAliasPath(val)!);
     }).length;
     setDeleteConfirm({ type: 'bulk', paths, orphanCount });
   }, [connected, allTokensFlat]);

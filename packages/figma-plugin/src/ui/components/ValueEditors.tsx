@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { FormulaInput } from './FormulaInput';
 import { ColorPicker } from './ColorPicker';
 import { FontFamilyPicker } from './FontFamilyPicker';
@@ -497,9 +498,8 @@ function FontFamilySubProp({
 }
 
 function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
-  if (typeof raw === 'string' && raw.startsWith('{') && raw.endsWith('}')) {
-    const refPath = raw.slice(1, -1);
-    const entry = allTokensFlat[refPath];
+  if (isAlias(raw)) {
+    const entry = allTokensFlat[extractAliasPath(raw)!];
     if (entry) return entry.$value;
   }
   return raw;

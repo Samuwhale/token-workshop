@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { colorDeltaE, type Token } from '@tokenmanager/core';
+import { colorDeltaE, isReference, parseReference, type Token } from '@tokenmanager/core';
 import { TokenStore } from './token-store.js';
 import { isSafeRegex } from './token-tree-utils.js';
 
@@ -113,7 +113,7 @@ function findNearestColorAlias(
     if (candidatePath === tokenPath) continue;
     if (candidateToken.$type !== 'color') continue;
     // Only suggest tokens that are themselves raw values (primitives to alias to)
-    if (isAlias(candidateToken.$value)) continue;
+    if (isReference(candidateToken.$value)) continue;
     const candidateHex = candidateToken.$value;
     if (typeof candidateHex !== 'string') continue;
     const dE = colorDeltaE(rawHex, candidateHex);
@@ -130,24 +130,20 @@ function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, vis
   if (visited.has(path)) return null; // cycle
   const token = flatTokens[path];
   if (!token) return null;
-  if (!isAlias(token.$value)) return path;
+  if (!isReference(token.$value)) return path;
   visited.add(path);
-  return resolveAliasTarget((token.$value as string).slice(1, -1), flatTokens, visited);
+  return resolveAliasTarget(parseReference(token.$value as string), flatTokens, visited);
 }
 
 // ---------------------------------------------------------------------------
 // Rules engine
 // ---------------------------------------------------------------------------
 
-function isAlias(value: unknown): boolean {
-  return typeof value === 'string' && value.startsWith('{') && value.endsWith('}');
-}
-
 function getAliasDepth(path: string, flatTokens: Record<string, Token>, visited = new Set<string>()): number {
   if (visited.has(path)) return 0; // cycle — do not recurse
   const token = flatTokens[path];
-  if (!token || !isAlias(token.$value)) return 0;
-  const refPath = (token.$value as string).slice(1, -1);
+  if (!token || !isReference(token.$value)) return 0;
+  const refPath = parseReference(token.$value as string);
   visited.add(path);
   return 1 + getAliasDepth(refPath, flatTokens, visited);
 }
@@ -184,7 +180,7 @@ export async function lintTokens(
   if (noRawColor?.enabled) {
     const severity = noRawColor.severity ?? 'warning';
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
-      if (token.$type === 'color' && !isAlias(token.$value)) {
+      if (token.$type === 'color' && !isReference(token.$value)) {
         const rawHex = token.$value as string;
         const nearest = findNearestColorAlias(rawHex, tokenPath, allFlatTokens);
         let suggestion: string | undefined;
@@ -302,7 +298,7 @@ export async function lintTokens(
     const severity = noDuplicates.severity ?? 'info';
     const valueMap = new Map<string, string[]>();
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
-      if (isAlias(token.$value)) continue; // aliases are expected to share values
+      if (isReference(token.$value)) continue; // aliases are expected to share values
       const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
       if (!valueMap.has(key)) valueMap.set(key, []);
       valueMap.get(key)!.push(tokenPath);
@@ -361,10 +357,10 @@ function detectCycles(
       return cycle;
     }
     const entry = allTokens[current];
-    if (!entry || !isAlias(entry.token.$value)) return null;
+    if (!entry || !isReference(entry.token.$value)) return null;
     indexMap.set(current, chain.length);
     chain.push(current);
-    current = (entry.token.$value as string).slice(1, -1);
+    current = parseReference(entry.token.$value as string);
   }
 }
 
@@ -410,8 +406,8 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
     }
 
     // Alias checks
-    if (isAlias(token.$value)) {
-      const refPath = (token.$value as string).slice(1, -1);
+    if (isReference(token.$value)) {
+      const refPath = parseReference(token.$value as string);
 
       // Broken alias
       if (!allTokensMap[refPath]) {
@@ -491,7 +487,7 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
     const severity = noDupRule.severity ?? 'info';
     const valueMap = new Map<string, Array<{ path: string; setName: string }>>();
     for (const { path: tokenPath, token, setName } of allTokensList) {
-      if (isAlias(token.$value)) continue;
+      if (isReference(token.$value)) continue;
       const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
       if (!valueMap.has(key)) valueMap.set(key, []);
       valueMap.get(key)!.push({ path: tokenPath, setName });

@@ -6,6 +6,7 @@ import type { UndoSlot } from '../hooks/useUndo';
 import { apiFetch } from '../shared/apiFetch';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { isAlias } from '../../shared/resolveAlias';
 
 const typeValidator = new TokenValidator();
 
@@ -233,7 +234,7 @@ export function BatchEditor({
       .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
   }, [hasScalable, scaleFactor, selectedEntries]);
 
-  const aliasActive = aliasRef !== '' && aliasRef.startsWith('{') && aliasRef.endsWith('}');
+  const aliasActive = aliasRef !== '' && isAlias(aliasRef);
 
   const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
   const scalingActive = hasScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;

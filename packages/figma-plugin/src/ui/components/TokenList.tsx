@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import { Spinner } from './Spinner';
 import type { TokenNode } from '../hooks/useTokens';
-import { isAlias, resolveTokenValue, resolveAllAliases } from '../../shared/resolveAlias';
+import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from '../../shared/resolveAlias';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
@@ -1368,12 +1368,12 @@ export function TokenList({
     const raw = newTokenValue.trim();
     if (!raw) return null;
     // Don't suggest if user already typed an alias reference
-    if (raw.startsWith('{') && raw.endsWith('}')) return null;
+    if (isAlias(raw)) return null;
     const parsed = parseInlineValue(newTokenType, raw);
     if (parsed === null) return null;
     for (const [tokenPath, entry] of Object.entries(allTokensFlat)) {
       // Skip aliases — we want to match concrete values
-      if (typeof entry.$value === 'string' && entry.$value.startsWith('{')) continue;
+      if (isAlias(entry.$value)) continue;
       // Only match same-type tokens
       if (entry.$type !== newTokenType) continue;
       if (valuesEqual(parsed, entry.$value)) {
@@ -1599,8 +1599,8 @@ export function TokenList({
     flat.map(t => {
       if (t.$type === 'gradient' && Array.isArray(t.$value)) {
         const resolvedStops = t.$value.map((stop: { color: string; position: number }) => {
-          if (typeof stop.color === 'string' && stop.color.startsWith('{') && stop.color.endsWith('}')) {
-            const refPath = stop.color.slice(1, -1);
+          if (isAlias(stop.color)) {
+            const refPath = extractAliasPath(stop.color)!;
             const refEntry = allTokensFlat[refPath];
             if (refEntry) {
               const inner = resolveTokenValue(refEntry.$value, refEntry.$type, allTokensFlat);

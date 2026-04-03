@@ -499,3 +499,16 @@
   - Use `escapedRef.current = true` before manually saving+closing on Tab to prevent the `onBlur` from firing `handleSubmit` a second time when the input unmounts.
   - The `useEffect` in MultiModeCell that watches `isTabPending` should only list `[isTabPending]` as a dep (with eslint-disable comment) to avoid retriggering on unrelated re-renders.
 ---
+
+## 2026-04-03 - Alias reference detection manually reimplemented 20+ times across the codebase
+- Consolidated all `startsWith('{') && endsWith('}')` alias reference checks to use `isReference()`/`parseReference()` from `@tokenmanager/core` and `isAlias()`/`extractAliasPath()` from `shared/resolveAlias.ts`.
+- `resolveAlias.ts` now delegates `isAlias()` to `isReference()` and `extractAliasPath()` to `parseReference()` from core — single canonical implementation.
+- Server files (`lint.ts`, `style-dict.ts`) import `isReference`/`parseReference` directly from `@tokenmanager/core`; removed the local `isAlias()` function in `lint.ts`.
+- Plugin UI files use `isAlias()`/`extractAliasPath()` from `../../shared/resolveAlias`; `tokenParsers.ts` uses `isReference` directly from core (already imported core).
+- Files changed: `packages/figma-plugin/src/shared/resolveAlias.ts` ~L1, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L20, ~L40, ~L312, ~L650, ~L748, ~L821, ~L1222, ~L1458, `packages/figma-plugin/src/ui/components/AliasPicker.tsx` ~L1, ~L10, ~L114, ~L133, ~L170, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4, ~L1339, ~L1344, ~L1570, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L4, ~L284, ~L476, `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L9, ~L236, `packages/figma-plugin/src/ui/components/ColorModifiersEditor.tsx` ~L5, ~L19, `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L4, ~L500, `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L9, ~L132, ~L149, `packages/figma-plugin/src/ui/hooks/useNearbyTokenMatch.ts` ~L43, `packages/figma-plugin/src/ui/shared/tokenParsers.ts` ~L1, ~L27, `packages/server/src/services/lint.ts` ~L3, ~L133, ~L142, `packages/server/src/services/style-dict.ts` ~L6, ~L104
+- **Learnings for future iterations:**
+  - `resolveAlias.ts` is the right place to wrap core's `isReference`/`parseReference` for plugin UI — it already exports `isAlias`/`extractAliasPath` which are used widely; don't duplicate these in individual components.
+  - Single-sided `startsWith('{')` checks in `ValueEditors.tsx` (for detecting partially-typed references in inputs) are intentionally different from full reference validation — don't convert these to `isAlias()`.
+  - Server files can import `isReference`/`parseReference` directly from `@tokenmanager/core` — no need for a wrapper.
+  - When renaming a function (local `isAlias` in `lint.ts`) that was both defined and used in the same file, `replace_all` on the call sites is safe after removing the definition.
+---

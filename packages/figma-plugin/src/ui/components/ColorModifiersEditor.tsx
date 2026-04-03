@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { resolveRefValue, applyColorModifiers } from '@tokenmanager/core';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { ColorSwatchButton } from './ValueEditors';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 
 interface ColorModifiersEditorProps {
   /** Alias reference like `{colors.base}` — used to resolve base color from colorFlatMap */
@@ -16,9 +17,9 @@ interface ColorModifiersEditorProps {
 export function ColorModifiersEditor({ reference, colorFlatMap, directColor, colorModifiers, onColorModifiersChange: setColorModifiers }: ColorModifiersEditorProps) {
   const [showModifiers, setShowModifiers] = useState(false);
 
-  const isAlias = reference && reference.startsWith('{') && reference.endsWith('}');
-  const refPath = isAlias ? reference.slice(1, -1) : '';
-  const resolvedHex = isAlias && colorFlatMap ? resolveRefValue(refPath, colorFlatMap) : undefined;
+  const isAliasRef = isAlias(reference);
+  const refPath = extractAliasPath(reference) ?? '';
+  const resolvedHex = isAliasRef && colorFlatMap ? resolveRefValue(refPath, colorFlatMap) : undefined;
   const baseHex = resolvedHex || directColor;
   const previewHex = baseHex && colorModifiers.length > 0 ? applyColorModifiers(baseHex, colorModifiers) : baseHex;
 

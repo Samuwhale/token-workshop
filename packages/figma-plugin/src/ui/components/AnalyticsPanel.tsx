@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
@@ -281,8 +282,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
         const entry = unifiedFlat[path];
         if (!entry || entry.$type !== 'color') return null;
         const v = entry.$value;
-        if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
-          return resolveHex(v.slice(1, -1), visited);
+        if (isAlias(v)) {
+          return resolveHex(extractAliasPath(v)!, visited);
         }
         return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : null;
       };
@@ -473,8 +474,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     const counts: Record<string, number> = {};
     for (const entry of Object.values(allTokensUnified)) {
       const v = entry.$value;
-      if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
-        const ref = v.slice(1, -1);
+      if (isAlias(v)) {
+        const ref = extractAliasPath(v)!;
         counts[ref] = (counts[ref] ?? 0) + 1;
       }
     }

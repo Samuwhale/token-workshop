@@ -1,16 +1,14 @@
 import type { TokenValue, TokenReference, ThemeDimension } from '@tokenmanager/core';
+import { isReference, parseReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from './types';
 
-const ALIAS_REGEX = /^\{([^}]+)\}$/;
-
 export function isAlias(value: TokenValue | TokenReference | undefined): value is TokenReference {
-  return typeof value === 'string' && ALIAS_REGEX.test(value);
+  return isReference(value);
 }
 
 export function extractAliasPath(value: TokenValue | TokenReference | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const match = value.match(ALIAS_REGEX);
-  return match ? match[1] : null;
+  if (!isReference(value)) return null;
+  return parseReference(value);
 }
 
 export interface ResolveResult {
