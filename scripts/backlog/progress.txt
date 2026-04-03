@@ -439,3 +439,9 @@
   - The stable callback ref pattern (`keyboardShortcutRef.current = fn`) means the F8 handler always sees the latest `jumpToNextIssue` closure without re-registering the event listener.
   - Adding a command to the `commands` useMemo requires adding both the new value AND the callback to the deps array — easy to miss.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: SyncPanel.tsx, SettingsPanel.tsx (import/export, lint config, connection UX), CommandPalette.tsx (token search qualifiers, command coverage, shortcut registry), server routes (tokens, sets, generators, themes, resolvers, sync, snapshots, operations, export, lint), SelectionInspector.tsx + PropertyRow.tsx (multi-select binding, bind candidates cap, mixed-value handling), ResolverPanel.tsx (create-only, no edit), PreviewPanel.tsx (static templates, dark mode persistence), ComparePanel.tsx (diff filtering), plugin sandbox (selectionHandling.ts binding workflow)
+- Found 10 items — written to backlog-inbox.md
+- Notable: PropertyRow.tsx:98 explicitly disables binding when multi-selection has mixed values (`canBind = !isMixed`) — this blocks the most common multi-select use case (unifying different fills under one token); also PreviewPanel Buttons/Forms/Card templates are entirely static CSS with hardcoded fallbacks that never reflect the user's actual tokens
+---

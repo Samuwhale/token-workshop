@@ -52,3 +52,67 @@ Already up to date.
 
   Merging to main: Command palette has no "jump to next validation issue" action
 Already up to date.
+[main 35f774f4] chore(backlog): done – Command palette has no "jump to next validation issue" action
+ 6 files changed, 70 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Command palette has no "jump to next validation issue" action
+- Added `jumpToNextIssue` callback in App.tsx that cycles through `lintViolations` (from `useLint` for the active set) using a `lintIssueIndexRef` ref. On each call it increments the index (with wrap-around), navigates to 'define'/'tokens', calls `setHighlightedToken(path)` to scroll/expand to the token, and shows a toast like "✗ Issue 2/5: <message>". The ref resets to -1 via a `useEffect` when `activeSet` changes so cycling restarts on set switch.
+- Added F8 keyboard shortcut handler in the stable `keyboardShortcutRef.current` block.
+- Added "Jump to Next Issue" command to the commands array (category: 'Tokens', shortcut: 'F8') with a live description showing the current violation count.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  0 queued · 1 in-progress · last took 4m45s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  0 queued · 1 in-progress · last took 30s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  0 queued · 1 in-progress · last took 31s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items — another runner (PID 82379) is running a discovery pass. Waiting…
+  Still no items. Polling inbox every 30s… (Ctrl+C to stop)
