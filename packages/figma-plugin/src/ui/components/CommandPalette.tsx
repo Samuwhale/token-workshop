@@ -75,6 +75,8 @@ export interface GroupEntry {
 interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
+  pinnedTokens?: TokenEntry[];
+  recentTokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
   onGoToGroup?: (path: string) => void;
   onCopyTokenPath?: (path: string) => void;
@@ -142,7 +144,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -296,6 +298,24 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
     return flat;
   }, [sections]);
 
+  // Token quick-access sections for no-query mode
+  const dedupedRecentTokens = useMemo(() => {
+    if (!recentTokens?.length) return [];
+    if (!pinnedTokens?.length) return recentTokens;
+    const pinnedSet = new Set(pinnedTokens.map(t => t.path));
+    return recentTokens.filter(t => !pinnedSet.has(t.path));
+  }, [recentTokens, pinnedTokens]);
+
+  const noQueryPinnedTokens = useMemo(() => {
+    if (isTokenMode || query.trim()) return [];
+    return pinnedTokens ?? [];
+  }, [isTokenMode, query, pinnedTokens]);
+
+  const noQueryRecentTokens = useMemo(() => {
+    if (isTokenMode || query.trim()) return [];
+    return dedupedRecentTokens;
+  }, [isTokenMode, query, dedupedRecentTokens]);
+
   // Flat list for keyboard nav — must match the visual rendering order exactly
   type FlatItem = { kind: 'command'; cmd: Command } | { kind: 'token'; token: TokenEntry } | { kind: 'group'; group: GroupEntry };
   const flatList: FlatItem[] = useMemo(() => {
@@ -305,11 +325,14 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
       for (const t of filteredTokens) items.push({ kind: 'token', token: t });
       return items;
     }
-    // When sections are shown (no-query grouped view), use sectionFlatItems
-    // so keyboard nav indices match the visual order (Recent first, then categories)
+    // No-query mode: pinned and recent token items come before commands
+    const items: FlatItem[] = [];
+    for (const t of noQueryPinnedTokens) items.push({ kind: 'token', token: t });
+    for (const t of noQueryRecentTokens) items.push({ kind: 'token', token: t });
     const cmdList = sectionFlatItems ?? filteredCommands;
-    return cmdList.map(cmd => ({ kind: 'command' as const, cmd }));
-  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands, sectionFlatItems]);
+    for (const cmd of cmdList) items.push({ kind: 'command', cmd });
+    return items;
+  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands, sectionFlatItems, noQueryPinnedTokens, noQueryRecentTokens]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -574,9 +597,83 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onGoToGroup
             </>
           )}
 
+          {/* Pinned tokens quick-access (no query) */}
+          {noQueryPinnedTokens.length > 0 && (
+            <div>
+              <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 3H8a1 1 0 00-1 1v7.586l-2.707 2.707A1 1 0 005 16h14a1 1 0 00.707-1.707L17 11.586V4a1 1 0 00-1-1z"/><rect x="10" y="16" width="4" height="5" rx="1"/></svg>
+                Pinned Tokens
+              </div>
+              {noQueryPinnedTokens.map((token, idx) => {
+                const flatIdx = idx;
+                return (
+                  <button
+                    key={'pin:' + token.path}
+                    role="option"
+                    aria-selected={flatIdx === activeIdx}
+                    data-palette-item
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onMouseEnter={() => setActiveIdx(flatIdx)}
+                    onClick={() => executeToken(token)}
+                  >
+                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      {token.type}
+                    </span>
+                    {token.type === 'color' && token.value ? (
+                      <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
+                    ) : null}
+                    <span className="text-[11px] font-mono truncate flex-1">{token.path}</span>
+                    {token.set && (
+                      <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                        {token.set}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Recently edited tokens quick-access (no query) */}
+          {noQueryRecentTokens.length > 0 && (
+            <div>
+              <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Recently Edited
+              </div>
+              {noQueryRecentTokens.map((token, idx) => {
+                const flatIdx = noQueryPinnedTokens.length + idx;
+                return (
+                  <button
+                    key={'rec:' + token.path}
+                    role="option"
+                    aria-selected={flatIdx === activeIdx}
+                    data-palette-item
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onMouseEnter={() => setActiveIdx(flatIdx)}
+                    onClick={() => executeToken(token)}
+                  >
+                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      {token.type}
+                    </span>
+                    {token.type === 'color' && token.value ? (
+                      <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
+                    ) : null}
+                    <span className="text-[11px] font-mono truncate flex-1">{token.path}</span>
+                    {token.set && (
+                      <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                        {token.set}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Grouped sections (no query) */}
           {!isTokenMode && sections && (() => {
-            let runningIdx = 0;
+            let runningIdx = noQueryPinnedTokens.length + noQueryRecentTokens.length;
             return sections.map(section => (
               <div key={section.header}>
                 <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">

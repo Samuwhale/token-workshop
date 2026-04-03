@@ -366,3 +366,16 @@
   - The `loaded: boolean` guard is only safe for single-threaded synchronous code. In async Node.js, `if (!this.loaded)` lets multiple concurrent callers pass before any sets it to `true`. The fix: cache the `Promise` itself, not its result. All callers await the same promise; after resolution, `loadPromise !== null` is the single gate.
   - Both `OperationLog` and `ManualSnapshotStore` had the same pattern — always check sibling services for the same bug when fixing one.
 ---
+
+## 2026-04-03 - No token "pinned" or "recently edited" quick-access outside the token list
+- Added "Pinned Tokens" and "Recently Edited" sections to the command palette default (no-query) view.
+- `CommandPalette.tsx`: added `pinnedTokens` and `recentTokens` props; computed `noQueryPinnedTokens`, `noQueryRecentTokens`, `dedupedRecentTokens` (recent excludes pinned); updated `flatList` to include token items before commands in no-query mode; updated command `runningIdx` to start at `pinnedCount + recentCount`; rendered two new token sections with type badge, color swatch, and set badge.
+- `App.tsx`: imported `useRecentlyTouched` and `usePinnedTokens`; added `paletteRecentlyTouched` and `palettePinnedTokens` hook instances; computed `pinnedPaletteTokens` and `recentPaletteTokens` token entry arrays; wired `onTokenTouched: paletteRecentlyTouched.recordTouch` into all three TokenList action objects; passed `pinnedTokens` and `recentTokens` props to `CommandPalette`.
+- `TokenList.tsx`: added `onTokenTouched?.(highlightedToken)` call in the highlight-change effect so App's palette tracker receives touch events.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `useRecentlyTouched` is in-memory only (no localStorage). Rather than lifting it to App or adding persistence, the pattern used is a second instance in App that receives updates via the existing `onTokenTouched` callback prop. This keeps TokenList's local instance intact for its sorting/filtering while giving App its own tracker for the palette.
+  - `usePinnedTokens` already uses localStorage so calling it in App with `activeSet` gives the same data as TokenList without any prop-drilling.
+  - Dedup recent tokens against pinned (exclude pinned paths from recent section) to avoid showing the same token twice.
+  - `runningIdx` in the grouped sections IIFE must be offset by the number of token quick-access items rendered above it, so keyboard navigation flat indices stay consistent with the visual order.
+---

@@ -84,9 +84,10 @@ export function TokenList({
   useEffect(() => {
     if (highlightedToken && highlightedToken !== prevHighlightRef.current) {
       recentlyTouched.recordTouch(highlightedToken);
+      onTokenTouched?.(highlightedToken);
     }
     prevHighlightRef.current = highlightedToken ?? null;
-  }, [highlightedToken, recentlyTouched]);
+  }, [highlightedToken, recentlyTouched, onTokenTouched]);
 
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();

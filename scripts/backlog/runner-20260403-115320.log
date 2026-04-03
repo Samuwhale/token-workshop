@@ -252,3 +252,10 @@ Already up to date.
   → No token "pinned" or "recently edited" quick-access outside the token list — the pinned tokens feature (usePinnedTokens) and recently-touched tracking (useRecentlyTouched) only surface within the token list panel; there's no way to access pinned or recent tokens from other panels (e.g., while in the Theme Manager or Selection Inspector); add a pinned/recent tokens section to the command palette
   Worktree: /tmp/backlog-80049-zFIz0E
   Running agent… (started 12:32:48)
+
+  ✓ done: No token "pinned" or "recently edited" quick-access outside the token list
+    Added Pinned Tokens and Recently Edited sections to command palette default view; wired App-level useRecentlyTouched + usePinnedTokens instances to supply data without refactoring TokenList
+    52 turns · 549s · $1.72
+
+  Merging to main: No token "pinned" or "recently edited" quick-access outside the token list
+Already up to date.

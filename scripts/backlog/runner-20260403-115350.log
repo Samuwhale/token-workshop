@@ -400,3 +400,18 @@ Already up to date.
 
   Merging to main: Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
 Already up to date.
+[main 0bd3cbdb] chore(backlog): done – Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
+ 7 files changed, 52 insertions(+), 22 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Server OperationLog and ManualSnapshotStore have concurrency and atomicity bugs
+- Fixed `OperationLog.ensureLoaded` race: replaced `loaded: boolean` flag with `loadPromise: Promise<void> | null`. First call creates and caches the promise; concurrent callers all await the same promise, preventing double-parse and lost entries.
+- Fixed `ManualSnapshotStore.ensureLoaded` with the same promise-caching pattern.
+- Fixed `ManualSnapshotStore.persist` to use the tmp-rename atomic write pattern (matching `OperationLog.persist` and `DimensionsStore`), eliminating risk of file corruption on crash mid-write.
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  4 queued · 4 in-progress · last took 1m24s
+═══════════════════════════════════════════════════════════════
+  → Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts — these services use direct `fs.writeFile()` without the tmp+rename pattern used by token-store, resolver-store, generator-service, operation-log, and themes route; lint.ts:80 and manual-snapshot.ts:66 write JSON config that chokidar watchers could see as partial content; style-dict.ts:232,238 writes export files that could be corrupted on crash; git-sync.ts:276 writes resolved merge output directly
+  Worktree: /tmp/backlog-81267-O7wy0G
+  Running agent… (started 12:41:23)
