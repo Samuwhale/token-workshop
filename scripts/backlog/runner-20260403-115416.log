@@ -202,3 +202,22 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: plugin↔UI message contract broken (unhandled types, field mismatches, fire-and-forget), UI hooks stale-closure bugs across 6+ hooks (HIGH), core resolver formula drops units (HIGH), core validateColorModifiers drops valid mix ops, server generator route rejects shadowScale + root rollback broken, server OperationLog/ManualSnapshotStore concurrency bugs
 Already up to date.
+[main 5f352417] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: all server routes (tokens, sets, themes, generators, resolvers, sync, lint, sse), all server services (token-store, generator-service, resolver-store, operation-log, manual-snapshot, event-bus, lint, style-dict), all UI hooks (43 files), UI shared utilities, all plugin sandbox files (controller, variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner), core package (resolver, dtcg-types, color-modifier, generator-engine, eval-expr, dtcg-resolver)
+- Found 6 items — written to backlog-inbox.md
+- Notable: Plugin ↔ UI message contract is broken in multiple places (4+ unhandled message types, field name mismatches causing "undefined" in error UI, fire-and-forget without correlationId); also found that core resolver formula evaluation permanently drops units from dimension/duration tokens
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  9 queued · 4 in-progress · last took 11m39s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks — usePinnedTokens persist effect writes old set's pin list to the new set's localStorage key on setName change (corrupts data), useGeneratorPreview leaves previewLoading stuck true on early exit, useSetMergeSplit mergeLoading never resets when the stale-check guard returns inside try (bypasses finally), useGitStatus gitLoading stays true forever when the last fetch is aborted, useTokenSyncBase applyDiff closes over stale rows/dirs state instead of using refs, and useNearbyTokenMatch uses stale allTokensFlat in its debounced callback so new tokens are invisible
+  Worktree: /tmp/backlog-82379-fNiHr1
+  Running agent… (started 12:28:46)

@@ -237,3 +237,10 @@ Already up to date.
   → Batch editor has no "set description" or "set extensions" operations — BatchEditor.tsx supports rename, move, delete, change type, scale values, and set opacity, but there's no way to bulk-add or bulk-edit `$description` or `$extensions` across selected tokens; power users managing hundreds of tokens need batch description editing for documentation compliance
   Worktree: /tmp/backlog-81661-KEPHJN
   Running agent… (started 12:25:20)
+
+  ✓ done: Batch editor has no "set description" or "set extensions" operations
+    $description was already implemented; added generic $extensions key-value batch editor with collapsible UI, JSON-parsed values, and proper merge with Figma scopes
+    20 turns · 220s · $0.76
+
+  Merging to main: Batch editor has no "set description" or "set extensions" operations
+Already up to date.

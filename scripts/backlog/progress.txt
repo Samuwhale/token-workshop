@@ -464,3 +464,12 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: Plugin ↔ UI message contract is broken in multiple places (4+ unhandled message types, field name mismatches causing "undefined" in error UI, fire-and-forget without correlationId); also found that core resolver formula evaluation permanently drops units from dimension/duration tokens
 ---
+
+## 2026-04-03 - Batch editor has no "set description" or "set extensions" operations
+- `$description` was already implemented (text input at top of BatchEditor). Added generic `$extensions` key-value batch editor: collapsible "Extensions" section with + Add extension key button, per-row key (monospace, namespace-style) + value inputs (JSON-parsed if valid, else string). Custom extensions are merged with Figma scopes into a single `$extensions` patch object. `hasOp` check and apply-reset both updated. Footer hint text updated to mention extensions.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L101, ~L249, ~L351, ~L462, ~L688
+- **Learnings for future iterations:**
+  - Always read the existing component before implementing — description was already there from a prior session.
+  - When merging two `$extensions` sources (Figma scopes + custom keys), build a single `extPatch` accumulator to avoid one overwriting the other.
+  - JSON.parse with a catch for string fallback is the right pattern for free-form extension values.
+---

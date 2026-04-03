@@ -99,6 +99,8 @@ export function BatchEditor({
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [batchScopes, setBatchScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
+  const [batchExtensions, setBatchExtensions] = useState<Array<{ key: string; value: string }>>([]);
+  const [showExtensions, setShowExtensions] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
   const aliasInputRef = useRef<HTMLInputElement>(null);
@@ -244,6 +246,7 @@ export function BatchEditor({
     description.trim() !== '' ||
     newType !== '' ||
     batchScopes.length > 0 ||
+    batchExtensions.some(e => e.key.trim() !== '') ||
     aliasActive ||
     opacityActive ||
     scalingActive
@@ -346,8 +349,19 @@ export function BatchEditor({
         patch.$description = description.trim();
       }
 
-      if (batchScopes.length > 0) {
-        patch.$extensions = { 'com.figma.scopes': batchScopes };
+      {
+        const extPatch: Record<string, unknown> = {};
+        if (batchScopes.length > 0) {
+          extPatch['com.figma.scopes'] = batchScopes;
+        }
+        for (const { key, value } of batchExtensions) {
+          const k = key.trim();
+          if (!k) continue;
+          try { extPatch[k] = JSON.parse(value); } catch { extPatch[k] = value; }
+        }
+        if (Object.keys(extPatch).length > 0) {
+          patch.$extensions = extPatch;
+        }
       }
 
       if (newType !== '') {
@@ -451,6 +465,7 @@ export function BatchEditor({
       setAliasInput('');
       setAliasRef('');
       setNewType('');
+      setBatchExtensions([]);
       setTimeout(() => descriptionRef.current?.focus(), 0);
     } catch (err) {
       console.warn('[BatchEditor] batch apply failed:', err);
@@ -678,6 +693,65 @@ export function BatchEditor({
           )}
         </div>
       )}
+
+      {/* Custom $extensions — arbitrary namespace key-value pairs */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowExtensions(v => !v)}
+          className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-90' : ''}`}>
+            <path d="M2 1l4 3-4 3V1z" />
+          </svg>
+          <span>Extensions{batchExtensions.some(e => e.key.trim()) ? ` (${batchExtensions.filter(e => e.key.trim()).length} set)` : ''}</span>
+        </button>
+        {showExtensions && (
+          <div className="ml-[16px] mt-1 space-y-1">
+            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+              Merge these keys into <span className="font-mono">$extensions</span> on all {selectedPaths.size} selected token{selectedPaths.size === 1 ? '' : 's'}. Values are parsed as JSON if valid.
+            </p>
+            {batchExtensions.map((entry, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <input
+                  type="text"
+                  aria-label="Extension key"
+                  value={entry.key}
+                  onChange={e => setBatchExtensions(prev => prev.map((x, j) => j === i ? { ...x, key: e.target.value } : x))}
+                  placeholder="com.company.key"
+                  className="w-[120px] h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                <input
+                  type="text"
+                  aria-label="Extension value"
+                  value={entry.value}
+                  onChange={e => setBatchExtensions(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
+                  placeholder='"value" or true or 42'
+                  className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setBatchExtensions(prev => prev.filter((_, j) => j !== i))}
+                  aria-label="Remove extension"
+                  className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                    <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setBatchExtensions(prev => [...prev, { key: '', value: '' }])}
+              className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M4 1v6M1 4h6"/></svg>
+              Add extension key
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Opacity — when any selected token is a color */}
       {hasColors && (
@@ -951,7 +1025,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}${hasColors ? ', opacity' : ''}${hasScalable ? ', scale factor' : ''}, or alias to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity' : ''}${hasScalable ? ', scale factor' : ''}, or alias to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
