@@ -26,3 +26,32 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
 
   Merging to main: HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
 Already up to date.
+[main c160280d] chore(backlog): done – HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
+ 10 files changed, 180 insertions(+), 20 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - HistoryPanel has no redo
+- Implemented server-side redo stack for rolled-back operations:
+  - `operation-log.ts`: `rollback()` now returns `{ restoredPaths, rollbackEntryId }` — the ID of the newly created rollback entry, enabling the client to track which operation can re-rollback it as a redo
+  - `useRecentOperations.ts`: Added `redoEntries` state (array of `{ origOpId, rollbackId, description }`). `handleRollback` now pushes to redo entries on success. New `handleServerRedo(opId?)` function that calls rollback on the stored rollback entry ID, then pops it from the redo stack. Exposes `canServerRedo`, `serverRedoDescription`, `redoableOpIds` (Set of original op IDs with redo available)
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  9 queued · 1 in-progress · last took 8m37s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel cannot export a filtered subset of tokens — the export always includes all tokens in selected sets; power users need to export "only color tokens" or "only tokens in the spacing.* group" as separate files for platform-specific consumers; add type and path-prefix filters to the ExportPanel alongside the existing set selection, sending filter params to the export server route (ExportPanel.tsx set selection ~L215, export route)
+  Worktree: /tmp/backlog-21315-XQ4Qg3
+  Running agent… (started 11:20:59)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    3 turns · 18s · $0.09
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - HistoryPanel has no redo
+- Implemented server-side redo stack for rolled-back operations:
+  - `operation-log.ts`: `rollback()` now returns `{ restoredPaths, rollbackEntryId }` — the ID of the newly created rollback entry, enabling the client to track which operation can re-rollback it as a redo
+  - `useRecentOperations.ts`: Added `redoEntries` state (array of `{ origOpId, rollbackId, description }`). `handleRollback` now pushes to redo entries on success. New `handleServerRedo(opId?)` function that calls rollback on the stored rollback entry ID, then pops it from the redo stack. Exposes `canServerRedo`, `serverRedoDescription`, `redoableOpIds` (Set of original op IDs with redo available)
+
+  Stopped after 2 iterations (1022 total items completed).

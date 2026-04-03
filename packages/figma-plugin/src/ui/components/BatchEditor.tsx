@@ -89,9 +89,12 @@ export function BatchEditor({
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const [useRegex, setUseRegex] = useState(false);
+  const [aliasFindText, setAliasFindText] = useState('');
+  const [aliasReplaceText, setAliasReplaceText] = useState('');
   const [applying, setApplying] = useState(false);
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [aliasReplacing, setAliasReplacing] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [batchScopes, setBatchScopes] = useState<string[]>([]);
@@ -272,6 +275,24 @@ export function BatchEditor({
       }))
       .filter(({ from, to }) => from !== to);
   }, [findText, replaceText, useRegex, regexError, parsedRegex, selectedEntries]);
+
+  // Alias find/replace: compute $value rewrites for tokens referencing a specific alias path
+  const aliasFindChanges = useMemo(() => {
+    if (!aliasFindText) return [];
+    const findPattern = `{${aliasFindText}}`;
+    const replacePattern = aliasReplaceText ? `{${aliasReplaceText}}` : '';
+    return selectedEntries
+      .filter(({ entry }) => {
+        const v = entry.$value;
+        return typeof v === 'string' && v.includes(findPattern);
+      })
+      .map(({ path, entry }) => ({
+        path,
+        from: entry.$value as string,
+        to: (entry.$value as string).split(findPattern).join(replacePattern),
+      }))
+      .filter(({ from, to }) => from !== to);
+  }, [aliasFindText, aliasReplaceText, selectedEntries]);
 
   // Find/replace: count tokens whose paths would change
   const renamePreview = useMemo(() => {
@@ -511,6 +532,43 @@ export function BatchEditor({
       setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
     } finally {
       setRenaming(false);
+    }
+  };
+
+  const handleAliasReplace = async () => {
+    if (!connected || aliasFindChanges.length === 0 || aliasReplacing) return;
+    setAliasReplacing(true);
+    setFeedback(null);
+    try {
+      const patches = aliasFindChanges.map(({ path, to }) => ({ path, patch: { $value: to } }));
+      const result = await apiFetch<{ ok: true; updated: number; operationId: string }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-update`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patches }),
+        },
+      );
+
+      if (onPushUndo && result.updated > 0) {
+        const opId = result.operationId;
+        onPushUndo({
+          description: `Alias replace {${aliasFindText}} → {${aliasReplaceText}} in ${result.updated} token${result.updated === 1 ? '' : 's'}`,
+          restore: async () => {
+            await rollbackOperation(opId);
+            onApply();
+          },
+        });
+      }
+      onApply();
+      setFeedback({ ok: true, msg: `Updated ${result.updated} alias reference${result.updated === 1 ? '' : 's'}` });
+      setAliasFindText('');
+      setAliasReplaceText('');
+    } catch (err) {
+      console.warn('[BatchEditor] alias replace failed:', err);
+      setFeedback({ ok: false, msg: 'Alias replace failed — check server connection' });
+    } finally {
+      setAliasReplacing(false);
     }
   };
 
@@ -865,9 +923,9 @@ export function BatchEditor({
 
       {/* Footer: feedback + Apply button */}
       <div className="flex items-center justify-between pt-0.5">
-        {(applying || moving || renaming) ? (
+        {(applying || moving || renaming || aliasReplacing) ? (
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {applying ? 'Applying…' : moving ? 'Moving…' : 'Renaming…'}
+            {applying ? 'Applying…' : moving ? 'Moving…' : renaming ? 'Renaming…' : 'Replacing…'}
           </span>
         ) : feedback ? (
           <span className={`text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
@@ -966,6 +1024,63 @@ export function BatchEditor({
             {renameChanges.length > PREVIEW_MAX && (
               <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {renameChanges.length - PREVIEW_MAX} more…</div>
             )}
+          </div>
+        )}
+
+        {/* Alias find/replace — rewrite {path} references in $value strings */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Alias replace</span>
+          <input
+            type="text"
+            aria-label="Find alias path"
+            value={aliasFindText}
+            onChange={e => setAliasFindText(e.target.value)}
+            placeholder="color.primary"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          <input
+            type="text"
+            aria-label="Replace alias path with"
+            value={aliasReplaceText}
+            onChange={e => setAliasReplaceText(e.target.value)}
+            placeholder="brand.primary"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          <button
+            onClick={handleAliasReplace}
+            disabled={!connected || aliasFindChanges.length === 0 || aliasReplacing}
+            title={
+              !connected ? 'Not connected to server'
+              : !aliasFindText ? 'Enter an alias path to find'
+              : aliasFindChanges.length === 0 ? `No selected tokens reference {${aliasFindText}}`
+              : `Rewrite ${aliasFindChanges.length} alias reference${aliasFindChanges.length === 1 ? '' : 's'}`
+            }
+            className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {aliasReplacing ? '…' : `Rewrite${aliasFindChanges.length > 0 ? ` ${aliasFindChanges.length}` : ''}`}
+          </button>
+        </div>
+        {aliasFindText && aliasFindChanges.length > 0 && (
+          <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+              {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
+            </div>
+            {aliasFindChanges.slice(0, PREVIEW_MAX).map(({ path, from, to }) => (
+              <div key={path} className="text-[10px] leading-snug flex items-baseline gap-1">
+                <span className="text-[var(--color-figma-text-tertiary)] truncate shrink-0 max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                <span className="text-[var(--color-figma-text-secondary)] font-mono truncate shrink" title={from}>{from}</span>
+                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                <span className="text-[var(--color-figma-text)] font-mono font-medium truncate shrink" title={to}>{to}</span>
+              </div>
+            ))}
+            {aliasFindChanges.length > PREVIEW_MAX && (
+              <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {aliasFindChanges.length - PREVIEW_MAX} more…</div>
+            )}
+          </div>
+        )}
+        {aliasFindText && aliasFindChanges.length === 0 && (
+          <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+            No selected tokens reference <span className="font-mono">{`{${aliasFindText}}`}</span>
           </div>
         )}
 

@@ -1,0 +1,21 @@
+NOTE: 1 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    31178
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-112130.log
+
+  Queue:    9 ready · 1 in-progress · 3 failed
+  Done:     1022 total (next code pass in 8, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  9 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → ExportPanel cannot export a filtered subset of tokens — the export always includes all tokens in selected sets; power users need to export "only color tokens" or "only tokens in the spacing.* group" as separate files for platform-specific consumers; add type and path-prefix filters to the ExportPanel alongside the existing set selection, sending filter params to the export server route (ExportPanel.tsx set selection ~L215, export route)
+  Worktree: /tmp/backlog-31178-BGomCl
+  Running agent… (started 11:21:30)

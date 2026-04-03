@@ -34,3 +34,24 @@ Already up to date.
 - Implemented two surfaces for unused token detection (tokens with zero Figma usage AND no alias dependents):
   1. **AnalyticsPanel "Unused Tokens" section** (Ship > Validation tab): collapsible section showing count + scrollable list of unused tokens with path, type, and set. Shows a notice when no Figma usage data is available. Clicking a token navigates to it in the token list.
   2. **`has:unused` search qualifier** in TokenList search: users can type `has:unused` in the search bar to filter to unused tokens only. Follows the same pattern as `has:duplicate`, `has:generated`, etc.
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  10 queued · 1 in-progress · last took 8m30s
+═══════════════════════════════════════════════════════════════
+  → BatchEditor cannot batch-replace alias references — the existing find/replace operates on token paths only and has no mode to rewrite `$value` alias strings; a common migration task is renaming a canonical token from `{color.primary}` to `{brand.primary}` and needing all tokens that reference the old path updated in one shot; add an "Alias find/replace" sub-mode that targets `$value` strings matching a `{path}` pattern, distinct from the path-rename find/replace already present (BatchEditor.tsx ~L85)
+  Worktree: /tmp/backlog-21545-Ehy0Fr
+  Running agent… (started 11:20:56)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    9 turns · 25s · $0.19
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - HistoryPanel has no redo
+- Implemented server-side redo stack for rolled-back operations:
+  - `operation-log.ts`: `rollback()` now returns `{ restoredPaths, rollbackEntryId }` — the ID of the newly created rollback entry, enabling the client to track which operation can re-rollback it as a redo
+  - `useRecentOperations.ts`: Added `redoEntries` state (array of `{ origOpId, rollbackId, description }`). `handleRollback` now pushes to redo entries on success. New `handleServerRedo(opId?)` function that calls rollback on the stored rollback entry ID, then pops it from the redo stack. Exposes `canServerRedo`, `serverRedoDescription`, `redoableOpIds` (Set of original op IDs with redo available)
+
+  Stopped after 2 iterations (1022 total items completed).

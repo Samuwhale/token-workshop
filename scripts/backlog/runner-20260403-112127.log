@@ -1,0 +1,31 @@
+./scripts/backlog/backlog.sh: line 217: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    30880
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-112127.log
+
+  Queue:    10 ready · 0
+0 in-progress · 3 failed
+  Done:     1022 total (next code pass in 8, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  10 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → BatchEditor cannot batch-replace alias references — the existing find/replace operates on token paths only and has no mode to rewrite `$value` alias strings; a common migration task is renaming a canonical token from `{color.primary}` to `{brand.primary}` and needing all tokens that reference the old path updated in one shot; add an "Alias find/replace" sub-mode that targets `$value` strings matching a `{path}` pattern, distinct from the path-rename find/replace already present (BatchEditor.tsx ~L85)
+  Worktree: /tmp/backlog-30880-PEUu7K
+  Running agent… (started 11:21:27)
+
+  ✓ done: BatchEditor cannot batch-replace alias references
+    Added "Alias replace" row to BatchEditor's divider section: find/replace on {path} strings in $value, with live preview and undo support via the existing batch-update endpoint.
+    17 turns · 145s · $0.54
+
+  Merging to main: BatchEditor cannot batch-replace alias references
+Already up to date.

@@ -385,3 +385,12 @@
   - Use the stable callback ref pattern for keyboard handlers that depend on many state variables (avoids re-registering on every render while still reading current values)
   - The undoToast visible state should be `toastVisible || canServerRedo` so the Redo button in the toast is accessible even when no local undo actions are in flight
 ---
+
+## 2026-04-03 - BatchEditor cannot batch-replace alias references
+- Added an "Alias replace" sub-mode to the divider section of `BatchEditor.tsx`. Users enter a source alias path (e.g. `color.primary`) and a target path (e.g. `brand.primary`) — the tool finds all selected tokens where `$value` contains `{color.primary}` as a substring and rewrites them to `{brand.primary}`. Supports partial path matches (handles embedded refs in composite values). Shows a preview box listing affected tokens with from→to pairs before committing. Calls the existing `batch-update` API endpoint and pushes an undo slot via `onPushUndo`.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L92 (state), ~L278 (memo), ~L557 (handler), ~L1010 (JSX)
+- **Learnings for future iterations:**
+  - The existing `batch-update` endpoint already handles patching `$value` — no server changes needed; just construct `{ path, patch: { $value: newValue } }` patches.
+  - Pattern for alias substring replace: `str.split('{oldPath}').join('{newPath}')` handles multiple occurrences in composite $value strings cleanly.
+  - The alias replace section sits in the divider area (`border-t` block) alongside path find/replace and move-to-set, so the `aliasReplacing` state needs to be included in the footer's in-progress status guard.
+---
