@@ -235,16 +235,27 @@ function resolveInternalPointer(ref: string, file: ResolverFile): InternalTarget
  * - If it's a $ref to a file, call loadExternal.
  * - If it's a $ref to an internal pointer, recursively resolve.
  * - Otherwise treat as inline DTCGGroup.
+ *
+ * @param visited - set of internal $ref strings already on the call stack;
+ *   prevents infinite recursion when sets reference each other cyclically.
  */
 async function loadSource(
   source: ResolverSource,
   file: ResolverFile,
   loadExternal: ExternalFileLoader,
+  visited: Set<string> = new Set(),
 ): Promise<Map<string, DTCGToken>> {
   if ('$ref' in source && typeof source.$ref === 'string') {
     const ref = source.$ref;
     // Internal pointer
     if (ref.startsWith('#/')) {
+      if (visited.has(ref)) {
+        console.warn(
+          `[dtcg-resolver] Cycle detected: internal pointer "${ref}" was already visited. ` +
+            `Cycle path: ${[...visited].join(' → ')} → ${ref}. Source will be skipped.`,
+        );
+        return new Map();
+      }
       const target = resolveInternalPointer(ref, file);
       if (!target || target.kind !== 'set') {
         console.warn(
@@ -255,9 +266,10 @@ async function loadSource(
         return new Map();
       }
       // Merge all sources from the referenced set
+      const childVisited = new Set(visited).add(ref);
       const result = new Map<string, DTCGToken>();
       for (const s of target.value.sources) {
-        for (const [path, token] of await loadSource(s, file, loadExternal)) {
+        for (const [path, token] of await loadSource(s, file, loadExternal, childVisited)) {
           result.set(path, token);
         }
       }

@@ -584,3 +584,11 @@
   - "Failures only" as a flat list rather than a filtered grid is far cleaner UX — a grid with sparse failures leaves mostly empty space.
   - The CSV export always covers the full matrix regardless of the failures filter, giving users the complete picture for spreadsheet analysis.
 ---
+
+## 2026-04-03 - Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
+- Added a `visited: Set<string>` parameter (default `new Set()`) to the `loadSource` function. When an internal `#/` pointer is encountered, the function checks if `ref` is already in `visited` — if so, it logs a warning with the full cycle path and returns an empty Map. Otherwise it creates a new child set (`new Set(visited).add(ref)`) and passes it to all recursive `loadSource` calls within the referenced set's sources.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L239-289
+- **Learnings for future iterations:**
+  - `new Set(visited).add(ref)` creates a per-branch copy of the visited set, which is correct — sibling sources within the same set should each see the full ancestor chain but not each other's branches.
+  - The warning message logs the full cycle path via `[...visited].join(' → ') + ' → ' + ref` which aids debugging.
+---

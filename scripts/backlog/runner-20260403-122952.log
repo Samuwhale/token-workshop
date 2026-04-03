@@ -132,3 +132,25 @@ Already up to date.
 
   Merging to main: Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
 Already up to date.
+[main cb30da0a] chore(backlog): done – Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
+ 6 files changed, 201 insertions(+), 75 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Color contrast matrix failures filter and CSV export
+- Added "Failures only" toggle that switches from the grid matrix to a flat sorted list of failing pairs (worst ratio first). The list shows fg/bg swatches, token names, and ratio — no pagination needed since failures are typically far fewer than all pairs.
+- Added "Copy as CSV" button that exports the full N×N matrix (all tokens, all pairs, not limited to current page or failures filter). CSV columns: fg_token, bg_token, contrast_ratio, level.
+- Added `contrastFailuresOnly` and `contrastCopied` state variables. The toolbar row with both buttons always appears when the matrix is expanded.
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  11 queued · 4 in-progress · last took 2m20s
+═══════════════════════════════════════════════════════════════
+  → Core DTCG resolver loadSource has no cycle detection for internal $ref pointers — loadSource (packages/core/src/dtcg-resolver.ts:239-264) recursively follows #/sets/X internal pointers by calling itself for each source in the referenced set; if set A sources from set B which sources from set A, this causes infinite recursion and a stack overflow; needs a visited-set parameter or depth limit passed through the recursive calls
+  Worktree: /tmp/backlog-49887-dlyKVh
+  Running agent… (started 13:08:32)
+
+  ✓ done: Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
+    Added visited-set parameter to loadSource; cycles are detected, warned, and skipped instead of causing infinite recursion
+    12 turns · 58s · $0.24
+
+  Merging to main: Core DTCG resolver loadSource has no cycle detection for internal $ref pointers
+Already up to date.
