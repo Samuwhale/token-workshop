@@ -863,22 +863,22 @@ export function App() {
       },
       {
         id: 'new-graph',
-        label: 'New graph',
-        description: 'Start a generator graph — generate color ramps, spacing scales, type scales, and more',
+        label: 'New generator',
+        description: 'Create a token generator — color ramps, spacing scales, type scales, and more',
         category: 'Generate',
         handler: () => navigateTo('define', 'generators'),
       },
       {
         id: 'open-graph',
-        label: 'Open graph',
-        description: 'View generator pipeline for the current set',
+        label: 'Open Generators',
+        description: 'View token generators for the current set',
         category: 'Generate',
         handler: () => navigateTo('define', 'generators'),
       },
       ...GRAPH_TEMPLATES.map(t => ({
         id: `graph-template-${t.id}`,
         label: `Generate ${t.label}`,
-        description: `Graph template — ${t.description}`,
+        description: `Generator template — ${t.description}`,
         category: 'Generate',
         handler: () => {
           navigateTo('define', 'generators');
@@ -2128,7 +2128,7 @@ export function App() {
             </div>
           )}
           {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'generators' && (
-            <ErrorBoundary panelName="Graph" onReset={() => navigateTo('define', 'tokens')}>
+            <ErrorBoundary panelName="Generators" onReset={() => navigateTo('define', 'tokens')}>
             <GraphPanel
               serverUrl={serverUrl}
               activeSet={activeSet}

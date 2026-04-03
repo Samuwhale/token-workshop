@@ -447,3 +447,11 @@
   - `handleDetachFromGenerator` had two async calls (GET then PATCH) — both need individual try-catch blocks since the second can fail independently.
   - When adding `onError` usage to a `useCallback`, always add it to the deps array or ESLint will flag it.
 ---
+
+## 2026-04-03 - "Graph" tab label should be renamed to "Generators"
+- The sub-tab label was already `'Generators'` (L214 of App.tsx). Remaining "graph" language was in command palette entries: "New graph" → "New generator", "Open graph" → "Open Generators", description updated from "generator graph" to just generator language. Also updated `ErrorBoundary panelName` from "Graph" to "Generators". The `GRAPH_TEMPLATES` description prefix changed from "Graph template —" to "Generator template —".
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L865-887, ~L2131
+- **Learnings for future iterations:**
+  - When a tab is renamed, also check command palette entries (around `GRAPH_TEMPLATES.map`) and `ErrorBoundary panelName` strings — they don't update automatically.
+  - The legacy `TABS` array (L203-208) may coexist with `TOP_TABS` — check both for stale labels.
+---

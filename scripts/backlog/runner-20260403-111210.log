@@ -95,3 +95,25 @@ Already up to date.
 
   Merging to main: handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling
 Already up to date.
+[main 17743a61] chore(backlog): done – handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling
+ 6 files changed, 58 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - handleMultiModeInlineSave and handleDetachFromGenerator missing error handling
+- Added try-catch to `handleMultiModeInlineSave` around the PATCH apiFetch call; on failure calls `onError?.()` and returns early, preventing onPushUndo/onRefresh from running after a failed save.
+- Added try-catch to `handleDetachFromGenerator` around the PATCH apiFetch call; on failure calls `onError?.()` and returns early. The existing try-catch around the GET fetch was updated to use `onError?.(...)` instead of `console.warn` to match the pattern.
+- Added `onError` to the dependency arrays of both callbacks.
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  8 queued · 1 in-progress · last took 1m14s
+═══════════════════════════════════════════════════════════════
+  → "Graph" tab label should be renamed to "Generators" — the top-level tab that houses the GraphPanel and token generator UI is labelled "Graph" in the navigation; new users have no way to know this is where token generators (color ramps, type scales, spacing scales) live; rename to "Generators" or "Generate" to match how the feature is described everywhere else in the UI and documentation (App.tsx tab definitions ~L203)
+  Worktree: /tmp/backlog-20980-oC7iuO
+  Running agent… (started 11:28:21)
+
+  ✓ done: "Graph" tab label should be renamed to "Generators"
+    Sub-tab label was already 'Generators'; updated remaining 'graph' language in command palette entries (New graph→New generator, Open graph→Open Generators, template description prefix) and ErrorBoundary panelName in App.tsx
+    17 turns · 84s · $0.36
+
+  Merging to main: "Graph" tab label should be renamed to "Generators"
+Already up to date.
