@@ -90,3 +90,10 @@ Already up to date.
   → Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling — `/sync/conflicts/resolve` (sync.ts L194-212) loops through resolutions calling `resolveFileConflict` sequentially; if resolution #3 fails, files #1-2 are already staged but `finalizeMerge` will fail, leaving the repo in a half-resolved merge state with no recovery path; also does not validate that `file` names correspond to actual conflicted files or that region indices are valid
   Worktree: /tmp/backlog-92209-0vU92j
   Running agent… (started 01:16:34)
+
+  ✓ done: Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
+    Added resolveAllConflicts to git-sync.ts: validates all files/regions/choices against live git state before touching disk, resolves all contents in memory, then writes+stages atomically; rolls back staged files via `git checkout -m` on failure. Route now returns 400 for bad inputs and 500 for unexpected errors.
+    21 turns · 223s · $0.64
+
+  Merging to main: Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
+Already up to date.

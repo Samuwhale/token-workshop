@@ -202,14 +202,17 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       if (!resolutions || !Array.isArray(resolutions)) {
         return reply.status(400).send({ error: 'resolutions array is required' });
       }
-      for (const { file, choices } of resolutions) {
-        await fastify.gitSync.resolveFileConflict(file, choices);
+      if (resolutions.length === 0) {
+        return reply.status(400).send({ error: 'resolutions array must not be empty' });
       }
+      // Validate, resolve, and stage all files atomically (with rollback on failure).
+      // resolveAllConflicts throws BadRequestError (400) for invalid inputs.
+      await fastify.gitSync.resolveAllConflicts(resolutions);
       // Finalize merge if no conflicts remain
       await fastify.gitSync.finalizeMerge();
       return { ok: true };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to resolve conflicts', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to resolve conflicts');
     }
   });
 

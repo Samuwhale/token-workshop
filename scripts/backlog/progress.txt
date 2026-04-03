@@ -535,3 +535,21 @@
   - JS event loop is single-threaded but async I/O creates interleaving: `onFileRemove` (sync) can fire and delete from the Map while `onFileChange`'s `await fs.readFile` is pending, then the completed read re-adds a stale entry. A simple generation counter solves this without locks.
   - The generation approach generalises: capture gen before any await, increment on invalidation, check after await. Works for any "cancel in-flight async update" scenario.
 ---
+
+## 2026-04-04 - Git sync conflict resolution route has no rollback, no input validation, and no partial-failure handling
+- Added `resolveAllConflicts(resolutions)` method to `GitSync` service that:
+  1. Validates each resolution entry has a non-empty `file` string and a `choices` object.
+  2. Validates all choice values are `'ours'` or `'theirs'`.
+  3. Path-validates all files (directory traversal check).
+  4. Cross-validates each file against the live git conflict state — returns 400 if a file is not currently conflicted.
+  5. Validates all region indices are within range for each file — returns 400 for out-of-range indices.
+  6. Resolves all file contents in memory before touching the filesystem.
+  7. Writes and stages each resolved file; on any failure, rolls back already-staged files to their conflicted state via `git checkout -m -- <file>`.
+- Updated `/sync/conflicts/resolve` route to call `resolveAllConflicts` instead of looping `resolveFileConflict`, added empty-array check, and replaced bare `reply.status(500)` catch with `handleRouteError` so `BadRequestError` (400) surfaces correctly.
+- Kept `resolveFileConflict` (single-file method) intact for any future single-file use.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L4, ~L337; `packages/server/src/routes/sync.ts` ~L196-214
+- **Learnings for future iterations:**
+  - `git checkout -m -- <file>` re-checks out a file with its original merge conflict markers, making it the correct rollback primitive for a partially-resolved merge state.
+  - Resolving all file contents in memory before any `fs.rename`/`git add` side effects eliminates the main partial-failure window — failures during in-memory computation never touch git state.
+  - The service's `withLock` mutex must wrap the entire operation (validation + write + stage) in one critical section, not per-file, to prevent interleaved concurrent resolutions from corrupting the staged index.
+---

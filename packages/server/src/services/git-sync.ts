@@ -1,7 +1,7 @@
 import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { GitTimeoutError } from '../errors.js';
+import { BadRequestError, GitTimeoutError } from '../errors.js';
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).
@@ -330,6 +330,98 @@ export class GitSync {
       await fs.writeFile(tmp, resolved, 'utf-8');
       await fs.rename(tmp, filePath);
       await this.git.add([file]);
+    });
+  }
+
+  /**
+   * Validate, resolve, and stage all conflict resolutions atomically.
+   *
+   * Before touching any files:
+   *   1. Validates that every requested file is actually conflicted.
+   *   2. Validates that every region index is within range.
+   *   3. Validates that every choice value is 'ours' or 'theirs'.
+   *   4. Resolves all file contents in memory.
+   *
+   * Only then writes and stages. If any write/stage fails, already-staged
+   * files are restored to their conflicted state via `git checkout -m`.
+   */
+  async resolveAllConflicts(
+    resolutions: Array<{ file: string; choices: Record<number, 'ours' | 'theirs'> }>,
+  ): Promise<void> {
+    return this.withLock(async () => {
+      // --- 1. Validate structure of each resolution entry ---
+      for (const res of resolutions) {
+        if (!res || typeof res.file !== 'string' || !res.file) {
+          throw new BadRequestError('Each resolution must have a non-empty "file" string');
+        }
+        if (!res.choices || typeof res.choices !== 'object' || Array.isArray(res.choices)) {
+          throw new BadRequestError(`Resolution for "${res.file}" must have a "choices" object`);
+        }
+        for (const [idxStr, choice] of Object.entries(res.choices)) {
+          if (choice !== 'ours' && choice !== 'theirs') {
+            throw new BadRequestError(
+              `Invalid choice "${choice}" at region ${idxStr} in "${res.file}": must be "ours" or "theirs"`,
+            );
+          }
+        }
+      }
+
+      // --- 2. Validate paths (directory traversal check) ---
+      this.validatePaths(resolutions.map(r => r.file));
+
+      // --- 3. Load current conflict state and cross-validate ---
+      const currentConflicts = await this.getConflicts();
+      const conflictMap = new Map(currentConflicts.map(c => [c.file, c]));
+
+      for (const { file, choices } of resolutions) {
+        const conflict = conflictMap.get(file);
+        if (!conflict) {
+          throw new BadRequestError(
+            `File "${file}" is not currently conflicted (it may have already been resolved or was never in conflict)`,
+          );
+        }
+        const regionCount = conflict.regions.length;
+        for (const idxStr of Object.keys(choices)) {
+          const idx = Number(idxStr);
+          if (!Number.isInteger(idx) || idx < 0 || idx >= regionCount) {
+            throw new BadRequestError(
+              `Region index ${idx} is out of range for "${file}" (file has ${regionCount} conflict region(s))`,
+            );
+          }
+        }
+      }
+
+      // --- 4. Resolve all file contents in memory (no side effects yet) ---
+      const resolved: Array<{ file: string; filePath: string; content: string }> = [];
+      for (const { file, choices } of resolutions) {
+        const filePath = path.resolve(this.dir, file);
+        const content = await fs.readFile(filePath, 'utf-8');
+        resolved.push({ file, filePath, content: resolveConflictContent(content, choices) });
+      }
+
+      // --- 5. Write and stage; rollback on partial failure ---
+      const staged: string[] = [];
+      try {
+        for (const { file, filePath, content } of resolved) {
+          const tmp = `${filePath}.tmp`;
+          await fs.writeFile(tmp, content, 'utf-8');
+          await fs.rename(tmp, filePath);
+          await this.git.add([file]);
+          staged.push(file);
+        }
+      } catch (err) {
+        // Restore already-staged files to their conflicted state so the
+        // repository is left in a clean "fully conflicted" state that the
+        // client can retry, rather than a partial merge.
+        for (const f of staged) {
+          try {
+            await this.git.raw(['checkout', '-m', '--', f]);
+          } catch (rollbackErr) {
+            console.warn(`[GitSync] Rollback failed for "${f}":`, rollbackErr);
+          }
+        }
+        throw err;
+      }
     });
   }
 

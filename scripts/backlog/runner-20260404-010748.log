@@ -109,3 +109,18 @@ Already up to date.
 
   Merging to main: ResolverStore file watcher has a race between async onFileChange and sync onFileRemove
 Already up to date.
+[main 77981911] chore(backlog): done – ResolverStore file watcher has a race between async onFileChange and sync onFileRemove
+ 5 files changed, 47 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ResolverStore file watcher race between async onFileChange and sync onFileRemove
+- Fixed the create-then-quickly-delete race condition in `ResolverStore`. Added `_fileDeleteGen: Map<string, number>` field that is incremented each time `onFileRemove` fires for a path. `onFileChange` captures the generation before the async `loadFile` call; `loadFile` now accepts an optional `expectedDeleteGen` parameter and discards the result (skips `resolvers.set`) if the generation changed while `fs.readFile` was in-flight.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L54, ~L286, ~L325, ~L334
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  13 queued · 3 in-progress · last took 1m37s
+═══════════════════════════════════════════════════════════════
+  → styleSync.ts silently swallows parse failures for color tokens and gradient stops without user feedback — `parseColor` returning null (L112) causes the style to be skipped with no error/warning logged or surfaced; gradient stops that fail to parse are silently dropped, potentially creating a gradient with fewer stops than intended (e.g., 5→3); should track and report skipped tokens/stops so users know which styles failed (styleSync.ts L104-157)
+  Worktree: /tmp/backlog-91949-AA8Usi
+  Running agent… (started 01:19:58)
