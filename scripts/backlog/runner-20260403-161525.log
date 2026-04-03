@@ -565,3 +565,10 @@ Already up to date.
 
   Merging to main: Color editor format cycling requires clicking through all 5 formats
 Already up to date.
+[main 56cd9b7f] chore(backlog): done – Color editor format cycling requires clicking through all 5 formats
+ 5 files changed, 71 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 54)
