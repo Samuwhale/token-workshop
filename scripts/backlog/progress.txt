@@ -478,3 +478,21 @@
   - The group delete case had no orphan tracking at all — always check all three DeleteConfirm variants when adding fields to the union.
   - Using `new Set(refs.map(r => r.setName)).size` to count distinct sets is sufficient; no need for a server round-trip for delete impact preview since the client has all token data in `perSetFlat`.
 ---
+
+## 2026-04-03 - Consolidate three comparison UIs into unified comparison view
+- Created `UnifiedComparePanel.tsx` — a wrapper with mode selector tabs ("Token values" | "Token × themes" | "Theme options") that delegates to the existing ComparePanel, CrossThemeComparePanel, and ThemeCompare components. Each mode shows a helpful empty-state prompt when no data is pre-loaded.
+- Added `'compare'` as a new sub-tab under the "Define" top-level tab in App.tsx (`DefineSubTab` type and `TOP_TABS`).
+- Replaced `themesView`/`themeCompareKey/DefaultA/B` state in App.tsx with unified compare state: `compareMode`, `compareTokenPaths`, `compareTokenPath`, `compareThemeKey/DefaultA/B`.
+- Added `handleOpenTokenCompare(paths)` and `handleOpenCrossThemeCompare(path)` callbacks in App.tsx that set compare state and navigate to `define > compare`.
+- Updated all three TokenList call sites to pass `onOpenCompare` and `onOpenCrossThemeCompare` via the actions prop.
+- Removed ComparePanel and CrossThemeComparePanel renders from TokenList.tsx; "Compare" button in select mode now calls `onOpenCompare(selectedPaths)` to navigate. Cross-theme action calls `onOpenCrossThemeCompare(path)`.
+- Simplified `TokenListImperativeHandle` to only `openCompareMode()` (enter select mode); removed `openCrossThemeCompare` since that now flows via `onOpenCrossThemeCompare` callback.
+- Themes sub-tab now shows only ThemeManager (no more inner Manage/Compare toggle); added "Compare themes →" button in header when dimensions exist, navigating to compare tab with `theme-options` mode.
+- All command palette entries updated to navigate to `define > compare` tab.
+- Files changed: `packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L8,174,216,351,457,979,990,1136,1143,1176,2558,2606`, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L8,47,70,1849,1864,2005,2077`, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L116`
+- **Learnings for future iterations:**
+  - When extracting sub-panel state from old state variables, rename everything together (themeCompareKey → compareThemeKey etc.) to avoid leaving stale references that won't typecheck.
+  - The `replace_all` Edit option is useful for updating all three identical TokenList call sites' `actions` prop at once — safe when the pattern is unique to those call sites.
+  - Moving a panel from an overlay (ComparePanel/CrossThemeComparePanel were overlays in TokenList) to a dedicated tab means the "close" button semantics change — pass a callback that clears the data to reset to empty-state rather than hiding the panel.
+  - Empty-state prompts with a direct "Go to Tokens" button are more useful than just text instructions when the tab has no data to show.
+---

@@ -5,8 +5,6 @@ import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from 
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
-import { ComparePanel } from './ComparePanel';
-import { CrossThemeComparePanel } from './CrossThemeComparePanel';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
@@ -46,7 +44,7 @@ import { extractSyncApplyResult } from '../hooks/useTokenSyncBase';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -67,8 +65,6 @@ export function TokenList({
   const varReadPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
   const [showBatchEditor, setShowBatchEditor] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
-  const [compareAcrossThemesPath, setCompareAcrossThemesPath] = useState<string | null>(null);
   const [showScaffold, setShowScaffold] = useState(false);
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -1858,17 +1854,22 @@ export function TokenList({
     return segments;
   }, [flatItems, rawStart, groupNameMap]);
 
-  // Enter select mode with a single token pre-selected and open ComparePanel
+  // Enter select mode with a single token pre-selected, then navigate to compare tab
   const handleCompareToken = useCallback((path: string) => {
-    setSelectMode(true);
-    setSelectedPaths(new Set([path]));
-    setShowCompare(true);
-    setShowBatchEditor(false);
-  }, []);
+    if (onOpenCompare) {
+      onOpenCompare(new Set([path]));
+    } else {
+      setSelectMode(true);
+      setSelectedPaths(new Set([path]));
+      setShowBatchEditor(false);
+    }
+  }, [onOpenCompare]);
 
   const handleCompareAcrossThemes = useCallback((path: string) => {
-    setCompareAcrossThemesPath(path);
-  }, []);
+    if (onOpenCrossThemeCompare) {
+      onOpenCrossThemeCompare(path);
+    }
+  }, [onOpenCrossThemeCompare]);
 
   // Expose imperative compare actions to the parent via compareHandle ref
   useEffect(() => {
@@ -1876,11 +1877,7 @@ export function TokenList({
     compareHandle.current = {
       openCompareMode: () => {
         setSelectMode(true);
-        setShowCompare(true);
         setShowBatchEditor(false);
-      },
-      openCrossThemeCompare: (path: string) => {
-        setCompareAcrossThemesPath(path);
       },
     };
     return () => { compareHandle.current = null; };
@@ -2011,10 +2008,10 @@ export function TokenList({
                 >
                   Batch edit
                 </button>
-                {selectedPaths.size >= 2 && (
+                {selectedPaths.size >= 2 && onOpenCompare && (
                   <button
-                    onClick={() => setShowCompare(v => !v)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showCompare ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    onClick={() => onOpenCompare(selectedPaths)}
+                    className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
                     Compare
                   </button>
@@ -2060,7 +2057,7 @@ export function TokenList({
               </>
             )}
             <button
-              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); setShowCompare(false); }}
+              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); }}
               className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
@@ -2079,26 +2076,6 @@ export function TokenList({
             connected={connected}
             onApply={onRefresh}
             onPushUndo={onPushUndo}
-          />
-        )}
-
-        {/* Compare panel */}
-        {selectMode && showCompare && selectedPaths.size >= 1 && (
-          <ComparePanel
-            selectedPaths={selectedPaths}
-            allTokensFlat={allTokensFlat}
-            onClose={() => setShowCompare(false)}
-          />
-        )}
-
-        {/* Cross-theme compare panel */}
-        {compareAcrossThemesPath && (
-          <CrossThemeComparePanel
-            tokenPath={compareAcrossThemesPath}
-            allTokensFlat={unthemedAllTokensFlat ?? allTokensFlat}
-            pathToSet={pathToSet}
-            dimensions={dimensions}
-            onClose={() => setCompareAcrossThemesPath(null)}
           />
         )}
 

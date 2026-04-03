@@ -113,14 +113,16 @@ export interface TokenListActions {
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
   /** Called whenever the multi-select set changes — exposes selection to parent (e.g. command palette bulk-delete) */
   onSelectionChange?: (paths: string[]) => void;
+  /** Open the unified compare view with the given token paths pre-loaded (navigates away from Tokens tab) */
+  onOpenCompare?: (paths: Set<string>) => void;
+  /** Open the unified compare view in cross-theme mode for a specific token path */
+  onOpenCrossThemeCompare?: (path: string) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
 export interface TokenListImperativeHandle {
-  /** Enter multi-select mode and open ComparePanel */
+  /** Enter multi-select mode (no navigation — user selects tokens then clicks Compare) */
   openCompareMode: () => void;
-  /** Open CrossThemeComparePanel for a specific token path */
-  openCrossThemeCompare: (path: string) => void;
 }
 
 export interface TokenListProps {

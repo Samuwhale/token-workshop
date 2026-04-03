@@ -5,7 +5,8 @@ import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
-import { ThemeCompare } from './components/ThemeCompare';
+import { UnifiedComparePanel } from './components/UnifiedComparePanel';
+import type { CompareMode } from './components/UnifiedComparePanel';
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -171,7 +172,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators';
+type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'compare';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -216,6 +217,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
+    { id: 'compare', label: 'Compare' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
@@ -348,10 +350,12 @@ export function App() {
   }, []);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
-  const [themeCompareKey, setThemeCompareKey] = useState(0);
-  const [themeCompareDefaultA, setThemeCompareDefaultA] = useState('');
-  const [themeCompareDefaultB, setThemeCompareDefaultB] = useState('');
+  const [compareMode, setCompareMode] = useState<CompareMode>('theme-options');
+  const [compareTokenPaths, setCompareTokenPaths] = useState<Set<string>>(new Set());
+  const [compareTokenPath, setCompareTokenPath] = useState('');
+  const [compareThemeKey, setCompareThemeKey] = useState(0);
+  const [compareThemeDefaultA, setCompareThemeDefaultA] = useState('');
+  const [compareThemeDefaultB, setCompareThemeDefaultB] = useState('');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [focusGeneratorId, setFocusGeneratorId] = useState<string | null>(null);
@@ -451,6 +455,18 @@ export function App() {
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
+  // Open unified compare tab in 'tokens' mode with the given paths pre-loaded
+  const handleOpenTokenCompare = useCallback((paths: Set<string>) => {
+    setCompareTokenPaths(paths);
+    setCompareMode('tokens');
+    navigateTo('define', 'compare');
+  }, [navigateTo]);
+  // Open unified compare tab in 'cross-theme' mode for a specific token
+  const handleOpenCrossThemeCompare = useCallback((path: string) => {
+    setCompareTokenPath(path);
+    setCompareMode('cross-theme');
+    navigateTo('define', 'compare');
+  }, [navigateTo]);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback((direction: 1 | -1) => {
     if (!editingToken) return;
@@ -972,8 +988,8 @@ export function App() {
         description: 'Side-by-side token diff across theme options',
         category: 'Themes',
         handler: () => {
-          setThemesView('compare');
-          navigateTo('define', 'themes');
+          setCompareMode('theme-options');
+          navigateTo('define', 'compare');
         },
       }] : []),
       // Per-dimension compare shortcuts when there are ≥2 options
@@ -983,11 +999,11 @@ export function App() {
         description: `See token differences across ${d.name} options`,
         category: 'Themes',
         handler: () => {
-          setThemeCompareDefaultA(`${d.id}:${d.options[0].name}`);
-          setThemeCompareDefaultB(`${d.id}:${d.options[1].name}`);
-          setThemeCompareKey(k => k + 1);
-          setThemesView('compare');
-          navigateTo('define', 'themes');
+          setCompareThemeDefaultA(`${d.id}:${d.options[0].name}`);
+          setCompareThemeDefaultB(`${d.id}:${d.options[1].name}`);
+          setCompareThemeKey(k => k + 1);
+          setCompareMode('theme-options');
+          navigateTo('define', 'compare');
         },
       })),
       {
@@ -1115,7 +1131,7 @@ export function App() {
         category: 'Tokens',
         handler: () => { setFlowPanelInitialPath(highlightedToken); navigateTo('apply', 'dependencies'); },
       }] : []),
-      // Compare tokens (multi-select)
+      // Compare tokens (multi-select → navigate to compare tab)
       {
         id: 'compare-tokens',
         label: 'Compare tokens\u2026',
@@ -1129,7 +1145,7 @@ export function App() {
         label: `Compare across themes: ${highlightedToken}`,
         description: 'See how this token\u2019s value varies across all theme options',
         category: 'Tokens',
-        handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCrossThemeCompare(highlightedToken); },
+        handler: () => { handleOpenCrossThemeCompare(highlightedToken); },
       }] : []),
       // Compare any token across themes (no focused token — prompt user)
       ...(dimensions.length > 0 && !highlightedToken ? [{
@@ -1137,7 +1153,7 @@ export function App() {
         label: 'Compare token across themes\u2026',
         description: 'Focus a token first, then run this command to compare its values across theme options',
         category: 'Tokens',
-        handler: () => { navigateTo('define', 'tokens'); },
+        handler: () => { setCompareMode('cross-theme'); navigateTo('define', 'compare'); },
       }] : []),
       // Server-side undo: recent operations with rollback
       ...recentOperations
@@ -1169,7 +1185,7 @@ export function App() {
       })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setThemesView, setThemeCompareDefaultA, setThemeCompareDefaultB, setThemeCompareKey, connected, serverUrl]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo, lintViolations, jumpToNextIssue, highlightedToken, pathToSet, tokenListSelection, setPaletteDeleteConfirm, setFlowPanelInitialPath, showPreviewSplit, setShowPreviewSplit, dimensions, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey, connected, serverUrl, handleOpenCrossThemeCompare]);
 
   // Flat token list for command palette — active set only (default mode)
   const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {
@@ -2308,7 +2324,7 @@ export function App() {
                   <TokenList
                     ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                     data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                    actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast }}
+                    actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                     showIssuesOnly={showIssuesOnly}
@@ -2372,7 +2388,7 @@ export function App() {
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                 data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast }}
+                actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
                 showIssuesOnly={showIssuesOnly}
@@ -2387,7 +2403,7 @@ export function App() {
                 <TokenList
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                  actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast }}
+                  actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={previewingToken?.path ?? highlightedToken}
                   showIssuesOnly={showIssuesOnly}
@@ -2527,67 +2543,69 @@ export function App() {
           {/* Themes sub-tab (Define > Themes) */}
           {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'themes' && (
             <div className="flex flex-col h-full overflow-hidden">
-              {/* Manage / Compare toggle */}
-              <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {([{ id: 'manage', label: 'Manage' }, { id: 'compare', label: 'Compare' }] as const).map(v => (
+              {dimensions.length > 0 && (
+                <div className="shrink-0 flex items-center justify-end px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                   <button
-                    key={v.id}
-                    onClick={() => setThemesView(v.id)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                      themesView === v.id
-                        ? 'bg-[var(--color-figma-accent)] text-white'
-                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                    }`}
+                    onClick={() => { setCompareMode('theme-options'); navigateTo('define', 'compare'); }}
+                    className="px-2 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
-                    {v.label}
+                    Compare themes →
                   </button>
-                ))}
-              </div>
+                </div>
+              )}
               <div className="flex-1 overflow-hidden">
-                {themesView === 'manage' ? (
-                  <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                    <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} resolverState={{
-                      serverUrl,
-                      connected,
-                      sets,
-                      resolvers: resolverState.resolvers,
-                      activeResolver: resolverState.activeResolver,
-                      setActiveResolver: resolverState.setActiveResolver,
-                      resolverInput: resolverState.resolverInput,
-                      setResolverInput: resolverState.setResolverInput,
-                      activeModifiers: resolverState.activeModifiers,
-                      resolvedTokens: resolverState.resolvedTokens,
-                      resolverError: resolverState.resolverError,
-                      loading: resolverState.loading,
-                      fetchResolvers: resolverState.fetchResolvers,
-                      convertFromThemes: resolverState.convertFromThemes,
-                      deleteResolver: resolverState.deleteResolver,
-                      getResolverFile: resolverState.getResolverFile,
-                      updateResolver: resolverState.updateResolver,
-                    }} />
-                  </ErrorBoundary>
-                ) : (
-                  <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
-                    <ThemeCompare
-                      key={themeCompareKey}
-                      dimensions={dimensions}
-                      allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
-                      initialOptionKeyA={themeCompareDefaultA}
-                      initialOptionKeyB={themeCompareDefaultB}
-                      onEditToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }}
-                      onCreateToken={(path, set, type, value) => {
-                        navigateTo('define', 'tokens');
-                        if (set !== activeSet) setActiveSet(set);
-                        setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
-                      }}
-                    />
-                  </ErrorBoundary>
-                )}
+                <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
+                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} resolverState={{
+                    serverUrl,
+                    connected,
+                    sets,
+                    resolvers: resolverState.resolvers,
+                    activeResolver: resolverState.activeResolver,
+                    setActiveResolver: resolverState.setActiveResolver,
+                    resolverInput: resolverState.resolverInput,
+                    setResolverInput: resolverState.setResolverInput,
+                    activeModifiers: resolverState.activeModifiers,
+                    resolvedTokens: resolverState.resolvedTokens,
+                    resolverError: resolverState.resolverError,
+                    loading: resolverState.loading,
+                    fetchResolvers: resolverState.fetchResolvers,
+                    convertFromThemes: resolverState.convertFromThemes,
+                    deleteResolver: resolverState.deleteResolver,
+                    getResolverFile: resolverState.getResolverFile,
+                    updateResolver: resolverState.updateResolver,
+                  }} />
+                </ErrorBoundary>
               </div>
             </div>
           )}
 
+
+          {/* Compare sub-tab (Define > Compare) */}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'compare' && (
+            <ErrorBoundary panelName="Compare" onReset={() => navigateTo('define', 'tokens')}>
+              <UnifiedComparePanel
+                mode={compareMode}
+                onModeChange={setCompareMode}
+                tokenPaths={compareTokenPaths}
+                onClearTokenPaths={() => setCompareTokenPaths(new Set())}
+                tokenPath={compareTokenPath}
+                onClearTokenPath={() => setCompareTokenPath('')}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                dimensions={dimensions}
+                themeOptionsKey={compareThemeKey}
+                themeOptionsDefaultA={compareThemeDefaultA}
+                themeOptionsDefaultB={compareThemeDefaultB}
+                onEditToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }}
+                onCreateToken={(path, set, type, value) => {
+                  navigateTo('define', 'tokens');
+                  if (set !== activeSet) setActiveSet(set);
+                  setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
+                }}
+                onGoToTokens={() => navigateTo('define', 'tokens')}
+              />
+            </ErrorBoundary>
+          )}
 
           {/* Export sub-tab (Ship > Export) */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (

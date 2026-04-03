@@ -482,3 +482,10 @@ Already up to date.
   → Three separate comparison UIs serve overlapping purposes — ComparePanel (snapshot vs current), CrossThemeComparePanel (single token across theme options), and ThemeCompare (two options side-by-side) are three different components with different entry points and different layouts; consolidate into a single comparison view with selectable comparison modes (what vs what) so users don't need to learn three different mental models (ComparePanel.tsx, CrossThemeComparePanel.tsx, ThemeCompare.tsx)
   Worktree: /tmp/backlog-46178-AOeLQg
   Running agent… (started 18:18:56)
+
+  ✓ done: Consolidate three comparison UIs into unified comparison view
+    Created UnifiedComparePanel.tsx with 3 mode tabs (Token values / Token × themes / Theme options); added 'compare' sub-tab under Define; removed inline overlays from TokenList; all 4 validation gates pass.
+    60 turns · 722s · $2.66
+
+  Merging to main: Consolidate three comparison UIs into unified comparison view
+Already up to date.
