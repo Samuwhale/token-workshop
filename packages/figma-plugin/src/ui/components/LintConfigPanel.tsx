@@ -1,49 +1,6 @@
 import { useState } from 'react';
 import type { LintConfig, LintRuleConfig, Severity } from '../hooks/useLintConfig';
-
-interface RuleMeta {
-  id: string;
-  label: string;
-  description: string;
-  options?: OptionMeta[];
-}
-
-interface OptionMeta {
-  key: string;
-  label: string;
-  type: 'number' | 'text';
-  placeholder?: string;
-}
-
-const RULE_DEFS: RuleMeta[] = [
-  {
-    id: 'no-raw-color',
-    label: 'Raw color values',
-    description: 'Flag color tokens using raw hex values instead of aliases.',
-  },
-  {
-    id: 'require-description',
-    label: 'Require description',
-    description: 'Require all tokens to have a $description field.',
-  },
-  {
-    id: 'path-pattern',
-    label: 'Naming convention',
-    description: 'Validate token path segments against a regex pattern.',
-    options: [{ key: 'pattern', label: 'Pattern', type: 'text', placeholder: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' }],
-  },
-  {
-    id: 'max-alias-depth',
-    label: 'Max alias depth',
-    description: 'Prevent alias chains from getting too deep.',
-    options: [{ key: 'maxDepth', label: 'Max depth', type: 'number' }],
-  },
-  {
-    id: 'no-duplicate-values',
-    label: 'Duplicate values',
-    description: 'Detect multiple tokens with identical raw values.',
-  },
-];
+import { LINT_RULE_REGISTRY } from '../shared/lintRules';
 
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
 
@@ -78,7 +35,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onReset, onLintR
         </button>
       </div>
       <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
-        {RULE_DEFS.map(rule => {
+        {LINT_RULE_REGISTRY.map(rule => {
           const ruleConfig = config.lintRules[rule.id] ?? { enabled: false };
           const isExpanded = expandedRule === rule.id;
           const hasOptions = rule.options && rule.options.length > 0;

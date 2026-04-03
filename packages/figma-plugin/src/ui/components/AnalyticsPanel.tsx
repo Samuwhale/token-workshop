@@ -5,6 +5,7 @@ import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
+import { LINT_RULE_BY_ID } from '../shared/lintRules';
 import { apiFetch } from '../shared/apiFetch';
 
 interface ValidationIssue {
@@ -39,19 +40,19 @@ interface AnalyticsPanelProps {
 
 
 
-/** Human-friendly rule labels & descriptions for validation issues */
-const RULE_LABELS: Record<string, { label: string; tip: string }> = {
-  'missing-type':       { label: 'Missing type',       tip: 'Add a $type to make the token spec-compliant' },
-  'broken-alias':       { label: 'Broken reference',   tip: 'The referenced token doesn\'t exist — update or remove the reference' },
-  'circular-reference': { label: 'Circular reference',  tip: 'Break the reference loop so the token can resolve' },
+/** Human-friendly labels & tips for built-in validation issues */
+const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
+  'missing-type':       { label: 'Missing type',           tip: 'Add a $type to make the token spec-compliant' },
+  'broken-alias':       { label: 'Broken reference',       tip: 'The referenced token doesn\'t exist — update or remove the reference' },
+  'circular-reference': { label: 'Circular reference',     tip: 'Break the reference loop so the token can resolve' },
   'max-alias-depth':    { label: 'Deep reference chain',   tip: 'Shorten the chain by pointing closer to the source token' },
-  'type-mismatch':      { label: 'Type / value mismatch', tip: 'The value doesn\'t match the declared $type' },
-  // lint rules (shown when linting is wired to the same list)
-  'no-raw-color':        { label: 'Raw color value',    tip: 'Extract the color to a primitive token and reference it' },
-  'require-description': { label: 'Missing description', tip: 'Add a $description to improve discoverability' },
-  'path-pattern':        { label: 'Naming convention',  tip: 'Rename the token to match the configured pattern' },
-  'no-duplicate-values': { label: 'Duplicate value',    tip: 'Consider extracting a shared token' },
+  'type-mismatch':      { label: 'Type / value mismatch',  tip: 'The value doesn\'t match the declared $type' },
 };
+
+/** Combined lookup: validation rules + lint rules (from shared registry) */
+function getRuleLabel(rule: string): { label: string; tip: string } | undefined {
+  return VALIDATION_LABELS[rule] ?? (LINT_RULE_BY_ID[rule] ? { label: LINT_RULE_BY_ID[rule].label, tip: LINT_RULE_BY_ID[rule].tip } : undefined);
+}
 
 const TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -467,7 +468,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     const severityOrder = { error: 0, warning: 1, info: 2 } as const;
     return [...map.entries()]
       .map(([rule, issues]) => {
-        const meta = RULE_LABELS[rule] ?? { label: rule, tip: '' };
+        const meta = getRuleLabel(rule) ?? { label: rule, tip: '' };
         const worst = issues.reduce((a, b) => severityOrder[a.severity] <= severityOrder[b.severity] ? a : b);
         return { rule, label: meta.label, tip: meta.tip, severity: worst.severity, issues };
       })
@@ -898,7 +899,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                         <div className="flex items-baseline gap-1.5 flex-wrap">
                           <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate line-through">{issue.path}</span>
                           <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{issue.setName}</span>
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{RULE_LABELS[issue.rule]?.label ?? issue.rule}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{getRuleLabel(issue.rule)?.label ?? issue.rule}</span>
                         </div>
                       </div>
                       <button

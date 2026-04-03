@@ -187,3 +187,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: TokenStore watcher/route race condition [HIGH], server route error handling inconsistency (27 inline vs 70 handleRouteError), plugin sandbox silent error swallowing (4+ functions), TokenStore saveSet write serialization gap, core resolver undefined-in-reference-set bug
 Already up to date.
+[main 13466823] chore(backlog): code pass – code-pass
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: all server services (token-store.ts 1858L, generator-service.ts 899L, git-sync.ts 802L, manual-snapshot.ts 291L, resolver-store.ts 342L, operation-log.ts 453L), all server routes (13 route files, 48 withLock calls, 27 inline status-500 vs 70 handleRouteError), core package (resolver.ts, dtcg-resolver.ts, validator.ts, color-parse.ts), plugin sandbox (controller.ts, variableSync.ts 383L, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: TokenStore has no internal mutex — file watcher callbacks mutate this.sets concurrently with route handlers that hold the route-level lock but not any store-internal lock; this is the root cause class for multiple potential data-loss scenarios
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  13 queued · 3 in-progress · last took 6m37s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenStore file watcher mutations race with route-handler mutations — chokidar `change`/`add` callbacks call `loadSet()` which directly mutates `this.sets` via `this.sets.set(name, ...)` (token-store.ts L180) outside the route-level `withLock` mutex; if an external file edit fires the watcher while a route handler is mid-mutation (between `await` points), `loadSet` overwrites the in-memory set with disk state, discarding the route handler's uncommitted changes; additionally `scheduleRebuild` runs `rebuildFlatTokens` on a 50ms debounce timer (L188) that can fire during a batched route operation — the `_batchDepth > 0` guard prevents the rebuild but the `loadSet` mutation still happens; TokenStore needs its own internal async mutex or the watcher callbacks need to be suspended during route-level lock acquisitions (token-store.ts L169-194, L218-248)
+  Worktree: /tmp/backlog-91634-AXfXkh
+  Running agent… (started 01:51:03)

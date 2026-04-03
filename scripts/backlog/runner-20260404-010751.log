@@ -265,3 +265,10 @@ Already up to date.
   → Lint rule labels duplicated with inconsistent wording across three locations — LintConfigPanel RULE_DEFS says "Raw color values" while AnalyticsPanel RULE_LABELS says "Raw color value"; "Require description" vs "Missing description"; max-alias-depth rule is missing entirely from AnalyticsPanel; extract a shared RULE_REGISTRY constant used by both panels and the server (LintConfigPanel.tsx L18-46, AnalyticsPanel.tsx L43-54, server lint.ts)
   Worktree: /tmp/backlog-92209-kmhTB2
   Running agent… (started 01:49:44)
+
+  ✓ done: Lint rule labels duplicated with inconsistent wording across three locations
+    Created shared LINT_RULE_REGISTRY in lintRules.ts; updated LintConfigPanel and AnalyticsPanel to use it, fixing label inconsistencies and adding missing max-alias-depth lint rule entry
+    20 turns · 178s · $0.58
+
+  Merging to main: Lint rule labels duplicated with inconsistent wording across three locations
+Already up to date.

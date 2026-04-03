@@ -511,3 +511,15 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: TokenStore has no internal mutex — file watcher callbacks mutate this.sets concurrently with route handlers that hold the route-level lock but not any store-internal lock; this is the root cause class for multiple potential data-loss scenarios
 ---
+
+## 2026-04-04 - Lint rule labels duplicated with inconsistent wording across three locations
+- Created `packages/figma-plugin/src/ui/shared/lintRules.ts` as the single source of truth for lint rule metadata (`LINT_RULE_REGISTRY` array + `LINT_RULE_BY_ID` lookup). Each entry has `id`, `label`, `description` (for config UI), `tip` (for analytics violation display), and optional `options`.
+- Updated `LintConfigPanel.tsx` to import `LINT_RULE_REGISTRY` and remove the local `RULE_DEFS` and `OptionMeta`/`RuleMeta` interfaces.
+- Updated `AnalyticsPanel.tsx` to import `LINT_RULE_BY_ID` and replace the local lint-rule section of `RULE_LABELS` with a `getRuleLabel()` helper that merges validation-only labels with the shared registry. This also adds the missing `max-alias-depth` lint rule entry.
+- Unified wording: "Raw color value" (was "Raw color values" in config panel), "Missing description" (was "Require description" in config panel), "Deep reference chain" for max-alias-depth lint violations.
+- Files changed: `packages/figma-plugin/src/ui/shared/lintRules.ts` (new), `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` ~L1-46, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L8,~L43-63
+- **Learnings for future iterations:**
+  - When two panels share rule metadata (config label vs violation label), a single registry with both `description` and `tip` fields avoids the divergence entirely.
+  - Validation-only rules (missing-type, broken-alias, etc.) don't belong in the configurable lint registry — keep them as a local constant in the analytics panel and merge at lookup time via a helper.
+  - The server's lint.ts only needs rule IDs and options — it has no UI labels, so the shared registry stays UI-layer only.
+---
