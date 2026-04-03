@@ -505,3 +505,15 @@
   - The manage panel correctly reuses all existing modal flows (confirm-delete, rename dialog) by delegating to App.tsx callbacks. Those modals render at a higher z-index so they layer over the SetSwitcher overlay correctly without any extra work.
   - State setter functions from `useState` (e.g. `setShowManageSets`) are stable references — they don't need to be added to `useMemo` deps arrays and ESLint won't warn about them.
 ---
+
+## 2026-04-03 - HistoryPanel fetches only the last 50 Git commits with no pagination or search
+- Added server-side `offset` and `search` (via `--grep --regexp-ignore-case`) query params to `GET /api/sync/log`; returns `hasMore` by fetching `limit+1` and trimming to `limit`.
+- Updated `git-sync.ts` `log()` to accept `offset` and `search` params, passing `--skip` and `--grep` to simple-git.
+- In the main `HistoryPanel` timeline: added `commitSearch` input in the toolbar (debounced, 300ms), resets offset on search change, and a "Load more commits" button that appends the next batch of 50 to the timeline.
+- In `GitCommitsSource` (standalone commit list): added the same search input below the header count row and a "Load more commits" button at the bottom of the commit list. Empty-search state shows a "No commits match '…'" message with a clear button.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L322, `packages/server/src/routes/sync.ts` ~L224, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L180-240 (main panel), ~L704-800 (GitCommitsSource)
+- **Learnings for future iterations:**
+  - simple-git v3 `log()` accepts a `Record<string, unknown>` options object; pass `{ maxCount, '--skip': N, '--grep': term, '--regexp-ignore-case': null }`. The `null` value works for boolean flags.
+  - The "fetch limit+1 to detect hasMore" pattern is cleaner than counting: no extra count query needed.
+  - `GitCommitsSource` has a `filterTokenPath` mode (per-token history) that is separate from commit message search — hide the search input when `filterTokenPath` is active to avoid conflicting filter modes.
+---

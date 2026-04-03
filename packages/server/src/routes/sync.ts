@@ -221,18 +221,25 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/sync/log — recent commits
-  fastify.get<{ Querystring: { limit?: string } }>('/sync/log', async (request, reply) => {
+  fastify.get<{ Querystring: { limit?: string; offset?: string; search?: string } }>('/sync/log', async (request, reply) => {
     try {
       const raw = parseInt(request.query.limit ?? '', 10);
       const limit = isNaN(raw) || raw < 1 ? 20 : Math.min(raw, 100);
-      const log = await fastify.gitSync.log(limit);
+      const rawOffset = parseInt(request.query.offset ?? '0', 10);
+      const offset = isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset;
+      const search = request.query.search?.trim() || undefined;
+      // Fetch one extra to determine if there are more results
+      const log = await fastify.gitSync.log(limit + 1, offset, search);
+      const all = log.all;
+      const hasMore = all.length > limit;
       return {
-        commits: log.all.map(entry => ({
+        commits: all.slice(0, limit).map(entry => ({
           hash: entry.hash,
           date: entry.date,
           message: entry.message,
           author: entry.author_name,
         })),
+        hasMore,
       };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to get log', detail: String(err) });

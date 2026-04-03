@@ -376,3 +376,18 @@ Already up to date.
 
   Merging to main: No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment
 Already up to date.
+[main 3c3a255d] chore(backlog): done – No unified set management — set creation, deletion, rename, reorder, and duplication are scattered across TokenList context menus, SetSwitcher (read-only), and ThemeManager set assignment
+ 8 files changed, 471 insertions(+), 50 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No unified set management — set creation, deletion, rename, reorder, and duplication scattered across UI
+- Extended `SetSwitcher.tsx` from a read-only spotlight into a two-mode panel (Switch | Manage). The Switch mode retains existing UX (fuzzy search, arrow-key navigation, Enter to switch, Escape to close). The Manage mode shows all sets with per-row action buttons (move up ↑, move down ↓, rename ✎, duplicate ⎘, delete 🗑), token counts, folder-prefix dimming, and an inline "New set" create form.
+- Added `showManageSets` / `setShowManageSets` to `useModalVisibility.ts` so "Manage sets" can open the panel in manage mode directly.
+- Added `createSetByName` callback in `App.tsx` that calls `POST /api/sets` directly (accepts a name param, unlike the existing `handleCreateSet` which reads from `useSetTabs` local state).
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  4 queued · 3 in-progress · last took 8m40s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager coverage gap auto-fill buttons are hidden behind hover (opacity-0 group-hover:opacity-100) — the "Fill" action per token and "Fill all gaps" per option are the primary recovery action for coverage gaps but are invisible until the user hovers; make them always visible or use the faint-always-visible pattern (ThemeManager.tsx coverage section ~L2054-2150)
+  Worktree: /tmp/backlog-81661-Qu5g7A
+  Running agent… (started 13:02:28)

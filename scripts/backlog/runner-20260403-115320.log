@@ -355,3 +355,10 @@ Already up to date.
   → HistoryPanel fetches only the last 50 Git commits with no pagination or search — users with active repos quickly exceed this limit and lose visibility into older changes; add "Load more" pagination and a commit message search filter (HistoryPanel.tsx ~L209, ~L542-570)
   Worktree: /tmp/backlog-80049-9rAuGL
   Running agent… (started 12:57:05)
+
+  ✓ done: HistoryPanel fetches only the last 50 Git commits with no pagination or search — users with active repos quickly exceed this limit and lose visibility into older changes; add "Load more" pagination and a commit message search filter (HistoryPanel.tsx ~L209, ~L542-570)
+    Added server-side `offset`+`search` params to `/api/sync/log` (git --skip / --grep), updated both HistoryPanel main timeline and GitCommitsSource with a debounced commit search input and "Load more commits" pagination button
+    37 turns · 325s · $1.16
+
+  Merging to main: HistoryPanel fetches only the last 50 Git commits with no pagination or search — users with active repos quickly exceed this limit and lose visibility into older changes; add "Load more" pagination and a commit message search filter (HistoryPanel.tsx ~L209, ~L542-570)
+Already up to date.

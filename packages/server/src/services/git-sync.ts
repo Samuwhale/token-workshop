@@ -319,8 +319,14 @@ export class GitSync {
     await this.git.checkoutLocalBranch(branch);
   }
 
-  async log(limit = 20) {
-    return this.git.log({ maxCount: limit });
+  async log(limit = 20, offset = 0, search?: string) {
+    const options: Record<string, unknown> = { maxCount: limit };
+    if (offset > 0) options['--skip'] = offset;
+    if (search) {
+      options['--grep'] = search;
+      options['--regexp-ignore-case'] = null;
+    }
+    return this.git.log(options as Parameters<typeof this.git.log>[0]);
   }
 
   /** Get the content of a file at a specific commit. Returns null if the file doesn't exist at that commit. */

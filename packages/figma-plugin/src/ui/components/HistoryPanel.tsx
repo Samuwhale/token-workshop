@@ -181,6 +181,16 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
   const [timelineSnapshots, setTimelineSnapshots] = useState<SnapshotSummary[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(true);
+  const [hasMoreCommits, setHasMoreCommits] = useState(false);
+  const [commitOffset, setCommitOffset] = useState(0);
+  const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
+  const [commitSearch, setCommitSearch] = useState('');
+  const [debouncedCommitSearch, setDebouncedCommitSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCommitSearch(commitSearch), 300);
+    return () => clearTimeout(timer);
+  }, [commitSearch]);
 
   // Navigation state
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null);
@@ -201,15 +211,18 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   // Local undo stack visibility
   const [localOpen, setLocalOpen] = useState(true);
 
-  const fetchTimeline = useCallback(async () => {
+  const fetchTimeline = useCallback(async (search = '') => {
     if (!connected) return;
     setTimelineLoading(true);
+    setCommitOffset(0);
     try {
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
       const [commitsData, snapshotsData] = await Promise.all([
-        apiFetch<{ commits?: CommitEntry[] }>(`${serverUrl}/api/sync/log?limit=50`).catch(() => ({ commits: [] as CommitEntry[] })),
+        apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`).catch(() => ({ commits: [] as CommitEntry[], hasMore: false })),
         apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`).catch(() => ({ snapshots: [] as SnapshotSummary[] })),
       ]);
       setTimelineCommits(commitsData.commits ?? []);
+      setHasMoreCommits(commitsData.hasMore ?? false);
       setTimelineSnapshots(snapshotsData.snapshots ?? []);
     } finally {
       setTimelineLoading(false);
@@ -217,8 +230,25 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   }, [serverUrl, connected]);
 
   useEffect(() => {
-    fetchTimeline();
-  }, [fetchTimeline]);
+    fetchTimeline(debouncedCommitSearch);
+  }, [fetchTimeline, debouncedCommitSearch]);
+
+  const handleLoadMoreCommits = useCallback(async () => {
+    if (!connected || loadingMoreCommits) return;
+    setLoadingMoreCommits(true);
+    const nextOffset = commitOffset + 50;
+    try {
+      const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
+      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
+        `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
+      ).catch(() => ({ commits: [] as CommitEntry[], hasMore: false }));
+      setTimelineCommits(prev => [...prev, ...(data.commits ?? [])]);
+      setHasMoreCommits(data.hasMore ?? false);
+      setCommitOffset(nextOffset);
+    } finally {
+      setLoadingMoreCommits(false);
+    }
+  }, [serverUrl, connected, loadingMoreCommits, commitOffset, debouncedCommitSearch]);
 
   const handleRollback = useCallback(async (opId: string) => {
     setRollingBack(opId);
@@ -404,10 +434,32 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               </svg>
               Save state
             </button>
-            <span className="flex-1" />
+            <div className="flex items-center gap-1 flex-1 min-w-0 mx-2">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                value={commitSearch}
+                onChange={e => setCommitSearch(e.target.value)}
+                placeholder="Search commits…"
+                className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
+              />
+              {commitSearch && (
+                <button
+                  onClick={() => setCommitSearch('')}
+                  className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <button
-              onClick={fetchTimeline}
-              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              onClick={() => fetchTimeline(debouncedCommitSearch)}
+              className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               Refresh
             </button>
@@ -602,6 +654,23 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           );
         })}
 
+        {/* Load more commits */}
+        {hasMoreCommits && (
+          <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
+            <button
+              onClick={handleLoadMoreCommits}
+              disabled={loadingMoreCommits}
+              className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {loadingMoreCommits ? (
+                <><Spinner size="xs" />Loading…</>
+              ) : (
+                'Load more commits'
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Load more server operations */}
         {hasMoreOperations && onLoadMoreOperations && (
           <div className="px-3 py-2">
@@ -651,6 +720,17 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   // Per-token filter: map from commit hash → change for that token (after eager fetch)
   const [tokenFilterMap, setTokenFilterMap] = useState<Map<string, TokenChange> | null>(null);
   const [filterLoading, setFilterLoading] = useState(false);
+  // Commit message search + pagination
+  const [commitSearch, setCommitSearch] = useState('');
+  const [debouncedCommitSearch, setDebouncedCommitSearch] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [commitOffset, setCommitOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCommitSearch(commitSearch), 300);
+    return () => clearTimeout(timer);
+  }, [commitSearch]);
 
   // Debounce filterTokenPath so rapid changes (e.g. keystroke-by-keystroke input)
   // don't fire a separate batch of API requests for each intermediate value.
@@ -660,15 +740,18 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
     return () => clearTimeout(timer);
   }, [filterTokenPath]);
 
-  const fetchCommits = useCallback(async () => {
+  const fetchCommits = useCallback(async (search = '') => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
     setError(null);
+    setCommitOffset(0);
     try {
-      const data = await apiFetch<{ commits?: CommitEntry[] }>(`${serverUrl}/api/sync/log?limit=50`, { signal: controller.signal });
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
+      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`, { signal: controller.signal });
       setCommits(data.commits || []);
+      setHasMore(data.hasMore ?? false);
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
       setError(String((err as Error).message || err));
@@ -679,9 +762,26 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
 
   useEffect(() => {
     if (skipListFetch) return;
-    fetchCommits();
+    fetchCommits(debouncedCommitSearch);
     return () => { abortRef.current?.abort(); };
-  }, [fetchCommits, skipListFetch]);
+  }, [fetchCommits, skipListFetch, debouncedCommitSearch]);
+
+  const handleLoadMoreCommits = useCallback(async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const nextOffset = commitOffset + 50;
+    try {
+      const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
+      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
+        `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
+      ).catch(() => ({ commits: [] as CommitEntry[], hasMore: false }));
+      setCommits(prev => [...prev, ...(data.commits ?? [])]);
+      setHasMore(data.hasMore ?? false);
+      setCommitOffset(nextOffset);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [serverUrl, loadingMore, commitOffset, debouncedCommitSearch]);
 
   // When debouncedFilterPath changes, eagerly fetch all commit details to build filter map
   useEffect(() => {
@@ -1075,18 +1175,45 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-          {filterTokenPath
-            ? `${displayCommits.length} of ${commits.length} commit${commits.length !== 1 ? 's' : ''}`
-            : `${commits.length} commit${commits.length !== 1 ? 's' : ''}`}
-        </span>
-        <button
-          onClick={fetchCommits}
-          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-        >
-          Refresh
-        </button>
+      <div className="shrink-0 flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div className="flex items-center justify-between px-3 py-2">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+            {filterTokenPath
+              ? `${displayCommits.length} of ${commits.length} commit${commits.length !== 1 ? 's' : ''}`
+              : `${commits.length} commit${commits.length !== 1 ? 's' : ''}${hasMore ? '+' : ''}`}
+          </span>
+          <button
+            onClick={() => fetchCommits(debouncedCommitSearch)}
+            className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+          >
+            Refresh
+          </button>
+        </div>
+        {!filterTokenPath && (
+          <div className="flex items-center gap-1.5 px-3 pb-2">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={commitSearch}
+              onChange={e => setCommitSearch(e.target.value)}
+              placeholder="Search commits…"
+              className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
+            />
+            {commitSearch && (
+              <button
+                onClick={() => setCommitSearch('')}
+                className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                aria-label="Clear search"
+              >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Empty filter result */}
@@ -1099,6 +1226,19 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
           <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
             No commits found that changed this token.
           </p>
+        </div>
+      )}
+
+      {/* Empty search result */}
+      {!filterTokenPath && !loading && commits.length === 0 && debouncedCommitSearch && (
+        <div className="flex flex-col items-center justify-center flex-1 px-5 py-8 text-center gap-3">
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No commits match "{debouncedCommitSearch}".</p>
+          <button
+            onClick={() => setCommitSearch('')}
+            className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+          >
+            Clear search
+          </button>
         </div>
       )}
 
@@ -1151,6 +1291,23 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
             </button>
           );
         })}
+
+        {/* Load more commits */}
+        {!filterTokenPath && hasMore && (
+          <div className="px-3 py-3">
+            <button
+              onClick={handleLoadMoreCommits}
+              disabled={loadingMore}
+              className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {loadingMore ? (
+                <><Spinner size="xs" />Loading…</>
+              ) : (
+                'Load more commits'
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
