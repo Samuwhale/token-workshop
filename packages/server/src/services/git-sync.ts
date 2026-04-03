@@ -273,7 +273,9 @@ export class GitSync {
     const filePath = path.resolve(this.dir, file);
     const content = await fs.readFile(filePath, 'utf-8');
     const resolved = resolveConflictContent(content, choices);
-    await fs.writeFile(filePath, resolved, 'utf-8');
+    const tmp = `${filePath}.tmp`;
+    await fs.writeFile(tmp, resolved, 'utf-8');
+    await fs.rename(tmp, filePath);
     await this.git.add([file]);
   }
 

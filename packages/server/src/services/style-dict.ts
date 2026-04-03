@@ -229,13 +229,17 @@ export async function exportTokens(
   // Pre-resolve alias references inside gradient stop color fields so that
   // Style Dictionary receives concrete color values rather than {path} refs.
   const resolvedMerged = resolveGradientStopAliases(merged);
-  await fs.writeFile(tokenFile, JSON.stringify(resolvedMerged, null, 2));
+  const tokenFileTmp = `${tokenFile}.tmp`;
+  await fs.writeFile(tokenFileTmp, JSON.stringify(resolvedMerged, null, 2));
+  await fs.rename(tokenFileTmp, tokenFile);
 
   // For CSS exports: create a separate token file where formula tokens have
   // their $value replaced with a calc() expression.
   const cssTokenFile = path.join(tmpDir, 'tokens-css.json');
   const cssOptimized = injectFormulaCalc(resolvedMerged);
-  await fs.writeFile(cssTokenFile, JSON.stringify(cssOptimized, null, 2));
+  const cssTokenFileTmp = `${cssTokenFile}.tmp`;
+  await fs.writeFile(cssTokenFileTmp, JSON.stringify(cssOptimized, null, 2));
+  await fs.rename(cssTokenFileTmp, cssTokenFile);
 
   const results: ExportResult[] = [];
 

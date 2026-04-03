@@ -379,3 +379,12 @@
   - Dedup recent tokens against pinned (exclude pinned paths from recent section) to avoid showing the same token twice.
   - `runningIdx` in the grouped sections IIFE must be offset by the number of token quick-access items rendered above it, so keyboard navigation flat indices stay consistent with the visual order.
 ---
+
+## 2026-04-03 - Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
+- Applied tmp+rename atomic write pattern to three services. `manual-snapshot.ts` was already fixed (stale reference in item). Fixed: `LintConfigStore.save` in `lint.ts`; tokenFile and cssTokenFile writes in `style-dict.ts`; `resolveFileConflict` write in `git-sync.ts`.
+- Files changed: `packages/server/src/services/lint.ts` ~L80, `packages/server/src/services/style-dict.ts` ~L232,238, `packages/server/src/services/git-sync.ts` ~L276
+- **Learnings for future iterations:**
+  - `manual-snapshot.ts` had already been fixed in a prior session — always verify before implementing.
+  - The `style-dict.ts` writes are to a temp/output dir (not chokidar-watched), but the tmp+rename pattern still improves crash safety for user-provided `outputDir`.
+  - `git-sync.ts` `resolveFileConflict` writes `.tokens.json` files directly in the token directory — these are definitely chokidar-watched and needed the fix.
+---

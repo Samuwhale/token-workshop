@@ -77,7 +77,9 @@ export class LintConfigStore {
 
   async save(config: LintConfig): Promise<void> {
     this.config = structuredClone(config);
-    await fs.writeFile(this.configPath, JSON.stringify(config, null, 2));
+    const tmp = `${this.configPath}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(config, null, 2));
+    await fs.rename(tmp, this.configPath);
   }
 
   async get(): Promise<LintConfig> {

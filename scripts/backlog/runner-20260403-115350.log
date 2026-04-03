@@ -415,3 +415,10 @@ Already up to date.
   → Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts — these services use direct `fs.writeFile()` without the tmp+rename pattern used by token-store, resolver-store, generator-service, operation-log, and themes route; lint.ts:80 and manual-snapshot.ts:66 write JSON config that chokidar watchers could see as partial content; style-dict.ts:232,238 writes export files that could be corrupted on crash; git-sync.ts:276 writes resolved merge output directly
   Worktree: /tmp/backlog-81267-O7wy0G
   Running agent… (started 12:41:23)
+
+  ✓ done: Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
+    Applied tmp+rename atomic write pattern to lint.ts (LintConfigStore.save), style-dict.ts (tokenFile + cssTokenFile), and git-sync.ts (resolveFileConflict); manual-snapshot.ts was already fixed
+    12 turns · 88s · $0.33
+
+  Merging to main: Non-atomic file writes in lint.ts, manual-snapshot.ts, style-dict.ts, and git-sync.ts
+Already up to date.
