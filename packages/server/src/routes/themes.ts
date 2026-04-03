@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ThemeDimension, ThemesFile, ThemeSetStatus } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import { handleRouteError } from '../errors.js';
+import { handleRouteError, NotFoundError, ConflictError, BadRequestError } from '../errors.js';
 
 const VALID_THEME_SET_STATUSES = new Set<string>(['enabled', 'disabled', 'source']);
 
@@ -161,7 +161,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     try {
       const dimension = await withThemeLock('theme-dimension-create', async (dimensions) => {
         if (dimensions.some(d => d.id === id)) {
-          throw Object.assign(new Error(`Dimension with id "${id}" already exists`), { statusCode: 409 });
+          throw new ConflictError(`Dimension with id "${id}" already exists`);
         }
         const dim: ThemeDimension = { id, name: name.trim(), options: [] };
         dimensions.push(dim);
@@ -184,7 +184,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       const dimension = await withThemeLock('theme-dimension-rename', async (dimensions) => {
         const idx = dimensions.findIndex(d => d.id === id);
         if (idx === -1) {
-          throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+          throw new NotFoundError(`Dimension "${id}" not found`);
         }
         const oldName = dimensions[idx].name;
         dimensions[idx] = { ...dimensions[idx], name: name.trim() };
@@ -207,11 +207,11 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const byId = new Map(dimensions.map(d => [d.id, d]));
         for (const id of dimensionIds) {
           if (!byId.has(id)) {
-            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 400 });
+            throw new BadRequestError(`Dimension "${id}" not found`);
           }
         }
         if (dimensionIds.length !== dimensions.length || new Set(dimensionIds).size !== dimensionIds.length) {
-          throw Object.assign(new Error('dimensionIds must list every dimension id exactly once'), { statusCode: 400 });
+          throw new BadRequestError('dimensionIds must list every dimension id exactly once');
         }
         const newOrder = dimensionIds.map(id => byId.get(id)!);
         return { dims: newOrder, result: newOrder, description: 'Reorder theme dimensions' };
@@ -229,7 +229,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       await withThemeLock('theme-dimension-delete', async (dimensions) => {
         const dim = dimensions.find(d => d.id === id);
         if (!dim) {
-          throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+          throw new NotFoundError(`Dimension "${id}" not found`);
         }
         const filtered = dimensions.filter(d => d.id !== id);
         return { dims: filtered, result: undefined, description: `Delete theme dimension "${dim.name}"` };
@@ -260,7 +260,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const { option, status } = await withThemeLock('theme-option-upsert', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
-            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+            throw new NotFoundError(`Dimension "${id}" not found`);
           }
           const dim = dimensions[dimIdx];
           const optIdx = dim.options.findIndex(o => o.name === trimmedName);
@@ -298,15 +298,15 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const option = await withThemeLock('theme-option-rename', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
-            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+            throw new NotFoundError(`Dimension "${id}" not found`);
           }
           const dim = dimensions[dimIdx];
           const optIdx = dim.options.findIndex(o => o.name === optionName);
           if (optIdx === -1) {
-            throw Object.assign(new Error(`Option "${optionName}" not found in dimension "${id}"`), { statusCode: 404 });
+            throw new NotFoundError(`Option "${optionName}" not found in dimension "${id}"`);
           }
           if (newName !== optionName && dim.options.some(o => o.name === newName)) {
-            throw Object.assign(new Error(`Option "${newName}" already exists in this dimension`), { statusCode: 409 });
+            throw new ConflictError(`Option "${newName}" already exists in this dimension`);
           }
           dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
           return { dims: dimensions, result: dim.options[optIdx], description: `Rename option "${optionName}" → "${newName}" in dimension "${dim.name}"` };
@@ -331,17 +331,17 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         const dimension = await withThemeLock('theme-option-reorder', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
-            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+            throw new NotFoundError(`Dimension "${id}" not found`);
           }
           const dim = dimensions[dimIdx];
           const byName = new Map(dim.options.map(o => [o.name, o]));
           for (const name of options) {
             if (!byName.has(name)) {
-              throw Object.assign(new Error(`Option "${name}" not found in dimension "${id}"`), { statusCode: 400 });
+              throw new BadRequestError(`Option "${name}" not found in dimension "${id}"`);
             }
           }
           if (options.length !== dim.options.length || new Set(options).size !== options.length) {
-            throw Object.assign(new Error('options must list every option name exactly once'), { statusCode: 400 });
+            throw new BadRequestError('options must list every option name exactly once');
           }
           dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
           return { dims: dimensions, result: dimensions[dimIdx], description: `Reorder options in dimension "${dim.name}"` };
@@ -362,12 +362,12 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         await withThemeLock('theme-option-delete', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
-            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+            throw new NotFoundError(`Dimension "${id}" not found`);
           }
           const dim = dimensions[dimIdx];
           const filtered = dim.options.filter(o => o.name !== optionName);
           if (filtered.length === dim.options.length) {
-            throw Object.assign(new Error(`Option "${optionName}" not found in dimension "${id}"`), { statusCode: 404 });
+            throw new NotFoundError(`Option "${optionName}" not found in dimension "${id}"`);
           }
           dimensions[dimIdx] = { ...dim, options: filtered };
           return { dims: dimensions, result: undefined, description: `Delete option "${optionName}" from dimension "${dim.name}"` };

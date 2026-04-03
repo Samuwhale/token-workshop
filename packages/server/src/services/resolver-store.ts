@@ -21,6 +21,7 @@ import {
   getDefaultResolverInput,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../errors.js';
 
 // ---------------------------------------------------------------------------
 // Name validation
@@ -119,15 +120,15 @@ export class ResolverStore {
 
   async create(name: string, file: ResolverFile): Promise<void> {
     const nameErr = validateName(name);
-    if (nameErr) throw Object.assign(new Error(nameErr), { statusCode: 400 });
+    if (nameErr) throw new BadRequestError(nameErr);
 
     if (this.resolvers.has(name)) {
-      throw Object.assign(new Error(`Resolver "${name}" already exists.`), { statusCode: 409 });
+      throw new ConflictError(`Resolver "${name}" already exists.`);
     }
 
     const validationErrors = validateResolverFile(file);
     if (validationErrors.length > 0) {
-      throw Object.assign(new Error(validationErrors.join('; ')), { statusCode: 400 });
+      throw new BadRequestError(validationErrors.join('; '));
     }
 
     await this.writeToDisk(name, file);
@@ -136,12 +137,12 @@ export class ResolverStore {
 
   async update(name: string, file: ResolverFile): Promise<void> {
     if (!this.resolvers.has(name)) {
-      throw Object.assign(new Error(`Resolver "${name}" not found.`), { statusCode: 404 });
+      throw new NotFoundError(`Resolver "${name}" not found.`);
     }
 
     const validationErrors = validateResolverFile(file);
     if (validationErrors.length > 0) {
-      throw Object.assign(new Error(validationErrors.join('; ')), { statusCode: 400 });
+      throw new BadRequestError(validationErrors.join('; '));
     }
 
     await this.writeToDisk(name, file);
@@ -177,7 +178,7 @@ export class ResolverStore {
   ): Promise<ResolverResult> {
     const file = this.resolvers.get(name);
     if (!file) {
-      throw Object.assign(new Error(`Resolver "${name}" not found.`), { statusCode: 404 });
+      throw new NotFoundError(`Resolver "${name}" not found.`);
     }
 
     const loadExternal = async (filePath: string) => {

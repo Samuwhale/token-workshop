@@ -38,9 +38,8 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         rollbackSteps: [{ action: 'delete-resolver', name }],
       });
       return reply.status(201).send({ ok: true, name });
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      return reply.status(e.statusCode || 500).send({ error: e.message });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to create resolver');
     }
   });
 
@@ -80,9 +79,8 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
       });
       return reply.status(201).send({ ok: true, name: resolverName, resolver: resolverFile });
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      return reply.status(e.statusCode || 500).send({ error: e.message });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to convert themes to resolver');
     }
   });
 
@@ -114,9 +112,8 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
           : [],
       });
       return { ok: true };
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      return reply.status(e.statusCode || 500).send({ error: e.message });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to update resolver');
     }
   });
 
@@ -190,9 +187,8 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
           };
         }
         return { tokens: flat, diagnostics };
-      } catch (err: unknown) {
-        const e = err as Error & { statusCode?: number };
-        return reply.status(e.statusCode || 500).send({ error: e.message });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to resolve tokens');
       }
     },
   );
