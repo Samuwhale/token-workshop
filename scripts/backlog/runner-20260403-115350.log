@@ -21,3 +21,10 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
   → ExportPanel preview does not update when export filters change — after an export is generated the preview tab shows a file sample, but changing the type filter, path prefix, or platform selection does not refresh it (ExportPanel.tsx ~L287); users must click Export again just to see the effect of filter changes; add a "Refresh preview" button that re-runs the export with current settings and updates the preview without requiring a download
   Worktree: /tmp/backlog-81267-IW1HDP
   Running agent… (started 11:53:50)
+
+  ✓ done: ExportPanel preview does not update when export filters change
+    Added a Refresh button in the preview header that re-runs handleExport with current settings to update the preview in place
+    14 turns · 72s · $0.34
+
+  Merging to main: ExportPanel preview does not update when export filters change
+Already up to date.

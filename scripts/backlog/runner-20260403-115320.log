@@ -28,3 +28,20 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: ThemeManager has no "fill all coverage gaps" one-click action per dimension
 Already up to date.
+[main f58c3d36] chore(backlog): done – ThemeManager has no "fill all coverage gaps" one-click action per dimension
+ 8 files changed, 93 insertions(+), 4 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-115350.log
+ create mode 100644 scripts/backlog/runner-20260403-115358.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - ThemeManager has no "fill all coverage gaps" one-click action per dimension
+- Feature already fully implemented: `handleAutoFillAllOptions(dimId)` at ThemeManager.tsx ~L728 aggregates fillable tokens across all options in a dimension into a per-set batch; `executeAutoFillAllOptions` at ~L763 fires the batch API calls; a "Fill all options (N)" banner at ~L1610 renders when `multiOptionGaps && totalDimFillable > 0`. No changes made.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  6 queued · 3 in-progress · last took 54s
+═══════════════════════════════════════════════════════════════
+  → Command palette has no "jump to next validation issue" action — fixing validation errors requires switching to the Analytics panel, finding each broken token, and navigating to it manually; add a "Next issue" command (or F8-style keyboard shortcut) that selects and scrolls to the next token with an active lint/validation violation, enabling a fast "fix and advance" workflow without leaving the token tree (CommandPalette.tsx, AnalyticsPanel.tsx lintViolations data)
+  Worktree: /tmp/backlog-80049-HzgijP
+  Running agent… (started 11:54:15)

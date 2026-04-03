@@ -369,3 +369,11 @@
 - **Learnings for future iterations:**
   - Backlog items can be stale when the feature was implemented in a prior session — always search for the handler by name before implementing.
 ---
+
+## 2026-04-03 - ExportPanel preview does not update when export filters change
+- Added a "Refresh preview" button in the preview section header that re-runs `handleExport` with current settings, updating the preview without triggering a download. Button shows a spinner while exporting and is disabled when no platforms are selected, not connected, or currently exporting.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L884
+- **Learnings for future iterations:**
+  - The existing `handleExport` already handles fetching and updating `results` state — no new logic was needed, just a UI affordance to call it again after filter changes.
+  - The preview header area (platform count label) was the natural anchor for the refresh button since it already communicated result count context.
+---

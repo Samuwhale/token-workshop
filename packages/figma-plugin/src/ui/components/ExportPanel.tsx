@@ -885,8 +885,26 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                       Preview
                     </div>
-                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      {results.length} file{results.length !== 1 ? 's' : ''}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExport}
+                        disabled={selected.size === 0 || !connected || exporting}
+                        title="Re-run export with current settings"
+                        className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {exporting ? (
+                          <Spinner size="sm" />
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                          </svg>
+                        )}
+                        Refresh
+                      </button>
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        {results.length} file{results.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
                   </div>
 

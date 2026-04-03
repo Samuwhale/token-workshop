@@ -1,0 +1,23 @@
+NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    82379
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260403-115416.log
+  Passes: enabled (every 12 items)
+
+  Queue:    5 ready · 4 in-progress · 3 failed
+  Done:     1045 total (next code pass in 11, product pass in 5)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  5 queued · 4 in-progress
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel color contrast matrix is capped at 16 tokens with no way to see more — the matrix is limited (AnalyticsPanel.tsx ~L232-236) for performance, but token sets often have 30-50 color tokens; users cannot audit contrast for tokens beyond the cap; add pagination or a "selected pairs only" mode that lets users pick specific tokens to compare rather than always computing the full NxN matrix
+  Worktree: /tmp/backlog-82379-7Q81cO
+  Running agent… (started 11:54:16)
