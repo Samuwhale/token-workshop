@@ -215,3 +215,10 @@ Already up to date.
   → No way to search or filter tokens by value in the command palette — the command palette (Cmd+K) supports token path search and group navigation but doesn't expose the `value:` qualifier that the token list search bar supports; power users who want to quickly find "all tokens with value #FF0000" must leave the command palette and type `value:#FF0000` in the search bar instead; wire the `value:` qualifier into the command palette's token search mode
   Worktree: /tmp/backlog-81661-soUB8U
   Running agent… (started 12:22:31)
+
+  ✓ done: No way to search or filter tokens by value in the command palette
+    stale — already done; value: qualifier is fully wired in filterTokensStructured() at CommandPalette.tsx:117-120 and exposed via QUERY_QUALIFIERS chips
+    12 turns · 162s · $0.46
+
+  Merging to main: No way to search or filter tokens by value in the command palette
+Already up to date.

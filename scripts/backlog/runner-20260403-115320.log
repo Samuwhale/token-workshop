@@ -215,3 +215,18 @@ Already up to date.
 
   Merging to main: TokenFlowPanel (dependency graph) has no loading state and no empty state guidance
 Already up to date.
+[main 53378e7f] chore(backlog): done – TokenFlowPanel (dependency graph) has no loading state and no empty state guidance
+ 8 files changed, 59 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenFlowPanel has no loading state and no empty state guidance
+- The empty state (no token selected) already existed from a prior session. Added the missing loading state: `tokensLoading` boolean added to `useTokenDataLoading` hook (set true before fetch, false on resolve/reject/disconnect). Threaded through App.tsx to `TokenFlowPanel` via new `loading` prop. When loading, panel shows a CSS `animate-spin` spinner with "Loading tokens…" text. Empty state text updated to "Select a token to see its dependency graph." to match backlog spec.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L17, ~L59; `packages/figma-plugin/src/ui/App.tsx` ~L321, ~L2209; `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L22, ~L270, ~L502
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  7 queued · 3 in-progress · last took 3m42s
+═══════════════════════════════════════════════════════════════
+  → No global cross-set find-and-replace for token values — the existing find-and-replace (useFindReplace hook, Cmd+H) only operates on token paths/names within a single set; there's no way to find and replace token *values* (e.g., change all `#FF0000` color values to `#EE0000`) or to run a find-replace across all sets at once; the server has per-set `bulk-rename` but no cross-set or value-targeting variant
+  Worktree: /tmp/backlog-80049-K0eR4r
+  Running agent… (started 12:24:45)

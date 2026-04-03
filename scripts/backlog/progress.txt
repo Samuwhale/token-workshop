@@ -436,3 +436,10 @@
   - `useTokenDataLoading` is the single source of truth for flat token state — loading state belongs there, not in the panel itself.
   - Tailwind `animate-spin` works fine for a loading spinner; just need a circular div with a transparent-except-one-side border.
 ---
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenFormatting.ts` (new), `packages/figma-plugin/src/ui/components/ComparePanel.tsx` ~L13, `packages/figma-plugin/src/ui/components/CrossThemeComparePanel.tsx` ~L28, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L140, `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L19, `packages/figma-plugin/src/ui/shared/changeHelpers.tsx` ~L56
+- **Learnings for future iterations:**
+  - Typography: ComparePanel had the most complete implementation (includes lineHeight). CrossThemeComparePanel omitted lineHeight — the shared function now provides lineHeight for all callers.
+  - Shadow: tokenListUtils had the best compact representation (×N prefix, fallback property names); ComparePanel expanded all shadows. Shared function uses the compact approach.
+  - `emptyPlaceholder` option bridges the '—' vs '' disagreement between callers without breaking existing behavior.
+  - `isDimensionLike` is intentionally defined locally in tokenFormatting.ts (not imported from generatorShared or core) to avoid the no-re-exports-from-core rule and keep the shared utility self-contained.
+---
