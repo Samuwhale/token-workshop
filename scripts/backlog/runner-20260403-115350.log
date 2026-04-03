@@ -667,3 +667,10 @@ Already up to date.
   → Token editor Extensions JSON field has no real-time syntax validation — invalid JSON in the custom extensions textarea is only caught at save time with "Invalid JSON in Extensions — fix before saving"; add inline validation on change with syntax error highlighting, matching how JSON editors work in VS Code (TokenEditor.tsx ~L1060-1071)
   Worktree: /tmp/backlog-81267-3B6BKF
   Running agent… (started 13:36:59)
+
+  ✓ done: Token editor Extensions JSON field has no real-time syntax validation
+    Added `getJsonErrorInfo()` helper that extracts line/col from V8 SyntaxError position info; raw-mode textarea now shows "Line N, col M: <message>" with a monospace caret snippet pointing at the error — VS Code style, no external deps
+    27 turns · 235s · $0.79
+
+  Merging to main: Token editor Extensions JSON field has no real-time syntax validation
+Already up to date.

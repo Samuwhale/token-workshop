@@ -109,6 +109,46 @@ function syncFromEntries(
 
 const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
 
+interface JsonErrorInfo {
+  message: string;
+  line?: number;
+  col?: number;
+  errorLine?: string;
+}
+
+function getJsonErrorInfo(text: string): JsonErrorInfo | null {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed === '{}') return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) return { message: 'Must be a JSON object' };
+    return null;
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) return { message: 'Invalid JSON' };
+    const msg = e.message;
+    // V8: "Unexpected token '}', "..text.." is not valid JSON"
+    // V8 newer: "Expected ',' or '}' after property value in JSON at position 45"
+    const posMatch = msg.match(/at position (\d+)/i);
+    // Clean verbose V8-style suffix
+    let cleanMsg = msg
+      .replace(/, ".{0,300}" is not valid JSON$/, '')
+      .replace(/ at position \d+$/i, '')
+      .trim();
+    if (!cleanMsg) cleanMsg = 'Invalid JSON';
+
+    if (posMatch) {
+      const pos = parseInt(posMatch[1], 10);
+      const textBefore = trimmed.slice(0, pos);
+      const linesBefore = textBefore.split('\n');
+      const line = linesBefore.length;
+      const col = linesBefore[linesBefore.length - 1].length + 1;
+      const errorLine = trimmed.split('\n')[line - 1] ?? '';
+      return { message: `Line ${line}, col ${col}: ${cleanMsg}`, line, col, errorLine };
+    }
+    return { message: cleanMsg };
+  }
+}
+
 function ExtensionsEditor({
   showExtensions, onToggleExtensions,
   extensionsJsonText, onExtensionsJsonTextChange,
@@ -121,6 +161,7 @@ function ExtensionsEditor({
   extensionsJsonError: string | null;
   onExtensionsJsonErrorChange: (err: string | null) => void;
 }) {
+  const [jsonErrorInfo, setJsonErrorInfo] = useState<JsonErrorInfo | null>(null);
   const [rawMode, setRawMode] = useState(false);
   const [entries, setEntries] = useState<ExtEntry[]>(() => parseEntries(extensionsJsonText) ?? []);
   // Track the last jsonText we synced from, to detect external changes
@@ -132,9 +173,11 @@ function ExtensionsEditor({
     if (parsed !== null) {
       setEntries(parsed);
       if (rawMode && parsed.length > 0) setRawMode(false);
+      setJsonErrorInfo(null);
     } else {
       // Can't parse — switch to raw mode
       setRawMode(true);
+      setJsonErrorInfo(getJsonErrorInfo(extensionsJsonText));
     }
     setLastSyncedText(extensionsJsonText);
   }
@@ -244,22 +287,9 @@ function ExtensionsEditor({
                   const text = e.target.value;
                   onExtensionsJsonTextChange(text);
                   setLastSyncedText(text);
-                  const trimmed = text.trim();
-                  if (!trimmed || trimmed === '{}') {
-                    onExtensionsJsonErrorChange(null);
-                  } else {
-                    try {
-                      const parsed = JSON.parse(trimmed);
-                      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                        onExtensionsJsonErrorChange('Must be a JSON object');
-                      } else {
-                        onExtensionsJsonErrorChange(null);
-                      }
-                    } catch (e) {
-                      console.debug('[MetadataEditor] extensions JSON parse error:', e);
-                      onExtensionsJsonErrorChange('Invalid JSON');
-                    }
-                  }
+                  const errInfo = getJsonErrorInfo(text);
+                  setJsonErrorInfo(errInfo);
+                  onExtensionsJsonErrorChange(errInfo ? errInfo.message : null);
                 }}
                 placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
                 rows={5}
@@ -267,7 +297,18 @@ function ExtensionsEditor({
                 className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
               />
               {extensionsJsonError && (
-                <p className="text-[10px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-[10px] text-[var(--color-figma-error)] flex items-start gap-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-[1px]"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span>{extensionsJsonError}</span>
+                  </p>
+                  {jsonErrorInfo?.errorLine !== undefined && jsonErrorInfo.col !== undefined && (
+                    <div className="font-mono text-[9px] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
+                      <div className="text-[var(--color-figma-text)] whitespace-pre">{jsonErrorInfo.errorLine}</div>
+                      <div className="text-[var(--color-figma-error)] whitespace-pre" aria-hidden="true">{' '.repeat(Math.max(0, jsonErrorInfo.col - 1))}^</div>
+                    </div>
+                  )}
+                </div>
               )}
             </>
           ) : (

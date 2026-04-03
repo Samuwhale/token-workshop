@@ -510,3 +510,11 @@ Already up to date.
 
   Merging to main: Import conflict strategy is binary overwrite-or-skip with no field-level merge
 Already up to date.
+[main 2d576829] chore(backlog): done – Import conflict strategy is binary overwrite-or-skip with no field-level merge
+ 8 files changed, 150 insertions(+), 49 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Import conflict strategy add merge (value update + keep local metadata)
+- Added a "merge" import strategy that updates token `$value` and `$type` from the incoming source while preserving local `$description` and `$extensions` — matching how git merge works for structured data.
+- **Server:** `packages/server/src/services/token-store.ts` ~L720: Added `'merge'` to `batchUpsertTokens` strategy type and merge branch in the existing-token handler (updates `$value`/`$type` only, skips `$description`/`$extensions`). `packages/server/src/routes/tokens.ts` ~L444: Extended batch route type and validation to accept `'merge'`.
+- **UI:** `packages/figma-plugin/src/ui/components/ImportPanel.tsx`:

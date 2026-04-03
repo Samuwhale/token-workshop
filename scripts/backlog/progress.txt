@@ -619,3 +619,16 @@
   - For the Variables import flow (no per-token conflict resolution), the entire batch uses one strategy — adding a third button was sufficient.
   - The 3-state cycle (accept → merge → reject) keeps the per-token UI minimal (single button, same space as before) while adding the third option cleanly.
 ---
+
+## 2026-04-03 - Token editor Extensions JSON field has no real-time syntax validation
+- Added `getJsonErrorInfo()` helper in `MetadataEditor.tsx` that extracts line/col from `SyntaxError` position info (V8-style "at position N" messages) and returns a structured `JsonErrorInfo` object with `message`, `line`, `col`, and `errorLine` fields.
+- Updated the raw-mode textarea `onChange` to call `getJsonErrorInfo` on every keystroke, replacing the inline try/catch block.
+- Added `jsonErrorInfo` state to `ExtensionsEditor` component, initialized and synced on external text changes.
+- Enhanced the error display below the textarea: shows a warning icon + precise message (e.g. "Line 3, col 5: Unexpected token '}'"), and when position info is available, renders a monospace code snippet with a `^` caret pointing at the error column — matching VS Code's style.
+- Files changed: `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L110, ~L164, ~L170, ~L287, ~L299
+- **Learnings for future iterations:**
+  - V8 `JSON.parse` `SyntaxError.message` includes "at position N" (0-based byte offset). Convert to line/col by splitting `text.slice(0, pos)` on `\n`.
+  - The verbose "..., \"...text...\" is not valid JSON" suffix should be stripped with a regex — it echoes the full JSON and is just noise.
+  - `jsonErrorInfo` state needs to be initialized and synced in the external-change branch, not just on user input, so that tokens loaded with pre-existing invalid extensions still show the caret.
+  - The caret snippet uses `whitespace-pre` and `' '.repeat(col - 1)` — no library needed.
+---
