@@ -257,3 +257,10 @@ Already up to date.
   → Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards, while sibling hooks (useLint.ts, useThemeSwitcher.ts, useResolvers.ts) implement the correct pattern; this causes potential setState-on-unmounted-component warnings and stale closure bugs across all async data-fetching hooks; standardize all hooks to check `signal.aborted` before any setState in finally/then blocks and clean up abort refs consistently
   Worktree: /tmp/backlog-91949-cVgG40
   Running agent… (started 01:43:02)
+
+  ✓ done: Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards
+    Added signal.aborted guards before all setState calls in async paths across all four hooks; fixed finally blocks that called setLoading unconditionally even after AbortError returns
+    19 turns · 343s · $0.8
+
+  Merging to main: Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards
+Already up to date.

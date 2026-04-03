@@ -253,12 +253,13 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
       const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, {
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
       });
+      if (controller.signal.aborted) return;
       setGenerators(data);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Failed to fetch generators:', err);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [serverUrl, connected]);
 

@@ -474,3 +474,16 @@
   - Rollback code that swallows its own errors (`.catch(() => {})`) should always at minimum log — callers cannot distinguish "rollback succeeded" from "rollback silently failed and state is corrupted". Throwing a combined error message is better for diagnosability.
   - When propagating errors through a multi-step catch/finally, re-throwing the original error (`throw err`) after logging rollback failures preserves the original cause chain; if rollback itself fails, a new aggregated error with both messages gives the operator enough context to diagnose.
 ---
+
+## 2026-04-04 - Inconsistent async cleanup across UI hooks
+- Added `signal.aborted` guards before every `setState` call in async paths across four hooks:
+  - `useGenerators.ts`: added `if (controller.signal.aborted) return;` before `setGenerators(data)` in try block; changed `setLoading(false)` in finally to `if (!controller.signal.aborted) setLoading(false);`
+  - `useTokens.ts`: changed both `if (gen !== fetchGenRef.current) return;` guards to `|| signal.aborted` to catch unmount races after successful fetches; collapsed two gen-checks on the second block into one
+  - `useFigmaSync.ts`: added `if (abortRef.current.signal.aborted) return;` before `setSyncGroupError` and `setSyncGroupStylesError` in catch blocks; added `if (!signal.aborted)` guard on progress update inside batch loop
+  - `useGeneratorPreview.ts`: added `if (!controller.signal.aborted)` guard around `setPreviewTokens`, `setPreviewError`/`setPreviewTokens` in catch, and `setPreviewLoading` in finally; added `if (controller.signal.aborted) return;` in `.then()` of existing-tokens fetch and `if (!controller.signal.aborted)` in its `.catch()`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L252-262, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L82-101, `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L68-99,140, `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L109-149
+- **Learnings for future iterations:**
+  - `finally` blocks run even after `return` in a `catch` — so `finally: setLoading(false)` fires even when AbortError is caught and returned; always guard with `if (!controller.signal.aborted)`.
+  - For `AbortSignal.any([...])` composed signals, the derived `signal.aborted` is true when any constituent is aborted — can safely use `signal.aborted` even when the signal was never passed to a direct `AbortController`.
+  - The generation counter (`gen !== fetchGenRef.current`) and `signal.aborted` serve different purposes: gen catches "superseded by newer fetch", signal catches "component unmounted". Both checks are needed in multi-await async functions.
+---

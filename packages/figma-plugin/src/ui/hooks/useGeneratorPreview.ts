@@ -106,13 +106,15 @@ export function useGeneratorPreview({
           `${serverUrl}/api/generators/preview`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal },
         );
-        setPreviewTokens(data.tokens ?? []);
+        if (!controller.signal.aborted) setPreviewTokens(data.tokens ?? []);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setPreviewError(getErrorMessage(err, 'Preview failed'));
-        setPreviewTokens([]);
+        if (!controller.signal.aborted) {
+          setPreviewError(getErrorMessage(err, 'Preview failed'));
+          setPreviewTokens([]);
+        }
       } finally {
-        setPreviewLoading(false);
+        if (!controller.signal.aborted) setPreviewLoading(false);
       }
     }, 300);
   }, [serverUrl, selectedType, sourceTokenPath, inlineValue, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, firstBrandRow, inputTable]);
@@ -136,6 +138,7 @@ export function useGeneratorPreview({
     setExistingTokensError('');
     apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
       .then(data => {
+        if (controller.signal.aborted) return;
         const map = flattenTokenGroup(data.tokens || {});
         const obj: Record<string, { $value: unknown; $type: string }> = {};
         for (const [path, token] of map) {
@@ -145,7 +148,7 @@ export function useGeneratorPreview({
       })
       .catch(err => {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setExistingTokensError(getErrorMessage(err, 'Could not load existing tokens — save is blocked to prevent overwriting unknown values'));
+        if (!controller.signal.aborted) setExistingTokensError(getErrorMessage(err, 'Could not load existing tokens — save is blocked to prevent overwriting unknown values'));
       });
     return () => controller.abort();
   }, [serverUrl, targetSet]);

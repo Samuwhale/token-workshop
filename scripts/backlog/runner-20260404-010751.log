@@ -228,3 +228,18 @@ Already up to date.
 
   Merging to main: generator-service.ts has multiple error-handling gaps that can lose data or mislead users
 Already up to date.
+[main e8f4106a] chore(backlog): done – generator-service.ts has multiple error-handling gaps that can lose data or mislead users
+ 6 files changed, 44 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - generator-service.ts has multiple error-handling gaps
+- Fixed three error-handling gaps in `generator-service.ts`:
+  1. `updateBulkTokenPaths`: now throws `BadRequestError` with the regex error message instead of silently returning `count=0` when regex compilation fails (L258-260).
+  2. `executeGenerator`: moved `generatorErrors.delete(generator.id)` to AFTER `saveGenerators()` completes so the error is only cleared once all async operations succeed (previously L598 cleared it before subsequent I/O at L617-618).
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  12 queued · 2 in-progress · last took 4m17s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel `figmaLoadingTimeoutRef` timeout (10s) has no cleanup on component unmount — if the user navigates away from ExportPanel while waiting for a Figma response, the timeout fires and calls `setFigmaLoading(false)` and `setError(...)` on the unmounted component; the ref is cleared on re-entry (L312-314) but not in a useEffect cleanup; additionally the sets-fetch useEffect (L240-247) has no AbortController so in-flight requests complete and setState after unmount (ExportPanel.tsx L308-321)
+  Worktree: /tmp/backlog-92209-r0qf4o
+  Running agent… (started 01:48:45)

@@ -66,6 +66,7 @@ export function useFigmaSync(
         parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} variable${result.count !== 1 ? 's' : ''} synced` } }, '*');
       }
     } catch (err) {
+      if (abortRef.current.signal.aborted) return;
       console.error('Failed to sync group to Figma:', err);
       setSyncGroupError(getErrorMessage(err, 'Failed to sync group to Figma'));
     }
@@ -94,6 +95,7 @@ export function useFigmaSync(
         parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} style${result.count !== 1 ? 's' : ''} created` } }, '*');
       }
     } catch (err) {
+      if (abortRef.current.signal.aborted) return;
       console.error('Failed to create styles from group:', err);
       setSyncGroupStylesError(getErrorMessage(err, 'Failed to create styles from group'));
     }
@@ -137,7 +139,7 @@ export function useFigmaSync(
           });
         }));
         done += batch.length;
-        setGroupScopesProgress({ done, total });
+        if (!signal.aborted) setGroupScopesProgress({ done, total });
       }
       setGroupScopesPath(null);
       setGroupScopesSelected([]);

@@ -79,7 +79,7 @@ export function useTokens(
     try {
       const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; collectionNames?: Record<string, string>; modeNames?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
       const allSets: string[] = setsData.sets || [];
-      if (gen !== fetchGenRef.current) return;
+      if (gen !== fetchGenRef.current || signal.aborted) return;
       setSets(allSets);
       setSetDescriptions(setsData.descriptions || {});
       setSetCollectionNames(setsData.collectionNames || {});
@@ -93,11 +93,9 @@ export function useTokens(
         }
 
         const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
-        if (gen !== fetchGenRef.current) return;
+        if (gen !== fetchGenRef.current || signal.aborted) return;
         setTokens(buildTree(tokensData.tokens || {}));
         setTokenRevision(r => r + 1);
-
-        if (gen !== fetchGenRef.current) return;
         setSetTokenCounts(setsData.counts || {});
       }
     } catch (err) {
