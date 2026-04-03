@@ -512,3 +512,33 @@ Already up to date.
 
   Merging to main: Duplicated Lab→XYZ→sRGB conversion in core package
 Already up to date.
+[main a96a003a] chore(backlog): done – Duplicated Lab→XYZ→sRGB conversion in core package
+ 7 files changed, 43 insertions(+), 19 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Duplicated Lab→XYZ→sRGB conversion in core package
+- Extracted shared `labToSrgb(L, a, b): [number, number, number]` function in `color-math.ts`; rewrote `labToHex` to call `labToSrgb` + `rgbToHex`; updated `color-parse.ts` to import `labToSrgb` and reduced `labToSrgbCoords` to a one-line delegate. The extra `clamp01` in the old `labToSrgbCoords` was redundant since `srgbFromLinear` already clamps internally.
+- Files changed: `packages/core/src/color-math.ts` ~L74, `packages/core/src/color-parse.ts` ~L33,L560
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  4 queued · 3 in-progress · last took 1m33s
+═══════════════════════════════════════════════════════════════
+  → Manual snapshot restore has no concurrency guard and leaks journal on error — `manual-snapshot.ts:restore()` (L204-237) writes a restore journal then iterates sets, but two concurrent restore calls can interleave journal writes and corrupt state; additionally, if `tokenStore.restoreSnapshot()` throws mid-loop, the journal is left on disk and startup recovery will re-replay partially-applied sets; needs a mutex (same promise-chain pattern as TokenStore/GitSync) and a try/finally around the loop to clean up the journal on error
+  Worktree: /tmp/backlog-46178-y8Yy8w
+  Running agent… (started 18:32:41)
+
+  ✓ done: Manual snapshot restore has no concurrency guard and leaks journal on error
+    Added promise-chain mutex to serialize concurrent restore() calls and try/finally to delete journal on programmatic errors while preserving it for crash recovery
+    10 turns · 91s · $0.28
+
+  Merging to main: Manual snapshot restore has no concurrency guard and leaks journal on error
+Already up to date.
+  WARNING: Cherry-pick conflict — aborting merge
+  ✗ Cherry-pick conflict — marked failed
+
+  Milestone: 1193 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

@@ -47,6 +47,11 @@ function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/** Returns true only for finite numbers — rejects NaN and ±Infinity. */
+function isFiniteNum(v: unknown): v is number {
+  return typeof v === 'number' && isFinite(v);
+}
+
 /**
  * Returns a duplicate name from the steps array, or undefined if all are unique.
  */
@@ -128,14 +133,14 @@ function validateGeneratorConfig(
 
   switch (type) {
     case 'colorRamp': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => typeof s === 'number'))
-        return { error: 'colorRamp config requires "steps" as number[]' };
-      if (typeof c.lightEnd !== 'number') return { error: 'colorRamp config requires "lightEnd" as number' };
-      if (typeof c.darkEnd !== 'number') return { error: 'colorRamp config requires "darkEnd" as number' };
-      if (typeof c.chromaBoost !== 'number') return { error: 'colorRamp config requires "chromaBoost" as number' };
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isFiniteNum(s)))
+        return { error: 'colorRamp config requires "steps" as finite number[]' };
+      if (!isFiniteNum(c.lightEnd)) return { error: 'colorRamp config requires "lightEnd" as finite number' };
+      if (!isFiniteNum(c.darkEnd)) return { error: 'colorRamp config requires "darkEnd" as finite number' };
+      if (!isFiniteNum(c.chromaBoost)) return { error: 'colorRamp config requires "chromaBoost" as finite number' };
       if (typeof c.includeSource !== 'boolean') return { error: 'colorRamp config requires "includeSource" as boolean' };
       if (c.lightnessCurve !== undefined) {
-        if (!Array.isArray(c.lightnessCurve) || c.lightnessCurve.length !== 4 || !c.lightnessCurve.every((v: unknown) => typeof v === 'number'))
+        if (!Array.isArray(c.lightnessCurve) || c.lightnessCurve.length !== 4 || !c.lightnessCurve.every((v: unknown) => isFiniteNum(v)))
           return { error: 'colorRamp config "lightnessCurve" must be [number, number, number, number]' };
       }
       const validated: ColorRampConfig = {
@@ -145,19 +150,19 @@ function validateGeneratorConfig(
         chromaBoost: c.chromaBoost as number,
         includeSource: c.includeSource as boolean,
         ...(c.lightnessCurve !== undefined && { lightnessCurve: c.lightnessCurve as [number, number, number, number] }),
-        ...(typeof c.sourceStep === 'number' && { sourceStep: c.sourceStep }),
+        ...(isFiniteNum(c.sourceStep) && { sourceStep: c.sourceStep }),
       };
       return { validated };
     }
     case 'typeScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.exponent === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.exponent)))
         return { error: 'typeScale config requires "steps" as Array<{name: string, exponent: number}>' };
       const dupTypeScale = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupTypeScale !== undefined) return { error: `typeScale config has duplicate step name: "${dupTypeScale}"` };
-      if (typeof c.ratio !== 'number') return { error: 'typeScale config requires "ratio" as number' };
+      if (!isFiniteNum(c.ratio)) return { error: 'typeScale config requires "ratio" as finite number' };
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
-      if (typeof c.roundTo !== 'number') return { error: 'typeScale config requires "roundTo" as number' };
+      if (!isFiniteNum(c.roundTo)) return { error: 'typeScale config requires "roundTo" as finite number' };
       const validated: TypeScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, exponent: s.exponent as number })),
         ratio: c.ratio as number,
@@ -168,7 +173,7 @@ function validateGeneratorConfig(
       return { validated };
     }
     case 'spacingScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.multiplier)))
         return { error: 'spacingScale config requires "steps" as Array<{name: string, multiplier: number}>' };
       const dupSpacing = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupSpacing !== undefined) return { error: `spacingScale config has duplicate step name: "${dupSpacing}"` };
@@ -180,7 +185,7 @@ function validateGeneratorConfig(
       return { validated };
     }
     case 'opacityScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.value)))
         return { error: 'opacityScale config requires "steps" as Array<{name: string, value: number}>' };
       const dupOpacity = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupOpacity !== undefined) return { error: `opacityScale config has duplicate step name: "${dupOpacity}"` };
@@ -190,7 +195,7 @@ function validateGeneratorConfig(
       return { validated };
     }
     case 'borderRadiusScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.multiplier)))
         return { error: 'borderRadiusScale config requires "steps" as Array<{name: string, multiplier: number}>' };
       const dupBorderRadius = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupBorderRadius !== undefined) return { error: `borderRadiusScale config has duplicate step name: "${dupBorderRadius}"` };
@@ -199,14 +204,14 @@ function validateGeneratorConfig(
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
           name: s.name as string,
           multiplier: s.multiplier as number,
-          ...(typeof s.exactValue === 'number' && { exactValue: s.exactValue }),
+          ...(isFiniteNum(s.exactValue) && { exactValue: s.exactValue }),
         })),
         unit: c.unit as DimensionUnit,
       };
       return { validated };
     }
     case 'zIndexScale': {
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.value)))
         return { error: 'zIndexScale config requires "steps" as Array<{name: string, value: number}>' };
       const dupZIndex = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupZIndex !== undefined) return { error: `zIndexScale config has duplicate step name: "${dupZIndex}"` };
@@ -220,11 +225,11 @@ function validateGeneratorConfig(
       if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) =>
         isObj(s) &&
         typeof s.name === 'string' &&
-        typeof s.offsetX === 'number' &&
-        typeof s.offsetY === 'number' &&
-        typeof s.blur === 'number' &&
-        typeof s.spread === 'number' &&
-        typeof s.opacity === 'number'
+        isFiniteNum(s.offsetX) &&
+        isFiniteNum(s.offsetY) &&
+        isFiniteNum(s.blur) &&
+        isFiniteNum(s.spread) &&
+        isFiniteNum(s.opacity)
       )) {
         return { error: 'shadowScale config requires "steps" as Array<{name, offsetX, offsetY, blur, spread, opacity}>' };
       }
@@ -245,20 +250,20 @@ function validateGeneratorConfig(
     }
     case 'customScale': {
       if (typeof c.outputType !== 'string') return { error: 'customScale config requires "outputType" as string' };
-      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && typeof s.index === 'number'))
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => isObj(s) && typeof s.name === 'string' && isFiniteNum(s.index)))
         return { error: 'customScale config requires "steps" as Array<{name: string, index: number}>' };
       const dupCustom = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupCustom !== undefined) return { error: `customScale config has duplicate step name: "${dupCustom}"` };
       if (typeof c.formula !== 'string') return { error: 'customScale config requires "formula" as string' };
       const formulaError = validateFormulaSyntax(c.formula);
       if (formulaError !== undefined) return { error: formulaError };
-      if (typeof c.roundTo !== 'number') return { error: 'customScale config requires "roundTo" as number' };
+      if (!isFiniteNum(c.roundTo)) return { error: 'customScale config requires "roundTo" as finite number' };
       const validated: CustomScaleConfig = {
         outputType: c.outputType as TokenType,
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
           name: s.name as string,
           index: s.index as number,
-          ...(typeof s.multiplier === 'number' && { multiplier: s.multiplier }),
+          ...(isFiniteNum(s.multiplier) && { multiplier: s.multiplier }),
         })),
         formula: c.formula as string,
         roundTo: c.roundTo as number,
@@ -280,7 +285,7 @@ function validateGeneratorConfig(
     }
     case 'darkModeInversion': {
       if (typeof c.stepName !== 'string') return { error: 'darkModeInversion config requires "stepName" as string' };
-      if (typeof c.chromaBoost !== 'number') return { error: 'darkModeInversion config requires "chromaBoost" as number' };
+      if (!isFiniteNum(c.chromaBoost)) return { error: 'darkModeInversion config requires "chromaBoost" as finite number' };
       const validated: DarkModeInversionConfig = {
         stepName: c.stepName as string,
         chromaBoost: c.chromaBoost as number,

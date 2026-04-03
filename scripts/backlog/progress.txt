@@ -524,3 +524,14 @@
   - When two conversion functions share identical math but differ only in output format (hex string vs [r,g,b] tuple), extract the shared math as the "raw coords" function and let the hex variant be a one-liner wrapper.
   - `srgbFromLinear` in color-math.ts already clamps to [0,1] internally — downstream callers that add an extra `clamp01` are doing redundant work.
 ---
+
+## 2026-04-03 - Server route input validation gaps across generators, lint, and search
+- Added `isFiniteNum()` helper to `generators.ts` and replaced all `typeof x === 'number'` checks in `validateGeneratorConfig` with `isFiniteNum(x)` — covers colorRamp steps/lightEnd/darkEnd/chromaBoost/lightnessCurve/sourceStep, typeScale ratio/roundTo/exponents, spacingScale/opacityScale/borderRadiusScale/zIndexScale/shadowScale/customScale numeric step fields, and darkModeInversion chromaBoost.
+- Added full schema validation to `PUT /api/lint/config` in `lint.ts`: validates body is a plain object, rejects unknown top-level keys, validates `lintRules` is an object, rejects unknown rule keys, validates `enabled` is boolean, `severity` is one of `error|warning|info`, and `options` is an object.
+- Added input length/count limits to `GET /api/tokens/search` in `tokens.ts`: `q` capped at 500 chars, comma-separated list params capped at 20 items each, each item capped at 200 chars.
+- Files changed: `packages/server/src/routes/generators.ts` ~L46-310; `packages/server/src/routes/lint.ts` ~L20-62; `packages/server/src/routes/tokens.ts` ~L28-70
+- **Learnings for future iterations:**
+  - `isFinite()` is the correct guard for NaN/±Infinity — `Number.isFinite()` works too, but `isFinite()` as a global function also handles the case where a non-number is passed (returns false). Either works since we already check `typeof v === 'number'` first.
+  - For `PUT` body validation, Fastify doesn't enforce body types at runtime — the generic `<{ Body: SomeType }>` is TypeScript-only. Always add explicit runtime validation before persisting config objects.
+  - The search `q` parameter uses `.includes()` (substring, not regex), so ReDoS isn't the actual risk — but the boundary gap of unvalidated length is still real. The 500-char cap is sufficient.
+---

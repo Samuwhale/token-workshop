@@ -25,12 +25,37 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  const SEARCH_MAX_Q_LEN = 500;
+  const SEARCH_MAX_LIST_ITEMS = 20;
+  const SEARCH_MAX_ITEM_LEN = 200;
+
+  function validateSearchList(param: string | undefined, name: string): string | null {
+    if (!param) return null;
+    const items = param.split(',');
+    if (items.length > SEARCH_MAX_LIST_ITEMS) return `"${name}" must not exceed ${SEARCH_MAX_LIST_ITEMS} comma-separated values`;
+    if (items.some(v => v.length > SEARCH_MAX_ITEM_LEN)) return `Each value in "${name}" must not exceed ${SEARCH_MAX_ITEM_LEN} characters`;
+    return null;
+  }
+
   // GET /api/tokens/search — search tokens across all sets
   fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string; offset?: string } }>(
     '/tokens/search',
     async (request, reply) => {
       try {
         const { q, type, has, value, desc, path: pathQ, name: nameQ, limit, offset } = request.query;
+
+        if (q && q.length > SEARCH_MAX_Q_LEN) {
+          return reply.status(400).send({ error: `"q" must not exceed ${SEARCH_MAX_Q_LEN} characters` });
+        }
+        const listError =
+          validateSearchList(type, 'type') ??
+          validateSearchList(has, 'has') ??
+          validateSearchList(value, 'value') ??
+          validateSearchList(desc, 'desc') ??
+          validateSearchList(pathQ, 'path') ??
+          validateSearchList(nameQ, 'name');
+        if (listError) return reply.status(400).send({ error: listError });
+
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,
