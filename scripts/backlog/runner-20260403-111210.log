@@ -88,3 +88,10 @@ Already up to date.
   → [HIGH] handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling — `handleMultiModeInlineSave` (useTokenCrud.ts:347) awaits an apiFetch without try-catch, so any network failure causes an unhandled promise rejection and still calls onPushUndo and onRefresh as if the save succeeded; `handleDetachFromGenerator` (useTokenCrud.ts:393) has the same missing try-catch on its PATCH call, meaning a failed detach silently calls onRefresh with no error toast, no operationLoading reset, and no user notification; both handlers should follow the try-catch/onError pattern already used by handleInlineSave and handleDescriptionSave in the same file
   Worktree: /tmp/backlog-20980-5U2aOg
   Running agent… (started 11:27:07)
+
+  ✓ done: handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling
+    Added try-catch + onError to both handlers; onPushUndo/onRefresh no longer called on failure; added onError to deps arrays
+    9 turns · 68s · $0.21
+
+  Merging to main: handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling
+Already up to date.

@@ -344,11 +344,16 @@ export function useTokenCrud({
     if (!connected) return;
     const oldEntry = perSetFlat?.[targetSet]?.[path];
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $type: type, $value: newValue }),
-    });
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: type, $value: newValue }),
+      });
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
+      return;
+    }
     if (onPushUndo) {
       onPushUndo({
         description: `Edit ${path} in ${targetSet}`,
@@ -374,7 +379,7 @@ export function useTokenCrud({
     }
     onRefresh();
     onRecordTouch(path);
-  }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, onRecordTouch]);
+  }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDetachFromGenerator = useCallback(async (path: string) => {
     if (!connected) return;
@@ -385,19 +390,24 @@ export function useTokenCrud({
       const result = await apiFetch<{ token: Record<string, unknown> }>(url);
       tokenData = result;
     } catch (err) {
-      console.warn('[useTokenCrud] fetch token data failed:', err);
+      onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
       return;
     }
     const exts: Record<string, unknown> = { ...(tokenData?.token?.$extensions as Record<string, unknown>) };
     delete exts['com.tokenmanager.generator'];
-    await apiFetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
-    });
+    try {
+      await apiFetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
+      });
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
+      return;
+    }
     onRefresh();
     onRefreshGenerators?.();
-  }, [connected, serverUrl, setName, onRefresh, onRefreshGenerators]);
+  }, [connected, serverUrl, setName, onRefresh, onRefreshGenerators, onError]);
 
   const handleRequestMoveToken = useCallback((tokenPath: string) => {
     const otherSets = sets.filter(s => s !== setName);

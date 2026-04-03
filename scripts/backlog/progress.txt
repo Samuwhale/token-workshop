@@ -437,3 +437,13 @@
   - `getCompatibleTokenTypes(prop)` is the right utility to check whether a property accepts a given token `$type` — use it to filter candidate properties on both sides.
   - Applying to multiple properties just requires looping over `targetProps` and sending individual `apply-to-selection` messages — no batch API needed.
 ---
+
+## 2026-04-03 - handleMultiModeInlineSave and handleDetachFromGenerator missing error handling
+- Added try-catch to `handleMultiModeInlineSave` around the PATCH apiFetch call; on failure calls `onError?.()` and returns early, preventing onPushUndo/onRefresh from running after a failed save.
+- Added try-catch to `handleDetachFromGenerator` around the PATCH apiFetch call; on failure calls `onError?.()` and returns early. The existing try-catch around the GET fetch was updated to use `onError?.(...)` instead of `console.warn` to match the pattern.
+- Added `onError` to the dependency arrays of both callbacks.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L347, ~L384
+- **Learnings for future iterations:**
+  - `handleDetachFromGenerator` had two async calls (GET then PATCH) — both need individual try-catch blocks since the second can fail independently.
+  - When adding `onError` usage to a `useCallback`, always add it to the deps array or ESLint will flag it.
+---

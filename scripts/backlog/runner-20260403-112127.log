@@ -75,3 +75,18 @@ Already up to date.
 
   Merging to main: SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
 Already up to date.
+[main a657deb5] chore(backlog): done – SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
+ 6 files changed, 118 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - SelectionInspector has no "apply to all matching properties" action
+- Added a `propTypeSuggestion` state to `SelectionInspector.tsx` that tracks a pending "Apply to all [type] properties" suggestion. After binding a token to any property, the handler detects other visible unbound properties that accept the same token type (e.g., after binding a color token to `fill`, it finds `stroke` and any other unbound color properties). If any exist, a persistent banner appears at the bottom of the inspector with the token path, token type label, a comma-separated list of affected property names, an "Apply to all" button, and a dismiss button. Clicking "Apply to all" sends an `apply-to-selection` plugin message for each target property. The suggestion is cleared on selection change or when dismissed.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L14 (import), ~L204 (state), ~L320 (clear in effect), ~L467 (detection in handleBindToken), ~L1030 (banner UI)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  9 queued · 1 in-progress · last took 3m5s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel ignores the active Theme Manager configuration — the live preview has only a hardcoded dark/light toggle (boolean) that swaps a CSS class; it has no connection to the actual theme dimensions and options defined in ThemeManager; users cannot preview "how does this component look in brand=Acme, mode=dark?" without manually switching the active theme in a separate tab; wire the preview panel to consume the active theme option selections from App state and apply them to the preview context (PreviewPanel.tsx ~L81, ThemeManager.tsx active theme state)
+  Worktree: /tmp/backlog-30880-f7WO37
+  Running agent… (started 11:27:44)
