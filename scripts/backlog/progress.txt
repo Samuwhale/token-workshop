@@ -367,3 +367,14 @@
   - `allTokensFlat` (`Record<string, TokenMapEntry>`) strips `$description` and `$extensions` during flattening in `flattenWithNames`. Always use `findLeafByPath(tokens, path)` when you need the full DTCG token fields.
   - The command palette's token action button row (Path / {ref} / Val / CSS) uses `tabIndex={-1}` and `e.stopPropagation()` pattern — follow this for any new per-token action buttons.
 ---
+
+## 2026-04-03 - Generator source token is immutable after creation
+- Added `editableSourcePath` state to `useGeneratorDialog.ts` initialized from `existingGenerator?.sourceToken ?? sourceTokenPath ?? ''`. This is the local mutable version of the source token binding; `hasSource`, preview, and save all use it instead of the read-only prop.
+- Added `setEditableSourcePath` handler that marks dirty and updates the auto-name when `nameWasAutoRef` is still true.
+- Added a "Source token" editable text input section in `TokenGeneratorDialog.tsx` (between the type selector and inline value section), shown when `typeNeedsValue && !isMultiBrand`. The field shows the current path, has an ×-clear button, and hint text guides the user to leave it empty to use the inline base value below.
+- Header subtitle updated to reflect `editableSourcePath` (the live local state) instead of `sourceTokenPath` (the initial prop).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L38-92 (interface), ~L110-186 (state init + derived), ~L247-257 (handlers); `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L161-225 (destructure), ~L493-501 (header), ~L545-575 (new source field)
+- **Learnings for future iterations:**
+  - When editing an existing generator from GraphPanel (no `sourceTokenPath` prop), the generator's `existingGenerator.sourceToken` must be used as the initial value — the prop alone isn't sufficient for edit mode.
+  - The `effectiveSourcePath = editableSourcePath.trim() || undefined` pattern converts the mutable string state to the `string | undefined` that sub-hooks expect without extra complexity.
+---

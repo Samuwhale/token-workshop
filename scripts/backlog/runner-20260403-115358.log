@@ -596,3 +596,10 @@ Already up to date.
   → Generator source token is immutable after creation — useGeneratorDialog.ts derives `hasSource` from read-only props (~L167); changing a generator's source token requires deleting and recreating; make the source token editable in the generator edit dialog so users can re-bind to a different token without losing config, overrides, and naming
   Worktree: /tmp/backlog-81661-TQV6Ky
   Running agent… (started 13:41:57)
+
+  ✓ done: Generator source token is immutable after creation
+    Added editable source token field in the generator dialog — initialized from existingGenerator.sourceToken in edit mode; users can retype or clear to rebind without losing config/overrides/naming
+    35 turns · 337s · $1.19
+
+  Merging to main: Generator source token is immutable after creation
+Already up to date.

@@ -52,6 +52,7 @@ interface UseGeneratorDialogReturn {
   name: string;
   targetSet: string;
   targetGroup: string;
+  editableSourcePath: string;
   inlineValue: unknown;
   inputTable: InputTable | undefined;
   targetSetTemplate: string;
@@ -76,6 +77,7 @@ interface UseGeneratorDialogReturn {
   setTargetSet: (value: string) => void;
   setTargetGroup: (value: string) => void;
   setTargetSetTemplate: (value: string) => void;
+  setEditableSourcePath: (value: string) => void;
   setInlineValue: (value: unknown) => void;
   handleConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   handleToggleMultiBrand: () => void;
@@ -105,12 +107,19 @@ export function useGeneratorDialog({
 }: UseGeneratorDialogParams): UseGeneratorDialogReturn {
   const isEditing = Boolean(existingGenerator);
 
+  // Editable source token path — initialized from existingGenerator.sourceToken when editing,
+  // or from the sourceTokenPath prop (clicked token) when creating.
+  const [editableSourcePath, setEditableSourcePathRaw] = useState(
+    existingGenerator?.sourceToken ?? sourceTokenPath ?? ''
+  );
+
   const recommendedType = useMemo(() => {
-    if (sourceTokenPath && sourceTokenType) {
+    const effectivePath = existingGenerator?.sourceToken ?? sourceTokenPath;
+    if (effectivePath && sourceTokenType) {
       return detectGeneratorType(sourceTokenType, sourceTokenValue);
     }
     return undefined;
-  }, [sourceTokenPath, sourceTokenType, sourceTokenValue]);
+  }, [existingGenerator?.sourceToken, sourceTokenPath, sourceTokenType, sourceTokenValue]);
 
   const initialType: GeneratorType =
     existingGenerator?.type ??
@@ -164,7 +173,7 @@ export function useGeneratorDialog({
   // Derived values
   const isMultiBrand = Boolean(inputTable);
   const typeNeedsValue = VALUE_REQUIRED_TYPES.includes(selectedType);
-  const hasSource = Boolean(sourceTokenPath);
+  const hasSource = Boolean(editableSourcePath.trim());
   const hasInlineValue = inlineValue !== undefined && inlineValue !== '';
   const hasValue = hasSource || hasInlineValue;
   // All types available — inline values unlock source-requiring types
@@ -173,6 +182,8 @@ export function useGeneratorDialog({
   const lockedCount = Object.values(pendingOverrides).filter(o => o.locked).length;
 
   // --- Sub-hooks ---
+
+  const effectiveSourcePath = editableSourcePath.trim() || undefined;
 
   const {
     previewTokens,
@@ -185,7 +196,7 @@ export function useGeneratorDialog({
   } = useGeneratorPreview({
     serverUrl,
     selectedType,
-    sourceTokenPath,
+    sourceTokenPath: effectiveSourcePath,
     inlineValue,
     targetGroup,
     targetSet,
@@ -215,7 +226,7 @@ export function useGeneratorDialog({
     existingGenerator,
     selectedType,
     name,
-    sourceTokenPath,
+    sourceTokenPath: effectiveSourcePath,
     inlineValue,
     targetSet,
     targetGroup,
@@ -236,8 +247,14 @@ export function useGeneratorDialog({
   const handleTypeChange = (type: GeneratorType) => {
     markDirty();
     setSelectedType(type);
-    if (nameWasAutoRef.current) setName(autoName(sourceTokenPath, type));
+    if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
   };
+
+  const setEditableSourcePath = useCallback((v: string) => {
+    markDirty();
+    setEditableSourcePathRaw(v);
+    if (nameWasAutoRef.current) setName(autoName(v.trim() || undefined, selectedType));
+  }, [markDirty, selectedType]);
 
   const handleNameChange = (value: string) => {
     markDirty();
@@ -293,6 +310,7 @@ export function useGeneratorDialog({
     name,
     targetSet,
     targetGroup,
+    editableSourcePath,
     inlineValue,
     inputTable,
     targetSetTemplate,
@@ -317,6 +335,7 @@ export function useGeneratorDialog({
     setTargetSet: setTargetSetDirty,
     setTargetGroup: setTargetGroupDirty,
     setTargetSetTemplate: setTargetSetTemplateDirty,
+    setEditableSourcePath,
     setInlineValue,
     handleConfigChange,
     handleToggleMultiBrand,

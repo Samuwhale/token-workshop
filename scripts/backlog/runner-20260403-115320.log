@@ -532,3 +532,18 @@ Already up to date.
 
   Merging to main: No "duplicate token" action in token tree or command palette
 Already up to date.
+[main a6429be4] chore(backlog): done – No "duplicate token" action in token tree or command palette
+ 8 files changed, 87 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No "duplicate token" action in token tree or command palette
+- The context menu "Duplicate token" action already existed but only copied `$type` and `$value`, silently dropping `$description` and `$extensions`. Fixed `handleDuplicateToken` in `useTokenCrud.ts` to use `findLeafByPath(tokens, path)` (returns full `TokenNode`) instead of `allTokensFlat[path]` (`TokenMapEntry` strips extensions/description), so all properties are now copied.
+- Added `onDuplicateToken` prop to `CommandPalette`. In token search mode (`>` prefix), each token row now shows a "Dup" action button alongside the existing Path / {ref} / Val / CSS buttons. Clicking it duplicates the token with a `-copy` suffix and highlights the new token in the define/tokens tab.
+- Wired `onDuplicateToken` in `App.tsx` using `findLeafByPath` on the `tokens` tree to access `$description`/`$extensions`, then POSTs to the server API and navigates to highlight the newly created token.
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  24 queued · 4 in-progress · last took 6m16s
+═══════════════════════════════════════════════════════════════
+  → Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499 says "Enter a base value or bind a source token" when no source is bound, but there is no mechanism to bind one from the dialog; either add the token picker here or reword the subtitle to match actual capabilities
+  Worktree: /tmp/backlog-80049-UnlN79
+  Running agent… (started 13:47:16)

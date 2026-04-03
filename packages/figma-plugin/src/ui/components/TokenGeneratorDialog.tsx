@@ -172,6 +172,7 @@ export function TokenGeneratorDialog({
     name,
     targetSet,
     targetGroup,
+    editableSourcePath,
     inlineValue,
     inputTable,
     targetSetTemplate,
@@ -195,6 +196,7 @@ export function TokenGeneratorDialog({
     setTargetSet,
     setTargetGroup,
     setTargetSetTemplate,
+    setEditableSourcePath,
     setInlineValue,
     handleConfigChange,
     handleToggleMultiBrand,
@@ -490,9 +492,9 @@ export function TokenGeneratorDialog({
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
                 {isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
               </span>
-              {sourceTokenPath ? (
+              {editableSourcePath ? (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[220px]">
-                  Source: {sourceTokenPath}
+                  Source: {editableSourcePath}
                 </span>
               ) : (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -539,6 +541,34 @@ export function TokenGeneratorDialog({
               </div>
             )}
           </div>
+
+          {/* Source token binding — shown when type needs a value and not in multi-brand mode */}
+          {typeNeedsValue && !isMultiBrand && (
+            <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+              <span className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-2">Source token</span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={editableSourcePath}
+                  onChange={e => setEditableSourcePath(e.target.value)}
+                  placeholder="e.g. colors.brand.primary"
+                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                {editableSourcePath && (
+                  <button
+                    onClick={() => setEditableSourcePath('')}
+                    aria-label="Clear source token"
+                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1 block">
+                {editableSourcePath ? 'Token path to use as base value — clears to use manual base value below' : 'Leave empty to enter a base value manually below'}
+              </span>
+            </div>
+          )}
 
           {/* Inline base value — shown when no source token is bound AND type needs a value */}
           {!hasSource && typeNeedsValue && (
