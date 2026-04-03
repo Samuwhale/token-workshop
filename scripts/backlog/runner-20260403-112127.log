@@ -68,3 +68,10 @@ Already up to date.
   → SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
   Worktree: /tmp/backlog-30880-cskujt
   Running agent… (started 11:24:39)
+
+  ✓ done: SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
+    Added persistent post-bind banner that detects other visible unbound properties of the same token type and offers 'Apply to all' in one click; all validation gates pass
+    24 turns · 178s · $0.76
+
+  Merging to main: SelectionInspector has no "apply to all matching properties" action — when the user binds a token to one fill/stroke/text property, there is no way to apply the same token to all other properties of the same type in the current selection in one click; add a "Apply to all [type] properties" button in the binding confirmation step so a user can bind `color.primary` to all three fill layers of a complex component at once (SelectionInspector.tsx ~L179)
+Already up to date.

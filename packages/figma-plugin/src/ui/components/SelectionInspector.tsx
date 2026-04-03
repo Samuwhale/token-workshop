@@ -15,6 +15,7 @@ import {
   getCurrentValue,
   getMergedCapabilities,
   getTokenTypeForProperty,
+  getCompatibleTokenTypes,
   getNextUnboundProperty,
   buildRemoveBindingUndo,
   rankTokensForSelection,
@@ -209,6 +210,16 @@ export function SelectionInspector({
     resolvedValue: any;
   } | null>(null);
 
+  // Persistent prop-type suggestion — offer to apply the same token to all other
+  // unbound properties of the same type (e.g., after binding color.primary to fill,
+  // offer to also apply it to stroke and any other unbound color properties)
+  const [propTypeSuggestion, setPropTypeSuggestion] = useState<{
+    tokenPath: string;
+    tokenType: string;
+    resolvedValue: any;
+    targetProps: BindableProperty[];
+  } | null>(null);
+
   const prevNodeIdsRef = useRef<string>('');
 
   // Listen for binding results from the plugin sandbox
@@ -311,6 +322,7 @@ export function SelectionInspector({
       setShowExtractPanel(false);
       setBindingErrors({});
       setPeerSuggestion(null);
+      setPropTypeSuggestion(null);
       setPropFilter('');
       setPropFilterMode('all');
     }
@@ -447,6 +459,30 @@ export function SelectionInspector({
           return prev;
         });
       }, 300);
+    }
+
+    // "Apply to all [type] properties" — detect other visible unbound properties
+    // that accept the same token type and offer to apply the same token to all of them
+    {
+      const compatUnboundProps = ALL_BINDABLE_PROPERTIES.filter(p => {
+        if (p === prop) return false;
+        const b = getBindingForProperty(rootNodes, p);
+        if (b) return false; // already bound
+        const v = getCurrentValue(rootNodes, p);
+        if (v === undefined || v === null) return false; // not visible / no value
+        return getCompatibleTokenTypes(p).includes(entry.$type);
+      });
+      if (compatUnboundProps.length > 0) {
+        setPropTypeSuggestion({
+          tokenPath,
+          tokenType: entry.$type,
+          resolvedValue: resolved.value,
+          targetProps: compatUnboundProps,
+        });
+      } else {
+        // Clear any stale suggestion from a previous bind
+        setPropTypeSuggestion(null);
+      }
     }
 
     // "Apply to peers" fast path: for single-layer selection, check if sibling
@@ -983,6 +1019,54 @@ export function SelectionInspector({
           </button>
           <button
             onClick={() => setPeerSuggestion(null)}
+            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+            title="Dismiss"
+            aria-label="Dismiss"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Apply same token to all compatible unbound properties */}
+      {propTypeSuggestion && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-start gap-2 bg-[var(--color-figma-accent)]/5 shrink-0">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-[var(--color-figma-accent)]" aria-hidden="true">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+          </svg>
+          <div className="flex flex-col gap-1 flex-1 min-w-0">
+            <span className="text-[10px] text-[var(--color-figma-text)] leading-snug">
+              Apply <strong className="font-mono">{propTypeSuggestion.tokenPath}</strong> to all{' '}
+              <strong>{propTypeSuggestion.tokenType}</strong> properties?
+            </span>
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">
+              {propTypeSuggestion.targetProps.map(p => PROPERTY_LABELS[p]).join(', ')}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              for (const p of propTypeSuggestion.targetProps) {
+                parent.postMessage({
+                  pluginMessage: {
+                    type: 'apply-to-selection',
+                    tokenPath: propTypeSuggestion.tokenPath,
+                    tokenType: propTypeSuggestion.tokenType,
+                    targetProperty: p,
+                    resolvedValue: propTypeSuggestion.resolvedValue,
+                  },
+                }, '*');
+              }
+              setPropTypeSuggestion(null);
+            }}
+            className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium shrink-0"
+          >
+            Apply to all
+          </button>
+          <button
+            onClick={() => setPropTypeSuggestion(null)}
             className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
             title="Dismiss"
             aria-label="Dismiss"

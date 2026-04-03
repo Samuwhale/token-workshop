@@ -73,3 +73,18 @@ Already up to date.
 
   Merging to main: ColorPicker token swatch panel strips alpha from 8-char hex colors
 Already up to date.
+[main b948cfbe] chore(backlog): done – ColorPicker token swatch panel strips alpha from 8-char hex colors
+ 6 files changed, 29 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ColorPicker token swatch panel strips alpha from 8-char hex colors
+- Fixed two bugs in `colorTokens` useMemo at `ColorPicker.tsx:355`: (1) changed `v.slice(0, 7)` to `v` for both `hex` and `cssColor` fields so `#RRGGBBAA` values are preserved; (2) added `setAlpha(parseAlpha(t.hex))` in the token swatch click handler so selecting an 8-char hex token also applies its alpha, matching the existing recent-colors click handler pattern.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L355, ~L939
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  10 queued · 1 in-progress · last took 1m56s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] handleMultiModeInlineSave and handleDetachFromGenerator in useTokenCrud.ts have no error handling — `handleMultiModeInlineSave` (useTokenCrud.ts:347) awaits an apiFetch without try-catch, so any network failure causes an unhandled promise rejection and still calls onPushUndo and onRefresh as if the save succeeded; `handleDetachFromGenerator` (useTokenCrud.ts:393) has the same missing try-catch on its PATCH call, meaning a failed detach silently calls onRefresh with no error toast, no operationLoading reset, and no user notification; both handlers should follow the try-catch/onError pattern already used by handleInlineSave and handleDescriptionSave in the same file
+  Worktree: /tmp/backlog-20980-5U2aOg
+  Running agent… (started 11:27:07)

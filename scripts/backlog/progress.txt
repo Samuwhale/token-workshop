@@ -428,3 +428,12 @@
   - `parseAlpha(hex)` is the canonical helper for extracting alpha from a hex string — use it consistently across all color-apply paths.
   - When adding a new "apply color" code path, always mirror the full state updates from the existing reference path (recent-colors handler at L896-897 sets all 4: hue, sat, lit, alpha).
 ---
+
+## 2026-04-03 - SelectionInspector has no "apply to all matching properties" action
+- Added a `propTypeSuggestion` state to `SelectionInspector.tsx` that tracks a pending "Apply to all [type] properties" suggestion. After binding a token to any property, the handler detects other visible unbound properties that accept the same token type (e.g., after binding a color token to `fill`, it finds `stroke` and any other unbound color properties). If any exist, a persistent banner appears at the bottom of the inspector with the token path, token type label, a comma-separated list of affected property names, an "Apply to all" button, and a dismiss button. Clicking "Apply to all" sends an `apply-to-selection` plugin message for each target property. The suggestion is cleared on selection change or when dismissed.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L14 (import), ~L204 (state), ~L320 (clear in effect), ~L467 (detection in handleBindToken), ~L1030 (banner UI)
+- **Learnings for future iterations:**
+  - The existing `peerSuggestion` banner (for sibling nodes) is a good template for post-bind suggestion banners — same structure: persistent state, dismiss button, "Apply" action.
+  - `getCompatibleTokenTypes(prop)` is the right utility to check whether a property accepts a given token `$type` — use it to filter candidate properties on both sides.
+  - Applying to multiple properties just requires looping over `targetProps` and sending individual `apply-to-selection` messages — no batch API needed.
+---
