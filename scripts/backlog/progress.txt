@@ -387,3 +387,26 @@
   - `onMouseLeave` on the dropdown container is a lightweight dismiss pattern that avoids global event listeners; suitable for small menus anchored to buttons in constrained layouts.
   - `bottom-full mb-1` positions the menu above the trigger button, which is better when the color editor is near the bottom of a panel.
 ---
+
+## 2026-04-03 - ThemeManager.tsx custom hook extraction (useThemeDragDrop, useThemeBulkOps, useThemeCompare)
+- Extracted 4 custom hooks from ThemeManager.tsx (was 36 hooks/refs in a single function body):
+  - `useThemeDragDrop`: drag-and-drop + button-reorder for both dimensions and options (4 state vars + 10 handlers)
+  - `useThemeCompare`: comparison panel state + `compareRows` useMemo (5 state vars + computed rows)
+  - `useThemeBulkOps`: bulk set-state mutations, bulk menu, copy-from menu, mutation serialization chain (6 state vars/refs + 4 handlers + 2 useEffects)
+  - `useThemeAutoFill`: auto-fill preview/strategy state + all auto-fill handlers (3 state vars + 5 handlers)
+- Created `themeManagerTypes.ts` to share `CoverageToken`, `CoverageMap`, `AutoFillPreview`, `AutoFillPendingItem` between ThemeManager and the hooks
+- ThemeManager.tsx reduced from ~36 hooks to ~22 (the remaining ones are fetch/loading/modal/rename/add-option concerns)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/themeManagerTypes.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useThemeDragDrop.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useThemeCompare.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useThemeAutoFill.ts` (new)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1-320 (imports + state block replaced with hook calls), ~L570-928 (handlers removed)
+- **Learnings for future iterations:**
+  - When multiple mutation handlers share a serializing `mutationChainRef`, they MUST go into the same hook (or the ref must be passed in) — mixing across hooks would break the serialization guarantee
+  - The bulk-ops and copy-from concerns share the mutation chain, so they naturally belong in one hook even though they're logically distinct UI features
+  - Hook call ordering constraint: hooks that need `debouncedFetchDimensions` must be called AFTER that callback is defined (i.e., after `useCallback`); add hook calls after the `useEffect(() => { fetchDimensions(); })` block
+  - Pre-existing `TS2503: Cannot find namespace 'React'` errors exist in hooks that use `React.DragEvent`/`React.Dispatch` without importing React — this is baseline noise in this tsconfig, matches pattern in `useSetTabs.ts` and `useTokenSyncBase.ts`
+  - `useMemo` for computed values (like `compareRows`) can be cleanly extracted into the hook that owns the underlying state — the hook just returns the memoized value
+---

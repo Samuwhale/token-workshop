@@ -583,3 +583,22 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: variableSync O(n) sequential async + stale cache, UI hooks optimistic state clearing losing work on errors, handleRenameToken treating API failure as zero deps (HIGH), git sync conflict resolution no rollback/validation, ResolverStore file watcher race condition, styleSync silent parse failures
 Already up to date.
+[main 6e35bebf] chore(backlog): code pass – code-pass
+ 6 files changed, 34 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - TokenFlowPanel does not highlight circular alias dependencies
+- Added `detectCycleNodes` DFS helper that tracks the call stack to find back edges in both upstream (reference) and downstream (dependent) directions.
+- In `graphData` useMemo: run cycle detection for both directions, union the results into `allCycleNodes`, annotate each `FlowNode` with `isCyclic`, and return `hasCycles`.
+- Updated `FlowNode` interface: added `isCyclic?: boolean`.
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  13 queued · 3 in-progress · last took 5m6s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Multiple UI hooks clear state optimistically before async API calls complete, losing user work on network errors — `useDragDrop.ts:62` sets `dragSource=null` before the batch-rename fetch (dropped tokens vanish on error), `useGroupOperations.ts` clears moving/copying group state before the move/copy API completes (concurrent operations can interleave), and `useTokenSyncBase.ts:237-238` clears rows/dirs after `Promise.all` partial failures (user sees inconsistent sync state with no retry path); all should defer state cleanup to after the async operation succeeds or provide rollback on failure
+  Worktree: /tmp/backlog-45818-W5IKMD
+  Running agent… (started 18:49:51)

@@ -8,6 +8,11 @@ import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
+import type { CoverageMap, CoverageToken, AutoFillPreview } from './themeManagerTypes';
+import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
+import { useThemeCompare } from '../hooks/useThemeCompare';
+import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
+import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
 
 const STATE_LABELS: Record<string, string> = {
   disabled: 'Excluded',
@@ -33,22 +38,6 @@ interface ThemeManagerProps {
   resolverState?: ResolverContentProps;
 }
 
-type CoverageToken = {
-  path: string;
-  set: string;
-  /** The first alias target that cannot be resolved in the active sets */
-  missingRef?: string;
-  /** A concrete value found in another set that can fill the gap */
-  fillValue?: unknown;
-  /** $type for the fill token */
-  fillType?: string;
-};
-type CoverageMap = Record<string, Record<string, { uncovered: CoverageToken[] }>>;
-
-type AutoFillPendingItem = { path: string; $value: unknown; $type?: string };
-type AutoFillPreview =
-  | { mode: 'single-option'; dimId: string; optionName: string; targetSet: string; tokens: AutoFillPendingItem[] }
-  | { mode: 'all-options'; dimId: string; perSetBatch: Record<string, AutoFillPendingItem[]>; totalCount: number };
 
 
 function slugify(name: string): string {
@@ -101,11 +90,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Per-option set ordering
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
 
-  // Bulk set-status context menu
-  const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
-  const bulkMenuRef = useRef<HTMLDivElement | null>(null);
-  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
-
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
 
@@ -114,10 +98,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // AbortController for in-flight fetchDimensions — cancelled on re-fetch or unmount
   const fetchAbortRef = useRef<AbortController | null>(null);
 
-  // Mutation queue: serializes handleSetState / handleBulkSetState so concurrent
-  // calls don't interleave optimistic updates or capture stale rollback snapshots.
-  const mutationChainRef = useRef<Promise<void>>(Promise.resolve());
-
   // --- New stacking UI state ---
   // Selected option tab per dimension
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -125,12 +105,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [setTokenValues, setSetTokenValues] = useState<Record<string, Record<string, any>>>({});
   // Token types per set (for auto-fill)
   const setTokenTypesRef = useRef<Record<string, Record<string, string>>>({});
-  // Auto-fill in-progress state
-  const [fillingKeys, setFillingKeys] = useState<Set<string>>(new Set());
-  // Auto-fill confirmation preview
-  const [autoFillPreview, setAutoFillPreview] = useState<AutoFillPreview | null>(null);
-  // Auto-fill strategy: 'skip' leaves existing tokens untouched, 'overwrite' replaces them
-  const [autoFillStrategy, setAutoFillStrategy] = useState<'skip' | 'overwrite'>('skip');
+
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
@@ -139,24 +114,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Dimension/option search filter
   const [dimSearch, setDimSearch] = useState('');
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
-
-  // Compare two options
-  const [showCompare, setShowCompare] = useState(false);
-  const [compareOptA, setCompareOptA] = useState<{ dimId: string; optionName: string } | null>(null);
-  const [compareOptB, setCompareOptB] = useState<{ dimId: string; optionName: string } | null>(null);
-  const [compareSearch, setCompareSearch] = useState('');
-  const [compareDiffsOnly, setCompareDiffsOnly] = useState(true);
-
-  // Drag-and-drop reorder state
-  const [draggingDimId, setDraggingDimId] = useState<string | null>(null);
-  const [dragOverDimId, setDragOverDimId] = useState<string | null>(null);
-  const [draggingOpt, setDraggingOpt] = useState<{ dimId: string; optionName: string } | null>(null);
-  const [dragOverOpt, setDragOverOpt] = useState<{ dimId: string; optionName: string } | null>(null);
-
-  // "Copy from" state — for seeding a new option from an existing one, and for replacing an existing option's assignments
-  const [copyFromNewOption, setCopyFromNewOption] = useState<Record<string, string>>({});
-  const [showCopyFromMenu, setShowCopyFromMenu] = useState<{ dimId: string; optionName: string } | null>(null);
-  const copyFromMenuRef = useRef<HTMLDivElement | null>(null);
 
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -330,6 +287,37 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   }, []);
 
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
+
+  // --- Custom hooks for cohesive state groups ---
+
+  const {
+    draggingDimId, dragOverDimId, draggingOpt, dragOverOpt,
+    handleMoveDimension, handleMoveOption,
+    handleDimDragStart, handleDimDragOver, handleDimDrop, handleDimDragEnd,
+    handleOptDragStart, handleOptDragOver, handleOptDrop, handleOptDragEnd,
+  } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
+
+  const {
+    showCompare, setShowCompare,
+    compareOptA, setCompareOptA,
+    compareOptB, setCompareOptB,
+    compareSearch, setCompareSearch,
+    compareDiffsOnly, setCompareDiffsOnly,
+    compareRows,
+  } = useThemeCompare({ dimensions, setTokenValues });
+
+  const {
+    bulkMenu, setBulkMenu, bulkMenuRef, savingKeys,
+    copyFromNewOption, setCopyFromNewOption,
+    showCopyFromMenu, setShowCopyFromMenu, copyFromMenuRef,
+    handleSetState, handleBulkSetState, handleBulkSetAllInOption, handleCopyAssignmentsFrom,
+  } = useThemeBulkOps({ serverUrl, sets, dimensions, setDimensions, debouncedFetchDimensions, setError });
+
+  const {
+    fillingKeys, autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
+    handleAutoFillSingle, handleAutoFillAll, executeAutoFillAll,
+    handleAutoFillAllOptions, executeAutoFillAllOptions,
+  } = useThemeAutoFill({ serverUrl, dimensions, coverage, debouncedFetchDimensions, setError });
 
   // --- Create dimension ---
 
@@ -575,149 +563,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
-  // --- Move option (reorder) ---
-
-  const handleMoveOption = async (dimId: string, optionName: string, direction: 'up' | 'down') => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim || !connected) return;
-    const idx = dim.options.findIndex(o => o.name === optionName);
-    if (idx === -1) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= dim.options.length) return;
-    const reordered = [...dim.options];
-    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
-    setDimensions(prev => prev.map(d => d.id === dimId ? { ...d, options: reordered } : d));
-    try {
-      await apiFetch(
-        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options-order`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ options: reordered.map(o => o.name) }),
-        },
-      );
-    } catch (err) {
-      console.warn('[ThemeManager] failed to reorder options:', err);
-      fetchDimensions();
-    }
-  };
-
-  // --- Move dimension (reorder) ---
-
-  const handleMoveDimension = async (dimId: string, direction: 'up' | 'down') => {
-    if (!connected) return;
-    const idx = dimensions.findIndex(d => d.id === dimId);
-    if (idx === -1) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= dimensions.length) return;
-    const reordered = [...dimensions];
-    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
-    setDimensions(reordered);
-    try {
-      await apiFetch(
-        `${serverUrl}/api/themes/dimensions-order`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dimensionIds: reordered.map(d => d.id) }),
-        },
-      );
-    } catch (err) {
-      console.warn('[ThemeManager] failed to reorder dimensions:', err);
-      fetchDimensions();
-    }
-  };
-
-  // --- Drag-and-drop dimension reorder ---
-
-  const handleDimDragStart = (e: React.DragEvent, dimId: string) => {
-    e.dataTransfer.effectAllowed = 'move';
-    setDraggingDimId(dimId);
-  };
-
-  const handleDimDragOver = (e: React.DragEvent, dimId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dimId !== dragOverDimId) setDragOverDimId(dimId);
-  };
-
-  const handleDimDrop = async (targetDimId: string) => {
-    if (!draggingDimId || draggingDimId === targetDimId) {
-      setDraggingDimId(null);
-      setDragOverDimId(null);
-      return;
-    }
-    const fromIdx = dimensions.findIndex(d => d.id === draggingDimId);
-    const toIdx = dimensions.findIndex(d => d.id === targetDimId);
-    if (fromIdx === -1 || toIdx === -1) { setDraggingDimId(null); setDragOverDimId(null); return; }
-    const reordered = [...dimensions];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
-    setDimensions(reordered);
-    setDraggingDimId(null);
-    setDragOverDimId(null);
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions-order`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dimensionIds: reordered.map(d => d.id) }),
-      });
-    } catch (err) {
-      console.warn('[ThemeManager] failed to reorder dimensions:', err);
-      fetchDimensions();
-    }
-  };
-
-  const handleDimDragEnd = () => { setDraggingDimId(null); setDragOverDimId(null); };
-
-  // --- Drag-and-drop option reorder ---
-
-  const handleOptDragStart = (e: React.DragEvent, dimId: string, optionName: string) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.stopPropagation();
-    setDraggingOpt({ dimId, optionName });
-  };
-
-  const handleOptDragOver = (e: React.DragEvent, dimId: string, optionName: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverOpt?.dimId !== dimId || dragOverOpt?.optionName !== optionName) {
-      setDragOverOpt({ dimId, optionName });
-    }
-  };
-
-  const handleOptDrop = async (e: React.DragEvent, targetDimId: string, targetOptionName: string) => {
-    e.stopPropagation();
-    if (!draggingOpt || draggingOpt.dimId !== targetDimId || draggingOpt.optionName === targetOptionName) {
-      setDraggingOpt(null);
-      setDragOverOpt(null);
-      return;
-    }
-    const dim = dimensions.find(d => d.id === targetDimId);
-    if (!dim) { setDraggingOpt(null); setDragOverOpt(null); return; }
-    const fromIdx = dim.options.findIndex(o => o.name === draggingOpt.optionName);
-    const toIdx = dim.options.findIndex(o => o.name === targetOptionName);
-    if (fromIdx === -1 || toIdx === -1) { setDraggingOpt(null); setDragOverOpt(null); return; }
-    const reordered = [...dim.options];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
-    setDimensions(prev => prev.map(d => d.id === targetDimId ? { ...d, options: reordered } : d));
-    setDraggingOpt(null);
-    setDragOverOpt(null);
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(targetDimId)}/options-order`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ options: reordered.map(o => o.name) }),
-      });
-    } catch (err) {
-      console.warn('[ThemeManager] failed to reorder options:', err);
-      fetchDimensions();
-    }
-  };
-
-  const handleOptDragEnd = () => { setDraggingOpt(null); setDragOverOpt(null); };
 
   // --- Delete option ---
 
@@ -754,328 +599,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to delete option'));
     }
   };
-
-  // --- Auto-fill from source ---
-
-  /** Find the first override (enabled) set for a given option, to write fill tokens into */
-  const getOverrideSet = (dimId: string, optionName: string): string | null => {
-    const dim = dimensions.find(d => d.id === dimId);
-    const opt = dim?.options.find(o => o.name === optionName);
-    if (!opt) return null;
-    const entry = Object.entries(opt.sets).find(([, s]) => s === 'enabled');
-    return entry?.[0] ?? null;
-  };
-
-  /** Auto-fill a single uncovered token by creating its missing reference in the override set */
-  const handleAutoFillSingle = async (dimId: string, optionName: string, item: CoverageToken) => {
-    if (!item.missingRef || item.fillValue === undefined) return;
-    const targetSet = getOverrideSet(dimId, optionName);
-    if (!targetSet) {
-      setError('No override set available. Assign a set as Override first.');
-      return;
-    }
-    const fillKey = `${dimId}:${optionName}:${item.path}`;
-    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
-    try {
-      const tokenPath = item.missingRef.split('.').map(encodeURIComponent).join('/');
-      const body: Record<string, unknown> = { $value: item.fillValue };
-      if (item.fillType) body.$type = item.fillType;
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      debouncedFetchDimensions();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill token'));
-    } finally {
-      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
-    }
-  };
-
-  /** Auto-fill all uncovered tokens that have a known fill value — shows a preview modal first */
-  const handleAutoFillAll = (dimId: string, optionName: string) => {
-    const items = coverage[dimId]?.[optionName]?.uncovered ?? [];
-    const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
-    if (fillable.length === 0) return;
-    const targetSet = getOverrideSet(dimId, optionName);
-    if (!targetSet) {
-      setError('No override set available. Assign a set as Override first.');
-      return;
-    }
-    // De-duplicate by missingRef — multiple tokens may reference the same missing path
-    const seen = new Set<string>();
-    const tokens: Array<{ path: string; $value: unknown; $type?: string }> = [];
-    for (const item of fillable) {
-      if (!item.missingRef || seen.has(item.missingRef)) continue;
-      seen.add(item.missingRef);
-      const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
-      if (item.fillType) t.$type = item.fillType;
-      tokens.push(t);
-    }
-    setAutoFillPreview({ mode: 'single-option', dimId, optionName, targetSet, tokens });
-  };
-
-  /** Execute the auto-fill for a single option after confirmation */
-  const executeAutoFillAll = async (preview: Extract<AutoFillPreview, { mode: 'single-option' }>, strategy: 'skip' | 'overwrite') => {
-    const { dimId, optionName, targetSet, tokens } = preview;
-    const fillKey = `${dimId}:${optionName}:__all__`;
-    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
-    setAutoFillPreview(null);
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens, strategy }),
-      });
-      debouncedFetchDimensions();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
-    } finally {
-      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
-    }
-  };
-
-  /** Auto-fill all uncovered tokens across ALL options within a dimension — shows a preview modal first */
-  const handleAutoFillAllOptions = (dimId: string) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const dimCov = coverage[dimId];
-    if (!dimCov) return;
-
-    // Collect per-set batch payloads: { targetSet -> token[] }
-    const perSetBatch: Record<string, Array<{ path: string; $value: unknown; $type?: string }>> = {};
-    let totalCount = 0;
-    for (const opt of dim.options) {
-      const items = dimCov[opt.name]?.uncovered ?? [];
-      const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
-      if (fillable.length === 0) continue;
-      const targetSet = getOverrideSet(dimId, opt.name);
-      if (!targetSet) continue;
-      // De-duplicate by missingRef within each target set
-      if (!perSetBatch[targetSet]) perSetBatch[targetSet] = [];
-      const seenInSet = new Set(perSetBatch[targetSet].map(t => t.path));
-      for (const item of fillable) {
-        if (!item.missingRef || seenInSet.has(item.missingRef)) continue;
-        seenInSet.add(item.missingRef);
-        const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
-        if (item.fillType) t.$type = item.fillType;
-        perSetBatch[targetSet].push(t);
-        totalCount++;
-      }
-    }
-    if (totalCount === 0) {
-      setError('No override sets available. Assign sets as Override first.');
-      return;
-    }
-    setAutoFillPreview({ mode: 'all-options', dimId, perSetBatch, totalCount });
-  };
-
-  /** Execute the auto-fill for all options after confirmation */
-  const executeAutoFillAllOptions = async (preview: Extract<AutoFillPreview, { mode: 'all-options' }>, strategy: 'skip' | 'overwrite') => {
-    const { dimId, perSetBatch } = preview;
-    const fillKey = `${dimId}:__all_options__`;
-    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
-    setAutoFillPreview(null);
-    try {
-      await Promise.all(
-        Object.entries(perSetBatch).map(([targetSet, tokens]) =>
-          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens, strategy }),
-          })
-        )
-      );
-      debouncedFetchDimensions();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
-    } finally {
-      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
-    }
-  };
-
-  // --- Set state toggle ---
-
-  const handleSetState = (dimId: string, optionName: string, setName: string, targetState: string) => {
-    const task = async () => {
-      const dim = dimensions.find(d => d.id === dimId);
-      if (!dim) return;
-      const opt = dim.options.find(o => o.name === optionName);
-      if (!opt) return;
-      const updatedSets = { ...opt.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
-      const previousDimensions = dimensions;
-      const saveKey = `${dimId}/${optionName}/${setName}`;
-      setSavingKeys(prev => { const n = new Set(prev); n.add(saveKey); return n; });
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
-          : d,
-      ));
-      try {
-        await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: optionName, sets: updatedSets }),
-        });
-        debouncedFetchDimensions();
-      } catch (err) {
-        setDimensions(previousDimensions);
-        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to save'));
-      } finally {
-        setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
-      }
-    };
-    const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch((err) => {
-      console.error('[ThemeManager] mutation chain error (handleSetState):', err);
-      setError(getErrorMessage(err, 'Unexpected mutation error'));
-    });
-  };
-
-  // --- Copy assignments from one option to another (replaces target's sets) ---
-
-  const handleCopyAssignmentsFrom = (dimId: string, targetOptionName: string, sourceOptionName: string) => {
-    setShowCopyFromMenu(null);
-    const task = async () => {
-      const dim = dimensions.find(d => d.id === dimId);
-      if (!dim) return;
-      const source = dim.options.find(o => o.name === sourceOptionName);
-      if (!source) return;
-      const previousDimensions = dimensions;
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === targetOptionName ? { ...o, sets: { ...source.sets } } : o) }
-          : d,
-      ));
-      try {
-        await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: targetOptionName, sets: { ...source.sets } }),
-        });
-        debouncedFetchDimensions();
-      } catch (err) {
-        setDimensions(previousDimensions);
-        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to copy assignments'));
-      }
-    };
-    const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch((err) => {
-      console.error('[ThemeManager] mutation chain error (handleCopyAssignmentsFrom):', err);
-      setError(getErrorMessage(err, 'Unexpected mutation error'));
-    });
-  };
-
-  // --- Bulk assign all sets in an option to a single state ---
-
-  const handleBulkSetAllInOption = (dimId: string, optionName: string, targetState: 'enabled' | 'disabled' | 'source') => {
-    const task = async () => {
-      const dim = dimensions.find(d => d.id === dimId);
-      if (!dim) return;
-      const opt = dim.options.find(o => o.name === optionName);
-      if (!opt) return;
-      const updatedSets: Record<string, 'enabled' | 'disabled' | 'source'> = {};
-      sets.forEach(s => { updatedSets[s] = targetState; });
-      const previousDimensions = dimensions;
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
-          : d,
-      ));
-      try {
-        await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: optionName, sets: updatedSets }),
-        });
-        debouncedFetchDimensions();
-      } catch (err) {
-        setDimensions(previousDimensions);
-        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to bulk-assign sets'));
-      }
-    };
-    const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch((err) => {
-      console.error('[ThemeManager] mutation chain error (handleBulkSetAllInOption):', err);
-      setError(getErrorMessage(err, 'Unexpected bulk mutation error'));
-    });
-  };
-
-  // --- Bulk set-status across all options in a dimension ---
-
-  const handleBulkSetState = (dimId: string, setName: string, targetState: 'enabled' | 'disabled' | 'source') => {
-    setBulkMenu(null);
-    const task = async () => {
-      const dim = dimensions.find(d => d.id === dimId);
-      if (!dim) return;
-      const previousDimensions = dimensions;
-      const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
-      setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.add(k)); return n; });
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId
-          ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
-          : d,
-      ));
-      try {
-        await Promise.all(dim.options.map(opt => {
-          const updatedSets = { ...opt.sets, [setName]: targetState };
-          return apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: opt.name, sets: updatedSets }),
-          });
-        }));
-        debouncedFetchDimensions();
-      } catch (err) {
-        setDimensions(previousDimensions);
-        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to bulk-update'));
-      } finally {
-        setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
-      }
-    };
-    const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch((err) => {
-      console.error('[ThemeManager] mutation chain error (handleBulkSetState):', err);
-      setError(getErrorMessage(err, 'Unexpected bulk mutation error'));
-    });
-  };
-
-  // Close bulk menu on outside click or Escape
-  useEffect(() => {
-    if (!bulkMenu) return;
-    const close = () => setBulkMenu(null);
-    requestAnimationFrame(() => {
-      const first = bulkMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
-      first?.focus();
-    });
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { close(); return; }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const items = Array.from(bulkMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
-        if (!items.length) return;
-        const idx = items.indexOf(document.activeElement as HTMLElement);
-        const next = e.key === 'ArrowDown'
-          ? items[(idx + 1) % items.length]
-          : items[(idx - 1 + items.length) % items.length];
-        next?.focus();
-      }
-    };
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [bulkMenu]);
-
-  // Close copy-from menu on outside click or Escape
-  useEffect(() => {
-    if (!showCopyFromMenu) return;
-    const close = () => setShowCopyFromMenu(null);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [showCopyFromMenu]);
 
   // --- Live preview: compute resolved token values for current selections ---
 
@@ -1142,65 +665,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     return entries.slice(0, 50);
   }, [showPreview, dimensions, selectedOptions, setTokenValues, previewSearch]);
 
-  // --- Compare two options: resolved diff rows ---
-
-  const compareRows = useMemo(() => {
-    if (!showCompare || !compareOptA || !compareOptB) return [];
-    const dimA = dimensions.find(d => d.id === compareOptA.dimId);
-    const dimB = dimensions.find(d => d.id === compareOptB.dimId);
-    const optA = dimA?.options.find(o => o.name === compareOptA.optionName);
-    const optB = dimB?.options.find(o => o.name === compareOptB.optionName);
-    if (!optA || !optB) return [];
-
-    const resolveForOpt = (opt: ThemeOption): Record<string, any> => {
-      const merged: Record<string, any> = {};
-      for (const [s, st] of Object.entries(opt.sets)) {
-        if (st === 'source') Object.assign(merged, setTokenValues[s] ?? {});
-      }
-      for (const [s, st] of Object.entries(opt.sets)) {
-        if (st === 'enabled') Object.assign(merged, setTokenValues[s] ?? {});
-      }
-      const resolve = (v: any, depth = 0): any => {
-        if (depth > 10 || typeof v !== 'string') return v;
-        const m = /^\{([^}]+)\}$/.exec(v);
-        if (!m) return v;
-        const t = m[1];
-        return t in merged ? resolve(merged[t], depth + 1) : v;
-      };
-      const out: Record<string, any> = {};
-      for (const [p, v] of Object.entries(merged)) out[p] = resolve(v);
-      return out;
-    };
-
-    const tokensA = resolveForOpt(optA);
-    const tokensB = resolveForOpt(optB);
-    const allPaths = new Set([...Object.keys(tokensA), ...Object.keys(tokensB)]);
-
-    const rows: Array<{ path: string; a: any; b: any; isDiff: boolean }> = [];
-    for (const path of allPaths) {
-      const a = tokensA[path];
-      const b = tokensB[path];
-      const isDiff = JSON.stringify(a) !== JSON.stringify(b);
-      rows.push({ path, a, b, isDiff });
-    }
-
-    rows.sort((x, y) => {
-      if (x.isDiff !== y.isDiff) return x.isDiff ? -1 : 1;
-      return x.path.localeCompare(y.path);
-    });
-
-    let result = rows;
-    if (compareDiffsOnly) result = rows.filter(r => r.isDiff);
-    if (compareSearch) {
-      const term = compareSearch.toLowerCase();
-      result = result.filter(r =>
-        r.path.toLowerCase().includes(term) ||
-        String(r.a ?? '').toLowerCase().includes(term) ||
-        String(r.b ?? '').toLowerCase().includes(term)
-      );
-    }
-    return result;
-  }, [showCompare, compareOptA, compareOptB, dimensions, setTokenValues, compareDiffsOnly, compareSearch]);
 
   // --- Per-option diff counts vs currently selected option ---
   const optionDiffCounts = useMemo(() => {
