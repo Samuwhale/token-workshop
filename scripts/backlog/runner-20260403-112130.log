@@ -19,3 +19,10 @@ NOTE: 1 [~] item(s) found — skipping reset (7 other runner(s) active)
   → ExportPanel cannot export a filtered subset of tokens — the export always includes all tokens in selected sets; power users need to export "only color tokens" or "only tokens in the spacing.* group" as separate files for platform-specific consumers; add type and path-prefix filters to the ExportPanel alongside the existing set selection, sending filter params to the export server route (ExportPanel.tsx set selection ~L215, export route)
   Worktree: /tmp/backlog-31178-BGomCl
   Running agent… (started 11:21:30)
+
+  ✓ done: ExportPanel cannot export a filtered subset of tokens
+    Added type filter (pill checkboxes for each DTCG type) and path-prefix filter (text input) to ExportPanel UI; server route now accepts types[] and pathPrefix params with recursive type filtering and segment-based path navigation
+    27 turns · 231s · $0.8
+
+  Merging to main: ExportPanel cannot export a filtered subset of tokens
+Already up to date.

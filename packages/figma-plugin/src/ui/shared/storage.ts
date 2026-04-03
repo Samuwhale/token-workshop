@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
   EXPORT_ZIP_FILENAME:   'exportPanel.zipFilename',
   EXPORT_NEST_PLATFORM:  'exportPanel.nestByPlatform',
+  EXPORT_TYPES:          'exportPanel.selectedTypes',
+  EXPORT_PATH_PREFIX:    'exportPanel.pathPrefix',
   UNDO_MAX_HISTORY:      'tm_undo_max_history',
   HIDE_DEPRECATED:       'tm_hide_deprecated',
   RECENT_COLORS:         'tm_recent_colors',

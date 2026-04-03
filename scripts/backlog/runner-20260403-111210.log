@@ -47,3 +47,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: ColorPicker token swatch alpha strip, useTokenCrud missing error handling (multi-mode + detach), TokenTableView silent parse failure, server dependents routes ignoring :set param, useGroupOperations rename preview fallthrough
 Already up to date.
+[main f2ff3e6f] chore(backlog): code pass – code-pass
+ 6 files changed, 37 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 3 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: ColorPicker.tsx (token swatch list alpha), useTokenCrud.ts (multi-mode save, detach from generator error handling), TokenTableView.tsx (inline edit silent failure), packages/server/src/routes/tokens.ts (dependents route :set param), useGroupOperations.ts (rename preview error fallthrough)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* declare a :set URL param that is never read — calls succeed even for non-existent sets, returning global dependents instead of 404; also ColorPicker token swatch list still uses v.slice(0,7) stripping alpha from 8-char hex tokens (separate from the recent-colors fix already shipped)
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  11 queued · 2 in-progress · last took 13m1s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] ColorPicker token swatch panel strips alpha from 8-char hex colors — `colorTokens` useMemo at ColorPicker.tsx:355 uses `v.slice(0, 7)` on every hex value that matches `#[0-9a-fA-F]{6,8}`, silently discarding the alpha byte from `#RRGGBBAA` tokens; selecting such a token from the "browse tokens" swatch panel applies the wrong fully-opaque color (the recent-colors alpha fix at ~L54 was a separate code path and did not fix this instance)
+  Worktree: /tmp/backlog-20980-bLGkdM
+  Running agent… (started 11:25:12)

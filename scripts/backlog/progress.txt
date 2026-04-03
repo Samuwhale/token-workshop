@@ -407,3 +407,15 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: Server GET /api/tokens/:set/dependents/* and /tokens/:set/group-dependents/* declare a :set URL param that is never read — calls succeed even for non-existent sets, returning global dependents instead of 404; also ColorPicker token swatch list still uses v.slice(0,7) stripping alpha from 8-char hex tokens (separate from the recent-colors fix already shipped)
 ---
+
+## 2026-04-03 - ExportPanel cannot export a filtered subset of tokens
+- Added type filter and path-prefix filter to ExportPanel and the export server route.
+- **Server** (`packages/server/src/routes/export.ts`): Added `types?: string[]` and `pathPrefix?: string` to the POST `/api/export` body. Added `filterTokensByType()` recursive helper that walks the token group tree, applying `$type` inheritance from parent groups. Path prefix uses dot-split segment navigation (same pattern as existing `group` param). Both filters are applied after existing set/group filtering and return 404 when no tokens match.
+- **Storage** (`packages/figma-plugin/src/ui/shared/storage.ts`): Added `EXPORT_TYPES` and `EXPORT_PATH_PREFIX` keys for localStorage persistence.
+- **UI** (`packages/figma-plugin/src/ui/components/ExportPanel.tsx`): Added `selectedTypes: Set<string> | null` state (null = all types) and `pathPrefix: string` state. Both are persisted to localStorage. The export body now includes `types` and `pathPrefix` when active. UI renders a "Token Types" section with togglable pill buttons for each known type (from `TOKEN_TYPE_BADGE_CLASS`), plus a "Path Prefix" text input with a clear button.
+- Files changed: `packages/server/src/routes/export.ts` ~L1, `packages/figma-plugin/src/ui/shared/storage.ts` ~L29, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L142, ~L249, ~L761
+- **Learnings for future iterations:**
+  - `lsGetJson<string[] | null>(key, null)` is needed when the saved value may be null — using `lsGetJson<string[]>(key, null)` causes a TS type error since null isn't assignable to string[].
+  - The existing `group: string[]` server param already does path-prefix navigation; exposing it in the UI as a dot-separated string input is the cleanest UX approach.
+  - Token type inheritance from parent groups (DTCG spec) must be tracked through the recursive filter via an `inheritedType` param.
+---

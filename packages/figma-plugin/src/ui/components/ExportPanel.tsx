@@ -139,6 +139,18 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [availableSets, setAvailableSets] = useState<string[]>([]);
   const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
 
+  // Type filter state — null means all types
+  const ALL_TOKEN_TYPES = Object.keys(TOKEN_TYPE_BADGE_CLASS);
+  const [selectedTypes, setSelectedTypes] = useState<Set<string> | null>(() => {
+    const saved = lsGetJson<string[] | null>(STORAGE_KEYS.EXPORT_TYPES, null);
+    return Array.isArray(saved) ? new Set(saved) : null;
+  });
+
+  // Path prefix filter
+  const [pathPrefix, setPathPrefix] = useState<string>(() => {
+    return lsGet(STORAGE_KEYS.EXPORT_PATH_PREFIX, '');
+  });
+
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
   const figmaLoadingRef = useRef(false);
@@ -171,6 +183,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.EXPORT_NEST_PLATFORM, nestByPlatform);
   }, [nestByPlatform]);
+
+  // Persist type filter
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.EXPORT_TYPES, selectedTypes === null ? null : [...selectedTypes]);
+  }, [selectedTypes]);
+
+  // Persist path prefix
+  useEffect(() => {
+    lsSet(STORAGE_KEYS.EXPORT_PATH_PREFIX, pathPrefix);
+  }, [pathPrefix]);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -246,8 +268,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setResults([]);
 
     try {
-      const body: { platforms: string[]; sets?: string[]; cssSelector?: string } = { platforms: Array.from(selected) };
+      const body: { platforms: string[]; sets?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string } = { platforms: Array.from(selected) };
       if (selectedSets !== null) body.sets = Array.from(selectedSets);
+      if (selectedTypes !== null) body.types = Array.from(selectedTypes);
+      if (pathPrefix.trim()) body.pathPrefix = pathPrefix.trim();
       if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;
       const data = await apiFetch<{ results?: { platform: string; files: { path: string; content: string }[] }[] }>(
         `${serverUrl}/api/export`,
@@ -735,6 +759,78 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 </div>
               </div>
             )}
+
+            {/* Token type filter */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                  Token Types
+                </div>
+                <button
+                  onClick={() => setSelectedTypes(prev => prev === null ? new Set() : null)}
+                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                >
+                  {selectedTypes === null ? `Filter types` : `All types`}
+                </button>
+              </div>
+              {selectedTypes !== null && (
+                <div className="flex flex-wrap gap-1">
+                  {ALL_TOKEN_TYPES.map(type => {
+                    const isChecked = selectedTypes.has(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setSelectedTypes(prev => {
+                          const next = new Set(prev ?? ALL_TOKEN_TYPES);
+                          if (next.has(type)) { next.delete(type); } else { next.add(type); }
+                          return next.size === 0 ? new Set() : next;
+                        })}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors border ${
+                          isChecked
+                            ? 'bg-[var(--color-figma-accent)]/10 border-[var(--color-figma-accent)] text-[var(--color-figma-accent)]'
+                            : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-text-tertiary)]'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedTypes === null && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  All token types included. Click "Filter types" to restrict.
+                </div>
+              )}
+            </div>
+
+            {/* Path prefix filter */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                  Path Prefix
+                </div>
+                {pathPrefix && (
+                  <button
+                    onClick={() => setPathPrefix('')}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                value={pathPrefix}
+                onChange={e => setPathPrefix(e.target.value)}
+                placeholder="e.g. color or spacing.scale"
+                spellCheck={false}
+                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+              />
+              <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
+              </div>
+            </div>
 
             {results.length > 0 && (
               <div>

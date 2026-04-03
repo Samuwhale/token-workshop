@@ -5,6 +5,46 @@ import type { TokenGroup } from '@tokenmanager/core';
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript'];
 
 /**
+ * Recursively filter a token group, keeping only tokens whose resolved $type
+ * is in the given set. Parent-group $type is inherited when a leaf has none.
+ * Returns null if the filtered group is empty.
+ */
+function filterTokensByType(group: TokenGroup, types: string[], inheritedType?: string): TokenGroup | null {
+  const result: TokenGroup = {};
+  let hasContent = false;
+
+  const groupType = (group.$type as string | undefined) ?? inheritedType;
+
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) {
+      // Keep metadata fields as-is
+      result[key] = value;
+      continue;
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      if ('$value' in obj) {
+        // Leaf token
+        const tokenType = (obj.$type as string | undefined) ?? groupType;
+        if (tokenType && types.includes(tokenType)) {
+          result[key] = value;
+          hasContent = true;
+        }
+      } else {
+        // Nested group — recurse
+        const filtered = filterTokensByType(value as TokenGroup, types, groupType);
+        if (filtered !== null) {
+          result[key] = filtered;
+          hasContent = true;
+        }
+      }
+    }
+  }
+
+  return hasContent ? result : null;
+}
+
+/**
  * Validate a CSS selector string to prevent injection.
  * Allows typical selectors: element names, classes, IDs, attributes, pseudo-classes,
  * combinators, and common punctuation — but rejects braces, semicolons, comments,
@@ -23,13 +63,16 @@ function isValidCssSelector(selector: string): boolean {
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
   // Optional body fields:
-  //   sets: string[]    — export only these token sets (default: all sets)
-  //   group: string[]   — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
-  //                       Using an array avoids ambiguity when segment names contain literal dots.
-  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; cssSelector?: string } }>(
+  //   sets: string[]       — export only these token sets (default: all sets)
+  //   group: string[]      — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
+  //                          Using an array avoids ambiguity when segment names contain literal dots.
+  //   types: string[]      — keep only tokens whose $type is in this list (default: all types)
+  //   pathPrefix: string   — keep only tokens under this dot-separated path prefix (e.g. "color.brand")
+  //   cssSelector: string  — CSS selector to wrap CSS variables (default: :root)
+  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string } }>(
     '/export',
     async (request, reply) => {
-      const { platforms, sets, group, cssSelector } = request.body || {};
+      const { platforms, sets, group, types, pathPrefix, cssSelector } = request.body || {};
 
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
         return reply.status(400).send({
@@ -83,6 +126,49 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           if (Object.keys(tokenData).length === 0) {
             return reply.status(404).send({
               error: `Group "${group}" not found in any token set`,
+            });
+          }
+        }
+
+        // Filter by path prefix (dot-separated, e.g. "color.brand")
+        if (pathPrefix && pathPrefix.trim()) {
+          const segments = pathPrefix.trim().split('.');
+          const filtered: Record<string, TokenGroup> = {};
+          for (const [setName, tokens] of Object.entries(tokenData)) {
+            let current: TokenGroup | undefined = tokens;
+            for (const seg of segments) {
+              if (current && typeof current === 'object' && seg in current) {
+                current = (current as Record<string, unknown>)[seg] as TokenGroup | undefined;
+              } else {
+                current = undefined;
+                break;
+              }
+            }
+            if (current && typeof current === 'object') {
+              filtered[setName] = current;
+            }
+          }
+          tokenData = filtered;
+          if (Object.keys(tokenData).length === 0) {
+            return reply.status(404).send({
+              error: `Path prefix "${pathPrefix}" not found in any token set`,
+            });
+          }
+        }
+
+        // Filter by token type
+        if (types && types.length > 0) {
+          const filtered: Record<string, TokenGroup> = {};
+          for (const [setName, tokens] of Object.entries(tokenData)) {
+            const result = filterTokensByType(tokens, types);
+            if (result !== null) {
+              filtered[setName] = result;
+            }
+          }
+          tokenData = filtered;
+          if (Object.keys(tokenData).length === 0) {
+            return reply.status(404).send({
+              error: `No tokens with type(s) "${types.join(', ')}" found`,
             });
           }
         }
