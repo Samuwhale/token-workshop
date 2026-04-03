@@ -43,13 +43,25 @@ function MultiModeCell({
 
   const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAlias(value?.$value);
 
+  // Stable refs so the tab-activation effect always reads fresh values without
+  // adding them as trigger dependencies (which would cause spurious re-activations
+  // whenever value/tokenType/canEdit change while isTabPending is already true).
+  const canEditRef = useRef(canEdit);
+  canEditRef.current = canEdit;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const tokenTypeRef = useRef(tokenType);
+  tokenTypeRef.current = tokenType;
+  const onTabActivatedRef = useRef(onTabActivated);
+  onTabActivatedRef.current = onTabActivated;
+
   // Activate edit mode when Tab navigation lands on this cell
   useEffect(() => {
-    if (!isTabPending || !canEdit || !value || tokenType === 'color') return;
-    setEditValue(getEditableString(tokenType!, value.$value));
+    if (!isTabPending || !canEditRef.current || !valueRef.current || tokenTypeRef.current === 'color') return;
+    setEditValue(getEditableString(tokenTypeRef.current!, valueRef.current.$value));
     setEditing(true);
-    onTabActivated?.();
-  }, [isTabPending]); // eslint-disable-line react-hooks/exhaustive-deps
+    onTabActivatedRef.current?.();
+  }, [isTabPending]);
 
   const handleSubmit = useCallback(() => {
     if (!editing || !tokenType || !targetSet || !onSave) return;
@@ -207,6 +219,10 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const [quickBound, setQuickBound] = useState<string | null>(null);
   const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
+  // Stable refs for the tab-edit effect (see useEffect near pendingTabEdit)
+  const nodeDataRef = useRef(node);
+  const canInlineEditRef = useRef(false);
+  const clearPendingTabEditRef = useRef(clearPendingTabEdit);
 
   // Group-specific state
   const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -248,16 +264,19 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     }
   }, [pendingRenameToken, node.isGroup, node.path, node.name, clearPendingRename]);
 
-  // When Tab navigation lands on this token (non-multi-mode), activate inline edit
+  // When Tab navigation lands on this token (non-multi-mode), activate inline edit.
+  // Reads node/canInlineEdit/clearPendingTabEdit via stable refs so the effect only
+  // fires when pendingTabEdit changes, not on every unrelated prop update.
   useEffect(() => {
-    if (!pendingTabEdit || pendingTabEdit.path !== node.path || pendingTabEdit.columnId !== null) return;
-    if (node.isGroup) { clearPendingTabEdit(); return; }
-    if (canInlineEdit && node.$type && node.$type !== 'color' && node.$type !== 'boolean') {
-      setInlineEditValue(getEditableString(node.$type, node.$value));
+    const n = nodeDataRef.current;
+    if (!pendingTabEdit || pendingTabEdit.path !== n.path || pendingTabEdit.columnId !== null) return;
+    if (n.isGroup) { clearPendingTabEditRef.current(); return; }
+    if (canInlineEditRef.current && n.$type && n.$type !== 'color' && n.$type !== 'boolean') {
+      setInlineEditValue(getEditableString(n.$type, n.$value));
       setInlineEditActive(true);
     }
-    clearPendingTabEdit();
-  }, [pendingTabEdit]); // eslint-disable-line react-hooks/exhaustive-deps
+    clearPendingTabEditRef.current();
+  }, [pendingTabEdit]);
 
   useEffect(() => {
     if (!groupMenuPos) return;
@@ -340,6 +359,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   // Inline quick-edit eligibility
   const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
     && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
+
+  // Keep stable refs up-to-date for the tab-edit effect
+  nodeDataRef.current = node;
+  canInlineEditRef.current = canInlineEdit;
+  clearPendingTabEditRef.current = clearPendingTabEdit;
 
   // Nearby token match for inline editing nudge
   const nearbyMatches = useNearbyTokenMatch(

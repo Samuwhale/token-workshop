@@ -556,3 +556,14 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: App.tsx command palette useMemo with 30 dependencies is a performance concern; QuickApplyPicker missing unbind is a real workflow gap; color format cycling through 5 formats is surprisingly tedious
 ---
+
+## 2026-04-03 - TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
+- Fixed both stale-closure effects by introducing stable mutable refs that are updated on every render, removing the eslint-disable comments.
+- `MultiModeCell` effect (was L47-52): added `canEditRef`, `valueRef`, `tokenTypeRef`, `onTabActivatedRef` — refs declared after `canEdit` is computed, updated each render, read inside the effect. Effect dep array stays `[isTabPending]` (correct trigger semantics).
+- `TokenTreeNode` effect (was L260): added `nodeDataRef`, `canInlineEditRef`, `clearPendingTabEditRef` — `useRef` declarations placed near `nodeRef` (L221), `.current` assignments placed after `canInlineEdit` is computed at L354. Effect dep array stays `[pendingTabEdit]`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L42-70, ~L221-224, ~L354-358, ~L270-282
+- **Learnings for future iterations:**
+  - When an effect has a clear "trigger" dep and "read" deps that shouldn't re-trigger it, the ref pattern is the right fix: declare `useRef`, update `.current` on every render right after the value is computed, read via `ref.current` inside the effect. This preserves intent while eliminating stale closures.
+  - Adding all unlisted deps to the array is wrong when it would change semantics (e.g., re-calling `onTabActivated()` whenever `value` changes while `isTabPending` is already true).
+  - `useRef` initial value doesn't need to be accurate — refs are updated synchronously before any effects run on the same render cycle.
+---

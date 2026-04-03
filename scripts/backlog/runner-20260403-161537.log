@@ -545,3 +545,37 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — covering command palette shortcuts, quick-apply unbind, circular dep visualization, color format cycling, export formats, set folder grouping, git ahead/behind, mixed binding filter, bulk token creation API, extract batch rename, font weight validation, and command palette performance
 Already up to date.
+[main 6589b794] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (3285 lines, 47 useState, 30+ command palette entries, keyboard shortcuts), all server routes (9 route files, 27 token endpoints, 13 generator endpoints, 19 sync endpoints), all UI components (85 files, 52K LOC), all hooks (48 files, 7.7K LOC), ExportPanel, GitSubPanel, SettingsPanel, SelectionInspector, TokenEditor, ValueEditors, SetSwitcher, EmptyState, CommandPalette, QuickApplyPicker, ExtractTokensPanel, TokenFlowPanel, useTokenNavigation
+- Found 12 items — written to backlog-inbox.md
+- Notable: App.tsx command palette useMemo with 30 dependencies is a performance concern; QuickApplyPicker missing unbind is a real workflow gap; color format cycling through 5 formats is surprisingly tedious
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  13 queued · 3 in-progress · last took 5m54s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager.tsx has 30+ useState/useRef hooks managing overlapping concerns — the component (L63-159) tracks drag-and-drop, bulk operations, previews, comparisons, filters, menus, modals, and pagination all in a single function body; this mirrors the App.tsx state explosion pattern (43 useState) and makes every change risky because any state update re-evaluates all hooks; extract cohesive state groups into custom hooks (e.g., useThemeDragDrop, useThemeBulkOps, useThemeCompare) following the same pattern used to extract useFindReplace and useDragDrop from TokenList
+  Worktree: /tmp/backlog-46178-rek6et
+  Running agent… (started 18:38:34)
+
+  · unknown
+    2 turns · 37s · $0.2
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (3285 lines, 47 useState, 30+ command palette entries, keyboard shortcuts), all server routes (9 route files, 27 token endpoints, 13 generator endpoints, 19 sync endpoints), all UI components (85 files, 52K LOC), all hooks (48 files, 7.7K LOC), ExportPanel, GitSubPanel, SettingsPanel, SelectionInspector, TokenEditor, ValueEditors, SetSwitcher, EmptyState, CommandPalette, QuickApplyPicker, ExtractTokensPanel, TokenFlowPanel, useTokenNavigation
+- Found 12 items — written to backlog-inbox.md
+- Notable: App.tsx command palette useMemo with 30 dependencies is a performance concern; QuickApplyPicker missing unbind is a real workflow gap; color format cycling through 5 formats is surprisingly tedious
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  13 queued · 3 in-progress · last took 42s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager.tsx has 30+ useState/useRef hooks managing overlapping concerns — the component (L63-159) tracks drag-and-drop, bulk operations, previews, comparisons, filters, menus, modals, and pagination all in a single function body; this mirrors the App.tsx state explosion pattern (43 useState) and makes every change risky because any state update re-evaluates all hooks; extract cohesive state groups into custom hooks (e.g., useThemeDragDrop, useThemeBulkOps, useThemeCompare) following the same pattern used to extract useFindReplace and useDragDrop from TokenList
+  Worktree: /tmp/backlog-46178-8SaYou
+  Running agent… (started 18:39:16)

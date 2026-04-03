@@ -562,3 +562,26 @@ Already up to date.
   → Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount — `useGenerators.ts` (L245-256) uses only `AbortSignal.timeout(5000)` with no unmount abort; `useTokens.ts:refreshTokens` (L64-101) similarly has no unmount cancellation; `useFigmaSync.ts` (L119-143) runs a batch PATCH loop with no abort mechanism if the component unmounts mid-loop; `useServerConnection.ts:markDisconnected` (L58-66) calls `checkConnection()` without abort — contrast with `useLint`, `useThemeSwitcher`, `useResolvers` which correctly use `AbortController` refs with effect cleanup; the inconsistency should be fixed by adding the same abort-on-unmount pattern to all hooks that do async fetches
   Worktree: /tmp/backlog-46580-V4wWP7
   Running agent… (started 18:36:20)
+
+  · unknown
+    23 turns · 163s · $0.45
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (3285 lines, 47 useState, 30+ command palette entries, keyboard shortcuts), all server routes (9 route files, 27 token endpoints, 13 generator endpoints, 19 sync endpoints), all UI components (85 files, 52K LOC), all hooks (48 files, 7.7K LOC), ExportPanel, GitSubPanel, SettingsPanel, SelectionInspector, TokenEditor, ValueEditors, SetSwitcher, EmptyState, CommandPalette, QuickApplyPicker, ExtractTokensPanel, TokenFlowPanel, useTokenNavigation
+- Found 12 items — written to backlog-inbox.md
+- Notable: App.tsx command palette useMemo with 30 dependencies is a performance concern; QuickApplyPicker missing unbind is a real workflow gap; color format cycling through 5 formats is surprisingly tedious
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  13 queued · 3 in-progress · last took 2m51s
+═══════════════════════════════════════════════════════════════
+  → TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs — the `useEffect` at L47-52 depends only on `[isTabPending]` but reads `canEdit`, `value`, `tokenType`, and calls `onTabActivated`; the `useEffect` at L260 depends only on `[pendingTabEdit]` but reads `node.isGroup`, `node.$type`, `node.$value`, `canInlineEdit`, and `clearPendingTabEdit`; both effects can operate on stale data when their unlisted dependencies change without `isTabPending`/`pendingTabEdit` also changing; fix by adding proper dependencies or extracting stable refs
+  Worktree: /tmp/backlog-46580-ZV3zAU
+  Running agent… (started 18:39:11)
+
+  ✓ done: TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
+    Fixed both effects with mutable refs (canEditRef/valueRef/tokenTypeRef/onTabActivatedRef in MultiModeCell; nodeDataRef/canInlineEditRef/clearPendingTabEditRef in TokenTreeNode) — removed eslint-disable comments, no stale closures, trigger semantics preserved
+    19 turns · 182s · $0.54
+
+  Merging to main: TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
+Already up to date.
