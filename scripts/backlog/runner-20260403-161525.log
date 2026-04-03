@@ -72,3 +72,15 @@ Already up to date.
 
   Merging to main: CommandPalette token search qualifiers (type:, has:, path:) are undocumented in the UI
 Already up to date.
+[main 13cf9853] chore(backlog): done – CommandPalette token search qualifiers (type:, has:, path:) are undocumented in the UI
+ 4 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1140 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: useThemeSwitcher excessive re-fetches from unstable tokens dep, plugin sandbox unmatched message types, syncBindings silent skip + figma.mixed snapshot failure, git-sync no timeout on operations, applyToSelection no rollback on partial failure
+Already up to date.

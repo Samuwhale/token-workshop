@@ -456,3 +456,9 @@
 - **Learnings for future iterations:**
   - Before implementing, check if the referenced code lines have changed substantially — the item referenced ~L104-109 and ~L410, but the implementation was already added at ~L427-448.
 ---
+
+## 2026-04-03 - code-pass
+- Areas explored: server services (git-sync.ts, lint.ts, style-dict.ts, themes-to-resolver.ts, token-tree-utils.ts, event-bus.ts, token-lock.ts, manual-snapshot.ts), server routes (tokens.ts, sets.ts, themes.ts, generators.ts, sync.ts, sse.ts, export.ts, lint.ts, operations.ts, snapshots.ts, resolvers.ts, docs.ts, health.ts), UI hooks (useTokens.ts, useThemeSwitcher.ts, useGenerators.ts, useServerEvents.ts, useFigmaSync.ts, usePinnedTokens.ts, useSetTabs.ts, useTokenNavigation.ts, useTokenDataLoading.ts, useTokenCrud.ts, useUndo.ts, useServerConnection.ts, useModalVisibility.ts, useSelection.ts, useRecentlyTouched.ts, useToastStack.ts, useTokenCreate.ts, usePreviewSplit.ts, useResolvers.ts, useLint.ts), App.tsx, TokenTreeContext.tsx, core package (color-math.ts, constants.ts, eval-expr.ts, generator-types.ts), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts, variableUtils.ts, colorUtils.ts, fontLoading.ts, walkNodes.ts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: useThemeSwitcher re-fetches /api/themes on every token change because `tokens` (an array) is used as an effect dependency and recreated on every fetch — replacing with `tokenRevision` (already available) eliminates the unnecessary network calls; plugin sandbox sends 5+ message types not in the PluginMessage union type, meaning UI silently drops those responses
+---
