@@ -332,3 +332,18 @@ Already up to date.
 
   Merging to main: Plugin ↔ UI message contract has no type safety and is broken in multiple places
 Already up to date.
+[main 90377d38] chore(backlog): done – Plugin ↔ UI message contract has no type safety and is broken in multiple places
+ 15 files changed, 360 insertions(+), 21 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Plugin ↔ UI message contract type safety
+- Added `ControllerMessage` discriminated union type to `types.ts` with 26 typed response message interfaces covering all plugin→UI messages (variables-applied, variables-read, variables-read-error, styles-applied, styles-apply-error, canvas-heatmap-progress, canvas-heatmap-result, applied-to-nodes, removed-binding-from-node, select-next-sibling-result, sync-progress, sync-complete, remap-complete, error, fonts-loaded, active-themes-loaded, eyedropper-result, component-coverage-result, extracted-tokens, selection, layer-search-result, token-variable-bindings, available-fonts, find-peers-result + more).
+- Fixed `variables-read-error` field mismatch: `variableSync.ts` was sending `message` but `controller.ts` sends `error` and `ImportPanel.tsx` was reading `msg.message` (showing "undefined"). Standardized on `error` field everywhere.
+- Handled `canvas-heatmap-progress` in `useHeatmap.ts` — added `heatmapProgress` state and returned it; wired through `BindingAuditPanel` and `HeatmapPanel` to show a progress bar (width % + "N / total" count) during scans.
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  9 queued · 4 in-progress · last took 13m29s
+═══════════════════════════════════════════════════════════════
+  → GeneratorPipelineCard in GraphPanel has no Edit button — users can rerun, preview, duplicate, and delete generators from the pipeline list view, but editing requires navigating to TokenEditor → Derived Groups; add an Edit action to GeneratorPipelineCard that opens TokenGeneratorDialog with the existing generator (GraphPanel.tsx ~L1015-1227)
+  Worktree: /tmp/backlog-81661-zYssGe
+  Running agent… (started 12:51:07)

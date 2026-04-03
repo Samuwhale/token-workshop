@@ -428,3 +428,10 @@
   - `useFigmaMessage` is the standard pattern for all async plugin roundtrips. Any `parent.postMessage` that expects a response should use it rather than a raw fire-and-forget to avoid silent failure swallowing.
   - The `HeatmapProgress` interface is exported from `useHeatmap.ts` so callers can type the prop without reaching into internals.
 ---
+
+## 2026-04-03 - ExportPanel conflates "export to platforms" with "import from Figma Variables"
+- Renamed the "Extract Figma" mode button label to "Import from Figma" in the segmented control toggle (~L606). The description already accurately described the import behavior; only the button label was misleading.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L606
+- **Learnings for future iterations:**
+  - The "Extract Figma" label was non-standard terminology; "Import from Figma" aligns with standard import/export mental models and makes the directionality explicit.
+---

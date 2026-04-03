@@ -311,3 +311,10 @@ Already up to date.
   → ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab — Mode B (Figma Variables) reads from Figma and saves to the server, which is an import not an export; rename it "Import from Figma" or move it to its own sub-tab to eliminate the mental model collision (ExportPanel.tsx ~L573-599 mode toggle)
   Worktree: /tmp/backlog-80049-HnjpTe
   Running agent… (started 12:50:15)
+
+  ✓ done: ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab
+    Renamed "Extract Figma" button label to "Import from Figma" in the segmented control toggle (ExportPanel.tsx ~L606)
+    10 turns · 60s · $0.2
+
+  Merging to main: ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab
+Already up to date.

@@ -459,3 +459,9 @@ Already up to date.
   → 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions across UI hooks and components — useTokens.ts:119, useWindowExpand.ts:19, useTokenNavigation.ts:27, useNearbyTokenMatch.ts:130, PublishPanel.tsx:1121/1298/1734, HistoryPanel.tsx:746/1254, SetSwitcher.tsx:40, SelectionInspector.tsx:270/298/562, PublishModals.tsx:186/360, PublishShared.tsx:124; each suppression hides a potential stale-closure bug and should be audited — either fix the deps array or document why suppression is safe with a comment
   Worktree: /tmp/backlog-81267-CdvoWc
   Running agent… (started 12:44:28)
+
+  ✓ done: 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions across UI hooks and components
+    Fixed useTokenNavigation.ts:27 cleanly (removed suppression); documented 14 remaining sites with Safe: comments explaining why each suppression is intentional. Lint error count improved from 5 to 4. All validate.sh gates pass.
+    48 turns · 406s · $1.27
+
+  Merging to main: 16 eslint-disable-next-line react-hooks/exhaustive-deps suppressions across UI hooks and components
