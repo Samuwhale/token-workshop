@@ -91,6 +91,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [contrastPage, setContrastPage] = useState(0);
   const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
   const [contrastCopied, setContrastCopied] = useState(false);
+  const [contrastGroupFilter, setContrastGroupFilter] = useState<string>('all');
+  const [contrastSortMode, setContrastSortMode] = useState<'luminance' | 'failures'>('luminance');
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // canonical path being deduplicated
@@ -1053,14 +1055,40 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       {colorTokens.length >= 2 && (() => {
         const CONTRAST_PAGE_SIZE = 16;
 
-        // Build all failing pairs (full matrix, unfiltered) for the failures list and CSV export
+        // Derive unique groups (first path segment) for group filter
+        const availableGroups = Array.from(new Set(colorTokens.map(t => t.path.split('.')[0]))).sort();
+
+        // Filter by selected group
+        const filteredTokens = contrastGroupFilter === 'all'
+          ? colorTokens
+          : colorTokens.filter(t => t.path.split('.')[0] === contrastGroupFilter);
+
+        // Sort: luminance (default, already applied at load time) or by failure count descending
+        let displayTokens: { path: string; hex: string }[];
+        if (contrastSortMode === 'failures') {
+          const failureCounts = new Map<string, number>();
+          for (const t of filteredTokens) {
+            let cnt = 0;
+            for (const other of filteredTokens) {
+              if (other.path === t.path) continue;
+              const r = wcagContrast(t.hex, other.hex);
+              if (r !== null && r < 4.5) cnt++;
+            }
+            failureCounts.set(t.path, cnt);
+          }
+          displayTokens = [...filteredTokens].sort((a, b) => (failureCounts.get(b.path) ?? 0) - (failureCounts.get(a.path) ?? 0));
+        } else {
+          displayTokens = filteredTokens;
+        }
+
+        // Build all failing pairs for the failures list and CSV export (from displayTokens)
         const allFailingPairs: { fg: { path: string; hex: string }; bg: { path: string; hex: string }; ratio: number }[] = [];
-        for (let i = 0; i < colorTokens.length; i++) {
-          for (let j = 0; j < colorTokens.length; j++) {
+        for (let i = 0; i < displayTokens.length; i++) {
+          for (let j = 0; j < displayTokens.length; j++) {
             if (i === j) continue;
-            const r = wcagContrast(colorTokens[i].hex, colorTokens[j].hex);
+            const r = wcagContrast(displayTokens[i].hex, displayTokens[j].hex);
             if (r !== null && r < 4.5) {
-              allFailingPairs.push({ fg: colorTokens[i], bg: colorTokens[j], ratio: r });
+              allFailingPairs.push({ fg: displayTokens[i], bg: displayTokens[j], ratio: r });
             }
           }
         }
@@ -1068,8 +1096,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
 
         const handleCopyCSV = () => {
           const rows: string[] = ['fg_token,bg_token,contrast_ratio,level'];
-          for (const fg of colorTokens) {
-            for (const bg of colorTokens) {
+          for (const fg of displayTokens) {
+            for (const bg of displayTokens) {
               if (fg.path === bg.path) continue;
               const r = wcagContrast(fg.hex, bg.hex);
               const level = r === null ? 'N/A' : r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : 'Fail';
@@ -1082,9 +1110,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
           });
         };
 
-        const totalPages = Math.ceil(colorTokens.length / CONTRAST_PAGE_SIZE);
+        const totalPages = Math.ceil(displayTokens.length / CONTRAST_PAGE_SIZE);
         const pageStart = contrastPage * CONTRAST_PAGE_SIZE;
-        const pagedTokens = colorTokens.slice(pageStart, pageStart + CONTRAST_PAGE_SIZE);
+        const pagedTokens = displayTokens.slice(pageStart, pageStart + CONTRAST_PAGE_SIZE);
 
         return (
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -1092,7 +1120,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
               onClick={() => setShowContrastMatrix(v => !v)}
               className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
             >
-              <span>Color Contrast Matrix ({colorTokens.length} tokens)</span>
+              <span>Color Contrast Matrix ({contrastGroupFilter === 'all' ? colorTokens.length : displayTokens.length}{contrastGroupFilter !== 'all' ? `/${colorTokens.length}` : ''} tokens)</span>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showContrastMatrix ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
             </button>
             {showContrastMatrix && (
@@ -1109,11 +1137,45 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                   <button
                     onClick={handleCopyCSV}
                     className="flex items-center gap-1 px-2 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    title={`Copy full ${colorTokens.length}×${colorTokens.length} matrix as CSV`}
+                    title={`Copy ${displayTokens.length}×${displayTokens.length} matrix as CSV`}
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     {contrastCopied ? 'Copied!' : 'Copy as CSV'}
                   </button>
+                </div>
+
+                {/* Group filter + sort controls */}
+                {/* Group filter + sort controls */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 px-1">
+                  {availableGroups.length > 1 && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[8px] text-[var(--color-figma-text-secondary)]">Group:</span>
+                      <button
+                        onClick={() => { setContrastGroupFilter('all'); setContrastPage(0); }}
+                        className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastGroupFilter === 'all' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      >All</button>
+                      {availableGroups.map(g => (
+                        <button
+                          key={g}
+                          onClick={() => { setContrastGroupFilter(g); setContrastPage(0); }}
+                          className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastGroupFilter === g ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                        >{g}</button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 ml-auto">
+                    <span className="text-[8px] text-[var(--color-figma-text-secondary)]">Sort:</span>
+                    <button
+                      onClick={() => { setContrastSortMode('luminance'); setContrastPage(0); }}
+                      className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastSortMode === 'luminance' ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      title="Sort tokens by luminance (dark to light)"
+                    >Luminance</button>
+                    <button
+                      onClick={() => { setContrastSortMode('failures'); setContrastPage(0); }}
+                      className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastSortMode === 'failures' ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      title="Sort by number of WCAG failures — worst offenders first"
+                    >Most failures</button>
+                  </div>
                 </div>
 
                 {contrastFailuresOnly ? (
@@ -1158,7 +1220,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                     {totalPages > 1 && (
                       <div className="flex items-center justify-between mb-2 px-1">
                         <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                          Tokens {pageStart + 1}–{Math.min(pageStart + CONTRAST_PAGE_SIZE, colorTokens.length)} of {colorTokens.length}
+                          Tokens {pageStart + 1}–{Math.min(pageStart + CONTRAST_PAGE_SIZE, displayTokens.length)} of {displayTokens.length}
                         </span>
                         <div className="flex items-center gap-1">
                           <button

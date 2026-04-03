@@ -181,3 +181,21 @@ Already up to date.
   ✓ product pass: product-pass
     11 items written to inbox — covers comparison panels, generator UX, lint duplication, component decomposition, sync progress, snapshot diffing, and resolver template fragility
 Already up to date.
+[main c69f5e6a] chore(backlog): product pass – product-pass
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - Token search qualifiers undocumented outside command palette
+- Added a "Token Search Qualifiers" section to the keyboard shortcuts modal listing all 14 qualifiers (type:, has:alias, has:direct, has:duplicate, has:description, has:extension, has:generated, has:unused, value:, desc:, path:, name:, generator:, group:) with their example syntax and descriptions.
+- Added `qualifier?: true` flag to `ShortcutEntry` interface so the modal can render qualifier entries using `<code>` (monospace) styling instead of `<kbd>` (keyboard key) styling.
+- Added `'Token Search'` to `ShortcutGroup` type and `GROUP_ORDER` array, inserted between 'Command Palette' and 'Inspect'.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  17 queued · 3 in-progress · last took 11m43s
+═══════════════════════════════════════════════════════════════
+  → No keyboard shortcut to jump directly to token search mode — users must first open command palette (Cmd+K) then type the ">" prefix; a dedicated shortcut like Cmd+Shift+F would save a step for the most common power-user action
+  Worktree: /tmp/backlog-92209-27Ioyg
+  Running agent… (started 01:40:57)
