@@ -50,3 +50,12 @@ Already up to date.
 
   Merging to main: TokenEditor has no AbortController on token fetch
 Already up to date.
+[main ba705ea9] chore(backlog): done – TokenEditor has no AbortController on token fetch
+ 6 files changed, 42 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1050 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

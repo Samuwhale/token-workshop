@@ -88,3 +88,10 @@ Already up to date.
   → Generator multi-brand run leaves non-locked overrides in place on failure — clearNonLockedOverrides is called at line 639 of generator-service.ts only after a successful executeGeneratorMultiBrand loop; if any brand's executeSingleBrand throws, the catch block at the call site logs the error but clearNonLockedOverrides is never called; on the next run the stale non-locked overrides from the failed run are still present, causing unexpected merged output; fix by wrapping the multi-brand loop and clearNonLockedOverrides in try/finally so overrides are always cleared
   Worktree: /tmp/backlog-81267-NavyJP
   Running agent… (started 11:57:28)
+
+  ✓ done: Generator multi-brand run leaves non-locked overrides in place on failure
+    Wrapped multi-brand loop in try/finally so clearNonLockedOverrides always runs even when a brand's execution throws
+    11 turns · 72s · $0.24
+
+  Merging to main: Generator multi-brand run leaves non-locked overrides in place on failure
+Already up to date.

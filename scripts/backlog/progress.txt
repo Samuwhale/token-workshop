@@ -409,3 +409,11 @@
   - Both fetch effects share the same dep array (`[serverUrl, setName, tokenPath, isCreateMode]`), so both need the same AbortController treatment.
   - Check `err.name === 'AbortError'` (not `err instanceof DOMException`) for broadest browser compatibility in the Figma plugin sandbox.
 ---
+
+## 2026-04-03 - Generator multi-brand run leaves non-locked overrides in place on failure
+- Wrapped the multi-brand loop in a try/finally so `clearNonLockedOverrides` is always called even when `computeResultsWithValue` or token store operations throw mid-loop.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L600
+- **Learnings for future iterations:**
+  - The inner `tokenStore.beginBatch()`/`endBatch()` pair already used try/finally correctly; the outer loop lacked the same pattern for `clearNonLockedOverrides`.
+  - `clearNonLockedOverrides` is called in `executeSingleBrand` before the token writes (so it always runs), but in `executeGeneratorMultiBrand` it was after the loop without a finally guard.
+---

@@ -597,46 +597,48 @@ export class GeneratorService {
     const { inputTable, targetSetTemplate, targetSet } = generator;
     const allResults: GeneratedTokenResult[] = [];
 
-    for (const row of inputTable!.rows) {
-      if (!row.brand.trim()) continue;
-      const sourceValue = row.inputs[inputTable!.inputKey];
-      if (sourceValue === undefined) continue;
+    try {
+      for (const row of inputTable!.rows) {
+        if (!row.brand.trim()) continue;
+        const sourceValue = row.inputs[inputTable!.inputKey];
+        if (sourceValue === undefined) continue;
 
-      const effectiveTargetSet = targetSetTemplate
-        ? targetSetTemplate.replace('{brand}', row.brand)
-        : targetSet;
+        const effectiveTargetSet = targetSetTemplate
+          ? targetSetTemplate.replace('{brand}', row.brand)
+          : targetSet;
 
-      const results = await this.computeResultsWithValue(generator, sourceValue);
+        const results = await this.computeResultsWithValue(generator, sourceValue);
 
-      const extensions = {
-        'com.tokenmanager.generator': {
-          generatorId: generator.id,
-          sourceToken: generator.sourceToken,
-          brand: row.brand,
-        },
-      };
-      tokenStore.beginBatch();
-      try {
-        for (const result of results) {
-          const token = {
-            $type: result.type as TokenType,
-            $value: result.value as Token['$value'],
-            $extensions: extensions,
-          };
-          const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
-          if (existing) {
-            await tokenStore.updateToken(effectiveTargetSet, result.path, token);
-          } else {
-            await tokenStore.createToken(effectiveTargetSet, result.path, token);
+        const extensions = {
+          'com.tokenmanager.generator': {
+            generatorId: generator.id,
+            sourceToken: generator.sourceToken,
+            brand: row.brand,
+          },
+        };
+        tokenStore.beginBatch();
+        try {
+          for (const result of results) {
+            const token = {
+              $type: result.type as TokenType,
+              $value: result.value as Token['$value'],
+              $extensions: extensions,
+            };
+            const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+            if (existing) {
+              await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+            } else {
+              await tokenStore.createToken(effectiveTargetSet, result.path, token);
+            }
           }
+        } finally {
+          tokenStore.endBatch();
         }
-      } finally {
-        tokenStore.endBatch();
+        allResults.push(...results);
       }
-      allResults.push(...results);
+    } finally {
+      await this.clearNonLockedOverrides(generator);
     }
-
-    await this.clearNonLockedOverrides(generator);
 
     return allResults;
   }
