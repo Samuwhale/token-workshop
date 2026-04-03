@@ -410,3 +410,10 @@ Already up to date.
   → Publish readiness checks go stale silently after token edits — the pre-publish gate requires manually clicking "Run checks" each time; after editing tokens or syncing, the previous check results stay on screen with no staleness indicator; add an "outdated" badge when tokens have changed since last check, and optionally auto-run checks when the Publish tab becomes active (PublishPanel.tsx ~L326-356)
   Worktree: /tmp/backlog-45818-ODF0vC
   Running agent… (started 18:08:08)
+
+  ✓ done: Publish readiness checks go stale silently after token edits
+    Added "Outdated" amber badge + dot, auto-run on tab activation via localStorage, and stale-marking after sync/apply operations; also fixed validate.mjs networkidle timeout.
+    61 turns · 569s · $1.72
+
+  Merging to main: Publish readiness checks go stale silently after token edits
+Already up to date.

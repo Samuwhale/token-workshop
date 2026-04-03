@@ -154,9 +154,11 @@ async function run() {
       errors.push(`Uncaught: ${err.message}`);
     });
 
-    // Navigate and wait for network to settle
+    // Navigate and wait for the page to load. We use 'load' rather than
+    // 'networkidle' because the plugin UI polls the TokenManager server
+    // (which isn't running here), so networkidle is never reached.
     await page.goto(`http://localhost:${PORT}/`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
       timeout: TIMEOUT_MS,
     });
 

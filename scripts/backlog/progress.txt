@@ -416,3 +416,20 @@
 - **Learnings for future iterations:**
   - The backlog item description incorrectly stated which import type had per-token UI. When a backlog item says feature X is missing from Y but you find it implemented, check if the item mixed up the two systems.
 ---
+
+## 2026-04-03 - Publish readiness checks go stale silently after token edits
+- Added `tokenChangeKey?: number` prop to `PublishPanelProps` and passed it from App.tsx.
+- Added `checksRunAtKey` (number | null) and `checksStale` (boolean) state to track when results are outdated.
+- After `runReadinessChecks` succeeds: records `checksRunAtKey = tokenChangeKey`, clears `checksStale`, saves key to `localStorage` (`tm_readiness_change_key`).
+- Derived `isReadinessOutdated`: true when checks exist AND (`checksStale` OR `tokenChangeKey !== checksRunAtKey`).
+- Added "Outdated" badge (amber pill) in the readiness header when `isReadinessOutdated && !readinessLoading`; also turns the status dot amber.
+- Suppressed the "Ready" green badge when outdated (it's no longer accurate).
+- Set `checksStale = true` after each apply operation: apply-vars modal, apply-styles modal, apply-diff modal, and `runPublishAll`.
+- Auto-run on tab activation: mount effect reads `tm_readiness_change_key` from localStorage; if `tokenChangeKey > storedKey`, auto-runs checks immediately.
+- Fixed pre-existing Gate 4 failure: `validate.mjs` used `waitUntil: 'networkidle'` which never completes because the plugin polls the TokenManager server. Changed to `waitUntil: 'load'`.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L28-100, ~L125-240, ~L305-395; `packages/figma-plugin/src/ui/App.tsx` ~L2513; `packages/figma-plugin/standalone/validate.mjs` ~L158
+- **Learnings for future iterations:**
+  - `waitUntil: 'networkidle'` in Playwright will time out whenever the plugin has ongoing server polling (health checks, etc.) — always use `waitUntil: 'load'` for plugin UI validation.
+  - The "stable callback ref" pattern (`useRef` + assignment on every render, called from mount effect) is the clean way to call a `useCallback` function from a mount-only effect without listing all its deps.
+  - Persisting the "last run at change key" in localStorage enables auto-run staleness detection across component remounts (PublishPanel unmounts/remounts each time you navigate away from the Publish tab).
+---

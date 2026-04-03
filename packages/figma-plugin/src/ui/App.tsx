@@ -2501,7 +2501,7 @@ export function App() {
           )}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'publish' && (
             <ErrorBoundary panelName="Publish" onReset={() => navigateTo('define', 'tokens')}>
-            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} modeMap={setModeNames} />
+            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} modeMap={setModeNames} tokenChangeKey={tokenChangeKey} />
             </ErrorBoundary>
           )}
 

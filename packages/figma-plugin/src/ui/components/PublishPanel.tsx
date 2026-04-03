@@ -31,6 +31,8 @@ interface PublishPanelProps {
   activeSet: string;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
+  /** Increments whenever tokens are edited — used to detect stale readiness results */
+  tokenChangeKey?: number;
 }
 
 interface ReadinessCheck {
@@ -46,6 +48,7 @@ interface ReadinessCheck {
 }
 
 const SUB_TAB_KEY = 'tm_publish_subtab';
+const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
 const SUB_TABS: { id: PublishSubTab; label: string }[] = [
   { id: 'variables', label: 'Variables' },
@@ -55,7 +58,7 @@ const SUB_TABS: { id: PublishSubTab; label: string }[] = [
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
-export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {} }: PublishPanelProps) {
+export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey }: PublishPanelProps) {
   // ── Sub-tab navigation ──
   const [activeSubTab, setActiveSubTab] = useState<PublishSubTab>(() => {
     const stored = localStorage.getItem(SUB_TAB_KEY);
@@ -87,6 +90,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
   const [readinessLoading, setReadinessLoading] = useState(false);
   const [readinessError, setReadinessError] = useState<string | null>(null);
+  /** tokenChangeKey value at the time checks last completed successfully */
+  const [checksRunAtKey, setChecksRunAtKey] = useState<number | null>(null);
+  /** True when a sync/apply happened after checks ran, making results outdated */
+  const [checksStale, setChecksStale] = useState(false);
   const [orphansDeleting, setOrphansDeleting] = useState(false);
   const orphansPendingRef = useRef<Map<string, (count: number) => void>>(new Map());
   // orphanConfirm holds the data needed to render the confirmation modal and execute deletion
@@ -114,6 +121,20 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  /* ── Auto-run checks when tab activates after token edits ───────────── */
+
+  const runReadinessChecksRef = useRef(runReadinessChecks);
+  useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
+
+  useEffect(() => {
+    if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
+    if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
+      runReadinessChecksRef.current();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs only on mount
 
   /* ── Publish-all pending counts ─────────────────────────────────────── */
 
@@ -148,6 +169,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         setPublishAllStep('git');
         await git.applyDiff();
       }
+      setChecksStale(true);
     } catch (err) {
       setPublishAllError(describeError(err));
     } finally {
@@ -229,12 +251,16 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         },
       ];
       setReadinessChecks(checks);
+      const runKey = tokenChangeKey ?? 0;
+      setChecksRunAtKey(runKey);
+      setChecksStale(false);
+      try { localStorage.setItem(LAST_READINESS_CHANGE_KEY, String(runKey)); } catch { /* ignore */ }
     } catch (err) {
       setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
       setReadinessLoading(false);
     }
-  }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap]);
+  }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap, tokenChangeKey]);
 
   const executeOrphanDeletion = useCallback(async () => {
     if (!orphanConfirm) return;
@@ -278,6 +304,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
   const readinessBlockingFails = readinessChecks.filter(c => c.status === 'fail' && c.blocking).length;
+  const isReadinessOutdated = readinessChecks.length > 0 && (
+    checksStale ||
+    (tokenChangeKey !== undefined && checksRunAtKey !== null && tokenChangeKey !== checksRunAtKey)
+  );
 
   /* ── Sub-tab status badges ─────────────────────────────────────────────── */
 
@@ -329,6 +359,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           <div className="flex items-center gap-2">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
               readinessLoading ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' :
+              isReadinessOutdated ? 'bg-yellow-400' :
               readinessFails === 0 && readinessPasses > 0 ? 'bg-[var(--color-figma-success)]' :
               readinessBlockingFails > 0 ? 'bg-[var(--color-figma-error)]' :
               readinessFails > 0 ? 'bg-yellow-500' :
@@ -344,8 +375,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             {readinessFails > readinessBlockingFails && readinessBlockingFails > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-700 font-medium">+{readinessFails - readinessBlockingFails} optional</span>
             )}
-            {readinessFails === 0 && readinessPasses > 0 && (
+            {readinessFails === 0 && readinessPasses > 0 && !isReadinessOutdated && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
+            )}
+            {isReadinessOutdated && !readinessLoading && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-700 font-medium" title="Tokens changed since last check">Outdated</span>
             )}
           </div>
           <button
@@ -787,6 +821,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         onConfirm={async () => {
           setConfirmAction(null);
           await varSync.applyVarDiff();
+          setChecksStale(true);
         }}
         confirmLabel={`Apply ${varSync.varSyncCount} change${varSync.varSyncCount !== 1 ? 's' : ''}`}
       />
@@ -801,6 +836,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         onConfirm={async () => {
           setConfirmAction(null);
           await styleSync.applyStyleDiff();
+          setChecksStale(true);
         }}
         confirmLabel={`Apply ${styleSync.styleSyncCount} change${styleSync.styleSyncCount !== 1 ? 's' : ''}`}
       />
@@ -864,6 +900,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         onConfirm={async () => {
           setConfirmAction(null);
           await git.applyDiff();
+          setChecksStale(true);
         }}
       />
     )}
