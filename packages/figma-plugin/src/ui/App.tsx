@@ -333,6 +333,7 @@ export function App() {
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
+  const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const paletteRecentlyTouched = useRecentlyTouched();
   const palettePinnedTokens = usePinnedTokens(activeSet);
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
@@ -729,6 +730,12 @@ export function App() {
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
       e.preventDefault();
+      setCommandPaletteInitialQuery('');
+      setShowCommandPalette(v => !v);
+    }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
+      e.preventDefault();
+      setCommandPaletteInitialQuery('>');
       setShowCommandPalette(v => !v);
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'p') {
@@ -3168,6 +3175,7 @@ export function App() {
       {/* Command Palette */}
       {showCommandPalette && (
         <CommandPalette
+          initialQuery={commandPaletteInitialQuery}
           commands={commands}
           tokens={activeSetPaletteTokens}
           allSetTokens={paletteTokens}

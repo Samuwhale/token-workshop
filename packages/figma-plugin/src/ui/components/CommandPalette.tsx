@@ -86,6 +86,7 @@ interface CommandPaletteProps {
   onCopyTokenValue?: (value: string) => void;
   onDuplicateToken?: (path: string) => void;
   onClose: () => void;
+  initialQuery?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -146,8 +147,8 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose }: CommandPaletteProps) {
-  const [query, setQuery] = useState('');
+export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose, initialQuery = '' }: CommandPaletteProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
   const [showAllQualifiers, setShowAllQualifiers] = useState(false);

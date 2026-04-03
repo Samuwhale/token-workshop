@@ -440,3 +440,16 @@
 - **Learnings for future iterations:**
   - Check git log for the specific file before implementing — a closely related prior backlog item may have already addressed the bug.
 ---
+
+## 2026-04-04 - No keyboard shortcut to jump directly to token search mode
+- Added `⌘⇧F` (Cmd+Shift+F) shortcut that opens the command palette pre-filled with `>` to land directly in token search mode, skipping the manual `>` prefix step.
+- Added `OPEN_TOKEN_SEARCH: '⌘⇧F'` to `SHORTCUT_KEYS` and a corresponding registry entry in the Global group of `SHORTCUT_REGISTRY`.
+- Added `initialQuery?: string` prop to `CommandPalette` — used as the initial `useState` value so the input is pre-populated on mount.
+- Added `commandPaletteInitialQuery` state in `App.tsx` (`useState('')`); set to `'>'` when Cmd+Shift+F fires, reset to `''` on Cmd+K.
+- The shortcut toggles the palette (consistent with other global shortcuts); closing still works via Escape.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L51, ~L93; `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L88, ~L149; `packages/figma-plugin/src/ui/App.tsx` ~L336, ~L730, ~L3170
+- **Learnings for future iterations:**
+  - The `showCommandPalette && <CommandPalette />` mounting pattern means `useState(initialQuery)` naturally resets on every open — no effect or key trick needed.
+  - The stable callback ref pattern for keyboard shortcuts (`keyboardShortcutRef.current = fn`) reads current state on every render, so new state variables (`commandPaletteInitialQuery`) are safely accessible inside the handler without extra deps.
+  - Resetting `commandPaletteInitialQuery` on Cmd+K is necessary; otherwise a prior Cmd+Shift+F open would leave `>` as the initial query for all future Cmd+K opens.
+---

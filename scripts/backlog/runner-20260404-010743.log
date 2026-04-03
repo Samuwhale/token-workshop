@@ -153,3 +153,11 @@ Already up to date.
 
   Merging to main: styleSync.ts writes setPluginData unconditionally on parse failure
 Already up to date.
+[main 111460ac] chore(backlog): done – styleSync.ts writes setPluginData unconditionally on parse failure
+ 6 files changed, 46 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - styleSync.ts writes setPluginData unconditionally on parse failure
+- Stale — already done. Commit 0c93ee1f ("styleSync.ts silently swallows parse failures for color tokens and gradient stops") already added `throw new Error(...)` in both `applyPaintStyle` (when `parseColor` returns null) and `applyGradientPaintStyle` (when stops fail to parse). `setPluginData` is therefore never reached on failure — no ghost bindings are created.
+- Files changed: none (no changes needed)
+- **Learnings for future iterations:**

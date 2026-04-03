@@ -49,6 +49,7 @@ export interface ShortcutEntry {
 export const SHORTCUT_KEYS = {
   // Global
   OPEN_PALETTE:          '⌘K',
+  OPEN_TOKEN_SEARCH:     '⌘⇧F',
   PASTE_TOKENS:          '⌘⇧V',
   OPEN_SETTINGS:         '⌘,',
   SHOW_SHORTCUTS:        '?',
@@ -90,6 +91,7 @@ export type ShortcutKey = keyof typeof SHORTCUT_KEYS;
 export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   // ── Global ──────────────────────────────────────────────────────────────
   { id: 'OPEN_PALETTE',          group: 'Global',          description: 'Open command palette',           mac: SHORTCUT_KEYS.OPEN_PALETTE },
+  { id: 'OPEN_TOKEN_SEARCH',     group: 'Global',          description: 'Open token search',              mac: SHORTCUT_KEYS.OPEN_TOKEN_SEARCH },
   { id: 'PASTE_TOKENS',          group: 'Global',          description: 'Paste tokens',                   mac: SHORTCUT_KEYS.PASTE_TOKENS },
   { id: 'OPEN_SETTINGS',         group: 'Global',          description: 'Open settings',                  mac: SHORTCUT_KEYS.OPEN_SETTINGS },
   { id: 'TOGGLE_PREVIEW',        group: 'Global',          description: 'Toggle preview panel',           mac: SHORTCUT_KEYS.TOGGLE_PREVIEW },
