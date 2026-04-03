@@ -481,3 +481,21 @@
   - When casting `Record<string, unknown>` field reads to typed struct fields, `as T` casts are appropriate since the property-existence guards (`'width' in node`) already guarantee runtime correctness.
   - ESLint count improved from baseline 5 → 4 after the change (removing some implicit-any warnings).
 ---
+
+## 2026-04-03 - Tab key in inline token editing closes the edit instead of moving to the next token
+- Implemented spreadsheet-style Tab navigation for inline token value editing (both regular and multi-mode columns).
+- Added `pendingTabEdit`, `clearPendingTabEdit`, and `onTabToNext` to `TokenTreeContextType` for cross-component Tab navigation coordination.
+- `handleTabToNext` in `TokenList.tsx` finds the next/prev leaf node in `flatItems`, scrolls it into view (virtual-scroll aware using `itemOffsetsRef` + `virtualListRef`), then sets `pendingTabEdit`.
+- `TokenTreeNode` reacts to `pendingTabEdit` via a `useEffect`: if `columnId` is null, activates regular inline edit; MultiModeCell receives `isTabPending` prop and auto-enters edit mode.
+- Tab key handler added to all three inline edit inputs (MultiModeCell text, main numeric, main text). Uses `escapedRef` / `inlineEditEscapedRef` to block the `onBlur` from double-saving after Tab press.
+- Shift+Tab navigates backwards (direction -1).
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L241
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1044
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L25, ~L242, ~L360, ~L1316, ~L1380, ~L1410
+- **Learnings for future iterations:**
+  - The `pendingRenameToken`/`clearPendingRename` pattern is the right template for any "trigger edit mode on a specific token" feature.
+  - Virtual scroll means you can't just DOM-query the next cell — use `flatItemsRef` + `itemOffsetsRef` to find and scroll to the target before setting state.
+  - Use `escapedRef.current = true` before manually saving+closing on Tab to prevent the `onBlur` from firing `handleSubmit` a second time when the input unmounts.
+  - The `useEffect` in MultiModeCell that watches `isTabPending` should only list `[isTabPending]` as a dep (with eslint-disable comment) to avoid retriggering on unrelated re-renders.
+---

@@ -472,3 +472,12 @@ Already up to date.
 
   Merging to main: Plugin sandbox selection flow is pervasively `any`-typed — `collectDescendantsWithBindings` (selectionHandling.ts:291) returns `any[]`, `getSelection` (selectionHandling.ts:315) builds `any[]`
 Already up to date.
+[main 35875788] chore(backlog): done – Plugin sandbox selection flow is pervasively `any`-typed — `collectDescendantsWithBindings` (selectionHandling.ts:291) returns `any[]`, `getSelection` (selectionHandling.ts:315) builds `any[]`
+ 7 files changed, 93 insertions(+), 33 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1116 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

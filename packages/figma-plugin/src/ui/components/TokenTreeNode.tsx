@@ -24,6 +24,7 @@ import { TokenNudge } from './TokenNudge';
 // ---------------------------------------------------------------------------
 function MultiModeCell({
   tokenPath, tokenType, value, targetSet, optionName, onSave,
+  isTabPending, onTabActivated, onTab,
 }: {
   tokenPath: string;
   tokenType: string | undefined;
@@ -31,6 +32,9 @@ function MultiModeCell({
   targetSet: string | null;
   optionName: string;
   onSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  isTabPending?: boolean;
+  onTabActivated?: () => void;
+  onTab?: (direction: 1 | -1) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -38,6 +42,14 @@ function MultiModeCell({
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAlias(value?.$value);
+
+  // Activate edit mode when Tab navigation lands on this cell
+  useEffect(() => {
+    if (!isTabPending || !canEdit || !value || tokenType === 'color') return;
+    setEditValue(getEditableString(tokenType!, value.$value));
+    setEditing(true);
+    onTabActivated?.();
+  }, [isTabPending]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(() => {
     if (!editing || !tokenType || !targetSet || !onSave) return;
@@ -102,6 +114,22 @@ function MultiModeCell({
           onKeyDown={e => {
             if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
             if (e.key === 'Escape') { e.preventDefault(); escapedRef.current = true; setEditing(false); }
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              e.stopPropagation();
+              // Use escapedRef to block the onBlur from double-saving
+              escapedRef.current = true;
+              if (tokenType && targetSet && onSave) {
+                const raw = editValue.trim();
+                if (raw) {
+                  const parsed = parseInlineValue(tokenType, raw);
+                  if (parsed !== null) onSave(tokenPath, tokenType, parsed, targetSet);
+                }
+              }
+              setEditing(false);
+              onTab?.(e.shiftKey ? -1 : 1);
+              return;
+            }
             e.stopPropagation();
           }}
           onClick={e => e.stopPropagation()}
@@ -155,6 +183,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     showResolvedValues,
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
+    pendingTabEdit, clearPendingTabEdit, onTabToNext,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -218,6 +247,17 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       clearPendingRename();
     }
   }, [pendingRenameToken, node.isGroup, node.path, node.name, clearPendingRename]);
+
+  // When Tab navigation lands on this token (non-multi-mode), activate inline edit
+  useEffect(() => {
+    if (!pendingTabEdit || pendingTabEdit.path !== node.path || pendingTabEdit.columnId !== null) return;
+    if (node.isGroup) { clearPendingTabEdit(); return; }
+    if (canInlineEdit && node.$type && node.$type !== 'color' && node.$type !== 'boolean') {
+      setInlineEditValue(getEditableString(node.$type, node.$value));
+      setInlineEditActive(true);
+    }
+    clearPendingTabEdit();
+  }, [pendingTabEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!groupMenuPos) return;
@@ -318,6 +358,20 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     // Show nudge after saving a raw value — matches will be computed by the hook
     setInlineNudgeVisible(true);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
+
+  // Tab from an inline-edit cell: save current value (if valid) then navigate to next/prev token
+  const handleInlineTabToNext = useCallback((shiftKey: boolean) => {
+    inlineEditEscapedRef.current = true; // block onBlur from double-saving
+    if (inlineEditActive && node.$type) {
+      const raw = inlineEditValue.trim();
+      if (raw && raw !== getEditableString(node.$type, node.$value)) {
+        const parsed = parseInlineValue(node.$type, raw);
+        if (parsed !== null) onInlineSave?.(node.path, node.$type, parsed);
+      }
+    }
+    setInlineEditActive(false);
+    onTabToNext(node.path, null, shiftKey ? -1 : 1);
+  }, [inlineEditActive, inlineEditValue, node, onInlineSave, onTabToNext]);
 
   // Stepper helpers for number/dimension/fontWeight/duration inline editing
   const isNumericInlineType = node.$type === 'number' || node.$type === 'dimension' || node.$type === 'fontWeight' || node.$type === 'duration';
@@ -1279,6 +1333,9 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               targetSet={mv.targetSet}
               optionName={mv.optionName}
               onSave={onMultiModeInlineSave}
+              isTabPending={pendingTabEdit?.path === node.path && pendingTabEdit?.columnId === mv.optionName}
+              onTabActivated={clearPendingTabEdit}
+              onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
             />
           ))}
         </div>
@@ -1320,6 +1377,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onKeyDown={e => {
                 if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
                 if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
+                if (e.key === 'Tab') { e.preventDefault(); handleInlineTabToNext(e.shiftKey); return; }
                 e.stopPropagation();
               }}
               aria-label="Token value"
@@ -1348,6 +1406,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             onKeyDown={e => {
               if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
               if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
+              if (e.key === 'Tab') { e.preventDefault(); handleInlineTabToNext(e.shiftKey); return; }
               e.stopPropagation();
             }}
             onClick={e => e.stopPropagation()}

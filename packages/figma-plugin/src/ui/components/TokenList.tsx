@@ -1041,6 +1041,38 @@ export function TokenList({
     handleOpenPromoteModal, handleConfirmPromote,
   } = tokenPromotion;
 
+  // Tab navigation between inline-editable token cells (spreadsheet-style)
+  const [pendingTabEdit, setPendingTabEdit] = useState<{ path: string; columnId: string | null } | null>(null);
+  const handleClearPendingTabEdit = useCallback(() => setPendingTabEdit(null), []);
+
+  const handleTabToNext = useCallback((currentPath: string, columnId: string | null, direction: 1 | -1) => {
+    const items = flatItemsRef.current;
+    const offsets = itemOffsetsRef.current;
+    const leafItems = items.filter(i => !i.node.isGroup);
+    const currentIdx = leafItems.findIndex(i => i.node.path === currentPath);
+    if (currentIdx === -1) return;
+    const nextIdx = currentIdx + direction;
+    if (nextIdx < 0 || nextIdx >= leafItems.length) return;
+    const nextPath = leafItems[nextIdx].node.path;
+    // Scroll into view if needed
+    const globalIdx = items.findIndex(i => i.node.path === nextPath);
+    if (globalIdx >= 0 && virtualListRef.current) {
+      const containerH = virtualListRef.current.clientHeight;
+      const itemTop = offsets[globalIdx];
+      const itemBottom = offsets[globalIdx + 1] ?? itemTop + 24;
+      const scrollTop = virtualListRef.current.scrollTop;
+      if (itemTop < scrollTop) {
+        virtualListRef.current.scrollTop = itemTop;
+        setVirtualScrollTop(itemTop);
+      } else if (itemBottom > scrollTop + containerH) {
+        const newTop = itemBottom - containerH;
+        virtualListRef.current.scrollTop = newTop;
+        setVirtualScrollTop(newTop);
+      }
+    }
+    setPendingTabEdit({ path: nextPath, columnId });
+  }, []);
+
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -1864,6 +1896,9 @@ export function TokenList({
     activeThemes,
     pendingRenameToken,
     clearPendingRename: handleClearPendingRename,
+    pendingTabEdit,
+    clearPendingTabEdit: handleClearPendingTabEdit,
+    onTabToNext: handleTabToNext,
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -1882,6 +1917,7 @@ export function TokenList({
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
+    pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
   ]);
 
   return (

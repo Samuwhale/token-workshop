@@ -235,3 +235,10 @@ Already up to date.
   → Tab key in inline token editing closes the edit instead of moving to the next token — pressing Tab in an inline value edit field should advance focus to the next token's value (matching spreadsheet behavior), but currently it just blurs and exits edit mode; this forces users to click each token individually for sequential edits (TokenTreeNode.tsx MultiModeCell ~L92-110)
   Worktree: /tmp/backlog-49887-FUaFEo
   Running agent… (started 13:21:46)
+
+  ✓ done: Tab key in inline token editing closes the edit instead of moving to the next token
+    Implemented spreadsheet-style Tab/Shift+Tab navigation for all inline edit inputs (MultiModeCell and main value cells). Virtual-scroll aware — scrolls target into view before activating edit mode via pendingTabEdit context state.
+    76 turns · 470s · $2.08
+
+  Merging to main: Tab key in inline token editing closes the edit instead of moving to the next token
+Already up to date.

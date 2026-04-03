@@ -241,6 +241,12 @@ export interface TokenTreeContextType {
   pendingRenameToken: string | null;
   /** Clear the pending rename (called by the node once it activates rename mode) */
   clearPendingRename: () => void;
+  /** Tab navigation: token + optional multi-mode column that should enter edit mode */
+  pendingTabEdit: { path: string; columnId: string | null } | null;
+  /** Clear the pending tab-edit (called by the node once it activates edit mode) */
+  clearPendingTabEdit: () => void;
+  /** Navigate to next/prev inline-editable cell on Tab key press */
+  onTabToNext: (currentPath: string, columnId: string | null, direction: 1 | -1) => void;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */
   themeCoverage?: Map<string, { themed: number; total: number }>;
   /** Maps token paths to their source set name — for resolution chain debugger */
