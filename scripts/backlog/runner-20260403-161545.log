@@ -585,3 +585,18 @@ Already up to date.
 
   Merging to main: TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
 Already up to date.
+[main 145882ec] chore(backlog): done – TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
+ 7 files changed, 133 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenTreeNode.tsx suppresses exhaustive-deps warnings via eslint-disable, masking stale closure bugs
+- Fixed both stale-closure effects by introducing stable mutable refs that are updated on every render, removing the eslint-disable comments.
+- `MultiModeCell` effect (was L47-52): added `canEditRef`, `valueRef`, `tokenTypeRef`, `onTabActivatedRef` — refs declared after `canEdit` is computed, updated each render, read inside the effect. Effect dep array stays `[isTabPending]` (correct trigger semantics).
+- `TokenTreeNode` effect (was L260): added `nodeDataRef`, `canInlineEditRef`, `clearPendingTabEditRef` — `useRef` declarations placed near `nodeRef` (L221), `.current` assignments placed after `canInlineEdit` is computed at L354. Effect dep array stays `[pendingTabEdit]`.
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  12 queued · 3 in-progress · last took 3m31s
+═══════════════════════════════════════════════════════════════
+  → Command palette hides keyboard shortcuts during search — when the user types a query, matching commands no longer show their shortcut badges (CommandPalette.tsx ~L739); shortcuts are only visible in the no-query category view, so users never learn shortcuts for commands they search for
+  Worktree: /tmp/backlog-46580-qz3Lm3
+  Running agent… (started 18:42:42)

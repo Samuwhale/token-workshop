@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
@@ -241,14 +241,21 @@ interface UseGeneratorsResult {
 export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {
   const [generators, setGenerators] = useState<TokenGenerator[]>([]);
   const [loading, setLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchGenerators = useCallback(async () => {
     if (!connected) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
-      const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, { signal: AbortSignal.timeout(5000) });
+      const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, {
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+      });
       setGenerators(data);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Failed to fetch generators:', err);
     } finally {
       setLoading(false);
@@ -257,6 +264,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
 
   useEffect(() => {
     fetchGenerators();
+    return () => { abortRef.current?.abort(); };
   }, [fetchGenerators]);
 
   const generatorsBySource = useMemo(() => {

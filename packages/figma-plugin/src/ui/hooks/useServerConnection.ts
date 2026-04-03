@@ -10,6 +10,11 @@ export function useServerConnection() {
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
   // AbortController that fires when the server goes offline.
   // In-flight fetch calls should combine this signal via AbortSignal.any() so they
   // are cancelled immediately when the health check detects a disconnect rather than
@@ -60,8 +65,10 @@ export function useServerConnection() {
     setConnected(false);
     setChecking(true);
     checkConnection(serverUrlRef.current).then(ok => {
-      setConnected(ok);
-      setChecking(false);
+      if (mountedRef.current) {
+        setConnected(ok);
+        setChecking(false);
+      }
     });
   }, [fireDisconnect, checkConnection]);
 

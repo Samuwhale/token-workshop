@@ -567,3 +567,15 @@
   - Adding all unlisted deps to the array is wrong when it would change semantics (e.g., re-calling `onTabActivated()` whenever `value` changes while `isTabPending` is already true).
   - `useRef` initial value doesn't need to be accurate — refs are updated synchronously before any effects run on the same render cycle.
 ---
+
+## 2026-04-03 - AbortController cleanup on unmount for useGenerators, useTokens, useFigmaSync, useServerConnection
+- `useGenerators.ts`: added `abortRef`, abort-prev-then-create pattern in `fetchGenerators`, combined with `AbortSignal.timeout(5000)`; effect cleanup aborts on unmount; AbortError swallowed in catch
+- `useTokens.ts`: added `unmountControllerRef` (initialized once, aborted on unmount via cleanup effect); its signal combined with existing disconnect signal in `refreshTokens` via `AbortSignal.any`
+- `useFigmaSync.ts`: added `abortRef` and cleanup effect; `handleApplyGroupScopes` now passes the signal to both the GET and all PATCH calls; AbortError causes early return in catch; `finally` guards setState with `if (!signal.aborted)`
+- `useServerConnection.ts`: added `mountedRef` (set false on unmount); `markDisconnected`'s async `.then()` checks `mountedRef.current` before calling `setConnected`/`setChecking`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L1,245-261; `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L57-71; `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L1-3,24-30,96-143; `packages/figma-plugin/src/ui/hooks/useServerConnection.ts` ~L13-20,58-66
+- **Learnings for future iterations:**
+  - For callbacks (not effects) that call setState, the `finally` block still fires even when you `return` in `catch`. Guard setState in `finally` with `if (!signal.aborted)` to avoid setState-after-unmount there too.
+  - When the abort controller should only fire on unmount (not on each re-invocation), initialize it with `useRef(new AbortController())` and only abort in the cleanup effect — don't replace it per-call.
+  - For hooks where the same callback is called from multiple effects, a single `unmountControllerRef` is cleaner than per-effect controllers; combine its signal with other signals using `AbortSignal.any`.
+---

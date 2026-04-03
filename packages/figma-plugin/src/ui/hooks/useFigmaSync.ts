@@ -1,5 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
@@ -23,6 +23,12 @@ export function useFigmaSync(
   const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
   const [syncGroupStylesError, setSyncGroupStylesError] = useState<string | null>(null);
   const [syncGroupError, setSyncGroupError] = useState<string | null>(null);
+
+  const abortRef = useRef(new AbortController());
+  useEffect(() => {
+    const controller = abortRef.current;
+    return () => { controller.abort(); };
+  }, []);
 
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
     responseType: 'styles-applied',
@@ -95,10 +101,11 @@ export function useFigmaSync(
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
+    const signal = abortRef.current.signal;
     setGroupScopesApplying(true);
     setGroupScopesError(null);
     try {
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
+      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`, { signal });
       const prefix = groupScopesPath + '.';
       const tokenPaths: string[] = [];
       const walk = (group: Record<string, any>, p: string) => {
@@ -121,11 +128,12 @@ export function useFigmaSync(
       setGroupScopesProgress({ done: 0, total });
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map(async path => {
+        await Promise.all(batch.map(async path => {
           await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
+            signal,
           });
         }));
         done += batch.length;
@@ -134,11 +142,14 @@ export function useFigmaSync(
       setGroupScopesPath(null);
       setGroupScopesSelected([]);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Failed to apply group scopes:', err);
       setGroupScopesError(getErrorMessage(err, 'Failed to apply scopes'));
     } finally {
-      setGroupScopesApplying(false);
-      setGroupScopesProgress(null);
+      if (!signal.aborted) {
+        setGroupScopesApplying(false);
+        setGroupScopesProgress(null);
+      }
     }
   }, [groupScopesPath, groupScopesSelected, connected, serverUrl, activeSet]);
 

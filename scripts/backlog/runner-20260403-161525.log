@@ -514,3 +514,10 @@ Already up to date.
   → Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount — `useGenerators.ts` (L245-256) uses only `AbortSignal.timeout(5000)` with no unmount abort; `useTokens.ts:refreshTokens` (L64-101) similarly has no unmount cancellation; `useFigmaSync.ts` (L119-143) runs a batch PATCH loop with no abort mechanism if the component unmounts mid-loop; `useServerConnection.ts:markDisconnected` (L58-66) calls `checkConnection()` without abort — contrast with `useLint`, `useThemeSwitcher`, `useResolvers` which correctly use `AbortController` refs with effect cleanup; the inconsistency should be fixed by adding the same abort-on-unmount pattern to all hooks that do async fetches
   Worktree: /tmp/backlog-45818-PQ9kE2
   Running agent… (started 18:39:09)
+
+  ✓ done: Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount
+    Added abort-on-unmount to all four hooks: abortRef pattern in useGenerators, unmountControllerRef combined via AbortSignal.any in useTokens, abortRef with finally guard in useFigmaSync, mountedRef check in useServerConnection.markDisconnected
+    26 turns · 216s · $0.6
+
+  Merging to main: Multiple UI hooks lack AbortController cleanup on unmount, risking setState-after-unmount
+Already up to date.

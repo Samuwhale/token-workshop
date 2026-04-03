@@ -60,14 +60,22 @@ export function useTokens(
   // Tracks activeSet changes initiated internally by refreshTokens (initial set selection)
   // so the activeSet-change effect can skip the redundant re-fetch.
   const internalSetChangeRef = useRef(false);
+  // Aborted on unmount so in-flight fetches don't call setState on a dead component.
+  const unmountControllerRef = useRef(new AbortController());
+
+  useEffect(() => {
+    const controller = unmountControllerRef.current;
+    return () => { controller.abort(); };
+  }, []);
 
   const refreshTokens = useCallback(async () => {
     if (!connected) return;
     const gen = ++fetchGenRef.current;
+    const unmountSig = unmountControllerRef.current.signal;
     const disconnectSig = getDisconnectSignal?.();
     const signal = (disconnectSig != null)
-      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig])
-      : AbortSignal.timeout(5000);
+      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig, unmountSig])
+      : AbortSignal.any([AbortSignal.timeout(5000), unmountSig]);
     try {
       const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; collectionNames?: Record<string, string>; modeNames?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
       const allSets: string[] = setsData.sets || [];
