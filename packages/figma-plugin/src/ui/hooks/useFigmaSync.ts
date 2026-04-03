@@ -31,6 +31,13 @@ export function useFigmaSync(
     extractResponse: extractSyncApplyResult,
   });
 
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+    responseType: 'variables-applied',
+    errorType: 'apply-variables-error',
+    timeout: 30000,
+    extractResponse: extractSyncApplyResult,
+  });
+
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
     const saved = syncGroupPending;
@@ -45,12 +52,18 @@ export function useFigmaSync(
           tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
         }
       }
-      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap: setCollectionNames, modeMap: setModeNames } }, '*');
+      const result = await sendVarApply('apply-variables', { tokens, collectionMap: setCollectionNames, modeMap: setModeNames });
+      if (result.failures.length > 0) {
+        const failedPaths = result.failures.map(f => f.path).join(', ');
+        setSyncGroupError(`${result.count}/${result.total} variables synced. Failed: ${failedPaths}`);
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} variable${result.count !== 1 ? 's' : ''} synced` } }, '*');
+      }
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
       setSyncGroupError(getErrorMessage(err, 'Failed to sync group to Figma'));
     }
-  }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames]);
+  }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames, sendVarApply]);
 
   const handleSyncGroupStyles = useCallback(async () => {
     if (!syncGroupStylesPending || !connected) return;

@@ -188,7 +188,7 @@ export async function readFigmaVariables(correlationId?: string) {
     localCollections = await figma.variables.getLocalVariableCollectionsAsync();
   } catch (err) {
     const message = getErrorMessage(err);
-    figma.ui.postMessage({ type: 'variables-read-error', message, correlationId });
+    figma.ui.postMessage({ type: 'variables-read-error', error: message, correlationId });
     return;
   }
   const collections: any[] = [];

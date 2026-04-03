@@ -25,6 +25,7 @@ export interface HeatmapResult {
 interface HeatmapPanelProps {
   result: HeatmapResult | null;
   loading: boolean;
+  progress?: { processed: number; total: number } | null;
   error?: string | null;
   scope: HeatmapScope;
   onScopeChange: (scope: HeatmapScope) => void;
@@ -86,7 +87,7 @@ const SCOPE_OPTIONS: { value: HeatmapScope; label: string }[] = [
   { value: 'all-pages', label: 'All pages' },
 ];
 
-export function HeatmapPanel({ result, loading, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+export function HeatmapPanel({ result, loading, progress, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
@@ -292,6 +293,17 @@ export function HeatmapPanel({ result, loading, error, scope, onScopeChange, onR
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--color-figma-text-secondary)]">
           <Spinner size="xl" className="opacity-60" />
           <span className="text-[11px]">Scanning {scope === 'all-pages' ? 'all pages' : scope === 'selection' ? 'selection' : 'current page'}…</span>
+          {progress && progress.total > 0 && (
+            <div className="w-32 flex flex-col items-center gap-1">
+              <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+                <div
+                  className="h-full bg-[var(--color-figma-accent)] transition-all duration-150"
+                  style={{ width: `${Math.round((progress.processed / progress.total) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums">{progress.processed} / {progress.total}</span>
+            </div>
+          )}
           {onCancel && (
             <button
               onClick={onCancel}

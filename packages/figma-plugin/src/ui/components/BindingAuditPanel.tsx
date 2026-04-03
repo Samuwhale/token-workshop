@@ -9,6 +9,7 @@ interface BindingAuditPanelProps {
   // HeatmapPanel props
   heatmapResult: HeatmapResult | null;
   heatmapLoading: boolean;
+  heatmapProgress?: { processed: number; total: number } | null;
   heatmapError?: string | null;
   heatmapScope: HeatmapScope;
   onScopeChange: (scope: HeatmapScope) => void;
@@ -26,6 +27,7 @@ interface BindingAuditPanelProps {
 export function BindingAuditPanel({
   heatmapResult,
   heatmapLoading,
+  heatmapProgress,
   heatmapError,
   heatmapScope,
   onScopeChange,
@@ -71,6 +73,7 @@ export function BindingAuditPanel({
           <HeatmapPanel
             result={heatmapResult}
             loading={heatmapLoading}
+            progress={heatmapProgress}
             error={heatmapError}
             scope={heatmapScope}
             onScopeChange={onScopeChange}

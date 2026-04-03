@@ -425,6 +425,221 @@ export interface GetAvailableFontsMessage {
   type: 'get-available-fonts';
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Controller → UI (plugin sandbox → iframe) message types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ControllerErrorMessage {
+  type: 'error';
+  message: string;
+}
+
+export interface FontsLoadedMessage {
+  type: 'fonts-loaded';
+  families: string[];
+}
+
+export interface ActiveThemesLoadedMessage {
+  type: 'active-themes-loaded';
+  themes: Record<string, string>;
+}
+
+export interface EyedropperResultMessage {
+  type: 'eyedropper-result';
+  hex: string;
+}
+
+export interface VariableSyncProgressMessage {
+  type: 'variable-sync-progress';
+  current: number;
+  total: number;
+  correlationId?: string;
+}
+
+export interface VariablesAppliedMessage {
+  type: 'variables-applied';
+  count: number;
+  total: number;
+  created?: number;
+  overwritten?: number;
+  failures: { path: string; error: string }[];
+  correlationId?: string;
+}
+
+export interface ApplyVariablesErrorMessage {
+  type: 'apply-variables-error';
+  error: string;
+  correlationId?: string;
+  rolledBack?: boolean;
+  rollbackError?: string;
+}
+
+export interface VariablesReadMessage {
+  type: 'variables-read';
+  tokens: any[];
+  correlationId?: string;
+}
+
+/** Sent when reading Figma variables fails. Uses `error` field (not `message`). */
+export interface VariablesReadErrorMessage {
+  type: 'variables-read-error';
+  error: string;
+  correlationId?: string;
+}
+
+export interface StylesAppliedMessage {
+  type: 'styles-applied';
+  count: number;
+  total: number;
+  failures: { path: string; error: string }[];
+  correlationId?: string;
+}
+
+export interface StylesApplyErrorMessage {
+  type: 'styles-apply-error';
+  error: string;
+  correlationId?: string;
+}
+
+export interface StylesReadMessage {
+  type: 'styles-read';
+  tokens: any[];
+  correlationId?: string;
+}
+
+export interface StylesReadErrorMessage {
+  type: 'styles-read-error';
+  error: string;
+  correlationId?: string;
+}
+
+export interface SyncProgressResponseMessage {
+  type: 'sync-progress';
+  processed: number;
+  total: number;
+}
+
+export interface SyncCompleteResponseMessage {
+  type: 'sync-complete';
+  updated: number;
+  skipped: number;
+  errors: number;
+  missingTokens: string[];
+}
+
+export interface RemapCompleteResponseMessage {
+  type: 'remap-complete';
+  updatedBindings: number;
+  updatedNodes: number;
+  error?: string;
+}
+
+export interface AppliedToNodesMessage {
+  type: 'applied-to-nodes';
+  count: number;
+  errors: string[];
+}
+
+export interface RemovedBindingFromNodeMessage {
+  type: 'removed-binding-from-node';
+  success: boolean;
+  nodeId?: string;
+  property?: string;
+  error?: string;
+}
+
+export interface SelectNextSiblingResultMessage {
+  type: 'select-next-sibling-result';
+  found: boolean;
+}
+
+export interface CanvasHeatmapProgressMessage {
+  type: 'canvas-heatmap-progress';
+  processed: number;
+  total: number;
+}
+
+export interface CanvasHeatmapResultMessage {
+  type: 'canvas-heatmap-result';
+  total: number;
+  green: number;
+  yellow: number;
+  red: number;
+  nodes: { id: string; name: string; type: string; status: string; boundCount: number; totalCheckable: number }[];
+}
+
+export interface ComponentCoverageResultMessage {
+  type: 'component-coverage-result';
+  correlationId?: string;
+  coverage: any;
+}
+
+export interface ExtractedTokensResponseMessage {
+  type: 'extracted-tokens';
+  tokens: ExtractedTokenEntry[];
+}
+
+export interface SelectionResponseMessage {
+  type: 'selection';
+  nodes: SelectionNodeInfo[];
+}
+
+export interface LayerSearchResultMessage {
+  type: 'layer-search-result';
+  results: LayerSearchResult[];
+  correlationId?: string;
+}
+
+export interface TokenVariableBindingsMessage {
+  type: 'token-variable-bindings';
+  tokenPath: string;
+  bindings: { nodeId: string; nodeName: string; property: string }[];
+  correlationId?: string;
+}
+
+export interface AvailableFontsMessage {
+  type: 'available-fonts';
+  families: string[];
+  correlationId?: string;
+}
+
+export interface FindPeersResultMessage {
+  type: 'find-peers-result';
+  nodeIds: string[];
+  correlationId?: string;
+}
+
+/** Discriminated union of all Controller→UI (plugin sandbox → iframe) messages */
+export type ControllerMessage =
+  | ControllerErrorMessage
+  | FontsLoadedMessage
+  | ActiveThemesLoadedMessage
+  | EyedropperResultMessage
+  | VariableSyncProgressMessage
+  | VariablesAppliedMessage
+  | ApplyVariablesErrorMessage
+  | VariablesReadMessage
+  | VariablesReadErrorMessage
+  | StylesAppliedMessage
+  | StylesApplyErrorMessage
+  | StylesReadMessage
+  | StylesReadErrorMessage
+  | SyncProgressResponseMessage
+  | SyncCompleteResponseMessage
+  | RemapCompleteResponseMessage
+  | AppliedToNodesMessage
+  | RemovedBindingFromNodeMessage
+  | SelectNextSiblingResultMessage
+  | CanvasHeatmapProgressMessage
+  | CanvasHeatmapResultMessage
+  | ComponentCoverageResultMessage
+  | ExtractedTokensResponseMessage
+  | SelectionResponseMessage
+  | LayerSearchResultMessage
+  | TokenVariableBindingsMessage
+  | AvailableFontsMessage
+  | FindPeersResultMessage;
+
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
   | ApplyVariablesMessage

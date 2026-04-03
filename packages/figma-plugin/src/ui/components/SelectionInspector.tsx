@@ -221,6 +221,11 @@ export function SelectionInspector({
     targetProps: BindableProperty[];
   } | null>(null);
 
+  // Feedback for select-next-sibling (no more siblings)
+  const [noMoreSiblings, setNoMoreSiblings] = useState(false);
+  // Error feedback for remove-binding-from-node failures
+  const [deepRemoveError, setDeepRemoveError] = useState<string | null>(null);
+
   const prevNodeIdsRef = useRef<string>('');
 
   // Listen for binding results from the plugin sandbox
@@ -239,6 +244,16 @@ export function SelectionInspector({
             return next;
           });
         }
+      }
+      if (msg?.type === 'select-next-sibling-result') {
+        if (!msg.found) {
+          setNoMoreSiblings(true);
+          setTimeout(() => setNoMoreSiblings(false), 2000);
+        }
+      }
+      if (msg?.type === 'removed-binding-from-node' && !msg.success) {
+        setDeepRemoveError(msg.error ?? 'Failed to remove binding');
+        setTimeout(() => setDeepRemoveError(null), 3000);
       }
     };
     window.addEventListener('message', handler);
@@ -326,6 +341,8 @@ export function SelectionInspector({
       setPropTypeSuggestion(null);
       setPropFilter('');
       setPropFilterMode('all');
+      setNoMoreSiblings(false);
+      setDeepRemoveError(null);
     }
   }, [selectedNodes]);
 
@@ -989,6 +1006,13 @@ export function SelectionInspector({
             onBindToken={handleDeepBindToken}
           />
         )}
+
+        {/* Deep-remove binding error */}
+        {deepRemoveError && (
+          <div className="px-3 py-1.5 text-[10px] text-red-600 bg-red-50 border-t border-red-200 shrink-0">
+            {deepRemoveError}
+          </div>
+        )}
       </div>
 
       {/* Persistent peer suggestion — stays until dismissed or selection changes */}
@@ -1086,12 +1110,16 @@ export function SelectionInspector({
             <path d="M20 6L9 17l-5-5" />
           </svg>
           <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1">All properties bound</span>
-          <button
-            onClick={() => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*')}
-            className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
-          >
-            Next layer →
-          </button>
+          {noMoreSiblings ? (
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No more layers</span>
+          ) : (
+            <button
+              onClick={() => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*')}
+              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
+            >
+              Next layer →
+            </button>
+          )}
         </div>
       )}
 

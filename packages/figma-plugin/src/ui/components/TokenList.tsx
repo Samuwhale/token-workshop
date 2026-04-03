@@ -40,6 +40,8 @@ import { useDragDrop } from '../hooks/useDragDrop';
 import { useGroupOperations } from '../hooks/useGroupOperations';
 import { useTokenPromotion } from '../hooks/useTokenPromotion';
 import { useTokenCrud } from '../hooks/useTokenCrud';
+import { useFigmaMessage } from '../hooks/useFigmaMessage';
+import { extractSyncApplyResult } from '../hooks/useTokenSyncBase';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -75,6 +77,12 @@ export function TokenList({
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
+  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+    responseType: 'styles-applied',
+    errorType: 'styles-apply-error',
+    timeout: 15000,
+    extractResponse: extractSyncApplyResult,
+  });
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
@@ -1603,10 +1611,19 @@ export function TokenList({
   const handleApplyStyles = async () => {
     setApplying(true);
     const flat = resolveFlat(flattenTokens(tokens));
-    parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens: flat } }, '*');
-    setApplyResult({ type: 'styles', count: flat.length });
-    setTimeout(() => setApplying(false), 1500);
-    setTimeout(() => setApplyResult(null), 3000);
+    try {
+      const result = await sendStyleApply('apply-styles', { tokens: flat });
+      setApplyResult({ type: 'styles', count: result.count });
+      if (result.failures.length > 0) {
+        const failedPaths = result.failures.map(f => f.path).join(', ');
+        onError?.(`${result.count}/${result.total} styles created. Failed: ${failedPaths}`);
+      }
+    } catch (err) {
+      onError?.(getErrorMessage(err, 'Failed to apply styles'));
+    } finally {
+      setApplying(false);
+      setTimeout(() => setApplyResult(null), 3000);
+    }
   };
 
 

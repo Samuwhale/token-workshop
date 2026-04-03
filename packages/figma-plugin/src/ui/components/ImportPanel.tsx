@@ -332,7 +332,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
         setLoading(false);
-        setError(`Figma Variables API error: ${msg.message}. The Variables API requires a Figma Professional plan or above.`);
+        setError(`Figma Variables API error: ${msg.error}. The Variables API requires a Figma Professional plan or above.`);
       }
       if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);

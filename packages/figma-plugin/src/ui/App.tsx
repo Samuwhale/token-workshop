@@ -629,7 +629,7 @@ export function App() {
   }, []);
 
 
-  const { heatmapResult, heatmapLoading, heatmapError, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
+  const { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
 
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes
@@ -2397,6 +2397,7 @@ export function App() {
               <BindingAuditPanel
                 heatmapResult={heatmapResult}
                 heatmapLoading={heatmapLoading}
+                heatmapProgress={heatmapProgress}
                 heatmapError={heatmapError}
                 heatmapScope={heatmapScope}
                 onScopeChange={setHeatmapScope}

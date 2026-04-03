@@ -325,3 +325,10 @@ Already up to date.
   → Plugin ↔ UI message contract has no type safety and is broken in multiple places — 4+ plugin message types are sent but never handled in the UI (select-next-sibling-result, applied-to-nodes, removed-binding-from-node, canvas-heatmap-progress), the variables-read-error message uses field `message` in variableSync.ts but `error` in the controller catch path causing the UI to show "undefined", and two apply paths (TokenList.handleApplyStyles and useFigmaSync.handleSyncGroup) fire messages without correlationId so failures are silently swallowed; needs a shared typed message schema between plugin and UI
   Worktree: /tmp/backlog-81661-VrjADT
   Running agent… (started 12:37:39)
+
+  ✓ done: Plugin ↔ UI message contract has no type safety and is broken in multiple places
+    Added ControllerMessage typed union (26 interfaces) to types.ts; fixed variables-read-error field mismatch (message→error); handled 4 previously unhandled messages (canvas-heatmap-progress with progress bar, select-next-sibling-result, removed-binding-from-node, applied-to-nodes typed); added correlationId+error handling to useFigmaSync.handleSyncGroup and TokenList.handleApplyStyles via useFigmaMessage
+    81 turns · 800s · $2.51
+
+  Merging to main: Plugin ↔ UI message contract has no type safety and is broken in multiple places
+Already up to date.

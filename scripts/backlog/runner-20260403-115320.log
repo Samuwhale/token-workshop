@@ -296,3 +296,18 @@ Already up to date.
 
   Merging to main: useTokenDataLoading triggers redundant flat-token fetches on every tree change
 Already up to date.
+[main 35248c1a] chore(backlog): done – useTokenDataLoading triggers redundant flat-token fetches on every tree change
+ 7 files changed, 54 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - useTokenDataLoading triggers redundant flat-token fetches on every tree change
+- Replaced `tokens: unknown[]` dependency with `tokenRevision: number` — a primitive counter that increments only when `refreshTokens` successfully builds the tree. Added `tokenRevision` state to `useTokens` (incremented via `setTokenRevision(r => r + 1)` after `setTokens(buildTree(...))`). Updated `useTokenDataLoading` interface/params/effect deps to use `tokenRevision` instead of `tokens`. Updated `App.tsx` to destructure `tokenRevision` and pass it to `useTokenDataLoading`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L52, ~L89, ~L123; `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L9, ~L16, ~L47; `packages/figma-plugin/src/ui/App.tsx` ~L319, ~L323
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  10 queued · 4 in-progress · last took 2m37s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel conflates "export to platforms" with "import from Figma Variables" in one tab — Mode B (Figma Variables) reads from Figma and saves to the server, which is an import not an export; rename it "Import from Figma" or move it to its own sub-tab to eliminate the mental model collision (ExportPanel.tsx ~L573-599 mode toggle)
+  Worktree: /tmp/backlog-80049-HnjpTe
+  Running agent… (started 12:50:15)
