@@ -441,15 +441,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
   fastify.post<{
     Params: { set: string };
-    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $scopes?: string[]; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' };
+    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $scopes?: string[]; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' | 'merge' };
   }>('/tokens/:set/batch', async (request, reply) => {
     const { set } = request.params;
     const { tokens, strategy } = request.body ?? {};
     if (!Array.isArray(tokens) || tokens.length === 0) {
       return reply.status(400).send({ error: 'tokens must be a non-empty array' });
     }
-    if (strategy !== 'skip' && strategy !== 'overwrite') {
-      return reply.status(400).send({ error: 'strategy must be "skip" or "overwrite"' });
+    if (strategy !== 'skip' && strategy !== 'overwrite' && strategy !== 'merge') {
+      return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
     }
     for (const t of tokens) {
       if (!t.path || t.$value === undefined) {

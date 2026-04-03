@@ -163,15 +163,15 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [failedImportBatches, setFailedImportBatches] = useState<{ setName: string; tokens: Record<string, unknown>[] }[]>([]);
-  const [failedImportStrategy, setFailedImportStrategy] = useState<'overwrite' | 'skip'>('overwrite');
+  const [failedImportStrategy, setFailedImportStrategy] = useState<'overwrite' | 'skip' | 'merge'>('overwrite');
   const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
   const [retrying, setRetrying] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [conflictExistingValues, setConflictExistingValues] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
-  const [conflictDecisions, setConflictDecisions] = useState<Map<string, 'accept' | 'reject'>>(new Map());
+  const [conflictDecisions, setConflictDecisions] = useState<Map<string, 'accept' | 'merge' | 'reject'>>(new Map());
   const [conflictSearch, setConflictSearch] = useState('');
-  const [conflictStatusFilter, setConflictStatusFilter] = useState<'all' | 'accept' | 'reject'>('all');
+  const [conflictStatusFilter, setConflictStatusFilter] = useState<'all' | 'accept' | 'merge' | 'reject'>('all');
   const [conflictTypeFilter, setConflictTypeFilter] = useState<string>('all');
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
@@ -639,7 +639,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     ? [...selectedTokens].filter(p => existingTokenMap.has(p)).length
     : null;
 
-  const handleImportVariables = async (strategy: 'overwrite' | 'skip' = 'overwrite') => {
+  const handleImportVariables = async (strategy: 'overwrite' | 'skip' | 'merge' = 'overwrite') => {
     setImporting(true);
     setError(null);
     setFailedImportPaths([]);
@@ -774,7 +774,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setNewSetError(null);
   };
 
-  const executeImport = async (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>) => {
+  const executeImport = async (strategy: 'skip' | 'overwrite', excludePaths?: Set<string>, mergePaths?: Set<string>) => {
     setImporting(true);
     clearConflictState();
     setError(null);
@@ -795,21 +795,41 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         }
       }
 
-      const { imported } = await apiFetch<{ imported: number; skipped: number }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tokens: tokensToImport.map(t => {
-              const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
-              if (source) tok.$extensions = { tokenmanager: { source: source === 'variables' ? 'figma-variables' : source === 'styles' ? 'figma-styles' : source } };
-              return tok;
-            }),
-            strategy,
-          }),
-        },
-      );
+      const buildTok = (t: ImportToken) => {
+        const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+        if (source) tok.$extensions = { tokenmanager: { source: source === 'variables' ? 'figma-variables' : source === 'styles' ? 'figma-styles' : source } };
+        return tok;
+      };
+
+      const mergeTokens = mergePaths ? tokensToImport.filter(t => mergePaths.has(t.path)) : [];
+      const overwriteTokens = mergePaths ? tokensToImport.filter(t => !mergePaths.has(t.path)) : tokensToImport;
+
+      let imported = 0;
+
+      if (overwriteTokens.length > 0) {
+        const result = await apiFetch<{ imported: number; skipped: number }>(
+          `${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: overwriteTokens.map(buildTok), strategy }),
+          },
+        );
+        imported += result.imported;
+      }
+
+      if (mergeTokens.length > 0) {
+        const result = await apiFetch<{ imported: number; skipped: number }>(
+          `${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: mergeTokens.map(buildTok), strategy: 'merge' }),
+          },
+        );
+        imported += result.imported;
+      }
+
       setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${imported} tokens to "${targetSet}"` } }, '*');
@@ -1530,6 +1550,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
               </button>
               <button
+                onClick={() => handleImportVariables('merge')}
+                disabled={totalEnabledSets === 0}
+                className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+              >
+                Import & merge ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} value updates)
+              </button>
+              <button
                 onClick={() => handleImportVariables('skip')}
                 disabled={totalEnabledSets === 0}
                 className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
@@ -1681,8 +1708,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               {(() => {
                 const newCount = selectedTokens.size - conflictPaths.length;
                 const acceptCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
-                const rejectCount = conflictPaths.length - acceptCount;
-                const totalToImport = newCount + acceptCount;
+                const mergeCount = [...conflictDecisions.values()].filter(v => v === 'merge').length;
+                const rejectCount = conflictPaths.length - acceptCount - mergeCount;
+                const totalToImport = newCount + acceptCount + mergeCount;
                 const hasActiveFilter = conflictSearch !== '' || conflictStatusFilter !== 'all' || conflictTypeFilter !== 'all';
                 const searchLower = conflictSearch.toLowerCase();
                 const getFilteredPaths = () => conflictPaths.filter(path => {
@@ -1721,6 +1749,17 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                           onClick={() => {
                             const next = new Map(conflictDecisions);
                             const targets = hasActiveFilter ? getFilteredPaths() : conflictPaths;
+                            for (const p of targets) next.set(p, 'merge');
+                            setConflictDecisions(next);
+                          }}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                        >
+                          Merge{hasActiveFilter ? ' visible' : ' all'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const next = new Map(conflictDecisions);
+                            const targets = hasActiveFilter ? getFilteredPaths() : conflictPaths;
                             for (const p of targets) next.set(p, 'reject');
                             setConflictDecisions(next);
                           }}
@@ -1746,11 +1785,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                       <div className="flex items-center gap-1">
                         <select
                           value={conflictStatusFilter}
-                          onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'reject')}
+                          onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'merge' | 'reject')}
                           className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
                         >
                           <option value="all">All status</option>
                           <option value="accept">Accepted</option>
+                          <option value="merge">Merged</option>
                           <option value="reject">Rejected</option>
                         </select>
                         {(() => {
@@ -1789,9 +1829,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
                           {filtered.map(path => {
                         const decision = conflictDecisions.get(path) ?? 'accept';
-                        const isAccepted = decision === 'accept';
                         const incoming = tokens.find(t => t.path === path);
                         const existing = conflictExistingValues?.get(path);
+                        const nextDecision = decision === 'accept' ? 'merge' : decision === 'merge' ? 'reject' : 'accept';
                         return (
                           <div key={path} className="px-2 py-1.5 bg-[var(--color-figma-bg)]">
                             {/* Path + toggle */}
@@ -1802,21 +1842,25 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                               <button
                                 onClick={() => {
                                   const next = new Map(conflictDecisions);
-                                  next.set(path, isAccepted ? 'reject' : 'accept');
+                                  next.set(path, nextDecision);
                                   setConflictDecisions(next);
                                 }}
                                 className={`shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium cursor-pointer transition-colors ${
-                                  isAccepted
+                                  decision === 'accept'
                                     ? 'bg-[var(--color-figma-success,#16a34a)]/15 text-[var(--color-figma-success,#16a34a)]'
-                                    : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
+                                    : decision === 'merge'
+                                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                                      : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
                                 }`}
                               >
-                                {isAccepted ? (
+                                {decision === 'accept' ? (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                                ) : decision === 'merge' ? (
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v10M16 3v4M8 13a4 4 0 008 0v-6" /></svg>
                                 ) : (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 )}
-                                {isAccepted ? 'Accept' : 'Reject'}
+                                {decision === 'accept' ? 'Accept' : decision === 'merge' ? 'Merge' : 'Reject'}
                               </button>
                             </div>
                             {/* Value diff (−/+ style matching SyncDiffSummary) */}
@@ -1830,11 +1874,18 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                               <div className="flex items-center gap-1 min-w-0">
                                 <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
                                 <span className={`truncate flex items-center gap-1 ${
-                                  isAccepted ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
+                                  decision === 'reject'
+                                    ? 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
+                                    : 'text-[var(--color-figma-text)]'
                                 }`}>
                                   {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}
                                 </span>
                               </div>
+                              {decision === 'merge' && (
+                                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                                  Value updated · description &amp; extensions kept
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -1846,6 +1897,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     {/* Import action */}
                     <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
                       <span className="text-[var(--color-figma-success,#16a34a)]">{acceptCount} accepted</span>
+                      {mergeCount > 0 && <><span>·</span><span className="text-[var(--color-figma-accent)]">{mergeCount} merged</span></>}
                       {rejectCount > 0 && <><span>·</span><span>{rejectCount} rejected</span></>}
                     </div>
                     <button
@@ -1853,7 +1905,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                         const rejected = new Set(
                           [...conflictDecisions.entries()].filter(([, v]) => v === 'reject').map(([k]) => k)
                         );
-                        executeImport('overwrite', rejected);
+                        const merged = new Set(
+                          [...conflictDecisions.entries()].filter(([, v]) => v === 'merge').map(([k]) => k)
+                        );
+                        executeImport('overwrite', rejected, merged.size > 0 ? merged : undefined);
                       }}
                       disabled={importing || totalToImport === 0}
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"

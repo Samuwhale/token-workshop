@@ -556,3 +556,21 @@ Already up to date.
   ✓ product pass: product-pass
     13 items written to inbox — focus on discoverability (5 hidden features: Resolvers, Compare panels, Consistency checker, Preview, search qualifiers), missing keyboard shortcuts (Delete/Rename/Duplicate), workflow friction (set reordering, server connection UX, editor auto-focus/retry), and missing capabilities (Tokens Studio import, bulk copy-to-set)
 Already up to date.
+[main f19186fc] chore(backlog): product pass – product-pass
+ 6 files changed, 40 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 13 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - product-pass
+- Areas explored: TokenEditor.tsx (auto-focus, error recovery, draft persistence, extensions validation), CommandPalette.tsx (search qualifiers discoverability, result grouping, quick actions), SetSwitcher.tsx (reordering UX, metadata visibility, batch operations), SettingsPanel.tsx (server connection UX, export defaults, validation offline), BatchEditor.tsx (bulk operations coverage, copy vs move), PreviewPanel.tsx (discoverability, access patterns), ConsistencyPanel.tsx (discoverability inside BindingAuditPanel), ResolverPanel.tsx (hidden behind Advanced toggle), ComparePanel.tsx/CrossThemeComparePanel.tsx (context-menu-only access), ImportPanel.tsx (Tokens Studio format gap), shortcutRegistry.ts (missing keyboard shortcuts for common operations), EmptyState.tsx (format promise vs reality), QuickStartWizard.tsx (onboarding gaps)
+- Found 13 items — written to backlog-inbox.md
+- Notable: Several powerful features (Resolvers, Compare panels, Consistency checker, Preview split) are effectively hidden behind non-obvious access paths — no command palette entries, no keyboard shortcuts, and no visible buttons; also CommandPalette has a powerful qualifier syntax (type:, has:, path:) that is mentioned in placeholder text but has no discoverable help or documentation
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  25 queued · 4 in-progress · last took 7m24s
+═══════════════════════════════════════════════════════════════
+  → Import from Figma Variables has no mode-name customization UI — multi-mode import creates per-mode token sets with auto-slugified names and users must accept or rename sets after import; add an inline rename step during import preview where users can map Figma mode names to desired set names before committing (ImportPanel.tsx ~L625-632)
+  Worktree: /tmp/backlog-81661-Cbyfrw
+  Running agent… (started 13:40:21)

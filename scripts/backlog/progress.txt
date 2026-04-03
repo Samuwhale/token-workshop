@@ -604,3 +604,18 @@
 - Found 13 items — written to backlog-inbox.md
 - Notable: Several powerful features (Resolvers, Compare panels, Consistency checker, Preview split) are effectively hidden behind non-obvious access paths — no command palette entries, no keyboard shortcuts, and no visible buttons; also CommandPalette has a powerful qualifier syntax (type:, has:, path:) that is mentioned in placeholder text but has no discoverable help or documentation
 ---
+
+## 2026-04-03 - Import conflict strategy add merge (value update + keep local metadata)
+- Added a "merge" import strategy that updates token `$value` and `$type` from the incoming source while preserving local `$description` and `$extensions` — matching how git merge works for structured data.
+- **Server:** `packages/server/src/services/token-store.ts` ~L720: Added `'merge'` to `batchUpsertTokens` strategy type and merge branch in the existing-token handler (updates `$value`/`$type` only, skips `$description`/`$extensions`). `packages/server/src/routes/tokens.ts` ~L444: Extended batch route type and validation to accept `'merge'`.
+- **UI:** `packages/figma-plugin/src/ui/components/ImportPanel.tsx`:
+  - State types updated: `failedImportStrategy`, `conflictDecisions` (`'accept' | 'merge' | 'reject'`), `conflictStatusFilter` (`'all' | 'accept' | 'merge' | 'reject'`).
+  - `handleImportVariables` signature extended to `'overwrite' | 'skip' | 'merge'`.
+  - `executeImport` refactored to accept optional `mergePaths: Set<string>` — splits tokens into overwrite and merge batches, making two API calls when mixed decisions exist.
+  - Variables import UI: added "Import & merge" button (between overwrite and keep-existing), shown when conflicts exist.
+  - Conflict resolution UI: added "Merge all/visible" bulk action; status filter gains "Merged" option; per-token toggle cycles accept → merge → reject → accept; merge shows accent color + hint "Value updated · description & extensions kept"; import button now collects rejected and merged sets and passes merged to executeImport.
+- **Learnings for future iterations:**
+  - The `executeImport` function splits into two serial batch calls when merge decisions are present; this is simpler than adding per-token strategy fields to the batch endpoint.
+  - For the Variables import flow (no per-token conflict resolution), the entire batch uses one strategy — adding a third button was sufficient.
+  - The 3-state cycle (accept → merge → reject) keeps the per-token UI minimal (single button, same space as before) while adding the third option cleanly.
+---

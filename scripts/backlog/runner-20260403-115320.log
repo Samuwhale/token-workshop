@@ -503,3 +503,10 @@ Already up to date.
   → Import conflict strategy is binary overwrite-or-skip with no field-level merge — when importing tokens that already exist, users must choose "overwrite" (losing local descriptions, extensions, metadata) or "skip" (losing updated values); add a "merge" strategy that keeps local metadata while updating values, matching how git merge works for structured data (ImportPanel.tsx ~L642, ~L777)
   Worktree: /tmp/backlog-80049-K1O6yH
   Running agent… (started 13:34:35)
+
+  ✓ done: Import conflict strategy is binary overwrite-or-skip with no field-level merge
+    Added 'merge' strategy across server (token-store + batch route) and ImportPanel UI: variables import gets a third button, conflict resolution UI gains merge bulk action, 3-state per-token toggle (accept→merge→reject cycle), and mixed-decision import splits into two batch calls.
+    39 turns · 377s · $1.3
+
+  Merging to main: Import conflict strategy is binary overwrite-or-skip with no field-level merge
+Already up to date.

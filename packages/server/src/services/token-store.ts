@@ -782,7 +782,7 @@ export class TokenStore {
   async batchUpsertTokens(
     setName: string,
     tokens: Array<{ path: string; token: Token }>,
-    strategy: 'skip' | 'overwrite',
+    strategy: 'skip' | 'overwrite' | 'merge',
   ): Promise<{ imported: number; skipped: number }> {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
       throw new BadRequestError(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
@@ -818,6 +818,11 @@ export class TokenStore {
               if ('$type' in enriched) existing.$type = enriched.$type;
               if ('$description' in enriched) existing.$description = enriched.$description;
               if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
+              imported++;
+            } else if (strategy === 'merge') {
+              // Update value/type from incoming, preserve local description and extensions
+              if ('$value' in enriched) existing.$value = enriched.$value;
+              if ('$type' in enriched) existing.$type = enriched.$type;
               imported++;
             } else {
               skipped++;
