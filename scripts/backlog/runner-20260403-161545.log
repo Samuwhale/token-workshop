@@ -629,3 +629,18 @@ Already up to date.
 
   Merging to main: TokenFlowPanel does not highlight circular alias dependencies
 Already up to date.
+[main ec50dc9f] chore(backlog): done – TokenFlowPanel does not highlight circular alias dependencies
+ 4 files changed, 162 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - TokenFlowPanel does not highlight circular alias dependencies
+- Added `detectCycleNodes` DFS helper that tracks the call stack to find back edges in both upstream (reference) and downstream (dependent) directions.
+- In `graphData` useMemo: run cycle detection for both directions, union the results into `allCycleNodes`, annotate each `FlowNode` with `isCyclic`, and return `hasCycles`.
+- Updated `FlowNode` interface: added `isCyclic?: boolean`.
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  8 queued · 2 in-progress · last took 4m14s
+═══════════════════════════════════════════════════════════════
+  → Export panel is missing Tailwind config and CSS-in-JS output formats — only 8 platforms are supported (CSS, SCSS, Less, JSON, TS, Dart, iOS-Swift, Android); Tailwind config and CSS-in-JS (styled-components/Emotion object syntax) are common export targets for frontend teams (ExportPanel.tsx ~L387-390, server export.ts)
+  Worktree: /tmp/backlog-46580-rkA82K
+  Running agent… (started 18:48:21)
