@@ -59,3 +59,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: hooks async cleanup inconsistency (structural), styleSync ghost bindings bug, SettingsPanel unvalidated import, generator-service error handling gaps, ExportPanel timeout leak
+Already up to date.

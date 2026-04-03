@@ -580,3 +580,9 @@
   - Moving validation before side effects (style creation) avoids leaving orphaned empty Figma styles when parse fails.
   - For gradient stops, collecting all failures before throwing (rather than stopping at the first) gives users a complete picture of what needs fixing.
 ---
+- **Learnings for future iterations:**
+  - The key insight: identify which state changes *most frequently* (hover → `highlightedToken`, selection → `tokenListSelection`) and isolate only the commands that actually depend on those into a small sub-memo. The 40+ static commands never rebuild on hover.
+  - GRAPH_TEMPLATES is a module-level constant, so the `.map()` over it produces the same structure every time — it belongs in `baseCommands`, not a separate memo.
+  - `setTokenCounts` was in the original dep array even though zero base commands reference it — it only applies to the per-set switch commands, so it now correctly lives only in `setCommands`.
+  - Stable setState setters (`setShowSetSwitcher`, `setShowManageSets`, etc.) don't need to be in deps; the convention in this codebase (already used in the original) is to omit them.
+---

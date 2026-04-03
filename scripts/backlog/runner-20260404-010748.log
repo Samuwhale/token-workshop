@@ -131,3 +131,18 @@ Already up to date.
 
   Merging to main: styleSync.ts silently swallows parse failures for color tokens and gradient stops
 Already up to date.
+[main 0c93ee1f] chore(backlog): done – styleSync.ts silently swallows parse failures for color tokens and gradient stops
+ 6 files changed, 66 insertions(+), 34 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - styleSync.ts silently swallows parse failures for color tokens and gradient stops
+- Fixed `applyPaintStyle` to throw with a descriptive error when `parseColor` returns null, instead of silently skipping the paint update. Moved parse call before style creation to avoid leaving empty Figma styles behind on failure.
+- Fixed `applyGradientPaintStyle` to parse all stops upfront, collect failures with their indices and unparseable values, and throw a descriptive error listing each failed stop (e.g., "2 of 5 gradient stops could not be parsed: stop 1 ("#gggggg"), stop 3 (null)"). Also added an upfront check for stops.length < 2. Style is no longer created when stops are invalid.
+- Errors surface through the existing `failures` array in `styles-applied`, which the UI already displays to users as "Push: N/M applied (failed: …)".
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  11 queued · 2 in-progress · last took 2m26s
+═══════════════════════════════════════════════════════════════
+  → Three comparison components (ComparePanel, CrossThemeComparePanel, ThemeCompare in ThemeManager) each implement their own token resolution, diff calculation, and CSV export logic — extract shared comparison utilities and consider a unified comparison view
+  Worktree: /tmp/backlog-91949-rraNb5
+  Running agent… (started 01:22:24)
