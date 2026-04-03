@@ -146,3 +146,10 @@ Already up to date.
   → [HIGH] Operation-log rollback is not transactional — if `executeSteps()` throws during structural rollback (operation-log.ts:299), the subsequent token snapshot capture (line 303) runs against partially-modified state, recording an inconsistent `currentSnapshot` for the rollback entry; a failed rollback leaves both structural state and tokens in an unpredictable half-rolled-back state with no recovery path; wrap the structural-steps + snapshot-capture + token-restore sequence in a try/catch that reverts structural steps (using the already-computed `inverseSteps`) on failure
   Worktree: /tmp/backlog-82379-w96TIW
   Running agent… (started 12:11:09)
+
+  ✓ done: Operation-log rollback is not transactional
+    Wrapped execute+snapshot+restore in try/catch; on failure, runs inverseSteps to revert structural state before re-throwing
+    8 turns · 63s · $0.23
+
+  Merging to main: Operation-log rollback is not transactional
+Already up to date.

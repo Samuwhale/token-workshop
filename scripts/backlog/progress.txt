@@ -308,3 +308,11 @@
   - The `useRef(false)` fetched-guard prevents double-fetching when re-opening the section — reset it to `false` before refreshing after rollback so the data reloads.
   - Fastify route registration order matters: register `/operations/token-history` before `/operations/:id/rollback` so the literal segment isn't consumed as a param.
 ---
+
+## 2026-04-03 - Operation-log rollback is not transactional
+- Wrapped the structural-steps + snapshot-capture + token-restore sequence in a try/catch in `OperationLog.rollback()`. On failure, the catch block calls `executeSteps(inverseSteps, ctx)` (already computed before the try block) to revert any structural changes that already ran, then re-throws the original error. This prevents half-rolled-back state from persisting when `executeSteps` throws mid-sequence.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L297
+- **Learnings for future iterations:**
+  - The `inverseSteps` were already computed before `executeSteps` was called — so the rollback guard only required wrapping the execution in try/catch, not restructuring the computation order.
+  - The revert attempt in the catch block is best-effort (inner try/catch suppresses revert failures) — always re-throw the original error so the HTTP layer sees the root cause.
+---

@@ -332,40 +332,56 @@ export class OperationLog {
       inverseSteps = await this.computeInverseSteps(entry.rollbackSteps, ctx);
     }
 
-    // Execute structural rollback steps first (e.g. re-create a deleted set)
-    if (entry.rollbackSteps?.length) {
-      await this.executeSteps(entry.rollbackSteps, ctx);
-    }
-
-    // Capture current token state as "before" for the rollback operation itself
+    // Execute structural rollback steps, snapshot current token state, and restore tokens
+    // atomically: if any step fails, revert structural changes using the pre-computed inverse steps.
     const currentSnapshot: Record<string, SnapshotEntry> = {};
-    for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
-      try {
-        const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
-        currentSnapshot[tokenPath] = {
-          token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
-          setName: snap.setName,
-        };
-      } catch {
-        // Set may not exist yet (will be created by token restoration)
-        currentSnapshot[tokenPath] = { token: null, setName: snap.setName };
+    try {
+      // Execute structural rollback steps first (e.g. re-create a deleted set)
+      if (entry.rollbackSteps?.length) {
+        await this.executeSteps(entry.rollbackSteps, ctx);
       }
-    }
 
-    // Group by set for batch token processing
-    const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
-    for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
-      let list = bySet.get(snap.setName);
-      if (!list) {
-        list = [];
-        bySet.set(snap.setName, list);
+      // Capture current token state as "before" for the rollback operation itself
+      for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+        try {
+          const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
+          currentSnapshot[tokenPath] = {
+            token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
+            setName: snap.setName,
+          };
+        } catch {
+          // Set may not exist yet (will be created by token restoration)
+          currentSnapshot[tokenPath] = { token: null, setName: snap.setName };
+        }
       }
-      list.push({ path: tokenPath, token: snap.token });
-    }
 
-    // Restore tokens
-    for (const [setName, items] of bySet) {
-      await ctx.tokenStore.restoreSnapshot(setName, items);
+      // Group by set for batch token processing
+      const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
+      for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+        let list = bySet.get(snap.setName);
+        if (!list) {
+          list = [];
+          bySet.set(snap.setName, list);
+        }
+        list.push({ path: tokenPath, token: snap.token });
+      }
+
+      // Restore tokens
+      for (const [setName, items] of bySet) {
+        await ctx.tokenStore.restoreSnapshot(setName, items);
+      }
+    } catch (err) {
+      // Rollback failed mid-way — attempt to revert any structural steps that already ran,
+      // restoring structural state to what it was before we started. Best-effort: if the
+      // revert also fails we surface the original error so the caller sees the root cause.
+      if (inverseSteps?.length) {
+        try {
+          await this.executeSteps(inverseSteps, ctx);
+        } catch {
+          // Revert failed — state may be inconsistent, but we still re-throw the original error.
+        }
+      }
+      throw err;
     }
 
     entry.rolledBack = true;

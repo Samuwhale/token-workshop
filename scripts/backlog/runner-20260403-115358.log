@@ -155,3 +155,18 @@ Already up to date.
 
   Merging to main: No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
 Already up to date.
+[main 26e38117] chore(backlog): done – No per-token value changelog — users can see set-level git history and operation log but have no way to answer "what were the previous values of this specific token and when did they change"; add a "History" section to the TokenEditor that shows the value timeline for the selected token by filtering git diffs or operation log entries to that path
+ 8 files changed, 322 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No per-token value changelog
+- Added `getTokenHistory(path, limit, offset)` to `OperationLog` service — filters stored entries by `affectedPaths` and returns before/after snapshots for that specific path only, newest first.
+- Added `TokenHistoryEntry` interface to `operation-log.ts`.
+- Added `GET /api/operations/token-history?path=X&limit=N&offset=M` route in `operations.ts` — registered before `:id/rollback` to avoid Fastify param capture.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  5 queued · 4 in-progress · last took 4m57s
+═══════════════════════════════════════════════════════════════
+  → Server services silently swallow errors in 6+ locations via console.warn-and-continue — token-store.ts:148,157 catches watcher reload errors as console.warn (stale cache served silently), generator-service.ts:468-472 catches generator execution failures and stores them in an in-memory map the UI never polls, resolver-store.ts:272-274 skips invalid resolver files during init with no caller notification, style-dict.ts:288-290 converts export failures into fake `error.txt` files instead of returning error status; consolidate around a consistent error propagation strategy (typed error return or event emission) so callers can surface failures to the user
+  Worktree: /tmp/backlog-81661-q3tKRz
+  Running agent… (started 12:11:15)
