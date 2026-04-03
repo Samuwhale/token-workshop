@@ -573,3 +573,14 @@
   - The `suggestedCanonicals` IIFE follows the same pattern as `duplicateGroups` and `colorScales` — plain IIFE after early returns, consistent with the file's existing style (which already uses `useMemo` after early returns too, a pre-existing pattern).
   - The "Use suggestion" button is hidden when the current canonical already matches the suggestion, keeping the UI clean.
 ---
+
+## 2026-04-03 - Color contrast matrix failures filter and CSV export
+- Added "Failures only" toggle that switches from the grid matrix to a flat sorted list of failing pairs (worst ratio first). The list shows fg/bg swatches, token names, and ratio — no pagination needed since failures are typically far fewer than all pairs.
+- Added "Copy as CSV" button that exports the full N×N matrix (all tokens, all pairs, not limited to current page or failures filter). CSV columns: fg_token, bg_token, contrast_ratio, level.
+- Added `contrastFailuresOnly` and `contrastCopied` state variables. The toolbar row with both buttons always appears when the matrix is expanded.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L81-82 (state), ~L1017-1180 (matrix section)
+- **Learnings for future iterations:**
+  - For large matrices the O(n²) pair computation on every render is fine for ≤200 tokens (≤40k pairs), but would need memoization beyond that.
+  - "Failures only" as a flat list rather than a filtered grid is far cleaner UX — a grid with sparse failures leaves mostly empty space.
+  - The CSV export always covers the full matrix regardless of the failures filter, giving users the complete picture for spreadsheet analysis.
+---

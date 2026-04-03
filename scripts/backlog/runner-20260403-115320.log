@@ -406,3 +406,18 @@ Already up to date.
 
   Merging to main: AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group
 Already up to date.
+[main aae9a2dc] chore(backlog): done – AnalyticsPanel duplicate color detection requires manually selecting the canonical token per group — the shortest-path or most-referenced token could be auto-suggested as the canonical choice, with a "Use suggestion" bulk action to deduplicate in one click instead of radio-button-per-group
+ 6 files changed, 121 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - AnalyticsPanel duplicate color auto-suggest canonical
+- Added `aliasRefCounts` (IIFE computing how many tokens reference each path as `{alias}`) and `suggestedCanonicals` (IIFE picking best canonical per hex group: most alias refs → most Figma usage → fewest path segments → alphabetical). Added `handleApplyAllSuggestions` handler to bulk-apply suggestions. Per-group UI: shows "suggested" badge on the auto-recommended token when it differs from current canonical, plus a "Use suggestion" button in the group header. Bulk UI: adds "Use all suggestions" button below "Promote all" when any group's canonical differs from its suggestion.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L448 (aliasRefCounts/suggestedCanonicals IIFEs), ~L497 (handleApplyAllSuggestions), ~L1188-1208 (per-group "Use suggestion" button + "suggested" badge), ~L1172-1184 (bulk "Use all suggestions" button)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  12 queued · 4 in-progress · last took 3m18s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel orphan deletion has a retry race condition and all publish modal confirmations silently swallow async errors — executeOrphanDeletion (PublishPanel.tsx ~L235-269) creates a new correlationId per retry attempt but old promise handlers in orphansPendingRef are not invalidated, so a late response from a timed-out attempt can resolve with stale data; separately, all three modal types in PublishModals.tsx (~L207, ~L408, ~L580) use `try { await onConfirm() } finally { setBusy(false) }` which never surfaces errors to the user — the modal clears loading state and the user gets no feedback that the operation failed
+  Worktree: /tmp/backlog-80049-lRh3ax
+  Running agent… (started 13:08:18)

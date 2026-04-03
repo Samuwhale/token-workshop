@@ -125,3 +125,10 @@ Already up to date.
   → Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
   Worktree: /tmp/backlog-49887-IL3CSx
   Running agent… (started 13:06:11)
+
+  ✓ done: Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
+    Added "Failures only" toggle (switches grid to flat sorted list of failing pairs, worst-first) and "Copy as CSV" button (exports full N×N matrix regardless of pagination or filter). Both controls appear in a toolbar row when the matrix is expanded.
+    11 turns · 133s · $0.37
+
+  Merging to main: Color contrast matrix in AnalyticsPanel paginates at 16 tokens per page with no export — for a palette of 50+ colors, users must click through pages to find failing pairs; add a "show failures only" filter toggle and a "Copy as CSV" export for the full matrix (AnalyticsPanel.tsx ~L977-1071)
+Already up to date.

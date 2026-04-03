@@ -79,6 +79,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [colorTokens, setColorTokens] = useState<{ path: string; hex: string }[]>([]);
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [contrastPage, setContrastPage] = useState(0);
+  const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
+  const [contrastCopied, setContrastCopied] = useState(false);
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
@@ -1060,9 +1062,40 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       {/* Contrast matrix */}
       {colorTokens.length >= 2 && (() => {
         const CONTRAST_PAGE_SIZE = 16;
+
+        // Build all failing pairs (full matrix, unfiltered) for the failures list and CSV export
+        const allFailingPairs: { fg: { path: string; hex: string }; bg: { path: string; hex: string }; ratio: number }[] = [];
+        for (let i = 0; i < colorTokens.length; i++) {
+          for (let j = 0; j < colorTokens.length; j++) {
+            if (i === j) continue;
+            const r = wcagContrast(colorTokens[i].hex, colorTokens[j].hex);
+            if (r !== null && r < 4.5) {
+              allFailingPairs.push({ fg: colorTokens[i], bg: colorTokens[j], ratio: r });
+            }
+          }
+        }
+        allFailingPairs.sort((a, b) => a.ratio - b.ratio);
+
+        const handleCopyCSV = () => {
+          const rows: string[] = ['fg_token,bg_token,contrast_ratio,level'];
+          for (const fg of colorTokens) {
+            for (const bg of colorTokens) {
+              if (fg.path === bg.path) continue;
+              const r = wcagContrast(fg.hex, bg.hex);
+              const level = r === null ? 'N/A' : r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : 'Fail';
+              rows.push(`"${fg.path}","${bg.path}",${r !== null ? r.toFixed(2) : ''},"${level}"`);
+            }
+          }
+          navigator.clipboard.writeText(rows.join('\n')).then(() => {
+            setContrastCopied(true);
+            setTimeout(() => setContrastCopied(false), 2000);
+          });
+        };
+
         const totalPages = Math.ceil(colorTokens.length / CONTRAST_PAGE_SIZE);
         const pageStart = contrastPage * CONTRAST_PAGE_SIZE;
         const pagedTokens = colorTokens.slice(pageStart, pageStart + CONTRAST_PAGE_SIZE);
+
         return (
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
             <button
@@ -1073,80 +1106,140 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showContrastMatrix ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
             </button>
             {showContrastMatrix && (
-              <div className="overflow-auto max-h-80 p-2">
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                      Tokens {pageStart + 1}–{Math.min(pageStart + CONTRAST_PAGE_SIZE, colorTokens.length)} of {colorTokens.length}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setContrastPage(p => Math.max(0, p - 1))}
-                        disabled={contrastPage === 0}
-                        className="px-1.5 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
-                        aria-label="Previous page"
-                      >‹</button>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setContrastPage(i)}
-                          className={`px-1.5 py-0.5 text-[9px] rounded border ${i === contrastPage ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                          aria-label={`Page ${i + 1}`}
-                          aria-current={i === contrastPage ? 'page' : undefined}
-                        >{i + 1}</button>
-                      ))}
-                      <button
-                        onClick={() => setContrastPage(p => Math.min(totalPages - 1, p + 1))}
-                        disabled={contrastPage === totalPages - 1}
-                        className="px-1.5 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
-                        aria-label="Next page"
-                      >›</button>
-                    </div>
-                  </div>
-                )}
-                <table className="text-[8px] border-collapse" aria-label="Color contrast matrix — rows are foreground tokens, columns are background tokens">
-                  <thead>
-                    <tr>
-                      <th scope="col" className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>
-                      {pagedTokens.map(bg => (
-                        <th key={bg.path} scope="col" aria-label={bg.path} title={bg.path} className="px-1 py-0.5 text-center font-normal max-w-[40px]">
-                          <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] mx-auto" style={{ background: bg.hex }} aria-hidden="true" />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedTokens.map(fg => (
-                      <tr key={fg.path}>
-                        <th scope="row" className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)] font-normal">
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} aria-hidden="true" />
-                            <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]" title={fg.path}>{fg.path.split('.').pop()}</span>
-                          </div>
-                        </th>
-                        {pagedTokens.map(bg => {
-                          if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]" aria-label="same token">—</td>;
-                          const r = wcagContrast(fg.hex, bg.hex);
-                          const aa = r !== null && r >= 4.5;
-                          const aaa = r !== null && r >= 7;
-                          const level = aaa ? 'AAA' : aa ? 'AA' : 'Fail';
-                          return (
-                            <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} aria-label={`${fg.path} on ${bg.path}: ${r !== null ? `${r.toFixed(2)}:1 ${level}` : 'unavailable'}`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-error)]/10'}`}>
-                              <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-error)]'} aria-hidden="true">
-                                {r !== null ? r.toFixed(1) : '—'}
-                              </span>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="flex gap-3 mt-2 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-success)]/20 border border-[var(--color-figma-success)]/40" />AAA (≥7:1)</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/40" />AA (≥4.5:1)</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30" />Fail</span>
+              <div className="overflow-auto max-h-96 p-2">
+                {/* Toolbar: failures toggle + CSV export */}
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <button
+                    onClick={() => { setContrastFailuresOnly(v => !v); setContrastPage(0); }}
+                    className={`flex items-center gap-1 px-2 py-0.5 text-[9px] rounded border transition-colors ${contrastFailuresOnly ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Failures only{contrastFailuresOnly && allFailingPairs.length > 0 ? ` (${allFailingPairs.length})` : ''}
+                  </button>
+                  <button
+                    onClick={handleCopyCSV}
+                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    title={`Copy full ${colorTokens.length}×${colorTokens.length} matrix as CSV`}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    {contrastCopied ? 'Copied!' : 'Copy as CSV'}
+                  </button>
                 </div>
+
+                {contrastFailuresOnly ? (
+                  /* Failures-only flat list */
+                  allFailingPairs.length === 0 ? (
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] text-center py-4">No failing pairs — all combinations pass AA (≥4.5:1)</div>
+                  ) : (
+                    <table className="text-[8px] border-collapse w-full" aria-label="Failing color contrast pairs">
+                      <thead>
+                        <tr className="text-[var(--color-figma-text-secondary)]">
+                          <th scope="col" className="px-1 py-0.5 text-left font-normal">Foreground</th>
+                          <th scope="col" className="px-1 py-0.5 text-left font-normal">Background</th>
+                          <th scope="col" className="px-1 py-0.5 text-right font-normal">Ratio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allFailingPairs.map(({ fg, bg, ratio }) => (
+                          <tr key={`${fg.path}|${bg.path}`} className="border-t border-[var(--color-figma-border)]">
+                            <td className="px-1 py-0.5">
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} aria-hidden="true" />
+                                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={fg.path}>{fg.path.split('.').pop()}</span>
+                              </div>
+                            </td>
+                            <td className="px-1 py-0.5">
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: bg.hex }} aria-hidden="true" />
+                                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={bg.path}>{bg.path.split('.').pop()}</span>
+                              </div>
+                            </td>
+                            <td className="px-1 py-0.5 text-right">
+                              <span className="text-[var(--color-figma-error)]">{ratio.toFixed(1)}:1</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                ) : (
+                  /* Full grid matrix with pagination */
+                  <>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                          Tokens {pageStart + 1}–{Math.min(pageStart + CONTRAST_PAGE_SIZE, colorTokens.length)} of {colorTokens.length}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setContrastPage(p => Math.max(0, p - 1))}
+                            disabled={contrastPage === 0}
+                            className="px-1.5 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
+                            aria-label="Previous page"
+                          >‹</button>
+                          {Array.from({ length: totalPages }, (_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setContrastPage(i)}
+                              className={`px-1.5 py-0.5 text-[9px] rounded border ${i === contrastPage ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                              aria-label={`Page ${i + 1}`}
+                              aria-current={i === contrastPage ? 'page' : undefined}
+                            >{i + 1}</button>
+                          ))}
+                          <button
+                            onClick={() => setContrastPage(p => Math.min(totalPages - 1, p + 1))}
+                            disabled={contrastPage === totalPages - 1}
+                            className="px-1.5 py-0.5 text-[9px] rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
+                            aria-label="Next page"
+                          >›</button>
+                        </div>
+                      </div>
+                    )}
+                    <table className="text-[8px] border-collapse" aria-label="Color contrast matrix — rows are foreground tokens, columns are background tokens">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>
+                          {pagedTokens.map(bg => (
+                            <th key={bg.path} scope="col" aria-label={bg.path} title={bg.path} className="px-1 py-0.5 text-center font-normal max-w-[40px]">
+                              <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] mx-auto" style={{ background: bg.hex }} aria-hidden="true" />
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedTokens.map(fg => (
+                          <tr key={fg.path}>
+                            <th scope="row" className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)] font-normal">
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} aria-hidden="true" />
+                                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]" title={fg.path}>{fg.path.split('.').pop()}</span>
+                              </div>
+                            </th>
+                            {pagedTokens.map(bg => {
+                              if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]" aria-label="same token">—</td>;
+                              const r = wcagContrast(fg.hex, bg.hex);
+                              const aa = r !== null && r >= 4.5;
+                              const aaa = r !== null && r >= 7;
+                              const level = aaa ? 'AAA' : aa ? 'AA' : 'Fail';
+                              return (
+                                <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} aria-label={`${fg.path} on ${bg.path}: ${r !== null ? `${r.toFixed(2)}:1 ${level}` : 'unavailable'}`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-error)]/10'}`}>
+                                  <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-error)]'} aria-hidden="true">
+                                    {r !== null ? r.toFixed(1) : '—'}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="flex gap-3 mt-2 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-success)]/20 border border-[var(--color-figma-success)]/40" />AAA (≥7:1)</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/40" />AA (≥4.5:1)</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30" />Fail</span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
