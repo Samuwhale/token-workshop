@@ -380,3 +380,15 @@
   - The `initialTab` prop on the wrapper allows the command palette to deep-link into a specific internal tab if needed in the future.
   - Gate 4 (headless UI) has a pre-existing browser timeout failure in this sandbox — gates 1–3 (tests, build, lint) are the reliable signal.
 ---
+
+## 2026-04-03 - Find/replace cannot scope by token type
+- Added `frTypeFilter` state (default `'all'`) to `useFindReplace.ts` hook, computed `frAvailableTypes` (sorted unique types from in-scope tokens), and applied type filtering in both `frPreview` (names mode) and `frValuePreview` (values mode) computations.
+- Added `frTypeFilter`, `frAvailableTypes`, `onSetFrTypeFilter` props to `TokenListModals.tsx` interface; rendered a `<select>` dropdown ("All types" + one option per available type) below the scope toggle — hidden when no typed tokens exist.
+- Wired the new state and props through `TokenList.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L10,137,149,182,530; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L87,270,619; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L938,3841
+- **Learnings for future iterations:**
+  - Type filter is applied client-side by pre-filtering the `flattenTokenPaths` result before extracting paths — no server changes needed.
+  - For all-sets mode, `perSetFlat` entries already have `$type` so filtering works the same way there.
+  - Reset `frTypeFilter` to `'all'` on successful apply (in the `setShowFindReplace(false)` block) for a clean next-open state.
+  - The type filter dropdown is conditionally hidden (`frAvailableTypes.length > 0`) to avoid cluttering the UI for sets with no type annotations.
+---

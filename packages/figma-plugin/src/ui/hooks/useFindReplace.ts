@@ -9,6 +9,7 @@ const BULK_RENAME_TIMEOUT_MS = 30_000;
 
 export type FindReplaceScope = 'active' | 'all';
 export type FindReplaceTarget = 'names' | 'values';
+export type FindReplaceTypeFilter = 'all' | string;
 
 export interface UseFindReplaceParams {
   connected: boolean;
@@ -136,6 +137,7 @@ export function useFindReplace({
   const [frIsRegex, setFrIsRegex] = useState(false);
   const [frScope, setFrScope] = useState<FindReplaceScope>('active');
   const [frTarget, setFrTarget] = useState<FindReplaceTarget>('names');
+  const [frTypeFilter, setFrTypeFilter] = useState<FindReplaceTypeFilter>('all');
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -145,6 +147,30 @@ export function useFindReplace({
     try { new RegExp(frFind); return null; }
     catch (e) { return e instanceof Error ? e.message : 'Invalid regular expression'; }
   }, [frFind, frIsRegex]);
+
+  /** Sorted unique token types available across all relevant tokens. */
+  const frAvailableTypes = useMemo(() => {
+    const typeSet = new Set<string>();
+    const addFromNodes = (nodes: TokenNode[]) => {
+      const walk = (list: TokenNode[]) => {
+        for (const n of list) {
+          if (!n.isGroup && n.$type) typeSet.add(n.$type);
+          if (n.children) walk(n.children);
+        }
+      };
+      walk(nodes);
+    };
+    addFromNodes(tokens);
+    if (frScope === 'all' && perSetFlat) {
+      for (const [sn, flatMap] of Object.entries(perSetFlat)) {
+        if (sn === setName) continue;
+        for (const entry of Object.values(flatMap)) {
+          if (entry.$type) typeSet.add(entry.$type);
+        }
+      }
+    }
+    return Array.from(typeSet).sort();
+  }, [tokens, setName, frScope, perSetFlat]);
 
   const frPreview = useMemo(() => {
     if (frTarget !== 'names') return [];
@@ -156,7 +182,9 @@ export function useFindReplace({
     }
 
     if (frScope === 'active') {
-      const currentSetPaths = flattenTokenPaths(tokens, setName).map(t => t.path);
+      const currentSetTokens = flattenTokenPaths(tokens, setName);
+      const filtered = frTypeFilter === 'all' ? currentSetTokens : currentSetTokens.filter(t => t.$type === frTypeFilter);
+      const currentSetPaths = filtered.map(t => t.path);
       return computeRenamesForPaths(currentSetPaths, frFind, frReplace, pattern).map(r => ({ ...r, setName }));
     }
 
@@ -164,11 +192,18 @@ export function useFindReplace({
     const allRenames: Array<{ oldPath: string; newPath: string; conflict: boolean; setName: string }> = [];
     const setsToScan = allSets ?? (perSetFlat ? Object.keys(perSetFlat) : [setName]);
     for (const sn of setsToScan) {
-      const flatMap = sn === setName
-        ? Object.fromEntries(flattenTokenPaths(tokens, setName).map(t => [t.path, t]))
-        : perSetFlat?.[sn];
-      if (!flatMap) continue;
-      const paths = Object.keys(flatMap);
+      let paths: string[];
+      if (sn === setName) {
+        const snTokens = flattenTokenPaths(tokens, setName);
+        const filtered = frTypeFilter === 'all' ? snTokens : snTokens.filter(t => t.$type === frTypeFilter);
+        paths = filtered.map(t => t.path);
+      } else {
+        const flatMap = perSetFlat?.[sn];
+        if (!flatMap) continue;
+        paths = frTypeFilter === 'all'
+          ? Object.keys(flatMap)
+          : Object.entries(flatMap).filter(([, e]) => e.$type === frTypeFilter).map(([p]) => p);
+      }
       const setRenames = computeRenamesForPaths(paths, frFind, frReplace, pattern);
       for (const r of setRenames) {
         allRenames.push({ ...r, setName: sn });
@@ -177,7 +212,7 @@ export function useFindReplace({
       if (pattern) pattern.lastIndex = 0;
     }
     return allRenames;
-  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, tokens, setName, allSets, perSetFlat]);
+  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, frTypeFilter, tokens, setName, allSets, perSetFlat]);
 
   const frValuePreview = useMemo(() => {
     if (frTarget !== 'values') return [];
@@ -190,27 +225,29 @@ export function useFindReplace({
 
     if (frScope === 'active') {
       const tokenList = flattenTokenPaths(tokens, setName);
-      return computeValueReplacements(tokenList, frFind, frReplace, pattern);
+      const filtered = frTypeFilter === 'all' ? tokenList : tokenList.filter(t => t.$type === frTypeFilter);
+      return computeValueReplacements(filtered, frFind, frReplace, pattern);
     }
 
     // All sets mode
     const allResults: Array<{ path: string; setName: string; oldValue: string; newValue: string; originalValue: unknown }> = [];
     const setsToScan = allSets ?? (perSetFlat ? Object.keys(perSetFlat) : [setName]);
     for (const sn of setsToScan) {
-      let tokenList: Array<{ path: string; $value: unknown; setName: string }>;
+      let tokenList: Array<{ path: string; $type?: string; $value: unknown; setName: string }>;
       if (sn === setName) {
         tokenList = flattenTokenPaths(tokens, setName);
       } else {
         const flatMap = perSetFlat?.[sn];
         if (!flatMap) continue;
-        tokenList = Object.entries(flatMap).map(([path, entry]) => ({ path, $value: entry.$value, setName: sn }));
+        tokenList = Object.entries(flatMap).map(([path, entry]) => ({ path, $type: entry.$type, $value: entry.$value, setName: sn }));
       }
-      const results = computeValueReplacements(tokenList, frFind, frReplace, pattern);
+      const filtered = frTypeFilter === 'all' ? tokenList : tokenList.filter(t => t.$type === frTypeFilter);
+      const results = computeValueReplacements(filtered, frFind, frReplace, pattern);
       for (const r of results) allResults.push({ ...r, setName: sn });
       if (pattern) pattern.lastIndex = 0;
     }
     return allResults;
-  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, tokens, setName, allSets, perSetFlat]);
+  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, frTypeFilter, tokens, setName, allSets, perSetFlat]);
 
   /**
    * Tokens (in any loaded set) whose $value contains an alias reference to a
@@ -501,6 +538,7 @@ export function useFindReplace({
       setFrFind('');
       setFrReplace('');
       setFrIsRegex(false);
+      setFrTypeFilter('all');
       onRefresh();
     } catch (err) {
       if (ac.signal.aborted) {
@@ -515,7 +553,7 @@ export function useFindReplace({
       abortRef.current = null;
       setFrBusy(false);
     }
-  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frBusy, frPreview, frValuePreview, serverUrl, setName, onRefresh, onPushUndo]);
+  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frTypeFilter, frBusy, frPreview, frValuePreview, serverUrl, setName, onRefresh, onPushUndo]);
 
   const frConflictCount = useMemo(() => frPreview.filter(r => r.conflict).length, [frPreview]);
   const frRenameCount = useMemo(() => frPreview.filter(r => !r.conflict).length, [frPreview]);
@@ -534,6 +572,9 @@ export function useFindReplace({
     setFrScope,
     frTarget,
     setFrTarget,
+    frTypeFilter,
+    setFrTypeFilter,
+    frAvailableTypes,
     frError,
     setFrError,
     frBusy,

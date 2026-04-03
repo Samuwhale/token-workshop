@@ -84,8 +84,11 @@ export interface TokenListModalsProps {
   onSetFrFind: (v: string) => void;
   onSetFrReplace: (v: string) => void;
   onSetFrIsRegex: (v: boolean) => void;
+  frTypeFilter: string;
+  frAvailableTypes: string[];
   onSetFrScope: (v: 'active' | 'all') => void;
   onSetFrTarget: (v: 'names' | 'values') => void;
+  onSetFrTypeFilter: (v: string) => void;
   onSetFrError: (v: string) => void;
   onSetShowFindReplace: (v: boolean) => void;
   handleFindReplace: () => void;
@@ -252,6 +255,8 @@ export function TokenListModals(props: TokenListModalsProps) {
     frIsRegex,
     frScope,
     frTarget,
+    frTypeFilter,
+    frAvailableTypes,
     frError,
     frBusy,
     frRegexError,
@@ -266,6 +271,7 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetFrIsRegex,
     onSetFrScope,
     onSetFrTarget,
+    onSetFrTypeFilter,
     onSetFrError,
     onSetShowFindReplace,
     handleFindReplace,
@@ -611,6 +617,22 @@ export function TokenListModals(props: TokenListModalsProps) {
                   All sets
                 </button>
               </div>
+              {/* Type filter */}
+              {frAvailableTypes.length > 0 && (
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Type:</span>
+                  <select
+                    value={frTypeFilter}
+                    onChange={e => { onSetFrTypeFilter(e.target.value); onSetFrError(''); }}
+                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] cursor-pointer"
+                  >
+                    <option value="all">All types</option>
+                    {frAvailableTypes.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
               <div className="flex flex-col gap-1">

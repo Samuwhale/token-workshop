@@ -407,3 +407,26 @@ Already up to date.
 
   Merging to main: Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
 Already up to date.
+[main e101ac9e] chore(backlog): done – Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
+ 7 files changed, 162 insertions(+), 40 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/CanvasAuditPanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-03 - Merge HeatmapPanel and ConsistencyPanel into a single "Canvas Audit" panel
+- Created `CanvasAuditPanel.tsx` that wraps both `HeatmapPanel` and `ConsistencyPanel` with an internal tab bar ("Coverage" / "Consistency"). The component accepts all props from both panels and passes them through to the appropriate child.
+- Updated `App.tsx`:
+  - `ApplySubTab` type: replaced `'audit' | 'consistency'` with `'canvas-audit'`
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  8 queued · 3 in-progress · last took 4m1s
+═══════════════════════════════════════════════════════════════
+  → Find/replace cannot scope by token type — users with mixed-type sets (colors + dimensions + strings in one set) cannot restrict find/replace to only colors or only dimensions; the scope selector offers "active set" or "all sets" but no type filter; add a token type dropdown filter so users can e.g. find/replace only within color values (useFindReplace.ts, TokenList.tsx find/replace UI)
+  Worktree: /tmp/backlog-46178-rYBzs2
+  Running agent… (started 18:09:01)
+
+  ✓ done: Find/replace cannot scope by token type
+    Added frTypeFilter state + frAvailableTypes computed to useFindReplace, applied filtering in both names and values preview computations, and added a type dropdown to the find/replace modal UI
+    26 turns · 203s · $0.8
+
+  Merging to main: Find/replace cannot scope by token type
+Already up to date.
