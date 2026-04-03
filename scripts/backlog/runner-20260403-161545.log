@@ -28,3 +28,25 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499
 Already up to date.
+[main f9712a17] chore(backlog): done – Dialog subtitle promises "bind a source token" but no UI exists for it — TokenGeneratorDialog.tsx ~L499
+ 8 files changed, 101 insertions(+), 22 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Dialog subtitle promises "bind a source token" but no UI exists for it
+- Added `allTokensFlat?: Record<string, TokenMapEntry>` prop to `TokenGeneratorDialogProps` and wired it through to an `AliasAutocomplete` dropdown on the source token input. When `allTokensFlat` is provided, the input shows a searchable token picker on focus (filtered by generator type: color for colorRamp, dimension for typeScale/spacingScale/borderRadiusScale, number for opacityScale). The subtitle already said "bind a source token" — now that's true via the picker rather than requiring users to type a path manually.
+- Updated `GeneratorPipelineCard` in `GraphPanel.tsx` to accept and forward `allTokensFlat` so the edit-generator dialog also gets the picker.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1-42 (imports/prop), ~L47-64 (interface), ~L150-165 (destructure), ~L237-243 (state), ~L554-610 (source token section); `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1057 (GeneratorPipelineCard signature), ~L1278-1286 (TokenGeneratorDialog call), ~L1612 (render call site); `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1906 (allTokensFlat prop)
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  22 queued · 3 in-progress · last took 4m11s
+═══════════════════════════════════════════════════════════════
+  → Generator engine `sanitizeNumber` is applied inconsistently — `runTypeScaleGenerator` and `runCustomScaleGenerator` guard against NaN/Infinity via `sanitizeNumber()`, but `runSpacingScaleGenerator` (line 202), `runBorderRadiusScaleGenerator` (line 265), and `runShadowScaleGenerator` (line 330) skip it entirely; if a step multiplier is NaN or Infinity (e.g. user enters bad config), these generators silently produce corrupt dimension tokens that propagate downstream (generator-engine.ts)
+  Worktree: /tmp/backlog-46580-a254TT
+  Running agent… (started 16:19:56)
+
+  ✓ done: Generator engine `sanitizeNumber` applied inconsistently
+    Applied sanitizeNumber to runSpacingScaleGenerator, runBorderRadiusScaleGenerator, and runShadowScaleGenerator; shadow scale sanitizes all 5 numeric fields independently with 0 fallback
+    16 turns · 102s · $0.34
+
+  Merging to main: Generator engine `sanitizeNumber` applied inconsistently
+Already up to date.

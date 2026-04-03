@@ -399,3 +399,15 @@
   - The `AliasAutocomplete` query field doubles as the display value when the picker is open (like a combobox) — use a boolean `showPicker` flag to switch between displaying the committed value and the live query.
   - `setTimeout(() => setShowPicker(false), 150)` on `onBlur` is needed so `onMouseDown` in the autocomplete list fires before the blur hides the dropdown.
 ---
+
+## 2026-04-03 - Generator engine `sanitizeNumber` applied inconsistently
+- Applied `sanitizeNumber` to the three generators that were missing it:
+  - `runSpacingScaleGenerator`: sanitizes `sourceValue.value * step.multiplier` before `toFixed(4)`, falls back to `sourceValue.value`
+  - `runBorderRadiusScaleGenerator`: sanitizes the computed `rawValue` (from either `exactValue` or `sourceValue.value * step.multiplier`), falls back to `sourceValue.value`
+  - `runShadowScaleGenerator`: sanitizes each of the five numeric fields (`opacity`, `offsetX`, `offsetY`, `blur`, `spread`) independently, falls back to `0` for each; concatenates per-field warnings into a single `warning` string
+- All three now propagate the optional `warning` field on affected result entries (matching the pattern used by `runTypeScaleGenerator` and `runCustomScaleGenerator`).
+- Files changed: `packages/core/src/generator-engine.ts` ~L201, ~L264, ~L329
+- **Learnings for future iterations:**
+  - Shadow scale has multiple numeric fields per step — sanitize each independently and join warnings with `'; '` rather than bailing on the first one.
+  - The fallback for shadow numeric fields (offsetX/Y, blur, spread) is naturally `0` — omitting a shadow property is safer than propagating Infinity/NaN into the token store.
+---

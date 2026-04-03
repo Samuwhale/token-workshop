@@ -200,13 +200,15 @@ export function runSpacingScaleGenerator(
 
   return steps.map(step => {
     const raw = sourceValue.value * step.multiplier;
-    const rounded = parseFloat(raw.toFixed(4));
+    const { value: safeValue, warning } = sanitizeNumber(raw, sourceValue.value);
+    const rounded = parseFloat(safeValue.toFixed(4));
 
     return {
       stepName: step.name,
       path: `${targetGroup}.${step.name}`,
       type: 'dimension',
       value: { value: rounded, unit: unit || sourceValue.unit },
+      ...(warning ? { warning } : {}),
     };
   });
 }
@@ -266,13 +268,15 @@ export function runBorderRadiusScaleGenerator(
       step.exactValue !== undefined
         ? step.exactValue
         : sourceValue.value * step.multiplier;
-    const rounded = parseFloat(rawValue.toFixed(4));
+    const { value: safeValue, warning } = sanitizeNumber(rawValue, sourceValue.value);
+    const rounded = parseFloat(safeValue.toFixed(4));
 
     return {
       stepName: step.name,
       path: `${targetGroup}.${step.name}`,
       type: 'dimension',
       value: { value: rounded, unit: unit || sourceValue.unit },
+      ...(warning ? { warning } : {}),
     };
   });
 }
@@ -327,9 +331,23 @@ export function runShadowScaleGenerator(
   const base6 = color.replace('#', '').slice(0, 6).padStart(6, '0');
 
   return steps.map(step => {
-    const alpha = Math.round(Math.max(0, Math.min(1, step.opacity)) * 255);
+    const warnings: string[] = [];
+
+    const { value: safeOpacity, warning: wOp } = sanitizeNumber(step.opacity, 0);
+    if (wOp) warnings.push(`opacity: ${wOp}`);
+    const { value: safeOffsetX, warning: wX } = sanitizeNumber(step.offsetX, 0);
+    if (wX) warnings.push(`offsetX: ${wX}`);
+    const { value: safeOffsetY, warning: wY } = sanitizeNumber(step.offsetY, 0);
+    if (wY) warnings.push(`offsetY: ${wY}`);
+    const { value: safeBlur, warning: wB } = sanitizeNumber(step.blur, 0);
+    if (wB) warnings.push(`blur: ${wB}`);
+    const { value: safeSpread, warning: wS } = sanitizeNumber(step.spread, 0);
+    if (wS) warnings.push(`spread: ${wS}`);
+
+    const alpha = Math.round(Math.max(0, Math.min(1, safeOpacity)) * 255);
     const alphaHex = alpha.toString(16).padStart(2, '0');
     const shadowColor = `#${base6}${alphaHex}`;
+    const warning = warnings.length ? warnings.join('; ') : undefined;
 
     return {
       stepName: step.name,
@@ -337,11 +355,12 @@ export function runShadowScaleGenerator(
       type: 'shadow' as const,
       value: {
         color: shadowColor,
-        offsetX: { value: step.offsetX, unit: 'px' },
-        offsetY: { value: step.offsetY, unit: 'px' },
-        blur:    { value: step.blur,    unit: 'px' },
-        spread:  { value: step.spread,  unit: 'px' },
+        offsetX: { value: safeOffsetX, unit: 'px' },
+        offsetY: { value: safeOffsetY, unit: 'px' },
+        blur:    { value: safeBlur,    unit: 'px' },
+        spread:  { value: safeSpread,  unit: 'px' },
       },
+      ...(warning ? { warning } : {}),
     };
   });
 }
