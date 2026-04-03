@@ -493,3 +493,10 @@ Already up to date.
   → Set metadata (description, Figma collection, Figma mode) only accessible via context menu — users must right-click a set tab to discover "Edit set info"; there's no visible affordance in SetSwitcher manage mode or in the token list header, making it effectively invisible to new users (App.tsx ~L2521-2579, SetSwitcher.tsx)
   Worktree: /tmp/backlog-81661-ScVTBF
   Running agent… (started 13:18:37)
+
+  ✓ done: Set metadata only accessible via context menu — no visible affordance in SetSwitcher manage mode
+    Added info-circle icon button to SetSwitcher manage mode action row; clicking it closes the SetSwitcher and opens the Edit Set Info modal
+    30 turns · 242s · $0.89
+
+  Merging to main: Set metadata only accessible via context menu — no visible affordance in SetSwitcher manage mode
+Already up to date.

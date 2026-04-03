@@ -13,6 +13,7 @@ interface SetSwitcherProps {
   onDelete?: (setName: string) => void;
   onReorder?: (setName: string, direction: 'left' | 'right') => void;
   onCreateSet?: (name: string) => Promise<void>;
+  onEditInfo?: (setName: string) => void;
   setTokenCounts?: Record<string, number>;
   setDescriptions?: Record<string, string>;
 }
@@ -51,6 +52,7 @@ export function SetSwitcher({
   onDelete,
   onReorder,
   onCreateSet,
+  onEditInfo,
   setTokenCounts = {},
   setDescriptions = {},
 }: SetSwitcherProps) {
@@ -140,7 +142,7 @@ export function SetSwitcher({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const canManage = !!(onRename || onDuplicate || onDelete || onReorder || onCreateSet);
+  const canManage = !!(onRename || onDuplicate || onDelete || onReorder || onCreateSet || onEditInfo);
 
   return (
     <div
@@ -218,6 +220,7 @@ export function SetSwitcher({
             onDuplicate={onDuplicate}
             onDelete={onDelete}
             onReorder={onReorder}
+            onEditInfo={onEditInfo}
             creatingSet={creatingSet}
             setCreatingSet={setCreatingSet}
             newSetName={newSetName}
@@ -306,6 +309,7 @@ interface ManageViewProps {
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
   onReorder?: (setName: string, direction: 'left' | 'right') => void;
+  onEditInfo?: (setName: string) => void;
   creatingSet: boolean;
   setCreatingSet: (v: boolean) => void;
   newSetName: string;
@@ -321,7 +325,7 @@ interface ManageViewProps {
 function ManageView({
   listRef, filtered, sets, activeSet, query,
   setTokenCounts, setDescriptions,
-  onSelect, onRename, onDuplicate, onDelete, onReorder,
+  onSelect, onRename, onDuplicate, onDelete, onReorder, onEditInfo,
   creatingSet, setCreatingSet, newSetName, setNewSetName,
   newSetError, setNewSetError, createPending,
   newSetInputRef, onCreateSubmit, canCreate,
@@ -393,6 +397,20 @@ function ManageView({
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
                         <path d="M5 8L1 3H9L5 8Z" />
+                      </svg>
+                    </button>
+                  )}
+                  {/* Edit info */}
+                  {onEditInfo && (
+                    <button
+                      onClick={() => onEditInfo(set)}
+                      title="Edit set info"
+                      className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
                       </svg>
                     </button>
                   )}

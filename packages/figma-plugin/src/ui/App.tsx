@@ -2950,6 +2950,7 @@ export function App() {
           onDelete={startDelete}
           onReorder={handleReorderSet}
           onCreateSet={createSetByName}
+          onEditInfo={(set) => { setShowSetSwitcher(false); setShowManageSets(false); openSetMetadata(set); }}
           setTokenCounts={setTokenCounts}
           setDescriptions={setDescriptions}
         />

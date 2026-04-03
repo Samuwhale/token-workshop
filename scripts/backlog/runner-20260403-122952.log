@@ -220,3 +220,18 @@ Already up to date.
 
   Merging to main: ExportPanel silently switches from Platforms mode to Figma Variables mode when server disconnects
 Already up to date.
+[main 476bc0b2] chore(backlog): done – ExportPanel silently switches from Platforms mode to Figma Variables mode when server disconnects
+ 5 files changed, 67 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - ExportPanel silently switches from Platforms mode to Figma Variables mode when server disconnects
+- Added `modeAutoSwitched` state that is set to `true` when the `useEffect` auto-switches from 'platforms' to 'figma-variables' on disconnect. Added a dismissible warning banner (yellow/warning color, triangle icon, X dismiss button) rendered between the mode description and the mode-specific content area that explains: "Switched to Import from Figma — server disconnected. Platforms mode requires a server connection. Reconnect to switch back." The banner auto-clears when `connected` becomes true again, and can be manually dismissed.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L552-557, ~L614-640
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  7 queued · 3 in-progress · last took 1m29s
+═══════════════════════════════════════════════════════════════
+  → Tab key in inline token editing closes the edit instead of moving to the next token — pressing Tab in an inline value edit field should advance focus to the next token's value (matching spreadsheet behavior), but currently it just blurs and exits edit mode; this forces users to click each token individually for sequential edits (TokenTreeNode.tsx MultiModeCell ~L92-110)
+  Worktree: /tmp/backlog-49887-FUaFEo
+  Running agent… (started 13:21:46)

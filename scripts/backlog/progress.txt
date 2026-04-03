@@ -429,3 +429,13 @@
   - A one-flag boolean state (`modeAutoSwitched`) is sufficient for "explain-the-last-automatic-action" banners — no need to track the original mode.
   - The reconnection auto-dismiss (`if (connected && modeAutoSwitched) setModeAutoSwitched(false)`) must live in the same `useEffect` as the auto-switch; don't add a separate effect with `[connected, modeAutoSwitched]` deps or you get an ESLint exhaustive-deps cascade.
 ---
+
+## 2026-04-03 - Set metadata only accessible via context menu — no visible affordance in manage mode
+- Added an "Edit set info" info-circle icon button to SetSwitcher's manage mode action row (alongside move/rename/duplicate/delete). Clicking it closes the SetSwitcher and opens the metadata modal (description, Figma collection, Figma mode).
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L14 (new `onEditInfo` prop), ~L143 (`canManage` guard), ~L219 (pass to ManageView), ~L310 (ManageViewProps), ~L324 (destructure), ~L399 (new button before Rename)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2951 (pass `onEditInfo` wrapper that closes SetSwitcher before opening modal)
+- **Learnings for future iterations:**
+  - When opening a modal from inside another modal (SetSwitcher → metadata), close the source modal first to avoid nested overlay stacking.
+  - `canManage` in SetSwitcher controls whether the Switch/Manage mode toggle appears — include `onEditInfo` in that check so the manage button shows even if only info editing is wired up.
+---
