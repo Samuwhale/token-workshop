@@ -621,8 +621,12 @@ export class TokenStore {
     if (!set) return false;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
     this._startWriteGuard(filePath);
-    await fs.unlink(filePath);
-    await this.removeEmptyParentDirs(filePath);
+    try {
+      await fs.unlink(filePath);
+      await this.removeEmptyParentDirs(filePath);
+    } finally {
+      this._clearWriteGuard(filePath);
+    }
     this.sets.delete(name);
     this.rebuildFlatTokens();
     return true;
@@ -646,7 +650,11 @@ export class TokenStore {
     for (const name of names) {
       const filePath = path.join(this.dir, `${name}.tokens.json`);
       this._startWriteGuard(filePath);
-      await fs.unlink(filePath).catch(() => {});
+      try {
+        await fs.unlink(filePath).catch(() => {});
+      } finally {
+        this._clearWriteGuard(filePath);
+      }
     }
     this.sets.clear();
     this.rebuildFlatTokens();

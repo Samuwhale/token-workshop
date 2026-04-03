@@ -467,3 +467,13 @@
   - A `Set<ControllerMessage['type']>` constant is the simplest way to get both runtime usability and compile-time validation of the set's contents (each element must be a valid `ControllerMessage['type']`).
   - The exhaustiveness guard pattern `const _exhaustive: never = msg` in a switch `default` works when TypeScript's control-flow analysis narrows `msg` to `never` (i.e., all union variants are handled). With 35 `PluginMessage` variants all handled, this fires correctly.
 ---
+
+## 2026-04-03 - TokenStore write guards leak on delete and clearAll
+- Added `try/finally` blocks to `deleteSet()` and `clearAll()` in `token-store.ts` to call `_clearWriteGuard()` after each `fs.unlink` completes (success or throw), rather than relying on the chokidar 'unlink' watcher event to clear the guard. This eliminates the window where a file restored externally (e.g., `git checkout`) could be silently suppressed.
+- Refactored `ResolverStore.delete()` in `resolver-store.ts` to move `_startWriteGuard` outside the try/catch and add a `finally` block — guard is now cleared on both success and error paths (previously only cleared on the error path).
+- Files changed: `packages/server/src/services/token-store.ts` ~L623, ~L648; `packages/server/src/services/resolver-store.ts` ~L155
+- **Learnings for future iterations:**
+  - For write operations (rename/atomic overwrite), the watcher 'change'/'add' event clears the guard. For delete (`fs.unlink`), the 'unlink' event fires — but if an external tool restores the file between unlink and the watcher event, the guard may suppress the 'add' event for the restored file.
+  - The `renameSet` `try/finally` pattern is the correct one for all operations: start the guard before the fs operation, clear it in `finally` after completion. Don't rely on watcher callbacks to be the sole guard-clearing mechanism.
+  - The watcher 'unlink' handler calling `sets.delete(name)` after we've already deleted it is idempotent (Map.delete on missing key is a no-op); the extra `scheduleRebuild` emission is acceptable noise.
+---

@@ -152,11 +152,12 @@ export class ResolverStore {
   async delete(name: string): Promise<boolean> {
     if (!this.resolvers.has(name)) return false;
     const filePath = this.nameToPath(name);
+    this._startWriteGuard(filePath);
     try {
-      this._startWriteGuard(filePath);
       await fs.unlink(filePath);
     } catch {
-      // File may already be gone — clear guard since watcher won't fire
+      // File may already be gone
+    } finally {
       this._clearWriteGuard(filePath);
     }
     this.resolvers.delete(name);

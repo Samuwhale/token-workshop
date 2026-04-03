@@ -279,3 +279,18 @@ Already up to date.
 
   Merging to main: Plugin sandbox message protocol has unmatched response types
 Already up to date.
+[main 9d492957] chore(backlog): done – Plugin sandbox message protocol has unmatched response types
+ 8 files changed, 106 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Plugin sandbox message protocol audit — missing types and catch-all warning
+- Fixed `TokenVariableBindingsMessage` in `types.ts`: type string was `'token-variable-bindings'` but sandbox (`variableSync.ts`) sends `'token-variable-bindings-result'`, and UI handler (`TokenUsages.tsx`) expects the same. Also corrected the field name from `bindings: { nodeId, nodeName, property }[]` to `variables: { name, collection, resolvedType }[]` to match what `scanTokenVariableBindings()` actually sends.
+- Added `KNOWN_CONTROLLER_MESSAGE_TYPES` Set export from `types.ts` (after `ControllerMessage` union) — a runtime set of all 37 known Controller→UI message type strings, typed as `Set<ControllerMessage['type']>` so any invalid string literal causes a compile error.
+- Added catch-all warning `useEffect` in `App.tsx` that fires `console.warn('[plugin] Unhandled controller message type: "X"', msg)` for any incoming plugin message whose `type` is not in `KNOWN_CONTROLLER_MESSAGE_TYPES`. Runs once on mount, covers the entire lifetime of the plugin UI.
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  2 queued · 2 in-progress · last took 8m46s
+═══════════════════════════════════════════════════════════════
+  → useTokenCrud undo/redo closures capture stale set context — in useTokenCrud.ts, executeTokenRename (L78-79), handleConfirmMoveToken (L434), and handleConfirmCopyToken (L459) capture `setName` and `serverUrl` at operation time; if the user switches to a different set before undoing, the undo handler operates on the originally-captured set rather than the current one; either capture the set name inside the undo/redo callback (reading from a ref), or validate that the current set still matches the captured set before executing undo
+  Worktree: /tmp/backlog-45818-Df2h0o
+  Running agent… (started 17:34:17)
