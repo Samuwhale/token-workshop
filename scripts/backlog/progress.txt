@@ -335,3 +335,14 @@
   - `snapshotSets`/`restoreSnapshots` are private on TokenStore; the public `getFlatTokensForSet` + `restoreSnapshot` pair achieves the same result for external callers.
   - Guarding side-effectful cleanup (like `clearNonLockedOverrides`) with a `succeeded` flag in finally is cleaner than restructuring try/catch — the finally still runs exactly once and the flag makes intent explicit.
 ---
+
+## 2026-04-03 - TokenStore batchUpsertTokens never triggers rebuildFlatTokens
+- Root cause: `rebuildFlatTokens()` inside a batch is a NOP (defers via `_pendingRebuild = true`), and `endBatch()` only rebuilds if `_pendingRebuild` was set. `batchUpsertTokens` never called `rebuildFlatTokens()` inside or after the batch, so `_pendingRebuild` stayed false and the flat token cache + resolver were never updated after import.
+- Fix: removed `_pendingRebuild` entirely; changed `endBatch()` to unconditionally call `rebuildFlatTokens()` when `_batchDepth` reaches 0; added private `withBatch<T>(fn)` helper that wraps `beginBatch()`/`endBatch()` with guaranteed rebuild on completion.
+- Converted all 13 internal `beginBatch()`/`endBatch()` pairs in `token-store.ts` to use `withBatch` and removed all now-redundant explicit `rebuildFlatTokens()` calls from batch try/catch blocks. Public `beginBatch()`/`endBatch()` API kept for external callers (generator-service), which also benefit from `endBatch()` now always rebuilding.
+- Files changed: `packages/server/src/services/token-store.ts` ~L48 (removed field), ~L181 (rebuildFlatTokens simplified), ~L203 (endBatch always rebuilds), ~L210 (withBatch added), ~L742 (batchUpsertTokens), ~L799 (deleteTokens), ~L828 (restoreSnapshot), ~L870 (deleteTokensByGeneratorId), ~L1078 (renameGroup), ~L1180 (moveGroup), ~L1219 (copyGroup), ~L1261 (moveToken), ~L1287 (copyToken), ~L1329 (batchUpdateTokens), ~L1382 (batchRenameTokens), ~L1434 (batchMoveTokens), ~L1550 (bulkRename)
+- **Learnings for future iterations:**
+  - The `_pendingRebuild` deferral mechanism was fundamentally broken for any method that never called `rebuildFlatTokens()` inside the batch. The fix (always rebuild at `endBatch()`) is simpler and correct.
+  - `withBatch` pattern: snapshot → `withBatch(async () => { try { ...work... } catch { restoreSnapshots; throw; } })`. The snapshot restore happens inside the fn's catch, so `withBatch`'s finally always rebuilds with the correct (possibly restored) in-memory state.
+  - `bulkRename` had a comment claiming it rebuilt flat tokens mid-batch for a circular ref check — but `rebuildFlatTokens()` inside a batch was always a NOP. The circular check used stale pre-rename data. This pre-existing issue is now documented (comment updated) but not fixed (out of scope).
+---

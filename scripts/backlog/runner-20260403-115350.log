@@ -497,3 +497,10 @@ Already up to date.
   → [HIGH] TokenStore batchUpsertTokens never triggers rebuildFlatTokens — after a batch import the flat token cache and resolver go stale because nothing inside the batch calls rebuildFlatTokens() and the write guard suppresses the file watcher; compare with batchDeleteTokens which correctly rebuilds after endBatch(); broader issue: rebuildFlatTokens is called 41 times across token-store.ts with three inconsistent patterns (inside batch try+catch where it just defers, after endBatch, or missing entirely) making every new batch method error-prone; should centralize into a withBatch(fn) helper (token-store.ts:738-769 for the bug, 181-213 for the batch mechanism)
   Worktree: /tmp/backlog-81267-WL47Wu
   Running agent… (started 13:03:22)
+
+  ✓ done: TokenStore batchUpsertTokens never triggers rebuildFlatTokens
+    Removed _pendingRebuild; endBatch() now always rebuilds when depth reaches 0; added private withBatch<T> helper; converted all 13 internal beginBatch/endBatch pairs in token-store.ts to withBatch, eliminating the stale-cache bug in batchUpsertTokens and all similar methods
+    52 turns · 538s · $2.02
+
+  Merging to main: TokenStore batchUpsertTokens never triggers rebuildFlatTokens
+Already up to date.

@@ -46,7 +46,6 @@ export class TokenStore {
   private _rebuildDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingWatcherEvents: ChangeEvent[] = [];
   private _batchDepth = 0;
-  private _pendingRebuild = false;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(dir: string) {
@@ -179,11 +178,7 @@ export class TokenStore {
   }
 
   private rebuildFlatTokens(): void {
-    if (this._batchDepth > 0) {
-      this._pendingRebuild = true;
-      return;
-    }
-    this._pendingRebuild = false;
+    if (this._batchDepth > 0) return; // deferred — endBatch() always rebuilds
     this.flatTokens.clear();
     for (const [setName, set] of this.sets) {
       for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
@@ -204,11 +199,21 @@ export class TokenStore {
     this._batchDepth++;
   }
 
-  /** End a batch operation — flushes any deferred rebuild. */
+  /** End a batch operation — always rebuilds flat tokens when the outermost batch ends. */
   endBatch(): void {
     if (this._batchDepth > 0) this._batchDepth--;
-    if (this._batchDepth === 0 && this._pendingRebuild) {
+    if (this._batchDepth === 0) {
       this.rebuildFlatTokens();
+    }
+  }
+
+  /** Execute fn() inside a batch, always rebuilding flat tokens when the outermost batch ends. */
+  private async withBatch<T>(fn: () => Promise<T>): Promise<T> {
+    this.beginBatch();
+    try {
+      return await fn();
+    } finally {
+      this.endBatch();
     }
   }
 
@@ -735,35 +740,34 @@ export class TokenStore {
       this.checkCircularReferences(changes);
     }
     const snapshot = this.snapshotSets(setName);
-    this.beginBatch();
     let imported = 0;
     let skipped = 0;
-    try {
-      for (const { path: tokenPath, token } of tokens) {
-        const enriched = this.enrichFormulaExtension(token);
-        const existing = getTokenAtPath(set.tokens, tokenPath);
-        if (existing) {
-          if (strategy === 'overwrite') {
-            if ('$value' in enriched) existing.$value = enriched.$value;
-            if ('$type' in enriched) existing.$type = enriched.$type;
-            if ('$description' in enriched) existing.$description = enriched.$description;
-            if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
-            imported++;
+    await this.withBatch(async () => {
+      try {
+        for (const { path: tokenPath, token } of tokens) {
+          const enriched = this.enrichFormulaExtension(token);
+          const existing = getTokenAtPath(set.tokens, tokenPath);
+          if (existing) {
+            if (strategy === 'overwrite') {
+              if ('$value' in enriched) existing.$value = enriched.$value;
+              if ('$type' in enriched) existing.$type = enriched.$type;
+              if ('$description' in enriched) existing.$description = enriched.$description;
+              if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
+              imported++;
+            } else {
+              skipped++;
+            }
           } else {
-            skipped++;
+            setTokenAtPath(set.tokens, tokenPath, enriched);
+            imported++;
           }
-        } else {
-          setTokenAtPath(set.tokens, tokenPath, enriched);
-          imported++;
         }
+        await this.saveSet(setName);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      await this.saveSet(setName);
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
     this.emit({ type: 'token-updated', setName, tokenPath: '' });
     return { imported, skipped };
   }
@@ -792,24 +796,22 @@ export class TokenStore {
     if (!set) return [];
     const snapshot = this.snapshotSets(setName);
     const deleted: string[] = [];
-    this.beginBatch();
-    try {
-      for (const tokenPath of tokenPaths) {
-        if (deleteTokenAtPath(set.tokens, tokenPath)) {
-          deleted.push(tokenPath);
+    await this.withBatch(async () => {
+      try {
+        for (const tokenPath of tokenPaths) {
+          if (deleteTokenAtPath(set.tokens, tokenPath)) {
+            deleted.push(tokenPath);
+          }
         }
+        if (deleted.length > 0) {
+          await this.saveSet(setName);
+        }
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      if (deleted.length > 0) {
-        await this.saveSet(setName);
-      }
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
     if (deleted.length > 0) {
-      this.rebuildFlatTokens();
       this.emit({ type: 'token-updated', setName, tokenPath: '' });
     }
     return deleted;
@@ -824,23 +826,21 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const snapshot = this.snapshotSets(setName);
-    this.beginBatch();
-    try {
-      for (const { path: tokenPath, token } of items) {
-        if (token === null) {
-          deleteTokenAtPath(set.tokens, tokenPath);
-        } else {
-          setTokenAtPath(set.tokens, tokenPath, structuredClone(token));
+    await this.withBatch(async () => {
+      try {
+        for (const { path: tokenPath, token } of items) {
+          if (token === null) {
+            deleteTokenAtPath(set.tokens, tokenPath);
+          } else {
+            setTokenAtPath(set.tokens, tokenPath, structuredClone(token));
+          }
         }
+        await this.saveSet(setName);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      await this.saveSet(setName);
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      throw err;
-    } finally {
-      this.endBatch();
-    }
-    this.rebuildFlatTokens();
+    });
     this.emit({ type: 'token-updated', setName });
   }
 
@@ -868,10 +868,9 @@ export class TokenStore {
     const tokens = this.findTokensByGeneratorId(generatorId);
     if (tokens.length === 0) return 0;
 
-    this.beginBatch();
     const setsToSave = new Set<string>();
     let deleted = 0;
-    try {
+    await this.withBatch(async () => {
       for (const { setName, path: tokenPath } of tokens) {
         const set = this.sets.get(setName);
         if (!set) continue;
@@ -883,11 +882,8 @@ export class TokenStore {
       for (const setName of setsToSave) {
         await this.saveSet(setName);
       }
-    } finally {
-      this.endBatch();
-    }
+    });
     if (deleted > 0) {
-      this.rebuildFlatTokens();
       for (const setName of setsToSave) {
         this.emit({ type: 'token-updated', setName });
       }
@@ -1079,47 +1075,43 @@ export class TokenStore {
     // Snapshot all sets that may be modified (primary + any alias-bearing sets)
     const allSetNames = [setName, ...[...this.sets.keys()].filter(n => n !== setName)];
     const snapshot = updateAliases ? this.snapshotSets(...allSetNames) : this.snapshotSets(setName);
-    this.beginBatch();
-    try {
-      if (leafTokens.length === 0) {
-        const groupObj = getObjectAtPath(set.tokens, oldGroupPath);
-        if (!groupObj) throw new NotFoundError(`Group "${oldGroupPath}" not found`);
-        if (pathExistsAt(set.tokens, newGroupPath)) throw new ConflictError(`Path "${newGroupPath}" already exists`);
-        setGroupAtPath(set.tokens, newGroupPath, groupObj);
+    return await this.withBatch(async () => {
+      try {
+        if (leafTokens.length === 0) {
+          const groupObj = getObjectAtPath(set.tokens, oldGroupPath);
+          if (!groupObj) throw new NotFoundError(`Group "${oldGroupPath}" not found`);
+          if (pathExistsAt(set.tokens, newGroupPath)) throw new ConflictError(`Path "${newGroupPath}" already exists`);
+          setGroupAtPath(set.tokens, newGroupPath, groupObj);
+          deleteTokenAtPath(set.tokens, oldGroupPath);
+          await this.saveSet(setName);
+          return { renamedCount: 0, aliasesUpdated: 0 };
+        }
+        for (const { relativePath } of leafTokens) {
+          const newPath = `${newGroupPath}.${relativePath}`;
+          if (getTokenAtPath(set.tokens, newPath)) {
+            throw new ConflictError(`Token at path "${newPath}" already exists`);
+          }
+        }
+        for (const { relativePath, token } of leafTokens) {
+          setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
+        }
         deleteTokenAtPath(set.tokens, oldGroupPath);
         await this.saveSet(setName);
-        this.rebuildFlatTokens();
-        return { renamedCount: 0, aliasesUpdated: 0 };
-      }
-      for (const { relativePath } of leafTokens) {
-        const newPath = `${newGroupPath}.${relativePath}`;
-        if (getTokenAtPath(set.tokens, newPath)) {
-          throw new ConflictError(`Token at path "${newPath}" already exists`);
+        let aliasesUpdated = 0;
+        if (updateAliases) {
+          const setsToSave = new Set<string>();
+          for (const [sName, s] of this.sets) {
+            const changed = updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
+            if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+          }
+          for (const sName of setsToSave) await this.saveSet(sName);
         }
+        return { renamedCount: leafTokens.length, aliasesUpdated };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      for (const { relativePath, token } of leafTokens) {
-        setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
-      }
-      deleteTokenAtPath(set.tokens, oldGroupPath);
-      await this.saveSet(setName);
-      let aliasesUpdated = 0;
-      if (updateAliases) {
-        const setsToSave = new Set<string>();
-        for (const [sName, s] of this.sets) {
-          const changed = updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
-          if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
-        }
-        for (const sName of setsToSave) await this.saveSet(sName);
-      }
-      this.rebuildFlatTokens();
-      return { renamedCount: leafTokens.length, aliasesUpdated };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   /** Preview which alias $values would be rewritten by a token rename (read-only). */
@@ -1186,42 +1178,38 @@ export class TokenStore {
     if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
     const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
     const snapshot = this.snapshotSets(fromSet, toSet);
-    this.beginBatch();
-    try {
-      if (leafTokens.length === 0) {
-        const groupObj = getObjectAtPath(source.tokens, groupPath);
-        if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
-        if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
-        setGroupAtPath(target.tokens, groupPath, groupObj);
+    return await this.withBatch(async () => {
+      try {
+        if (leafTokens.length === 0) {
+          const groupObj = getObjectAtPath(source.tokens, groupPath);
+          if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
+          if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
+          setGroupAtPath(target.tokens, groupPath, groupObj);
+          deleteTokenAtPath(source.tokens, groupPath);
+          await this.saveSet(fromSet);
+          await this.saveSet(toSet);
+          return { movedCount: 0 };
+        }
+        const collisions: string[] = [];
+        for (const { relativePath } of leafTokens) {
+          const targetPath = `${groupPath}.${relativePath}`;
+          if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
+        }
+        if (collisions.length > 0) {
+          throw new ConflictError(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
+        }
+        for (const { relativePath, token } of leafTokens) {
+          setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
+        }
         deleteTokenAtPath(source.tokens, groupPath);
         await this.saveSet(fromSet);
         await this.saveSet(toSet);
-        this.rebuildFlatTokens();
-        return { movedCount: 0 };
+        return { movedCount: leafTokens.length };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      const collisions: string[] = [];
-      for (const { relativePath } of leafTokens) {
-        const targetPath = `${groupPath}.${relativePath}`;
-        if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
-      }
-      if (collisions.length > 0) {
-        throw new ConflictError(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
-      }
-      for (const { relativePath, token } of leafTokens) {
-        setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
-      }
-      deleteTokenAtPath(source.tokens, groupPath);
-      await this.saveSet(fromSet);
-      await this.saveSet(toSet);
-      this.rebuildFlatTokens();
-      return { movedCount: leafTokens.length };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   async copyGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ copiedCount: number }> {
@@ -1232,38 +1220,34 @@ export class TokenStore {
     if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
     const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
     const snapshot = this.snapshotSets(toSet);
-    this.beginBatch();
-    try {
-      if (leafTokens.length === 0) {
-        const groupObj = getObjectAtPath(source.tokens, groupPath);
-        if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
-        if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
-        setGroupAtPath(target.tokens, groupPath, structuredClone(groupObj));
+    return await this.withBatch(async () => {
+      try {
+        if (leafTokens.length === 0) {
+          const groupObj = getObjectAtPath(source.tokens, groupPath);
+          if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
+          if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
+          setGroupAtPath(target.tokens, groupPath, structuredClone(groupObj));
+          await this.saveSet(toSet);
+          return { copiedCount: 0 };
+        }
+        const collisions: string[] = [];
+        for (const { relativePath } of leafTokens) {
+          const targetPath = `${groupPath}.${relativePath}`;
+          if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
+        }
+        if (collisions.length > 0) {
+          throw new ConflictError(`Cannot copy group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
+        }
+        for (const { relativePath, token } of leafTokens) {
+          setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, structuredClone(token));
+        }
         await this.saveSet(toSet);
-        this.rebuildFlatTokens();
-        return { copiedCount: 0 };
+        return { copiedCount: leafTokens.length };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      const collisions: string[] = [];
-      for (const { relativePath } of leafTokens) {
-        const targetPath = `${groupPath}.${relativePath}`;
-        if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
-      }
-      if (collisions.length > 0) {
-        throw new ConflictError(`Cannot copy group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
-      }
-      for (const { relativePath, token } of leafTokens) {
-        setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, structuredClone(token));
-      }
-      await this.saveSet(toSet);
-      this.rebuildFlatTokens();
-      return { copiedCount: leafTokens.length };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   async moveToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
@@ -1276,20 +1260,17 @@ export class TokenStore {
     if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
     if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
     const snapshot = this.snapshotSets(fromSet, toSet);
-    this.beginBatch();
-    try {
-      setTokenAtPath(target.tokens, tokenPath, token);
-      deleteTokenAtPath(source.tokens, tokenPath);
-      await this.saveSet(fromSet);
-      await this.saveSet(toSet);
-      this.rebuildFlatTokens();
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    await this.withBatch(async () => {
+      try {
+        setTokenAtPath(target.tokens, tokenPath, token);
+        deleteTokenAtPath(source.tokens, tokenPath);
+        await this.saveSet(fromSet);
+        await this.saveSet(toSet);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
+      }
+    });
   }
 
   async copyToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
@@ -1302,17 +1283,15 @@ export class TokenStore {
     if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
     if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
     const snapshot = this.snapshotSets(toSet);
-    this.beginBatch();
-    try {
-      setTokenAtPath(target.tokens, tokenPath, structuredClone(token));
-      await this.saveSet(toSet);
-      this.rebuildFlatTokens();
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    await this.withBatch(async () => {
+      try {
+        setTokenAtPath(target.tokens, tokenPath, structuredClone(token));
+        await this.saveSet(toSet);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
+      }
+    });
   }
 
   /**
@@ -1348,23 +1327,21 @@ export class TokenStore {
     }
     // All validation passed — apply changes atomically
     const snapshot = this.snapshotSets(setName);
-    this.beginBatch();
-    try {
-      for (const { path: tokenPath, patch } of enrichedPatches) {
-        const existing = getTokenAtPath(set.tokens, tokenPath)!;
-        if ('$value' in patch) existing.$value = patch.$value!;
-        if ('$type' in patch) existing.$type = patch.$type;
-        if ('$description' in patch) existing.$description = patch.$description;
-        if ('$extensions' in patch) existing.$extensions = patch.$extensions;
+    await this.withBatch(async () => {
+      try {
+        for (const { path: tokenPath, patch } of enrichedPatches) {
+          const existing = getTokenAtPath(set.tokens, tokenPath)!;
+          if ('$value' in patch) existing.$value = patch.$value!;
+          if ('$type' in patch) existing.$type = patch.$type;
+          if ('$description' in patch) existing.$description = patch.$description;
+          if ('$extensions' in patch) existing.$extensions = patch.$extensions;
+        }
+        await this.saveSet(setName);
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      await this.saveSet(setName);
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      throw err;
-    } finally {
-      this.endBatch();
-    }
-    this.rebuildFlatTokens();
+    });
     this.emit({ type: 'token-updated', setName, tokenPath: '' });
   }
 
@@ -1401,34 +1378,31 @@ export class TokenStore {
       ? [setName, ...[...this.sets.keys()].filter(n => n !== setName)]
       : [setName];
     const snapshot = this.snapshotSets(...allSetNames);
-    this.beginBatch();
-    try {
-      // Apply all renames in memory
-      for (const { oldPath, newPath, token } of tokens) {
-        setTokenAtPath(set.tokens, newPath, token);
-        deleteTokenAtPath(set.tokens, oldPath);
-      }
-      await this.saveSet(setName);
-      // Batch alias updates
-      let aliasesUpdated = 0;
-      if (updateAliases) {
-        const pathMap = new Map(tokens.map(t => [t.oldPath, t.newPath]));
-        const setsToSave = new Set<string>();
-        for (const [sName, s] of this.sets) {
-          const changed = updateBulkAliasRefs(s.tokens, pathMap);
-          if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+    return await this.withBatch(async () => {
+      try {
+        // Apply all renames in memory
+        for (const { oldPath, newPath, token } of tokens) {
+          setTokenAtPath(set.tokens, newPath, token);
+          deleteTokenAtPath(set.tokens, oldPath);
         }
-        for (const sName of setsToSave) await this.saveSet(sName);
+        await this.saveSet(setName);
+        // Batch alias updates
+        let aliasesUpdated = 0;
+        if (updateAliases) {
+          const pathMap = new Map(tokens.map(t => [t.oldPath, t.newPath]));
+          const setsToSave = new Set<string>();
+          for (const [sName, s] of this.sets) {
+            const changed = updateBulkAliasRefs(s.tokens, pathMap);
+            if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+          }
+          for (const sName of setsToSave) await this.saveSet(sName);
+        }
+        return { renamed: tokens.length, aliasesUpdated };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      this.rebuildFlatTokens();
-      return { renamed: tokens.length, aliasesUpdated };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   /**
@@ -1455,23 +1429,20 @@ export class TokenStore {
       tokensToMove.push({ path: tokenPath, token });
     }
     const snapshot = this.snapshotSets(fromSet, toSet);
-    this.beginBatch();
-    try {
-      for (const { path: tokenPath, token } of tokensToMove) {
-        setTokenAtPath(target.tokens, tokenPath, token);
-        deleteTokenAtPath(source.tokens, tokenPath);
+    return await this.withBatch(async () => {
+      try {
+        for (const { path: tokenPath, token } of tokensToMove) {
+          setTokenAtPath(target.tokens, tokenPath, token);
+          deleteTokenAtPath(source.tokens, tokenPath);
+        }
+        await this.saveSet(fromSet);
+        await this.saveSet(toSet);
+        return { moved: tokensToMove.length };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-      await this.saveSet(fromSet);
-      await this.saveSet(toSet);
-      this.rebuildFlatTokens();
-      return { moved: tokensToMove.length };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
@@ -1578,49 +1549,46 @@ export class TokenStore {
     // Snapshot all sets before mutation so we can restore atomically on failure
     const snapshot = this.snapshotSets(...this.sets.keys());
 
-    this.beginBatch();
-    try {
-      // Apply: set new paths first, then remove old ones
-      for (const { newPath, token } of filteredRenames) {
-        setTokenAtPath(set.tokens, newPath, token);
-      }
-      for (const { oldPath } of filteredRenames) {
-        deleteTokenAtPath(set.tokens, oldPath);
-      }
-
-      // Update alias references across all sets
-      let aliasesUpdated = 0;
-      const aliasModifiedSets = new Set<string>();
-      for (const [sName, s] of this.sets) {
-        const changed = updateBulkAliasRefs(s.tokens, pathMap);
-        if (changed > 0) {
-          aliasesUpdated += changed;
-          aliasModifiedSets.add(sName);
+    return await this.withBatch(async () => {
+      try {
+        // Apply: set new paths first, then remove old ones
+        for (const { newPath, token } of filteredRenames) {
+          setTokenAtPath(set.tokens, newPath, token);
         }
+        for (const { oldPath } of filteredRenames) {
+          deleteTokenAtPath(set.tokens, oldPath);
+        }
+
+        // Update alias references across all sets
+        let aliasesUpdated = 0;
+        const aliasModifiedSets = new Set<string>();
+        for (const [sName, s] of this.sets) {
+          const changed = updateBulkAliasRefs(s.tokens, pathMap);
+          if (changed > 0) {
+            aliasesUpdated += changed;
+            aliasModifiedSets.add(sName);
+          }
+        }
+
+        // Detect circular alias references created by the rename.
+        // Note: flatTokens still reflects pre-rename state here (inside a batch,
+        // rebuildFlatTokens() is deferred). The check uses pre-rename alias values.
+        const circularCheckChanges = filteredRenames.map(({ newPath }) => {
+          const entries = this.flatTokens.get(newPath);
+          return { path: newPath, value: entries?.[0]?.token.$value };
+        });
+        this.checkCircularReferences(circularCheckChanges);
+
+        // All checks passed — persist to disk
+        await this.saveSet(setName);
+        for (const sName of aliasModifiedSets) await this.saveSet(sName);
+
+        return { renamed: filteredRenames.length, skipped, aliasesUpdated };
+      } catch (err) {
+        this.restoreSnapshots(snapshot);
+        throw err;
       }
-
-      // Rebuild flat tokens so circular reference check sees the post-rename state
-      this.rebuildFlatTokens();
-
-      // Detect circular alias references created by the rename
-      const circularCheckChanges = filteredRenames.map(({ newPath }) => {
-        const entries = this.flatTokens.get(newPath);
-        return { path: newPath, value: entries?.[0]?.token.$value };
-      });
-      this.checkCircularReferences(circularCheckChanges);
-
-      // All checks passed — persist to disk
-      await this.saveSet(setName);
-      for (const sName of aliasModifiedSets) await this.saveSet(sName);
-
-      return { renamed: filteredRenames.length, skipped, aliasesUpdated };
-    } catch (err) {
-      this.restoreSnapshots(snapshot);
-      this.rebuildFlatTokens();
-      throw err;
-    } finally {
-      this.endBatch();
-    }
+    });
   }
 
   // ----- Formula metadata -----
