@@ -181,9 +181,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
   const [timelineSnapshots, setTimelineSnapshots] = useState<SnapshotSummary[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(true);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
   const [hasMoreCommits, setHasMoreCommits] = useState(false);
   const [commitOffset, setCommitOffset] = useState(0);
   const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [commitSearch, setCommitSearch] = useState('');
   const [debouncedCommitSearch, setDebouncedCommitSearch] = useState('');
 
@@ -214,16 +216,20 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const fetchTimeline = useCallback(async (search = '') => {
     if (!connected) return;
     setTimelineLoading(true);
+    setTimelineError(null);
     setCommitOffset(0);
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
       const [commitsData, snapshotsData] = await Promise.all([
-        apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`).catch(() => ({ commits: [] as CommitEntry[], hasMore: false })),
-        apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`).catch(() => ({ snapshots: [] as SnapshotSummary[] })),
+        apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`),
+        apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`),
       ]);
       setTimelineCommits(commitsData.commits ?? []);
       setHasMoreCommits(commitsData.hasMore ?? false);
       setTimelineSnapshots(snapshotsData.snapshots ?? []);
+    } catch (err) {
+      console.warn('[HistoryPanel] timeline fetch failed:', err);
+      setTimelineError((err as Error).message || 'Failed to load history');
     } finally {
       setTimelineLoading(false);
     }
@@ -236,15 +242,19 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const handleLoadMoreCommits = useCallback(async () => {
     if (!connected || loadingMoreCommits) return;
     setLoadingMoreCommits(true);
+    setLoadMoreError(null);
     const nextOffset = commitOffset + 50;
     try {
       const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
       const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
         `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
-      ).catch(() => ({ commits: [] as CommitEntry[], hasMore: false }));
+      );
       setTimelineCommits(prev => [...prev, ...(data.commits ?? [])]);
       setHasMoreCommits(data.hasMore ?? false);
       setCommitOffset(nextOffset);
+    } catch (err) {
+      console.warn('[HistoryPanel] load more commits failed:', err);
+      setLoadMoreError((err as Error).message || 'Failed to load more commits');
     } finally {
       setLoadingMoreCommits(false);
     }
@@ -351,7 +361,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   ].sort((a, b) => b.ts - a.ts);
 
   const hasLocal = (undoDescriptions ?? []).length > 0;
-  const isEmpty = allEntries.length === 0 && !hasLocal;
+  const isEmpty = allEntries.length === 0 && !hasLocal && !timelineError;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -521,6 +531,23 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           </div>
         )}
 
+        {/* Error state */}
+        {!timelineLoading && timelineError && (
+          <div className="flex flex-col items-center justify-center p-6 gap-2 text-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-60" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Failed to load history</p>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{timelineError}</p>
+            <button
+              onClick={() => fetchTimeline(debouncedCommitSearch)}
+              className="mt-1 px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Empty state */}
         {!timelineLoading && isEmpty && (
           <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
@@ -655,8 +682,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         })}
 
         {/* Load more commits */}
-        {hasMoreCommits && (
-          <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
+        {(hasMoreCommits || loadMoreError) && (
+          <div className="px-3 py-2 border-b border-[var(--color-figma-border)] flex flex-col gap-1.5">
+            {loadMoreError && (
+              <p className="text-[10px] text-center text-[var(--color-figma-text-tertiary)]">{loadMoreError}</p>
+            )}
             <button
               onClick={handleLoadMoreCommits}
               disabled={loadingMoreCommits}
@@ -664,6 +694,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             >
               {loadingMoreCommits ? (
                 <><Spinner size="xs" />Loading…</>
+              ) : loadMoreError ? (
+                'Retry'
               ) : (
                 'Load more commits'
               )}
@@ -769,15 +801,19 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
   const handleLoadMoreCommits = useCallback(async () => {
     if (loadingMore) return;
     setLoadingMore(true);
+    setError(null);
     const nextOffset = commitOffset + 50;
     try {
       const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
       const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
         `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
-      ).catch(() => ({ commits: [] as CommitEntry[], hasMore: false }));
+      );
       setCommits(prev => [...prev, ...(data.commits ?? [])]);
       setHasMore(data.hasMore ?? false);
       setCommitOffset(nextOffset);
+    } catch (err) {
+      console.warn('[HistoryPanel] load more commits failed:', err);
+      setError(String((err as Error).message || err));
     } finally {
       setLoadingMore(false);
     }
@@ -1292,20 +1328,27 @@ function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenP
           );
         })}
 
-        {/* Load more commits */}
-        {!filterTokenPath && hasMore && (
-          <div className="px-3 py-3">
-            <button
-              onClick={handleLoadMoreCommits}
-              disabled={loadingMore}
-              className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              {loadingMore ? (
-                <><Spinner size="xs" />Loading…</>
-              ) : (
-                'Load more commits'
-              )}
-            </button>
+        {/* Load more commits / load more error */}
+        {!filterTokenPath && (hasMore || (error && commits.length > 0)) && (
+          <div className="px-3 py-3 flex flex-col gap-1.5">
+            {error && commits.length > 0 && (
+              <p className="text-[10px] text-center text-[var(--color-figma-text-tertiary)]">{error}</p>
+            )}
+            {(hasMore || (error && commits.length > 0)) && (
+              <button
+                onClick={handleLoadMoreCommits}
+                disabled={loadingMore}
+                className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {loadingMore ? (
+                  <><Spinner size="xs" />Loading…</>
+                ) : error ? (
+                  'Retry'
+                ) : (
+                  'Load more commits'
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>

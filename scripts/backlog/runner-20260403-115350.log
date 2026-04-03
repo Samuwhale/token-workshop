@@ -623,3 +623,10 @@ Already up to date.
   → HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
   Worktree: /tmp/backlog-81267-IzQhAH
   Running agent… (started 13:32:34)
+
+  ✓ done: HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
+    Replaced all four silent .catch() calls with explicit error state; added error banner + Retry button in timeline view; inline error + Retry for load-more failures in both HistoryPanel and GitCommitsSource
+    23 turns · 222s · $0.79
+
+  Merging to main: HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
+Already up to date.

@@ -544,3 +544,12 @@ Already up to date.
 
   Merging to main: Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts
 Already up to date.
+[main a0883c6c] chore(backlog): done – Sync conflict review requires opening each token individually — VariableSyncSubPanel and StyleSyncSubPanel show "local-only", "figma-only", and "conflict" categories but don't display inline value diffs for conflicts
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1122 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

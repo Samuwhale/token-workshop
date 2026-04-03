@@ -563,3 +563,11 @@
 - **Learnings for future iterations:**
   - `VarDiffRowItem` (PublishShared.tsx ~L336) is the row renderer for all three sync categories; it already handles inline value display for all cases.
 ---
+
+## 2026-04-03 - HistoryPanel silently swallows all API fetch errors
+- Added `timelineError` and `loadMoreError` state variables to `HistoryPanel`. Replaced four `.catch(() => defaultValue)` calls (two in `fetchTimeline`, one in `handleLoadMoreCommits`, one in `GitCommitsSource.handleLoadMoreCommits`) with explicit try/catch blocks that set error state and `console.warn`. Added an error banner with Retry button in the timeline view (shown when `!timelineLoading && timelineError`). Updated the "Load more commits" section in both `HistoryPanel` and `GitCommitsSource` to show an inline error message and change the button label to "Retry" on failure. Updated `isEmpty` to exclude the error case so "No history yet" doesn't appear alongside the error banner.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L181, ~L214, ~L236, ~L524, ~L659, ~L769, ~L1331
+- **Learnings for future iterations:**
+  - Promise.all with individual `.catch()` calls is a common anti-pattern for silencing partial failures — always prefer a single outer try/catch when both fetches should succeed together, and show one combined error state.
+  - When `error` state already exists for full-screen errors (commits.length === 0), re-use it for inline "load more" errors by also showing inline text near the retry button when commits are already loaded.
+---
