@@ -59,7 +59,6 @@ export function useDragDrop({
   const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
     if (!dragSource || !connected) return;
     const source = dragSource;
-    setDragSource(null);
     setDragOverGroup(null);
     const planned: Array<{ oldPath: string; newPath: string }> = [];
     for (let i = 0; i < source.paths.length; i++) {
@@ -90,10 +89,12 @@ export function useDragDrop({
       const msg = err instanceof ApiError
         ? (err.message || `Move failed (${err.status})`)
         : 'Move failed: network error';
+      setDragSource(null);
       onError?.(msg);
       onRefresh();
       return;
     }
+    setDragSource(null);
 
     if (onPushUndo) {
       const label = planned.length === 1
@@ -146,7 +147,6 @@ export function useDragDrop({
     if (!dragSource || !connected || !serverUrl || !setName) return;
     setDragOverReorder(null);
     const source = dragSource;
-    setDragSource(null);
     setDragOverGroup(null);
 
     const targetParent = nodeParentPath(targetPath, targetName) ?? '';
@@ -179,10 +179,12 @@ export function useDragDrop({
       });
     } catch (err) {
       const msg = err instanceof ApiError ? (err.message || `Reorder failed (${err.status})`) : 'Reorder tokens failed: network error';
+      setDragSource(null);
       onError?.(msg);
       onRefresh();
       return;
     }
+    setDragSource(null);
     if (onPushUndo) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;

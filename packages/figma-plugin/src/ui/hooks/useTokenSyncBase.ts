@@ -234,13 +234,24 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
         }
       }
 
-      setRows([]);
-      setDirs({});
       setChecked(true);
 
       // Report errors or show success toast
       const pushFailed = pushResult ? pushResult.failures.length : 0;
       if (pushFailed > 0 || pullFailures.length > 0) {
+        // Keep only the failed rows visible so the user can see what failed
+        // (successfully applied rows are removed from the list)
+        const failedPaths = new Set([
+          ...(pushResult?.failures.map(f => f.path) ?? []),
+          ...pullFailures.map(f => f.path),
+        ]);
+        setRows(rowsSnapshot.filter(r => failedPaths.has(r.path)));
+        const failedDirs: Record<string, 'push' | 'pull' | 'skip'> = {};
+        for (const path of failedPaths) {
+          if (dirsSnapshot[path]) failedDirs[path] = dirsSnapshot[path];
+        }
+        setDirs(failedDirs);
+
         const parts: string[] = [];
         if (pushResult && pushFailed > 0) {
           parts.push(`Push: ${pushRows.length - pushFailed}/${pushRows.length} applied (failed: ${pushResult.failures.map(f => f.path).join(', ')})`);
@@ -251,6 +262,8 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
         }
         setError(parts.join('. '));
       } else {
+        setRows([]);
+        setDirs({});
         parent.postMessage({ pluginMessage: { type: 'notify', message: cfg.successMessage } }, '*');
       }
     } catch (err) {

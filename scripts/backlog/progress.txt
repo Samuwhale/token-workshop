@@ -432,3 +432,15 @@
   - Pattern: whenever a try/catch with `return` in catch is followed by code that uses the try-assigned variable, TypeScript's definite assignment analysis correctly identifies the variable as assigned — no `!` needed.
   - Always add new closure dependencies (like `onError`) to the `useCallback` dep array; ESLint's `exhaustive-deps` rule will catch misses.
 ---
+
+## 2026-04-03 - Multiple UI hooks clear state optimistically before async API calls complete
+- Fixed three hooks that cleared state before async operations completed, causing inconsistent UI on network errors.
+- `useDragDrop.ts`: Moved `setDragSource(null)` from before the API call to after it (both on success and error paths) in `handleDropOnGroup` and `handleDropReorder`. Previously tokens "vanished" during the async gap since the drag state was cleared optimistically.
+- `useGroupOperations.ts`: Added `groupOpInProgress` ref to prevent concurrent move/copy operations from interleaving. Both `handleConfirmMoveGroup` and `handleConfirmCopyGroup` now guard against re-entrancy — a second confirmation click while the first API call is in-flight is silently ignored.
+- `useTokenSyncBase.ts`: Changed `applyDiff` to only clear rows/dirs for successfully applied tokens. On partial failure, failed rows remain visible in the sync table so the user can see exactly which tokens failed and retry. Previously `setRows([])` and `setDirs({})` were called unconditionally before computing whether there were failures.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L62, ~L89, ~L97, ~L147; `packages/figma-plugin/src/ui/hooks/useGroupOperations.ts` ~L44, ~L126, ~L149; `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L237
+- **Learnings for future iterations:**
+  - For drag operations, `setDragSource(null)` controls the drag-active visual state — clearing it before the API call makes tokens appear to have moved successfully before the server confirms, causing a confusing snap-back on failure. Always clear it in both success and error paths after the async call.
+  - The `groupOpInProgress` ref pattern (not state) is the right tool for preventing re-entrancy in async callbacks: it doesn't trigger re-renders, it's synchronously reliable, and it survives closure captures since the ref object is stable.
+  - For `Promise.all` partial failures, the correct UX is: remove successful rows from the diff table (they're done), keep failed rows visible with their original direction (push/pull) so the user can immediately retry without re-running the full diff comparison.
+---

@@ -613,3 +613,18 @@ Already up to date.
 
   Merging to main: useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
 Already up to date.
+[main 8a2af56f] chore(backlog): done – useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
+ 6 files changed, 37 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - useTokenCrud handleRenameToken treats rename-preview API failure as "zero dependencies"
+- Fixed: when `apiFetch` for the rename-preview endpoint throws, the catch block now calls `onError?.(message)` and returns early, preventing `executeTokenRename` from running silently with assumed zero dependencies.
+- Added `onError` to the `useCallback` dependency array for `handleRenameToken` (was missing).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L141-156
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  10 queued · 3 in-progress · last took 1m18s
+═══════════════════════════════════════════════════════════════
+  → Git sub-panel does not show commits ahead/behind remote — the branch status only shows "Clean" or "X changes" with no indication of how many commits are ahead of or behind the remote; users cannot tell if a push or pull is needed without clicking Compare (GitSubPanel.tsx ~L55-83)
+  Worktree: /tmp/backlog-46178-LIECpD
+  Running agent… (started 18:53:41)

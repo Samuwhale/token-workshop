@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { nodeParentPath } from '../components/tokenListUtils';
@@ -41,6 +41,8 @@ export function useGroupOperations({
   const [copyingGroup, setCopyingGroup] = useState<string | null>(null);
   const [moveGroupTargetSet, setMoveGroupTargetSet] = useState('');
   const [copyGroupTargetSet, setCopyGroupTargetSet] = useState('');
+  // Prevents concurrent move/copy calls from interleaving
+  const groupOpInProgress = useRef(false);
 
   const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
     if (!connected) return;
@@ -124,6 +126,8 @@ export function useGroupOperations({
 
   const handleConfirmMoveGroup = useCallback(async () => {
     if (!movingGroup || !moveGroupTargetSet || !connected) { setMovingGroup(null); return; }
+    if (groupOpInProgress.current) return;
+    groupOpInProgress.current = true;
     onSetOperationLoading('Moving group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
@@ -136,6 +140,7 @@ export function useGroupOperations({
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Move group failed: network error');
     } finally {
+      groupOpInProgress.current = false;
       onSetOperationLoading(null);
     }
   }, [movingGroup, moveGroupTargetSet, connected, serverUrl, setName, onRefresh, onSetOperationLoading, onError]);
@@ -148,6 +153,8 @@ export function useGroupOperations({
 
   const handleConfirmCopyGroup = useCallback(async () => {
     if (!copyingGroup || !copyGroupTargetSet || !connected) { setCopyingGroup(null); return; }
+    if (groupOpInProgress.current) return;
+    groupOpInProgress.current = true;
     onSetOperationLoading('Copying group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/copy`, {
@@ -157,9 +164,11 @@ export function useGroupOperations({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Copy group failed: network error');
+      groupOpInProgress.current = false;
       onSetOperationLoading(null);
       return;
     }
+    groupOpInProgress.current = false;
     setCopyingGroup(null);
     onRefresh();
     onSetOperationLoading(null);

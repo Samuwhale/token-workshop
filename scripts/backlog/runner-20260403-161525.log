@@ -602,3 +602,10 @@ Already up to date.
   → [HIGH] Multiple UI hooks clear state optimistically before async API calls complete, losing user work on network errors — `useDragDrop.ts:62` sets `dragSource=null` before the batch-rename fetch (dropped tokens vanish on error), `useGroupOperations.ts` clears moving/copying group state before the move/copy API completes (concurrent operations can interleave), and `useTokenSyncBase.ts:237-238` clears rows/dirs after `Promise.all` partial failures (user sees inconsistent sync state with no retry path); all should defer state cleanup to after the async operation succeeds or provide rollback on failure
   Worktree: /tmp/backlog-45818-W5IKMD
   Running agent… (started 18:49:51)
+
+  ✓ done: Multiple UI hooks clear state optimistically before async API calls complete
+    Deferred setDragSource(null) to post-API in useDragDrop, added groupOpInProgress ref guard in useGroupOperations, and kept failed rows visible after partial sync failures in useTokenSyncBase
+    18 turns · 237s · $0.62
+
+  Merging to main: Multiple UI hooks clear state optimistically before async API calls complete
+Already up to date.
