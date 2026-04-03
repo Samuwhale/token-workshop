@@ -6,7 +6,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { parseCSSCustomProperties, parseTailwindConfigFile, isTokensStudioFormat, parseTokensStudioFile } from '../shared/tokenParsers';
+import { parseCSSCustomProperties, parseTailwindConfigFile, isTokensStudioFormat, parseTokensStudioFile, type SkippedEntry } from '../shared/tokenParsers';
 
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;
@@ -179,6 +179,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
   const [newSetDraft, setNewSetDraft] = useState('');
   const [newSetError, setNewSetError] = useState<string | null>(null);
+  const [skippedEntries, setSkippedEntries] = useState<SkippedEntry[]>([]);
+  const [skippedExpanded, setSkippedExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -502,9 +504,15 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     reader.onload = () => {
       try {
         const raw = reader.result as string;
-        const { tokens: parsed, errors } = parseCSSCustomProperties(raw);
-        if (parsed.length === 0) {
+        const { tokens: parsed, errors, skipped } = parseCSSCustomProperties(raw);
+        if (parsed.length === 0 && skipped.length === 0) {
           setError(errors.length > 0 ? errors.join('; ') : 'No CSS custom properties found in file.');
+          return;
+        }
+        if (parsed.length === 0) {
+          setError(`All ${skipped.length} CSS custom propert${skipped.length === 1 ? 'y' : 'ies'} contained dynamic expressions and were skipped. Only static values can be imported.`);
+          setSkippedEntries(skipped);
+          setSkippedExpanded(true);
           return;
         }
         const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
@@ -513,6 +521,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setTokens(markedImportTokens);
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
+        setSkippedEntries(skipped);
+        setSkippedExpanded(false);
         setError(null);
         setSuccessMessage(null);
         setCollectionData([]);
@@ -533,9 +543,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     reader.onload = () => {
       try {
         const raw = reader.result as string;
-        const { tokens: parsed, errors } = parseTailwindConfigFile(raw);
+        const { tokens: parsed, errors, skipped } = parseTailwindConfigFile(raw);
         if (parsed.length === 0) {
           setError(errors.length > 0 ? errors.join('; ') : 'No theme values found in file. Expected a Tailwind config with a theme object containing static values.');
+          if (skipped.length > 0) {
+            setSkippedEntries(skipped);
+            setSkippedExpanded(true);
+          }
           return;
         }
         const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
@@ -544,6 +558,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setTokens(markedImportTokens);
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
+        setSkippedEntries(skipped);
+        setSkippedExpanded(false);
         setError(null);
         setSuccessMessage(null);
         setCollectionData([]);
@@ -690,6 +706,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setTokens([]);
     setSource(null);
     setTypeFilter(null);
+    setSkippedEntries([]);
+    setSkippedExpanded(false);
     clearConflictState();
     setExistingTokenMap(null);
   };
@@ -1291,7 +1309,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              <span>CSS and Tailwind imports parse static values only. Dynamic expressions (e.g. <code className="font-mono text-[9px]">calc()</code>, JS functions) will be skipped.</span>
+              <span>CSS and Tailwind imports parse static values only. Dynamic expressions (e.g. <code className="font-mono text-[9px]">calc()</code>, JS functions, arrays) are skipped and listed after import.</span>
             </div>
           </div>
         )}
@@ -1489,6 +1507,45 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 {selectedTokens.size === tokens.length ? 'Deselect all' : 'Select all'}
               </button>
             </div>
+
+            {/* Skipped entries summary (CSS / Tailwind only) */}
+            {skippedEntries.length > 0 && (source === 'css' || source === 'tailwind') && (
+              <div className="rounded border border-[var(--color-figma-border)] text-[10px] overflow-hidden">
+                <button
+                  onClick={() => setSkippedExpanded(prev => !prev)}
+                  className="w-full flex items-center justify-between px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors text-left"
+                  aria-expanded={skippedExpanded}
+                >
+                  <span className="text-[var(--color-figma-text-secondary)]">
+                    <span className="text-[var(--color-figma-text)] font-medium">{tokens.length}</span> imported
+                    {', '}
+                    <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{skippedEntries.length}</span> skipped
+                  </span>
+                  <svg
+                    width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                    className={`text-[var(--color-figma-text-secondary)] transition-transform ${skippedExpanded ? 'rotate-90' : ''}`}
+                    aria-hidden="true"
+                  >
+                    <path d="M2 1l4 3-4 3V1z" />
+                  </svg>
+                </button>
+                {skippedExpanded && (
+                  <div className="max-h-36 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                    {skippedEntries.map((entry, i) => (
+                      <div key={i} className="px-2 py-1.5 flex flex-col gap-0.5">
+                        <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
+                        <span className="text-[var(--color-figma-text-secondary)] text-[9px]">
+                          {entry.reason}
+                          {entry.originalExpression && (
+                            <> — <code className="font-mono text-[var(--color-figma-text)]">{truncateValue(entry.originalExpression, 48)}</code></>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Type filter pills */}
             {(() => {

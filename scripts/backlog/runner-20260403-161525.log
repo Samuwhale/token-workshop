@@ -439,3 +439,18 @@ Already up to date.
 
   Merging to main: No node graph search or filtering
 Already up to date.
+[main fcf0ae05] chore(backlog): done – No node graph search or filtering
+ 8 files changed, 137 insertions(+), 36 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No node graph search or filtering
+- Added search input to the graph view that highlights and zooms to matching generator/source/output nodes.
+- `NodeRenderer.tsx`: Added `isHighlighted?: boolean` prop; renders an amber (`#f59e0b`) outer glow ring (4px outset, `rx=10`) around the node body when highlighted.
+- `NodeGraphCanvas.tsx`: Added `searchQuery?: string` prop; computes `matchedNodeIds` via `useMemo` (matches against `node.label`, `sourceTokenPath`, `targetGroup`, `generatorType`); added a `useEffect` that zooms/pans to the bounding box of matched nodes when the query changes; passes `isHighlighted` to each `NodeRenderer`.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  9 queued · 3 in-progress · last took 4m26s
+═══════════════════════════════════════════════════════════════
+  → No token dependency impact preview before destructive actions — deleting or renaming a token that other tokens alias shows no preview of affected dependents; users discover broken aliases after the fact; add an impact summary ("This will break N alias references in M sets") to the delete/rename confirmation dialog, with a list of affected token paths (TokenEditor.tsx rename, TokenList.tsx delete confirmation, token-tree-utils.ts alias tracking)
+  Worktree: /tmp/backlog-45818-h9vdTK
+  Running agent… (started 18:22:09)

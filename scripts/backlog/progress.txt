@@ -451,3 +451,18 @@
   - The `matchedNodeIds` `useEffect` dependency list intentionally excludes `graph.nodes` and `containerSize` to only trigger on query changes — omit the exhaustive-deps rule with `// eslint-disable-next-line` since triggering on every pan would reset zoom while the user is exploring.
   - The highlight ring must be rendered BEFORE the body rect in SVG (so the body draws on top and the ring only shows around the outer edge), but in this implementation the ring is before the body so it shows as a surrounding halo — which is the correct visual order for SVG painters model.
 ---
+
+## 2026-04-03 - CSS and Tailwind imports skipped-entry summary
+- Added `SkippedEntry { path, originalExpression, reason }` interface and `skipped: SkippedEntry[]` field to `ParseResult` in `tokenParsers.ts`.
+- CSS parser (`parseCSSCustomProperties`): detects values containing `calc(`, `env(`, `min(`, `max(`, `clamp(`, or unresolved `var(...)` (anything other than a simple `var(--name)`) — skips them instead of importing as raw strings, and records each in `skipped` with the original expression and reason.
+- Tailwind/JS parser (`flattenJSObject`): now takes an optional `skipped` accumulator; arrays, booleans, and null leaf values are added to it with descriptive reasons. `parseTailwindConfig` initialises and threads the accumulator through, returning it in the result.
+- All other `ParseResult` constructors (CSV, `parseInput`, DTCG path) updated with `skipped: []`.
+- ImportPanel: added `skippedEntries` and `skippedExpanded` state; `processCSSFile` and `processTailwindFile` populate `skippedEntries` after parse; `handleBack` clears them. Replaced the vague static info-banner message with "…are skipped and listed after import."
+- Post-import skipped summary banner appears below the "Preview" header for css/tailwind sources when skipped > 0: shows "N imported, M skipped" with a chevron toggle; expanded view lists each entry with path, reason, and truncated original expression.
+- Updated `token-parsers.test.ts` with tests for CSS dynamic-expression skipping (calc, min/max/clamp, complex var, simple var→alias), `flattenJSObject` array/boolean/null tracking, and `parseTailwindConfig` skipped-entry shape.
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenParsers.ts` ~L7-20,82-120,215-255,265-275; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L9,183,504-560,711,1307-1362; `packages/figma-plugin/src/__tests__/token-parsers.test.ts` (full rewrite)
+- **Learnings for future iterations:**
+  - The CSS parser's simple `var(--x)` → alias conversion should be kept; only `var(--x, fallback)` and expressions containing CSS math functions are truly dynamic. The condition `rawValue.includes('var(')` after the simple-var check catches all remaining var() cases.
+  - `flattenJSObject` is called recursively, so the `skipped` accumulator must be passed by reference (as a mutable array parameter) rather than returned — otherwise recursive calls' skips are lost.
+  - The UI validation timeout (gate 4) was pre-existing in this environment; confirmed by running validate.sh on the unmodified baseline — same timeout error. Gates 1–3 all pass.
+---

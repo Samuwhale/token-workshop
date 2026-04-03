@@ -10,11 +10,18 @@ export interface ParsedToken {
   $value: unknown;
 }
 
+export interface SkippedEntry {
+  path: string;
+  originalExpression: string;
+  reason: string;
+}
+
 export type ParseFormat = 'dtcg' | 'lines' | 'css' | 'csv' | 'tailwind' | 'tokens-studio' | 'empty' | 'error';
 
 export interface ParseResult {
   tokens: ParsedToken[];
   errors: string[];
+  skipped: SkippedEntry[];
   format: ParseFormat;
 }
 
@@ -79,10 +86,14 @@ export function cssVarToPath(name: string): string {
     .replace(/-/g, '.');
 }
 
+/** CSS expressions that cannot be resolved to a static value */
+const DYNAMIC_CSS_PATTERN = /\b(calc|env|min|max|clamp)\s*\(/i;
+
 export function parseCSSCustomProperties(raw: string): ParseResult {
   const lines = raw.trim().split('\n');
   const tokens: ParsedToken[] = [];
   const errors: string[] = [];
+  const skipped: SkippedEntry[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
@@ -97,14 +108,22 @@ export function parseCSSCustomProperties(raw: string): ParseResult {
     const path = cssVarToPath(match[1]);
     let rawValue = match[2].trim();
     // Convert var(--x) references to DTCG alias syntax
-    const varRef = rawValue.match(/^var\((--[\w-]+)\)$/);
-    if (varRef) {
-      rawValue = `{${cssVarToPath(varRef[1])}}`;
+    const simpleVarRef = rawValue.match(/^var\((--[\w-]+)\)$/);
+    if (simpleVarRef) {
+      rawValue = `{${cssVarToPath(simpleVarRef[1])}}`;
+    } else if (DYNAMIC_CSS_PATTERN.test(rawValue) || rawValue.includes('var(')) {
+      // Dynamic expression — cannot be resolved to a static design token value
+      skipped.push({
+        path,
+        originalExpression: rawValue,
+        reason: 'Dynamic CSS expression — cannot be resolved statically',
+      });
+      continue;
     }
     tokens.push({ path, ...inferType(rawValue) });
   }
 
-  return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'css' };
+  return { tokens, errors, skipped, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'css' };
 }
 
 // ---------------------------------------------------------------------------
@@ -125,10 +144,10 @@ const CSV_VALUE_NAMES = /^(value|\$value|val)$/i;
 
 export function parseCSV(raw: string): ParseResult {
   const lines = raw.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 1) return { tokens: [], errors: [], format: 'empty' };
+  if (lines.length < 1) return { tokens: [], errors: [], skipped: [], format: 'empty' };
 
   const sep = detectCSVSeparator(lines[0]);
-  if (!sep) return { tokens: [], errors: ['Could not detect CSV/TSV separator'], format: 'error' };
+  if (!sep) return { tokens: [], errors: ['Could not detect CSV/TSV separator'], skipped: [], format: 'error' };
 
   const headerCells = lines[0].split(sep).map(c => c.trim());
   const hasHeader = headerCells.some(c => CSV_HEADER_NAMES.test(c));
@@ -142,7 +161,7 @@ export function parseCSV(raw: string): ParseResult {
     typeCol = headerCells.findIndex(c => CSV_TYPE_NAMES.test(c));
     valueCol = headerCells.findIndex(c => CSV_VALUE_NAMES.test(c));
     if (nameCol < 0 || valueCol < 0) {
-      return { tokens: [], errors: ['CSV header must include "name" and "value" columns'], format: 'error' };
+      return { tokens: [], errors: ['CSV header must include "name" and "value" columns'], skipped: [], format: 'error' };
     }
   }
 
@@ -173,7 +192,7 @@ export function parseCSV(raw: string): ParseResult {
     }
   }
 
-  return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'csv' };
+  return { tokens, errors, skipped: [], format: errors.length > 0 && tokens.length === 0 ? 'error' : 'csv' };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +212,11 @@ export function jsObjectToJSON(raw: string): string {
   return s;
 }
 
-export function flattenJSObject(obj: Record<string, unknown>, prefix = ''): ParsedToken[] {
+export function flattenJSObject(
+  obj: Record<string, unknown>,
+  prefix = '',
+  skipped: SkippedEntry[] = [],
+): ParsedToken[] {
   const results: ParsedToken[] = [];
   for (const [key, val] of Object.entries(obj)) {
     if (key.startsWith('$')) continue; // skip DTCG meta
@@ -202,10 +225,28 @@ export function flattenJSObject(obj: Record<string, unknown>, prefix = ''): Pars
       ? (prefix || key)
       : prefix ? `${prefix}.${key}` : key;
     if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
-      results.push(...flattenJSObject(val as Record<string, unknown>, path));
+      results.push(...flattenJSObject(val as Record<string, unknown>, path, skipped));
     } else if (typeof val === 'string' || typeof val === 'number') {
       const strVal = String(val);
       results.push({ path, ...inferType(strVal) });
+    } else if (Array.isArray(val)) {
+      skipped.push({
+        path,
+        originalExpression: JSON.stringify(val),
+        reason: 'Array value — not a scalar design token',
+      });
+    } else if (typeof val === 'boolean') {
+      skipped.push({
+        path,
+        originalExpression: String(val),
+        reason: 'Boolean value — not a supported token type',
+      });
+    } else if (val === null) {
+      skipped.push({
+        path,
+        originalExpression: 'null',
+        reason: 'Null value — no token value to import',
+      });
     }
   }
   return results;
@@ -217,15 +258,16 @@ export function parseTailwindConfig(raw: string): ParseResult {
     const parsed = JSON.parse(json) as Record<string, unknown>;
     // Check if it looks like DTCG (has $value somewhere) — if so, prefer DTCG parser
     const hasDTCG = JSON.stringify(parsed).includes('"$value"');
-    if (hasDTCG) return { tokens: [], errors: [], format: 'empty' }; // signal to fall through
-    const tokens = flattenJSObject(parsed);
+    if (hasDTCG) return { tokens: [], errors: [], skipped: [], format: 'empty' }; // signal to fall through
+    const skipped: SkippedEntry[] = [];
+    const tokens = flattenJSObject(parsed, '', skipped);
     if (tokens.length === 0) {
-      return { tokens: [], errors: ['No tokens found in object'], format: 'error' };
+      return { tokens: [], errors: ['No tokens found in object'], skipped, format: 'error' };
     }
-    return { tokens, errors: [], format: 'tailwind' };
+    return { tokens, errors: [], skipped, format: 'tailwind' };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return { tokens: [], errors: [`Object parse error: ${msg}`], format: 'error' };
+    return { tokens: [], errors: [`Object parse error: ${msg}`], skipped: [], format: 'error' };
   }
 }
 
@@ -327,7 +369,7 @@ export function looksLikeCSV(raw: string): boolean {
 
 export function parseInput(raw: string): ParseResult {
   const trimmed = raw.trim();
-  if (!trimmed) return { tokens: [], errors: [], format: 'empty' };
+  if (!trimmed) return { tokens: [], errors: [], skipped: [], format: 'empty' };
 
   // CSS custom properties detection (before JSON — some CSS might be wrapped in :root {})
   if (looksLikeCSS(trimmed)) {
@@ -346,12 +388,12 @@ export function parseInput(raw: string): ParseResult {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>;
       const tokens = flattenDTCG(parsed);
       if (tokens.length > 0) {
-        return { tokens, errors: [], format: 'dtcg' };
+        return { tokens, errors: [], skipped: [], format: 'dtcg' };
       }
       // No DTCG tokens — try as plain JS/Tailwind object
       const twResult = parseTailwindConfig(trimmed);
       if (twResult.tokens.length > 0) return twResult;
-      return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields, or a plain key/value object.'], format: 'error' };
+      return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields, or a plain key/value object.'], skipped: twResult.skipped, format: 'error' };
     } catch (e) {
       console.debug('[tokenParsers] JSON parse failed, trying Tailwind/JS fallback:', e);
       const twResult = parseTailwindConfig(trimmed);
@@ -361,9 +403,9 @@ export function parseInput(raw: string): ParseResult {
         const msg = e2 instanceof Error ? e2.message : String(e2);
         const looksLikeMixed = /\n\s*[\w.]+\s*:/.test(trimmed);
         const hint = looksLikeMixed ? ' (did you mix JSON and name:value lines? Use one format only)' : '';
-        return { tokens: [], errors: [`Parse error: ${msg}${hint}`], format: 'error' };
+        return { tokens: [], errors: [`Parse error: ${msg}${hint}`], skipped: [], format: 'error' };
       }
-      return { tokens: [], errors: ['Could not parse input'], format: 'error' };
+      return { tokens: [], errors: ['Could not parse input'], skipped: [], format: 'error' };
     }
   }
 
@@ -391,7 +433,7 @@ export function parseInput(raw: string): ParseResult {
     }
     tokens.push({ path, ...inferType(rawValue) });
   }
-  return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'lines' };
+  return { tokens, errors, skipped: [], format: errors.length > 0 && tokens.length === 0 ? 'error' : 'lines' };
 }
 
 // ---------------------------------------------------------------------------
