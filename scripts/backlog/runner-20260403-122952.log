@@ -378,3 +378,18 @@ Already up to date.
 
   Merging to main: No token picker for generator source selection
 Already up to date.
+[main 7aa7b833] chore(backlog): done – No token picker for generator source selection
+ 7 files changed, 98 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Token picker for generator source selection
+- Replaced the plain text input in `ApplyForm` (GraphPanel.tsx) with a searchable token picker using `AliasAutocomplete`. The picker shows a dropdown when focused, supports fuzzy search, filters by type (color for colorRamp, dimension for spacingScale, none for typeScale), and shows color swatches + type badges in results. Added `allTokensFlat` prop to `GraphPanelProps` and threaded it down from App.tsx → GraphPanel → ApplyForm.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1-12 (imports), ~L477-510 (new filterTypeForGenerator helper + ApplyForm props), ~L692-740 (picker UI), ~L1330 (GraphPanelProps), ~L1355 (GraphPanel destructuring), ~L1440 (ApplyForm call site); `packages/figma-plugin/src/ui/App.tsx` ~L2340 (GraphPanel call site)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  25 queued · 4 in-progress · last took 4m34s
+═══════════════════════════════════════════════════════════════
+  → No resolved-value preview for source token — when a source token is bound or selected, the dialog only shows the dot-path as text (TokenGeneratorDialog.tsx ~L493-496); show the resolved value inline (color swatch for colors, formatted dimension for dimensions) so users can confirm they picked the right token
+  Worktree: /tmp/backlog-49887-DOaRKo
+  Running agent… (started 13:46:13)

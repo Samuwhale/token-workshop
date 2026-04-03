@@ -83,6 +83,7 @@ interface CommandPaletteProps {
   onCopyTokenCssVar?: (path: string) => void;
   onCopyTokenRef?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
+  onDuplicateToken?: (path: string) => void;
   onClose: () => void;
 }
 
@@ -144,7 +145,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -571,6 +572,16 @@ export function CommandPalette({ commands, tokens = [], pinnedTokens, recentToke
                       onClick={(e) => { e.stopPropagation(); onCopyTokenCssVar(token.path); onClose(); }}
                     >
                       CSS
+                    </button>
+                  )}
+                  {onDuplicateToken && (
+                    <button
+                      tabIndex={-1}
+                      title={`Duplicate token: ${token.path}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
+                    >
+                      Dup
                     </button>
                   )}
                 </div>

@@ -238,6 +238,8 @@ export function useTokenCrud({
     if (!connected) return;
     const token = allTokensFlat[path];
     if (!token) return;
+    // Use the full TokenNode to access $description and $extensions (not in TokenMapEntry)
+    const tokenNode = findLeafByPath(tokens, path);
     const baseCopy = `${path}-copy`;
     let newPath = baseCopy;
     let i = 2;
@@ -246,10 +248,13 @@ export function useTokenCrud({
     }
     onSetOperationLoading('Duplicating token…');
     try {
+      const body: Record<string, unknown> = { $type: token.$type, $value: token.$value };
+      if (tokenNode?.$description) body.$description = tokenNode.$description;
+      if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: token.$type, $value: token.$value, ...((token as unknown as Record<string, unknown>).$description ? { $description: (token as unknown as Record<string, unknown>).$description } : {}) }),
+        body: JSON.stringify(body),
       });
       onRefresh();
       onRecordTouch(newPath);
@@ -259,7 +264,7 @@ export function useTokenCrud({
     } finally {
       onSetOperationLoading(null);
     }
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onError]);
+  }, [connected, serverUrl, setName, allTokensFlat, tokens, onRefresh, onRecordTouch, onSetOperationLoading, onError]);
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: unknown) => {
     if (!connected) return;

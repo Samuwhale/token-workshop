@@ -66,7 +66,7 @@ import { adaptShortcut } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
-import { buildTreeByType } from './components/tokenListUtils';
+import { buildTreeByType, findLeafByPath } from './components/tokenListUtils';
 import { inferTypeFromValue } from './components/tokenListHelpers';
 
 /** Format a timestamp as a human-readable relative time string. */
@@ -2992,6 +2992,38 @@ export function App() {
           onCopyTokenCssVar={(path) => {
             const cssVar = `var(--${path.replace(/\./g, '-')})`;
             navigator.clipboard.writeText(cssVar).catch((err) => { console.warn('[App] clipboard write failed for CSS var:', err); });
+          }}
+          onDuplicateToken={async (path) => {
+            const entry = allTokensFlat[path];
+            if (!entry || !connected) return;
+            const tokenNode = findLeafByPath(tokens, path);
+            const targetSet = pathToSet[path] ?? activeSet;
+            const baseCopy = `${path}-copy`;
+            let newPath = baseCopy;
+            let i = 2;
+            while (allTokensFlat[newPath]) {
+              newPath = `${baseCopy}-${i++}`;
+            }
+            try {
+              const body: Record<string, unknown> = { $type: entry.$type, $value: entry.$value };
+              if (tokenNode?.$description) body.$description = tokenNode.$description;
+              if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+              await refreshTokens();
+              navigateTo('define', 'tokens');
+              if (targetSet !== activeSet) {
+                setActiveSet(targetSet);
+                setPendingHighlight(newPath);
+              } else {
+                setHighlightedToken(newPath);
+              }
+            } catch (err) {
+              console.warn('[App] duplicate token from palette failed:', err);
+            }
           }}
           onClose={() => setShowCommandPalette(false)}
         />

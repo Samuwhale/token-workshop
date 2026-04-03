@@ -357,3 +357,13 @@
   - `filterTypeForGenerator` maps generatorType → DTCG $type string; typeScale gets `undefined` (no filter) since base font size can be stored as dimension or number.
   - `allTokensFlat` is optional (`?`) on GraphPanelProps so existing callers don't break; the picker falls back gracefully (no dropdown) when absent.
 ---
+
+## 2026-04-03 - No "duplicate token" action in token tree or command palette
+- The context menu "Duplicate token" action already existed but only copied `$type` and `$value`, silently dropping `$description` and `$extensions`. Fixed `handleDuplicateToken` in `useTokenCrud.ts` to use `findLeafByPath(tokens, path)` (returns full `TokenNode`) instead of `allTokensFlat[path]` (`TokenMapEntry` strips extensions/description), so all properties are now copied.
+- Added `onDuplicateToken` prop to `CommandPalette`. In token search mode (`>` prefix), each token row now shows a "Dup" action button alongside the existing Path / {ref} / Val / CSS buttons. Clicking it duplicates the token with a `-copy` suffix and highlights the new token in the define/tokens tab.
+- Wired `onDuplicateToken` in `App.tsx` using `findLeafByPath` on the `tokens` tree to access `$description`/`$extensions`, then POSTs to the server API and navigates to highlight the newly created token.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L237; `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L76, ~L147, ~L566; `packages/figma-plugin/src/ui/App.tsx` ~L69, ~L2991
+- **Learnings for future iterations:**
+  - `allTokensFlat` (`Record<string, TokenMapEntry>`) strips `$description` and `$extensions` during flattening in `flattenWithNames`. Always use `findLeafByPath(tokens, path)` when you need the full DTCG token fields.
+  - The command palette's token action button row (Path / {ref} / Val / CSS) uses `tabIndex={-1}` and `e.stopPropagation()` pattern — follow this for any new per-token action buttons.
+---

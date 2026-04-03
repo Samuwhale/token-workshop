@@ -525,3 +525,10 @@ Already up to date.
   → No "duplicate token" action in token tree or command palette — creating a variation of an existing token requires manually creating a new token and re-entering all values; a "Duplicate" action in the token context menu and command palette would copy all properties (value, type, description, extensions) to a new path, matching Figma's Ctrl+D pattern for variables
   Worktree: /tmp/backlog-80049-VnCMMC
   Running agent… (started 13:41:00)
+
+  ✓ done: No "duplicate token" action in token tree or command palette
+    Context menu duplicate already existed but was missing $description/$extensions — fixed by using findLeafByPath for full token data. Added Dup button to command palette token search results.
+    47 turns · 368s · $1.52
+
+  Merging to main: No "duplicate token" action in token tree or command palette
+Already up to date.
