@@ -124,3 +124,10 @@ Already up to date.
   → No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
   Worktree: /tmp/backlog-91634-2NLkAz
   Running agent… (started 01:37:35)
+
+  ✓ done: No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
+    Modal existed but git section only showed counts; enhanced to list actual file names grouped by push/pull direction. Also removed a dead duplicate PublishAllPreviewModal from PublishModals.tsx.
+    39 turns · 321s · $1.25
+
+  Merging to main: No combined preview before Publish All — the Publish All button triggers variable sync, style sync, and git commit sequentially without first showing a unified summary of all changes across the three channels
+Already up to date.

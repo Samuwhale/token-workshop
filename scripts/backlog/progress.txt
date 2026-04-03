@@ -422,3 +422,14 @@
   - When adding filter/sort to a paginated view, always reset `contrastPage` to 0 in the onClick handlers; otherwise users land on a blank page if they were on page 3 and filter reduces to 1 page.
   - The failure-count sort (O(N²)) is acceptable here because the matrix already iterates O(N²) for `allFailingPairs`; adding a second O(N²) pass doesn't change the asymptotic cost.
 ---
+
+## 2026-04-04 - No combined preview before Publish All
+- The feature was partially implemented: `PublishAllPreviewModal` existed and was wired to the Publish All button, but the git section only showed file counts ("↑ 3 files pushed") with no file names listed. Variables and styles sections already used `SyncDiffSummary` to show individual items.
+- Enhanced the git section in `PublishAllPreviewModal` (in PublishPanel.tsx) to render the actual file names grouped by push/pull direction, using the same list-in-bordered-box pattern as `SyncDiffSummary`.
+- Removed dead duplicate `PublishAllPreviewModal` from `PublishModals.tsx` (was exported but never imported; an identical-but-older version lived in PublishPanel.tsx). Also removed the now-unused `SyncDiffSummary` import from PublishModals.tsx.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1676-1689, `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L3, L550-696
+- **Learnings for future iterations:**
+  - When a `gitDiffChoices` object (Record<path, 'push'|'pull'|'skip'>) is already passed as a prop, file paths are available as Object.keys — no additional prop needed to list files.
+  - The IIFE pattern `{(() => { ... return sections.map(...); })()}` works cleanly for inline multi-step computation in JSX without extracting a helper function.
+  - Dead code in the form of duplicate exported components creates confusion about which version is canonical — always check for duplicate definitions when investigating a component.
+---

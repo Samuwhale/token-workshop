@@ -242,3 +242,11 @@ Already up to date.
 
   Merging to main: Contrast matrix in AnalyticsPanel has no filtering by token group or sorting by failure severity — with 100+ color tokens the matrix becomes unwieldy and finding the worst WCAG violations requires scanning every cell
 Already up to date.
+[main 2c210af1] chore(backlog): done – Contrast matrix in AnalyticsPanel has no filtering by token group or sorting by failure severity — with 100+ color tokens the matrix becomes unwieldy and finding the worst WCAG violations requires scanning every cell
+ 6 files changed, 125 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Contrast matrix in AnalyticsPanel has no filtering by token group or sorting by failure severity
+- Added `contrastGroupFilter` (string, default `'all'`) and `contrastSortMode` (`'luminance' | 'failures'`, default `'luminance'`) state variables.
+- Inside the matrix IIFE, derived `availableGroups` (unique first path segments) and `filteredTokens`/`displayTokens` applying filter then sort before paginating.
+- "Sort: Most failures" mode pre-computes per-token failure counts (O(N²) same as existing pair enumeration) then sorts descending so worst-contrast-offenders appear first.

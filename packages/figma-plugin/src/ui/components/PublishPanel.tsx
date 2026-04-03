@@ -1680,11 +1680,32 @@ function PublishAllPreviewModal({
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Git</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
-                    gitPushCount > 0 ? `\u2191 ${gitPushCount} file${gitPushCount !== 1 ? 's' : ''} pushed` : null,
-                    gitPullCount > 0 ? `\u2193 ${gitPullCount} file${gitPullCount !== 1 ? 's' : ''} pulled` : null,
+                    gitPushCount > 0 ? `\u2191 ${gitPushCount} file${gitPushCount !== 1 ? 's' : ''} to remote` : null,
+                    gitPullCount > 0 ? `\u2193 ${gitPullCount} file${gitPullCount !== 1 ? 's' : ''} to local` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
               </div>
+              {(() => {
+                const pushFiles = Object.entries(gitDiffChoices).filter(([, c]) => c === 'push').map(([f]) => f);
+                const pullFiles = Object.entries(gitDiffChoices).filter(([, c]) => c === 'pull').map(([f]) => f);
+                const sections: { arrow: string; label: string; files: string[] }[] = [];
+                if (pushFiles.length > 0) sections.push({ arrow: '\u2191', label: 'Push to remote', files: pushFiles });
+                if (pullFiles.length > 0) sections.push({ arrow: '\u2193', label: 'Pull to local', files: pullFiles });
+                return sections.map(section => (
+                  <div key={section.label} className="mb-2">
+                    <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+                      {section.arrow} {section.label} ({section.files.length})
+                    </div>
+                    <div className="max-h-24 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+                      {section.files.map(f => (
+                        <div key={f} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={f}>
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           )}
         </div>
