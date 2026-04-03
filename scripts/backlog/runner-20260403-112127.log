@@ -29,3 +29,27 @@
 
   Merging to main: BatchEditor cannot batch-replace alias references
 Already up to date.
+[main 804644c6] chore(backlog): done – BatchEditor cannot batch-replace alias references
+ 8 files changed, 232 insertions(+), 6 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-112127.log
+ create mode 100644 scripts/backlog/runner-20260403-112130.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - BatchEditor cannot batch-replace alias references
+- Added an "Alias replace" sub-mode to the divider section of `BatchEditor.tsx`. Users enter a source alias path (e.g. `color.primary`) and a target path (e.g. `brand.primary`) — the tool finds all selected tokens where `$value` contains `{color.primary}` as a substring and rewrites them to `{brand.primary}`. Supports partial path matches (handles embedded refs in composite values). Shows a preview box listing affected tokens with from→to pairs before committing. Calls the existing `batch-update` API endpoint and pushes an undo slot via `onPushUndo`.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L92 (state), ~L278 (memo), ~L557 (handler), ~L1010 (JSX)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  8 queued · 1 in-progress · last took 2m33s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel single-file preview has no copy-to-clipboard button — users frequently want to paste generated CSS or JSON into another tool without downloading; the file preview pane shows content but requires a download to copy it; add a copy icon button on the preview pane header that writes the current file content to the clipboard (ExportPanel.tsx preview section ~L790)
+  Worktree: /tmp/backlog-30880-uZf0SI
+  Running agent… (started 11:24:00)
+
+  ✓ done: ExportPanel single-file preview has no copy-to-clipboard button
+    stale — already done; copy button with confirmation state already exists in the preview footer at ExportPanel.tsx ~L854
+    9 turns · 32s · $0.19
+
+  Merging to main: ExportPanel single-file preview has no copy-to-clipboard button
+Already up to date.
