@@ -421,3 +421,11 @@
   - `handleDropReorder` calling `void handleDropOnGroup(...)` creates a dependency cycle between two `useCallback` values — add `handleDropOnGroup` to `handleDropReorder`'s deps array to avoid stale closure.
   - `requestAnimationFrame(() => document.body.removeChild(ghost))` is the canonical pattern for ephemeral drag ghost elements — the browser snapshots the DOM node before the frame fires.
 ---
+
+## 2026-04-03 - ExportPanel silently switches from Platforms mode to Figma Variables mode when server disconnects
+- Added `modeAutoSwitched` state that is set to `true` when the `useEffect` auto-switches from 'platforms' to 'figma-variables' on disconnect. Added a dismissible warning banner (yellow/warning color, triangle icon, X dismiss button) rendered between the mode description and the mode-specific content area that explains: "Switched to Import from Figma — server disconnected. Platforms mode requires a server connection. Reconnect to switch back." The banner auto-clears when `connected` becomes true again, and can be manually dismissed.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L552-557, ~L614-640
+- **Learnings for future iterations:**
+  - A one-flag boolean state (`modeAutoSwitched`) is sufficient for "explain-the-last-automatic-action" banners — no need to track the original mode.
+  - The reconnection auto-dismiss (`if (connected && modeAutoSwitched) setModeAutoSwitched(false)`) must live in the same `useEffect` as the auto-switch; don't add a separate effect with `[connected, modeAutoSwitched]` deps or you get an ESLint exhaustive-deps cascade.
+---

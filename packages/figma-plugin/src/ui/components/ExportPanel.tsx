@@ -549,12 +549,20 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return String(modeVal.resolvedValue);
   };
 
-  // When not connected, default to figma-variables mode since it doesn't require a server
+  // Track when we auto-switch mode due to disconnection
+  const [modeAutoSwitched, setModeAutoSwitched] = useState(false);
+
+  // When not connected, switch to figma-variables mode since it doesn't require a server
   useEffect(() => {
     if (!connected && mode === 'platforms') {
       setMode('figma-variables');
+      setModeAutoSwitched(true);
     }
-  }, [connected]);
+    // Clear the notice once reconnected
+    if (connected && modeAutoSwitched) {
+      setModeAutoSwitched(false);
+    }
+  }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col h-full">
@@ -613,6 +621,30 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             ? 'Generate platform-specific code files from the token server — CSS variables, Dart, Swift, Android, or W3C JSON.'
             : 'Read local variables from this Figma file, preview them, and copy as DTCG JSON or save to the token server.'}
         </div>
+
+        {/* Auto-switch notice — shown when disconnection caused the mode to change */}
+        {modeAutoSwitched && (
+          <div role="status" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-text-secondary)] text-[10px]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-[var(--color-figma-warning)]" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span className="flex-1">
+              Switched to <strong>Import from Figma</strong> — server disconnected. Platforms mode requires a server connection. Reconnect to switch back.
+            </span>
+            <button
+              onClick={() => setModeAutoSwitched(false)}
+              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Dismiss"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Platform export mode */}
         {mode === 'platforms' && (
