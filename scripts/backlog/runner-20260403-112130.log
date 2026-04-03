@@ -68,3 +68,15 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: [HIGH] BatchEditor alias overwrite bug; POST token returns unenriched body; ExportPanel partial-save with swallowed set-creation error; TokenEditor missing AbortController on token switch; generator-service clearNonLockedOverrides not called on multi-brand failure
 Already up to date.
+[main 93dea7d5] chore(backlog): code pass – code-pass
+ 7 files changed, 72 insertions(+), 5 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 duplicate item(s) skipped
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+  12 new item(s) available — continuing.
+  → [HIGH] BatchEditor silently overwrites alias $value when opacity or scaling is also active — when aliasActive is true, patch.$value is set to the alias ref (BatchEditor.tsx:348), but if opacityActive is also true the value is immediately overwritten with the opacity-modified hex (line 357); same for scalingActive (line 373); the UI preview at line 844 misleadingly says "Will set {alias} on N tokens" but the alias is never applied; fix by making alias mode mutually exclusive with opacity/scaling, or by applying alias only when no value-modifying operation is also active, and showing an error if both are enabled simultaneously
+  Worktree: /tmp/backlog-31178-kkb4VV
+  Running agent… (started 11:51:29)

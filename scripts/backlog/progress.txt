@@ -330,3 +330,10 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: BatchEditor.tsx:347-381 has a clear data-loss bug where alias $value (line 348) is silently overwritten by opacity (line 357) or scaling (line 373) when both modes are active — the UI preview says "Will set {alias}" but the alias is never applied
 ---
+
+## 2026-04-03 - Token tree zoom (drill-into-group) has no breadcrumb navigation
+- Stale — already implemented. The breadcrumb UI exists at TokenList.tsx ~L3033: a sticky header with a back arrow button, "Root" link, intermediate clickable segments (`handleZoomToAncestor`), and the current level shown as bold non-clickable text. `buildZoomBreadcrumb` utility in `tokenListUtils.ts` ~L429 constructs the segments. Esc key also exits zoom. All three handlers (`handleZoomOut`, `handleZoomToAncestor`, `handleZoomIntoGroup`) are present.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The zoom breadcrumb feature was completed in a prior session not reflected in the backlog item — check actual code before implementing.
+---
