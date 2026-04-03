@@ -411,3 +411,12 @@
   - Shadow scale has multiple numeric fields per step — sanitize each independently and join warnings with `'; '` rather than bailing on the first one.
   - The fallback for shadow numeric fields (offsetX/Y, blur, spread) is naturally `0` — omitting a shadow property is safer than propagating Infinity/NaN into the token store.
 ---
+
+## 2026-04-03 - Template flow and full dialog are disconnected creation paths
+- Removed `ApplyForm` component (~450 lines) and replaced the `if (selectedTemplate)` render branch in `GraphPanel` with `TokenGeneratorDialog` pre-filled via the `template` prop. When a template is selected, the full dialog now opens with: generator type pre-selected, target group pre-filled from `template.defaultPrefix`, config pre-loaded from `template.config`, source token pre-filled from `pendingGroupPath` (when triggered from token badge), and type hint from `pendingGroupTokenType`. Template's `semanticLayers` are applied automatically in `onSaved` via a best-effort POST/PATCH loop, with `onInterceptSemanticMapping={() => {}}` suppressing the dialog's own suggestion. Removed `allTokensFlat` from `GraphPanelProps` and App.tsx call site since `TokenGeneratorDialog` handles its own source-token autocomplete. Removed unused imports: `getErrorMessage`, `Spinner`, `AliasAutocomplete`, `isDimensionLike`, `GeneratedTokenResult`, `useCallback`, `TokenMapEntry`.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1-10 (imports), ~L471-922 (ApplyForm removed), ~L1003-1016 (selectedTemplate block), `packages/figma-plugin/src/ui/App.tsx` ~L2341 (allTokensFlat prop removed)
+- **Learnings for future iterations:**
+  - `onInterceptSemanticMapping` both suppresses `SemanticMappingDialog` AND calls `onSaved` immediately — pass a no-op to bypass the dialog's suggestion while still getting the `onSaved` callback with `targetGroup`.
+  - `GraphTemplate` (local to GraphPanel) is a superset of `GeneratorTemplate` (from useGenerators); converting is a trivial object spread picking the 7 shared fields.
+  - When a prop is removed from a component interface, always grep for call sites that still pass it — TypeScript will warn but the linter baseline may not catch it if it was already below the threshold.
+---

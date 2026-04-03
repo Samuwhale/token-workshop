@@ -1,14 +1,9 @@
-import { getErrorMessage } from '../shared/utils';
-import { Spinner } from './Spinner';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
-import { isDimensionLike } from './generators/generatorShared';
+import { useState, useEffect, useRef } from 'react';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, GeneratorTemplate } from '../hooks/useGenerators';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
-import { AliasAutocomplete } from './AliasAutocomplete';
-import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -471,465 +466,6 @@ function TemplateCard({
 }
 
 // ---------------------------------------------------------------------------
-// Configuration form (after selecting a template)
-// ---------------------------------------------------------------------------
-
-function filterTypeForGenerator(generatorType: GeneratorType): string | undefined {
-  if (generatorType === 'colorRamp') return 'color';
-  if (generatorType === 'spacingScale') return 'dimension';
-  return undefined;
-}
-
-function ApplyForm({
-  template,
-  activeSet,
-  serverUrl,
-  onBack,
-  onApplied,
-  initialPrefix,
-  allTokensFlat,
-}: {
-  template: GraphTemplate;
-  activeSet: string;
-  serverUrl: string;
-  onBack: () => void;
-  onApplied: () => void;
-  initialPrefix?: string;
-  allTokensFlat?: Record<string, TokenMapEntry>;
-}) {
-  const [sourceToken, setSourceToken] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerQuery, setPickerQuery] = useState('');
-  const [prefix, setPrefix] = useState(initialPrefix ?? template.defaultPrefix);
-  const [applying, setApplying] = useState(false);
-  const applyingRef = useRef(false);
-  const [error, setError] = useState('');
-  const [semanticConflicts, setSemanticConflicts] = useState<string[]>([]);
-
-  // Live preview state
-  const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchPreview = useCallback(() => {
-    // Need a source token (if required) and prefix to preview
-    if (template.requiresSource && !sourceToken.trim()) {
-      setPreviewTokens([]);
-      setPreviewError('');
-      return;
-    }
-    if (!prefix.trim()) {
-      setPreviewTokens([]);
-      setPreviewError('');
-      return;
-    }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setPreviewLoading(true);
-    debounceRef.current = setTimeout(async () => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setPreviewError('');
-      try {
-        const body = {
-          type: template.generatorType,
-          sourceToken: template.requiresSource ? sourceToken.trim() : undefined,
-          targetGroup: prefix.trim(),
-          targetSet: activeSet,
-          config: template.config,
-        };
-        const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(`${serverUrl}/api/generators/preview`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-        setPreviewTokens(data.tokens ?? []);
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setPreviewError(getErrorMessage(err, 'Preview failed'));
-        setPreviewTokens([]);
-      } finally {
-        setPreviewLoading(false);
-      }
-    }, 300);
-  }, [serverUrl, template, sourceToken, prefix, activeSet]);
-
-  useEffect(() => {
-    fetchPreview();
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [fetchPreview]);
-
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
-  const handleApply = async () => {
-    if (applyingRef.current) return;
-    if (template.requiresSource && !sourceToken.trim()) {
-      setError('Source token path is required');
-      return;
-    }
-    if (!prefix.trim()) {
-      setError('Token prefix is required');
-      return;
-    }
-    applyingRef.current = true;
-    setApplying(true);
-    setError('');
-    setSemanticConflicts([]);
-    try {
-      const genBody = {
-        type: template.generatorType,
-        name: template.label,
-        sourceToken: template.requiresSource ? sourceToken.trim() : undefined,
-        targetSet: activeSet,
-        targetGroup: prefix.trim(),
-        config: template.config,
-      };
-      await apiFetch(`${serverUrl}/api/generators`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(genBody),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      // Create semantic alias tokens
-      const skipped: string[] = [];
-      for (const layer of template.semanticLayers) {
-        for (const mapping of layer.mappings) {
-          const fullPath = `${layer.prefix}.${mapping.semantic}`;
-          const tokenBody = {
-            $type: mapping.type,
-            $value: `{${prefix.trim()}.${mapping.step}}`,
-            $description: `Semantic alias for ${prefix.trim()}.${mapping.step}`,
-          };
-          try {
-            await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tokenBody),
-                signal: AbortSignal.timeout(5000),
-              },
-            );
-          } catch (tokenErr: any) {
-            if (tokenErr?.status === 409) {
-              skipped.push(fullPath);
-            } else {
-              // Try PATCH as fallback
-              await apiFetch(
-                `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-                {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(tokenBody),
-                  signal: AbortSignal.timeout(5000),
-                },
-              );
-            }
-          }
-        }
-      }
-
-      if (skipped.length > 0) {
-        setSemanticConflicts(skipped);
-      } else {
-        onApplied();
-      }
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to apply template'));
-    } finally {
-      applyingRef.current = false;
-      setApplying(false);
-    }
-  };
-
-  const stepCount = getTemplateStepCount(template);
-  const semanticCount = template.semanticLayers.reduce((n, l) => n + l.mappings.length, 0);
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
-        <button
-          onClick={onBack}
-          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-colors"
-          aria-label="Back to templates"
-        >
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M7.5 9.5L4 6l3.5-3.5" />
-          </svg>
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{template.label}</div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Configure & apply to <span className="font-mono">{activeSet}</span></div>
-        </div>
-      </div>
-
-      <div className="flex-1 p-3 flex flex-col gap-3">
-        {/* Pipeline preview */}
-        <div className="p-2.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Pipeline</div>
-          <PipelineStages stages={template.stages} />
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] tabular-nums">{stepCount} generated tokens</span>
-            {semanticCount > 0 && (
-              <>
-                <span className="text-[var(--color-figma-text-tertiary)]">·</span>
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] tabular-nums">{semanticCount} semantic aliases</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Source token */}
-        {template.requiresSource && (
-          <div>
-            <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">
-              Source token
-              <span className="ml-1 text-[var(--color-figma-error)]">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={showPicker ? pickerQuery : sourceToken}
-                onChange={e => { setPickerQuery(e.target.value); setShowPicker(true); }}
-                onFocus={() => { setPickerQuery(''); setShowPicker(true); }}
-                onBlur={() => setTimeout(() => setShowPicker(false), 150)}
-                placeholder={template.generatorType === 'colorRamp' ? 'Search color tokens…' : template.generatorType === 'typeScale' ? 'Search font size tokens…' : 'Search dimension tokens…'}
-                aria-label="Source token path"
-                className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
-                autoFocus
-              />
-              {sourceToken && !showPicker && (
-                <button
-                  onMouseDown={e => { e.preventDefault(); setSourceToken(''); setPickerQuery(''); }}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                  aria-label="Clear source token"
-                >
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              )}
-              {showPicker && allTokensFlat && (
-                <AliasAutocomplete
-                  query={pickerQuery}
-                  allTokensFlat={allTokensFlat}
-                  filterType={filterTypeForGenerator(template.generatorType)}
-                  onSelect={path => { setSourceToken(path); setPickerQuery(''); setShowPicker(false); }}
-                  onClose={() => setShowPicker(false)}
-                />
-              )}
-            </div>
-            {sourceToken && !showPicker && (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 font-mono truncate" title={sourceToken}>{sourceToken}</p>
-            )}
-            {!sourceToken && (
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
-                {allTokensFlat ? 'Search or type a token path.' : 'Token path must exist in'} <span className="font-mono">{!allTokensFlat ? activeSet : ''}</span>
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Target prefix */}
-        <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">
-            Token prefix
-            <span className="ml-1 text-[var(--color-figma-error)]">*</span>
-          </label>
-          <input
-            type="text"
-            value={prefix}
-            onChange={e => setPrefix(e.target.value)}
-            placeholder="e.g. brand"
-            aria-label="Token prefix"
-            className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
-          />
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
-            Generated tokens will be at <span className="font-mono text-[var(--color-figma-text)]">{prefix || '…'}.*</span>
-          </p>
-        </div>
-
-        {/* Semantic layers preview */}
-        {template.semanticLayers.length > 0 && (
-          <div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Also creates</div>
-            <div className="flex flex-col gap-1">
-              {template.semanticLayers.map((layer, li) => (
-                <div key={li} className="flex flex-wrap gap-1">
-                  {layer.mappings.slice(0, 4).map((m, mi) => (
-                    <span key={mi} className="text-[10px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-mono border border-[var(--color-figma-border)]">
-                      {layer.prefix}.{m.semantic}
-                    </span>
-                  ))}
-                  {layer.mappings.length > 4 && (
-                    <span className="text-[10px] px-1 py-px rounded text-[var(--color-figma-text-tertiary)]">
-                      +{layer.mappings.length - 4} more
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Live preview */}
-        {(previewTokens.length > 0 || previewLoading || previewError) && (
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                Preview
-                {previewTokens.length > 0 && <span className="ml-1 normal-case text-[var(--color-figma-text)]">({previewTokens.length} tokens)</span>}
-              </span>
-              {previewLoading && (
-                <Spinner size="sm" className="text-[var(--color-figma-text-secondary)]" />
-              )}
-            </div>
-            {previewError && (
-              <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
-            )}
-            {!previewError && previewTokens.length > 0 && (
-              <div className={`border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)] transition-opacity duration-150 ${previewLoading ? 'opacity-40' : 'opacity-100'}`}>
-                {template.generatorType === 'colorRamp' && (
-                  <div>
-                    <div className="flex gap-0.5 rounded overflow-hidden h-6">
-                      {previewTokens.map(t => (
-                        <div key={t.stepName} className="flex-1 min-w-0" style={{ background: String(t.value) }} title={`${t.stepName}: ${String(t.value)}`} />
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{previewTokens[0]?.stepName}</span>
-                      <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{previewTokens[previewTokens.length - 1]?.stepName}</span>
-                    </div>
-                  </div>
-                )}
-                {template.generatorType === 'typeScale' && (
-                  <div className="flex flex-col gap-1">
-                    {previewTokens.map(t => {
-                      const val = isDimensionLike(t.value)
-                        ? `${t.value.value}${t.value.unit || ''}`
-                        : String(t.value);
-                      return (
-                        <div key={t.stepName} className="flex items-baseline gap-2">
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
-                          <span className="text-[var(--color-figma-text)] font-medium truncate" style={{ fontSize: val }}>{val}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {template.generatorType === 'spacingScale' && (
-                  <div className="flex flex-col gap-1">
-                    {previewTokens.map(t => {
-                      const val = isDimensionLike(t.value)
-                        ? t.value.value
-                        : (typeof t.value === 'number' ? t.value : parseFloat(String(t.value)));
-                      const label = isDimensionLike(t.value)
-                        ? `${t.value.value}${t.value.unit || ''}`
-                        : String(t.value);
-                      const maxVal = Math.max(...previewTokens.map(tk => {
-                        const v = isDimensionLike(tk.value)
-                          ? tk.value.value : (typeof tk.value === 'number' ? tk.value : parseFloat(String(tk.value)));
-                        return typeof v === 'number' && !isNaN(v) ? v : 0;
-                      }));
-                      const pct = maxVal > 0 && typeof val === 'number' && !isNaN(val) ? (val / maxVal) * 100 : 0;
-                      return (
-                        <div key={t.stepName} className="flex items-center gap-2">
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
-                          <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-border)] overflow-hidden">
-                            <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-[8px] text-[var(--color-figma-text-tertiary)] font-mono w-10 text-right shrink-0">{label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {template.generatorType !== 'colorRamp' && template.generatorType !== 'typeScale' && template.generatorType !== 'spacingScale' && (
-                  <div className="flex flex-col gap-0.5">
-                    {previewTokens.map(t => (
-                      <div key={t.stepName} className="flex items-center justify-between text-[10px]">
-                        <span className="font-mono text-[var(--color-figma-text-secondary)]">{t.stepName}</span>
-                        <span className="font-mono text-[var(--color-figma-text)]">{String(t.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <p className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 px-2 py-1.5 rounded">
-            {error}
-          </p>
-        )}
-
-        {semanticConflicts.length > 0 && (
-          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
-            <div className="flex items-start gap-1.5 mb-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 mt-px" aria-hidden="true">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                {semanticConflicts.length} semantic alias{semanticConflicts.length !== 1 ? 'es' : ''} already existed and {semanticConflicts.length !== 1 ? 'were' : 'was'} skipped
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5 mb-2 max-h-24 overflow-y-auto">
-              {semanticConflicts.map(path => (
-                <span key={path} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] px-1 py-px rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-                  {path}
-                </span>
-              ))}
-            </div>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2">
-              The generator was created. To update existing aliases, edit them individually.
-            </p>
-            <button
-              onClick={onApplied}
-              className="w-full py-1.5 px-2 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-            >
-              Got it, continue
-            </button>
-          </div>
-        )}
-
-        {semanticConflicts.length === 0 && !applying && (template.requiresSource && !sourceToken.trim() || !prefix.trim()) && (
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {template.requiresSource && !sourceToken.trim() && !prefix.trim()
-              ? 'Source token and token prefix are required.'
-              : template.requiresSource && !sourceToken.trim()
-                ? 'Source token is required.'
-                : 'Token prefix is required.'}
-          </p>
-        )}
-
-        {semanticConflicts.length === 0 && (
-          <button
-            onClick={handleApply}
-            disabled={applying || (template.requiresSource && !sourceToken.trim()) || !prefix.trim()}
-            className="w-full py-2 px-3 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-auto"
-          >
-            {applying ? 'Applying…' : previewTokens.length > 0 ? `Apply template (${previewTokens.length} tokens)` : 'Apply template'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Generator pipeline card (shown after templates are applied)
 // ---------------------------------------------------------------------------
 
@@ -1365,7 +901,6 @@ export interface GraphPanelProps {
   onClearPendingGroup?: () => void;
   focusGeneratorId?: string | null;
   onClearFocusGenerator?: () => void;
-  allTokensFlat?: Record<string, TokenMapEntry>;
 }
 
 /** Map a DTCG token $type to the best-fit template id. */
@@ -1389,7 +924,6 @@ export function GraphPanel({
   onClearPendingGroup,
   focusGeneratorId,
   onClearFocusGenerator,
-  allTokensFlat,
 }: GraphPanelProps) {
   const help = usePanelHelp('generators');
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
@@ -1462,17 +996,65 @@ export function GraphPanel({
       )
     : GRAPH_TEMPLATES;
 
-  // Configuration form
+  // Template configuration — open full TokenGeneratorDialog pre-filled from template
   if (selectedTemplate) {
+    const generatorTemplate: GeneratorTemplate = {
+      id: selectedTemplate.id,
+      label: selectedTemplate.label,
+      description: selectedTemplate.description,
+      defaultPrefix: selectedTemplate.defaultPrefix,
+      generatorType: selectedTemplate.generatorType,
+      config: selectedTemplate.config,
+      requiresSource: selectedTemplate.requiresSource,
+    };
+
+    // After the generator is saved, apply the template's predefined semantic layers.
+    // onInterceptSemanticMapping suppresses the dialog's own suggestion so our fixed
+    // layers don't compete with it.
+    const handleTemplateSaved = async (info?: { targetGroup: string }) => {
+      const targetGroup = info?.targetGroup ?? selectedTemplate.defaultPrefix;
+      for (const layer of selectedTemplate.semanticLayers) {
+        for (const mapping of layer.mappings) {
+          const fullPath = `${layer.prefix}.${mapping.semantic}`;
+          const tokenBody = {
+            $type: mapping.type,
+            $value: `{${targetGroup}.${mapping.step}}`,
+            $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
+          };
+          try {
+            await apiFetch(
+              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
+              { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
+            );
+          } catch (postErr: any) {
+            if (postErr?.status !== 409) {
+              try {
+                await apiFetch(
+                  `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
+                  { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
+                );
+              } catch {
+                // best-effort — skip conflicts silently
+              }
+            }
+          }
+        }
+      }
+      handleApplied();
+    };
+
     return (
-      <ApplyForm
-        template={selectedTemplate}
-        activeSet={activeSet}
+      <TokenGeneratorDialog
         serverUrl={serverUrl}
+        allSets={allSets}
+        activeSet={activeSet}
+        template={generatorTemplate}
+        sourceTokenPath={pendingGroupPath ?? undefined}
+        sourceTokenType={pendingGroupTokenType ?? undefined}
         onBack={handleBack}
-        onApplied={handleApplied}
-        initialPrefix={pendingGroupPath ?? undefined}
-        allTokensFlat={allTokensFlat}
+        onClose={handleBack}
+        onSaved={handleTemplateSaved}
+        onInterceptSemanticMapping={() => {}}
       />
     );
   }

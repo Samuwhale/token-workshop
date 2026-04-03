@@ -21,3 +21,10 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
   → Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
   Worktree: /tmp/backlog-45818-38bwjh
   Running agent… (started 16:15:26)
+
+  ✓ done: Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+    Deleted ApplyForm (~450 lines) and replaced template selection flow with TokenGeneratorDialog pre-filled via template prop; semantic layers applied automatically in onSaved callback; dialog's own semantic suggestion suppressed via onInterceptSemanticMapping no-op
+    54 turns · 514s · $2
+
+  Merging to main: Template flow and full dialog are disconnected creation paths — the template ApplyForm (GraphPanel.tsx ~L475-890) creates generators via direct API call, bypassing TokenGeneratorDialog entirely; it lacks inline value fallback, override editing, and multi-brand support; unify by having templates pre-fill and open the full dialog instead of being a parallel reduced form
+Already up to date.

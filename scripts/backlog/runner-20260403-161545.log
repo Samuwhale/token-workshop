@@ -50,3 +50,18 @@ Already up to date.
 
   Merging to main: Generator engine `sanitizeNumber` applied inconsistently
 Already up to date.
+[main dff94042] chore(backlog): done – Generator engine `sanitizeNumber` applied inconsistently
+ 5 files changed, 63 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Generator engine `sanitizeNumber` applied inconsistently
+- Applied `sanitizeNumber` to the three generators that were missing it:
+  - `runSpacingScaleGenerator`: sanitizes `sourceValue.value * step.multiplier` before `toFixed(4)`, falls back to `sourceValue.value`
+  - `runBorderRadiusScaleGenerator`: sanitizes the computed `rawValue` (from either `exactValue` or `sourceValue.value * step.multiplier`), falls back to `sourceValue.value`
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  21 queued · 3 in-progress · last took 1m49s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox data pipeline is pervasively `any`-typed (~29 occurrences across 6 files) — `consistencyScanner.ts` (11 `any`: tokenMap, tokenValue, $value, rawValue, parseValue), `variableSync.ts` (6 `any`: main `applyVariables` entry point, collections, modes, tokens arrays, resolvedValue, rawValue), `selectionHandling.ts` (6 `any`: applyTokenValue value param, tokenMap values), plus scattered casts in colorUtils, heatmapScanning, variableUtils; the entire plugin sandbox has zero compile-time validation of token data flowing through postMessage; define concrete interfaces for token map entries, variable snapshots, and scan results
+  Worktree: /tmp/backlog-46580-bRqtMp
+  Running agent… (started 16:21:45)
