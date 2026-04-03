@@ -289,3 +289,10 @@ Already up to date.
 
   Merging to main: AnalyticsPanel token type distribution chart is text-only
 Already up to date.
+[main e34bb922] chore(backlog): done – AnalyticsPanel token type distribution chart is text-only
+ 6 files changed, 60 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥24) ---
+  → Archived 24 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
