@@ -453,3 +453,21 @@
   - When a callback's parameter names are swapped in the consuming component (App.tsx used `(set, path)` as destructured names but passed them to `handleNavigateToSet(set, path)` in correct semantic order), the bug is invisible at runtime but creates a maintenance hazard — future callers following the prop type declaration would get it wrong.
   - Always check all call sites (internal calls in the component + consumer in App.tsx) when fixing a type signature inconsistency.
 ---
+
+## 2026-04-03 - Token editor loses unsaved changes silently when the panel closes
+- Implemented sessionStorage draft auto-save and recovery for the token editor:
+  1. **Draft utilities** added to `TokenEditor.tsx` (before the component): `saveEditorDraft`, `loadEditorDraft`, `clearEditorDraft`, `formatDraftAge` — all keyed by `tm_editor_draft:{setName}:{tokenPath}`.
+  2. **`pendingDraft` state**: set after the token fetch if a draft exists in sessionStorage that differs from the server data.
+  3. **Auto-save effect**: whenever `isDirty` is true (and not in create mode), writes all editor field state to sessionStorage. Fires on every change (no debounce needed; sessionStorage is synchronous).
+  4. **Recovery banner**: shown below the header when a pending draft is found. Displays the draft age ("Unsaved draft from X minutes ago") with Restore and Dismiss buttons. `applyDraft()` restores all fields; Dismiss clears the draft key.
+  5. **Draft clearing**: `clearEditorDraft` is called on successful save, on explicit Discard (in the "Save changes?" dialog), and on Revert. Navigating away (set switch / tab switch) intentionally preserves the draft so it can be recovered when the user returns.
+  6. **`onEdit` guard**: all three TokenList `onEdit` callbacks in App.tsx now wrap with `guardEditorAction()`, so clicking a different token while dirty shows the "Discard changes?" confirm modal instead of silently switching.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L598 (draft utilities), ~L748 (pendingDraft state), ~L818 (draft detection in fetch effect), ~L896 (auto-save effect), ~L1030 (applyDraft + clearEditorDraft in revert), ~L1192 (clearEditorDraft in save), ~L1353 (recovery banner JSX), ~L1805 (clearEditorDraft in discard dialog)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2127, ~L2189, ~L2203 (onEdit wrapped with guardEditorAction)
+- **Learnings for future iterations:**
+  - Draft auto-save to sessionStorage survives accidental panel closes within the same browser session (plugin iframe). sessionStorage is cleared when the iframe is closed (Figma plugin closed).
+  - Do NOT clear the draft when the user confirms the App.tsx navigation guard ("Discard changes" when switching sets/tabs) — the draft should survive navigation so the user can recover when they return to that token. Only the token-editor-local discard dialog should clear it.
+  - The `formatDraftAge` utility is inlined in TokenEditor since it's only needed there. If needed in other editors, move to `shared/utils.ts`.
+  - Create mode is intentionally excluded from draft auto-save — the token path isn't stable until saved, making the draft key unreliable.
+---

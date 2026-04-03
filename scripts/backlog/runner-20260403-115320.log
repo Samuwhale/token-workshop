@@ -443,3 +443,10 @@ Already up to date.
   → Token editor loses unsaved changes silently when the panel closes — switching sets, clicking another token, or navigating away discards in-progress edits with only a "discard changes?" confirm if isDirty is set; there is no draft auto-save to sessionStorage or recovery mechanism if the user accidentally closes the panel (TokenEditor.tsx ~L938-939, App.tsx ~L520)
   Worktree: /tmp/backlog-80049-lNBDWD
   Running agent… (started 13:13:51)
+
+  ✓ done: Token editor loses unsaved changes silently when the panel closes
+    Added sessionStorage draft auto-save + recovery banner in TokenEditor, plus guardEditorAction wrapping on all onEdit callbacks in App.tsx so clicking another token while dirty shows a confirm dialog
+    53 turns · 635s · $1.87
+
+  Merging to main: Token editor loses unsaved changes silently when the panel closes
+Already up to date.

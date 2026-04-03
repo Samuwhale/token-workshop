@@ -586,3 +586,18 @@ Already up to date.
 
   Merging to main: onNavigateToToken callback has inconsistent parameter order across panels — AnalyticsPanel declares `(path: string, set: string)` while ThemeManager declares `(set: string, tokenPath: string)`
 Already up to date.
+[main 3002be7c] chore(backlog): done – onNavigateToToken callback has inconsistent parameter order across panels — AnalyticsPanel declares `(path: string, set: string)` while ThemeManager declares `(set: string, tokenPath: string)`
+ 6 files changed, 48 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - onNavigateToToken callback has inconsistent parameter order across panels
+- Standardized `onNavigateToToken` to `(path: string, set: string)` everywhere. `ThemeManager` had the inverse order `(set: string, tokenPath: string)` in its prop type declaration and all internal call sites. Fixed the prop type, both internal call sites in `ThemeManager.tsx`, and the App.tsx callback destructuring (parameter names were `(set, path)` → `(path, set)` while the body already called `handleNavigateToSet(set, path)` correctly — so navigation was accidentally working but the names were swapped relative to the declared prop type).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L29, ~L2081, ~L2260; `packages/figma-plugin/src/ui/App.tsx` ~L2436
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  14 queued · 4 in-progress · last took 1m27s
+═══════════════════════════════════════════════════════════════
+  → Alias reference detection is manually reimplemented 20+ times across the codebase instead of using core's `isReference()` and `parseReference()` — UI components (TokenEditor.tsx 8x, AliasPicker.tsx 5x, TokenList.tsx 2x, AnalyticsPanel.tsx 2x, BatchEditor.tsx, ColorModifiersEditor.tsx), server (token-tree-utils.ts 2x, style-dict.ts), and shared (tokenParsers.ts) all manually check `startsWith('{') && endsWith('}')` instead of importing from `@tokenmanager/core/dtcg-types`; consolidate to the single core implementation to eliminate subtle divergence risk (e.g. some checks trim whitespace, others don't)
+  Worktree: /tmp/backlog-81267-ZkXzSv
+  Running agent… (started 13:24:26)

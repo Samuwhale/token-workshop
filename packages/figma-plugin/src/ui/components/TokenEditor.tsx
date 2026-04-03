@@ -595,6 +595,59 @@ function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollback }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Draft auto-save utilities
+// Drafts are stored in sessionStorage (survives accidental panel close within
+// the same browser session but is discarded when the tab closes).
+// ---------------------------------------------------------------------------
+const EDITOR_DRAFT_PREFIX = 'tm_editor_draft';
+
+interface EditorDraftData {
+  tokenType: string;
+  value: any;
+  description: string;
+  reference: string;
+  scopes: string[];
+  colorModifiers: ColorModifierOp[];
+  modeValues: Record<string, any>;
+  extensionsJsonText: string;
+  lifecycle: 'draft' | 'published' | 'deprecated';
+  extendsPath: string;
+  savedAt: number;
+}
+
+function editorDraftKey(setName: string, tokenPath: string): string {
+  return `${EDITOR_DRAFT_PREFIX}:${setName}:${tokenPath}`;
+}
+
+function saveEditorDraft(setName: string, tokenPath: string, data: Omit<EditorDraftData, 'savedAt'>): void {
+  try {
+    sessionStorage.setItem(editorDraftKey(setName, tokenPath), JSON.stringify({ ...data, savedAt: Date.now() }));
+  } catch { /* quota exceeded – best-effort */ }
+}
+
+function loadEditorDraft(setName: string, tokenPath: string): EditorDraftData | null {
+  try {
+    const raw = sessionStorage.getItem(editorDraftKey(setName, tokenPath));
+    if (!raw) return null;
+    return JSON.parse(raw) as EditorDraftData;
+  } catch { return null; }
+}
+
+function clearEditorDraft(setName: string, tokenPath: string): void {
+  try { sessionStorage.removeItem(editorDraftKey(setName, tokenPath)); } catch { /* ignore */ }
+}
+
+function formatDraftAge(savedAt: number): string {
+  const seconds = Math.floor((Date.now() - savedAt) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+}
+// ---------------------------------------------------------------------------
+
 interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
@@ -692,6 +745,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const initialServerSnapshotRef = useRef<string | null>(null);
   const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
+  // Draft recovery: set when the editor loads and finds a newer draft in sessionStorage
+  const [pendingDraft, setPendingDraft] = useState<EditorDraftData | null>(null);
 
   const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
 
@@ -762,6 +817,29 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
         }
+        // Check for a saved draft that differs from the current server state
+        const draft = loadEditorDraft(setName, tokenPath);
+        if (draft) {
+          const init = initialRef.current!;
+          const draftDiffers = (
+            draft.tokenType !== init.type ||
+            JSON.stringify(draft.value) !== JSON.stringify(init.value) ||
+            draft.description !== init.description ||
+            draft.reference !== init.reference ||
+            JSON.stringify(draft.scopes) !== JSON.stringify(init.scopes) ||
+            JSON.stringify(draft.colorModifiers) !== JSON.stringify(init.colorModifiers) ||
+            JSON.stringify(draft.modeValues) !== JSON.stringify(init.modeValues) ||
+            draft.extensionsJsonText !== init.extensionsJsonText ||
+            draft.lifecycle !== init.lifecycle ||
+            draft.extendsPath !== init.extendsPath
+          );
+          if (draftDiffers) {
+            setPendingDraft(draft);
+          } else {
+            // Draft matches server — no longer needed
+            clearEditorDraft(setName, tokenPath);
+          }
+        }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
         setError(getErrorMessage(err));
@@ -816,6 +894,15 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+
+  // Auto-save draft to sessionStorage whenever the editor has unsaved changes.
+  // This ensures changes survive an accidental panel close within the same session.
+  useEffect(() => {
+    if (!isDirty || isCreateMode) return;
+    saveEditorDraft(setName, tokenPath, {
+      tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath,
+    });
+  }, [isDirty, setName, tokenPath, isCreateMode, tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
 
   const aliasHasCycle = useMemo((): string[] | null => {
     if (!aliasMode || !reference.startsWith('{') || !reference.endsWith('}')) return null;
@@ -954,6 +1041,25 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setExtensionsJsonError(null);
     setExtendsPath(init.extendsPath);
     setAliasMode(!!init.reference);
+    // Clear any saved draft since the user has explicitly reverted
+    clearEditorDraft(setName, tokenPath);
+    setPendingDraft(null);
+  };
+
+  const applyDraft = (draft: EditorDraftData) => {
+    setTokenType(draft.tokenType);
+    setValue(draft.value);
+    setDescription(draft.description);
+    setReference(draft.reference);
+    setAliasMode(!!draft.reference);
+    setScopes(draft.scopes);
+    setColorModifiers(draft.colorModifiers);
+    setModeValues(draft.modeValues);
+    setExtensionsJsonText(draft.extensionsJsonText);
+    setLifecycle(draft.lifecycle);
+    setExtendsPath(draft.extendsPath);
+    setPendingDraft(null);
+    // Draft will be re-saved by the auto-save effect since isDirty becomes true
   };
 
   const handleDelete = async () => {
@@ -1082,6 +1188,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       });
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
+      // Clear any saved draft now that the token has been persisted
+      clearEditorDraft(setName, targetPath);
       onSaved?.(targetPath);
       if (createAnother && isCreateMode && onSaveAndCreateAnother) {
         onSaveAndCreateAnother(targetPath, tokenType);
@@ -1243,6 +1351,30 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           ))}
         </select>
       </div>
+
+      {/* Draft recovery banner */}
+      {pendingDraft && !isCreateMode && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-400/40 bg-amber-50/80 dark:bg-amber-900/20 text-[11px]">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span className="flex-1 text-amber-800 dark:text-amber-200 truncate">
+            Unsaved draft from {formatDraftAge(pendingDraft.savedAt)}
+          </span>
+          <button
+            onClick={() => applyDraft(pendingDraft)}
+            className="shrink-0 text-[10px] font-medium text-amber-700 dark:text-amber-300 hover:underline"
+          >
+            Restore
+          </button>
+          <button
+            onClick={() => { setPendingDraft(null); clearEditorDraft(setName, tokenPath); }}
+            className="shrink-0 text-[10px] text-amber-500 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Editor body */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
@@ -1670,7 +1802,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 </button>
               )}
               <button
-                onClick={() => { setShowDiscardConfirm(false); onBack(); }}
+                onClick={() => { setShowDiscardConfirm(false); clearEditorDraft(setName, tokenPath); onBack(); }}
                 className="w-full px-3 py-1.5 rounded text-[11px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-border)]"
               >
                 Discard
