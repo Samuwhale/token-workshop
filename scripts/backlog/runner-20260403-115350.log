@@ -630,3 +630,25 @@ Already up to date.
 
   Merging to main: HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
 Already up to date.
+[main df27eaa0] chore(backlog): done – HistoryPanel silently swallows all API fetch errors by returning empty defaults — four `.catch(() => defaultValue)` calls (lines ~221, 222, 244, 777) on git-commits and snapshot-list fetches mean users never see errors when the server's git or snapshot endpoints fail; the panel shows an empty state indistinguishable from "no history exists"; add error state tracking and a retry affordance, matching the pattern already used in AnalyticsPanel's validation fetch
+ 6 files changed, 90 insertions(+), 23 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - HistoryPanel silently swallows all API fetch errors
+- Added `timelineError` and `loadMoreError` state variables to `HistoryPanel`. Replaced four `.catch(() => defaultValue)` calls (two in `fetchTimeline`, one in `handleLoadMoreCommits`, one in `GitCommitsSource.handleLoadMoreCommits`) with explicit try/catch blocks that set error state and `console.warn`. Added an error banner with Retry button in the timeline view (shown when `!timelineLoading && timelineError`). Updated the "Load more commits" section in both `HistoryPanel` and `GitCommitsSource` to show an inline error message and change the button label to "Retry" on failure. Updated `isEmpty` to exclude the error case so "No history yet" doesn't appear alongside the error banner.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L181, ~L214, ~L236, ~L524, ~L659, ~L769, ~L1331
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  16 queued · 3 in-progress · last took 3m50s
+═══════════════════════════════════════════════════════════════
+  → GraphPanel generator pipeline cards have no inline Edit button — users must navigate to the generator's source token in the token tree and find the generator in the derived groups section of TokenEditor to edit a generator's configuration; add a direct "Edit" action button on GeneratorPipelineCard alongside the existing rerun/preview/duplicate/delete actions (GraphPanel.tsx ~L1436+)
+  Worktree: /tmp/backlog-81267-egs27Z
+  Running agent… (started 13:36:24)
+
+  ✓ done: GraphPanel generator pipeline cards have no inline Edit button
+    stale — already done; Edit button exists at GraphPanel.tsx ~L1196 with showEditDialog state and TokenGeneratorDialog, added in commit dc101e5d
+    7 turns · 28s · $0.18
+
+  Merging to main: GraphPanel generator pipeline cards have no inline Edit button
+Already up to date.

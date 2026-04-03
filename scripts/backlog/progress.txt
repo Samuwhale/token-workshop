@@ -571,3 +571,10 @@
   - Promise.all with individual `.catch()` calls is a common anti-pattern for silencing partial failures — always prefer a single outer try/catch when both fetches should succeed together, and show one combined error state.
   - When `error` state already exists for full-screen errors (commits.length === 0), re-use it for inline "load more" errors by also showing inline text near the retry button when commits are already loaded.
 ---
+
+## 2026-04-03 - GraphPanel generator pipeline cards have no inline Edit button
+- Stale — already implemented. The Edit button exists at `GeneratorPipelineCard` lines ~L1196-1201 in `GraphPanel.tsx`, with `showEditDialog` state and `TokenGeneratorDialog` rendered when open. This was added in commit `dc101e5d` ("chore(backlog): done – GeneratorPipelineCard has no Edit button").
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check git log for the target file before implementing — a prior backlog session may have already addressed the item under a matching commit message.
+---
