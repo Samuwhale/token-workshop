@@ -28,3 +28,18 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
 
   Merging to main: Set switcher renders all sets flat with no folder grouping
 Already up to date.
+[main e02204db] chore(backlog): done – Set switcher renders all sets flat with no folder grouping
+ 6 files changed, 161 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Set switcher renders all sets flat with no folder grouping
+- Added `buildFolderGroups` helper that groups flat set names by their first path segment (e.g. `brand/colors` + `brand/spacing` → a "brand/" folder group). Preserves original order.
+- Modified `SwitchView` to render collapsible folder groups when any set name contains a `/`. Folder headers show a chevron toggle + item count + active-set dot indicator when collapsed.
+- Items inside a folder are indented (`pl-6`) and show only the sub-path (after the first `/`). Ungrouped sets render flat as before.
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  5 queued · 2 in-progress · last took 4m18s
+═══════════════════════════════════════════════════════════════
+  → App.tsx command palette useMemo has 30 dependencies and recalculates frequently — the `commands` array is rebuilt on nearly every state change because its dependency array includes 30+ values including state that changes on every interaction; extracting command definitions to a stable registry would prevent unnecessary recalculation (App.tsx ~L870-1188)
+  Worktree: /tmp/backlog-91634-ZQbEUp
+  Running agent… (started 01:12:01)

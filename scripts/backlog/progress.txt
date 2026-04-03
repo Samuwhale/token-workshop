@@ -494,3 +494,9 @@
   - Auto-expand-on-keyboard-nav is cleanly done with a `useEffect` on `activeIdx` that checks if the current item's folder is collapsed and removes it from the collapsed set.
   - Expand-all-on-search (resetting `collapsedFolders` when `query` is truthy) ensures search results are never hidden inside collapsed groups.
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: TokenEditor.tsx, ValueEditors.tsx (editing UX, validation, composite tokens), ThemeManager.tsx (dimensions, coverage, comparison, empty states), ImportPanel.tsx + ExportPanel.tsx (import/export workflows), BatchEditor.tsx (batch operations, preview limits), HistoryPanel.tsx (history navigation, restore), AnalyticsPanel.tsx (analytics actionability, staleness), SettingsPanel.tsx + shortcutRegistry.ts (settings, shortcuts), CommandPalette.tsx (commands, discoverability), PublishPanel.tsx + GitSubPanel.tsx + VariableSyncSubPanel.tsx (publish safety), ResolverPanel.tsx (discoverability), TokenFlowPanel.tsx + ConsistencyPanel.tsx (overlap), ExtractTokensPanel.tsx + SelectionInspector.tsx (extract-bind workflow), ComparePanel.tsx + CrossThemeComparePanel.tsx + UnifiedComparePanel.tsx (comparison duplication)
+- Found 12 items — written to backlog-inbox.md
+- Notable: ExtractTokensPanel creates tokens but never binds them back to the selection, forcing a manual round-trip through SelectionInspector — this is the biggest workflow gap in the inspect-to-bind pipeline. Also, three separate comparison components each reimplement token resolution and diff logic independently.
+---
