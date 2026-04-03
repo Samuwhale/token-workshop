@@ -307,3 +307,21 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox — missing PluginResponse type union, non-atomic writes in 4 services, generator error state leak, 16 exhaustive-deps suppressions, redundant flat-token fetches
 Already up to date.
+[main b25c959c] chore(backlog): code pass – code-pass
+ 3 files changed, 22 insertions(+)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-03 - code-pass
+- Areas explored: all server services (token-store, generator-service, resolver-store, lint, manual-snapshot, style-dict, git-sync, operation-log), server route handlers (generators, tokens, resolvers, themes), shared/types.ts (PluginMessage union completeness), all UI hooks (useTokenDataLoading, useTokens, useThemeSwitcher, useVariableSync, useRecentOperations, useFigmaMessage, usePinnedTokens), plugin sandbox controller.ts message handlers, plugin variableSync.ts/selectionHandling.ts/heatmapScanning.ts outbound message types, eslint-disable suppressions across UI
+- Found 5 items — written to backlog-inbox.md
+- Notable: shared/types.ts defines a 35-member PluginMessage union for UI→controller but has zero type coverage for the reverse direction — at least 6 controller→UI response types are posted as untyped objects; also generator-service.ts delete() never clears generatorErrors so stale error badges leak to recreated generators
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  9 queued · 4 in-progress · last took 5m21s
+═══════════════════════════════════════════════════════════════
+  → Plugin ↔ UI message contract has no type safety and is broken in multiple places — 4+ plugin message types are sent but never handled in the UI (select-next-sibling-result, applied-to-nodes, removed-binding-from-node, canvas-heatmap-progress), the variables-read-error message uses field `message` in variableSync.ts but `error` in the controller catch path causing the UI to show "undefined", and two apply paths (TokenList.handleApplyStyles and useFigmaSync.handleSyncGroup) fire messages without correlationId so failures are silently swallowed; needs a shared typed message schema between plugin and UI
+  Worktree: /tmp/backlog-81661-VrjADT
+  Running agent… (started 12:37:39)

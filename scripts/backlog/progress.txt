@@ -315,3 +315,11 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: shared/types.ts defines a 35-member PluginMessage union for UI→controller but has zero type coverage for the reverse direction — at least 6 controller→UI response types are posted as untyped objects; also generator-service.ts delete() never clears generatorErrors so stale error badges leak to recreated generators
 ---
+
+## 2026-04-03 - Generator dry-run diff is not surfaced in the UI before first creation
+- Added `existingOverwritePathSet: Set<string>` to `useGeneratorPreview` tracking ALL preview token paths that already exist in the target set (not just value-changed ones). Threaded it through `useGeneratorDialog`. In the confirmation modal: (1) shows an orange warning banner "N existing tokens will be overwritten" for new generators; (2) fixed `newTokens` computation to only include truly new tokens (was incorrectly including existing-same-value tokens); (3) added neutral "X unchanged" badge for tokens that exist at the same value.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L146, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L63, ~L181, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L183, ~L255
+- **Learnings for future iterations:**
+  - The `overwrittenEntries` mechanism (value-diff detection) was already present and working. The gap was: tokens that already exist with the SAME value were being misclassified as "new". The fix was exposing a full existing-paths Set from the preview hook so the dialog could split tokens into truly-new vs. existing-unchanged vs. existing-changed.
+  - `check-overwrites` and `dry-run` server endpoints aren't needed for new generators — client-side comparison against fetched existing tokens is sufficient and already done via `useGeneratorPreview`.
+---

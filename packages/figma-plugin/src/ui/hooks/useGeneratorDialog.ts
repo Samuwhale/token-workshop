@@ -61,6 +61,7 @@ interface UseGeneratorDialogReturn {
   previewError: string;
   previewBrand: string | undefined;
   overwrittenEntries: OverwrittenEntry[];
+  existingOverwritePathSet: Set<string>;
   existingTokensError: string;
   saving: boolean;
   saveError: string;
@@ -179,6 +180,7 @@ export function useGeneratorDialog({
     previewError,
     existingTokensError,
     overwrittenEntries,
+    existingOverwritePathSet,
     previewBrand,
   } = useGeneratorPreview({
     serverUrl,
@@ -300,6 +302,7 @@ export function useGeneratorDialog({
     previewError,
     previewBrand,
     overwrittenEntries,
+    existingOverwritePathSet,
     existingTokensError,
     saving,
     saveError,

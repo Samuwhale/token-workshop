@@ -30,6 +30,8 @@ export interface UseGeneratorPreviewReturn {
   previewError: string;
   existingTokensError: string;
   overwrittenEntries: OverwrittenEntry[];
+  /** All preview token paths that already exist in the target set (value-changed or unchanged) */
+  existingOverwritePathSet: Set<string>;
   /** Brand name used for the preview sample, if multi-brand */
   previewBrand: string | undefined;
 }
@@ -143,19 +145,30 @@ export function useGeneratorPreview({
   }, [serverUrl, targetSet]);
 
   // Compute overwritten entries (skip for multi-brand since each brand writes to different sets)
-  const overwrittenEntries = useMemo<OverwrittenEntry[]>(() => {
-    if (isMultiBrand || previewTokens.length === 0) return [];
-    return previewTokens
-      .filter(pt => {
-        const existing = existingSetTokens[pt.path];
-        return existing !== undefined && JSON.stringify(existing.$value) !== JSON.stringify(pt.value);
-      })
-      .map(pt => ({
-        path: pt.path,
-        type: pt.type,
-        oldValue: existingSetTokens[pt.path].$value,
-        newValue: pt.value,
-      }));
+  const { overwrittenEntries, existingOverwritePathSet } = useMemo<{
+    overwrittenEntries: OverwrittenEntry[];
+    existingOverwritePathSet: Set<string>;
+  }>(() => {
+    if (isMultiBrand || previewTokens.length === 0) {
+      return { overwrittenEntries: [], existingOverwritePathSet: new Set<string>() };
+    }
+    const pathSet = new Set<string>();
+    const entries: OverwrittenEntry[] = [];
+    for (const pt of previewTokens) {
+      const existing = existingSetTokens[pt.path];
+      if (existing !== undefined) {
+        pathSet.add(pt.path);
+        if (JSON.stringify(existing.$value) !== JSON.stringify(pt.value)) {
+          entries.push({
+            path: pt.path,
+            type: pt.type,
+            oldValue: existing.$value,
+            newValue: pt.value,
+          });
+        }
+      }
+    }
+    return { overwrittenEntries: entries, existingOverwritePathSet: pathSet };
   }, [previewTokens, existingSetTokens, isMultiBrand]);
 
   const previewBrand = isMultiBrand && firstBrandRow ? firstBrandRow.brand : undefined;
@@ -166,6 +179,7 @@ export function useGeneratorPreview({
     previewError,
     existingTokensError,
     overwrittenEntries,
+    existingOverwritePathSet,
     previewBrand,
   };
 }

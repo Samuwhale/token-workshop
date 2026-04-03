@@ -349,3 +349,10 @@ Already up to date.
   → Generator dry-run diff is not surfaced in the UI before first creation — when creating a new generator, the preview shows generated token values but doesn't show which existing tokens would be overwritten; the server has `POST /api/generators/:id/check-overwrites` and `dry-run` endpoints but neither is called during the initial creation flow in TokenGeneratorDialog; show a "will overwrite N existing tokens" warning before confirming creation
   Worktree: /tmp/backlog-81267-bNUzli
   Running agent… (started 12:32:55)
+
+  ✓ done: Generator dry-run diff is not surfaced in the UI before first creation
+    Added existingOverwritePathSet to useGeneratorPreview; confirmation modal now shows orange warning banner "N existing tokens will be overwritten" for new generators, fixes newTokens to exclude existing-same-value tokens, and adds an "unchanged" badge
+    29 turns · 333s · $1.09
+
+  Merging to main: Generator dry-run diff is not surfaced in the UI before first creation
+Already up to date.

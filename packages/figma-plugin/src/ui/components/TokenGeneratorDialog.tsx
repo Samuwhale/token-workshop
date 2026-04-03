@@ -181,6 +181,7 @@ export function TokenGeneratorDialog({
     previewError,
     previewBrand,
     overwrittenEntries,
+    existingOverwritePathSet,
     existingTokensError,
     saving,
     saveError,
@@ -253,7 +254,10 @@ export function TokenGeneratorDialog({
   }
 
   if (showConfirmation) {
-    const newTokens = previewTokens.filter(pt => !overwritePaths.has(pt.path));
+    // Tokens truly new (don't exist in target set at all)
+    const newTokens = previewTokens.filter(pt => !existingOverwritePathSet.has(pt.path));
+    // Tokens that exist with the same value (will be silently overwritten, no value change)
+    const unchangedOverwriteTokens = previewTokens.filter(pt => existingOverwritePathSet.has(pt.path) && !overwritePaths.has(pt.path));
     // For multi-brand, we don't have previewTokens — show a summary instead
     const hasPreview = previewTokens.length > 0;
 
@@ -300,6 +304,18 @@ export function TokenGeneratorDialog({
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {/* Overwrite warning — shown for new generators when existing tokens would be replaced */}
+            {!isEditing && !isMultiBrand && existingOverwritePathSet.size > 0 && (
+              <div className="flex items-start gap-2 px-2.5 py-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                <span className="text-[10px] leading-snug">
+                  <strong>{existingOverwritePathSet.size} existing token{existingOverwritePathSet.size !== 1 ? 's' : ''}</strong> in <span className="font-mono">{targetGroup}.*</span> will be overwritten
+                  {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length === 0 && ' (no value changes)'}
+                  {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length > 0 && ` (${overwrittenEntries.length} with value changes, ${unchangedOverwriteTokens.length} unchanged)`}
+                </span>
+              </div>
+            )}
+
             {/* Summary badges */}
             <div className="flex items-center gap-2 flex-wrap">
               {hasPreview && newTokens.length > 0 && (
@@ -314,7 +330,12 @@ export function TokenGeneratorDialog({
                   {overwrittenEntries.length} modified
                 </span>
               )}
-              {hasPreview && newTokens.length === 0 && overwrittenEntries.length === 0 && (
+              {unchangedOverwriteTokens.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                  {unchangedOverwriteTokens.length} unchanged
+                </span>
+              )}
+              {hasPreview && newTokens.length === 0 && overwrittenEntries.length === 0 && unchangedOverwriteTokens.length === 0 && (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {previewTokens.length} token{previewTokens.length !== 1 ? 's' : ''} will be created (all new)
                 </span>
