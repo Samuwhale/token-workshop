@@ -230,3 +230,10 @@ Already up to date.
   → No global cross-set find-and-replace for token values — the existing find-and-replace (useFindReplace hook, Cmd+H) only operates on token paths/names within a single set; there's no way to find and replace token *values* (e.g., change all `#FF0000` color values to `#EE0000`) or to run a find-replace across all sets at once; the server has per-set `bulk-rename` but no cross-set or value-targeting variant
   Worktree: /tmp/backlog-80049-K0eR4r
   Running agent… (started 12:24:45)
+
+  ✓ done: No global cross-set find-and-replace for token values
+    Added "Find by: Names | Values" toggle to the existing dialog; values mode searches/replaces $value strings via batch-update, with live preview, regex support, cross-set scope, and undo/redo
+    31 turns · 476s · $1.48
+
+  Merging to main: No global cross-set find-and-replace for token values
+Already up to date.

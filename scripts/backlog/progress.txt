@@ -482,3 +482,16 @@
   - `extractFormulaUnit` works by scanning already-resolved references in `this.resolved`; this is safe because the DFS guarantees all dependencies are resolved before the current token runs.
   - The test file had a misnamed test ("extracts numeric value") that was actually validating the buggy behavior — rename alongside the fix to prevent confusion.
 ---
+
+## 2026-04-03 - No global cross-set find-and-replace for token values
+- Added "Find by: Names | Values" toggle to the Find & Replace dialog. In Values mode, the dialog searches token `$value` strings (colors, aliases, dimensions, etc.) and replaces them via `batch-update`. Supports regex, active-set or all-sets scope, live preview with before/after highlighting, undo/redo, and abort.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` — added `frTarget` state, `frValuePreview` computed state (using `serializeValue`/`deserializeValue` helpers), values branch in `handleFindReplace` calling `batch-update` per set, `frValueCount` derived count
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` — added `frTarget`, `frValuePreview`, `frValueCount`, `onSetFrTarget` props; added target toggle row in dialog header; added values-mode preview rendering; updated button labels and busy indicator for values mode
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` — destructure and pass new props through to `<TokenListModals>`
+- **Learnings for future iterations:**
+  - `batch-update` already supports atomic multi-token value patches — no new server endpoint needed.
+  - Value serialization: strings use directly, numbers via `String()`, objects via `JSON.stringify`. Deserialization reverses this. Only string/alias values are common in practice for find-replace.
+  - The values preview has no "conflict" concept (unlike names) — any match is always updatable.
+  - Keeping `frPreview` (names) and `frValuePreview` (values) as separate computed arrays avoids type union complexity and keeps each mode's IIFE render block clean.
+---

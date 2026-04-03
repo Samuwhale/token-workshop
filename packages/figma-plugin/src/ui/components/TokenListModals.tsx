@@ -71,16 +71,20 @@ export interface TokenListModalsProps {
   frReplace: string;
   frIsRegex: boolean;
   frScope: 'active' | 'all';
+  frTarget: 'names' | 'values';
   frError: string;
   frBusy: boolean;
   frRegexError: string | null;
   frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean; setName: string }>;
+  frValuePreview: Array<{ path: string; setName: string; oldValue: string; newValue: string }>;
   frConflictCount: number;
   frRenameCount: number;
+  frValueCount: number;
   onSetFrFind: (v: string) => void;
   onSetFrReplace: (v: string) => void;
   onSetFrIsRegex: (v: boolean) => void;
   onSetFrScope: (v: 'active' | 'all') => void;
+  onSetFrTarget: (v: 'names' | 'values') => void;
   onSetFrError: (v: string) => void;
   onSetShowFindReplace: (v: boolean) => void;
   handleFindReplace: () => void;
@@ -556,15 +560,37 @@ export function TokenListModals(props: TokenListModalsProps) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '80vh' }}>
             <div className="p-4 border-b border-[var(--color-figma-border)]">
-              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Find &amp; Replace Token Names</div>
+              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
+                {frTarget === 'values' ? 'Find & Replace Token Values' : 'Find & Replace Token Names'}
+              </div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                {frScope === 'active'
-                  ? <>Replace path segments across all tokens in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></>
-                  : <>Replace path segments across <span className="font-medium text-[var(--color-figma-text)]">all sets</span></>
+                {frTarget === 'values'
+                  ? frScope === 'active'
+                    ? <>Replace token values in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></>
+                    : <>Replace token values across <span className="font-medium text-[var(--color-figma-text)]">all sets</span></>
+                  : frScope === 'active'
+                    ? <>Replace path segments across all tokens in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></>
+                    : <>Replace path segments across <span className="font-medium text-[var(--color-figma-text)]">all sets</span></>
                 }
               </div>
-              {/* Scope toggle */}
+              {/* Target toggle */}
               <div className="flex items-center gap-1 mt-2">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Find by:</span>
+                <button
+                  onClick={() => { onSetFrTarget('names'); onSetFrError(''); }}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${frTarget === 'names' ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  Names
+                </button>
+                <button
+                  onClick={() => { onSetFrTarget('values'); onSetFrError(''); }}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-colors ${frTarget === 'values' ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  Values
+                </button>
+              </div>
+              {/* Scope toggle */}
+              <div className="flex items-center gap-1 mt-1.5">
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scope:</span>
                 <button
                   onClick={() => { onSetFrScope('active'); onSetFrError(''); }}
@@ -589,7 +615,9 @@ export function TokenListModals(props: TokenListModalsProps) {
                   onChange={e => { onSetFrFind(e.target.value); onSetFrError(''); }}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
                   autoFocus
-                  placeholder={frIsRegex ? 'e.g. ^colors\\.' : 'e.g. colors'}
+                  placeholder={frTarget === 'values'
+                    ? (frIsRegex ? 'e.g. ^#[Ff][Ff]' : 'e.g. #FF0000')
+                    : (frIsRegex ? 'e.g. ^colors\\.' : 'e.g. colors')}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -599,7 +627,9 @@ export function TokenListModals(props: TokenListModalsProps) {
                   value={frReplace}
                   onChange={e => onSetFrReplace(e.target.value)}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
-                  placeholder={frIsRegex ? 'e.g. palette.' : 'e.g. palette'}
+                  placeholder={frTarget === 'values'
+                    ? (frIsRegex ? 'e.g. #EE' : 'e.g. #EE0000')
+                    : (frIsRegex ? 'e.g. palette.' : 'e.g. palette')}
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -616,10 +646,13 @@ export function TokenListModals(props: TokenListModalsProps) {
               {frFind && frIsRegex && frRegexError && (
                 <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
               )}
-              {frFind && !frRegexError && frPreview.length === 0 && (
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match{frScope === 'all' ? ' in any set' : ''}.</div>
-              )}
-              {frPreview.length > 0 && (() => {
+
+              {frTarget === 'names' && (() => {
+                if (frFind && !frRegexError && frPreview.length === 0) {
+                  return <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match{frScope === 'all' ? ' in any set' : ''}.</div>;
+                }
+                if (frPreview.length === 0) return null;
+
                 const renderRenameItem = (oldPath: string, newPath: string, conflict: boolean, key: string) => {
                   let matchStart = -1, matchLen = 0;
                   if (frIsRegex) {
@@ -696,14 +729,93 @@ export function TokenListModals(props: TokenListModalsProps) {
                 );
               })()}
 
+              {frTarget === 'values' && (() => {
+                if (frFind && !frRegexError && frValuePreview.length === 0) {
+                  return <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token values match{frScope === 'all' ? ' in any set' : ''}.</div>;
+                }
+                if (frValuePreview.length === 0) return null;
+
+                const renderValueItem = (path: string, oldValue: string, newValue: string, sn: string, key: string) => {
+                  let matchStart = -1, matchLen = 0;
+                  if (frIsRegex) {
+                    try {
+                      const m = new RegExp(frFind).exec(oldValue);
+                      if (m) { matchStart = m.index; matchLen = m[0].length; }
+                    } catch { /* ignore */ }
+                  } else {
+                    const idx = oldValue.indexOf(frFind);
+                    if (idx >= 0) { matchStart = idx; matchLen = frFind.length; }
+                  }
+                  const hi = matchStart >= 0;
+                  const newIdx = (!frIsRegex && hi && frReplace !== '') ? newValue.indexOf(frReplace, matchStart) : -1;
+                  return (
+                    <div key={key} className="text-[10px] font-mono rounded px-2 py-1 bg-[var(--color-figma-bg-secondary)]">
+                      <div className="truncate text-[var(--color-figma-text-secondary)] text-[9px] mb-0.5">{frScope === 'all' ? `${sn} › ` : ''}{path}</div>
+                      <div className="truncate text-[var(--color-figma-text-secondary)] line-through">
+                        {hi
+                          ? <>{oldValue.slice(0, matchStart)}<span className="bg-red-100/80 rounded-sm">{oldValue.slice(matchStart, matchStart + matchLen)}</span>{oldValue.slice(matchStart + matchLen)}</>
+                          : oldValue}
+                      </div>
+                      <div className="truncate text-[var(--color-figma-text)]">
+                        {newIdx >= 0
+                          ? <>{newValue.slice(0, newIdx)}<span className="bg-green-100/80 rounded-sm">{frReplace}</span>{newValue.slice(newIdx + frReplace.length)}</>
+                          : newValue}
+                      </div>
+                    </div>
+                  );
+                };
+
+                if (frScope === 'active') {
+                  return (
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+                        {frValueCount} token value{frValueCount !== 1 ? 's' : ''} will be updated
+                      </div>
+                      <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
+                        {frValuePreview.map(({ path, oldValue, newValue, setName: sn }) => renderValueItem(path, oldValue, newValue, sn, path))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // All sets mode: group by setName
+                const setNames = [...new Set(frValuePreview.map(r => r.setName))];
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+                      {frValueCount} token value{frValueCount !== 1 ? 's' : ''} across {setNames.length} set{setNames.length !== 1 ? 's' : ''} will be updated
+                    </div>
+                    <div className="flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '240px' }}>
+                      {setNames.map(sn => {
+                        const setItems = frValuePreview.filter(r => r.setName === sn);
+                        return (
+                          <div key={sn} className="flex flex-col gap-0.5">
+                            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] px-1 flex items-center gap-1">
+                              <span className="font-mono text-[var(--color-figma-text)]">{sn}</span>
+                              <span>— {setItems.length} update{setItems.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {setItems.map(({ path, oldValue, newValue }) => renderValueItem(path, oldValue, newValue, sn, `${sn}:${path}`))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {frBusy && (
                 <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)] py-1">
                   <Spinner size="sm" />
-                  Renaming {frRenameCount} token{frRenameCount !== 1 ? 's' : ''}…
+                  {frTarget === 'values'
+                    ? <>Updating {frValueCount} token value{frValueCount !== 1 ? 's' : ''}…</>
+                    : <>Renaming {frRenameCount} token{frRenameCount !== 1 ? 's' : ''}…</>
+                  }
                 </div>
               )}
               {frError && <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
-              {!frError && frReplace === '' && frPreview.length > 0 && (
+              {!frError && frTarget === 'names' && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                   ⚠ Empty replacement will delete the matched segment from token paths. This may break references.
                 </div>
@@ -715,7 +827,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                   onClick={cancelFindReplace}
                   className="px-3 py-1.5 rounded text-[11px] text-red-500 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
-                  Cancel rename
+                  {frTarget === 'values' ? 'Cancel update' : 'Cancel rename'}
                 </button>
               ) : (
                 <button
@@ -725,13 +837,23 @@ export function TokenListModals(props: TokenListModalsProps) {
                   Cancel
                 </button>
               )}
-              <button
-                onClick={handleFindReplace}
-                disabled={!frFind || frBusy || frPreview.length === 0 || frPreview.every(r => r.conflict)}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                {frBusy ? 'Renaming…' : `Rename ${frPreview.filter(r => !r.conflict).length}`}
-              </button>
+              {frTarget === 'names' ? (
+                <button
+                  onClick={handleFindReplace}
+                  disabled={!frFind || frBusy || frPreview.length === 0 || frPreview.every(r => r.conflict)}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  {frBusy ? 'Renaming…' : `Rename ${frRenameCount}`}
+                </button>
+              ) : (
+                <button
+                  onClick={handleFindReplace}
+                  disabled={!frFind || frBusy || frValuePreview.length === 0}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  {frBusy ? 'Updating…' : `Update ${frValueCount}`}
+                </button>
+              )}
             </div>
           </div>
         </div>

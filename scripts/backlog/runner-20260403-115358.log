@@ -266,3 +266,19 @@ Already up to date.
 
   Merging to main: Core resolver formula evaluation permanently loses units
 Already up to date.
+[main 4aa527bc] chore(backlog): done – Core resolver formula evaluation permanently loses units
+ 8 files changed, 116 insertions(+), 5 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260403-122952.log
+  ✓ Merged and marked done
+
+## 2026-04-03 - Core resolver formula evaluation permanently loses units
+- Fixed `resolveValue` in `packages/core/src/resolver.ts` to reconstruct the typed `{value, unit}` object after formula evaluation for `dimension` and `duration` token types. Added `extractFormulaUnit(formula)` helper that scans the formula's references and returns the unit from the first resolved structured value. The reconstruction runs in the main DFS resolve loop after `resolveValue` and `resolveType` are both determined. Updated the existing test (was asserting raw `16`) to assert `{value: 16, unit: 'px'}`, and added a parallel test for `duration` tokens.
+- Files changed: `packages/core/src/resolver.ts` ~L14, ~L294, ~L467; `packages/core/src/__tests__/resolver.test.ts` ~L353
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  7 queued · 4 in-progress · last took 3m11s
+═══════════════════════════════════════════════════════════════
+  → AnalyticsPanel token type distribution chart is text-only — the analytics panel shows token counts by type as plain text rows; a small horizontal bar chart would make relative proportions immediately visible and help identify over/under-represented token types at a glance
+  Worktree: /tmp/backlog-81661-8nWRog
+  Running agent… (started 12:32:17)

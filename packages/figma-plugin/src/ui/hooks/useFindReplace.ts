@@ -8,6 +8,7 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 const BULK_RENAME_TIMEOUT_MS = 30_000;
 
 export type FindReplaceScope = 'active' | 'all';
+export type FindReplaceTarget = 'names' | 'values';
 
 export interface UseFindReplaceParams {
   connected: boolean;
@@ -60,6 +61,46 @@ function computeRenamesForPaths(
   return renames;
 }
 
+/** Serialize a token $value to a string for find/replace matching. */
+function serializeValue(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (v === null || v === undefined) return '';
+  return JSON.stringify(v);
+}
+
+/** Parse a replaced string back to the appropriate type based on the original value type. */
+function deserializeValue(original: unknown, replaced: string): unknown {
+  if (typeof original === 'string') return replaced;
+  if (typeof original === 'number') {
+    const n = parseFloat(replaced);
+    return isNaN(n) ? replaced : n;
+  }
+  if (original !== null && typeof original === 'object') {
+    try { return JSON.parse(replaced); } catch { return replaced; }
+  }
+  return replaced;
+}
+
+/** Compute value replacements for a list of tokens. */
+function computeValueReplacements(
+  tokens: Array<{ path: string; $value: unknown; setName: string }>,
+  find: string,
+  replace: string,
+  pattern: RegExp | null,
+): Array<{ path: string; setName: string; oldValue: string; newValue: string; originalValue: unknown }> {
+  const results: Array<{ path: string; setName: string; oldValue: string; newValue: string; originalValue: unknown }> = [];
+  for (const t of tokens) {
+    const serialized = serializeValue(t.$value);
+    if (!serialized) continue;
+    const replaced = pattern ? serialized.replace(pattern, replace) : serialized.split(find).join(replace);
+    if (replaced !== serialized) {
+      results.push({ path: t.path, setName: t.setName, oldValue: serialized, newValue: replaced, originalValue: t.$value });
+    }
+  }
+  return results;
+}
+
 export function useFindReplace({
   connected,
   serverUrl,
@@ -75,6 +116,7 @@ export function useFindReplace({
   const [frReplace, setFrReplace] = useState('');
   const [frIsRegex, setFrIsRegex] = useState(false);
   const [frScope, setFrScope] = useState<FindReplaceScope>('active');
+  const [frTarget, setFrTarget] = useState<FindReplaceTarget>('names');
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -86,6 +128,7 @@ export function useFindReplace({
   }, [frFind, frIsRegex]);
 
   const frPreview = useMemo(() => {
+    if (frTarget !== 'names') return [];
     if (!frFind) return [];
     if (frIsRegex && frRegexError) return [];
     let pattern: RegExp | null = null;
@@ -115,7 +158,40 @@ export function useFindReplace({
       if (pattern) pattern.lastIndex = 0;
     }
     return allRenames;
-  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, tokens, setName, allSets, perSetFlat]);
+  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, tokens, setName, allSets, perSetFlat]);
+
+  const frValuePreview = useMemo(() => {
+    if (frTarget !== 'values') return [];
+    if (!frFind) return [];
+    if (frIsRegex && frRegexError) return [];
+    let pattern: RegExp | null = null;
+    if (frIsRegex) {
+      try { pattern = new RegExp(frFind, 'g'); } catch { return []; }
+    }
+
+    if (frScope === 'active') {
+      const tokenList = flattenTokenPaths(tokens, setName);
+      return computeValueReplacements(tokenList, frFind, frReplace, pattern);
+    }
+
+    // All sets mode
+    const allResults: Array<{ path: string; setName: string; oldValue: string; newValue: string; originalValue: unknown }> = [];
+    const setsToScan = allSets ?? (perSetFlat ? Object.keys(perSetFlat) : [setName]);
+    for (const sn of setsToScan) {
+      let tokenList: Array<{ path: string; $value: unknown; setName: string }>;
+      if (sn === setName) {
+        tokenList = flattenTokenPaths(tokens, setName);
+      } else {
+        const flatMap = perSetFlat?.[sn];
+        if (!flatMap) continue;
+        tokenList = Object.entries(flatMap).map(([path, entry]) => ({ path, $value: entry.$value, setName: sn }));
+      }
+      const results = computeValueReplacements(tokenList, frFind, frReplace, pattern);
+      for (const r of results) allResults.push({ ...r, setName: sn });
+      if (pattern) pattern.lastIndex = 0;
+    }
+    return allResults;
+  }, [frFind, frReplace, frIsRegex, frRegexError, frScope, frTarget, tokens, setName, allSets, perSetFlat]);
 
   const cancelFindReplace = useCallback(() => {
     if (abortRef.current) {
@@ -132,6 +208,7 @@ export function useFindReplace({
     const capturedReplace = frReplace;
     const capturedIsRegex = frIsRegex;
     const capturedScope = frScope;
+    const capturedTarget = frTarget;
 
     const ac = new AbortController();
     abortRef.current = ac;
@@ -139,100 +216,178 @@ export function useFindReplace({
     const timer = setTimeout(() => { didTimeout = true; ac.abort(); }, BULK_RENAME_TIMEOUT_MS);
 
     try {
-      if (capturedScope === 'active') {
-        const renamedCount = frPreview.filter(r => !r.conflict).length;
-        const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
-          signal: ac.signal,
-        });
-        if ((data.renamed ?? 0) === 0) {
-          const skippedCount = data.skipped?.length ?? 0;
-          setFrError(skippedCount > 0
-            ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
-            : 'No token paths matched the search pattern');
-          return;
-        }
-        if (onPushUndo && renamedCount > 0 && !capturedIsRegex && capturedReplace !== '') {
-          const capturedSet = setName;
-          const capturedUrl = serverUrl;
-          onPushUndo({
-            description: `Rename ${renamedCount} token${renamedCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
-            restore: async () => {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
-                signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
-              });
-              onRefresh();
-            },
-            redo: async () => {
-              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
-                signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
-              });
-              onRefresh();
-            },
-          });
-        }
-      } else {
-        // All sets mode: call bulk-rename per set that has matches
-        const setNames = [...new Set(frPreview.filter(r => !r.conflict).map(r => r.setName))];
-        if (setNames.length === 0) {
-          const skippedCount = frPreview.filter(r => r.conflict).length;
-          setFrError(skippedCount > 0
-            ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
-            : 'No token paths matched the search pattern');
-          return;
-        }
-
-        let totalRenamed = 0;
-        const renamedBySet: Record<string, number> = {};
-        for (const sn of setNames) {
-          if (ac.signal.aborted) break;
-          const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+      if (capturedTarget === 'names') {
+        if (capturedScope === 'active') {
+          const renamedCount = frPreview.filter(r => !r.conflict).length;
+          const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
             signal: ac.signal,
           });
-          const count = data.renamed ?? 0;
-          totalRenamed += count;
-          if (count > 0) renamedBySet[sn] = count;
-        }
-
-        if (totalRenamed === 0) {
-          setFrError('No token paths matched the search pattern in any set');
-          return;
-        }
-
-        if (onPushUndo && !capturedIsRegex && capturedReplace !== '') {
-          const capturedUrl = serverUrl;
-          const capturedSets = Object.keys(renamedBySet);
-          const capturedTotal = totalRenamed;
-          onPushUndo({
-            description: `Rename ${capturedTotal} token${capturedTotal !== 1 ? 's' : ''} across ${capturedSets.length} set${capturedSets.length !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
-            restore: async () => {
-              for (const sn of capturedSets) {
-                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+          if ((data.renamed ?? 0) === 0) {
+            const skippedCount = data.skipped?.length ?? 0;
+            setFrError(skippedCount > 0
+              ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
+              : 'No token paths matched the search pattern');
+            return;
+          }
+          if (onPushUndo && renamedCount > 0 && !capturedIsRegex && capturedReplace !== '') {
+            const capturedSet = setName;
+            const capturedUrl = serverUrl;
+            onPushUndo({
+              description: `Rename ${renamedCount} token${renamedCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
+              restore: async () => {
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
+                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                });
+                onRefresh();
+              },
+              redo: async () => {
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                });
+                onRefresh();
+              },
+            });
+          }
+        } else {
+          // All sets mode: call bulk-rename per set that has matches
+          const setNames = [...new Set(frPreview.filter(r => !r.conflict).map(r => r.setName))];
+          if (setNames.length === 0) {
+            const skippedCount = frPreview.filter(r => r.conflict).length;
+            setFrError(skippedCount > 0
+              ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
+              : 'No token paths matched the search pattern');
+            return;
+          }
+
+          let totalRenamed = 0;
+          const renamedBySet: Record<string, number> = {};
+          for (const sn of setNames) {
+            if (ac.signal.aborted) break;
+            const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
+              signal: ac.signal,
+            });
+            const count = data.renamed ?? 0;
+            totalRenamed += count;
+            if (count > 0) renamedBySet[sn] = count;
+          }
+
+          if (totalRenamed === 0) {
+            setFrError('No token paths matched the search pattern in any set');
+            return;
+          }
+
+          if (onPushUndo && !capturedIsRegex && capturedReplace !== '') {
+            const capturedUrl = serverUrl;
+            const capturedSets = Object.keys(renamedBySet);
+            const capturedTotal = totalRenamed;
+            onPushUndo({
+              description: `Rename ${capturedTotal} token${capturedTotal !== 1 ? 's' : ''} across ${capturedSets.length} set${capturedSets.length !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
+              restore: async () => {
+                for (const sn of capturedSets) {
+                  await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
+                    signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  });
+                }
+                onRefresh();
+              },
+              redo: async () => {
+                for (const sn of capturedSets) {
+                  await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+                    signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  });
+                }
+                onRefresh();
+              },
+            });
+          }
+        }
+      } else {
+        // Values mode: use batch-update per set
+        const matchesBySet = new Map<string, Array<{ path: string; oldValue: string; newValue: string; originalValue: unknown }>>();
+        for (const item of frValuePreview) {
+          if (!matchesBySet.has(item.setName)) matchesBySet.set(item.setName, []);
+          matchesBySet.get(item.setName)!.push(item);
+        }
+
+        if (matchesBySet.size === 0) {
+          setFrError('No token values matched the search pattern');
+          return;
+        }
+
+        let totalUpdated = 0;
+        const updatedBySet: Record<string, Array<{ path: string; oldValue: string; newValue: string; originalValue: unknown }>> = {};
+
+        for (const [sn, matches] of matchesBySet) {
+          if (ac.signal.aborted) break;
+          const patches = matches.map(m => ({
+            path: m.path,
+            patch: { $value: deserializeValue(m.originalValue, m.newValue) },
+          }));
+          await apiFetch<{ ok: true; updated: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patches }),
+            signal: ac.signal,
+          });
+          totalUpdated += matches.length;
+          updatedBySet[sn] = matches;
+        }
+
+        if (totalUpdated === 0) {
+          setFrError('No token values were updated');
+          return;
+        }
+
+        if (onPushUndo) {
+          const capturedUrl = serverUrl;
+          const capturedUpdatedBySet = updatedBySet;
+          const capturedTotal = totalUpdated;
+          const setCount = Object.keys(capturedUpdatedBySet).length;
+          onPushUndo({
+            description: `Update ${capturedTotal} token value${capturedTotal !== 1 ? 's' : ''} across ${setCount} set${setCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
+            restore: async () => {
+              for (const [sn, matches] of Object.entries(capturedUpdatedBySet)) {
+                const patches = matches.map(m => ({
+                  path: m.path,
+                  patch: { $value: m.originalValue },
+                }));
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ patches }),
                   signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
                 });
               }
               onRefresh();
             },
             redo: async () => {
-              for (const sn of capturedSets) {
-                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+              for (const [sn, matches] of Object.entries(capturedUpdatedBySet)) {
+                const patches = matches.map(m => ({
+                  path: m.path,
+                  patch: { $value: deserializeValue(m.originalValue, m.newValue) },
+                }));
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+                  body: JSON.stringify({ patches }),
                   signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
                 });
               }
@@ -249,7 +404,7 @@ export function useFindReplace({
       onRefresh();
     } catch (err) {
       if (ac.signal.aborted) {
-        setFrError(didTimeout ? `Bulk rename timed out after ${BULK_RENAME_TIMEOUT_MS / 1000}s — try a narrower search pattern` : 'Bulk rename was cancelled');
+        setFrError(didTimeout ? `Operation timed out after ${BULK_RENAME_TIMEOUT_MS / 1000}s — try a narrower search pattern` : 'Operation was cancelled');
       } else if (err instanceof ApiError) {
         setFrError(err.message);
       } else {
@@ -260,10 +415,11 @@ export function useFindReplace({
       abortRef.current = null;
       setFrBusy(false);
     }
-  }, [frFind, frReplace, frIsRegex, frScope, frBusy, frPreview, serverUrl, setName, onRefresh, onPushUndo]);
+  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frBusy, frPreview, frValuePreview, serverUrl, setName, onRefresh, onPushUndo]);
 
   const frConflictCount = useMemo(() => frPreview.filter(r => r.conflict).length, [frPreview]);
   const frRenameCount = useMemo(() => frPreview.filter(r => !r.conflict).length, [frPreview]);
+  const frValueCount = useMemo(() => frValuePreview.length, [frValuePreview]);
 
   return {
     showFindReplace,
@@ -276,13 +432,17 @@ export function useFindReplace({
     setFrIsRegex,
     frScope,
     setFrScope,
+    frTarget,
+    setFrTarget,
     frError,
     setFrError,
     frBusy,
     frRegexError,
     frPreview,
+    frValuePreview,
     frConflictCount,
     frRenameCount,
+    frValueCount,
     handleFindReplace,
     cancelFindReplace,
   };
