@@ -35,6 +35,8 @@ export interface LintViolation {
   suggestedFix?: string;
   /** Concrete suggestion — e.g. the alias path to use, or a corrected name. */
   suggestion?: string;
+  /** For no-duplicate-values: the canonical token path shared by all tokens in this duplicate group. */
+  group?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -318,6 +320,7 @@ export async function lintTokens(
             message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
             suggestedFix: 'extract-to-alias',
             suggestion: `{${aliasTarget}}`,
+            group: canonical,
           });
         }
       }
@@ -340,6 +343,8 @@ export interface ValidationIssue {
   suggestedFix?: string;
   /** Concrete fix target — e.g. the alias path to use. */
   suggestion?: string;
+  /** For no-duplicate-values: the canonical token path shared by all tokens in this duplicate group. */
+  group?: string;
 }
 
 function detectCycles(
@@ -507,6 +512,7 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
             message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
             suggestedFix: 'extract-to-alias',
             suggestion: `{${aliasTarget}}`,
+            group: canonical,
           });
         }
       }

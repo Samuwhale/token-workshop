@@ -430,3 +430,18 @@ Already up to date.
 
   Merging to main: Find/replace cannot scope by token type
 Already up to date.
+[main a0b91110] chore(backlog): done – Find/replace cannot scope by token type
+ 7 files changed, 120 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - Find/replace cannot scope by token type
+- Added `frTypeFilter` state (default `'all'`) to `useFindReplace.ts` hook, computed `frAvailableTypes` (sorted unique types from in-scope tokens), and applied type filtering in both `frPreview` (names mode) and `frValuePreview` (values mode) computations.
+- Added `frTypeFilter`, `frAvailableTypes`, `onSetFrTypeFilter` props to `TokenListModals.tsx` interface; rendered a `<select>` dropdown ("All types" + one option per available type) below the scope toggle — hidden when no typed tokens exist.
+- Wired the new state and props through `TokenList.tsx`.
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  7 queued · 3 in-progress · last took 3m30s
+═══════════════════════════════════════════════════════════════
+  → File-based imports (JSON, CSS, Tailwind) lack per-token conflict resolution — Figma Variables import has a full merge UI where users can accept/reject individual conflicting tokens, but file-based imports only offer bulk strategies (overwrite all / skip all / merge); add the same per-token conflict resolution UI for file imports so users can selectively choose which tokens to overwrite (ImportPanel.tsx ~L400-600)
+  Worktree: /tmp/backlog-46178-q80nkn
+  Running agent… (started 18:12:31)

@@ -16,6 +16,8 @@ interface ValidationIssue {
   suggestedFix?: string;
   /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
   suggestion?: string;
+  /** For no-duplicate-values: canonical token path shared by all tokens in this duplicate group. */
+  group?: string;
 }
 
 interface SetStats {
@@ -67,6 +69,13 @@ const TYPE_COLORS: Record<string, string> = {
 };
 const TYPE_COLOR_FALLBACK = '#8888aa';
 
+interface DuplicateGroup {
+  canonical: string;
+  canonicalSet: string;
+  tokens: { path: string; setName: string }[];
+  colorHex?: string;
+}
+
 export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeKey, tokenUsageCounts, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,13 +93,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [contrastCopied, setContrastCopied] = useState(false);
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
-  const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
-  const [confirmDedup, setConfirmDedup] = useState<{ hex: string; canonical: { path: string; set: string }; others: { path: string; set: string }[] } | null>(null);
+  const [deduplicating, setDeduplicating] = useState<string | null>(null); // canonical path being deduplicated
+  const [confirmDedup, setConfirmDedup] = useState<{ canonical: string; canonicalSet: string; others: { path: string; setName: string }[] } | null>(null);
   const [bulkDeduplicating, setBulkDeduplicating] = useState(false);
   const [confirmBulkDedup, setConfirmBulkDedup] = useState(false);
-  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() =>
-    lsGetJson<Record<string, string>>(STORAGE_KEYS.ANALYTICS_CANONICAL, {})
-  ); // hex → chosen canonical path
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
   const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
@@ -122,10 +128,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [coverageError, setCoverageError] = useState<string | null>(null);
   const [showCoverage, setShowCoverage] = useState(false);
   const coveragePendingRef = useRef<Map<string, (data: any) => void>>(new Map());
-
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.ANALYTICS_CANONICAL, canonicalPick);
-  }, [canonicalPick]);
 
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, [...suppressedKeys]);
@@ -312,6 +314,38 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     return () => controller.abort();
   }, [serverUrl, connected, reloadKey]);
 
+  // Derive duplicate groups from validation results (no-duplicate-values lint rule).
+  // Groups are keyed by canonical path (shortest token in each duplicate set).
+  // Must be before early returns to satisfy rules-of-hooks.
+  const lintDuplicateGroups = useMemo((): DuplicateGroup[] => {
+    if (!validateResults) return [];
+    const dupViolations = validateResults.filter(v => v.rule === 'no-duplicate-values' && v.group);
+    if (dupViolations.length === 0) return [];
+
+    const byCanonical = new Map<string, { setName: string; tokens: { path: string; setName: string }[] }>();
+    for (const v of dupViolations) {
+      const canonical = v.group!;
+      if (!byCanonical.has(canonical)) byCanonical.set(canonical, { setName: '', tokens: [] });
+      const entry = byCanonical.get(canonical)!;
+      if (!entry.tokens.some(t => t.path === v.path && t.setName === v.setName)) {
+        entry.tokens.push({ path: v.path, setName: v.setName });
+        if (v.path === canonical) entry.setName = v.setName;
+      }
+    }
+
+    return [...byCanonical.entries()]
+      .filter(([, g]) => g.tokens.length > 1)
+      .map(([canonical, { setName, tokens }]) => {
+        const tokenEntry = allTokensUnified[canonical];
+        const colorHex =
+          tokenEntry?.$type === 'color' && typeof tokenEntry.$value === 'string'
+            ? tokenEntry.$value
+            : undefined;
+        return { canonical, canonicalSet: setName, tokens, colorHex };
+      })
+      .sort((a, b) => b.tokens.length - a.tokens.length);
+  }, [validateResults, allTokensUnified]);
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -458,53 +492,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       }));
   })();
 
-  // Compute duplicate color groups
-  const duplicateGroups = (() => {
-    const byHex = new Map<string, { path: string; set: string }[]>();
-    for (const t of allColorTokens) {
-      const list = byHex.get(t.hex) ?? [];
-      list.push({ path: t.path, set: t.set });
-      byHex.set(t.hex, list);
-    }
-    return [...byHex.entries()]
-      .filter(([, paths]) => paths.length > 1)
-      .sort((a, b) => b[1].length - a[1].length);
-  })();
-
-  // Count how many tokens reference each path as an alias (single-level)
-  const aliasRefCounts = (() => {
-    const counts: Record<string, number> = {};
-    for (const entry of Object.values(allTokensUnified)) {
-      const v = entry.$value;
-      if (isAlias(v)) {
-        const ref = extractAliasPath(v)!;
-        counts[ref] = (counts[ref] ?? 0) + 1;
-      }
-    }
-    return counts;
-  })();
-
-  // Suggest best canonical per duplicate group:
-  // priority: most alias refs → most Figma usage → fewest path segments → alphabetical
-  const suggestedCanonicals = (() => {
-    const result: Record<string, string> = {};
-    for (const [hex, tokens] of duplicateGroups) {
-      const scored = tokens.map(t => ({
-        path: t.path,
-        aliasRefs: aliasRefCounts[t.path] ?? 0,
-        figmaUsage: tokenUsageCounts?.[t.path] ?? 0,
-        segments: t.path.split('.').length,
-      }));
-      scored.sort((a, b) =>
-        b.aliasRefs - a.aliasRefs ||
-        b.figmaUsage - a.figmaUsage ||
-        a.segments - b.segments ||
-        a.path.localeCompare(b.path)
-      );
-      result[hex] = scored[0].path;
-    }
-    return result;
-  })();
 
   // Compute unused tokens: zero Figma usage count AND not referenced by any other token as an alias
   const unusedTokens = useMemo(() => {
@@ -527,27 +514,19 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       .sort((a, b) => a.path.localeCompare(b.path));
   }, [tokenUsageCounts, allTokensUnified]);
 
-  const handleApplyAllSuggestions = () => {
-    const picks: Record<string, string> = {};
-    for (const [hex] of duplicateGroups) {
-      picks[hex] = suggestedCanonicals[hex];
-    }
-    setCanonicalPick(prev => ({ ...prev, ...picks }));
-  };
-
-  const handleDeduplicate = async (hex: string, canonical: { path: string; set: string }, others: { path: string; set: string }[]) => {
-    setDeduplicating(hex);
+  const handleDeduplicate = async (canonical: string, others: { path: string; setName: string }[]) => {
+    setDeduplicating(canonical);
     try {
-      await Promise.all(others.map(({ path, set }) =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+      await Promise.all(others.map(({ path, setName }) =>
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $value: `{${canonical.path}}` }),
+          body: JSON.stringify({ $value: `{${canonical}}` }),
         })
       ));
-      // Refresh data
       setDeduplicating(null);
       setReloadKey(k => k + 1);
+      runValidate();
     } catch (err) {
       console.warn('[AnalyticsPanel] deduplicate operation failed:', err);
       setDeduplicating(null);
@@ -558,16 +537,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     setBulkDeduplicating(true);
     try {
       const patches: Promise<unknown>[] = [];
-      for (const [hex, tokens] of duplicateGroups) {
-        const chosenPath = canonicalPick[hex] ?? tokens[0].path;
-        const canonicalToken = tokens.find(t => t.path === chosenPath) ?? tokens[0];
-        const others = tokens.filter(t => t.path !== canonicalToken.path);
-        for (const { path, set } of others) {
+      for (const group of lintDuplicateGroups) {
+        const others = group.tokens.filter(t => t.path !== group.canonical);
+        for (const { path, setName } of others) {
           patches.push(
-            apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+            apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $value: `{${canonicalToken.path}}` }),
+              body: JSON.stringify({ $value: `{${group.canonical}}` }),
             })
           );
         }
@@ -576,6 +553,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       setBulkDeduplicating(false);
       setConfirmBulkDedup(false);
       setReloadKey(k => k + 1);
+      runValidate();
     } catch (err) {
       console.warn('[AnalyticsPanel] bulk deduplicate failed:', err);
       setBulkDeduplicating(false);
@@ -610,10 +588,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     }
   };
 
-  const totalDuplicateAliases = duplicateGroups.reduce((sum, [hex, tokens]) => {
-    const chosenPath = canonicalPick[hex] ?? tokens[0]?.path;
-    return sum + tokens.filter(t => t.path !== chosenPath).length;
-  }, 0);
+  const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
 
   function formatValidatedAt(date: Date): string {
     const diffMs = Date.now() - date.getTime();
@@ -1261,8 +1236,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
         );
       })()}
 
-      {/* Duplicate Colors */}
-      {duplicateGroups.length > 0 && (
+      {/* Duplicate Values — sourced from no-duplicate-values lint rule */}
+      {lintDuplicateGroups.length > 0 && (
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           <button
             onClick={() => setShowDuplicates(v => !v)}
@@ -1270,31 +1245,31 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
           >
             <span className="flex items-center gap-1.5">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-              Duplicate Colors ({duplicateGroups.length} group{duplicateGroups.length !== 1 ? 's' : ''})
+              Duplicate Values ({lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''})
             </span>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
           </button>
           {showDuplicates && (
             <div className="divide-y divide-[var(--color-figma-border)]">
               {/* Bulk promote all duplicates */}
-              {duplicateGroups.length > 1 && (
+              {lintDuplicateGroups.length > 1 && (
                 <div className="p-3 flex flex-col gap-2">
                   {confirmBulkDedup ? (
                     <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
                       <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        This will convert <span className="font-medium text-[var(--color-figma-text)]">{totalDuplicateAliases} token{totalDuplicateAliases !== 1 ? 's' : ''}</span> across {duplicateGroups.length} groups into aliases, each pointing to its group's canonical token.
+                        This will convert <span className="font-medium text-[var(--color-figma-text)]">{totalDuplicateAliases} token{totalDuplicateAliases !== 1 ? 's' : ''}</span> across {lintDuplicateGroups.length} groups into aliases, each pointing to its group's canonical token.
                       </p>
                       <ul className="flex flex-col gap-0.5 pl-2 max-h-[120px] overflow-y-auto">
-                        {duplicateGroups.map(([hex, tokens]) => {
-                          const chosenPath = canonicalPick[hex] ?? tokens[0].path;
-                          const canonicalToken = tokens.find(t => t.path === chosenPath) ?? tokens[0];
-                          const others = tokens.filter(t => t.path !== canonicalToken.path);
+                        {lintDuplicateGroups.map(group => {
+                          const others = group.tokens.filter(t => t.path !== group.canonical);
                           return (
-                            <li key={hex} className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                            <li key={group.canonical} className="text-[10px] text-[var(--color-figma-text-secondary)]">
                               <div className="flex items-center gap-1.5">
-                                <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
-                                <span className="font-mono">{hex}</span>
-                                <span>— {others.length} → <span className="font-mono text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span></span>
+                                {group.colorHex && (
+                                  <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />
+                                )}
+                                <span className="font-mono truncate">{group.canonical}</span>
+                                <span className="shrink-0">— {others.length} → alias</span>
                               </div>
                             </li>
                           );
@@ -1317,74 +1292,39 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <button
-                        disabled={bulkDeduplicating}
-                        onClick={() => setConfirmBulkDedup(true)}
-                        className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                      >
-                        {bulkDeduplicating ? 'Promoting…' : `Promote all duplicates to aliases (${totalDuplicateAliases} tokens → ${duplicateGroups.length} canonicals)`}
-                      </button>
-                      {duplicateGroups.some(([hex, tokens]) => (canonicalPick[hex] ?? tokens[0].path) !== suggestedCanonicals[hex]) && (
-                        <button
-                          onClick={handleApplyAllSuggestions}
-                          className="self-start text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                          title="Set each group's canonical to the auto-suggested token (most referenced, then fewest path segments)"
-                        >
-                          Use all suggestions
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      disabled={bulkDeduplicating}
+                      onClick={() => setConfirmBulkDedup(true)}
+                      className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {bulkDeduplicating ? 'Promoting…' : `Promote all duplicates to aliases (${totalDuplicateAliases} tokens → ${lintDuplicateGroups.length} canonicals)`}
+                    </button>
                   )}
                 </div>
               )}
-              {duplicateGroups.map(([hex, tokens]) => {
-                const canonical = canonicalPick[hex] ?? tokens[0].path;
-                const canonicalToken = tokens.find(t => t.path === canonical) ?? tokens[0];
-                const others = tokens.filter(t => t.path !== canonical);
-                const isDeduplying = deduplicating === hex;
-                const suggested = suggestedCanonicals[hex];
-                const isUsingSuggestion = canonical === suggested;
+              {lintDuplicateGroups.map(group => {
+                const others = group.tokens.filter(t => t.path !== group.canonical);
+                const isDeduplicating = deduplicating === group.canonical;
                 return (
-                  <div key={hex} className="p-3 flex flex-col gap-2">
+                  <div key={group.canonical} className="p-3 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{hex}</span>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">— {tokens.length} tokens</span>
-                      {!isUsingSuggestion && (
-                        <button
-                          onClick={() => { setCanonicalPick(prev => ({ ...prev, [hex]: suggested })); if (confirmDedup?.hex === hex) setConfirmDedup(null); }}
-                          className="ml-auto text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
-                          title="Auto-select the most-referenced or shortest-path token as canonical"
-                        >
-                          Use suggestion
-                        </button>
+                      {group.colorHex && (
+                        <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />
                       )}
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{group.canonical}</span>
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">— {group.tokens.length} tokens</span>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      {tokens.map(t => (
-                        <div key={t.path} className="flex items-center gap-1.5">
-                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                            <input
-                              type="radio"
-                              name={`canonical-${hex}`}
-                              value={t.path}
-                              checked={canonical === t.path}
-                              onChange={() => { setCanonicalPick(prev => ({ ...prev, [hex]: t.path })); if (confirmDedup?.hex === hex) setConfirmDedup(null); }}
-                              className="w-3 h-3"
-                            />
-                            <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
-                            {canonical === t.path && (
-                              <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
-                            )}
-                            {t.path === suggested && canonical !== t.path && (
-                              <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0" title="Auto-suggested based on alias reference count and path depth">suggested</span>
-                            )}
-                          </label>
+                      {group.tokens.map(t => (
+                        <div key={`${t.setName}:${t.path}`} className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{t.path}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{t.setName}</span>
+                          {t.path === group.canonical && (
+                            <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
+                          )}
                           {onNavigateToToken && (
                             <button
-                              onClick={() => onNavigateToToken(t.path, t.set)}
+                              onClick={() => onNavigateToToken(t.path, t.setName)}
                               className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                               title="Go to token"
                             >
@@ -1394,25 +1334,25 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                         </div>
                       ))}
                     </div>
-                    {confirmDedup?.hex === hex ? (
+                    {confirmDedup?.canonical === group.canonical ? (
                       <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
                         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                          This will replace {others.length} token{others.length !== 1 ? 's' : ''} with an alias to <span className="font-mono text-[var(--color-figma-text)]">{canonicalToken.path}</span>:
+                          This will replace {others.length} token{others.length !== 1 ? 's' : ''} with an alias to <span className="font-mono text-[var(--color-figma-text)]">{group.canonical}</span>:
                         </p>
                         <ul className="flex flex-col gap-0.5 pl-2">
                           {others.map(o => (
-                            <li key={o.path} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
-                              {o.path} <span className="text-[10px] text-[var(--color-figma-text-secondary)]">({o.set})</span> → <span className="text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span>
+                            <li key={`${o.setName}:${o.path}`} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+                              {o.path} <span className="text-[10px] text-[var(--color-figma-text-secondary)]">({o.setName})</span> → <span className="text-[var(--color-figma-text)]">{`{${group.canonical}}`}</span>
                             </li>
                           ))}
                         </ul>
                         <div className="flex gap-2 mt-0.5">
                           <button
-                            disabled={isDeduplying}
-                            onClick={() => { handleDeduplicate(hex, canonicalToken, others); setConfirmDedup(null); }}
+                            disabled={isDeduplicating}
+                            onClick={() => { handleDeduplicate(group.canonical, others); setConfirmDedup(null); }}
                             className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
                           >
-                            {isDeduplying ? 'Deduplicating…' : 'Confirm'}
+                            {isDeduplicating ? 'Deduplicating…' : 'Confirm'}
                           </button>
                           <button
                             onClick={() => setConfirmDedup(null)}
@@ -1424,11 +1364,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                       </div>
                     ) : (
                       <button
-                        disabled={isDeduplying}
-                        onClick={() => setConfirmDedup({ hex, canonical: canonicalToken, others })}
+                        disabled={isDeduplicating}
+                        onClick={() => setConfirmDedup({ canonical: group.canonical, canonicalSet: group.canonicalSet, others })}
                         className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
                       >
-                        {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → reference)`}
+                        {isDeduplicating ? 'Deduplicating…' : `Deduplicate (${others.length} → reference)`}
                       </button>
                     )}
                   </div>

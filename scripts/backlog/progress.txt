@@ -392,3 +392,20 @@
   - Reset `frTypeFilter` to `'all'` on successful apply (in the `setShowFindReplace(false)` block) for a clean next-open state.
   - The type filter dropdown is conditionally hidden (`frAvailableTypes.length > 0`) to avoid cluttering the UI for sets with no type annotations.
 ---
+
+## 2026-04-03 - AnalyticsPanel duplicate detection consolidated with lint no-duplicate-values rule
+- Removed AnalyticsPanel's own duplicate value scanning (custom `duplicateGroups` computation that grouped resolved color tokens by hex, `aliasRefCounts`, `suggestedCanonicals`, and related state/handlers).
+- Added `group?: string` to `LintViolation` (lint.ts ~L37) and `ValidationIssue` (lint.ts ~L342) interfaces, populated with `canonical` path in both `lintTokens` (~L321) and `validateAllTokens` (~L510) for all `no-duplicate-values` violations.
+- AnalyticsPanel now derives duplicate groups from `validateResults` (already loaded via `POST /api/tokens/validate`) by filtering for `rule === 'no-duplicate-values'` and grouping by `v.group` (canonical path).
+- Section renamed from "Duplicate Colors" to "Duplicate Values" — now covers all token types (not just colors), with color swatch shown only when the canonical has a color hex value in `allTokensUnified`.
+- Removed canonical-picker UI (radio buttons, "Use suggestion" / "Use all suggestions" buttons) — canonical is now determined by lint rule (shortest path), consistent with what the validation panel already shows.
+- Deduplication actions (individual + bulk PATCH calls) are preserved; after deduplication both `setReloadKey` and `runValidate()` are called to refresh token stats and lint results respectively.
+- Moved `lintDuplicateGroups` useMemo before early returns to satisfy `react-hooks/rules-of-hooks`; extracted `DuplicateGroup` interface to module level.
+- Removed `canonicalPick` state and its `STORAGE_KEYS.ANALYTICS_CANONICAL` localStorage usage entirely.
+- Files changed: `packages/server/src/services/lint.ts` ~L37,321,342,510; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L11,70,88,310-345,457-600,1238-1415
+- **Learnings for future iterations:**
+  - The `validateAllTokens` function already does cross-set duplicate detection (collects all tokens from all sets), so switching to lint-based grouping didn't lose cross-set coverage — it was already there.
+  - Lint's `no-duplicate-values` rule correctly skips alias tokens (`if (isReference) continue`) while the old analytics scan included resolved-alias colors, causing false positives (e.g., `semantic.primary = {brand.blue}` shown as duplicate of `brand.blue`).
+  - Adding a `group` field to violations is the cleanest way to let the UI group related violations without parsing message strings.
+  - `useMemo` calls that depend on state variables must appear before any conditional early returns. The ESLint `react-hooks/rules-of-hooks` error is the signal — move the hook call earlier in the function body.
+---

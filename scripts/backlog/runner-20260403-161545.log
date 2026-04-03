@@ -474,3 +474,10 @@ Already up to date.
   → AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap — AnalyticsPanel has its own duplicate value detection section while the lint system has a `no-duplicate-values` rule; users see duplicates in two different places with potentially different results; consolidate by having AnalyticsPanel read from lint results rather than running its own scan, or remove the analytics duplicate section and link to the lint violations view
   Worktree: /tmp/backlog-46580-0fxyjI
   Running agent… (started 18:00:39)
+
+  ✓ done: AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap
+    Consolidated by adding group field to lint violations and having AnalyticsPanel read from validateResults instead of running its own scan; removed canonical picker UI; section renamed to "Duplicate Values" covering all token types
+    60 turns · 813s · $2.51
+
+  Merging to main: AnalyticsPanel duplicate detection and lint's no-duplicate-values rule overlap
+Already up to date.
