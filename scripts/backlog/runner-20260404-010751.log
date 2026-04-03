@@ -221,3 +221,10 @@ Already up to date.
   → generator-service.ts has multiple error-handling gaps that can lose data or mislead users — `updateBulkTokenPaths` silently returns count=0 when regex compilation fails instead of reporting the error (L260); `executeGenerator` clears `generatorErrors` before subsequent `clearNonLockedOverrides` runs, so if that secondary operation fails the error is lost (L598 vs L635); `executeGeneratorMultiBrand` swallows rollback errors with `.catch(() => {})` leaving partial state on failure (L762); all three patterns should propagate errors to callers
   Worktree: /tmp/backlog-92209-G7ZiKF
   Running agent… (started 01:44:28)
+
+  ✓ done: generator-service.ts has multiple error-handling gaps that can lose data or mislead users
+    Fixed all three gaps: updateBulkTokenPaths throws BadRequestError on invalid regex; executeGenerator clears generatorErrors only after saveGenerators completes; executeGeneratorMultiBrand rollback logs and throws on failure instead of swallowing errors
+    14 turns · 250s · $0.55
+
+  Merging to main: generator-service.ts has multiple error-handling gaps that can lose data or mislead users
+Already up to date.

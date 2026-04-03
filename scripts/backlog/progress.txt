@@ -462,3 +462,15 @@
   - Two-layer validation (parse stage + apply stage) follows defense-in-depth: the parse stage keeps bad keys out of the React state, the apply stage is a last-resort guard if state is ever tampered or the function is called from unexpected paths.
   - The whitelist Set should mirror exactly what `handleExportSettings` produces — keeping both in sync ensures round-trip fidelity without admitting extra keys.
 ---
+
+## 2026-04-04 - generator-service.ts has multiple error-handling gaps
+- Fixed three error-handling gaps in `generator-service.ts`:
+  1. `updateBulkTokenPaths`: now throws `BadRequestError` with the regex error message instead of silently returning `count=0` when regex compilation fails (L258-260).
+  2. `executeGenerator`: moved `generatorErrors.delete(generator.id)` to AFTER `saveGenerators()` completes so the error is only cleared once all async operations succeed (previously L598 cleared it before subsequent I/O at L617-618).
+  3. `executeGeneratorMultiBrand`: rollback `.catch(() => {})` now logs the error via `console.error` and throws an aggregated error message describing both the original failure and the rollback failure, so callers know the token state may be inconsistent.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L258, ~L597-621, ~L762-771
+- **Learnings for future iterations:**
+  - "Clear on success" patterns must clear AFTER all async side-effects complete, not immediately after the main operation returns. Otherwise, a failing side-effect (e.g., `saveGenerators`) causes the success branch to run while leaving stale error state cleared.
+  - Rollback code that swallows its own errors (`.catch(() => {})`) should always at minimum log — callers cannot distinguish "rollback succeeded" from "rollback silently failed and state is corrupted". Throwing a combined error message is better for diagnosability.
+  - When propagating errors through a multi-step catch/finally, re-throwing the original error (`throw err`) after logging rollback failures preserves the original cause chain; if rollback itself fails, a new aggregated error with both messages gives the operator enough context to diagnose.
+---

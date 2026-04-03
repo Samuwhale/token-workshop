@@ -255,8 +255,8 @@ export class GeneratorService {
     if (isRegex) {
       try {
         pattern = new RegExp(find, 'g');
-      } catch {
-        return 0;
+      } catch (err) {
+        throw new BadRequestError(`Invalid regular expression: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     const apply = (s: string): string =>
@@ -594,8 +594,6 @@ export class GeneratorService {
     } else {
       results = await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
     }
-    // Clear any prior auto-run error on success
-    this.generatorErrors.delete(generator.id);
 
     // Track when the generator was last run and what the source token's value was,
     // so the UI can detect whether re-running is needed after a source token edit.
@@ -618,6 +616,9 @@ export class GeneratorService {
       });
       await this.saveGenerators();
     }
+
+    // Clear any prior auto-run error only after ALL async operations have succeeded.
+    this.generatorErrors.delete(generator.id);
 
     return results;
   }
@@ -759,7 +760,15 @@ export class GeneratorService {
           }
         }
         if (restoreItems.length > 0) {
-          await tokenStore.restoreSnapshot(setName, restoreItems).catch(() => {});
+          await tokenStore.restoreSnapshot(setName, restoreItems).catch((rollbackErr) => {
+            console.error(`[GeneratorService] Rollback failed for set "${setName}":`, rollbackErr);
+            const originalMsg = err instanceof Error ? err.message : String(err);
+            const rollbackMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+            throw new Error(
+              `Generator run failed (${originalMsg}) and rollback of set "${setName}" also failed (${rollbackMsg}). Token state may be inconsistent.`,
+              { cause: rollbackErr },
+            );
+          });
         }
       }
       throw err;

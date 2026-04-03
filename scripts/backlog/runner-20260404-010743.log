@@ -175,3 +175,12 @@ Already up to date.
 
   Merging to main: SettingsPanel handleApplyImport writes arbitrary localStorage keys without validation
 Already up to date.
+[main 56e264f7] chore(backlog): done – SettingsPanel handleApplyImport writes arbitrary localStorage keys without validation
+ 6 files changed, 69 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1230 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
