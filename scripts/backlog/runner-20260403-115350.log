@@ -371,3 +371,10 @@ Already up to date.
   → Core validateColorModifiers silently drops valid mix operations — the mix branch in color-modifier.ts L33-39 requires an `amount` field that is not part of the ColorModifierOp mix schema and is not used by applyColorModifiers, so a valid {type:'mix', color:'#fff', ratio:0.5} is silently excluded from the output; existing tests mask this by always supplying amount:0
   Worktree: /tmp/backlog-81267-kTa0cC
   Running agent… (started 12:38:36)
+
+  ✓ done: Core validateColorModifiers silently drops valid mix operations
+    Removed spurious `amount` check from mix branch in validateColorModifiers; fixed 3 masking tests and added regression test
+    13 turns · 76s · $0.25
+
+  Merging to main: Core validateColorModifiers silently drops valid mix operations
+Already up to date.

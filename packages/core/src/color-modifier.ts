@@ -31,7 +31,6 @@ export function validateColorModifiers(raw: unknown[]): ColorModifierOp[] {
       }
     } else if (type === 'mix') {
       if (
-        typeof obj.amount === 'number' && isFinite(obj.amount) &&
         typeof obj.color === 'string' && obj.color.length > 0 &&
         typeof obj.ratio === 'number' && isFinite(obj.ratio)
       ) {

@@ -111,7 +111,7 @@ describe('applyColorModifiers', () => {
         { type: 'lighten', amount: 20 },
         { type: 'darken', amount: 10 },
         { type: 'alpha', amount: 0.5 },
-        { type: 'mix', color: '#ff0000', ratio: 0.5, amount: 0 },
+        { type: 'mix', color: '#ff0000', ratio: 0.5 },
       ];
       expect(validateColorModifiers(input)).toHaveLength(4);
     });
@@ -133,8 +133,15 @@ describe('applyColorModifiers', () => {
     });
 
     it('drops mix entries missing color or ratio', () => {
-      expect(validateColorModifiers([{ type: 'mix', amount: 0 }])).toEqual([]);
-      expect(validateColorModifiers([{ type: 'mix', color: '#fff', amount: 0 }])).toEqual([]);
+      expect(validateColorModifiers([{ type: 'mix' }])).toEqual([]);
+      expect(validateColorModifiers([{ type: 'mix', color: '#fff' }])).toEqual([]);
+      expect(validateColorModifiers([{ type: 'mix', ratio: 0.5 }])).toEqual([]);
+    });
+
+    it('accepts mix without amount field (amount is not part of the mix schema)', () => {
+      const result = validateColorModifiers([{ type: 'mix', color: '#ffffff', ratio: 0.5 }]);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({ type: 'mix', color: '#ffffff', ratio: 0.5 });
     });
 
     it('drops non-object entries', () => {

@@ -28,3 +28,18 @@ NOTE: 4 [~] item(s) found — skipping reset (13 other runner(s) active)
 
   Merging to main: UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks
 Already up to date.
+[main 125c51f1] chore(backlog): done – UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks
+ 10 files changed, 80 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - UI hooks have pervasive stale-closure and effect-ordering bugs across 6+ hooks
+- Fixed 5 of the 6 described bugs (the 6th — useSetMergeSplit — was stale/incorrect: `finally` always runs in JS even when returning from inside `try`/`catch`, so `mergeLoading` was already correctly reset):
+  1. **usePinnedTokens**: Added `setNameRef` updated on every render; persist effect now depends only on `pinnedList` (not `setName`). When `setName` changes, the persist effect won't fire with the old set's pin list before the re-init effect loads the new set's pins.
+  2. **useGeneratorPreview**: Early-return path for `isMultiBrand && !firstBrandRow` now clears the pending debounce timer, aborts any in-flight fetch, and calls `setPreviewLoading(false)`. Previously, if a debounce timer was pending (loading=true) and the effect cleanup cancelled it, the async `finally` that resets loading never ran.
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  7 queued · 4 in-progress · last took 9m40s
+═══════════════════════════════════════════════════════════════
+  → Server generator routes reject valid shadowScale type and root-metadata rollback is broken — VALID_GENERATOR_TYPES is duplicated between routes/generators.ts and services/generator-service.ts with the route list missing 'shadowScale', so POST/PUT for shadow scale generators returns 400 even though the service supports them; separately, snapshotGroup in routes/tokens.ts falls back to the sentinel '__root__' when groupPath is empty, which matches no real token paths, making operation log snapshots empty and root metadata updates non-rollbackable
+  Worktree: /tmp/backlog-49887-NVsAWz
+  Running agent… (started 12:39:33)

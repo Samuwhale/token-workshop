@@ -338,3 +338,12 @@
   - The "debounce-cleared-before-fire" loading bug: when a `useEffect` cleanup cancels a debounce timer, any `setState(true)` that was called before the timer was scheduled becomes permanently stuck unless the early-exit or cleanup path explicitly resets it.
   - The standard ref pattern for callbacks that need current state without re-creating: `const xRef = useRef(x); xRef.current = x;` assigned unconditionally on every render, then read as `xRef.current` inside the callback — no deps needed for x.
 ---
+
+## 2026-04-03 - Core validateColorModifiers silently drops valid mix operations
+- Removed the spurious `typeof obj.amount === 'number' && isFinite(obj.amount)` precondition from the `mix` branch in `validateColorModifiers`. The `mix` type in `ColorModifierOp` only requires `color` (string) and `ratio` (number) — `amount` is not part of its schema and is not read by `applyColorModifiers`. A valid `{type:'mix', color:'#fff', ratio:0.5}` was being silently dropped.
+- Updated tests: removed `amount: 0` from the mix entry in "returns valid ops unchanged"; updated "drops mix entries missing color or ratio" to not pass spurious `amount`; added explicit regression test "accepts mix without amount field".
+- Files changed: `packages/core/src/color-modifier.ts` ~L32-39, `packages/core/src/__tests__/color-modifier.test.ts` ~L114, ~L136-145
+- **Learnings for future iterations:**
+  - When a union type has a variant without a field, validators must not gate on that field — the type system and the validator must stay in sync.
+  - Test inputs that include extra fields (like `amount: 0` on a mix op) can mask missing-field validation bugs by accidentally satisfying the wrong guard.
+---
