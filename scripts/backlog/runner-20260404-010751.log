@@ -243,3 +243,10 @@ Already up to date.
   → ExportPanel `figmaLoadingTimeoutRef` timeout (10s) has no cleanup on component unmount — if the user navigates away from ExportPanel while waiting for a Figma response, the timeout fires and calls `setFigmaLoading(false)` and `setError(...)` on the unmounted component; the ref is cleared on re-entry (L312-314) but not in a useEffect cleanup; additionally the sets-fetch useEffect (L240-247) has no AbortController so in-flight requests complete and setState after unmount (ExportPanel.tsx L308-321)
   Worktree: /tmp/backlog-92209-r0qf4o
   Running agent… (started 01:48:45)
+
+  ✓ done: ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
+    Added unmount cleanup useEffect for figmaLoadingTimeoutRef and AbortController to sets-fetch useEffect to prevent setState-after-unmount
+    10 turns · 52s · $0.24
+
+  Merging to main: ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
+Already up to date.

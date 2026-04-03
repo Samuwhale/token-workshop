@@ -487,3 +487,13 @@
   - For `AbortSignal.any([...])` composed signals, the derived `signal.aborted` is true when any constituent is aborted — can safely use `signal.aborted` even when the signal was never passed to a direct `AbortController`.
   - The generation counter (`gen !== fetchGenRef.current`) and `signal.aborted` serve different purposes: gen catches "superseded by newer fetch", signal catches "component unmounted". Both checks are needed in multi-await async functions.
 ---
+
+## 2026-04-04 - ExportPanel figmaLoadingTimeoutRef has no cleanup on unmount; sets-fetch useEffect has no AbortController
+- Added a dedicated unmount `useEffect` that clears `figmaLoadingTimeoutRef.current` on cleanup, preventing stale `setFigmaLoading`/`setError` calls after unmount.
+- Added `AbortController` to the sets-fetch `useEffect` — aborts in-flight fetch on cleanup and silently ignores `AbortError`, preventing `setAvailableSets` calls after unmount.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L239-260
+- **Learnings for future iterations:**
+  - Timeout refs need their own `useEffect(() => () => clearTimeout(ref.current), [])` separate from the effect that starts them, since the start effect may run multiple times.
+  - `apiFetch` already accepts `RequestInit` (including `signal`), so abort integration is zero-boilerplate.
+  - Catching `AbortError` by name (`err.name === 'AbortError'`) is more robust than `instanceof DOMException` in the plugin sandbox environment.
+---

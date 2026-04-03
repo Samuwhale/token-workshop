@@ -264,3 +264,18 @@ Already up to date.
 
   Merging to main: Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards
 Already up to date.
+[main c30b7682] chore(backlog): done – Inconsistent async cleanup across UI hooks — useGenerators.ts, useTokens.ts, useFigmaSync.ts, and useGeneratorPreview.ts lack proper AbortController cleanup and setState-after-unmount guards
+ 9 files changed, 53 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Inconsistent async cleanup across UI hooks
+- Added `signal.aborted` guards before every `setState` call in async paths across four hooks:
+  - `useGenerators.ts`: added `if (controller.signal.aborted) return;` before `setGenerators(data)` in try block; changed `setLoading(false)` in finally to `if (!controller.signal.aborted) setLoading(false);`
+  - `useTokens.ts`: changed both `if (gen !== fetchGenRef.current) return;` guards to `|| signal.aborted` to catch unmount races after successful fetches; collapsed two gen-checks on the second block into one
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  11 queued · 2 in-progress · last took 5m50s
+═══════════════════════════════════════════════════════════════
+  → ComparePanel line 319 dead ternary renders nothing — `{key === 'fontFamily' || key === 'color' ? null : null}` should render inline color swatches or font previews for those property keys in the side-by-side comparison table, instead of being a no-op (ComparePanel.tsx L319)
+  Worktree: /tmp/backlog-91949-8LqoN1
+  Running agent… (started 01:48:51)

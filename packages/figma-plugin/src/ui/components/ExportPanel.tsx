@@ -236,14 +236,29 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  // Cleanup figmaLoadingTimeoutRef on unmount
+  useEffect(() => {
+    return () => {
+      if (figmaLoadingTimeoutRef.current !== null) {
+        clearTimeout(figmaLoadingTimeoutRef.current);
+        figmaLoadingTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Fetch available sets when connected
   useEffect(() => {
     if (!connected) return;
-    apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`)
+    const controller = new AbortController();
+    apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`, { signal: controller.signal })
       .then((data) => {
         setAvailableSets(data.sets || []);
       })
-      .catch((err) => { console.warn('[ExportPanel] failed to fetch sets:', err); });
+      .catch((err) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        console.warn('[ExportPanel] failed to fetch sets:', err);
+      });
+    return () => controller.abort();
   }, [connected, serverUrl]);
 
   const toggleSet = (name: string) => {
