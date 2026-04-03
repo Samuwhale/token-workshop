@@ -46,3 +46,10 @@ Already up to date.
   → No bulk token creation API — tokens can only be created one at a time via `POST /tokens/:set/*`; importing or generating tokens that need atomic multi-token creation must loop individual requests, which is slow and non-atomic (routes/tokens.ts)
   Worktree: /tmp/backlog-92209-lfpmnH
   Running agent… (started 01:09:58)
+
+  ✓ done: No bulk token creation API — tokens can only be created one at a time via `POST /tokens/:set/*`
+    stale — already done; POST /api/tokens/:set/batch exists at routes/tokens.ts ~L507 with skip/overwrite/merge strategies, used by ExportPanel, ImportPanel, PasteTokensModal, BatchEditor
+    10 turns · 97s · $0.44
+
+  Merging to main: No bulk token creation API — tokens can only be created one at a time via `POST /tokens/:set/*`
+Already up to date.
