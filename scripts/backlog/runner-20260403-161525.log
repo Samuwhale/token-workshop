@@ -543,3 +543,25 @@ Already up to date.
 
   Merging to main: QuickApplyPicker has no "unbind" action
 Already up to date.
+[main 24175fb3] chore(backlog): done – QuickApplyPicker has no "unbind" action
+ 7 files changed, 74 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - QuickApplyPicker has no "unbind" action
+- Added `onUnbind: (targetProperty: BindableProperty) => void` prop to `QuickApplyPickerProps`.
+- Added `handleUnbind()` that calls `onUnbind(activeProp)`.
+- Added keyboard shortcut: `Backspace`/`Delete` with empty query unbinds the current binding (with guard: only when `currentBinding` is set and not 'mixed').
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  9 queued · 3 in-progress · last took 1m36s
+═══════════════════════════════════════════════════════════════
+  → Color editor format cycling requires clicking through all 5 formats — hex/rgb/hsl/oklch/p3 are on a single cycle button with no way to jump directly to a specific format; users wanting oklch must click 3 times past hex/rgb/hsl (ValueEditors.tsx ColorEditor ~L185)
+  Worktree: /tmp/backlog-45818-rB55Sk
+  Running agent… (started 18:44:45)
+
+  ✓ done: Color editor format cycling requires clicking through all 5 formats
+    Replaced cycle button with a dropdown menu showing all 5 formats (hex/rgb/hsl/oklch/p3) for direct selection — no more clicking through intermediate formats
+    15 turns · 88s · $0.33
+
+  Merging to main: Color editor format cycling requires clicking through all 5 formats
+Already up to date.

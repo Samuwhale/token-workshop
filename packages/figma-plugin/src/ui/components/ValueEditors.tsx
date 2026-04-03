@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect, type Ref } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -127,16 +127,17 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
     else setFormat('hex');
   }, [formatRev]);
   const [editingText, setEditingText] = useState<string | null>(null);
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const wideGamut = isWideGamutColor(colorStr);
 
   const displayValue = editingText ?? formatHexAs(colorStr, format);
 
-  const cycleFormat = () => {
-    const next = FORMAT_CYCLE[(FORMAT_CYCLE.indexOf(format) + 1) % FORMAT_CYCLE.length];
-    setFormat(next);
-    lsSet(STORAGE_KEYS.COLOR_FORMAT, next);
+  const selectFormat = useCallback((f: ColorFormat) => {
+    setFormat(f);
+    lsSet(STORAGE_KEYS.COLOR_FORMAT, f);
     setEditingText(null);
-  };
+    setFormatMenuOpen(false);
+  }, []);
 
   const commitText = (text: string) => {
     const parsed = parseColorInput(text);
@@ -178,14 +179,37 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
           autoFocus={autoFocus}
           className={inputClass}
         />
-        <button
-          type="button"
-          onClick={cycleFormat}
-          title={`Format: ${format.toUpperCase()} (click to cycle)`}
-          className="shrink-0 px-1.5 py-1 rounded text-[10px] font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
-        >
-          {format}
-        </button>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setFormatMenuOpen(v => !v)}
+            title={`Format: ${format.toUpperCase()} — click to change`}
+            className="px-1.5 py-1 rounded text-[10px] font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
+          >
+            {format}
+          </button>
+          {formatMenuOpen && (
+            <div
+              className="absolute right-0 bottom-full mb-1 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-0.5 min-w-[56px]"
+              onMouseLeave={() => setFormatMenuOpen(false)}
+            >
+              {FORMAT_CYCLE.map(f => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => selectFormat(f)}
+                  className={`w-full text-left px-2 py-1 text-[10px] font-medium uppercase transition-colors ${
+                    f === format
+                      ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       {pickerOpen && (
         <ColorPicker

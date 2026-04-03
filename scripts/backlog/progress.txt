@@ -600,3 +600,11 @@
   - Showing the unbind button for 'mixed' binding state (multiple different tokens bound) is safe — the controller removes whatever binding each selected node has for that property.
   - Using `Backspace` as the keyboard shortcut matches the mental model (erase the binding); guarding on `query === ''` prevents accidental unbind while the user is typing.
 ---
+
+## 2026-04-03 - Color editor format cycling requires clicking through all 5 formats
+- Replaced the single cycle button with a dropdown menu showing all 5 formats (hex/rgb/hsl/oklch/p3) for direct selection. The button still shows the current format label; clicking it opens a small menu anchored above the button. The active format is highlighted; mouse-leave closes it. Format selection persists to localStorage as before.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L130-215
+- **Learnings for future iterations:**
+  - `onMouseLeave` on the dropdown container is a lightweight dismiss pattern that avoids global event listeners; suitable for small menus anchored to buttons in constrained layouts.
+  - `bottom-full mb-1` positions the menu above the trigger button, which is better when the color editor is near the bottom of a panel.
+---
