@@ -38,6 +38,14 @@ export class ConflictError extends HttpError {
   }
 }
 
+/** 408 Request Timeout — a git network operation (fetch/pull/push) exceeded the configured timeout */
+export class GitTimeoutError extends HttpError {
+  constructor(operation: string, timeoutMs: number) {
+    super(408, `Git ${operation} timed out after ${timeoutMs / 1000}s. Check your network connection or remote URL.`);
+    this.name = 'GitTimeoutError';
+  }
+}
+
 /**
  * If `err` is an HttpError, return its statusCode. Otherwise return undefined.
  */

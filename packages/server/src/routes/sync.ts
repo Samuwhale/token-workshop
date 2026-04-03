@@ -3,6 +3,7 @@ import type { Token } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { snapshotPaths } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
+import { handleRouteError } from '../errors.js';
 
 interface TokenChange {
   path: string;
@@ -156,7 +157,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.push();
       return { ok: true };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to push', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to push');
     }
   });
 
@@ -176,7 +177,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { ok: true, conflicts: [] };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to pull');
     }
   });
 
@@ -478,7 +479,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const changes = buildTokenDiff(fileDiffs);
       return { commits, changes, fileCount: fileDiffs.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compute push preview', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compute push preview');
     }
   });
 
@@ -492,7 +493,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const changes = buildTokenDiff(fileDiffs);
       return { commits, changes, fileCount: fileDiffs.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compute pull preview', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compute pull preview');
     }
   });
 
@@ -518,7 +519,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const diff = await fastify.gitSync.computeUnifiedDiff();
       return diff;
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compute diff', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compute diff');
     }
   });
 
@@ -536,7 +537,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           || result.pushFailed;
         return { ok: true, applied: !hasFailures, ...result };
       } catch (err) {
-        return reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
+        return handleRouteError(reply, err, 'Failed to apply diff');
       }
     },
   );

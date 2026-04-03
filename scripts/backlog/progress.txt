@@ -428,3 +428,17 @@
   - Snapshot before the try block, restore in the catch block — identical pattern to `syncBindings`'s per-node rollback at ~L782.
   - The `composition` token type applies multiple sub-properties; `captureNodeProps([targetProperty])` only captures the top-level property name (e.g., "composition"), which may not fully snapshot all affected sub-properties. This is an accepted limitation consistent with how `syncBindings` handles it.
 ---
+
+## 2026-04-03 - Git-sync operations timeout and hang indefinitely on network partition
+- Configured `simpleGit` with `timeout: { block: 30000 }` (30s) so the git subprocess is killed after 30 seconds on any operation.
+- Added `GitTimeoutError` (HTTP 408) to `packages/server/src/errors.ts` — stores operation name and timeout duration in the message.
+- Added `isTimeoutError(err)` (checks `err.message` for "timeout"/"timed out") and `wrapNetworkOp<T>(op, promise)` helper at the top of `git-sync.ts` — detects simple-git timeout kills and re-throws as `GitTimeoutError`.
+- Wrapped all network-facing git calls: `push()`, `pull()`, `fetch()`, and the internal `this.git.fetch()` calls inside `getPushPreview`, `getPullPreview`, `computeUnifiedDiff`; also the `git.push()` inside `applyDiffChoices` (re-throws instead of swallowing after setting `pushError`).
+- Updated sync routes for push, pull, push/preview, pull/preview, diff, and apply-diff to use `handleRouteError` so the 408 status propagates to the UI instead of a generic 500.
+- Files changed: `packages/server/src/errors.ts` ~L38, `packages/server/src/services/git-sync.ts` ~L1-35, ~L200, ~L260, ~L270, ~L490, ~L530, ~L560, ~L640, `packages/server/src/routes/sync.ts` ~L1, ~L156, ~L175, ~L485, ~L497, ~L523, ~L537
+- **Learnings for future iterations:**
+  - `simpleGit({ baseDir, timeout: { block: ms } })` — the constructor object form is required when passing options; `simpleGit(dir, opts)` is also valid but `timeout` only works in the options object.
+  - simple-git's timeout kills the child process and throws an error whose message contains "timeout" (lowercased check is robust across versions).
+  - `GitTimeoutError` extends `HttpError` so `handleRouteError` automatically maps it to 408 — no route-level `instanceof` check needed.
+  - Re-throwing `GitTimeoutError` from inside `applyDiffChoices`'s internal push catch is necessary because that catch sets `result.pushFailed` for the partial-failure path — but a timeout should abort the whole operation, not silently mark it as a soft failure.
+---

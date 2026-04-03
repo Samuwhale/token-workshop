@@ -218,3 +218,10 @@ Already up to date.
   → Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely — git-sync.ts uses `simple-git` for all git operations (lines 217, 222, 227, 295, 388, 451, 491, 533, 585, 598, 607) without any timeout configuration; a network partition or unresponsive remote will block the server's token lock (via withLock) indefinitely, preventing all other mutations; simple-git supports a `timeout` option in its constructor — configure a reasonable default (e.g. 30s for fetch/pull/push) and surface timeout errors as typed errors so the sync UI can show actionable feedback
   Worktree: /tmp/backlog-46178-hld0hK
   Running agent… (started 17:26:39)
+
+  ✓ done: Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely
+    Configured simpleGit with 30s timeout, added GitTimeoutError (408) typed error, wrapped all network-facing git operations with wrapNetworkOp helper, updated sync routes to use handleRouteError so the UI receives 408 with an actionable message
+    35 turns · 216s · $0.85
+
+  Merging to main: Server git-sync operations (pull, push, fetch, commit) have no timeout and can hang indefinitely
+Already up to date.

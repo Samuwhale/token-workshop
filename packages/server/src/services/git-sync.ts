@@ -1,6 +1,39 @@
 import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { GitTimeoutError } from '../errors.js';
+
+/**
+ * Timeout (ms) applied to all git network operations (fetch, pull, push).
+ * simple-git kills the spawned git process after this interval.
+ */
+const GIT_NETWORK_TIMEOUT_MS = 30_000;
+
+/**
+ * Detect whether a caught error originates from simple-git's timeout mechanism
+ * or from an OS-level "operation timed out" message.
+ */
+function isTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return msg.includes('timeout') || msg.includes('timed out');
+}
+
+/**
+ * Wrap a git network operation so that timeout errors surface as GitTimeoutError.
+ * @param op  The label used in the error message (e.g. "fetch", "pull", "push")
+ * @param promise  The simple-git promise to await
+ */
+async function wrapNetworkOp<T>(op: string, promise: Promise<T>): Promise<T> {
+  try {
+    return await promise;
+  } catch (err) {
+    if (isTimeoutError(err)) {
+      throw new GitTimeoutError(op, GIT_NETWORK_TIMEOUT_MS);
+    }
+    throw err;
+  }
+}
 
 /**
  * Normalize a git status letter to one of A, M, D.
@@ -166,7 +199,7 @@ export class GitSync {
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
-    this.git = simpleGit(this.dir);
+    this.git = simpleGit({ baseDir: this.dir, timeout: { block: GIT_NETWORK_TIMEOUT_MS } });
   }
 
   /** Validate a branch name is safe (not a flag, not empty, no control chars). */
@@ -219,14 +252,15 @@ export class GitSync {
   }
 
   async push(): Promise<void> {
-    await this.git.push();
+    await wrapNetworkOp('push', this.git.push());
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
     try {
-      await this.git.pull();
+      await wrapNetworkOp('pull', this.git.pull());
       return { conflicts: [] };
     } catch (err) {
+      if (err instanceof GitTimeoutError) throw err;
       // Check if the pull resulted in merge conflicts
       const conflicted = await this.getConflictedFiles();
       if (conflicted.length > 0) {
@@ -385,7 +419,7 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    await this.git.fetch();
+    await wrapNetworkOp('fetch', this.git.fetch());
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
@@ -448,7 +482,7 @@ export class GitSync {
     commits: Array<{ hash: string; date: string; message: string; author: string }>;
     fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
   }> {
-    await this.git.fetch();
+    await wrapNetworkOp('fetch', this.git.fetch());
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -488,7 +522,7 @@ export class GitSync {
     commits: Array<{ hash: string; date: string; message: string; author: string }>;
     fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
   }> {
-    await this.git.fetch();
+    await wrapNetworkOp('fetch', this.git.fetch());
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -530,7 +564,7 @@ export class GitSync {
     remoteOnly: string[];
     conflicts: string[];
   }> {
-    await this.git.fetch();
+    await wrapNetworkOp('fetch', this.git.fetch());
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -604,11 +638,12 @@ export class GitSync {
       }
       if (pushCommitSucceeded) {
         try {
-          await this.git.push();
+          await wrapNetworkOp('push', this.git.push());
         } catch (err) {
           console.warn('[GitSync] Push to remote failed:', err);
           result.pushFailed = true;
           result.pushError = String(err);
+          if (err instanceof GitTimeoutError) throw err;
         }
       }
     }
