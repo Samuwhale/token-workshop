@@ -282,7 +282,7 @@ export class OperationLog {
   // ---------------------------------------------------------------------------
 
   /** Roll back an operation by restoring structural state and token snapshots. */
-  async rollback(id: string, ctx: RollbackContext): Promise<{ restoredPaths: string[] }> {
+  async rollback(id: string, ctx: RollbackContext): Promise<{ restoredPaths: string[]; rollbackEntryId: string }> {
     await this.ensureLoaded();
     const entry = this.entries.find(e => e.id === id);
     if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
@@ -333,7 +333,7 @@ export class OperationLog {
     entry.rolledBack = true;
 
     // Record the rollback as its own operation
-    await this.record({
+    const rollbackEntry = await this.record({
       type: 'rollback',
       description: `Undo: ${entry.description}`,
       setName: entry.setName,
@@ -344,7 +344,7 @@ export class OperationLog {
     });
 
     await this.persist();
-    return { restoredPaths: Object.keys(entry.beforeSnapshot) };
+    return { restoredPaths: Object.keys(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
   }
 
 }

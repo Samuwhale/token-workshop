@@ -24,6 +24,10 @@ interface RecentActionsSourceProps {
   hasMore?: boolean;
   /** Load the next batch of operations */
   onLoadMore?: () => void;
+  /** Set of original op IDs that currently have a server redo available */
+  redoableOpIds?: Set<string>;
+  /** Redo a previously rolled-back operation by its original op ID */
+  onServerRedo?: (opId: string) => void;
 }
 
 /** Icon for each operation type */
@@ -55,8 +59,9 @@ function OpIcon({ type }: { type: string }) {
   return <svg {...props}><circle cx="12" cy="12" r="3" /></svg>;
 }
 
-export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab, total, hasMore, onLoadMore }: RecentActionsSourceProps) {
+export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab, total, hasMore, onLoadMore, redoableOpIds, onServerRedo }: RecentActionsSourceProps) {
   const [rollingBack, setRollingBack] = useState<string | null>(null);
+  const [redoing, setRedoing] = useState<string | null>(null);
   const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
   const [localOpen, setLocalOpen] = useState(true);
   const [serverOpen, setServerOpen] = useState(true);
@@ -72,6 +77,16 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
       setRollingBack(null);
     }
   }, [onRollback]);
+
+  const handleRedo = useCallback(async (opId: string) => {
+    if (!onServerRedo) return;
+    setRedoing(opId);
+    try {
+      await onServerRedo(opId);
+    } finally {
+      setRedoing(null);
+    }
+  }, [onServerRedo]);
 
   // Derive unique op types for the dropdown
   const opTypes = Array.from(new Set(recentOperations.map(op => op.type))).sort();
@@ -264,11 +279,28 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       </span>
                     </div>
                   </div>
-                  <div className="shrink-0 mt-0.5">
+                  <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {op.rolledBack ? (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
-                        Rolled back
-                      </span>
+                      <>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                          Rolled back
+                        </span>
+                        {redoableOpIds?.has(op.id) && onServerRedo && (
+                          <button
+                            onClick={() => handleRedo(op.id)}
+                            disabled={redoing !== null || rollingBack !== null}
+                            title="Redo this operation (⌘Y)"
+                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                          >
+                            {redoing === op.id ? (
+                              <span className="flex items-center gap-1">
+                                <Spinner size="xs" />
+                                Redoing…
+                              </span>
+                            ) : 'Redo'}
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <button
                         onClick={() => setConfirmOp(op)}

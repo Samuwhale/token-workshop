@@ -157,9 +157,13 @@ interface HistoryPanelProps {
   onRollback?: (opId: string) => void;
   /** Descriptions of local undo stack entries (most recent last) */
   undoDescriptions?: string[];
+  /** Set of original op IDs that currently have a server redo available */
+  redoableOpIds?: Set<string>;
+  /** Redo a previously rolled-back server operation by its original op ID */
+  onServerRedo?: (opId: string) => void;
 }
 
-export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions }: HistoryPanelProps) {
+export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo }: HistoryPanelProps) {
   const [source, setSource] = useState<HistorySource>('actions');
 
   if (!connected) {
@@ -227,6 +231,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           total={totalOperations}
           hasMore={hasMoreOperations}
           onLoadMore={onLoadMoreOperations}
+          redoableOpIds={redoableOpIds}
+          onServerRedo={onServerRedo}
         />
       ) : source === 'commits' ? (
         <GitCommitsSource

@@ -26,3 +26,11 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: No unused token detection anywhere in the product
 Already up to date.
+[main 0848abd3] chore(backlog): done – No unused token detection anywhere in the product
+ 9 files changed, 161 insertions(+), 13 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No unused token detection anywhere in the product
+- Implemented two surfaces for unused token detection (tokens with zero Figma usage AND no alias dependents):
+  1. **AnalyticsPanel "Unused Tokens" section** (Ship > Validation tab): collapsible section showing count + scrollable list of unused tokens with path, type, and set. Shows a notice when no Figma usage data is available. Clicking a token navigates to it in the token list.
+  2. **`has:unused` search qualifier** in TokenList search: users can type `has:unused` in the search bar to filter to unused tokens only. Follows the same pattern as `has:duplicate`, `has:generated`, etc.

@@ -371,3 +371,17 @@
   - When extending `filterTokenNodes` with a new `has:` qualifier that requires pre-computed context (like a Set of paths), add it as an optional trailing parameter and pass `undefined` from existing call sites — no existing callers break.
   - The `tokenUsageCounts` data in App.tsx is populated only when the user visits Define > Tokens tab. Show a clear "requires scan" message in Analytics when the map is empty.
 ---
+
+## 2026-04-03 - HistoryPanel has no redo
+- Implemented server-side redo stack for rolled-back operations:
+  - `operation-log.ts`: `rollback()` now returns `{ restoredPaths, rollbackEntryId }` — the ID of the newly created rollback entry, enabling the client to track which operation can re-rollback it as a redo
+  - `useRecentOperations.ts`: Added `redoEntries` state (array of `{ origOpId, rollbackId, description }`). `handleRollback` now pushes to redo entries on success. New `handleServerRedo(opId?)` function that calls rollback on the stored rollback entry ID, then pops it from the redo stack. Exposes `canServerRedo`, `serverRedoDescription`, `redoableOpIds` (Set of original op IDs with redo available)
+  - `App.tsx`: Destructured new redo values; added `useEffect` keyboard handler for Cmd+Y / Cmd+Shift+Z that triggers `handleServerRedo` when no local redo is available (`!canRedo && canServerRedo`); extended `undoToast` to include server redo in `visible`, `canRedo`, `redoDescription`, and `onRedo`
+  - `HistoryPanel.tsx`: Added `redoableOpIds` and `onServerRedo` props; passes them to `RecentActionsSource`
+  - `RecentActionsSource.tsx`: Added `redoableOpIds` and `onServerRedo` props; added `redoing` state; added `handleRedo` callback; for rolled-back ops that have a redo entry, shows a "Redo" button alongside the "Rolled back" badge (hover-visible, same styling as the Rollback button)
+- Files changed: `packages/server/src/services/operation-log.ts` ~L335, `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` (full rewrite), `packages/figma-plugin/src/ui/App.tsx` ~L393, ~L2277, ~L2825, `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L157, ~L162, ~L222, `packages/figma-plugin/src/ui/components/RecentActionsSource.tsx` ~L16, ~L58, ~L66, ~L267
+- **Learnings for future iterations:**
+  - The server already supports redo at the data level (rollback-of-a-rollback), so the key work is client-side redo stack tracking — capture the rollback entry ID from the rollback response and store it
+  - Use the stable callback ref pattern for keyboard handlers that depend on many state variables (avoids re-registering on every render while still reading current values)
+  - The undoToast visible state should be `toastVisible || canServerRedo` so the Redo button in the toast is accessible even when no local undo actions are in flight
+---

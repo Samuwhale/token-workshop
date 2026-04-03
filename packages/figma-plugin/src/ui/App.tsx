@@ -390,7 +390,29 @@ export function App() {
   }, [allTokensFlat, setSuccessToast]);
 
   // Server-side operation log for undo/rollback
-  const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
+  const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback, handleServerRedo, canServerRedo, serverRedoDescription, redoableOpIds } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
+
+  // Keyboard shortcut for server redo (Cmd+Y / Cmd+Shift+Z) when no local redo is available
+  const serverRedoRef = useRef(handleServerRedo);
+  serverRedoRef.current = handleServerRedo;
+  const canServerRedoRef = useRef(canServerRedo);
+  canServerRedoRef.current = canServerRedo;
+  const canRedoRef = useRef(canRedo);
+  canRedoRef.current = canRedo;
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
+      if (((e.key === 'z' && e.shiftKey) || e.key === 'y') && canServerRedoRef.current && !canRedoRef.current) {
+        e.preventDefault();
+        serverRedoRef.current();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const handlePreviewEdit = useCallback(() => {
@@ -2264,7 +2286,7 @@ export function App() {
           {/* History sub-tab (Ship > History) — git commits + snapshots */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} totalOperations={totalOperations} hasMoreOperations={hasMoreOperations} onLoadMoreOperations={loadMoreOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} />
+              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} totalOperations={totalOperations} hasMoreOperations={hasMoreOperations} onLoadMoreOperations={loadMoreOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} redoableOpIds={redoableOpIds} onServerRedo={handleServerRedo} />
               </ErrorBoundary>
           )}
 
@@ -2833,14 +2855,14 @@ export function App() {
         toasts={toastStack}
         onDismiss={dismissStackToast}
         undoToast={{
-          visible: toastVisible,
+          visible: toastVisible || canServerRedo,
           description: undoSlot?.description ?? null,
           onUndo: executeUndo,
           onDismiss: dismissToast,
           canUndo,
-          canRedo,
-          redoDescription: redoSlot?.description,
-          onRedo: executeRedo,
+          canRedo: canRedo || canServerRedo,
+          redoDescription: redoSlot?.description ?? serverRedoDescription,
+          onRedo: canRedo ? executeRedo : handleServerRedo,
           undoCount,
         }}
       />

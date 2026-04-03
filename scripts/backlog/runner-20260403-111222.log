@@ -19,3 +19,10 @@ NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
   → [HIGH] HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
   Worktree: /tmp/backlog-21315-QfHfdu
   Running agent… (started 11:12:22)
+
+  ✓ done: HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
+    Server rollback now returns rollbackEntryId; client tracks a redo stack in useRecentOperations; Redo button appears on rolled-back ops in HistoryPanel; Cmd+Y triggers server redo when no local redo available; undoToast extended to show server redo
+    47 turns · 508s · $1.79
+
+  Merging to main: HistoryPanel has no redo — the operation log and undo stack are one-directional; after rolling back an operation there is no way to re-apply it; implement a redo stack that tracks rolled-back operations and exposes a "Redo" button and Cmd+Y shortcut alongside the existing "Undo" controls (HistoryPanel.tsx, useUndo.ts, operation-log.ts)
+Already up to date.
