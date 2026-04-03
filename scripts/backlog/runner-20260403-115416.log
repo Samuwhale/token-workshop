@@ -162,3 +162,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox: fmtValue consolidation (6 dupes), ThemeManager drag-reorder, TokenFlowPanel empty state, command palette value search, ConsistencyPanel all-pages scope, cross-set value find-replace, batch description editing, export copy-to-clipboard, theme option bulk assignment, analytics bar charts, pinned tokens in command palette, generator overwrite warning
+Already up to date.

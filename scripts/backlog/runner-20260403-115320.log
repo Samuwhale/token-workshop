@@ -171,3 +171,18 @@ Already up to date.
 
   Merging to main: No token reference format picker when copying a token path
 Already up to date.
+[main ffe8412a] chore(backlog): done – No token reference format picker when copying a token path
+ 8 files changed, 114 insertions(+), 74 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-03 - No token reference format picker when copying a token path
+- Replaced 7-10 flat copy buttons in the context menu (TokenTreeNode.tsx) with a compact "Copy as…" format-pill section: keeps "Copy path" as a full button with `C` shortcut, then shows pill buttons for `CSS var`, `{ref}`, `$scss`, `value` (V), and `JSON` (J) in a single compact row. Color tokens get a second row with `hex`, `rgb()`, `hsl()`, `oklch()`, `p3` pills.
+- Added `{ref}` (DTCG alias format) button to CommandPalette.tsx token rows alongside the existing `Path`, `Val`, `CSS` action buttons.
+- Added `onCopyTokenRef` prop to `CommandPalette` and wired it up in `App.tsx`.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  2 queued · 3 in-progress · last took 5m23s
+═══════════════════════════════════════════════════════════════
+  → Duplicate `extractApplyResult` functions and sync boilerplate across useFigmaSync.ts, useStyleSync.ts, and useVariableSync.ts — all three hooks define identical `{ count, total, failures }` extraction functions (useFigmaSync.ts:8-12, useStyleSync.ts:40-44, useVariableSync.ts:22-26) and share the same response shape; useStyleSync and useVariableSync already use `useTokenSyncBase` but useFigmaSync duplicates that base logic manually with its own state management; consolidate the shared extraction into a single module and migrate useFigmaSync to use useTokenSyncBase
+  Worktree: /tmp/backlog-80049-3n7ysq
+  Running agent… (started 12:16:27)

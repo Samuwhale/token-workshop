@@ -350,3 +350,9 @@
   - Format pill sections save significant vertical menu space when there are 5+ format variants — reduces to 1-2 compact rows vs. 7-10 full-height items.
   - The CSS var copy format should be `var(--token-path)` (usage form) not `--token-path` (declaration form); the context menu was already correct but the App.tsx handler was returning only the declaration form.
 ---
+
+## 2026-04-03 - product-pass
+- Areas explored: App.tsx (navigation/tab structure, 2945 lines), all 79 UI components (43,810 lines total), all 43 hooks (7,238 lines), all server routes (tokens, sets, themes, generators, export, resolvers, git-sync, operations, snapshots, lint), all server services (token-store, generator-service, resolver-store, operation-log, git-sync, style-dict, manual-snapshot), plugin sandbox (controller, variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner)
+- Found 12 items — written to backlog-inbox.md
+- Notable: six independent `fmtValue`/`formatValue`/`formatTokenValue` implementations across the codebase with subtly different type handling — a consolidation opportunity that affects ComparePanel, CrossThemeComparePanel, tokenListUtils, generatorShared, changeHelpers, and selectionInspectorUtils
+---
