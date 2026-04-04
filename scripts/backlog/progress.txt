@@ -845,3 +845,19 @@
   - Dead state (`showSuppressed`) set via CTA but never consumed in JSX is easy to introduce when CTAs navigate or toggle UI state that no longer exists — audit CTA handlers when restructuring JSX
   - Removing a `useState` declaration whose setter is still referenced in JSX will cause TypeScript compile errors, not ESLint warnings — both the declaration and all call sites must be removed together
 ---
+
+## 2026-04-04 - Consolidate four comparison components into single CompareView
+- Merged `ComparePanel.tsx` (380 lines), `CrossThemeComparePanel.tsx` (285 lines), `ThemeCompare.tsx` (452 lines), and `UnifiedComparePanel.tsx` (162 lines) into a single `CompareView.tsx` (1227 lines)
+- Shared primitives extracted: `ColorSwatch({ value })` using `swatchBgColor()` throughout; `useCopyFeedback(onError?)` hook replacing 3 inline `useState(false) + setTimeout` copy-feedback patterns
+- Module-level helpers lifted out: `getPropertyKeys`, `fmtProp`, `buildFlatOptions`, `FlatOption` type, `ResolvedToken` interface, `OptionResult` interface
+- Private mode components: `TokenValuesMode` (replaces ComparePanel), `CrossThemeMode` (replaces CrossThemeComparePanel), `ThemeOptionsMode` (replaces ThemeCompare)
+- Public exports: `CompareView` (replaces `UnifiedComparePanel`), `CompareMode` type
+- Updated `ThemeManager.tsx` L11-12 to import from `./CompareView`; changed `<UnifiedComparePanel` → `<CompareView` in JSX
+- Deleted: `ComparePanel.tsx`, `CrossThemeComparePanel.tsx`, `ThemeCompare.tsx`, `UnifiedComparePanel.tsx`
+- Files changed: `packages/figma-plugin/src/ui/components/CompareView.tsx` (new), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L11-12,509
+- **Learnings for future iterations:**
+  - `formatTokenValueForDisplay(type, value)` takes type first — the old local `fmtValue(value, type)` wrappers had reversed args; swap at every call site when removing the wrapper
+  - `ColorSwatch` with `swatchBgColor()` handles both hex (`#RRGGBB`) and CSS Color 4 strings; only null-guard when `value.startsWith('#')` and fails the hex regex
+  - `useCopyFeedback(onError?)` pattern: keep optional `onError` so consumers that need side-effects (like `postMessage` on clipboard deny) can pass it without adding extra state
+  - ThemeOptionsMode `handleCopyError` must be declared with `useCallback` before `useCopyFeedback` call to avoid TDZ — but since it only calls `parent.postMessage` (stable global), wrapping in `useCallback([])` is fine and prevents ESLint exhaustive-deps warnings
+---

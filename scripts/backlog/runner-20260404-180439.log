@@ -519,3 +519,26 @@ Already up to date.
 
   Merging to main: Merge HealthPanel into the Validation sub-tab
 Already up to date.
+[main 300312e0] chore(backlog): done – Merge HealthPanel into the Validation sub-tab
+ 7 files changed, 304 insertions(+), 246 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Merge HealthPanel into the Validation sub-tab
+- Renamed the "health" sub-tab to "validation" across the codebase and restructured HealthPanel.tsx so validation is the primary content
+- Changes:
+  - `App.tsx`: `ShipSubTab` type `'health'` → `'validation'`; `TOP_TABS` label "Health" → "Validation"; three `navigateTo('ship', 'health')` calls updated; command palette entry "Token Health Dashboard" → "Token Validation"; menu item "Health & Analysis" → "Validation"
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  16 queued · 0
+0 in-progress · last took 10m5s
+═══════════════════════════════════════════════════════════════
+  → Consolidate the four comparison components into a single parameterized compare view — ComparePanel.tsx (379 lines), CrossThemeComparePanel.tsx (284 lines), ThemeCompare.tsx (452 lines), and UnifiedComparePanel.tsx (162 lines) implement three comparison modes that share ~60% of their rendering logic (side-by-side value columns, color swatches, diff indicators, CSV export); a single CompareView component parameterized by data source (selected tokens, theme options, single token × themes) would halve the code and make the comparison UX consistent across modes
+  Worktree: /tmp/backlog-3108-CslbJS
+  Running agent… (started 21:18:49)
+
+  ✓ done: Consolidate the four comparison components into a single parameterized compare view
+    Merged ComparePanel, CrossThemeComparePanel, ThemeCompare, UnifiedComparePanel → single CompareView.tsx (1227 lines from 1279 across 4 files); shared ColorSwatch and useCopyFeedback primitives; updated ThemeManager.tsx; all 4 validation gates pass
+    25 turns · 745s · $1.97
+
+  Merging to main: Consolidate the four comparison components into a single parameterized compare view
+Already up to date.

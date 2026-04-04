@@ -8,8 +8,8 @@ import type { CoverageToken } from './themeManagerTypes';
 import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
-import { UnifiedComparePanel } from './UnifiedComparePanel';
-import type { CompareMode } from './UnifiedComparePanel';
+import { CompareView } from './CompareView';
+import type { CompareMode } from './CompareView';
 import type { TokenMapEntry } from '../../shared/types';
 import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
 import { useThemeDimensions } from '../hooks/useThemeDimensions';
@@ -506,7 +506,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             </button>
           </div>
           <div className="flex-1 overflow-hidden">
-            <UnifiedComparePanel
+            <CompareView
               mode={compareMode}
               onModeChange={setCompareMode}
               tokenPaths={compareTokenPaths}
