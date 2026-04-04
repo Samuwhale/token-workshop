@@ -474,3 +474,17 @@
   - `truncateValue` was missing from PublishPanel.tsx but used in many render paths — esbuild silently swallows undefined-function references when they're not in hot paths hit by the headless UI test.
   - The set-level grouping pattern: `Map<setName, {added, modified, removed}>` built from `TokenChange[]` via a single pass, then spread to an array for rendering.
 ---
+
+## 2026-04-04 - App.tsx render block extracted into PanelRouter
+- Replaced the 2100+ line render block in App.tsx (lines ~1160–2545) with a PanelRouter component, reducing the conditional matrix of 15× `activeTopTab === X && activeSubTab === Y` guards and 31× `overflowPanel ===` checks to a single lookup-table dispatch.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ErrorBoundary.tsx` (new — extracted from App.tsx)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` (new — ~600 lines, PANEL_MAP routing)
+  - `packages/figma-plugin/src/ui/App.tsx` (3278 → ~2888 lines; replaced panel block with `<PanelRouter ...props/>`)
+  - `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` (exported `OperationEntry` type)
+- Architecture: PanelRouter calls all 4 context hooks (ConnectionContext, TokenDataContext, ThemeContext, InspectContext) directly, so it receives only App-local state (~90 props) rather than the full ~140-prop set. PANEL_MAP is a `Record<TopTab, Partial<Record<SubTab, () => ReactNode>>>` lookup; adding a new tab is now O(1).
+- **Learnings for future iterations:**
+  - Function declarations are hoisted in JS, so render functions like `function renderDefineTokens()` can be declared *after* the `return` statement and still be referenced in the PANEL_MAP object defined before that return — no need to reorder.
+  - Overflow panels (import, settings) are handled via early `if` checks in PanelRouter before the PANEL_MAP lookup, since they supersede the active tab.
+  - `export type TopTab`, `export type SubTab`, `export type OverflowPanel` must be added to App.tsx so PanelRouter can import them without circular deps.
+---

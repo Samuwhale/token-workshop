@@ -1,21 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useMemo, Component } from 'react';
-import type { ReactNode, ErrorInfo } from 'react';
-import { TokenList } from './components/TokenList';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import type { TokenListImperativeHandle } from './components/tokenListTypes';
-import { TokenEditor } from './components/TokenEditor';
-import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import type { ThemeManagerHandle } from './components/ThemeManager';
-import { ResolverPanel } from './components/ResolverPanel';
-import { PublishPanel } from './components/PublishPanel';
-import { ImportPanel } from './components/ImportPanel';
-import { AnalyticsPanel } from './components/AnalyticsPanel';
-import { SelectionInspector } from './components/SelectionInspector';
+import { TokenEditor } from './components/TokenEditor';
+import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
 import { useToastStack } from './hooks/useToastStack';
 import { ConfirmModal } from './components/ConfirmModal';
-import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
 import { QuickStartDialog } from './components/QuickStartDialog';
 import { QuickStartWizard } from './components/QuickStartWizard';
@@ -26,15 +19,10 @@ import type { Command, TokenEntry } from './components/CommandPalette';
 import { SetSwitcher } from './components/SetSwitcher';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
-import { SettingsPanel } from './components/SettingsPanel';
-import { PreviewPanel } from './components/PreviewPanel';
-import { CanvasAuditPanel } from './components/CanvasAuditPanel';
-import { GraphPanel } from './components/GraphPanel';
-import { GRAPH_TEMPLATES } from './components/graph-templates';
-import { TokenFlowPanel } from './components/TokenFlowPanel';
-import { ExportPanel } from './components/ExportPanel';
-import { HistoryPanel } from './components/HistoryPanel';
 import { HealthPanel, computeHealthIssueCount } from './components/HealthPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { PanelRouter } from './panels/PanelRouter';
+import { GRAPH_TEMPLATES } from './components/graph-templates';
 import { useServerEvents } from './hooks/useServerEvents';
 import type { TokenNode } from './hooks/useTokens';
 import { useUndo } from './hooks/useUndo';
@@ -84,50 +72,14 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string; onReset?: () => void }, { error: Error | null }> {
-  state = { error: null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.error(`[ErrorBoundary${this.props.panelName ? `:${this.props.panelName}` : ''}]`, error, info); }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
-          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">
-            {this.props.panelName ? `${this.props.panelName} crashed` : 'Something went wrong'}
-          </p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all max-w-xs">
-            {(this.state.error as Error).message}
-          </p>
-          <div className="flex gap-2">
-            {this.props.onReset && (
-              <button
-                onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }}
-                className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Dismiss
-              </button>
-            )}
-            <button
-              onClick={() => window.location.reload()}
-              className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-            >
-              Reload
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
-type TopTab = 'define' | 'apply' | 'ship';
+export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'health';
-type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
+export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
+export type OverflowPanel = 'import' | 'settings' | null;
 
 type FolderTreeNode = {
   name: string;   // display name (first path segment, e.g. 'brands')
@@ -187,8 +139,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
 
 const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = { define: 'tokens', apply: 'inspect', ship: 'publish' };
 const SUB_TAB_STORAGE: Record<TopTab, string> = { define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP };
-
-type OverflowPanel = 'import' | 'settings' | null;
 
 
 export function App() {
@@ -2142,45 +2092,104 @@ export function App() {
             );
           })()}
           <div className="flex-1 overflow-y-auto">
-          {/* Overflow panels */}
-          {overflowPanel === 'import' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Import</span>
-              </div>
-              <ErrorBoundary panelName="Import" onReset={() => setOverflowPanel(null)}>
-              <ImportPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                onImported={refreshTokens}
-                onImportComplete={(importedSet) => {
-                  navigateTo('define', 'tokens');
-                  setActiveSet(importedSet);
-                }}
-              />
-              </ErrorBoundary>
-            </>
-          )}
-          {overflowPanel === 'settings' && (
-            <SettingsPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              checking={checking}
+            {/* Panels — routed by (activeTopTab, activeSubTab) and overflowPanel */}
+            <PanelRouter
+              activeTopTab={activeTopTab}
+              activeSubTab={activeSubTab}
+              overflowPanel={overflowPanel}
+              navigateTo={navigateTo}
+              setOverflowPanel={setOverflowPanel}
+              setPendingHighlight={setPendingHighlight}
+              handleNavigateToAlias={handleNavigateToAlias}
+              handleNavigateBack={handleNavigateBack}
+              navHistoryLength={navHistory.length}
+              editingToken={editingToken}
+              setEditingToken={setEditingToken}
+              previewingToken={previewingToken}
+              setPreviewingToken={setPreviewingToken}
+              highlightedToken={highlightedToken}
+              setHighlightedToken={setHighlightedToken}
+              createFromEmpty={createFromEmpty}
+              useSidePanel={useSidePanel}
+              showPreviewSplit={showPreviewSplit}
+              setShowPreviewSplit={setShowPreviewSplit}
+              guardEditorAction={guardEditorAction}
+              editorIsDirtyRef={editorIsDirtyRef}
+              editorCloseRef={editorCloseRef}
+              displayedLeafNodesRef={displayedLeafNodesRef}
+              tokenListCompareRef={tokenListCompareRef}
+              handleEditorNavigate={handleEditorNavigate}
+              handleEditorSave={handleEditorSave}
+              handleEditorSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
+              handlePreviewEdit={handlePreviewEdit}
+              handlePreviewClose={handlePreviewClose}
+              splitRatio={splitRatio}
+              splitValueNow={splitValueNow}
+              splitContainerRef={splitContainerRef}
+              handleSplitDragStart={handleSplitDragStart}
+              handleSplitKeyDown={handleSplitKeyDown}
+              availableFonts={availableFonts}
+              fontWeightsByFamily={fontWeightsByFamily}
+              showIssuesOnly={showIssuesOnly}
+              setShowIssuesOnly={setShowIssuesOnly}
+              showValidationReturn={showValidationReturn}
+              setShowValidationReturn={setShowValidationReturn}
+              effectiveTokens={effectiveTokens}
+              lintViolations={lintViolations}
+              cascadeDiff={cascadeDiff ?? null}
+              setValidateKey={setValidateKey}
+              validationIssues={validationIssues}
+              validationSummary={validationSummary}
+              validationLoading={validationLoading}
+              validationError={validationError}
+              validationLastRefreshed={validationLastRefreshed}
+              validationIsStale={validationIsStale}
+              refreshValidation={refreshValidation}
+              analyticsIssueCount={analyticsIssueCount}
+              setAnalyticsIssueCount={setAnalyticsIssueCount}
+              historyFilterPath={historyFilterPath}
+              setHistoryFilterPath={setHistoryFilterPath}
+              recentOperations={recentOperations}
+              totalOperations={totalOperations}
+              hasMoreOperations={hasMoreOperations}
+              loadMoreOperations={loadMoreOperations}
+              handleRollback={handleRollback}
+              handleServerRedo={handleServerRedo}
+              undoDescriptions={undoDescriptions}
+              redoableOpIds={redoableOpIds}
+              setSyncGroupPending={setSyncGroupPending}
+              setSyncGroupStylesPending={setSyncGroupStylesPending}
+              setGroupScopesPath={setGroupScopesPath}
+              setGroupScopesSelected={setGroupScopesSelected}
+              setGroupScopesError={setGroupScopesError}
+              tokenChangeKey={tokenChangeKey}
+              pendingGraphTemplate={pendingGraphTemplate}
+              setPendingGraphTemplate={setPendingGraphTemplate}
+              pendingGraphFromGroup={pendingGraphFromGroup}
+              setPendingGraphFromGroup={setPendingGraphFromGroup}
+              focusGeneratorId={focusGeneratorId}
+              setFocusGeneratorId={setFocusGeneratorId}
+              themeManagerHandleRef={themeManagerHandleRef}
+              refreshAll={refreshAll}
+              pushUndo={pushUndo}
+              setErrorToast={setErrorToast}
+              handleNavigateToSet={handleNavigateToSet}
+              setFlowPanelInitialPath={setFlowPanelInitialPath}
+              flowPanelInitialPath={flowPanelInitialPath}
+              handleOpenTokenCompare={handleOpenTokenCompare}
+              handleOpenCrossThemeCompare={handleOpenCrossThemeCompare}
+              handleNavigateToGenerator={handleNavigateToGenerator}
+              setThemeGapCount={setThemeGapCount}
+              triggerCreateToken={triggerCreateToken}
+              paletteRecentlyTouched={paletteRecentlyTouched}
+              onShowPasteModal={() => setShowPasteModal(true)}
+              onShowScaffoldWizard={() => setShowScaffoldWizard(true)}
+              onShowColorScaleGen={() => setShowColorScaleGen(true)}
+              onShowGuidedSetup={() => setShowGuidedSetup(true)}
               serverUrlInput={serverUrlInput}
               setServerUrlInput={setServerUrlInput}
               connectResult={connectResult}
               setConnectResult={setConnectResult}
-              updateServerUrlAndConnect={updateServerUrlAndConnect}
               advancedModeOverride={advancedModeOverride}
               setAdvancedModeOverride={setAdvancedModeOverride}
               undoMaxHistory={undoMaxHistory}
@@ -2189,408 +2198,9 @@ export function App() {
               setShowClearConfirm={setShowClearConfirm}
               clearConfirmText={clearConfirmText}
               setClearConfirmText={setClearConfirmText}
-              onClearAll={handleClearAll}
+              handleClearAll={handleClearAll}
               clearing={clearing}
-              onClose={() => setOverflowPanel(null)}
             />
-          )}
-
-          {/* Heatmap panel */}
-          {/* Main tab panels */}
-          {showValidationReturn && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-accent)]/10 border-b border-[var(--color-figma-accent)]/20 shrink-0">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">Fix the token, then return to re-validate.</span>
-              <button
-                onClick={() => { navigateTo('ship', 'validation'); setShowValidationReturn(false); }}
-                className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
-              >
-                Back to Validation
-              </button>
-              <button
-                onClick={() => setShowValidationReturn(false)}
-                className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
-                aria-label="Dismiss"
-              >
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (fetchError || tokensError) && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">Failed to load tokens: {fetchError || tokensError}</span>
-              <button
-                onClick={refreshTokens}
-                className="text-[10px] px-2 py-0.5 rounded border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && effectiveTokens.length === 0 && !createFromEmpty && !editingToken && (
-            <EmptyState
-              connected={connected}
-              onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
-              onPasteJSON={() => setShowPasteModal(true)}
-              onImportFigma={() => openOverflowPanel('import')}
-              onUsePreset={() => setShowScaffoldWizard(true)}
-              onGenerateColorScale={() => setShowColorScaleGen(true)}
-              onGoToGraph={() => { navigateTo('define', 'generators'); setShowScaffoldWizard(true); }}
-              onGuidedSetup={() => setShowGuidedSetup(true)}
-            />
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (effectiveTokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
-            useSidePanel ? (
-              <div className="flex h-full overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <TokenList
-                    ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                    data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                    actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
-                    defaultCreateOpen={createFromEmpty}
-                    highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
-                    showIssuesOnly={showIssuesOnly}
-                    editingTokenPath={editingToken?.path}
-                    compareHandle={tokenListCompareRef}
-                  />
-                </div>
-                <div
-                  className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden"
-                  onKeyDown={(e) => {
-                    if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-                      e.preventDefault();
-                      handleEditorNavigate(e.key === ']' ? 1 : -1);
-                    }
-                  }}
-                >
-                  {editingToken ? (
-                  <TokenEditor
-                    tokenPath={editingToken.path}
-                    tokenName={editingToken.name}
-                    setName={editingToken.set}
-                    serverUrl={serverUrl}
-                    onBack={handleEditorClose}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    generators={generators}
-                    allSets={sets}
-                    onRefreshGenerators={refreshGenerators}
-                    isCreateMode={editingToken.isCreate}
-                    initialType={editingToken.initialType}
-                    initialValue={editingToken.initialValue}
-                    onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
-                    closeRef={editorCloseRef}
-                    onSaved={handleEditorSave}
-                    onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
-                    dimensions={dimensions}
-                    perSetFlat={perSetFlat}
-                    onRefresh={refreshAll}
-                    availableFonts={availableFonts}
-                    fontWeightsByFamily={fontWeightsByFamily}
-                    derivedTokenPaths={derivedTokenPaths}
-                    onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
-                    onNavigateToToken={handleNavigateToAlias}
-                    onNavigateToGenerator={handleNavigateToGenerator}
-                  />
-                  ) : previewingToken ? (
-                  <TokenDetailPreview
-                    tokenPath={previewingToken.path}
-                    tokenName={previewingToken.name}
-                    setName={previewingToken.set}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    dimensions={dimensions}
-                    activeThemes={activeThemes}
-                    serverUrl={serverUrl}
-                    onEdit={handlePreviewEdit}
-                    onClose={handlePreviewClose}
-                    onNavigateToAlias={handleNavigateToAlias}
-                  />
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <TokenList
-                ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
-                defaultCreateOpen={createFromEmpty}
-                highlightedToken={highlightedToken}
-                showIssuesOnly={showIssuesOnly}
-                editingTokenPath={editingToken?.path}
-                compareHandle={tokenListCompareRef}
-              />
-            )
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (effectiveTokens.length > 0 || createFromEmpty) && showPreviewSplit && (
-            <div ref={splitContainerRef} className="flex flex-col h-full overflow-hidden">
-              <div style={{ height: `${splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
-                <TokenList
-                  ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
-                  actions={{ onEdit: (path, name) => guardEditorAction(() => { setEditingToken({ path, name, set: activeSet }); setPreviewingToken(null); setHighlightedToken(path); }), onPreview: (path, name) => { setPreviewingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onNavigateBack: handleNavigateBack, navHistoryLength: navHistory.length, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onViewTokenHistory: (path) => { setHistoryFilterPath(path); navigateTo('ship', 'history'); }, onNavigateToGenerator: handleNavigateToGenerator, onShowReferences: (path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }, onDisplayedLeafNodesChange: (nodes) => { displayedLeafNodesRef.current = nodes; }, onTokenTouched: paletteRecentlyTouched.recordTouch, onError: setErrorToast, onOpenCompare: handleOpenTokenCompare, onOpenCrossThemeCompare: handleOpenCrossThemeCompare }}
-                  defaultCreateOpen={createFromEmpty}
-                  highlightedToken={previewingToken?.path ?? highlightedToken}
-                  showIssuesOnly={showIssuesOnly}
-                  editingTokenPath={editingToken?.path}
-                  compareHandle={tokenListCompareRef}
-                />
-              </div>
-              <div
-                role="separator"
-                aria-orientation="horizontal"
-                aria-valuenow={splitValueNow}
-                aria-valuemin={20}
-                aria-valuemax={80}
-                aria-label="Resize token list and preview"
-                tabIndex={0}
-                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
-                onMouseDown={handleSplitDragStart}
-                onKeyDown={handleSplitKeyDown}
-              />
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
-                <PreviewPanel
-                  allTokensFlat={themedAllTokensFlat}
-                  dimensions={dimensions}
-                  activeThemes={activeThemes}
-                  onActiveThemesChange={setActiveThemes}
-                  onGoToTokens={() => navigateTo('define', 'tokens')}
-                  onNavigateToToken={(path) => {
-                    const name = path.split('.').pop();
-                    const set = pathToSet[path] ?? activeSet;
-                    setPreviewingToken({ path, name, set });
-                    setHighlightedToken(path);
-                  }}
-                  focusedToken={previewingToken}
-                  pathToSet={pathToSet}
-                  onClearFocus={() => setPreviewingToken(null)}
-                  onEditToken={(path, name, set) => {
-                    setShowPreviewSplit(false);
-                    setEditingToken({ path, name, set: set ?? activeSet });
-                    setPreviewingToken(null);
-                  }}
-                  serverUrl={serverUrl}
-                />
-                </ErrorBoundary>
-              </div>
-            </div>
-          )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'generators' && (
-            <ErrorBoundary panelName="Generators" onReset={() => navigateTo('define', 'tokens')}>
-            <GraphPanel
-              serverUrl={serverUrl}
-              activeSet={activeSet}
-              allSets={sets}
-              generators={generators}
-              connected={connected}
-              onRefresh={() => { refreshAll(); refreshGenerators(); }}
-              onPushUndo={pushUndo}
-              pendingTemplateId={pendingGraphTemplate}
-              onApplyTemplate={() => setPendingGraphTemplate(null)}
-              pendingGroupPath={pendingGraphFromGroup?.groupPath ?? null}
-              pendingGroupTokenType={pendingGraphFromGroup?.tokenType ?? null}
-              onClearPendingGroup={() => setPendingGraphFromGroup(null)}
-              focusGeneratorId={focusGeneratorId}
-              onClearFocusGenerator={() => setFocusGeneratorId(null)}
-            />
-            </ErrorBoundary>
-          )}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'dependencies' && (
-            <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('apply', 'inspect')}>
-            <TokenFlowPanel
-              allTokensFlat={themedAllTokensFlat}
-              pathToSet={pathToSet}
-              loading={tokensLoading}
-              initialPath={flowPanelInitialPath}
-              onNavigateToToken={(path) => {
-                const targetSet = pathToSet[path];
-                navigateTo('define', 'tokens');
-                setEditingToken(null);
-                if (targetSet && targetSet !== activeSet) {
-                  setActiveSet(targetSet);
-                  setPendingHighlight(path);
-                } else {
-                  setHighlightedToken(path);
-                }
-              }}
-            />
-            </ErrorBoundary>
-          )}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'inspect' && (
-            <ErrorBoundary panelName="Inspector" onReset={() => navigateTo('define', 'tokens')}>
-            <SelectionInspector
-              selectedNodes={selectedNodes}
-              tokenMap={allTokensFlat}
-              onSync={sync}
-              syncing={syncing}
-              syncProgress={syncProgress}
-              syncResult={syncResult}
-              syncError={syncError}
-              connected={connected}
-              activeSet={activeSet}
-              serverUrl={serverUrl}
-              onTokenCreated={refreshTokens}
-              onNavigateToToken={(path) => {
-                setHighlightedToken(path);
-                navigateTo('define', 'tokens');
-              }}
-              onPushUndo={pushUndo}
-              onGoToTokens={() => navigateTo('define', 'tokens')}
-              triggerCreateToken={triggerCreateToken}
-            />
-            </ErrorBoundary>
-          )}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'publish' && (
-            <ErrorBoundary panelName="Publish" onReset={() => navigateTo('define', 'tokens')}>
-            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} modeMap={setModeNames} tokenChangeKey={tokenChangeKey} />
-            </ErrorBoundary>
-          )}
-
-          {/* Validation sub-tab (Ship > Validation) */}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'validation' && (
-              <ErrorBoundary panelName="Validation" onReset={() => navigateTo('ship', 'publish')}>
-              <AnalyticsPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                tokenUsageCounts={tokenUsageCounts}
-                onNavigateToToken={(path, set) => {
-                  setActiveSet(set);
-                  navigateTo('define', 'tokens');
-                  setPendingHighlight(path);
-                  setShowValidationReturn(true);
-                }}
-                onValidationComplete={setAnalyticsIssueCount}
-                validateResults={validationIssues}
-                validateLoading={validationLoading}
-                validateError={validationError}
-                validatedAt={validationLastRefreshed}
-                resultsStale={validationIsStale}
-                onRefreshValidation={refreshValidation}
-              />
-              </ErrorBoundary>
-          )}
-          {/* Themes sub-tab (Define > Themes) */}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'themes' && (
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex-1 overflow-hidden">
-                <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} onGapsDetected={setThemeGapCount} onTokensCreated={refreshAll} onGoToTokens={() => navigateTo('define', 'tokens')} themeManagerHandle={themeManagerHandleRef} resolverState={{
-                    serverUrl,
-                    connected,
-                    sets,
-                    resolvers: resolverState.resolvers,
-                    activeResolver: resolverState.activeResolver,
-                    setActiveResolver: resolverState.setActiveResolver,
-                    resolverInput: resolverState.resolverInput,
-                    setResolverInput: resolverState.setResolverInput,
-                    activeModifiers: resolverState.activeModifiers,
-                    resolvedTokens: resolverState.resolvedTokens,
-                    resolverError: resolverState.resolverError,
-                    loading: resolverState.loading,
-                    fetchResolvers: resolverState.fetchResolvers,
-                    convertFromThemes: resolverState.convertFromThemes,
-                    deleteResolver: resolverState.deleteResolver,
-                    getResolverFile: resolverState.getResolverFile,
-                    updateResolver: resolverState.updateResolver,
-                  }} />
-                </ErrorBoundary>
-              </div>
-            </div>
-          )}
-
-
-          {/* Resolver sub-tab (Define > Resolver) */}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'resolver' && (
-            <ErrorBoundary panelName="Resolver" onReset={() => navigateTo('define', 'tokens')}>
-              <ResolverPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                sets={sets}
-                resolvers={resolverState.resolvers}
-                activeResolver={resolverState.activeResolver}
-                setActiveResolver={resolverState.setActiveResolver}
-                resolverInput={resolverState.resolverInput}
-                setResolverInput={resolverState.setResolverInput}
-                activeModifiers={resolverState.activeModifiers}
-                resolvedTokens={resolverState.resolvedTokens}
-                resolverError={resolverState.resolverError}
-                loading={resolverState.loading}
-                fetchResolvers={resolverState.fetchResolvers}
-                convertFromThemes={resolverState.convertFromThemes}
-                deleteResolver={resolverState.deleteResolver}
-                getResolverFile={resolverState.getResolverFile}
-                updateResolver={resolverState.updateResolver}
-              />
-            </ErrorBoundary>
-          )}
-
-
-          {/* Export sub-tab (Ship > Export) */}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (
-              <ErrorBoundary panelName="Export" onReset={() => navigateTo('ship', 'publish')}>
-              <ExportPanel
-                serverUrl={serverUrl}
-                connected={connected}
-              />
-              </ErrorBoundary>
-          )}
-
-          {/* History sub-tab (Ship > History) — git commits + snapshots */}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
-              <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} totalOperations={totalOperations} hasMoreOperations={hasMoreOperations} onLoadMoreOperations={loadMoreOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} redoableOpIds={redoableOpIds} onServerRedo={handleServerRedo} />
-              </ErrorBoundary>
-          )}
-
-          {/* Health sub-tab (Ship > Health) — aggregated token health summary */}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'health' && (
-              <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'publish')}>
-              <HealthPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                activeSet={activeSet}
-                generators={generators}
-                lintViolations={lintViolations}
-                allTokensFlat={allTokensFlat}
-                tokenUsageCounts={tokenUsageCounts}
-                heatmapResult={heatmapResult}
-                onNavigateTo={(topTab, subTab) => navigateTo(topTab, subTab as SubTab | undefined)}
-                onTriggerHeatmap={triggerHeatmapScan}
-                validationIssues={validationIssues}
-                validationSummary={validationSummary}
-                validationLoading={validationLoading}
-                validationError={validationError}
-                validationLastRefreshed={validationLastRefreshed}
-                onRefreshValidation={refreshValidation}
-              />
-              </ErrorBoundary>
-          )}
-
-          {/* Canvas Audit sub-tab (Apply > Canvas Audit) — combines coverage heatmap + consistency scanner */}
-          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'canvas-audit' && (
-              <ErrorBoundary panelName="Canvas Audit" onReset={() => navigateTo('apply', 'inspect')}>
-              <CanvasAuditPanel
-                result={heatmapResult}
-                loading={heatmapLoading}
-                progress={heatmapProgress}
-                error={heatmapError}
-                scope={heatmapScope}
-                onScopeChange={setHeatmapScope}
-                onRescan={triggerHeatmapScan}
-                onCancel={cancelHeatmapScan}
-                onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
-                onBatchBind={(nodeIds, tokenPath, property) => {
-                  const entry = allTokensFlat[tokenPath];
-                  if (!entry) return;
-                  parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
-                }}
-                availableTokens={allTokensFlat}
-                onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
-              />
-              </ErrorBoundary>
-          )}
           </div>
         </div>
       </div>

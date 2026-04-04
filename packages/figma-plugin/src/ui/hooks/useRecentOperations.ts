@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 
-interface OperationEntry {
+export interface OperationEntry {
   id: string;
   timestamp: string;
   type: string;
