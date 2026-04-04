@@ -347,3 +347,10 @@ Already up to date.
   → Theme dimension set-status legend missing — the source/enabled/disabled status uses colored dots (blue/green/gray) with no in-UI explanation; new users must guess the meaning; add a small inline legend or tooltip on the dot headers explaining the three states and their resolution priority (ThemeManager.tsx set assignment grid)
   Worktree: /tmp/backlog-91634-ID6N7N
   Running agent… (started 02:24:47)
+
+  ✓ done: Theme dimension set-status legend missing — the source/enabled/disabled status uses colored dots (blue/green/gray) with no in-UI explanation; new users must guess the meaning; add a small inline legend or tooltip on the dot headers explaining the three states and their resolution priority (ThemeManager.tsx set assignment grid)
+    Added a compact always-visible legend row (colored dots + labels + descriptions) at the top of each option's set groups area, plus title tooltips on the Excluded section header
+    21 turns · 175s · $0.49
+
+  Merging to main: Theme dimension set-status legend missing — the source/enabled/disabled status uses colored dots (blue/green/gray) with no in-UI explanation; new users must guess the meaning; add a small inline legend or tooltip on the dot headers explaining the three states and their resolution priority (ThemeManager.tsx set assignment grid)
+Already up to date.

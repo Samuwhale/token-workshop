@@ -458,3 +458,13 @@
   - Token path doesn't change during a cross-set move, so aliases automatically resolve to the new location without any reference rewriting.
   - The move endpoint, dialog, and operation log were all pre-existing; the backlog item predates this implementation.
 ---
+
+## 2026-04-04 - Theme dimension set-status legend missing
+- Added a compact always-visible legend row at the top of each option's set groups area, showing all three states with colored dots and brief descriptions: "Override — highest priority", "Base — default values", "Excluded — not used". Each entry has a `title` attribute with the full STATE_DESCRIPTIONS text on hover.
+- Added `title={STATE_DESCRIPTIONS['disabled']}` to the Excluded section header button so hovering it explains what "Excluded" means (was the only section header without a tooltip).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1469, ~L1553
+- **Learnings for future iterations:**
+  - Section headers in ThemeManager already had partial labels ("highest priority", "default values") but no single place showed all three states together — new users only saw the complete picture if all three sections were populated.
+  - The legend is placed inside `{sets.length > 0 && ...}` so it only renders when there are actual sets to assign; no extra guard needed.
+  - Native `title` attributes reuse the existing `STATE_DESCRIPTIONS` constant, keeping descriptions DRY.
+---

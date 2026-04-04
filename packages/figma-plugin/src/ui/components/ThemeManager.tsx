@@ -1469,6 +1469,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {/* Set groups */}
                         {sets.length > 0 && (
                           <div className="border-t border-[var(--color-figma-border)]">
+                            {/* Status legend — explains the three set states and their resolution order */}
+                            <div className="px-3 py-1 flex items-center flex-wrap gap-x-3 gap-y-0.5 text-[9px] border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40">
+                              <span className="text-[var(--color-figma-text-tertiary)] flex-shrink-0 font-medium">Status:</span>
+                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['enabled']}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0" aria-hidden="true" />
+                                <span className="text-[var(--color-figma-success)] font-medium">Override</span>
+                                <span className="text-[var(--color-figma-text-tertiary)]">highest priority</span>
+                              </span>
+                              <span className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">›</span>
+                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['source']}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0" aria-hidden="true" />
+                                <span className="text-[var(--color-figma-accent)] font-medium">Base</span>
+                                <span className="text-[var(--color-figma-text-tertiary)]">default values</span>
+                              </span>
+                              <span className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">›</span>
+                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['disabled']}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-tertiary)]/60 flex-shrink-0" aria-hidden="true" />
+                                <span className="text-[var(--color-figma-text-tertiary)] font-medium">Excluded</span>
+                                <span className="text-[var(--color-figma-text-tertiary)]">not used</span>
+                              </span>
+                            </div>
                             {/* Batch assignment toolbar — set all sets to one state at once */}
                             {sets.length > 1 && (
                               <div className="px-3 py-1 flex items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
@@ -1530,6 +1551,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     return next;
                                   })}
                                   className="w-full px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
+                                  title={STATE_DESCRIPTIONS['disabled']}
                                 >
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                                   Excluded ({disabledSets.length})
