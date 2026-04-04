@@ -893,3 +893,18 @@ Already up to date.
 
   Merging to main: Plugin MESSAGE_SCHEMA is missing `resolvedValue` validation for 3 message types
 Already up to date.
+[main 449a9284] chore(backlog): done – Plugin MESSAGE_SCHEMA is missing `resolvedValue` validation for 3 message types
+ 7 files changed, 49 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Plugin MESSAGE_SCHEMA missing resolvedValue validation for 3 message types
+- Added `['resolvedValue', 'any']` to `MESSAGE_SCHEMA` entries for `apply-to-selection`, `batch-bind-heatmap-nodes`, and `apply-to-nodes` — these handlers already passed `msg.resolvedValue` to `applyTokenValue()` but the schema never validated its presence
+- Extended `Check` type union to include `'any'` and updated `validateMessage` to treat `'any'` as a presence-only check (rejects `undefined`, allows `null` and all other types) since `ResolvedTokenValue` is a wide union that includes `null` as a valid value
+- Added null/undefined guard in `applyTokenValue` typography branch: `if (value == null || typeof value !== 'object' || Array.isArray(value)) break;` before accessing `val.fontFamily` — also replaced implicit `value` cast with explicit `const val = value as TypographyValue`
+
+═══════════════════════════════════════════════════════════════
+  #37  ·  1 queued · 2 in-progress · last took 2m45s
+═══════════════════════════════════════════════════════════════
+  → App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
+  Worktree: /tmp/backlog-92209-LZaZi3
+  Running agent… (started 03:58:29)

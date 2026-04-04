@@ -505,3 +505,9 @@
   - When `ResolvedTokenValue` (or any wide union including null) must be validated in the schema, an `'any'` type that only checks for `undefined` (not null) is the correct semantic — null can be a legitimate payload
   - The schema's null-rejection in the general path is still right for string/number/boolean/object fields, so splitting the check into "undefined = missing" vs "null = missing" based on expected type is the clean solution
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: UI components (ExportPanel, PublishPanel, ThemeManager, SettingsPanel, GraphPanel, PreviewPanel, AnalyticsPanel, TokenEditor, TokenList, TokenTreeNode, SelectionInspector, ValueEditors, ImportPanel), server routes (13 route files), server services (13 service files), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts), hooks (52 custom hooks), App.tsx, storage.ts
+- Found 12 items — written to backlog-inbox.md
+- Notable: Import flow silently overwrites existing tokens with no merge/conflict preview; multi-mode Figma Variable export silently drops non-default modes for CSS/Tailwind/etc.; token-store.ts (the most critical service) has zero unit test coverage
+---

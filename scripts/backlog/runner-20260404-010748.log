@@ -742,3 +742,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — covering import merge gaps, missing token types in quick-create, scan cancellation, theme UX terminology, export preset persistence, progress reporting gaps, multi-mode export loss, PreviewPanel loading, App.tsx inline hooks, token-store test coverage, settings backup gaps, and theme coverage discoverability
+Already up to date.
