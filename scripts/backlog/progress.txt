@@ -761,3 +761,10 @@
   - When an action may require prerequisite work (compare before apply), encode that directly in the click handler via `Promise.all([...unchecked.computeDiff()])` rather than requiring the user to manually trigger each prerequisite first.
   - Always add `aria-labelledby` + `useFocusTrap` to new modal dialogs — omitting them is consistently an accessibility gap.
 ---
+
+## 2026-04-05 - Add Cmd+A select-all shortcut in token list
+- Already implemented: `TokenList.tsx` ~L1224-1230 handles `Cmd/Ctrl+A` — auto-enters select mode if off, then sets `selectedPaths` to all `displayedLeafNodesRef.current` paths (respects active search/filter). No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check `handleListKeyDown` in `TokenList.tsx` for the full list of existing keyboard shortcuts before implementing a new one — several shortcuts were added as part of the multi-select feature (M, E, Escape, Cmd+A, Shift+click) that may not be reflected in backlog descriptions
+---

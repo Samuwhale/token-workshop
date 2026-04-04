@@ -102,3 +102,26 @@ Already up to date.
 
   Merging to main: Add "Publish All" fast path that skips per-target confirmation
 Already up to date.
+[main ae49cc6c] chore(backlog): done – Add "Publish All" fast path that skips per-target confirmation
+ 5 files changed, 107 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Add "Publish All" fast path that skips per-target confirmation
+- The core feature was ~90% already implemented (banner, modal, runPublishAll). The gaps filled:
+  1. **Threshold `>= 2` → `>= 1`**: `publishAllAvailable` now shows the banner when any single compared target has changes. With `autoComputeOnConnect: true` for variables, the banner appears immediately after connecting when variable changes exist.
+  2. **Auto-compare fast path**: `handleOpenPublishAll` replaces direct `setConfirmAction('publish-all')`. When clicked, it runs `computeDiff()` in parallel for any unchecked targets (variables, styles, git) before opening the modal — one button does everything.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  28 queued · 0
+0 in-progress · last took 10m51s
+═══════════════════════════════════════════════════════════════
+  → Add Cmd+A select-all shortcut in token list — multi-select mode (toggled with M key) supports batch operations but has no select-all keyboard shortcut; users must click "Select All" in the toolbar or manually shift-click ranges; Cmd+A should select all visible tokens (respecting active search/filter) when multi-select mode is active, and toggle multi-select mode on if it's off
+  Worktree: /tmp/backlog-54964-zVczg5
+  Running agent… (started 01:00:40)
+
+  ✓ done: Add Cmd+A select-all shortcut in token list
+    stale — already done; Cmd+A handler at TokenList.tsx ~L1224 auto-enters select mode and selects all visible leaf tokens
+    7 turns · 78s · $0.37
+
+  Merging to main: Add Cmd+A select-all shortcut in token list
+Already up to date.
