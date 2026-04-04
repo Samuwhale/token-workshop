@@ -669,3 +669,14 @@ Already up to date.
 --- Cleanup: archiving completed items (≥25) ---
   → Archived 25 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 71)
+[main 63ef39f9] chore(backlog): archive 25 completed items + trim progress
+ 5 files changed, 35 insertions(+), 535 deletions(-)
+
+  Milestone: 1395 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: ImportPanelContext monolith (44 useState), token-store watcher rebuild-after-fail, rename recovery marker deletion on theme failure, useGitStatus dead-code error handler, plugin snapshot revert with no validation, ExportPanel duplicated set fetches
+Already up to date.
