@@ -12,6 +12,28 @@ figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
 let deepInspectEnabled = false;
 
+// ---------------------------------------------------------------------------
+// Sync operation mutex
+// ---------------------------------------------------------------------------
+// Figma's plugin runtime allows concurrent async message handling — if the
+// user triggers a second sync while the first is still in-flight, both
+// applyVariables calls would mutate Figma variables concurrently, causing
+// interleaved writes and potential data corruption. The promise-chain lock
+// below serialises all destructive sync operations (apply-variables,
+// apply-styles, delete-orphan-variables) so they execute one at a time.
+// Read-only operations (read-variables, get-selection, etc.) bypass the lock.
+// ---------------------------------------------------------------------------
+let _syncChain: Promise<void> = Promise.resolve();
+
+function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
+  const result = _syncChain.then(() => fn());
+  // Absorb rejections on the chain tail so a failed op doesn't block
+  // subsequent queued operations — the original promise still rejects for
+  // the caller.
+  _syncChain = result.then(() => undefined, () => undefined);
+  return result;
+}
+
 /** Extract a human-readable message from an unknown thrown value. */
 function describeError(e: unknown, fallback: string): string {
   return e instanceof Error ? e.message : fallback;
@@ -124,7 +146,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
       try {
-        await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
+        await withSyncLock(() => applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'apply-variables-error',
@@ -135,7 +157,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'apply-styles':
       try {
-        await applyStyles(msg.tokens, msg.correlationId);
+        await withSyncLock(() => applyStyles(msg.tokens, msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-apply-error',
@@ -238,7 +260,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'delete-orphan-variables':
       try {
-        await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.correlationId);
+        await withSyncLock(() => deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.correlationId));
       } catch (e) {
         reportError('delete-orphan-variables', e);
       }

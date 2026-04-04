@@ -307,3 +307,29 @@ Already up to date.
   ✓ product pass: product-pass
     11 items written to inbox — highlights: plugin sandbox sync concurrency (HIGH), cross-set token move, generator stale indicators, EmptyState progressive disclosure, theme set-status legend, lint rule presets
 Already up to date.
+[main 7a1a4a85] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 10 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: ThemeManager (set-status UX, coverage, auto-fill, compare), ImportPanel/ExportPanel (sources, conflict resolution, formats), GeneratorPanel/GraphPanel/TokenGeneratorDialog (templates, multi-brand, semantic mapping, preview), LintConfigPanel/AnalyticsPanel (rules, presets, auto-fix), SetSwitcher/TokenEditor/ValueEditors (set CRUD, folder hierarchy, cross-set moves), HistoryPanel/SettingsPanel/EmptyState/SyncPanel (undo, snapshots, onboarding), Plugin sandbox (message protocol, correlationId gaps, concurrency), Keyboard shortcuts (App.tsx global, TokenList tree nav)
+- Found 11 items — written to backlog-inbox.md
+- Notable: Plugin sandbox has no mutual exclusion for concurrent sync operations — two apply-variables calls can interleave and corrupt Figma variable state; also generator stale indicators are computed server-side but never shown in UI
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  19 queued · 3 in-progress · last took 10m17s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Plugin sandbox lacks mutual exclusion for concurrent sync operations — two `apply-variables` messages can interleave mutations without ordering guarantees; if a user triggers a second sync while the first is in-flight, both modify the same Figma variables concurrently; add a queue or lock so sync operations execute serially (plugin/controller.ts, plugin/variableSync.ts)
+  Worktree: /tmp/backlog-92209-1GZlqm
+  Running agent… (started 02:03:07)
+
+  ✓ done: Plugin sandbox lacks mutual exclusion for concurrent sync operations
+    Added promise-chain mutex in controller.ts; apply-variables, apply-styles, and delete-orphan-variables now execute serially via withSyncLock()
+    11 turns · 99s · $0.42
+
+  Merging to main: Plugin sandbox lacks mutual exclusion for concurrent sync operations
+Already up to date.

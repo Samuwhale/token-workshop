@@ -581,3 +581,14 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: Plugin sandbox has no mutual exclusion for concurrent sync operations — two apply-variables calls can interleave and corrupt Figma variable state; also generator stale indicators are computed server-side but never shown in UI
 ---
+
+## 2026-04-04 - Plugin sandbox lacks mutual exclusion for concurrent sync operations
+- Added promise-chain mutex (`_syncChain` + `withSyncLock`) in `controller.ts` immediately after `deepInspectEnabled` declaration.
+- Wrapped `apply-variables`, `apply-styles`, and `delete-orphan-variables` cases in `withSyncLock()` — these are the only operations that mutate Figma variables/styles. Read-only operations (`read-variables`, `read-styles`, `get-selection`, etc.) bypass the lock intentionally.
+- The lock chain absorbs per-operation rejections so a failed sync does not permanently block the queue.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L14-35 (lock), ~L145, ~L154, ~L263
+- **Learnings for future iterations:**
+  - The promise-chain mutex (same pattern as server-side file I/O mutex) works equally well in the Figma plugin sandbox — no external deps needed.
+  - Only destructive/write operations need serialization. Wrapping reads would unnecessarily starve them behind long syncs.
+  - Absorbing rejections on `_syncChain` (not on the returned promise) is the key detail: the caller still gets the rejection, but the chain itself recovers so subsequent queued operations can proceed.
+---
