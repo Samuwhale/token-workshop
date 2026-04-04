@@ -1021,3 +1021,26 @@ Already up to date.
 
   Merging to main: Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
 Already up to date.
+[main b7ed848a] chore(backlog): done – Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
+ 5 files changed, 46 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
+- Fixed 3 locations in `token-store.ts` where `scheduleRebuild` was called unconditionally after `loadSet`: `reloadFile()` (~L242), `watcher.on('change')` (~L262), and `watcher.on('add')` (~L276). Added a `let loaded = true` flag before each `.catch()` block; the catch sets `loaded = false`. Wrapped the `scheduleRebuild` call with `if (loaded)` so it only fires when the file was parsed successfully, preventing stale-data SSE broadcasts on load errors.
+- Files changed: `packages/server/src/services/token-store.ts` ~L242, ~L264, ~L280
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #39  ·  21 queued · 0
+0 in-progress · last took 1m21s
+═══════════════════════════════════════════════════════════════
+  → Token rename recovery in token-store.ts deletes the pending-rename marker even when applyThemesRename fails (lines 127-130) — if themes.json is unwritable or corrupted, the .catch swallows the error, fs.unlink removes the marker, and the next server restart will not retry the themes update, leaving the rename permanently half-finished with the file renamed but theme references pointing at the old name
+  Worktree: /tmp/backlog-3108-ecu67X
+  Running agent… (started 00:01:17)
+
+  ✓ done: Token rename recovery in token-store.ts deletes the pending-rename marker even when applyThemesRename fails
+    Wrapped applyThemesRename + fs.unlink in try/catch so the marker is only deleted on success; failure preserves it for retry on next restart. Added a new test using EISDIR to verify the fix.
+    13 turns · 96s · $0.32
+
+  Merging to main: Token rename recovery in token-store.ts deletes the pending-rename marker even when applyThemesRename fails
+Already up to date.

@@ -1295,6 +1295,32 @@ describe('TokenStore — initialization from disk', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('preserves the rename marker when applyThemesRename throws', async () => {
+    const dir = makeTmpDir();
+    // Simulate a crash: new file exists, old file gone, marker present
+    fs.writeFileSync(
+      path.join(dir, 'new-name.tokens.json'),
+      JSON.stringify({ tok: { $value: '1', $type: 'other' } }),
+    );
+    fs.writeFileSync(
+      path.join(dir, '$rename-pending.json'),
+      JSON.stringify({ oldName: 'old-name', newName: 'new-name' }),
+    );
+    // Make $themes.json a directory so readFile throws EISDIR (non-ENOENT), causing applyThemesRename to throw
+    fs.mkdirSync(path.join(dir, '$themes.json'));
+    const store = await makeStore(dir);
+    try {
+      // Marker must be preserved so the next restart can retry
+      expect(fs.existsSync(path.join(dir, '$rename-pending.json'))).toBe(true);
+      // The token data should still be available (the store loaded despite the recovery failure)
+      const sets = await store.getSets();
+      expect(sets).toContain('new-name');
+    } finally {
+      await store.shutdown();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

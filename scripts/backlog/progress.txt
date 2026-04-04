@@ -625,3 +625,12 @@
 - **Learnings for future iterations:**
   - The `.catch()` swallow pattern (logging + emitting error event) makes the success/failure invisible to subsequent lines. A boolean flag (`let loaded = true` + set false in catch) is the minimal, readable fix — avoids restructuring to try/catch.
 ---
+
+## 2026-04-05 - Token rename recovery deletes marker even when applyThemesRename fails
+- Fixed `recoverPendingRename` in `token-store.ts`: wrapped `applyThemesRename` + `fs.unlink` in a try/catch so the marker file is only deleted on success. On failure, the marker is preserved and the error is logged, allowing the next server restart to retry the themes update.
+- Added a new test case (`preserves the rename marker when applyThemesRename throws`) that simulates the failure by creating `$themes.json` as a directory (causing EISDIR), then verifying the marker file still exists and the token data is still accessible.
+- Files changed: `packages/server/src/services/token-store.ts` ~L127, `packages/server/src/__tests__/token-store.test.ts` ~L1298
+- **Learnings for future iterations:**
+  - When a recovery path has "retry on next restart" semantics, the marker cleanup must be inside the try block (after the operation succeeds), not after a `.catch()` that swallows the error. `.catch()` converts rejections to resolutions, so the outer `await` always succeeds regardless of what the catch handler does.
+  - To force `applyThemesRename` to throw in tests without mocking: create `$themes.json` as a directory — `fs.readFile` will fail with EISDIR (not ENOENT), which `applyThemesRename` correctly re-throws.
+---

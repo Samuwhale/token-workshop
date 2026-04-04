@@ -124,10 +124,13 @@ export class TokenStore {
     if (!oldExists && newExists) {
       // File rename completed but themes update may not have run — reapply it
       console.warn(`[TokenStore] Recovering incomplete rename "${oldName}" → "${newName}": applying themes update`);
-      await this.applyThemesRename(oldName, newName).catch((err) => {
-        console.error('[TokenStore] Recovery: themes update failed, manual fix may be required:', err);
-      });
-      await fs.unlink(markerPath).catch(() => {});
+      try {
+        await this.applyThemesRename(oldName, newName);
+        await fs.unlink(markerPath).catch(() => {});
+      } catch (err) {
+        // Keep the marker so the next server restart will retry the themes update.
+        console.error('[TokenStore] Recovery: themes update failed — marker preserved for retry on next restart:', err);
+      }
     } else if (oldExists && !newExists) {
       // File rename didn't complete — state is consistent, just remove the marker
       console.warn(`[TokenStore] Discarding incomplete rename marker "${oldName}" → "${newName}" (file rename did not complete)`);
