@@ -63,21 +63,13 @@ function validateGeneratorShape(gen: unknown): string | null {
   return null;
 }
 
-export interface GeneratorRunError {
-  message: string;
-  at: string;
-  /** Present when the error is a dependency block rather than a direct failure.
-   *  Contains the name of the upstream generator whose failure caused this skip. */
-  blockedBy?: string;
-}
-
 export class GeneratorService {
   private dir: string;
   private generators: Map<string, TokenGenerator> = new Map();
   /** Per-generator promise chain — serializes concurrent executions instead of skipping them. */
   private generatorLocks = new Map<string, Promise<void>>();
-  /** Last auto-run error per generator (in-memory only, not persisted). */
-  private generatorErrors: Map<string, GeneratorRunError> = new Map();
+  /** Promise-chain mutex — serializes all saveGenerators() calls to prevent file-rename races. */
+  private saveLock: Promise<void> = Promise.resolve();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -115,7 +107,13 @@ export class GeneratorService {
     }
   }
 
-  private async saveGenerators(): Promise<void> {
+  private saveGenerators(): Promise<void> {
+    const next = this.saveLock.then(() => this._doSave());
+    this.saveLock = next.catch(() => {});
+    return next;
+  }
+
+  private async _doSave(): Promise<void> {
     const data: GeneratorsFile = {
       $generators: Array.from(this.generators.values()),
     };
@@ -124,11 +122,8 @@ export class GeneratorService {
     await fs.rename(tmp, this.filePath);
   }
 
-  async getAll(): Promise<(TokenGenerator & { lastRunError?: GeneratorRunError })[]> {
-    return Array.from(this.generators.values()).map(gen => {
-      const err = this.generatorErrors.get(gen.id);
-      return err ? { ...gen, lastRunError: err } : gen;
-    });
+  async getAll(): Promise<TokenGenerator[]> {
+    return Array.from(this.generators.values());
   }
 
   async getById(id: string): Promise<TokenGenerator | undefined> {
@@ -169,7 +164,6 @@ export class GeneratorService {
   async delete(id: string): Promise<boolean> {
     if (!this.generators.has(id)) return false;
     this.generators.delete(id);
-    this.generatorErrors.delete(id);
     await this.saveGenerators();
     return true;
   }
@@ -479,7 +473,11 @@ export class GeneratorService {
         : undefined;
       if (blockingGen) {
         const message = `Blocked: upstream generator "${blockingGen.name}" failed`;
-        this.generatorErrors.set(genId, { message, at: new Date().toISOString(), blockedBy: blockingGen.name });
+        const current = this.generators.get(genId);
+        if (current) {
+          this.generators.set(genId, { ...current, lastRunError: { message, at: new Date().toISOString(), blockedBy: blockingGen.name } });
+          await this.saveGenerators();
+        }
         console.warn(`[GeneratorService] Generator "${gen.name}" blocked because upstream "${blockingGen.name}" failed`);
         tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
         failedIds.add(genId);
@@ -488,9 +486,13 @@ export class GeneratorService {
 
       await this.withGeneratorLock(genId, () =>
         this.executeGenerator(gen, tokenStore),
-      ).catch(err => {
+      ).catch(async err => {
         const message = err instanceof Error ? err.message : String(err);
-        this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
+        const current = this.generators.get(genId);
+        if (current) {
+          this.generators.set(genId, { ...current, lastRunError: { message, at: new Date().toISOString() } });
+          await this.saveGenerators();
+        }
         console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
         tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
         failedIds.add(genId);
@@ -609,18 +611,17 @@ export class GeneratorService {
       if (resolved !== null) lastRunSourceValue = resolved.$value;
     }
     // Re-read after all awaits — prevents overwriting concurrent update() mutations.
+    // Also clears any prior lastRunError since all async operations succeeded.
     const current = this.generators.get(generator.id);
     if (current) {
       this.generators.set(generator.id, {
         ...current,
         lastRunAt: runAt,
         lastRunSourceValue: lastRunSourceValue !== undefined ? lastRunSourceValue : current.lastRunSourceValue,
+        lastRunError: undefined,
       });
       await this.saveGenerators();
     }
-
-    // Clear any prior auto-run error only after ALL async operations have succeeded.
-    this.generatorErrors.delete(generator.id);
 
     return results;
   }

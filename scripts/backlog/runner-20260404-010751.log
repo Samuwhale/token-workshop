@@ -578,3 +578,18 @@ Already up to date.
 
   Merging to main: OperationLog.record() has no write serialization
 Already up to date.
+[main a44d34f0] chore(backlog): done – OperationLog.record() has no write serialization
+ 6 files changed, 64 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - OperationLog.record() has no write serialization
+- Added promise-chain mutex (`lockChain` + `withLock`) to `OperationLog` to serialize all writes to `this.entries` and `persist()`
+- Extracted `pushAndPersist()` private helper containing the push-trim-persist logic; marked with doc comment "must be called while holding the lock"
+- `record()` now wraps `pushAndPersist()` in `withLock()`
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  16 queued · 3 in-progress · last took 2m41s
+═══════════════════════════════════════════════════════════════
+  → Consolidate AnalyticsPanel's "Stats" tab into the token list toolbar — the per-type/per-set token count stats are a passive read-only summary that doesn't warrant its own sub-tab under Ship > Validation; surface these counts as a collapsible row above the token list or as a quick stat popover, and let the Validation sub-tab focus solely on lint violations, contrast, and duplicates (AnalyticsPanel.tsx stats tab, TokenList.tsx toolbar)
+  Worktree: /tmp/backlog-92209-ldV8mb
+  Running agent… (started 02:50:05)

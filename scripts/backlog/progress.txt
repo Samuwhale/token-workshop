@@ -631,3 +631,19 @@
   - When a method calls another method that already holds the lock (re-entrancy), extract a non-locking `_locked` variant and have both call it inside their respective `withLock` scopes
   - The redundant `persist()` after `record()` in `rollback()` was harmless but created confusion — removing it is safe because `pushAndPersist()` already persists
 ---
+
+## 2026-04-04 - GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
+- Added `lastRunError?: { message, at, blockedBy? }` to `TokenGenerator` in core, replacing the in-memory `generatorErrors: Map` in the service
+- Removed `private generatorErrors: Map<string, GeneratorRunError>` and exported `GeneratorRunError` interface from generator-service.ts
+- Added `private saveLock: Promise<void>` mutex to serialize all `saveGenerators()` calls; renamed inner write logic to `_doSave()` so the lock wraps snapshot+write+rename atomically
+- Updated auto-run blocked case (L474-485): updates generator in map with `lastRunError` and saves before continuing
+- Updated auto-run execution error catch (L489-499): async catch handler updates generator in map with `lastRunError` and saves
+- Updated `executeGenerator` success path (L613-624): spreads `lastRunError: undefined` alongside `lastRunAt` to clear any prior error in the same persisted save
+- Updated `getAll()` to return `TokenGenerator[]` directly (no longer merges a separate error map)
+- Updated `delete()` to remove stale `generatorErrors.delete()` call
+- Files changed: `packages/core/src/generator-types.ts` ~L312, `packages/server/src/services/generator-service.ts` ~L66, ~L72, ~L110, ~L125, ~L163, ~L474, ~L613
+- **Learnings for future iterations:**
+  - The `catch(async err => ...)` pattern on a promise chain works correctly — `.catch(fn)` returns a promise that adopts the state of `fn(err)`, so the `await` on the outer expression waits for the async callback
+  - Re-reading `this.generators.get(id)` before updating is correct and sufficient for JS single-threaded semantics; the concurrent-mutation window was in `saveGenerators` file I/O, not the map itself
+  - Adding a `saveLock` chain (same pattern as `git-sync.ts`) serializes rename races without blocking the map mutations themselves
+---

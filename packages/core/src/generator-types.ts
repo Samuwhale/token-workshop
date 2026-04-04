@@ -310,6 +310,20 @@ export interface TokenGenerator {
    * Absent if the generator has never been run or has no source token.
    */
   lastRunSourceValue?: unknown;
+  /**
+   * Error from the most recent auto-run attempt.
+   * Set when the generator failed or was blocked by an upstream failure.
+   * Cleared on the next successful run. Persisted to disk so a server restart
+   * does not reset error state and show stale "healthy" status in the UI.
+   */
+  lastRunError?: {
+    message: string;
+    /** ISO timestamp of when the error occurred. */
+    at: string;
+    /** Present when the generator was blocked by an upstream failure, not a direct failure.
+     *  Contains the name of the upstream generator whose failure caused this skip. */
+    blockedBy?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------

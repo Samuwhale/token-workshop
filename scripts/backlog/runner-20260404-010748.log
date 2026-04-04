@@ -459,3 +459,10 @@ Already up to date.
   → GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window — generatorErrors Map is never persisted to disk; a server restart loses all error tracking (including cascade-blocked status), so the UI shows generators as healthy when they last failed; separately, executeGenerator (generator-service.ts L589-626) re-reads this.generators.get(id) after awaiting token resolution and spreads it with lastRunAt, but this re-read+spread+save sequence is not atomic — a concurrent update() call (which writes to the same Map entry) between the re-read at L612 and the save at L619 will have its changes silently overwritten when saveGenerators persists the stale spread (packages/server/src/services/generator-service.ts)
   Worktree: /tmp/backlog-91949-nHRLly
   Running agent… (started 02:43:17)
+
+  ✓ done: GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
+    Added lastRunError to TokenGenerator core type for persistence, replaced in-memory generatorErrors Map with direct generator record updates, and added saveLock mutex to serialize saveGenerators() calls and prevent file-rename races
+    42 turns · 457s · $1.27
+
+  Merging to main: GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
+Already up to date.
