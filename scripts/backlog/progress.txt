@@ -556,3 +556,18 @@
   - Inline validation (onChange) only makes sense for format rules knowable without a network call — semantic rules (duplicate names, conflict checks) are still server-side
   - The dimension conversion warning is a contextual banner (post-action feedback), not a field error — it uses the banner style, not the inline FieldMessage style
 ---
+
+## 2026-04-04 - Export panel presents too many filter options simultaneously without progressive disclosure
+- Made all 5 filter sections in Platforms export mode collapsible with chevron toggle + summary:
+  1. **CSS Selector**: collapsed by default when value is `:root`; shows current value as summary when collapsed; "Reset to :root" action only shown when expanded
+  2. **Token Sets**: collapsed by default when all sets selected; shows "All sets" / "N of M" / "None selected" summary when collapsed; "Deselect all"/"Select all" action only shown when expanded
+  3. **Token Types**: refactored from 2-state "Filter types"/"All types" button to chevron collapse; chevron auto-initializes `selectedTypes` to `new Set(ALL_TOKEN_TYPES)` when first opening so pills render; shows "All types"/"N of M"/"None" summary when collapsed; "All types" reset button shown only when expanded and a subset is selected; selecting all types sets back to `null` (no filter)
+  4. **Path Prefix**: collapsed by default when prefix is empty; shows current value or "None" when collapsed; "Clear" action only shown when expanded
+  5. **Scope**: collapsed by default when changesOnly=false; shows "All tokens" or "Changes only" (accent-colored when active) when collapsed; checkbox + diff status only shown when expanded
+- All sections start open if the filter has a non-default value (persisted from prior session)
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L749 (collapse state), ~L1059 (CSS Selector), ~L1090 (Token Sets), ~L1146 (Token Types), ~L1230 (Path Prefix), ~L1287 (Scope)
+- **Learnings for future iterations:**
+  - For sections where the collapse state is semantically separate from the data state (Token Types was previously 2-in-1), initialize `selectedTypes` to `new Set(ALL_TOKEN_TYPES)` when opening rather than keeping `null` — this allows the pills to render without changing the export behavior (null and full-set are equivalent)
+  - When collapsing/expanding, keep action buttons (Clear, Reset, Deselect all) only in the expanded state — showing them when collapsed would require interaction before seeing context
+  - Initialize collapse state from the persisted filter value so active filters are always visible on page load, even without user having to manually expand
+---

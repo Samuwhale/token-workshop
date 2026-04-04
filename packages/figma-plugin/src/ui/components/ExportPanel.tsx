@@ -747,6 +747,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   // undefined = not yet checked, false = not a git repo, true = is a git repo
   const [isGitRepo, setIsGitRepo] = useState<boolean | undefined>(undefined);
 
+  // Filter section collapse state — open if the filter is non-default so active filters are visible on load
+  const [setsOpen, setSetsOpen] = useState(() => selectedSets !== null);
+  const [typesOpen, setTypesOpen] = useState(() => selectedTypes !== null);
+  const [pathPrefixOpen, setPathPrefixOpen] = useState(() => pathPrefix !== '');
+  const [cssSelectorOpen, setCssSelectorOpen] = useState(() => cssSelector !== ':root');
+  const [scopeOpen, setScopeOpen] = useState(() => changesOnly);
+
   // Persist changes-only setting
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.EXPORT_CHANGES_ONLY, changesOnly);
@@ -1059,114 +1066,167 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             {selected.has('css') && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                    CSS Selector
-                  </div>
-                  {cssSelector !== ':root' && (
-                    <button
-                      onClick={() => setCssSelector(':root')}
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                    >
-                      Reset to :root
-                    </button>
+                  <button
+                    onClick={() => setCssSelectorOpen(v => !v)}
+                    className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${cssSelectorOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+                      <path d="M2 1l4 3-4 3" />
+                    </svg>
+                    <span className="font-medium uppercase tracking-wide">CSS Selector</span>
+                  </button>
+                  {cssSelectorOpen ? (
+                    cssSelector !== ':root' && (
+                      <button
+                        onClick={() => setCssSelector(':root')}
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                      >
+                        Reset to :root
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[120px]">{cssSelector || ':root'}</span>
                   )}
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <input
-                    type="text"
-                    value={cssSelector}
-                    onChange={e => setCssSelector(e.target.value)}
-                    placeholder=":root"
-                    spellCheck={false}
-                    className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
-                  />
-                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
-                    Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
+                {cssSelectorOpen && (
+                  <div className="flex flex-col gap-1.5">
+                    <input
+                      type="text"
+                      value={cssSelector}
+                      onChange={e => setCssSelector(e.target.value)}
+                      placeholder=":root"
+                      spellCheck={false}
+                      className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                    />
+                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                      Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
             {availableSets.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                    Token Sets
-                  </div>
                   <button
-                    onClick={() => {
-                      if (selectedSets === null) {
-                        setSelectedSets(new Set());
-                      } else {
-                        setSelectedSets(null);
-                      }
-                    }}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    onClick={() => setSetsOpen(v => !v)}
+                    className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
-                    {selectedSets === null ? `Deselect all` : `Select all (${availableSets.length})`}
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${setsOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+                      <path d="M2 1l4 3-4 3" />
+                    </svg>
+                    <span className="font-medium uppercase tracking-wide">Token Sets</span>
                   </button>
+                  {setsOpen ? (
+                    <button
+                      onClick={() => {
+                        if (selectedSets === null) {
+                          setSelectedSets(new Set());
+                        } else {
+                          setSelectedSets(null);
+                        }
+                      }}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      {selectedSets === null ? `Deselect all` : `Select all (${availableSets.length})`}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      {selectedSets === null
+                        ? 'All sets'
+                        : selectedSets.size === 0
+                          ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                          : `${selectedSets.size} of ${availableSets.length}`}
+                    </span>
+                  )}
                 </div>
-                <div className="flex flex-col gap-1">
-                  {availableSets.map(setName => {
-                    const isSelected = selectedSets === null || selectedSets.has(setName);
-                    return (
-                      <label
-                        key={setName}
-                        className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md border cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                            : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                        }`}
-                      >
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                          isSelected
-                            ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                            : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-                        }`}>
-                          {isSelected && (
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          )}
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSet(setName)}
-                          className="sr-only"
-                        />
-                        <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate">{setName}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                {setsOpen && (
+                  <div className="flex flex-col gap-1">
+                    {availableSets.map(setName => {
+                      const isSelected = selectedSets === null || selectedSets.has(setName);
+                      return (
+                        <label
+                          key={setName}
+                          className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md border cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+                              : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
+                          }`}
+                        >
+                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected
+                              ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                              : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                          }`}>
+                            {isSelected && (
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSet(setName)}
+                            className="sr-only"
+                          />
+                          <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate">{setName}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Token type filter */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Token Types
-                </div>
                 <button
-                  onClick={() => setSelectedTypes(prev => prev === null ? new Set() : null)}
-                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  onClick={() => {
+                    const next = !typesOpen;
+                    setTypesOpen(next);
+                    // Auto-initialize filter when first expanding — switch null→empty Set so pills render
+                    if (next && selectedTypes === null) setSelectedTypes(new Set(ALL_TOKEN_TYPES));
+                  }}
+                  className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
                 >
-                  {selectedTypes === null ? `Filter types` : `All types`}
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${typesOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+                    <path d="M2 1l4 3-4 3" />
+                  </svg>
+                  <span className="font-medium uppercase tracking-wide">Token Types</span>
                 </button>
+                {typesOpen ? (
+                  selectedTypes !== null && selectedTypes.size < ALL_TOKEN_TYPES.length && (
+                    <button
+                      onClick={() => setSelectedTypes(null)}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      All types
+                    </button>
+                  )
+                ) : (
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    {selectedTypes === null || selectedTypes.size === ALL_TOKEN_TYPES.length
+                      ? 'All types'
+                      : selectedTypes.size === 0
+                        ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                        : `${selectedTypes.size} of ${ALL_TOKEN_TYPES.length}`}
+                  </span>
+                )}
               </div>
-              {selectedTypes !== null && (
+              {typesOpen && (
                 <div className="flex flex-wrap gap-1">
                   {ALL_TOKEN_TYPES.map(type => {
-                    const isChecked = selectedTypes.has(type);
+                    const isChecked = selectedTypes === null || selectedTypes.has(type);
                     return (
                       <button
                         key={type}
                         onClick={() => setSelectedTypes(prev => {
                           const next = new Set(prev ?? ALL_TOKEN_TYPES);
                           if (next.has(type)) { next.delete(type); } else { next.add(type); }
-                          return next.size === 0 ? new Set() : next;
+                          return next.size === ALL_TOKEN_TYPES.length ? null : next;
                         })}
                         className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors border ${
                           isChecked
@@ -1180,134 +1240,158 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   })}
                 </div>
               )}
-              {selectedTypes === null && (
-                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  All token types included. Click "Filter types" to restrict.
-                </div>
-              )}
             </div>
 
             {/* Path prefix filter */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Path Prefix
-                </div>
-                {pathPrefix && (
-                  <button
-                    onClick={() => setPathPrefix('')}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Clear
-                  </button>
+                <button
+                  onClick={() => setPathPrefixOpen(v => !v)}
+                  className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${pathPrefixOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+                    <path d="M2 1l4 3-4 3" />
+                  </svg>
+                  <span className="font-medium uppercase tracking-wide">Path Prefix</span>
+                </button>
+                {pathPrefixOpen ? (
+                  pathPrefix && (
+                    <button
+                      onClick={() => setPathPrefix('')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )
+                ) : (
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[120px]">{pathPrefix || 'None'}</span>
                 )}
               </div>
-              <input
-                type="text"
-                value={pathPrefix}
-                onChange={e => setPathPrefix(e.target.value)}
-                placeholder="e.g. color or spacing.scale"
-                spellCheck={false}
-                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
-              />
-              <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
-                Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
-              </div>
+              {pathPrefixOpen && (
+                <>
+                  <input
+                    type="text"
+                    value={pathPrefix}
+                    onChange={e => setPathPrefix(e.target.value)}
+                    placeholder="e.g. color or spacing.scale"
+                    spellCheck={false}
+                    className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                  />
+                  <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                    Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Changes only filter */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Scope
-                </div>
+                <button
+                  onClick={() => setScopeOpen(v => !v)}
+                  className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${scopeOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+                    <path d="M2 1l4 3-4 3" />
+                  </svg>
+                  <span className="font-medium uppercase tracking-wide">Scope</span>
+                </button>
+                {!scopeOpen && (
+                  <span className={`text-[10px] ${changesOnly ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                    {changesOnly ? 'Changes only' : 'All tokens'}
+                  </span>
+                )}
               </div>
-              <label className="flex items-center gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={changesOnly}
-                  onChange={() => {
-                    const next = !changesOnly;
-                    setChangesOnly(next);
-                    if (next && connected && diffPaths === null) {
-                      fetchDiff();
-                    }
-                  }}
-                  className="sr-only"
-                />
-                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                  changesOnly
-                    ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-                }`}>
-                  {changesOnly && (
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">Changes only</span>
-                  <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Tokens added or modified since last commit (also shown in footer)</span>
-                </div>
-              </label>
-
-              {changesOnly && (
-                <div className="mt-2 pl-6">
-                  {isGitRepo === false && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-warning)] shrink-0">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                      </svg>
-                      Token directory is not a git repository. Changes only mode requires git.
+              {scopeOpen && (
+                <>
+                  <label className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={changesOnly}
+                      onChange={() => {
+                        const next = !changesOnly;
+                        setChangesOnly(next);
+                        if (next && connected && diffPaths === null) {
+                          fetchDiff();
+                        }
+                      }}
+                      className="sr-only"
+                    />
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      changesOnly
+                        ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                    }`}>
+                      {changesOnly && (
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      )}
                     </div>
-                  )}
-                  {isGitRepo !== false && (
-                    <div className="flex items-center gap-2">
-                      {diffLoading ? (
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] text-[var(--color-figma-text)]">Changes only</span>
+                      <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Tokens added or modified since last commit</span>
+                    </div>
+                  </label>
+
+                  {changesOnly && (
+                    <div className="mt-2 pl-6">
+                      {isGitRepo === false && (
                         <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                          <Spinner size="sm" />
-                          Checking for changes…
-                        </div>
-                      ) : diffError ? (
-                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="15" y1="9" x2="9" y2="15" />
-                            <line x1="9" y1="9" x2="15" y2="15" />
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-warning)] shrink-0">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
                           </svg>
-                          {diffError}
+                          Token directory is not a git repository. Changes only mode requires git.
                         </div>
-                      ) : diffPaths !== null ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          {diffPaths.length === 0 ? (
-                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
+                      )}
+                      {isGitRepo !== false && (
+                        <div className="flex items-center gap-2">
+                          {diffLoading ? (
+                            <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                              <Spinner size="sm" />
+                              Checking for changes…
+                            </div>
+                          ) : diffError ? (
+                            <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="15" y1="9" x2="9" y2="15" />
+                                <line x1="9" y1="9" x2="15" y2="15" />
+                              </svg>
+                              {diffError}
+                            </div>
+                          ) : diffPaths !== null ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              {diffPaths.length === 0 ? (
+                                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
+                              ) : (
+                                <span className="text-[10px] text-[var(--color-figma-text)]">
+                                  <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
+                                  {' '}token{diffPaths.length !== 1 ? 's' : ''} changed
+                                </span>
+                              )}
+                              <button
+                                onClick={fetchDiff}
+                                title="Re-check for changes"
+                                className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
+                              >
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <polyline points="23 4 23 10 17 10" />
+                                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg>
+                                Refresh
+                              </button>
+                            </div>
                           ) : (
-                            <span className="text-[10px] text-[var(--color-figma-text)]">
-                              <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
-                              {' '}token{diffPaths.length !== 1 ? 's' : ''} changed
-                            </span>
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
                           )}
-                          <button
-                            onClick={fetchDiff}
-                            title="Re-check for changes"
-                            className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
-                          >
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <polyline points="23 4 23 10 17 10" />
-                              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                            </svg>
-                            Refresh
-                          </button>
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
                       )}
                     </div>
                   )}
-                </div>
+                </>
               )}
             </div>
 

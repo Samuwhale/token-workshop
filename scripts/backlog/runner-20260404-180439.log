@@ -901,3 +901,27 @@ Already up to date.
 
   Merging to main: Token editor form validation feedback is inconsistent across token types
 Already up to date.
+[main dadf0a2d] chore(backlog): done – Token editor form validation feedback is inconsistent across token types
+ 9 files changed, 128 insertions(+), 28 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/FieldMessage.tsx
+  ✓ Merged and marked done
+
+## 2026-04-04 - Token editor form validation feedback is inconsistent across token types
+- Created `packages/figma-plugin/src/ui/shared/FieldMessage.tsx` — shared component with `error`, `warning`, `info` props; renders the first non-empty prop with role="alert" (error), amber text (warning), or tertiary text (info)
+- Added `fieldBorderClass(hasError?, hasWarning?)` to `packages/figma-plugin/src/ui/shared/editorClasses.ts` — returns the appropriate border + focus-visible border Tailwind classes for error/warning/normal states
+- Fixed New Group dialog (TokenListModals.tsx ~L540): added real-time client-side validation in `onChange` that sets error immediately when name contains dots (dots are path separators); button disabled when error is set; replaced inline `<p>` with `<FieldMessage>`
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  26 queued · 0
+0 in-progress · last took 8m28s
+═══════════════════════════════════════════════════════════════
+  → Export panel presents too many filter options simultaneously without progressive disclosure — the Platforms export mode shows target platform checkboxes, token set checkboxes, token type pill buttons, a path prefix text input, a CSS selector input, and a changes-only toggle all visible at once; for a user who just wants to export CSS for all tokens, the cognitive load of scanning past set filters, type filters, and path prefix is unnecessary; the token type filter has a collapsed "Filter types" toggle but the other filter groups (sets, path prefix, CSS selector) are always expanded with no way to collapse them (violates: aesthetic and minimalist design, progressive disclosure)
+  Worktree: /tmp/backlog-3108-5eQqLP
+  Running agent… (started 23:21:10)
+
+  ✓ done: Export panel presents too many filter options simultaneously without progressive disclosure
+    All 5 filter sections (CSS Selector, Token Sets, Token Types, Path Prefix, Scope) now collapse with chevron toggle + summary text; default collapsed at defaults, expanded when filters are active
+    34 turns · 312s · $1.01
+
+  Merging to main: Export panel presents too many filter options simultaneously without progressive disclosure
+Already up to date.
