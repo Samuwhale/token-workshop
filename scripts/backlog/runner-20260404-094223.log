@@ -52,3 +52,35 @@ Already up to date.
 
   Merging to main: Consolidate duplicated Variable/Style sync code
 Already up to date.
+[main f3410ed4] chore(backlog): done – Consolidate duplicated Variable/Style sync code
+ 16 files changed, 599 insertions(+), 894 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/publish/StyleSyncSubPanel.tsx
+ rename packages/figma-plugin/src/ui/components/publish/{VariableSyncSubPanel.tsx => SyncSubPanel.tsx} (63%)
+ delete mode 100644 packages/figma-plugin/src/ui/hooks/useStyleSync.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSyncEntity.ts
+ delete mode 100644 packages/figma-plugin/src/ui/hooks/useVariableSync.ts
+  ✓ Merged and marked done
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - Consolidate duplicated Variable/Style sync code
+- Created `useSyncEntity<TRow, TSnapshot>` generic hook that replaces both `useVariableSync` and `useStyleSync`. Takes two configs: static `SyncMessages` (message types + stable extractors) and a dynamic config (entity-specific build functions, stored in a ref). Returns neutral property names (`rows`, `dirs`, `loading`, `syncing`, `progress`, `error`, `checked`, `syncCount`, `pushCount`, `pullCount`, `snapshot`, `reverting`, `revertError`, `revert`, `readFigmaTokens`).
+- Created `SyncSubPanel` generic component that replaces both `VariableSyncSubPanel` and `StyleSyncSubPanel`. Parameterized by text props (`description`, `sectionLabel`, `previewAction`, `applyAction`, `inSyncMessage`, `notCheckedMessage`, `revertDescription`).
+- Rewrote `PublishPanel.tsx` to use `useSyncEntity` directly twice (for variables and styles) with module-level static configs (`VAR_MESSAGES`, `STYLE_MESSAGES`) and pure helper functions. Replaced both `VariableSyncSubPanel` usage and the inline style sync code (150+ lines) with `SyncSubPanel`. Removed local duplicate `VarDiffRowItem` and `ValueCell` components.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  6 queued · 0
+0 in-progress · last took 26m25s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager dimension list has no search/filter UI despite the state existing — dimSearch state and a ref are declared in ThemeManager.tsx (~L138-139) but the search input is never rendered; users with many theme dimensions cannot filter by name or coverage status; implement the search input using the existing state and add a "show only dimensions with gaps" toggle
+  Worktree: /tmp/backlog-60297-6bJRA3
+  Running agent… (started 10:11:04)
+
+  ✓ done: ThemeManager dimension list has no search/filter UI despite the state existing
+    Added showOnlyWithGaps toggle and zero-state message; search input was already rendered — lowered visibility threshold from >2 to >1 dimensions
+    18 turns · 141s · $0.54
+
+  Merging to main: ThemeManager dimension list has no search/filter UI despite the state existing
+Already up to date.

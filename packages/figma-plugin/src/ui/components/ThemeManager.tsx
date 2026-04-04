@@ -128,6 +128,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Dimension/option search filter
   const [dimSearch, setDimSearch] = useState('');
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
+  const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
 
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -840,15 +841,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     );
   }
 
-  // Filter dimensions (and their options) by search query
+  // Filter dimensions (and their options) by search query and/or gaps toggle
   const filteredDimensions = useMemo(() => {
+    let result = dimensions;
+    if (showOnlyWithGaps) {
+      result = result.filter(dim => {
+        const dimCov = coverage[dim.id] ?? {};
+        return Object.values(dimCov).some(opt => opt.uncovered.length > 0);
+      });
+    }
     const q = dimSearch.trim().toLowerCase();
-    if (!q) return dimensions;
-    return dimensions.filter(dim => {
+    if (!q) return result;
+    return result.filter(dim => {
       if (dim.name.toLowerCase().includes(q)) return true;
       return dim.options.some(o => o.name.toLowerCase().includes(q));
     });
-  }, [dimensions, dimSearch]);
+  }, [dimensions, dimSearch, showOnlyWithGaps, coverage]);
 
   // Advanced mode: render the resolver UI instead of the theme dimension grid
   if (themeMode === 'advanced' && resolverState) {
@@ -1078,9 +1086,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             </div>
 
-            {/* Dimension search filter */}
-            {dimensions.length > 2 && (
-              <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50">
+            {/* Dimension search filter + gaps toggle */}
+            {dimensions.length > 1 && (
+              <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-col gap-1.5">
                 <div className="relative">
                   <svg className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" />
@@ -1107,6 +1115,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     </button>
                   )}
                 </div>
+                <button
+                  onClick={() => setShowOnlyWithGaps(v => !v)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium transition-colors self-start ${
+                    showOnlyWithGaps
+                      ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30'
+                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                  title="Show only dimensions that have unresolved token gaps"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Show only dimensions with gaps
+                </button>
               </div>
             )}
 
@@ -1155,6 +1179,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             {/* Dimension layer cards */}
             <div className="flex flex-col">
+              {filteredDimensions.length === 0 && (dimSearch || showOnlyWithGaps) && (
+                <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
+                  {showOnlyWithGaps && !dimSearch
+                    ? 'No dimensions have coverage gaps'
+                    : 'No dimensions match your filter'}
+                </div>
+              )}
               {filteredDimensions.map((dim) => {
                 const selectedOpt = selectedOptions[dim.id] || dim.options[0]?.name || '';
                 const opt = dim.options.find(o => o.name === selectedOpt);

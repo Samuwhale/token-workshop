@@ -393,3 +393,16 @@
   - For `syncGroupBase`, use a callback ref pattern (via `useCallback`) rather than duplicating the fetch-filter-resolve-apply loop. Pass the entity-specific sender via a lambda `(_, payload) => sendVarApply('apply-variables', payload)` to avoid exposing the message type through the shared helper.
   - When replacing inline JSX with a generic component, pass `React.ReactNode` for mixed HTML/text message props (like the "click Compare" message with a bold element).
 ---
+
+## 2026-04-04 - ThemeManager dimension list has no search/filter UI despite the state existing
+- The search input was already partially implemented (rendered at `dimensions.length > 2`), but the "show only dimensions with gaps" toggle was missing.
+- Added `showOnlyWithGaps` boolean state next to existing `dimSearch` state.
+- Updated `filteredDimensions` useMemo to filter by gap coverage when toggle is on (checks `coverage[dim.id]` for any option with `uncovered.length > 0`).
+- Lowered the filter-bar visibility threshold from `dimensions.length > 2` to `> 1` so the gaps toggle is accessible with fewer dimensions.
+- Added a warning-styled toggle button ("Show only dimensions with gaps") below the search input, with active/inactive styles.
+- Added a zero-state message for when all dimensions are filtered out ("No dimensions have coverage gaps" or "No dimensions match your filter").
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L129-131, ~L844-857, ~L1082-1140, ~L1181-1190
+- **Learnings for future iterations:**
+  - Coverage-based filtering (`showOnlyWithGaps`) reads from the already-computed `coverage` state — no additional API calls needed.
+  - When adding a toggle that filters an already-filtered list, chain it before the text search in the useMemo (gaps filter first, then text filter) so both can be active simultaneously.
+---
