@@ -239,7 +239,12 @@ export class ResolverStore {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(tmpPath, JSON.stringify(file, null, 2));
     this._startWriteGuard(filePath);
-    await fs.rename(tmpPath, filePath);
+    try {
+      await fs.rename(tmpPath, filePath);
+    } catch (err) {
+      this._clearWriteGuard(filePath);
+      throw err;
+    }
   }
 
   private _startWriteGuard(filePath: string): void {
