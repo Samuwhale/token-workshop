@@ -421,3 +421,18 @@ Already up to date.
 
   Merging to main: Plugin sandbox functions silently return success on Figma API failures
 Already up to date.
+[main 93914dd0] chore(backlog): done – Plugin sandbox functions silently return success on Figma API failures
+ 11 files changed, 112 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Plugin sandbox functions silently return success on Figma API failures
+- Fixed `scanTokenVariableBindings` (variableSync.ts L375): catch block now includes `error` field in the `token-variable-bindings-result` message so UI distinguishes "no bindings" from "API failed"
+- Fixed `scanCanvasHeatmap` (heatmapScanning.ts L188): changed generic `{ type: 'error' }` to `{ type: 'canvas-heatmap-error', error }` so useHeatmap.ts can surface it immediately instead of waiting for the 30-second timeout
+- Fixed `scanComponentCoverage` (heatmapScanning.ts L47): changed generic `{ type: 'error' }` to `{ type: 'component-coverage-error', error, correlationId }` so AnalyticsPanel's correlationId-based Promise resolution can detect failures
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  13 queued · 3 in-progress · last took 6m31s
+═══════════════════════════════════════════════════════════════
+  → No cross-set token move — moving a token from Set A to Set B requires deleting and recreating it, losing operation history; add a "Move to set…" action in the token context menu that atomically creates in the target set and removes from the source, updating alias references across all sets (TokenTreeNode.tsx context menu, server tokens.ts/sets.ts)
+  Worktree: /tmp/backlog-92209-AEqYLw
+  Running agent… (started 02:23:44)

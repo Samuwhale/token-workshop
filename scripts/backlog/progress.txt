@@ -426,3 +426,15 @@
   - For functions that return same-type messages on both success and error (like `token-variable-bindings-result`), adding an optional `error?: string` field is cleaner than a new message type — the UI's existing message filter still matches, and it just checks the field
   - The `scanCanvasHeatmap` generic `error` message was invisible to `useHeatmap.ts` because the hook only listened for `canvas-heatmap-result` — the scan would silently hang until the 30s timeout; always use dedicated error message types that match what the UI listens for
 ---
+
+## 2026-04-04 - EmptyState overwhelms with 8+ buttons and no progressive disclosure
+- Restructured EmptyState.tsx into three clearly-labelled groups: "From Figma" (import from variables), "From file" (paste JSON), and "From scratch" (guided setup, templates, color scale, manual create).
+- Added "More options" expand/collapse toggle (chevron + text) that hides advanced/less-common actions ("Generate Semantic Tokens", "Generate Dark Theme") behind a `showMore` state — these require existing tokens so they're not relevant to new users.
+- Collapsed items render in an indented section with a left border to visually link them to the toggle.
+- Removed the old flat "Or start with" / "From primitives" section headers in favour of the three-group layout.
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx` (full rewrite, same external API)
+- **Learnings for future iterations:**
+  - `disabledProps` helper avoids repeating `disabled={!connected}` + `title` across 8+ buttons.
+  - Group-label + indented section with left-border is a clean pattern for collapsible sub-groups without needing a full accordion component.
+  - The "More options" toggle fits naturally at the bottom of the actions section; label toggles between "More options" / "Fewer options" so state is always obvious.
+---

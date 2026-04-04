@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { adaptShortcut } from '../shared/utils';
 
 interface EmptyStateProps {
@@ -14,6 +15,14 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigma, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
+  const [showMore, setShowMore] = useState(false);
+
+  const hasMoreOptions = !!(onGenerateSemanticTokens || onGenerateDarkTheme);
+  const disabledProps = (label: string) => ({
+    disabled: !connected,
+    title: connected ? undefined : `Server offline — ${label}`,
+  });
+
   return (
     <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-5 overflow-y-auto">
       {/* Icon + heading */}
@@ -47,58 +56,79 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
       )}
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 w-full max-w-[260px]">
-        {/* Primary CTA: Import from Figma Variables */}
+      <div className="flex flex-col gap-4 w-full max-w-[260px]">
+
+        {/* Group: From Figma */}
         {onImportFigma && (
-          <button
-            onClick={onImportFigma}
-            disabled={!connected}
-            title={connected ? undefined : 'Server offline — start the local server'}
-            className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded bg-[var(--color-figma-accent)] text-white text-left disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-          >
-            <div className="flex items-center gap-2 w-full">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 3h3v3H2zM7 3h3v3H7zM2 7h3v3H2z" />
-                <path d="M7 8.5V10M7 7v0" />
-              </svg>
-              <span className="flex-1 text-[11px] font-medium">Import from Figma Variables</span>
-            </div>
-            <p className="text-[10px] text-white/70 leading-snug pl-[20px]">
-              Pull your existing variables and modes into token sets
-            </p>
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">From Figma</p>
+            <button
+              onClick={onImportFigma}
+              {...disabledProps('start the local server')}
+              className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded bg-[var(--color-figma-accent)] text-white text-left disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2 w-full">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 3h3v3H2zM7 3h3v3H7zM2 7h3v3H2z" />
+                  <path d="M7 8.5V10M7 7v0" />
+                </svg>
+                <span className="flex-1 text-[11px] font-medium">Import from Figma Variables</span>
+              </div>
+              <p className="text-[10px] text-white/70 leading-snug pl-[20px]">
+                Pull your existing variables and modes into token sets
+              </p>
+            </button>
+          </div>
         )}
 
-        {/* Guided setup */}
-        {onGuidedSetup && (
+        {/* Group: From file */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">From file</p>
           <button
-            onClick={onGuidedSetup}
-            disabled={!connected}
-            title={connected ? undefined : 'Server offline — start the local server'}
-            className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded border-2 border-dashed border-[var(--color-figma-accent)]/40 text-left disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+            onClick={onPasteJSON}
+            {...disabledProps('start the local server')}
+            className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
-            <div className="flex items-center gap-2 w-full">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z" />
+            <div className="flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1.5" y="1.5" width="9" height="9" rx="1" />
+                <path d="M4 1.5v1.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1.5" />
               </svg>
-              <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-accent)]">Guided setup</span>
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">3 steps</span>
+              <span className="text-[11px] font-medium">Paste existing tokens</span>
             </div>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-              Generate primitives, map semantics, set up themes
+              Migrate from Tokens Studio, Style Dictionary, or DTCG JSON
             </p>
           </button>
-        )}
+        </div>
 
-        {/* Secondary actions */}
-        <div className="flex flex-col gap-1.5 pt-1">
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Or start with</p>
+        {/* Group: From scratch */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">From scratch</p>
+
+          {onGuidedSetup && (
+            <button
+              onClick={onGuidedSetup}
+              {...disabledProps('start the local server')}
+              className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded border-2 border-dashed border-[var(--color-figma-accent)]/40 text-left disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+            >
+              <div className="flex items-center gap-2 w-full">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-accent)]">Guided setup</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">3 steps</span>
+              </div>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                Generate primitives, map semantics, set up themes
+              </p>
+            </button>
+          )}
 
           {onGoToGraph && (
             <button
               onClick={onGoToGraph}
-              disabled={!connected}
-              title={connected ? undefined : 'Server offline'}
+              {...disabledProps('start the local server')}
               className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -116,29 +146,10 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
             </button>
           )}
 
-          <button
-            onClick={onPasteJSON}
-            disabled={!connected}
-            title={connected ? undefined : 'Server offline'}
-            className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1.5" y="1.5" width="9" height="9" rx="1" />
-                <path d="M4 1.5v1.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1.5" />
-              </svg>
-              <span className="text-[11px] font-medium">Paste existing tokens</span>
-            </div>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-              Migrate from Tokens Studio, Style Dictionary, or DTCG JSON
-            </p>
-          </button>
-
           {onGenerateColorScale && (
             <button
               onClick={onGenerateColorScale}
-              disabled={!connected}
-              title={connected ? undefined : 'Server offline'}
+              {...disabledProps('start the local server')}
               className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -156,8 +167,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
 
           <button
             onClick={onCreateToken}
-            disabled={!connected}
-            title={connected ? undefined : 'Server offline — start the local server to create tokens'}
+            {...disabledProps('start the local server to create tokens')}
             className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -168,38 +178,54 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
           </button>
         </div>
 
-        {/* Deep actions (only shown when handlers provided) */}
-        {(onGenerateSemanticTokens || onGenerateDarkTheme) && (
-          <>
-            <div className="w-full border-t border-[var(--color-figma-border)] my-1" />
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium self-start">From primitives</p>
-            {onGenerateSemanticTokens && (
-              <button
-                onClick={onGenerateSemanticTokens}
-                disabled={!connected}
-                title={connected ? undefined : 'Server offline'}
-                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        {/* More options (advanced / less-common actions) */}
+        {hasMoreOptions && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="flex items-center gap-1.5 text-left text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+            >
+              <svg
+                width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                className={showMore ? 'rotate-90' : ''}
+                style={{ transition: 'transform 0.15s' }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
-                </svg>
-                <span className="flex-1 text-left">Generate Semantic Tokens</span>
-              </button>
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+              {showMore ? 'Fewer options' : 'More options'}
+            </button>
+
+            {showMore && (
+              <div className="flex flex-col gap-1.5 pl-3 border-l border-[var(--color-figma-border)]">
+                {onGenerateSemanticTokens && (
+                  <button
+                    onClick={onGenerateSemanticTokens}
+                    {...disabledProps('start the local server')}
+                    className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-left"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
+                    </svg>
+                    <span className="flex-1 text-left">Generate Semantic Tokens</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">from primitives</span>
+                  </button>
+                )}
+                {onGenerateDarkTheme && (
+                  <button
+                    onClick={onGenerateDarkTheme}
+                    {...disabledProps('start the local server')}
+                    className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-left"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
+                    </svg>
+                    <span className="flex-1 text-left">Generate Dark Theme</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">from primitives</span>
+                  </button>
+                )}
+              </div>
             )}
-            {onGenerateDarkTheme && (
-              <button
-                onClick={onGenerateDarkTheme}
-                disabled={!connected}
-                title={connected ? undefined : 'Server offline'}
-                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
-                </svg>
-                <span className="flex-1 text-left">Generate Dark Theme</span>
-              </button>
-            )}
-          </>
+          </div>
         )}
       </div>
 

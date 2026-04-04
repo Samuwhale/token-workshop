@@ -325,3 +325,10 @@ Already up to date.
   → EmptyState overwhelms with 8+ buttons and no progressive disclosure — the "Or start with" section lists every import source simultaneously, creating decision paralysis for new users; group by familiarity (e.g., "From Figma" / "From file" / "From scratch") and collapse less-common sources behind a "More options" toggle (EmptyState.tsx)
   Worktree: /tmp/backlog-91634-WQc02O
   Running agent… (started 02:22:28)
+
+  ✓ done: EmptyState overwhelms with 8+ buttons and no progressive disclosure
+    Grouped actions into "From Figma" / "From file" / "From scratch" with labelled sections; advanced "Generate Semantic/Dark Theme" actions collapsed behind a "More options" toggle.
+    7 turns · 132s · $0.3
+
+  Merging to main: EmptyState overwhelms with 8+ buttons and no progressive disclosure
+Already up to date.
