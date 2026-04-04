@@ -770,3 +770,25 @@ Already up to date.
 
   Merging to main: Import flow has no merge/conflict preview
 Already up to date.
+[main a06a5f32] chore(backlog): done – Import flow has no merge/conflict preview
+ 7 files changed, 161 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Import flow has no merge/conflict preview
+- Added per-token diff preview for Figma Variables import: extended `varConflictPreview` computation in the useEffect to also collect `varConflictDetails` (path, setName, existing value, incoming token) for all conflicting tokens across all enabled modes/sets
+- Added `varConflictDetailsExpanded`/`setVarConflictDetailsExpanded` state to drive a collapsible "Show N conflicting tokens" panel in `ImportVariablesFooter` that renders old (−) and new (+) values side-by-side using the existing `renderConflictValue` helper; capped at 60 visible rows with "and N more…" overflow
+- Fixed `prefetchExistingPaths` to treat 404 as "empty set" instead of an error — users can now pre-fetch conflict counts for a brand-new set name without seeing "Conflict detection unavailable"
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  9 queued · 3 in-progress · last took 9m4s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline — users must understand a priority-based merging model to correctly assign sets to theme options, but the only explanation is tooltip text on hover; an inline teaching moment or visual stacking diagram when first assigning sets would prevent common misconfiguration (ThemeManager.tsx set assignment ~L1640-1660)
+  Worktree: /tmp/backlog-91949-IUKzNp
+  Running agent… (started 04:11:29)
+
+  ✓ done: ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
+    Replaced horizontal dot legend with a visual Base+Override→Resolved stacking diagram; replaced one-liner empty state with an instructive card explaining each role with concrete examples
+    15 turns · 164s · $0.42
+
+  Merging to main: ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
+Already up to date.

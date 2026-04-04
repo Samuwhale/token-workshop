@@ -1559,26 +1559,41 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {/* Set groups */}
                         {sets.length > 0 && (
                           <div className="border-t border-[var(--color-figma-border)]">
-                            {/* Status legend — explains the three set states and their resolution order */}
-                            <div className="px-3 py-1 flex items-center flex-wrap gap-x-3 gap-y-0.5 text-[9px] border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40">
-                              <span className="text-[var(--color-figma-text-tertiary)] flex-shrink-0 font-medium">Status:</span>
-                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['enabled']}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0" aria-hidden="true" />
-                                <span className="text-[var(--color-figma-success)] font-medium">Override</span>
-                                <span className="text-[var(--color-figma-text-tertiary)]">highest priority</span>
-                              </span>
-                              <span className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">›</span>
-                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['source']}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0" aria-hidden="true" />
-                                <span className="text-[var(--color-figma-accent)] font-medium">Base</span>
-                                <span className="text-[var(--color-figma-text-tertiary)]">default values</span>
-                              </span>
-                              <span className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">›</span>
-                              <span className="flex items-center gap-1" title={STATE_DESCRIPTIONS['disabled']}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-tertiary)]/60 flex-shrink-0" aria-hidden="true" />
-                                <span className="text-[var(--color-figma-text-tertiary)] font-medium">Excluded</span>
-                                <span className="text-[var(--color-figma-text-tertiary)]">not used</span>
-                              </span>
+                            {/* Merge model diagram — shows how Base + Override sets resolve to final tokens */}
+                            <div className="px-3 pt-2 pb-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 text-[9px]">
+                              <div className="text-[var(--color-figma-text-tertiary)] font-medium mb-1.5">How sets merge for this option:</div>
+                              <div className="flex items-center gap-1.5">
+                                {/* Stack: Override layer on top */}
+                                <div className="flex-1 flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/10 border border-[var(--color-figma-success)]/25" title={STATE_DESCRIPTIONS['enabled']}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0" aria-hidden="true" />
+                                    <span className="font-semibold text-[var(--color-figma-success)]">Override</span>
+                                    <span className="text-[var(--color-figma-text-tertiary)] ml-auto">wins on conflict</span>
+                                  </div>
+                                  <div className="flex items-center justify-center text-[var(--color-figma-text-tertiary)] leading-none" aria-hidden="true">+</div>
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/25" title={STATE_DESCRIPTIONS['source']}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0" aria-hidden="true" />
+                                    <span className="font-semibold text-[var(--color-figma-accent)]">Base</span>
+                                    <span className="text-[var(--color-figma-text-tertiary)] ml-auto">all other tokens</span>
+                                  </div>
+                                </div>
+                                {/* Arrow → result */}
+                                <div className="flex flex-col items-center gap-0.5 text-[var(--color-figma-text-tertiary)] flex-shrink-0" aria-hidden="true">
+                                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8.5 3.5v7.086l2.793-2.793.707.707-3.5 3.5a.5.5 0 01-.707 0l-3.5-3.5.707-.707L7.5 10.586V3.5h1z" transform="rotate(-90 8 8)" /></svg>
+                                </div>
+                                {/* Result box */}
+                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] flex-shrink-0 self-center">
+                                  <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+                                  <span className="text-[var(--color-figma-text-secondary)] font-medium">Resolved</span>
+                                </div>
+                              </div>
+                              <div className="mt-1 text-[var(--color-figma-text-tertiary)] opacity-70">
+                                <span className="inline-flex items-center gap-0.5">
+                                  <span className="w-1 h-1 rounded-full bg-[var(--color-figma-text-tertiary)]/50 inline-block" aria-hidden="true" />
+                                  Excluded
+                                </span>
+                                {' '}sets are not included in resolved output.
+                              </div>
                             </div>
                             {/* Batch assignment toolbar — set all sets to one state at once */}
                             {sets.length > 1 && (
@@ -1650,10 +1665,21 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </div>
                             )}
 
-                            {/* All sets are in one group — show empty hint */}
+                            {/* Getting started hint — shown when no sets are assigned yet */}
                             {overrideSets.length === 0 && foundationSets.length === 0 && disabledSets.length > 0 && !isDisabledCollapsed && (
-                              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
-                                No sets assigned yet. Expand &ldquo;Excluded&rdquo; and assign sets as Base or Override.
+                              <div className="mx-3 my-2 px-2.5 py-2 rounded border border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/5 text-[9px]">
+                                <div className="font-semibold text-[var(--color-figma-accent)] mb-1">Assign sets to activate this option</div>
+                                <div className="flex flex-col gap-1 text-[var(--color-figma-text-secondary)]">
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                    <span><span className="font-medium text-[var(--color-figma-accent)]">Base</span> — full-coverage sets that define all token values (e.g. a global primitives set)</span>
+                                  </div>
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-success)] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                    <span><span className="font-medium text-[var(--color-figma-success)]">Override</span> — sets that replace specific tokens for this variant (e.g. a dark-mode color set)</span>
+                                  </div>
+                                </div>
+                                <div className="mt-1.5 text-[var(--color-figma-text-tertiary)]">Expand &ldquo;Excluded&rdquo; below and assign each set a role.</div>
                               </div>
                             )}
                           </div>

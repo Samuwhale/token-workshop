@@ -549,3 +549,12 @@
   - 404 handling is a recurring omission in "check-before-mutate" patterns: whenever a fetch-then-create flow checks for existing state, the not-found case should be treated as "empty" not "error"
   - `renderConflictValue` from `importPanelHelpers.tsx` is the shared formatter for old/new token values — reuse it across all diff UIs
 ---
+
+## 2026-04-04 - ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
+- Replaced the compact horizontal status legend (colored dots + labels in one row) with a visual stacking diagram that shows how Base + Override sets merge into resolved tokens; uses a "+"/arrow layout with labeled layer boxes and a "Resolved" result indicator
+- Replaced the one-liner italic empty state ("No sets assigned yet...") with an instructive card that explains Base (full-coverage sets, e.g. global primitives) vs Override (variant-specific replacements, e.g. dark-mode colors) with color-coded icons and a call-to-action to expand Excluded
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1562-1582 (legend), ~L1653-1658 (empty state)
+- **Learnings for future iterations:**
+  - Small plugin UIs benefit from compact stacking diagrams (Base + Override → Result) over horizontal dot legends — the visual flow communicates the merge model at a glance without requiring tooltip hover
+  - Empty states are prime real estate for teaching moments: replace generic "no items yet" messages with concrete role explanations and examples (e.g. "e.g. a global primitives set")
+---
