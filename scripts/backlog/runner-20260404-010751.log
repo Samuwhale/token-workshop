@@ -355,3 +355,18 @@ Already up to date.
 
   Merging to main: Generator dependency chain failures are silent — surface a "blocked by failed dependency" status on downstream generators
 Already up to date.
+[main 9ac98dd9] chore(backlog): done – Generator dependency chain failures are silent — surface a "blocked by failed dependency" status on downstream generators
+ 7 files changed, 77 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator dependency chain failures are silent
+- Added `blockedBy?: string` field to `GeneratorRunError` interface in `generator-service.ts` to distinguish "blocked by upstream dependency" from "directly failed"
+- Updated `runForSourceToken` to find the specific blocking upstream generator and set its name in `blockedBy` when skipping downstream generators; updated log message to name both generators
+- Updated `lastRunError` type in `useGenerators.ts` to include `blockedBy?: string`
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  17 queued · 3 in-progress · last took 5m5s
+═══════════════════════════════════════════════════════════════
+  → ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching (`toLowerCase().includes('light')`) that silently picks wrong sets if naming doesn't match expectations — should show the detected set assignments to the user for confirmation before creating the resolver, rather than silently guessing (ResolverPanel.tsx L143-147)
+  Worktree: /tmp/backlog-92209-92b9gt
+  Running agent… (started 02:09:57)

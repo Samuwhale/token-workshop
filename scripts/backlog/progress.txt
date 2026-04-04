@@ -604,3 +604,24 @@
   - Adding a typed `blockedBy` field is cleaner than string-prefix detection; the UI can branch on presence of the field rather than parsing the message
   - Three visual states (red=failed, orange=blocked, yellow=stale) give users a clear triage path without overwhelming the card
 ---
+
+## 2026-04-04 - ImportPanel decomposition into focused sub-components with shared context
+- Decomposed the 2133-line ImportPanel.tsx (49 useState calls) into 10 focused sub-components + context using the same pattern as the TokenList extraction.
+- Created `importPanelTypes.ts` — shared interfaces (ImportToken, ModeData, CollectionData) and pure utility functions (markDuplicatePaths, validateDTCGStructure, slugify, modeKey, defaultSetName, detectKnownNonTokenFile).
+- Created `importPanelHelpers.tsx` — JSX helpers: DiffSwatch component and renderConflictValue function.
+- Created `ImportPanelContext.tsx` — all 49 useState calls, 10+ useEffect calls, 20+ useCallback handlers, and all derived values collected into a single provider. `useImportPanel()` hook gives sub-components access to everything.
+- Created `ImportSourceSelector.tsx` — the initial source-selection screen (6 import source buttons + file inputs).
+- Created `ImportSuccessView.tsx` — the post-import success state with undo/retry/copy-paths actions.
+- Created `ImportVariablesView.tsx` — the collection/mode mapping body (Variables import).
+- Created `ImportVariablesFooter.tsx` — the Variables import footer with conflict preview and overwrite/merge/skip buttons.
+- Created `ImportTokenListView.tsx` — the flat token list body with type filter pills, skipped entries summary, and alias-resolved token rows.
+- Created `ImportConflictResolver.tsx` — the per-token conflict resolution UI: search/filter, accept/merge/reject toggles, value diffs, and import action.
+- Created `ImportStylesFooter.tsx` — the Styles/JSON/CSS/Tailwind footer: target set selector (with new-set creation), import preview summary, and delegates to ImportConflictResolver when conflicts exist.
+- Rewrote `ImportPanel.tsx` as a ~80-line thin orchestrator: wraps ImportPanelProvider, renders the right sub-component based on state flags.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` (rewritten, ~80 lines vs 2133), + 10 new files in the same directory.
+- **Learnings for future iterations:**
+  - The context pattern (all state + callbacks in provider, useXxx() hook in each sub-component) scales well to very large components — the key is accepting that the context value type will be large, but each sub-component only reads what it needs.
+  - `useMemo` on the context value object prevents all child re-renders on every state change — critical for a provider with 49 state variables.
+  - JSX helper files must use `.tsx` extension (even utility functions that return JSX), or Vite/esbuild will fail on `<>` fragments.
+  - File processors (processJsonFile, processCSSFile, etc.) should be wrapped in useCallback to avoid stale closures in the drag-drop handler, which transitively calls them.
+---
