@@ -201,3 +201,9 @@
 - **Learnings for future iterations:**
   - The write guard is cleared by the chokidar watcher callback on success; the finally/catch is only needed for the failure path. Using catch+rethrow (vs finally) is fine here since the watcher handles success.
 ---
+## 2026-04-04 - Resolver store writeToDisk write guard leaks on rename failure
+- Added try/catch around `fs.rename` in `writeToDisk` that calls `_clearWriteGuard(filePath)` in the catch block before re-throwing, matching the correct pattern in `token-store.ts`. This ensures the 30-second write-guard timeout doesn't block legitimate external file-change events when rename fails.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L241
+- **Learnings for future iterations:**
+  - The write guard is cleared by the chokidar watcher callback on success; the finally/catch is only needed for the failure path. Using catch+rethrow (vs finally) is fine here since the watcher handles success.
+---
