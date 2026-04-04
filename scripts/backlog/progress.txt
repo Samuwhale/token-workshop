@@ -428,3 +428,17 @@
   - Components that already use `autoFocus` attribute can have it removed when `useFocusTrap` + `initialFocusRef` is used — cleaner and more predictable
   - The `useFocusTrap` eslint comment `// eslint-disable-next-line react-hooks/exhaustive-deps` is needed because refs are intentionally omitted from deps (they're stable objects)
 ---
+
+## 2026-04-04 - Generator and resolver delete actions have no confirmation dialog
+- ResolverPanel already had a ConfirmModal with danger styling — no change needed there.
+- Replaced the inline "Delete tokens too? Yes/No/Cancel" UI in `GeneratorPipelineCard.tsx` with a proper ConfirmModal:
+  - `danger` prop for red confirm button
+  - `description` names the generator being deleted
+  - `children` contains a checkbox: "Also delete generated tokens" (maps to the `deleteTokens` boolean parameter)
+  - State `deleteTokensOnDelete` (default false) is reset to false each time the modal opens
+  - `handleDelete` still takes a `deleteTokens: boolean` argument, now called from `onConfirm` with the checkbox state
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L1,8,547,806-830
+- **Learnings for future iterations:**
+  - When an inline confirm UI needs to pass a boolean choice to the delete handler, use a checkbox inside ConfirmModal's `children` prop — cleaner than adding extra confirm button variants
+  - Always reset the checkbox state when opening the modal (pass `false` as initializer on the open handler) so it doesn't retain previous user choice
+---

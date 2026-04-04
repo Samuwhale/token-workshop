@@ -6,6 +6,7 @@ import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { VALUE_REQUIRED_TYPES } from './generators/generatorUtils';
 import { OverrideRow, formatValue } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
+import { ConfirmModal } from './ConfirmModal';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -544,6 +545,7 @@ export function GeneratorPipelineCard({
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTokensOnDelete, setDeleteTokensOnDelete] = useState(false);
   const [showQuickEdit, setShowQuickEdit] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -801,21 +803,12 @@ export function GeneratorPipelineCard({
         >
           {duplicating ? 'Duplicating…' : 'Duplicate'}
         </button>
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors ml-auto"
-          >
-            Delete
-          </button>
-        ) : (
-          <div className="flex items-center gap-1.5 ml-auto">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Delete tokens too?</span>
-            <button onClick={() => handleDelete(true)} disabled={deleting} className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50">Yes</button>
-            <button onClick={() => handleDelete(false)} disabled={deleting} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-50">No</button>
-            <button onClick={() => setShowDeleteConfirm(false)} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline">Cancel</button>
-          </div>
-        )}
+        <button
+          onClick={() => { setDeleteTokensOnDelete(false); setShowDeleteConfirm(true); }}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors ml-auto"
+        >
+          Delete
+        </button>
       </div>
 
       {previewDiff && (
@@ -902,6 +895,27 @@ export function GeneratorPipelineCard({
           onClose={() => setShowEditDialog(false)}
           onSaved={() => { setShowEditDialog(false); onRefresh(); }}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Generator"
+          description={`Delete "${generator.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => handleDelete(deleteTokensOnDelete)}
+          onCancel={() => setShowDeleteConfirm(false)}
+        >
+          <label className="mt-3 flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={deleteTokensOnDelete}
+              onChange={(e) => setDeleteTokensOnDelete(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-[11px] text-[var(--color-figma-text-secondary)]">Also delete generated tokens</span>
+          </label>
+        </ConfirmModal>
       )}
     </div>
   );
