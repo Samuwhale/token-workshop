@@ -623,3 +623,11 @@
   - Lazy state initializers (`useState(() => lsGet(...))`) are cleaner than a separate mount effect for reading from localStorage — the value is available synchronously on the first render, avoiding a flicker where the component briefly shows the empty/null state.
   - When `setActiveResolver` already handles defaults on explicit user selection, there's no need to intercept the restore path — just initialize from storage and let explicit selections overwrite as normal.
 ---
+- Initialized both state variables from localStorage via lazy initializer functions so values are restored on mount without any extra effects.
+- Added two `useEffect`s to persist changes: one saves/removes the active resolver name, the other saves the input JSON.
+- Added both new keys to the `handleClearAll` cleanup list in `App.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L44, `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L12, ~L38-63, `packages/figma-plugin/src/ui/App.tsx` ~L797
+- **Learnings for future iterations:**
+  - Lazy state initializers (`useState(() => lsGet(...))`) are cleaner than a separate mount effect for reading from localStorage — the value is available synchronously on the first render, avoiding a flicker where the component briefly shows the empty/null state.
+  - When `setActiveResolver` already handles defaults on explicit user selection, there's no need to intercept the restore path — just initialize from storage and let explicit selections overwrite as normal.
+---

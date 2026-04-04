@@ -783,3 +783,25 @@ Already up to date.
 
   Merging to main: Resolver modifier inputs and active resolver are not persisted between sessions
 Already up to date.
+[main 90beddb7] chore(backlog): done – Resolver modifier inputs and active resolver are not persisted between sessions
+ 8 files changed, 62 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Resolver modifier inputs and active resolver not persisted between sessions
+- Added localStorage persistence for `activeResolver` (string key) and `resolverInput` (JSON object) in `useResolvers.ts`.
+- Added `ACTIVE_RESOLVER` and `RESOLVER_INPUT` keys to `STORAGE_KEYS` in `storage.ts`.
+- Initialized both state variables from localStorage via lazy initializer functions so values are restored on mount without any extra effects.
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  9 queued · 3 in-progress · last took 2m24s
+═══════════════════════════════════════════════════════════════
+  → useFigmaSync hook appears to be a legacy/parallel sync path unused by PublishPanel — PublishPanel uses useVariableSync + useStyleSync + useGitSync, but useFigmaSync.ts (213 LOC) implements a separate group-level sync + scope assignment flow; if PublishPanel doesn't consume it, it's dead code that confuses understanding of the sync architecture; verify whether anything still imports useFigmaSync and remove or consolidate if orphaned (useFigmaSync.ts, PublishPanel.tsx)
+  Worktree: /tmp/backlog-92209-1boDL4
+  Running agent… (started 03:38:40)
+
+  ✓ done: useFigmaSync hook appears to be a legacy/parallel sync path unused by PublishPanel
+    Not orphaned — hook is actively used in App.tsx for group-level sync from token tree context menu (onSyncGroup, onSyncGroupStyles, onSetGroupScopes), which is a distinct flow from PublishPanel's full-set diff-then-apply hooks
+    11 turns · 79s · $0.29
+
+  Merging to main: useFigmaSync hook appears to be a legacy/parallel sync path unused by PublishPanel
+Already up to date.
