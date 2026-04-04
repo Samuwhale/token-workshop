@@ -889,3 +889,74 @@ Already up to date.
   → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
   Worktree: /tmp/backlog-91949-pBsc3e
   Running agent… (started 04:26:52)
+
+  · unknown
+    13 turns · 205s · $0.67
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #39  ·  6 queued · 1 in-progress · last took 3m30s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91949-DUae4x
+  Running agent… (started 04:30:22)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #40  ·  6 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91949-4Sc1Qv
+  Running agent… (started 04:30:28)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #41  ·  6 queued · 1 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91949-uQJAKW
+  Running agent… (started 04:30:33)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #42  ·  6 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91949-pnH8V9
+  Running agent… (started 04:30:39)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

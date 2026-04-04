@@ -1,0 +1,30 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    60297
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-094223.log
+  Passes: enabled (every 15 items)
+
+  Queue:    5 ready · 2 in-progress · 4 failed
+  Done:     1313 total (next code pass in 7, product pass in 15)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  5 queued · 2 in-progress
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-60297-YcQnHi
+  Running agent… (started 09:42:23)
+
+  ✓ done: Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
+    Added EXPORT_PATH_PREFIX, EXPORT_TYPES, EXPORT_CHANGES_ONLY, ANALYTICS_SUPPRESSIONS to export+import whitelist; added tm_view-mode: dynamic prefix to export loop, isAllowedImportKey, and diff label builder
+    20 turns · 128s · $0.46
+
+  Merging to main: Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
+Already up to date.

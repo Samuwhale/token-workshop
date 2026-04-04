@@ -1,0 +1,23 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    59563
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-094202.log
+  Passes: enabled (every 15 items)
+
+  Queue:    6 ready · 1 in-progress · 4 failed
+  Done:     1313 total (next code pass in 7, product pass in 15)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  6 queued · 1 in-progress
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-59563-1YmodE
+  Running agent… (started 09:42:03)

@@ -159,8 +159,12 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.EXPORT_CSS_SELECTOR,
   STORAGE_KEYS.EXPORT_ZIP_FILENAME,
   STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+  STORAGE_KEYS.EXPORT_PATH_PREFIX,
+  STORAGE_KEYS.EXPORT_TYPES,
+  STORAGE_KEYS.EXPORT_CHANGES_ONLY,
   STORAGE_KEYS.EXPORT_PRESETS,
   STORAGE_KEYS.UNDO_MAX_HISTORY,
+  STORAGE_KEYS.ANALYTICS_SUPPRESSIONS,
 ]);
 
 /** Returns true only for keys that the export produces and safe to import. */
@@ -169,6 +173,7 @@ function isAllowedImportKey(key: string): boolean {
   if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT)) return true;
   if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) return true;
   if (key.startsWith('tm_pinned:')) return true;
+  if (key.startsWith('tm_view-mode:')) return true;
   return false;
 }
 
@@ -183,8 +188,12 @@ const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.EXPORT_CSS_SELECTOR]:  'CSS selector',
   [STORAGE_KEYS.EXPORT_ZIP_FILENAME]:  'ZIP filename',
   [STORAGE_KEYS.EXPORT_NEST_PLATFORM]: 'Nest by platform',
+  [STORAGE_KEYS.EXPORT_PATH_PREFIX]:   'Export path prefix',
+  [STORAGE_KEYS.EXPORT_TYPES]:         'Export token types',
+  [STORAGE_KEYS.EXPORT_CHANGES_ONLY]:  'Export changes only',
   [STORAGE_KEYS.EXPORT_PRESETS]:       'Export presets',
   [STORAGE_KEYS.UNDO_MAX_HISTORY]:     'Max undo steps',
+  [STORAGE_KEYS.ANALYTICS_SUPPRESSIONS]: 'Analytics suppressions',
 };
 
 // ---------------------------------------------------------------------------
@@ -249,8 +258,12 @@ export function SettingsPanel({
       STORAGE_KEYS.EXPORT_CSS_SELECTOR,
       STORAGE_KEYS.EXPORT_ZIP_FILENAME,
       STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+      STORAGE_KEYS.EXPORT_PATH_PREFIX,
+      STORAGE_KEYS.EXPORT_TYPES,
+      STORAGE_KEYS.EXPORT_CHANGES_ONLY,
       STORAGE_KEYS.EXPORT_PRESETS,
       STORAGE_KEYS.UNDO_MAX_HISTORY,
+      STORAGE_KEYS.ANALYTICS_SUPPRESSIONS,
     ];
 
     const out: Record<string, string> = {};
@@ -271,7 +284,8 @@ export function SettingsPanel({
         if (
           k.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
           k.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
-          k.startsWith('tm_pinned:')
+          k.startsWith('tm_pinned:') ||
+          k.startsWith('tm_view-mode:')
         ) {
           const v = localStorage.getItem(k);
           if (v !== null) out[k] = v;
@@ -322,6 +336,7 @@ export function SettingsPanel({
             if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT)) label = `Sort: ${key.slice(STORAGE_PREFIXES.TOKEN_SORT.length)}`;
             else if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) label = `Filter: ${key.slice(STORAGE_PREFIXES.TOKEN_TYPE_FILTER.length)}`;
             else if (key.startsWith('tm_pinned:')) label = `Pinned: ${key.slice('tm_pinned:'.length)}`;
+            else if (key.startsWith('tm_view-mode:')) label = `View mode: ${key.slice('tm_view-mode:'.length)}`;
             else label = key;
           }
           // For presets, show a human-friendly count instead of raw JSON

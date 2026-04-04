@@ -979,3 +979,83 @@ Already up to date.
   → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
   Worktree: /tmp/backlog-92209-ZRfwJI
   Running agent… (started 04:27:55)
+
+  · unknown
+    17 turns · 143s · $0.47
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #41  ·  5 queued · 2 in-progress · last took 2m28s
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-92209-wXxyfx
+  Running agent… (started 04:30:23)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #42  ·  5 queued · 2 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-92209-dhNzXx
+  Running agent… (started 04:30:28)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #43  ·  5 queued · 2 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-92209-I6MtKK
+  Running agent… (started 04:30:34)
+
+  ⚠ Rate limit hit — unclaiming item, retry at 04:31:37
+
+═══════════════════════════════════════════════════════════════
+  #44  ·  6 queued · 1 in-progress · last took 1m4s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-92209-AmBGij
+  Running agent… (started 04:31:37)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #45  ·  6 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-92209-3U4lTX
+  Running agent… (started 04:31:43)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

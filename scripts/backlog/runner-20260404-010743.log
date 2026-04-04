@@ -831,3 +831,95 @@ Already up to date.
 --- Cleanup: archiving completed items (≥23) ---
   → Archived 23 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 56)
+[main 4613fd72] chore(backlog): archive 23 completed items + trim progress
+ 5 files changed, 33 insertions(+), 353 deletions(-)
+
+  Milestone: 1313 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  · product pass: no result — skipped
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  4 queued · 3 in-progress · last took 1m37s
+═══════════════════════════════════════════════════════════════
+  → Consolidate duplicated Variable/Style sync code — `useVariableSync` (171 lines) and `useStyleSync` (171 lines) are structurally identical hooks with different property names; `VariableSyncSubPanel` (180 lines) and `StyleSyncSubPanel` (180 lines) are 95%+ identical components; `useFigmaSync` duplicates the token-fetch-filter-resolve pattern between `handleSyncGroup` and `handleSyncGroupStyles` (L65-98 vs L100-134); all six files (~915 lines total) should be consolidated into a parameterized `useSyncEntity` hook and a generic `SyncSubPanel` component, cutting ~450 lines of pure duplication
+  Worktree: /tmp/backlog-91634-YgawoA
+  Running agent… (started 04:30:24)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  4 queued · 3 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Consolidate duplicated Variable/Style sync code — `useVariableSync` (171 lines) and `useStyleSync` (171 lines) are structurally identical hooks with different property names; `VariableSyncSubPanel` (180 lines) and `StyleSyncSubPanel` (180 lines) are 95%+ identical components; `useFigmaSync` duplicates the token-fetch-filter-resolve pattern between `handleSyncGroup` and `handleSyncGroupStyles` (L65-98 vs L100-134); all six files (~915 lines total) should be consolidated into a parameterized `useSyncEntity` hook and a generic `SyncSubPanel` component, cutting ~450 lines of pure duplication
+  Worktree: /tmp/backlog-91634-fSZSFV
+  Running agent… (started 04:30:30)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [2/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #35  ·  4 queued · 3 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Consolidate duplicated Variable/Style sync code — `useVariableSync` (171 lines) and `useStyleSync` (171 lines) are structurally identical hooks with different property names; `VariableSyncSubPanel` (180 lines) and `StyleSyncSubPanel` (180 lines) are 95%+ identical components; `useFigmaSync` duplicates the token-fetch-filter-resolve pattern between `handleSyncGroup` and `handleSyncGroupStyles` (L65-98 vs L100-134); all six files (~915 lines total) should be consolidated into a parameterized `useSyncEntity` hook and a generic `SyncSubPanel` component, cutting ~450 lines of pure duplication
+  Worktree: /tmp/backlog-91634-Sq2kZ6
+  Running agent… (started 04:30:35)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [3/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #36  ·  5 queued · 2 in-progress · last took 5s
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-91634-bQbOIL
+  Running agent… (started 04:30:40)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [4/5]
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+
+═══════════════════════════════════════════════════════════════
+  #37  ·  6 queued · 1 in-progress · last took 6s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91634-oMVtBK
+  Running agent… (started 04:30:46)
+
+  · unknown
+    1 turns · 0s · $0
+  ⚠ Agent returned unexpected status '' — unclaiming item [5/5]
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)

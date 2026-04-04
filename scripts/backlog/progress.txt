@@ -356,3 +356,16 @@
 - **Learnings for future iterations:**
   - When adding "at-a-glance" indicators to collapsed headers, check if the count is already computed in the render scope — often it is (e.g., `totalDimGaps` was already there for the fill banner below); the badge is just an extra render use of that variable
 ---
+
+## 2026-04-04 - Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
+- Added missing keys to both the export (`preferenceKeys`) and import whitelist (`IMPORTABLE_EXACT_KEYS`) in `SettingsPanel.tsx`: `EXPORT_PATH_PREFIX`, `EXPORT_TYPES`, `EXPORT_CHANGES_ONLY`, `ANALYTICS_SUPPRESSIONS`
+- Added `tm_view-mode:` to the dynamic prefix loop in `handleExportSettings` so per-set view modes are included in the backup
+- Added `tm_view-mode:` prefix check in `isAllowedImportKey` so those keys can be restored from a backup
+- Added `View mode: <setName>` label generation in the import diff builder for `tm_view-mode:*` keys
+- Added labels for all new exact keys in `IMPORT_KEY_LABELS`
+- Note: `EXPORT_PRESETS` was already in the whitelist when the item was filed (already done); fixed the remaining three mentioned gaps plus `EXPORT_TYPES` and `EXPORT_CHANGES_ONLY` which were also missing
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L151-188, ~L248-254, ~L271-275, ~L336-342
+- **Learnings for future iterations:**
+  - The export `preferenceKeys` list and `IMPORTABLE_EXACT_KEYS` set must be kept in sync — they're separate and easy to diverge. A single source of truth (one array used for both) would be safer.
+  - Per-set dynamic key prefixes appear in three places: export loop, `isAllowedImportKey`, and diff label builder — all three must be updated together when adding a new dynamic key family.
+---
