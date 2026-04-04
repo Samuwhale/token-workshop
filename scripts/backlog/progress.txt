@@ -794,3 +794,17 @@
   - When the context menu already has a click-only button for something, the main UX gap is usually the keyboard shortcut — check context menu accel coverage first
   - `r` is already taken in the token context menu (Rename), so alias ref got no menu accel — the global shortcut fills that gap instead
 ---
+
+## 2026-04-05 - ConsistencyPanel snap-to-token bulk actions
+- Added "Snap all N" button in the results summary row that opens a ConfirmModal with a grouped preview (token count + instance count per category)
+- Added "Snap N in [Category]" per-category buttons when results span multiple categories (colors, dimensions, typography, other)
+- Category grouping: color → "Colors", dimension/number → "Dimensions", fontFamily/fontWeight/fontSize/lineHeight/letterSpacing/typography → "Typography", everything else → "Other"
+- `handleSnapMultiple` sends one `batch-bind-heatmap-nodes` message per suggestion with `skipNavigation: true` to avoid jarring viewport jumps for each suggestion
+- Added `skipNavigation?: boolean` to `BatchBindHeatmapNodesMessage` in types.ts; updated `batchBindHeatmapNodes` in heatmapScanning.ts to skip `scrollAndZoomIntoView` when set; threaded through controller.ts
+- ConfirmModal shows wide layout when multiple categories are present; each row shows label + "N tokens, M instances"
+- Files changed: `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` (full rewrite), `packages/figma-plugin/src/shared/types.ts` ~L486, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L306, `packages/figma-plugin/src/plugin/controller.ts` ~L509
+- **Learnings for future iterations:**
+  - For bulk operations that fire multiple postMessages, add a `skipNavigation` (or equivalent) flag so the plugin doesn't thrash the viewport for each message; only the single-item UX path needs zoom behavior
+  - When grouping suggestions by category, computing preview rows in a `useMemo` from the `snapConfirm` array (rather than trying to reference the grouped map) avoids stale closure issues and works correctly for both global and per-category confirms
+  - Category headers should only appear when `groupedSuggestions.size > 1`; single-category results show a flat list to avoid visual noise
+---

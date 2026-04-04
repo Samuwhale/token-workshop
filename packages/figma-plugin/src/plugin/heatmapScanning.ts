@@ -303,7 +303,7 @@ export async function scanTokenUsage(tokenPath: string, signal?: { aborted: bool
   }
 }
 
-export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue) {
+export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue, skipNavigation = false) {
   // First select the nodes so applyToSelection operates on them
   const nodes: SceneNode[] = [];
   for (const id of nodeIds) {
@@ -312,7 +312,9 @@ export async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string
   }
   if (nodes.length > 0) {
     figma.currentPage.selection = nodes;
-    figma.viewport.scrollAndZoomIntoView(nodes);
+    if (!skipNavigation) {
+      figma.viewport.scrollAndZoomIntoView(nodes);
+    }
   }
   await applyToSelection(tokenPath, tokenType, targetProperty, resolvedValue);
 }

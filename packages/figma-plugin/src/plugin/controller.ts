@@ -506,7 +506,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'batch-bind-heatmap-nodes':
       try {
-        await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+        await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue, msg.skipNavigation);
       } catch (e) {
         reportError('batch-bind-heatmap-nodes', e);
       }

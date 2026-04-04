@@ -171,3 +171,26 @@ Already up to date.
 
   Merging to main: Add "copy as alias reference" action for tokens
 Already up to date.
+[main 3e99bc33] chore(backlog): done – Add "copy as alias reference" action for tokens
+ 6 files changed, 95 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Add "copy as alias reference" action for tokens
+- Added dedicated `copyTokensAsDtcgRef` function that produces `{path.to.token}` DTCG alias syntax for one or more tokens
+- Added `Cmd+Alt+C` (⌘⌥C) keyboard shortcut — works in both single-focus mode (copies the focused token) and multi-select mode (copies all selected tokens, newline-separated)
+- Added `copyAliasFeedback` state + toast for visual confirmation (1500ms, same pattern as other copy toasts)
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  25 queued · 0
+0 in-progress · last took 4m54s
+═══════════════════════════════════════════════════════════════
+  → ConsistencyPanel snap-to-token has no bulk action — each consistency finding must be individually expanded and snapped one at a time; when an audit finds 30 unsnapped colors, users must click 30 times; add a "Snap all N suggestions" bulk action with a confirmation showing the count and a grouped preview of changes, and a "Snap all in category" action per type group (colors, dimensions, typography)
+  Worktree: /tmp/backlog-54964-65c6dB
+  Running agent… (started 01:08:53)
+
+  ✓ done: ConsistencyPanel snap-to-token has no bulk action
+    Added "Snap all N" global button with ConfirmModal showing grouped preview, plus per-category "Snap N in Colors/Dimensions/Typography" buttons; bulk snap uses skipNavigation flag to avoid viewport thrashing
+    17 turns · 398s · $1.08
+
+  Merging to main: ConsistencyPanel snap-to-token has no bulk action
+Already up to date.

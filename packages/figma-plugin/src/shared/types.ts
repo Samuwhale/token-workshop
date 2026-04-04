@@ -490,6 +490,8 @@ export interface BatchBindHeatmapNodesMessage {
   tokenType: string;
   targetProperty: string;
   resolvedValue: ResolvedTokenValue;
+  /** Skip updating the canvas selection and viewport when applying (used for bulk snap) */
+  skipNavigation?: boolean;
 }
 
 export interface EyedropperMessage {

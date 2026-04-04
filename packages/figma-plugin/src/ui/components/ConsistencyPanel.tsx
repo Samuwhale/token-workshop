@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
 import { useInspectContext } from '../contexts/InspectContext';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
@@ -8,6 +9,7 @@ interface ConsistencyPanelProps {
 }
 
 type ScanScope = 'selection' | 'page' | 'all-pages';
+type SuggestionCategory = 'color' | 'dimension' | 'typography' | 'other';
 
 const PROPERTY_LABELS: Record<string, string> = {
   fill: 'Fill',
@@ -32,6 +34,22 @@ const NODE_TYPE_LABELS: Record<string, string> = {
   INSTANCE: 'Instance', RECTANGLE: 'Rect', ELLIPSE: 'Ellipse',
   POLYGON: 'Polygon', STAR: 'Star', VECTOR: 'Vector', LINE: 'Line', TEXT: 'Text',
 };
+
+const TYPOGRAPHY_TYPES = new Set(['fontFamily', 'fontWeight', 'fontSize', 'lineHeight', 'letterSpacing', 'typography']);
+const CATEGORY_LABELS: Record<SuggestionCategory, string> = {
+  color: 'Colors',
+  dimension: 'Dimensions',
+  typography: 'Typography',
+  other: 'Other',
+};
+const CATEGORY_ORDER: SuggestionCategory[] = ['color', 'dimension', 'typography', 'other'];
+
+function getSuggestionCategory(s: ConsistencySuggestion): SuggestionCategory {
+  if (s.tokenType === 'color') return 'color';
+  if (TYPOGRAPHY_TYPES.has(s.tokenType)) return 'typography';
+  if (s.tokenType === 'dimension' || s.tokenType === 'number') return 'dimension';
+  return 'other';
+}
 
 function ColorSwatch({ hex }: { hex: string }) {
   // Only render swatch for #RRGGBB / #RRGGBBAA
@@ -149,6 +167,8 @@ function SuggestionCard({
 export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyPanelProps) {
   // Scope is local UI preference — doesn't need to persist across tab switches
   const [scope, setScope] = useState<ScanScope>('page');
+  // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
+  const [snapConfirm, setSnapConfirm] = useState<ConsistencySuggestion[] | null>(null);
 
   // Scan results and loading state are lifted to InspectContext so they survive
   // tab switches without requiring a re-scan.
@@ -198,9 +218,66 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     setSnappedKeys(prev => new Set([...prev, key]));
   }, [availableTokens, setSnappedKeys]);
 
+  const handleSnapMultiple = useCallback((toSnap: ConsistencySuggestion[]) => {
+    for (const suggestion of toSnap) {
+      const entry = availableTokens[suggestion.tokenPath];
+      if (!entry) continue;
+      const nodeIds = suggestion.matches.map(m => m.nodeId);
+      parent.postMessage({
+        pluginMessage: {
+          type: 'batch-bind-heatmap-nodes',
+          nodeIds,
+          tokenPath: suggestion.tokenPath,
+          tokenType: suggestion.tokenType,
+          targetProperty: suggestion.property,
+          resolvedValue: entry.$value,
+          skipNavigation: true,
+        },
+      }, '*');
+    }
+    setSnappedKeys(prev => {
+      const next = new Set(prev);
+      for (const s of toSnap) next.add(`${s.tokenPath}::${s.property}`);
+      return next;
+    });
+    setSnapConfirm(null);
+  }, [availableTokens, setSnappedKeys]);
+
   const visibleSuggestions = suggestions?.filter(
     s => !snappedKeys.has(`${s.tokenPath}::${s.property}`)
   ) ?? null;
+
+  // Group visible suggestions by category for display and per-category snap buttons
+  const groupedSuggestions = useMemo(() => {
+    if (!visibleSuggestions) return null;
+    const groups = new Map<SuggestionCategory, ConsistencySuggestion[]>();
+    for (const s of visibleSuggestions) {
+      const cat = getSuggestionCategory(s);
+      const arr = groups.get(cat) ?? [];
+      arr.push(s);
+      groups.set(cat, arr);
+    }
+    return groups;
+  }, [visibleSuggestions]);
+
+  const hasMultipleCategories = groupedSuggestions ? groupedSuggestions.size > 1 : false;
+
+  // Build grouped preview rows for the confirm modal
+  const snapConfirmPreview = useMemo(() => {
+    if (!snapConfirm) return null;
+    const catMap = new Map<SuggestionCategory, { tokenCount: number; instanceCount: number }>();
+    for (const s of snapConfirm) {
+      const cat = getSuggestionCategory(s);
+      const existing = catMap.get(cat) ?? { tokenCount: 0, instanceCount: 0 };
+      catMap.set(cat, {
+        tokenCount: existing.tokenCount + 1,
+        instanceCount: existing.instanceCount + s.matches.length,
+      });
+    }
+    return CATEGORY_ORDER
+      .filter(cat => catMap.has(cat))
+      .map(cat => ({ label: CATEGORY_LABELS[cat], ...catMap.get(cat)! }));
+  }, [snapConfirm]);
 
   const hasTokens = Object.keys(availableTokens).length > 0;
 
@@ -296,17 +373,25 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
         )}
 
         {/* Results */}
-        {!scanning && visibleSuggestions !== null && (
+        {!scanning && visibleSuggestions !== null && groupedSuggestions !== null && (
           <div className="p-3 flex flex-col gap-2">
-            {/* Summary */}
+            {/* Summary row */}
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 {totalNodes} nodes scanned
               </p>
               {visibleSuggestions.length > 0 && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {visibleSuggestions.reduce((n, s) => n + s.matches.length, 0)} near-matches
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {visibleSuggestions.reduce((n, s) => n + s.matches.length, 0)} near-matches
+                  </p>
+                  <button
+                    onClick={() => setSnapConfirm(visibleSuggestions)}
+                    className="px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  >
+                    Snap all {visibleSuggestions.length}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -320,6 +405,39 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
                   No near-miss token values found{snappedKeys.size > 0 ? ' (or all snapped)' : ''}.
                 </p>
               </div>
+            ) : hasMultipleCategories ? (
+              // Grouped by category with per-category snap buttons
+              CATEGORY_ORDER.filter(cat => groupedSuggestions.has(cat)).map(cat => {
+                const catSuggestions = groupedSuggestions.get(cat)!;
+                const catInstanceCount = catSuggestions.reduce((n, s) => n + s.matches.length, 0);
+                return (
+                  <div key={cat} className="flex flex-col gap-2">
+                    {/* Category header */}
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">
+                        {CATEGORY_LABELS[cat]}
+                        <span className="ml-1.5 font-normal normal-case text-[9px]">
+                          ({catInstanceCount} {catInstanceCount === 1 ? 'instance' : 'instances'})
+                        </span>
+                      </p>
+                      <button
+                        onClick={() => setSnapConfirm(catSuggestions)}
+                        className="px-1.5 py-0.5 rounded text-[9px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                      >
+                        Snap {catSuggestions.length} in {CATEGORY_LABELS[cat]}
+                      </button>
+                    </div>
+                    {catSuggestions.map(suggestion => (
+                      <SuggestionCard
+                        key={`${suggestion.tokenPath}::${suggestion.property}`}
+                        suggestion={suggestion}
+                        onSnap={handleSnap}
+                        onSelectNode={onSelectNode}
+                      />
+                    ))}
+                  </div>
+                );
+              })
             ) : (
               visibleSuggestions.map(suggestion => (
                 <SuggestionCard
@@ -333,6 +451,29 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
           </div>
         )}
       </div>
+
+      {/* Bulk snap confirmation modal */}
+      {snapConfirm !== null && snapConfirmPreview !== null && (
+        <ConfirmModal
+          title={`Snap ${snapConfirm.length} suggestion${snapConfirm.length !== 1 ? 's' : ''}?`}
+          confirmLabel={`Snap ${snapConfirm.length}`}
+          wide={snapConfirmPreview.length > 1}
+          onConfirm={() => handleSnapMultiple(snapConfirm)}
+          onCancel={() => setSnapConfirm(null)}
+        >
+          <div className="mt-2 space-y-1">
+            {snapConfirmPreview.map(row => (
+              <div key={row.label} className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--color-figma-text)]">{row.label}</span>
+                <span className="text-[var(--color-figma-text-secondary)]">
+                  {row.tokenCount} token{row.tokenCount !== 1 ? 's' : ''},{' '}
+                  {row.instanceCount} instance{row.instanceCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </ConfirmModal>
+      )}
     </div>
   );
 }
