@@ -49,3 +49,21 @@
   - Any function defined inside a conditional render branch (`if (x) { const fn = ... }`) is recreated on every render — move to `useCallback` at top-level hook scope to prevent cascading instability.
   - When a `useCallback` lists another plain function in its deps array, that dependency is always unstable. The chain of instability propagates: plain fn → useCallback recreates → downstream useCallback recreates → React error #300. Fix the root, not each link.
 ---
+
+## 2026-04-04 - Surface dependency relationships in the token editor
+- Added a "References" section to TokenEditor's scrollable body (after MetadataEditor, before generator groups). The section shows:
+  1. **Outgoing references** — aliases this token references (computed client-side from `aliasMode`/`reference`/`value`); each ref shown as a clickable link with color swatch for color tokens; clicking navigates to that token via `onNavigateToToken`
+  2. **Incoming references** — "Used by N tokens" header (expandable); each dependent is clickable to navigate to it
+  3. **"View in graph" link** — calls `onShowReferences(tokenPath)` to open TokenFlowPanel pre-focused
+- Also updated `TokenUsages.tsx`: incoming aliases in the "Usages" accordion now render as `<button>` elements when `onNavigateToToken` is provided, and a "View in graph" link appears in the "Incoming aliases" section header
+- Added `onNavigateToToken` prop to both `TokenEditor` and `TokenUsages` interfaces
+- Updated App.tsx to pass `onNavigateToToken={handleNavigateToAlias}` to both TokenEditor render sites (side-panel and drawer)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L548, ~L656, ~L680, ~L1666
+  - `packages/figma-plugin/src/ui/components/TokenUsages.tsx` ~L21, ~L74, ~L296
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2301, ~L2686
+- **Learnings for future iterations:**
+  - The `outgoingRefs` computation needs to handle both alias-mode (single `{path}` string) and non-alias composite values (objects with embedded alias refs like typography/shadow) — duplicates the `getDirectReferences` logic from TokenFlowPanel; consider extracting to shared utility if needed again
+  - `handleNavigateToAlias(path, fromPath?)` in App.tsx already handles cross-set navigation with history — it's the right function for "navigate to token" from any context
+  - The `dependents` state is already fetched in TokenEditor and available; no new API calls needed for the incoming references section
+---

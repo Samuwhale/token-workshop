@@ -584,9 +584,11 @@ interface TokenEditorProps {
   closeRef?: MutableRefObject<() => void>;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
+  /** Navigate to a token by path in the token list (highlight it, switch sets if needed) */
+  onNavigateToToken?: (path: string, fromPath?: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -652,6 +654,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [pendingDraft, setPendingDraft] = useState<EditorDraftData | null>(null);
   // Brief visual feedback when a clipboard paste is successfully parsed
   const [pasteFlash, setPasteFlash] = useState(false);
+  // References section: expanded state for incoming dependents list
+  const [refsExpanded, setRefsExpanded] = useState(false);
 
   const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
@@ -671,6 +675,31 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     }
     return map;
   }, [allTokensFlat, tokenType, tokenPath, isCreateMode, reference, value]);
+
+  // Outgoing references: alias paths that this token references
+  const outgoingRefs = useMemo((): string[] => {
+    if (aliasMode && reference) {
+      const p = extractAliasPath(reference);
+      return p ? [p] : [];
+    }
+    // Non-alias: extract embedded alias refs from composite value
+    if (!aliasMode && value && typeof value === 'object') {
+      const refs: string[] = [];
+      const items = Array.isArray(value) ? value : [value];
+      for (const item of items) {
+        if (item && typeof item === 'object') {
+          for (const v of Object.values(item as Record<string, unknown>)) {
+            if (typeof v === 'string') {
+              const p = extractAliasPath(v);
+              if (p) refs.push(p);
+            }
+          }
+        }
+      }
+      return refs;
+    }
+    return [];
+  }, [aliasMode, reference, value]);
 
   useEffect(() => {
     if (isCreateMode) return; // skip fetch in create mode
@@ -1634,6 +1663,136 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
         />
+
+        {/* References — outgoing aliases this token uses + incoming dependents + graph link */}
+        {!isCreateMode && (outgoingRefs.length > 0 || dependents.length > 0 || dependentsLoading || onShowReferences) && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">References</span>
+              {onShowReferences && (
+                <button
+                  type="button"
+                  onClick={() => onShowReferences(tokenPath)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:underline transition-colors"
+                  title="Open in dependency graph"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+                  </svg>
+                  View in graph
+                </button>
+              )}
+            </div>
+
+            {/* Outgoing: aliases this token references */}
+            {outgoingRefs.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60">References</span>
+                {outgoingRefs.map(ref => {
+                  const entry = allTokensFlat[ref];
+                  const refSet = pathToSet[ref];
+                  const resolvedColor = entry?.$type === 'color' ? resolveRefValue(ref, colorFlatMap) : null;
+                  return (
+                    <button
+                      key={ref}
+                      type="button"
+                      onClick={() => onNavigateToToken?.(ref, tokenPath)}
+                      disabled={!onNavigateToToken}
+                      className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default group"
+                      title={onNavigateToToken ? `Navigate to ${ref}` : ref}
+                    >
+                      {resolvedColor ? (
+                        <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ backgroundColor: resolvedColor }} />
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-40">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                      )}
+                      <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-accent)] truncate group-hover:underline">
+                        {ref}
+                      </span>
+                      {refSet && refSet !== setName && (
+                        <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                          {refSet}
+                        </span>
+                      )}
+                      {onNavigateToToken && (
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Incoming: tokens that reference this token */}
+            {(dependentsLoading || dependents.length > 0) && (
+              <div className="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setRefsExpanded(v => !v)}
+                  disabled={dependents.length === 0}
+                  className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
+                >
+                  {dependentsLoading ? (
+                    <span>Used by…</span>
+                  ) : (
+                    <>
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${refsExpanded ? 'rotate-90' : ''}`} aria-hidden="true">
+                        <path d="M2 1l4 3-4 3V1z"/>
+                      </svg>
+                      Used by {dependents.length} token{dependents.length !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </button>
+                {refsExpanded && dependents.length > 0 && (
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    {dependents.map(dep => {
+                      const depEntry = allTokensFlat[dep.path];
+                      const depColor = depEntry?.$type === 'color' ? resolveRefValue(dep.path, colorFlatMap) : null;
+                      return (
+                        <button
+                          key={dep.path}
+                          type="button"
+                          onClick={() => onNavigateToToken?.(dep.path, tokenPath)}
+                          disabled={!onNavigateToToken}
+                          className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-default group"
+                          title={onNavigateToToken ? `Navigate to ${dep.path}` : dep.path}
+                        >
+                          {depColor ? (
+                            <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ backgroundColor: depColor }} />
+                          ) : (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-40">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                          )}
+                          <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate group-hover:underline">
+                            {dep.path}
+                          </span>
+                          {dep.setName !== setName && (
+                            <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                              {dep.setName}
+                            </span>
+                          )}
+                          {onNavigateToToken && (
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity">
+                              <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Generator groups */}
@@ -1735,6 +1894,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           initialValue={initialRef.current?.value}
           producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
           sourceGenerators={existingGeneratorsForToken}
+          onNavigateToToken={onNavigateToToken}
+          onShowReferences={onShowReferences}
         />
       )}
 

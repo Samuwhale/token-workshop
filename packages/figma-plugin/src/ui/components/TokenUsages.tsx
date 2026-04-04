@@ -34,6 +34,10 @@ interface TokenUsagesProps {
   producingGenerator: TokenGenerator | null;
   /** Generators that use this token as their source. */
   sourceGenerators: TokenGenerator[];
+  /** Navigate to a token by path in the token list */
+  onNavigateToToken?: (path: string, fromPath?: string) => void;
+  /** Open the dependency graph focused on a token */
+  onShowReferences?: (path: string) => void;
 }
 
 const NODE_TYPE_ICONS: Record<string, string> = {
@@ -74,7 +78,7 @@ const GENERATOR_TYPE_STYLES: Record<string, { label: string; classes: string }> 
 export function TokenUsages({
   dependents, dependentsLoading, setName, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, initialValue,
-  producingGenerator, sourceGenerators,
+  producingGenerator, sourceGenerators, onNavigateToToken, onShowReferences,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -300,8 +304,18 @@ export function TokenUsages({
             </div>
           ) : dependents.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)]">
-                Incoming aliases ({dependents.length})
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                <span>Incoming aliases ({dependents.length})</span>
+                {onShowReferences && (
+                  <button
+                    type="button"
+                    onClick={() => onShowReferences(tokenPath)}
+                    className="text-[9px] normal-case tracking-normal text-[var(--color-figma-accent)] hover:underline opacity-100 transition-colors"
+                    title="View in dependency graph"
+                  >
+                    View in graph
+                  </button>
+                )}
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
                 {dependents.map(dep => {
@@ -310,8 +324,8 @@ export function TokenUsages({
                   const isAliasDependent = entry?.$type === 'color' && typeof entry.$value === 'string' && entry.$value.startsWith('{');
                   const showDepBeforeAfter = isAliasDependent && tokenType === 'color' && isDirty && !aliasMode && oldColorHex && newColorHex;
 
-                  return (
-                    <div key={dep.path} className="px-3 py-1.5 flex items-center gap-2">
+                  const inner = (
+                    <>
                       {showDepBeforeAfter ? (
                         <span className="flex items-center gap-1 shrink-0">
                           <span className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ background: oldColorHex! }} title="Before" />
@@ -331,6 +345,22 @@ export function TokenUsages({
                           {dep.setName}
                         </span>
                       )}
+                    </>
+                  );
+
+                  return onNavigateToToken ? (
+                    <button
+                      key={dep.path}
+                      type="button"
+                      onClick={() => onNavigateToToken(dep.path, tokenPath)}
+                      className="px-3 py-1.5 flex items-center gap-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      title={`Navigate to ${dep.path}`}
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <div key={dep.path} className="px-3 py-1.5 flex items-center gap-2">
+                      {inner}
                     </div>
                   );
                 })}

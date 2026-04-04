@@ -2299,6 +2299,7 @@ export function App() {
                     fontWeightsByFamily={fontWeightsByFamily}
                     derivedTokenPaths={derivedTokenPaths}
                     onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
+                    onNavigateToToken={handleNavigateToAlias}
                   />
                   ) : previewingToken ? (
                   <TokenDetailPreview
@@ -2684,6 +2685,7 @@ export function App() {
                 fontWeightsByFamily={fontWeightsByFamily}
                 derivedTokenPaths={derivedTokenPaths}
                 onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
+                onNavigateToToken={handleNavigateToAlias}
               />
             </div>
           </div>
