@@ -40,6 +40,8 @@ interface SavePreviewItem {
   slug: string;
   action: 'create' | 'overwrite';
   varCount: number;
+  modeName?: string; // which mode this set represents (undefined = merged/default)
+  itemKey: string;  // unique key for slug rename tracking
 }
 
 type ExportMode = 'platforms' | 'figma-variables';
@@ -178,6 +180,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [savePhase, setSavePhase] = useState<SavePhase>('idle');
   const [savePreviewItems, setSavePreviewItems] = useState<SavePreviewItem[]>([]);
   const [slugRenames, setSlugRenames] = useState<Record<string, string>>({});
+  // When true, save one token set per mode for multi-mode collections
+  const [savePerMode, setSavePerMode] = useState(true);
+  // For DTCG JSON export: null = all modes (default + $extensions), or a specific mode name
+  const [selectedExportMode, setSelectedExportMode] = useState<string | null>(null);
 
   // Persist selected platforms
   useEffect(() => {
@@ -376,7 +382,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     parent.postMessage({ pluginMessage: { type: 'export-all-variables' } }, '*');
   };
 
-  const buildDTCGJson = (): string => {
+  const buildDTCGJson = (modeOverride?: string | null): string => {
+    const targetMode = modeOverride !== undefined ? modeOverride : selectedExportMode;
     const output: Record<string, any> = {};
 
     for (const collection of figmaCollections) {
@@ -396,7 +403,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
         const lastKey = parts[parts.length - 1];
 
-        if (collection.modes.length === 1) {
+        // When a specific mode is selected, always emit flat tokens for that mode only
+        if (targetMode !== null && collection.modes.includes(targetMode)) {
+          const modeVal = variable.modeValues[targetMode];
+          const token: Record<string, any> = {
+            $type: variable.$type,
+            $value: modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue,
+          };
+          if (variable.description) token.$description = variable.description;
+          current[lastKey] = token;
+        } else if (collection.modes.length === 1) {
           // Single mode — flat token
           const modeVal = variable.modeValues[collection.modes[0]];
           const token: Record<string, any> = {
@@ -520,15 +536,35 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       const data = await apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`);
       const existingSlugs = new Set(data.sets || []);
 
-      const items: SavePreviewItem[] = figmaCollections.map(collection => {
-        const slug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-        return {
-          collectionName: collection.name,
-          slug,
-          action: existingSlugs.has(slug) ? 'overwrite' : 'create',
-          varCount: collection.variables.length,
-        };
-      });
+      const items: SavePreviewItem[] = [];
+      for (const collection of figmaCollections) {
+        const baseSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        const isMultiMode = collection.modes.length > 1;
+        if (savePerMode && isMultiMode) {
+          // One set per mode
+          for (const modeName of collection.modes) {
+            const modeSlug = modeName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+            // First mode uses the base slug, others get slug-modename
+            const slug = modeName === collection.modes[0] ? baseSlug : `${baseSlug}-${modeSlug}`;
+            items.push({
+              collectionName: collection.name,
+              slug,
+              action: existingSlugs.has(slug) ? 'overwrite' : 'create',
+              varCount: collection.variables.length,
+              modeName,
+              itemKey: `${collection.name}::${modeName}`,
+            });
+          }
+        } else {
+          items.push({
+            collectionName: collection.name,
+            slug: baseSlug,
+            action: existingSlugs.has(baseSlug) ? 'overwrite' : 'create',
+            varCount: collection.variables.length,
+            itemKey: collection.name,
+          });
+        }
+      }
 
       setSavePreviewItems(items);
       setSavePhase('preview');
@@ -544,65 +580,96 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setError(null);
 
     try {
+      let totalVarsSaved = 0;
+
       for (const collection of figmaCollections) {
-        const defaultSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
-        const setName = slugRenames[collection.name] ?? defaultSlug;
+        const baseSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        const isMultiMode = collection.modes.length > 1;
 
-        // Ensure set exists — 409 means it already exists, which is fine.
-        // Any other error propagates and aborts the whole operation (fail-fast).
-        await apiFetch(`${serverUrl}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: setName }),
-        }).catch((err) => {
-          if (err instanceof ApiError && err.status === 409) return;
-          throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
-        });
+        // Build the list of (modeName, setName) pairs to save
+        const savePairs: Array<{ modeName: string | null; setName: string }> = [];
 
-        // Build all tokens and upsert in a single batch request
-        const batchTokens = collection.variables.map(variable => {
-          const defaultMode = collection.modes[0];
-          const defaultVal = variable.modeValues[defaultMode];
-          const $value = defaultVal.isAlias ? defaultVal.reference : defaultVal.resolvedValue;
-
-          const token: Record<string, any> = {
-            path: variable.path,
-            $type: variable.$type,
-            $value,
-          };
-          if (variable.description) token.$description = variable.description;
-
-          // Add mode extensions for multi-mode collections
-          if (collection.modes.length > 1) {
-            const modeExtensions: Record<string, any> = {};
-            for (const modeName of collection.modes) {
-              const modeVal = variable.modeValues[modeName];
-              modeExtensions[modeName] = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
-            }
-            token.$extensions = {
-              'com.figma': {
-                collection: collection.name,
-                hiddenFromPublishing: variable.hiddenFromPublishing,
-                scopes: variable.scopes,
-                modes: modeExtensions,
-              },
-            };
+        if (savePerMode && isMultiMode) {
+          for (const modeName of collection.modes) {
+            const modeSlug = modeName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+            const defaultSlug = modeName === collection.modes[0] ? baseSlug : `${baseSlug}-${modeSlug}`;
+            const itemKey = `${collection.name}::${modeName}`;
+            const previewItem = savePreviewItems.find(i => i.itemKey === itemKey);
+            const setName = slugRenames[itemKey] ?? previewItem?.slug ?? defaultSlug;
+            savePairs.push({ modeName, setName });
           }
+        } else {
+          const itemKey = collection.name;
+          const previewItem = savePreviewItems.find(i => i.itemKey === itemKey);
+          const setName = slugRenames[itemKey] ?? previewItem?.slug ?? baseSlug;
+          savePairs.push({ modeName: null, setName });
+        }
 
-          return token;
-        });
+        for (const { modeName, setName } of savePairs) {
+          // Ensure set exists — 409 means it already exists, which is fine.
+          // Any other error propagates and aborts the whole operation (fail-fast).
+          await apiFetch(`${serverUrl}/api/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: setName }),
+          }).catch((err) => {
+            if (err instanceof ApiError && err.status === 409) return;
+            throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+          });
 
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
-        }).catch((err) => {
-          throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
-        });
+          // Build all tokens and upsert in a single batch request
+          const batchTokens = collection.variables.map(variable => {
+            let $value: any;
+            if (modeName !== null) {
+              // Per-mode save: use this mode's value directly
+              const modeVal = variable.modeValues[modeName];
+              $value = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
+            } else {
+              // Merged save: use default mode value
+              const defaultVal = variable.modeValues[collection.modes[0]];
+              $value = defaultVal.isAlias ? defaultVal.reference : defaultVal.resolvedValue;
+            }
+
+            const token: Record<string, any> = {
+              path: variable.path,
+              $type: variable.$type,
+              $value,
+            };
+            if (variable.description) token.$description = variable.description;
+
+            // Add mode extensions only when saving merged (not per-mode) for multi-mode collections
+            if (modeName === null && isMultiMode) {
+              const modeExtensions: Record<string, any> = {};
+              for (const mn of collection.modes) {
+                const modeVal = variable.modeValues[mn];
+                modeExtensions[mn] = modeVal.isAlias ? modeVal.reference : modeVal.resolvedValue;
+              }
+              token.$extensions = {
+                'com.figma': {
+                  collection: collection.name,
+                  hiddenFromPublishing: variable.hiddenFromPublishing,
+                  scopes: variable.scopes,
+                  modes: modeExtensions,
+                },
+              };
+            }
+
+            return token;
+          });
+
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
+          }).catch((err) => {
+            throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+          });
+
+          totalVarsSaved += batchTokens.length;
+        }
       }
 
-      const totalVars = figmaCollections.reduce((sum, c) => sum + c.variables.length, 0);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVars} variables to server` } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} to server` } }, '*');
       setSavePhase('idle');
       setSavePreviewItems([]);
       setSlugRenames({});
@@ -1451,7 +1518,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 {savePhase === 'preview' && (() => {
                   const effectiveItems = savePreviewItems.map(item => ({
                     ...item,
-                    effectiveSlug: slugRenames[item.collectionName] ?? item.slug,
+                    effectiveSlug: slugRenames[item.itemKey] ?? item.slug,
                   }));
                   const slugCounts = new Map<string, number>();
                   for (const item of effectiveItems) {
@@ -1473,12 +1540,19 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                           const isConflict = (slugCounts.get(item.effectiveSlug) ?? 0) > 1;
                           return (
                             <div
-                              key={item.collectionName}
+                              key={item.itemKey}
                               className={`flex items-center gap-2 px-2.5 py-2 rounded-md border ${isConflict ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5' : 'border-[var(--color-figma-border)]'}`}
                             >
                               <div className="flex-1 min-w-0">
-                                <div className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
-                                  {item.collectionName}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
+                                    {item.collectionName}
+                                  </span>
+                                  {item.modeName && (
+                                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] shrink-0">
+                                      {item.modeName}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
@@ -1490,11 +1564,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                       value={item.effectiveSlug}
                                       onChange={e => {
                                         const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
-                                        setSlugRenames(prev => ({ ...prev, [item.collectionName]: val }));
+                                        setSlugRenames(prev => ({ ...prev, [item.itemKey]: val }));
                                       }}
                                       className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] transition-colors"
                                       spellCheck={false}
-                                      aria-label={`Set name for ${item.collectionName}`}
+                                      aria-label={`Set name for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                                     />
                                   ) : (
                                     <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
@@ -1828,46 +1902,86 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             )}
           </button>
         )}
-        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase !== 'preview' && savePhase !== 'saving' && (
-          <>
-            <button
-              onClick={handleCopyAll}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-            >
-              {copiedAll ? (
-                <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Copied DTCG JSON
-                </>
-              ) : (
-                <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
-                  Copy as DTCG JSON
-                </>
+        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase !== 'preview' && savePhase !== 'saving' && (() => {
+          const allModes = Array.from(new Set(figmaCollections.flatMap(c => c.modes)));
+          const hasMultiModeCols = figmaCollections.some(c => c.modes.length > 1);
+          return (
+            <>
+              {/* Mode selector for DTCG JSON copy */}
+              {hasMultiModeCols && (
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                    Mode
+                  </label>
+                  <select
+                    value={selectedExportMode ?? ''}
+                    onChange={e => setSelectedExportMode(e.target.value || null)}
+                    className="flex-1 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors"
+                    aria-label="Select mode for DTCG JSON export"
+                  >
+                    <option value="">All modes (with $extensions)</option>
+                    {allModes.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
               )}
-            </button>
-            <button
-              onClick={handlePreviewSave}
-              disabled={savePhase === 'preview-loading' || !connected}
-              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-              title={!connected ? 'Connect to server to save tokens' : 'Preview what will be created or overwritten, then confirm'}
-            >
-              {savePhase === 'preview-loading' ? (
-                <>
-                  <Spinner />
-                  Checking…
-                </>
-              ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server…'}
-            </button>
-          </>
-        )}
+              <button
+                onClick={handleCopyAll}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+              >
+                {copiedAll ? (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Copied DTCG JSON
+                  </>
+                ) : (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                    {selectedExportMode ? `Copy as DTCG JSON (${selectedExportMode})` : 'Copy as DTCG JSON'}
+                  </>
+                )}
+              </button>
+              {/* Save per-mode toggle */}
+              {hasMultiModeCols && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={savePerMode}
+                    onChange={e => setSavePerMode(e.target.checked)}
+                    className="w-3 h-3 rounded border border-[var(--color-figma-border)] accent-[var(--color-figma-accent)]"
+                  />
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Save one set per mode
+                  </span>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                    ({figmaCollections.filter(c => c.modes.length > 1).reduce((n, c) => n + c.modes.length, 0) + figmaCollections.filter(c => c.modes.length === 1).length} sets)
+                  </span>
+                </label>
+              )}
+              <button
+                onClick={handlePreviewSave}
+                disabled={savePhase === 'preview-loading' || !connected}
+                className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+                title={!connected ? 'Connect to server to save tokens' : 'Preview what will be created or overwritten, then confirm'}
+              >
+                {savePhase === 'preview-loading' ? (
+                  <>
+                    <Spinner />
+                    Checking…
+                  </>
+                ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server…'}
+              </button>
+            </>
+          );
+        })()}
         {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase === 'preview' && (() => {
-          const effectiveSlugs = savePreviewItems.map(item => slugRenames[item.collectionName] ?? item.slug);
+          const effectiveSlugs = savePreviewItems.map(item => slugRenames[item.itemKey] ?? item.slug);
           const slugCounts = new Map<string, number>();
           for (const s of effectiveSlugs) slugCounts.set(s, (slugCounts.get(s) ?? 0) + 1);
           const hasConflicts = [...slugCounts.values()].some(c => c > 1);

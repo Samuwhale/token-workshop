@@ -664,3 +664,15 @@
   - When a backlog item says "extract X and Y", always grep both to verify current state — prior refactoring sessions may have already moved one of them
   - Internal-only hooks that are tightly coupled to a context provider (like `useSyncBindings` inside `ConnectionProvider`) are better kept as module-private functions in the context file rather than exported from hooks/
 ---
+
+## 2026-04-04 - Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
+- Added `selectedExportMode` state (string | null) to ExportPanel: mode selector dropdown shown when any collection has multiple modes; when a specific mode is selected, `buildDTCGJson` emits flat tokens for that mode instead of default+$extensions
+- Added `savePerMode` boolean state (default true): when enabled and a collection has >1 modes, `handlePreviewSave` generates one SavePreviewItem per mode; `handleConfirmSave` saves one token set per mode, each with that mode's values as `$value` (no $extensions.com.figma.modes needed since the set is mode-specific)
+- Extended `SavePreviewItem` with `modeName?: string` and `itemKey: string` (unique per item, keyed as `"collectionName::modeName"` for per-mode or `"collectionName"` for merged); all slug-rename lookups updated from `item.collectionName` to `item.itemKey`
+- Save preview displays mode name badge next to collection name for per-mode items
+- "Save one set per mode" checkbox shown (with set count hint) only when multi-mode collections exist; default set names: first mode → `slug`, others → `slug-modename`
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L38, ~L177, ~L380, ~L520, ~L560, ~L1519, ~L1905
+- **Learnings for future iterations:**
+  - When a single SavePreviewItem per collection becomes multiple (per-mode), the rename key must also become unique per item — use a compound key like `"collectionName::modeName"` rather than just `collectionName`
+  - The DTCG JSON export and the save-to-server flow share the same underlying `buildDTCGJson` logic but need different mode selections; keeping `buildDTCGJson` stateless (accepting a mode parameter) and having the callers pass the right value avoids state coupling
+---

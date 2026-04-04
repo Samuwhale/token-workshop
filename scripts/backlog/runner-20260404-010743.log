@@ -795,3 +795,10 @@ Already up to date.
   → Multi-mode Figma Variable export to non-DTCG platforms loses mode variants — exporting to CSS, Tailwind, SCSS, or Swift only outputs the default mode; other modes (e.g., Dark, Dense) are silently dropped; at minimum, export one file per mode or offer a mode selector in the export UI (ExportPanel.tsx Figma Variables export flow)
   Worktree: /tmp/backlog-91634-fVYHRZ
   Running agent… (started 04:21:59)
+
+  ✓ done: Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
+    Added mode selector for DTCG JSON copy (per-mode flat tokens) and "save one set per mode" toggle for the Save to Server flow — multi-mode collections now create one token set per mode with that mode's values as $value, so platform exports (CSS/SCSS/etc.) see all modes
+    34 turns · 401s · $1.49
+
+  Merging to main: Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
+Already up to date.

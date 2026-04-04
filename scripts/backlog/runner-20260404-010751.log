@@ -963,3 +963,19 @@ Already up to date.
 
   Merging to main: Extract useSyncBindings and useWindowResize from App.tsx to hooks/
 Already up to date.
+[main 946b2aef] chore(backlog): done – Extract useSyncBindings and useWindowResize from App.tsx to hooks/
+ 7 files changed, 75 insertions(+), 40 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useWindowResize.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Extract useSyncBindings and useWindowResize from App.tsx to hooks/
+- `useSyncBindings` was already extracted to `ConnectionContext.tsx` (internal helper) in a prior session; only `useWindowResize` remained inline in App.tsx
+- Extracted `useWindowResize` (and its 4 resize constants) to `packages/figma-plugin/src/ui/hooks/useWindowResize.ts`
+- Added import in App.tsx and removed the inline function definition
+
+═══════════════════════════════════════════════════════════════
+  #40  ·  6 queued · 3 in-progress · last took 1m43s
+═══════════════════════════════════════════════════════════════
+  → Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions — the import whitelist in storage.ts omits several persisted keys that users would expect to survive a plugin reinstall, creating a silent data loss on restore (packages/figma-plugin/src/ui/shared/storage.ts import whitelist, SettingsPanel.tsx)
+  Worktree: /tmp/backlog-92209-ZRfwJI
+  Running agent… (started 04:27:55)
