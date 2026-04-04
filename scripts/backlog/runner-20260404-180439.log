@@ -189,3 +189,26 @@ Already up to date.
 
   Merging to main: Inconsistent destructive-action safety across panels
 Already up to date.
+[main 9f38da24] chore(backlog): done – Inconsistent destructive-action safety across panels
+ 7 files changed, 108 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Inconsistent destructive-action safety across panels
+- Added ConfirmModal to all three missing confirmation paths:
+  1. **ThemeManager.tsx**: Option delete now uses `optionDeleteConfirm` state + ConfirmModal (matching the existing dimension-delete pattern). Shows option name + parent layer name in description.
+  2. **SnapshotsSource.tsx**: Snapshot delete now uses `deleteConfirm` state + ConfirmModal imported from `../ConfirmModal`. Shows snapshot label in description.
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  5 queued · 0
+0 in-progress · last took 4m50s
+═══════════════════════════════════════════════════════════════
+  → SelectionInspector binding operations give no visible feedback — handleRemoveBinding (SelectionInspector.tsx:396), handleUnbindAllInGroup (:404), and handleClearAllBindings (:439) all fire postMessage to the plugin but show no toast, spinner, or inline confirmation to the user; the only signal is the undo slot pushed silently to the undo stack, so a user clearing all bindings on a complex component has no way to tell if the action succeeded without manually re-inspecting each property (violates: visibility of system status)
+  Worktree: /tmp/backlog-3108-jpERLX
+  Running agent… (started 18:52:39)
+
+  ✓ done: SelectionInspector binding operations give no visible feedback
+    Added success toasts to handleRemoveBinding ("Binding removed"), handleUnbindAllInGroup ("Unbound N bindings"), and handleClearAllBindings ("Cleared N bindings") by adding onToast prop to SelectionInspector and threading setSuccessToast through PanelRouter.
+    40 turns · 183s · $0.76
+
+  Merging to main: SelectionInspector binding operations give no visible feedback
+Already up to date.

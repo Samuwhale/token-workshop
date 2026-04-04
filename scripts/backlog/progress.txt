@@ -637,3 +637,19 @@
   - SnapshotsSource lives under `history/` subdirectory — ConfirmModal import path is `../ConfirmModal` not `./ConfirmModal`.
   - The ThemeManager pattern (storing id/name in state, looking up full object in the modal render) is the right model: keeps button onClick lightweight and decouples the confirm dialog from the list render.
 ---
+
+## 2026-04-04 - SelectionInspector binding operations give no visible feedback
+- Added success toast feedback for all three binding-removal operations:
+  - `handleRemoveBinding`: shows "Binding removed" toast (only when a real binding existed, not mixed)
+  - `handleUnbindAllInGroup`: shows "Unbound N binding(s)" toast (matches undo description)
+  - `handleClearAllBindings`: shows "Cleared N binding(s)" toast (matches undo description, only when bindings > 0)
+- Threaded `setSuccessToast` through the prop chain: `App.tsx` → `PanelRouter` (new `setSuccessToast` prop) → `SelectionInspector` (new `onToast` prop)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L169 (new prop), ~L188 (destructure), ~L396-402, ~L415, ~L456-458 (toast calls)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L159 (new prop), ~L676 (pass to SelectionInspector)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2197 (pass setSuccessToast to PanelRouter)
+- **Learnings for future iterations:**
+  - For `handleRemoveBinding`, the toast should only fire when `binding && binding !== 'mixed'` — no binding means no-op, mixed means ambiguous (shouldn't happen in practice but guard anyway)
+  - Toast messages mirror the undo description text for cognitive consistency (user sees "Cleared 5 bindings" both as toast and in undo tooltip)
+  - `setSuccessToast` was already passed to other PanelRouter consumers (useSetDelete, etc.) but not wired to PanelRouter itself — the prop was simply missing from the interface
+---

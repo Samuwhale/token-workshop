@@ -157,6 +157,7 @@ export interface PanelRouterProps {
   refreshAll: () => void;
   pushUndo: (slot: UndoSlot) => void;
   setErrorToast: (msg: string) => void;
+  setSuccessToast: (msg: string) => void;
   handleNavigateToSet: (set: string, path: string) => void;
   setFlowPanelInitialPath: (path: string | null) => void;
   flowPanelInitialPath: string | null;
@@ -672,6 +673,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             p.navigateTo('define', 'tokens');
           }}
           onPushUndo={p.pushUndo}
+          onToast={p.setSuccessToast}
           onGoToTokens={() => p.navigateTo('define', 'tokens')}
           triggerCreateToken={p.triggerCreateToken}
         />

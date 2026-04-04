@@ -167,6 +167,7 @@ interface SelectionInspectorProps {
   onTokenCreated: () => void;
   onNavigateToToken?: (tokenPath: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onToast?: (message: string) => void;
   onGoToTokens?: () => void;
   /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
   triggerCreateToken?: number;
@@ -186,6 +187,7 @@ export function SelectionInspector({
   onTokenCreated,
   onNavigateToToken,
   onPushUndo,
+  onToast,
   onGoToTokens,
   triggerCreateToken,
 }: SelectionInspectorProps) {
@@ -396,8 +398,11 @@ export function SelectionInspector({
   const handleRemoveBinding = (prop: BindableProperty) => {
     const binding = getBindingForProperty(selectedNodes, prop);
     parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
-    if (binding && binding !== 'mixed' && onPushUndo) {
-      onPushUndo(buildRemoveBindingUndo(binding, prop, tokenMap));
+    if (binding && binding !== 'mixed') {
+      if (onPushUndo) {
+        onPushUndo(buildRemoveBindingUndo(binding, prop, tokenMap));
+      }
+      onToast?.('Binding removed');
     }
   };
 
@@ -416,6 +421,7 @@ export function SelectionInspector({
     for (const { prop } of boundProps) {
       parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
     }
+    onToast?.(`Unbound ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`);
     if (onPushUndo) {
       onPushUndo({
         description: `Unbound ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`,
@@ -448,6 +454,9 @@ export function SelectionInspector({
       }
     }
     parent.postMessage({ pluginMessage: { type: 'clear-all-bindings' } }, '*');
+    if (boundProps.length > 0) {
+      onToast?.(`Cleared ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`);
+    }
     if (boundProps.length > 0 && onPushUndo) {
       onPushUndo({
         description: `Cleared ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`,

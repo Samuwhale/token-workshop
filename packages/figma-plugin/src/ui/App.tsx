@@ -2194,6 +2194,7 @@ export function App() {
               refreshAll={refreshAll}
               pushUndo={pushUndo}
               setErrorToast={setErrorToast}
+              setSuccessToast={setSuccessToast}
               handleNavigateToSet={handleNavigateToSet}
               setFlowPanelInitialPath={setFlowPanelInitialPath}
               flowPanelInitialPath={flowPanelInitialPath}
