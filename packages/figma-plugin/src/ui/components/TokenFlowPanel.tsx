@@ -121,12 +121,6 @@ function tryResolveColor(
   return null;
 }
 
-function shortPath(path: string): string {
-  const parts = path.split('.');
-  if (parts.length <= 2) return path;
-  return parts[0] + '…' + parts.slice(-1)[0];
-}
-
 function formatValue(value: TokenValue | TokenReference): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -277,18 +271,12 @@ function FlowNodeCard({
 
 type FlowEdge = { x1: number; y1: number; x2: number; y2: number; isCyclic?: boolean };
 
-function FlowEdges({ edges }: { edges: FlowEdge[] }) {
+function FlowEdges({ edges, totalWidth, totalHeight }: { edges: FlowEdge[]; totalWidth: number; totalHeight: number }) {
   if (edges.length === 0) return null;
-  // Compute bounding box
-  let maxX = 0, maxY = 0;
-  for (const e of edges) {
-    maxX = Math.max(maxX, e.x1, e.x2);
-    maxY = Math.max(maxY, e.y1, e.y2);
-  }
   return (
     <svg
       className="absolute inset-0 pointer-events-none"
-      style={{ width: maxX + 20, height: maxY + 20 }}
+      style={{ width: totalWidth, height: totalHeight }}
     >
       <defs>
         <marker
@@ -337,6 +325,9 @@ function FlowEdges({ edges }: { edges: FlowEdge[] }) {
 const DEFAULT_SOURCE_LIMIT = 20;
 const DEFAULT_DEP_LIMIT = 30;
 
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 3;
+
 export function TokenFlowPanel({
   allTokensFlat,
   pathToSet,
@@ -355,7 +346,14 @@ export function TokenFlowPanel({
   }, [initialPath, allTokensFlat]);
   const [sourceExpanded, setSourceExpanded] = useState(false);
   const [depExpanded, setDepExpanded] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pan/zoom state
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const containerSizeRef = useRef({ w: 600, h: 400 });
 
   // Build dependents map once
   const dependentsMap = useMemo(() => buildDependentsMap(allTokensFlat), [allTokensFlat]);
@@ -530,17 +528,110 @@ export function TokenFlowPanel({
     }
 
     const totalWidth = depX + NODE_W + 20;
+    const contentHeight = totalHeight + 40 + ((sourceTruncated || depTruncated) ? 28 : 0);
 
     return {
       centerNode, sourceNodes, depNodes,
       centerPos, srcPositions, depPositions,
       edges,
       totalWidth,
-      totalHeight: totalHeight + 40 + ((sourceTruncated || depTruncated) ? 28 : 0),
+      totalHeight: contentHeight,
       totalSourceCount, totalDepCount,
       sourceTruncated, depTruncated,
     };
   }, [visibleData]);
+
+  // Fit-to-view: compute pan/zoom to fit the graph in the container
+  const fitToView = useCallback(() => {
+    if (!layout || !containerRef.current) return;
+    const { w, h } = containerSizeRef.current;
+    const PAD = 32;
+    const scaleX = (w - PAD * 2) / layout.totalWidth;
+    const scaleY = (h - PAD * 2) / layout.totalHeight;
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(scaleX, scaleY)));
+    setPan({
+      x: (w - layout.totalWidth * newZoom) / 2,
+      y: (h - layout.totalHeight * newZoom) / 2,
+    });
+    setZoom(newZoom);
+  }, [layout]);
+
+  // Auto fit-to-view when layout changes (new token selected)
+  const prevLayoutKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!layout) return;
+    const key = `${layout.totalWidth}x${layout.totalHeight}x${layout.sourceNodes.length}x${layout.depNodes.length}`;
+    if (key !== prevLayoutKeyRef.current) {
+      prevLayoutKeyRef.current = key;
+      fitToView();
+    }
+  }, [layout, fitToView]);
+
+  // Track container size
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        containerSizeRef.current = { w: entry.contentRect.width, h: entry.contentRect.height };
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Attach wheel listener with passive:false so preventDefault works
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.92 : 1.08;
+      setZoom(prevZoom => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom * factor));
+        const rect = el.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const scale = newZoom / prevZoom;
+        setPan(prev => ({
+          x: cx - (cx - prev.x) * scale,
+          y: cy - (cy - prev.y) * scale,
+        }));
+        return newZoom;
+      });
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
+  // Pan handlers
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      // Only pan on background (not on node cards or buttons)
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-flow-node]') || target.closest('button')) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setIsPanning(true);
+      panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+    },
+    [pan],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!panRef.current) return;
+      setPan({
+        x: panRef.current.panX + (e.clientX - panRef.current.startX),
+        y: panRef.current.panY + (e.clientY - panRef.current.startY),
+      });
+    },
+    [],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    panRef.current = null;
+    setIsPanning(false);
+  }, []);
 
   const handleNodeClick = useCallback((path: string) => {
     setSelectedPath(path);
@@ -549,15 +640,6 @@ export function TokenFlowPanel({
   const handleNavigate = useCallback((path: string) => {
     onNavigateToToken?.(path);
   }, [onNavigateToToken]);
-
-  // Scroll to center when layout changes
-  useEffect(() => {
-    if (layout && scrollRef.current) {
-      const el = scrollRef.current;
-      const scrollX = Math.max(0, (layout.totalWidth - el.clientWidth) / 2);
-      el.scrollLeft = scrollX;
-    }
-  }, [layout]);
 
   // Stats
   const stats = useMemo(() => {
@@ -589,7 +671,7 @@ export function TokenFlowPanel({
       {help.expanded && (
         <PanelHelpBanner
           title="Dependencies"
-          description="Visualize alias reference chains. Search for any token to see what it references (left) and what depends on it (right). Click nodes to navigate the graph."
+          description="Visualize alias reference chains. Search for any token to see what it references (left) and what depends on it (right). Click nodes to navigate the graph. Scroll to zoom, drag to pan."
           onDismiss={help.dismiss}
         />
       )}
@@ -639,113 +721,187 @@ export function TokenFlowPanel({
       )}
 
       {layout && (
-        <div className="flex-1 overflow-auto" ref={scrollRef}>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Pannable/zoomable canvas */}
           <div
-            className="relative"
-            style={{
-              width: layout.totalWidth,
-              minHeight: layout.totalHeight,
-              padding: '20px 0',
-            }}
+            ref={containerRef}
+            className="flex-1 relative overflow-hidden"
+            style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
           >
-            {/* Column labels */}
-            {layout.sourceNodes.length > 0 && (
-              <div
-                className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
-                style={{ left: layout.srcPositions[0]?.x ?? 20, top: 4 }}
-              >
-                References
-              </div>
-            )}
+            {/* Transformed graph content */}
             <div
-              className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
-              style={{ left: layout.centerPos.x, top: 4 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transformOrigin: '0 0',
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                width: layout.totalWidth,
+                height: layout.totalHeight,
+              }}
             >
-              Selected
-            </div>
-            {layout.depNodes.length > 0 && (
+              {/* Column labels */}
+              {layout.sourceNodes.length > 0 && (
+                <div
+                  className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
+                  style={{ left: layout.srcPositions[0]?.x ?? 20, top: 4 }}
+                >
+                  References
+                </div>
+              )}
               <div
                 className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
-                style={{ left: layout.depPositions[0]?.x ?? 0, top: 4 }}
+                style={{ left: layout.centerPos.x, top: 4 }}
               >
-                Dependents
+                Selected
               </div>
-            )}
+              {layout.depNodes.length > 0 && (
+                <div
+                  className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
+                  style={{ left: layout.depPositions[0]?.x ?? 0, top: 4 }}
+                >
+                  Dependents
+                </div>
+              )}
 
-            {/* SVG edges */}
-            <FlowEdges edges={layout.edges} />
+              {/* SVG edges */}
+              <FlowEdges edges={layout.edges} totalWidth={layout.totalWidth} totalHeight={layout.totalHeight} />
 
-            {/* Source nodes */}
-            {layout.sourceNodes.map((node, i) => (
-              <FlowNodeCard
-                key={node.path}
-                node={node}
-                x={layout.srcPositions[i].x}
-                y={layout.srcPositions[i].y + 20}
-                isCenter={false}
-                onClick={() => handleNodeClick(node.path)}
-              />
-            ))}
-            {(layout.sourceTruncated || sourceExpanded) && layout.sourceNodes.length > 0 && (
+              {/* Source nodes */}
+              {layout.sourceNodes.map((node, i) => (
+                <div key={node.path} data-flow-node="1">
+                  <FlowNodeCard
+                    node={node}
+                    x={layout.srcPositions[i].x}
+                    y={layout.srcPositions[i].y + 20}
+                    isCenter={false}
+                    onClick={() => handleNodeClick(node.path)}
+                  />
+                </div>
+              ))}
+              {(layout.sourceTruncated || sourceExpanded) && layout.sourceNodes.length > 0 && (
+                <button
+                  data-flow-node="1"
+                  className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  style={{
+                    left: layout.srcPositions[layout.srcPositions.length - 1]?.x ?? 20,
+                    top: (layout.srcPositions[layout.srcPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
+                    width: NODE_W,
+                    textAlign: 'center',
+                  }}
+                  onClick={() => setSourceExpanded(v => !v)}
+                >
+                  {sourceExpanded
+                    ? 'Show fewer'
+                    : `Show all ${layout.totalSourceCount} reference${layout.totalSourceCount !== 1 ? 's' : ''}`}
+                </button>
+              )}
+
+              {/* Center node */}
+              <div data-flow-node="1">
+                <FlowNodeCard
+                  node={layout.centerNode}
+                  x={layout.centerPos.x}
+                  y={layout.centerPos.y + 20}
+                  isCenter={true}
+                  onClick={() => {}}
+                />
+              </div>
+
+              {/* Dependent nodes */}
+              {layout.depNodes.map((node, i) => (
+                <div key={node.path} data-flow-node="1">
+                  <FlowNodeCard
+                    node={node}
+                    x={layout.depPositions[i].x}
+                    y={layout.depPositions[i].y + 20}
+                    isCenter={false}
+                    onClick={() => handleNodeClick(node.path)}
+                  />
+                </div>
+              ))}
+              {(layout.depTruncated || depExpanded) && layout.depNodes.length > 0 && (
+                <button
+                  data-flow-node="1"
+                  className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  style={{
+                    left: layout.depPositions[layout.depPositions.length - 1]?.x ?? 0,
+                    top: (layout.depPositions[layout.depPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
+                    width: NODE_W,
+                    textAlign: 'center',
+                  }}
+                  onClick={() => setDepExpanded(v => !v)}
+                >
+                  {depExpanded
+                    ? 'Show fewer'
+                    : `Show all ${layout.totalDepCount} dependent${layout.totalDepCount !== 1 ? 's' : ''}`}
+                </button>
+              )}
+            </div>
+
+            {/* Zoom controls (absolute overlay, outside transform) */}
+            <div className="absolute bottom-2 right-2 flex items-center gap-1 pointer-events-auto z-10">
               <button
-                className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                style={{
-                  left: layout.srcPositions[layout.srcPositions.length - 1]?.x ?? 20,
-                  top: (layout.srcPositions[layout.srcPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
-                  width: NODE_W,
-                  textAlign: 'center',
-                }}
-                onClick={() => setSourceExpanded(v => !v)}
+                className="px-1.5 py-0.5 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] opacity-70 hover:opacity-100 transition-opacity"
+                onClick={fitToView}
+                title="Fit to view"
               >
-                {sourceExpanded
-                  ? 'Show fewer'
-                  : `Show all ${layout.totalSourceCount} reference${layout.totalSourceCount !== 1 ? 's' : ''}`}
+                Fit
               </button>
-            )}
-
-            {/* Center node */}
-            <FlowNodeCard
-              node={layout.centerNode}
-              x={layout.centerPos.x}
-              y={layout.centerPos.y + 20}
-              isCenter={true}
-              onClick={() => {}}
-            />
-
-            {/* Dependent nodes */}
-            {layout.depNodes.map((node, i) => (
-              <FlowNodeCard
-                key={node.path}
-                node={node}
-                x={layout.depPositions[i].x}
-                y={layout.depPositions[i].y + 20}
-                isCenter={false}
-                onClick={() => handleNodeClick(node.path)}
-              />
-            ))}
-            {(layout.depTruncated || depExpanded) && layout.depNodes.length > 0 && (
-              <button
-                className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                style={{
-                  left: layout.depPositions[layout.depPositions.length - 1]?.x ?? 0,
-                  top: (layout.depPositions[layout.depPositions.length - 1]?.y ?? 0) + NODE_H + 20 + 6,
-                  width: NODE_W,
-                  textAlign: 'center',
-                }}
-                onClick={() => setDepExpanded(v => !v)}
-              >
-                {depExpanded
-                  ? 'Show fewer'
-                  : `Show all ${layout.totalDepCount} dependent${layout.totalDepCount !== 1 ? 's' : ''}`}
-              </button>
-            )}
+              <div className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden opacity-70 hover:opacity-100 transition-opacity">
+                <button
+                  className="px-1.5 py-0.5 text-[11px] hover:bg-[var(--color-figma-bg-hover)] leading-none"
+                  onClick={() => {
+                    setZoom(prev => {
+                      const newZoom = Math.max(MIN_ZOOM, prev / 1.25);
+                      // Zoom toward center
+                      const { w, h } = containerSizeRef.current;
+                      const scale = newZoom / prev;
+                      setPan(p => ({
+                        x: w / 2 - (w / 2 - p.x) * scale,
+                        y: h / 2 - (h / 2 - p.y) * scale,
+                      }));
+                      return newZoom;
+                    });
+                  }}
+                  title="Zoom out"
+                >
+                  −
+                </button>
+                <span className="text-[9px] px-1 min-w-[30px] text-center tabular-nums">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  className="px-1.5 py-0.5 text-[11px] hover:bg-[var(--color-figma-bg-hover)] leading-none"
+                  onClick={() => {
+                    setZoom(prev => {
+                      const newZoom = Math.min(MAX_ZOOM, prev * 1.25);
+                      const { w, h } = containerSizeRef.current;
+                      const scale = newZoom / prev;
+                      setPan(p => ({
+                        x: w / 2 - (w / 2 - p.x) * scale,
+                        y: h / 2 - (h / 2 - p.y) * scale,
+                      }));
+                      return newZoom;
+                    });
+                  }}
+                  title="Zoom in"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Legend / actions below graph */}
+          {/* Legend / actions below graph — outside the pannable area */}
           {selectedPath && (
-            <div className="px-3 pb-3 pt-1 border-t border-[var(--color-figma-border)]">
+            <div className="flex-shrink-0 px-3 pb-3 pt-1 border-t border-[var(--color-figma-border)]">
               <div className="flex items-center gap-3 text-[10px] opacity-50">
-                <span>Click a node to explore it</span>
+                <span>Scroll to zoom · drag to pan</span>
                 <span>·</span>
                 <span>{layout.totalSourceCount} reference{layout.totalSourceCount !== 1 ? 's' : ''}</span>
                 <span>·</span>

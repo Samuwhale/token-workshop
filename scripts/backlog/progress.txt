@@ -432,3 +432,18 @@
   - The rollback logic in `finally` must call `endBatch()` before `restoreSnapshot` — batch must be flushed so the snapshot read gets current state.
   - `structuredClone` is needed on the snapshot because `getFlatTokensForSet` may return live references.
 ---
+
+## 2026-04-04 - No zoom/pan on TokenFlowPanel dependency graph
+- Added mouse-wheel zoom (toward cursor) and drag-to-pan to the TokenFlowPanel dependency graph
+- Replaced `overflow-auto` scroll container with `overflow-hidden` + CSS `transform: translate/scale` on the inner content div
+- Added `zoom` + `pan` state; wheel listener attached imperatively with `{ passive: false }` so `preventDefault()` works
+- Auto fit-to-view on token selection change (using ResizeObserver for container size); zoom controls (Fit, −, %, +) overlaid in bottom-right corner
+- Legend/footer moved outside the transformed area so it remains accessible at all zoom levels
+- Pointer handlers (`onPointerDown/Move/Up/Leave`) for drag-to-pan with `setPointerCapture`; `data-flow-node` attribute on node wrappers to prevent pan from starting when clicking nodes
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` (full rewrite of graph section ~L230–L776)
+- **Learnings for future iterations:**
+  - React's `onWheel` synthetic handler cannot call `preventDefault()` to stop page scroll because it's passive by default; must attach the wheel listener imperatively via `useEffect` + `addEventListener(…, { passive: false })`
+  - For HTML-div-based graphs (not pure SVG), CSS `transform: translate/scale` with `transform-origin: 0 0` on the inner wrapper achieves the same zoom-toward-cursor effect as the SVG `<g transform>` pattern
+  - ResizeObserver in a `ref` (`containerSizeRef`) lets the wheel handler access container dimensions without adding it as a dependency and re-registering the listener on every resize
+  - A layout key (totalWidth × totalHeight × node counts) as a `useRef` prevents re-triggering fit-to-view on pan/zoom state changes while still firing when the selected token changes
+---
