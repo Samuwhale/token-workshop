@@ -487,3 +487,11 @@
   - For "power features" hidden in settings, the best surfacing approach is a toggle pill in the action footer — always visible, low footprint, and doesn't disrupt the settings panel layout
   - Keep both the footer pill and settings checkbox; they share state, so they stay in sync automatically, and the settings version serves as documentation for the feature
 ---
+
+## 2026-04-04 - isNetworkError() classifies ALL TypeErrors as network errors
+- Narrowed `isNetworkError()` in `apiFetch.ts` to check the error message instead of returning `true` for any `TypeError`. Since `TypeError` extends `Error`, removing the unconditional early-return and falling through to the message check covers all browsers: Chrome ("Failed to fetch"), Firefox ("NetworkError"), Safari ("Load failed"), Node ("fetch failed").
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` ~L24
+- **Learnings for future iterations:**
+  - `TypeError` from `fetch()` always carries a recognizable message ("Failed to fetch", "NetworkError", "Load failed"). Non-fetch TypeErrors (property access on null, etc.) have different messages — message-based discrimination is the correct approach.
+  - Safari throws `TypeError: Load failed` for network failures; always include it alongside the Chrome/Firefox strings.
+---

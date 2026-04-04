@@ -707,3 +707,10 @@ Already up to date.
   → `isNetworkError()` in `apiFetch.ts:24` classifies ALL TypeErrors as network errors, triggering false `markDisconnected()` calls across 10+ hooks — if a `.then()` callback throws a TypeError from an unexpected response shape (e.g., property access on null), the UI shows "server disconnected" and enters reconnect mode even though the server is healthy; should narrow to only TypeErrors from `fetch()` itself
   Worktree: /tmp/backlog-91634-Wv2S0S
   Running agent… (started 03:56:35)
+
+  ✓ done: isNetworkError() classifies ALL TypeErrors as network errors
+    Removed unconditional `if (err instanceof TypeError) return true` — now checks message for fetch-specific strings (Failed to fetch, NetworkError, Load failed, fetch failed) since TypeError extends Error and fetch errors always carry recognizable messages
+    11 turns · 68s · $0.23
+
+  Merging to main: isNetworkError() classifies ALL TypeErrors as network errors
+Already up to date.
