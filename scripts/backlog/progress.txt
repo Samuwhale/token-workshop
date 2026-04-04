@@ -908,3 +908,24 @@
   - For number inputs with a label+description block, the "Reset" link fits naturally below the label text in the same column
   - The pattern of showing a reset link only when value !== default keeps the UI clean — no visual clutter when already at defaults
 ---
+
+## 2026-04-05 - useTokenCrud.ts consolidation into focused sub-hooks
+- Created 5 focused sub-hooks and rewrote `useTokenCrud.ts` as a 102-line orchestrator (down from 657):
+  1. `useTokenRelocate.ts` — parameterized `mode: 'move' | 'copy'` hook; called twice from useTokenCrud to replace the near-identical move/copy flows. Eliminates duplicate state (conflictAction, conflictNewPath, targetSet, fromSet) and duplicate handlers.
+  2. `useTokenRename.ts` — rename preview + execute + undo/redo + pendingRenameToken state.
+  3. `useTokenDelete.ts` — requestDeleteToken/requestDeleteGroup/requestBulkDelete/executeDelete + deleteConfirm/deleteError state.
+  4. `useTokenDuplicate.ts` — duplicate token; wires to rename via `onNewPath` callback instead of shared state.
+  5. `useTokenSave.ts` — handleInlineSave, handleDescriptionSave, handleMultiModeInlineSave, handleDetachFromGenerator.
+- `useTokenCrud.ts` now just composes these hooks and maps their return values to the existing public API so `TokenList.tsx` needs no changes.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useTokenRelocate.ts` (new, 112 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenRename.ts` (new, 116 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenDelete.ts` (new, 165 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenDuplicate.ts` (new, 65 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenSave.ts` (new, 185 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` (rewritten, 102 lines)
+- **Learnings for future iterations:**
+  - Calling two instances of the same parameterized hook at the top level of an orchestrator hook is valid React — hooks just need to be called in a consistent order, not a unique one.
+  - Cross-hook state wiring (duplicate triggering rename) is cleanly done via an `onNewPath` callback prop on the consumer hook rather than lifting state to the orchestrator.
+  - The orchestrator return object can alias sub-hook values to preserve the existing public API with zero changes to callers.
+---

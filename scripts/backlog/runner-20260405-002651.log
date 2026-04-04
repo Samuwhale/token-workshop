@@ -378,3 +378,26 @@ Already up to date.
 
   Merging to main: Settings changes are immediate with no per-section reset or undo
 Already up to date.
+[main 81fd6762] chore(backlog): done – Settings changes are immediate with no per-section reset or undo
+ 5 files changed, 109 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Settings changes are immediate with no per-section reset or undo
+- Added "Reset" / "Reset to default" links to each setting that lacked one, appearing only when the value differs from its default:
+  - **Density** row: inline "Reset" link when not 'default'
+  - **Color format** row: inline "Reset" link when not 'hex'
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  16 queued · 0
+0 in-progress · last took 2m17s
+═══════════════════════════════════════════════════════════════
+  → useTokenCrud.ts (657 lines) has near-identical move and copy flows — moveConflictAction/copyConflictAction, moveConflictNewPath/copyConflictNewPath, handleRequestMoveToken/handleRequestCopyToken, handleConfirmMoveToken/handleConfirmCopyToken are duplicated with only the API verb differing; consolidate into a single `useTokenRelocate(mode: 'move' | 'copy')` parameterized flow to halve the state and callbacks, then split the remaining rename/delete/duplicate/inline-save operations into focused hooks (useTokenRename, useTokenDelete, useTokenDuplicate) to bring useTokenCrud under 200 lines
+  Worktree: /tmp/backlog-54964-k73ExC
+  Running agent… (started 01:51:17)
+
+  ✓ done: useTokenCrud.ts consolidation into focused sub-hooks
+    Extracted 5 focused hooks (useTokenRelocate, useTokenRename, useTokenDelete, useTokenDuplicate, useTokenSave); useTokenCrud.ts reduced from 657 to 102 lines as a thin orchestrator; TokenList.tsx unchanged; all 4 validate gates pass.
+    30 turns · 372s · $1.13
+
+  Merging to main: useTokenCrud.ts consolidation into focused sub-hooks
+Already up to date.
