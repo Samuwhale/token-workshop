@@ -808,3 +808,14 @@
   - When grouping suggestions by category, computing preview rows in a `useMemo` from the `snapConfirm` array (rather than trying to reference the grouped map) avoids stale closure issues and works correctly for both global and per-category confirms
   - Category headers should only appear when `groupedSuggestions.size > 1`; single-category results show a flat list to avoid visual noise
 ---
+
+## 2026-04-05 - Stale generator indicators are not prominent enough
+- Added two visibility improvements for stale generators:
+  1. **Sub-tab badge**: Yellow pill badge showing stale generator count appears on the "Generators" sub-tab label whenever any generators are stale. Uses `staleGeneratorCount` memoized from `generators.filter(g => g.isStale).length`. Badge styling: `bg-yellow-400 text-yellow-900` rounded-full, 14px tall.
+  2. **Toast notification on source token edit**: `handleEditorSave` now checks `generatorsBySource.get(savedPath)` to detect if the saved token is a source for any generators. If so, fires an action toast "Source token for N generator(s) changed" with a "Regenerate" button that directly calls `POST /api/generators/:id/run` for each affected generator, then refreshes the generator list. Action toasts persist until explicitly dismissed.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L174 (staleGeneratorCount memo), ~L287 (handleEditorSave), ~L1484 (sub-tab badge)
+- **Learnings for future iterations:**
+  - `generatorsBySource` (Map<string, TokenGenerator[]>) from TokenDataContext is the right way to check if a saved token path feeds any generators — already available in App.tsx scope
+  - Action toasts (`pushActionToast`) persist until dismissed and the action callback can be async (API calls work fine inside onClick)
+  - Sub-tab badges using `inline-flex` inside a button work well; the button itself doesn't need `flex` — the browser renders inline-flex spans inline naturally
+---

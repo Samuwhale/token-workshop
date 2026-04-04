@@ -172,6 +172,7 @@ export function App() {
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
+  const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -286,8 +287,25 @@ export function App() {
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
+    const affectedGens = generatorsBySource.get(savedPath) ?? [];
     refreshAll();
-  }, [refreshAll, setHighlightedToken]);
+    if (affectedGens.length > 0) {
+      const n = affectedGens.length;
+      const genIds = affectedGens.map(g => g.id);
+      pushActionToast(
+        `Source token for ${n} ${n === 1 ? 'generator' : 'generators'} changed`,
+        {
+          label: 'Regenerate',
+          onClick: async () => {
+            for (const id of genIds) {
+              try { await apiFetch(`${serverUrl}/api/generators/${id}/run`, { method: 'POST' }); } catch { /* ignore */ }
+            }
+            refreshGenerators();
+          },
+        },
+      );
+    }
+  }, [refreshAll, setHighlightedToken, generatorsBySource, pushActionToast, serverUrl, refreshGenerators]);
   const handleEditorSaveAndCreateAnother = useCallback((savedPath: string, savedType: string) => {
     setHighlightedToken(savedPath);
     refreshAll();
@@ -1464,6 +1482,11 @@ export function App() {
                 }`}
               >
                 {sub.label}
+                {sub.id === 'generators' && staleGeneratorCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-[3px] rounded-full bg-yellow-400 text-[9px] font-bold text-yellow-900 leading-none" aria-label={`${staleGeneratorCount} stale`}>
+                    {staleGeneratorCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>

@@ -194,3 +194,26 @@ Already up to date.
 
   Merging to main: ConsistencyPanel snap-to-token has no bulk action
 Already up to date.
+[main 778d45d3] chore(backlog): done – ConsistencyPanel snap-to-token has no bulk action
+ 8 files changed, 194 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - ConsistencyPanel snap-to-token bulk actions
+- Added "Snap all N" button in the results summary row that opens a ConfirmModal with a grouped preview (token count + instance count per category)
+- Added "Snap N in [Category]" per-category buttons when results span multiple categories (colors, dimensions, typography, other)
+- Category grouping: color → "Colors", dimension/number → "Dimensions", fontFamily/fontWeight/fontSize/lineHeight/letterSpacing/typography → "Typography", everything else → "Other"
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  24 queued · 0
+0 in-progress · last took 6m45s
+═══════════════════════════════════════════════════════════════
+  → Stale generator indicators are not prominent enough — generators have an `isStale` flag when source tokens change but the UI only shows this in the generator list as a subtle indicator; add a persistent banner or badge on the Generators sub-tab itself (e.g., "3 generators stale") and an optional notification when tokens that feed a generator are edited, with a one-click "Regenerate stale" action
+  Worktree: /tmp/backlog-54964-9peJ7j
+  Running agent… (started 01:15:38)
+
+  ✓ done: Stale generator indicators are not prominent enough — generators have an `isStale` flag when source tokens change but the UI only shows this in the generator list as a subtle indicator; add a persistent banner or badge on the Generators sub-tab itself (e.g., "3 generators stale") and an optional notification when tokens that feed a generator are edited, with a one-click "Regenerate stale" action
+    Added yellow pill badge on Generators sub-tab showing stale count + action toast when editing a source token with one-click Regenerate button
+    28 turns · 386s · $1.26
+
+  Merging to main: Stale generator indicators are not prominent enough — generators have an `isStale` flag when source tokens change but the UI only shows this in the generator list as a subtle indicator; add a persistent banner or badge on the Generators sub-tab itself (e.g., "3 generators stale") and an optional notification when tokens that feed a generator are edited, with a one-click "Regenerate stale" action
+Already up to date.
