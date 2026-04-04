@@ -643,3 +643,18 @@ Already up to date.
 
   Merging to main: Core package has scattered type safety issues that undermine the resolver pipeline
 Already up to date.
+[main 6f535fb8] chore(backlog): done – Core package has scattered type safety issues that undermine the resolver pipeline
+ 9 files changed, 70 insertions(+), 35 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Core package type safety issues in resolver pipeline
+- Fixed 4 type safety issues in packages/core/src:
+  1. `dtcg-resolver.ts`: Removed unsafe `as Map<string, {4-field}>` cast from `resolveTokensFull`; imported `ResolvedToken` and used it as the proper return type so `$description` and `$extensions` are no longer silently dropped
+  2. `types.ts`: Tightened `ResolverSource = ResolverRef | Record<string, unknown>` to `ResolverSource = ResolverRef | DTCGGroup`; added `import type { DTCGGroup }` from `dtcg-types.ts`; also removed the now-unnecessary `as DTCGGroup` cast in `loadSource` in `dtcg-resolver.ts`
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  10 queued · 3 in-progress · last took 4m29s
+═══════════════════════════════════════════════════════════════
+  → No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel — every time a user opens the token picker to bind a property, the search starts completely blank; power users binding the same token across dozens of layers must re-type the same search each time; add a "Recently used" section (last 5-10 bound tokens from localStorage) above the search results in both QuickApplyPicker.tsx and PropertyRow.tsx inline bind UI
+  Worktree: /tmp/backlog-91949-tHEJqN
+  Running agent… (started 03:38:06)

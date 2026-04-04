@@ -776,3 +776,10 @@ Already up to date.
   → Resolver modifier inputs and active resolver are not persisted between sessions — useResolvers stores activeResolver and resolverInput in React state only, so switching tabs or closing the plugin loses all modifier selections; theme selections are persisted to localStorage + Figma clientStorage via useThemeSwitcher but resolvers get no equivalent treatment; persist active resolver name and modifier input values to localStorage and restore on mount (useResolvers.ts, ResolverPanel.tsx)
   Worktree: /tmp/backlog-92209-xzbXHs
   Running agent… (started 03:36:15)
+
+  ✓ done: Resolver modifier inputs and active resolver are not persisted between sessions
+    Persisted activeResolver and resolverInput to localStorage via lazy initializers + useEffect in useResolvers.ts; added keys to storage.ts and cleared in handleClearAll
+    22 turns · 137s · $0.46
+
+  Merging to main: Resolver modifier inputs and active resolver are not persisted between sessions
+Already up to date.

@@ -43,6 +43,8 @@ export const STORAGE_KEYS = {
   CONTRAST_BG:           'tm_contrast_bg',
   FIRST_RUN_DONE:        'tm_first_run_done',
   DEEP_INSPECT:          'tm_deep_inspect',
+  ACTIVE_RESOLVER:       'tm_active_resolver',
+  RESOLVER_INPUT:        'tm_resolver_input',
 } as const;
 
 /** Per-set dynamic key builders */

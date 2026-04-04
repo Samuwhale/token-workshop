@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
 
@@ -34,13 +35,32 @@ export interface ResolverModifierMeta {
 
 export function useResolvers(serverUrl: string, connected: boolean) {
   const [resolvers, setResolvers] = useState<ResolverMeta[]>([]);
-  const [activeResolver, setActiveResolverState] = useState<string | null>(null);
-  const [resolverInput, setResolverInput] = useState<Record<string, string>>({});
+  const [activeResolver, setActiveResolverState] = useState<string | null>(
+    () => lsGet(STORAGE_KEYS.ACTIVE_RESOLVER) ?? null,
+  );
+  const [resolverInput, setResolverInput] = useState<Record<string, string>>(
+    () => lsGetJson<Record<string, string>>(STORAGE_KEYS.RESOLVER_INPUT, {}),
+  );
   const [resolvedTokens, setResolvedTokens] = useState<Record<string, TokenMapEntry> | null>(null);
   const [resolverError, setResolverError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  // -----------------------------------------------------------------------
+  // Persist active resolver + input to localStorage
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (activeResolver) {
+      lsSet(STORAGE_KEYS.ACTIVE_RESOLVER, activeResolver);
+    } else {
+      lsRemove(STORAGE_KEYS.ACTIVE_RESOLVER);
+    }
+  }, [activeResolver]);
+
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.RESOLVER_INPUT, resolverInput);
+  }, [resolverInput]);
 
   // -----------------------------------------------------------------------
   // Fetch resolver list

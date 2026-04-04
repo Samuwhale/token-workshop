@@ -611,3 +611,15 @@
   - Circular `import type` between `types.ts` and `dtcg-types.ts` is fine — TypeScript erases types at runtime so circular type-only imports have no runtime risk
   - A single `toRec(v: object): Record<string, unknown>` helper function consolidates unsafe `as` casts — after a null/object guard, TypeScript narrows to `object` but can't index into it without a cast; the helper makes this structural pattern explicit and keeps unsoundness in one place
 ---
+
+## 2026-04-04 - Resolver modifier inputs and active resolver not persisted between sessions
+- Added localStorage persistence for `activeResolver` (string key) and `resolverInput` (JSON object) in `useResolvers.ts`.
+- Added `ACTIVE_RESOLVER` and `RESOLVER_INPUT` keys to `STORAGE_KEYS` in `storage.ts`.
+- Initialized both state variables from localStorage via lazy initializer functions so values are restored on mount without any extra effects.
+- Added two `useEffect`s to persist changes: one saves/removes the active resolver name, the other saves the input JSON.
+- Added both new keys to the `handleClearAll` cleanup list in `App.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L44, `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L12, ~L38-63, `packages/figma-plugin/src/ui/App.tsx` ~L797
+- **Learnings for future iterations:**
+  - Lazy state initializers (`useState(() => lsGet(...))`) are cleaner than a separate mount effect for reading from localStorage — the value is available synchronously on the first render, avoiding a flicker where the component briefly shows the empty/null state.
+  - When `setActiveResolver` already handles defaults on explicit user selection, there's no need to intercept the restore path — just initialize from storage and let explicit selections overwrite as normal.
+---
