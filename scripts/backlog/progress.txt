@@ -418,3 +418,9 @@
   - The select-mode toolbar already had a "Delete N" button at the top level; this item specifically added delete to the expanded BatchEditor sub-panel for discoverability when users are in the batch-editing workflow.
   - `requestBulkDelete` (TokenList.tsx) wraps `requestBulkDeleteFromHook` from `useTokenCrud.ts`, which already detects dependent alias refs across all sets and triggers the ConfirmModal via `deleteConfirm` state — no new deletion infrastructure was needed.
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/figma-plugin/src/ui/App.tsx (render block structure, useState count, tab condition duplication), packages/figma-plugin/src/ui/components/TokenEditor.tsx (state hook count, prop interface size), packages/figma-plugin/src/ui/components/TokenTreeNode.tsx (size), packages/figma-plugin/src/ui/components/PublishPanel.tsx (sync flow duplication), packages/figma-plugin/src/ui/hooks/ (54 hook files — stale closures, memory leaks, error handling), packages/server/src/routes/ (error handling consistency across all route files, input validation patterns), packages/server/src/services/generator-service.ts (executeSingleBrand rollback gap, lastRunError handling), packages/server/src/services/resolver-store.ts (atomic write cleanup), packages/figma-plugin/src/plugin/controller.ts (message handler structure, duplicated node patterns)
+- Found 5 items — written to backlog-inbox.md
+- Notable: App.tsx has a 2100-line render block with 15+31 repeated condition checks forming a combinatorial matrix; generator-service executeSingleBrand has no rollback on partial failure while multi-brand does
+---
