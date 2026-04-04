@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -284,6 +284,25 @@ function SingleCreateTab({
     setRefQuery('');
   };
 
+  // Stable ref so the keydown handler never goes stale without re-registering
+  const handleCreateRef = useRef(handleCreate);
+  handleCreateRef.current = handleCreate;
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleCreateRef.current();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleCreateRef.current();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
     <div className="p-4 flex flex-col gap-3">
 
@@ -339,12 +358,6 @@ function SingleCreateTab({
           placeholder="e.g. 500, base, primary"
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
-          onKeyDown={e => {
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Enter') {
-              e.preventDefault();
-              handleCreate();
-            }
-          }}
           className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
             pathError ? 'border-[var(--color-figma-error)]' : pathExists ? 'border-amber-400' : 'border-[var(--color-figma-border)]'
           }`}
@@ -519,7 +532,7 @@ function SingleCreateTab({
         <button
           onClick={handleCreate}
           disabled={!name.trim() || !!pathError || !connected || saving}
-          title="Create token and focus name field for next entry (⌘⇧↵)"
+          title="Create token (⌘↵ or ⌘S)"
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
         >
           {saving ? 'Creating...' : 'Create Token'}

@@ -286,3 +286,26 @@ Already up to date.
 
   Merging to main: Clipboard copy from context menu gives no visual feedback
 Already up to date.
+[main f857b68b] chore(backlog): done – Clipboard copy from context menu gives no visual feedback
+ 5 files changed, 42 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Clipboard copy from context menu gives no visual feedback
+- Context menu copy actions now reuse the existing `copiedWhat` state mechanism so that after the menu closes, the row hover buttons briefly show "Copied!" for 1.5s — consistent with the existing inline hover button behavior
+- "Copy path" context menu button now calls `handleCopyPath()` (which already sets `copiedWhat('path')` + 1500ms timeout) before closing the menu
+- "Copy as…" format buttons (CSS var, DTCG ref, SCSS, raw, JSON) now set `copiedWhat('value')` + timeout before closing
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  20 queued · 0
+0 in-progress · last took 2m15s
+═══════════════════════════════════════════════════════════════
+  → CreatePanel Single tab has no keyboard shortcut to submit — TokenEditor supports Cmd+S, Cmd+Enter, and Cmd+Shift+Enter (useTokenEditorSave.ts lines 165-191) for save operations, but CreatePanel.tsx has no keydown listener at all; the "Create Token" button (line 511) is click-only; users creating multiple tokens in sequence must mouse to the button each time; this is the most friction-heavy gap between the two token-authoring surfaces in the app (violates: consistency, efficiency of use)
+  Worktree: /tmp/backlog-54964-AFPVYN
+  Running agent… (started 01:34:20)
+
+  ✓ done: CreatePanel Single tab has no keyboard shortcut to submit
+    Added Cmd+Enter and Cmd+S panel-wide keyboard shortcuts to SingleTokenTab using stable-ref pattern, consistent with TokenEditor's useTokenEditorSave.ts
+    21 turns · 110s · $0.4
+
+  Merging to main: CreatePanel Single tab has no keyboard shortcut to submit
+Already up to date.

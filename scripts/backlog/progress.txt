@@ -857,3 +857,14 @@
   - Reusing existing `copiedWhat` state (driven by hover button handlers) is the zero-friction approach — the state drives visual feedback on the row's copy buttons, which are still visible after the menu closes
   - For "Copy path", simply delegating to `handleCopyPath()` keeps the logic DRY; for format buttons without a dedicated handler, inline `setCopiedWhat + setTimeout` is appropriate
 ---
+
+## 2026-04-05 - CreatePanel Single tab has no keyboard shortcut to submit
+- Added panel-wide `useEffect` keyboard handler in `SingleTokenTab` with `Cmd+Enter` and `Cmd+S` to submit the form — mirrors `useTokenEditorSave.ts` keyboard shortcuts (lines 176–191) for consistency
+- Used stable-ref pattern (`handleCreateRef`) so the effect registers once with empty deps but always calls the latest `handleCreate` closure
+- Removed the partial `onKeyDown` on the Name input that only handled `Cmd+Shift+Enter` (superseded by the panel-wide handler)
+- Updated "Create Token" button title from `"Create token and focus name field for next entry (⌘⇧↵)"` to `"Create token (⌘↵ or ⌘S)"`
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1 (useEffect import), ~L285 (ref + useEffect), ~L361 (removed onKeyDown), ~L535 (button title)
+- **Learnings for future iterations:**
+  - The stable-callback-ref + empty-dep effect pattern is the canonical way to add one-time global keydown listeners in React when the handler depends on component state
+  - Always remove partial inline `onKeyDown` handlers when adding a panel-wide equivalent — partial handlers create inconsistency (only firing when that input is focused)
+---
