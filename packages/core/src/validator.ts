@@ -75,15 +75,20 @@ function isValidColor(value: unknown): boolean {
   return false;
 }
 
+/** Cast a non-null object to an indexable record. Centralises the one unsafe cast. */
+function toRec(v: object): Record<string, unknown> {
+  return v as Record<string, unknown>;
+}
+
 function isDimensionLike(value: unknown): value is DimensionValue {
   if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
+  const v = toRec(value);
   return typeof v.value === 'number' && typeof v.unit === 'string';
 }
 
 function isDurationLike(value: unknown): value is DurationValue {
   if (!isDimensionLike(value)) return false;
-  const v = value as unknown as DurationValue;
+  const v = value as DurationValue;
   return v.unit === 'ms' || v.unit === 's';
 }
 
@@ -328,7 +333,7 @@ export class TokenValidator {
       errors.push(`${path}: shadow must be an object`);
       return;
     }
-    const v = value as Record<string, unknown>;
+    const v = toRec(value);
     const required: (keyof ShadowValue)[] = ['color', 'offsetX', 'offsetY', 'blur', 'spread'];
     for (const field of required) {
       if (!(field in v)) {
@@ -353,7 +358,7 @@ export class TokenValidator {
       errors.push(`${path}: typography must be an object`);
       return;
     }
-    const v = value as Record<string, unknown>;
+    const v = toRec(value);
     const required: (keyof TypographyValue)[] = [
       'fontFamily',
       'fontSize',
@@ -379,7 +384,7 @@ export class TokenValidator {
       errors.push(`${path}: border must be an object`);
       return;
     }
-    const v = value as Record<string, unknown>;
+    const v = toRec(value);
     for (const field of ['color', 'width', 'style'] as const) {
       if (!(field in v)) {
         errors.push(`${path}: border missing required field "${field}"`);
@@ -401,7 +406,7 @@ export class TokenValidator {
       errors.push(`${path}: transition must be an object`);
       return;
     }
-    const v = value as Record<string, unknown>;
+    const v = toRec(value);
     for (const field of ['duration', 'delay', 'timingFunction'] as const) {
       if (!(field in v)) {
         errors.push(`${path}: transition missing required field "${field}"`);
@@ -432,11 +437,12 @@ export class TokenValidator {
       return;
     }
     for (let i = 0; i < value.length; i++) {
-      const stop = value[i] as Record<string, unknown> | undefined;
-      if (typeof stop !== 'object' || stop === null) {
+      const stopRaw: unknown = value[i];
+      if (typeof stopRaw !== 'object' || stopRaw === null) {
         errors.push(`${path}[${i}]: gradient stop must be an object`);
         continue;
       }
+      const stop = toRec(stopRaw);
       if (!('color' in stop)) {
         errors.push(`${path}[${i}]: gradient stop missing "color"`);
       } else if (!isReference(stop.color) && !isValidColor(stop.color)) {
@@ -461,7 +467,7 @@ export class TokenValidator {
       return;
     }
     if (typeof value === 'object' && value !== null) {
-      const v = value as Record<string, unknown>;
+      const v = toRec(value);
       if (!('dashArray' in v)) {
         errors.push(`${path}: strokeStyle object missing "dashArray"`);
       } else if (!Array.isArray(v.dashArray) || !v.dashArray.every((d: unknown) => isReference(d) || isDimensionLike(d))) {

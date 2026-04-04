@@ -15,6 +15,7 @@ import type {
   ResolverSet,
   ResolverModifier,
   ResolverSource,
+  ResolvedToken,
   Token,
   TokenType,
 } from './types.js';
@@ -222,15 +223,12 @@ export async function resolveTokensFull(
   input: ResolverInput,
   loadExternal: ExternalFileLoader,
 ): Promise<{
-  resolved: Map<string, { path: string; $type: string; $value: unknown; rawValue: unknown }>;
+  resolved: Map<string, ResolvedToken>;
   diagnostics: ResolverDiagnostic[];
 }> {
   const { tokens, diagnostics } = await resolveTokens(file, input, loadExternal);
   const resolver = new TokenResolver(tokens, 'resolver');
-  const resolved = resolver.resolveAll() as Map<
-    string,
-    { path: string; $type: string; $value: unknown; rawValue: unknown }
-  >;
+  const resolved = resolver.resolveAll();
   return { resolved, diagnostics };
 }
 
@@ -320,7 +318,7 @@ async function loadSource(
 
   // Inline tokens — treat as DTCGGroup
   if (typeof source === 'object' && source !== null && !('$ref' in source)) {
-    return flattenTokenGroup(source as DTCGGroup);
+    return flattenTokenGroup(source);
   }
 
   return new Map();

@@ -758,3 +758,21 @@ Already up to date.
   ✓ product pass: product-pass
     11 items written to inbox — resolver persistence gap, missing recent tokens in bind picker, likely-dead useFigmaSync hook, no batch value editing, silent publish-all git skip, move/copy conflict blindness, duplicate validation between Health and Analytics panels, undersized git conflict UI, dead propFilter state in inspector, hidden export changes-only mode, missing per-category unbind action
 Already up to date.
+[main 92f7ebec] chore(backlog): product pass – product-pass
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - UI fetch hooks have inconsistent abort/timeout patterns
+- Extracted `createFetchSignal(disconnectSignal?, timeoutMs?)` factory to `apiFetch.ts`. Combines `AbortSignal.timeout(timeoutMs)` with an optional disconnect/controller signal via `AbortSignal.any`. Default timeout 5 s; callers can override (e.g. 10 s for batch writes).
+- `useGeneratorPreview.ts`: wrapped both the preview POST and the existing-tokens GET with `createFetchSignal(controller.signal)` — previously had no timeout (could hang indefinitely).
+- `useResolvers.ts`: added `createFetchSignal()` to `fetchResolvers` (previously no signal at all); added `createFetchSignal(controller.signal)` to the resolve-tokens POST.
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  11 queued · 3 in-progress · last took 8m0s
+═══════════════════════════════════════════════════════════════
+  → Resolver modifier inputs and active resolver are not persisted between sessions — useResolvers stores activeResolver and resolverInput in React state only, so switching tabs or closing the plugin loses all modifier selections; theme selections are persisted to localStorage + Figma clientStorage via useThemeSwitcher but resolvers get no equivalent treatment; persist active resolver name and modifier input values to localStorage and restore on mount (useResolvers.ts, ResolverPanel.tsx)
+  Worktree: /tmp/backlog-92209-xzbXHs
+  Running agent… (started 03:36:15)

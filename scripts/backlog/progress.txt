@@ -599,3 +599,15 @@
   - For in-memory state mutations with async validation, the pattern is: apply mutation → validate → revert on failure → save. This makes the validation path clean with no intermediate writes.
   - Partial-resolution validation (checking all indices are covered) belongs alongside range validation in the same step, before any file I/O.
 ---
+
+## 2026-04-04 - Core package type safety issues in resolver pipeline
+- Fixed 4 type safety issues in packages/core/src:
+  1. `dtcg-resolver.ts`: Removed unsafe `as Map<string, {4-field}>` cast from `resolveTokensFull`; imported `ResolvedToken` and used it as the proper return type so `$description` and `$extensions` are no longer silently dropped
+  2. `types.ts`: Tightened `ResolverSource = ResolverRef | Record<string, unknown>` to `ResolverSource = ResolverRef | DTCGGroup`; added `import type { DTCGGroup }` from `dtcg-types.ts`; also removed the now-unnecessary `as DTCGGroup` cast in `loadSource` in `dtcg-resolver.ts`
+  3. `validator.ts`: Introduced `toRec(v: object): Record<string, unknown>` helper function to centralize the one `as` cast; replaced 7 individual `as Record<string, unknown>` casts with `toRec()` calls; also cleaned up `isDurationLike` which had a double cast `as unknown as DurationValue`
+  4. `color-parse.ts`: Removed dead `cssColorString` export (no-op identity function, not exported from `index.ts`, not used anywhere in the codebase)
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L13-234, `packages/core/src/types.ts` ~L8-257, `packages/core/src/validator.ts` ~L78-465, `packages/core/src/color-parse.ts` ~L591-598
+- **Learnings for future iterations:**
+  - Circular `import type` between `types.ts` and `dtcg-types.ts` is fine — TypeScript erases types at runtime so circular type-only imports have no runtime risk
+  - A single `toRec(v: object): Record<string, unknown>` helper function consolidates unsafe `as` casts — after a null/object guard, TypeScript narrows to `object` but can't index into it without a cast; the helper makes this structural pattern explicit and keeps unsoundness in one place
+---

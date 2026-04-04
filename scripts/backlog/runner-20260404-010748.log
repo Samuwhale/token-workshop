@@ -636,3 +636,10 @@ Already up to date.
   → Core package has scattered type safety issues that undermine the resolver pipeline — dtcg-resolver.ts L230 uses an unsafe `as` cast that narrows ResolvedToken to a 4-field object, silently dropping $description and $extensions from the resolved map; types.ts L256 defines ResolverSource as `ResolverRef | Record<string, unknown>` which accepts any object instead of the correct `DTCGGroup`; validator.ts uses 7+ redundant `as Record<string, unknown>` casts after type guard checks that already narrow the type; color-parse.ts exports cssColorString (L596) which is a no-op identity function not re-exported from index.ts (dead code); consolidate by tightening the ResolverSource type, removing the resolver cast, cleaning up validator casts, and removing dead exports
   Worktree: /tmp/backlog-91949-zrrzkl
   Running agent… (started 03:33:36)
+
+  ✓ done: Core package has scattered type safety issues that undermine the resolver pipeline
+    Fixed 4 issues: removed unsafe 4-field cast in resolveTokensFull (now returns ResolvedToken), tightened ResolverSource from Record<string,unknown> to DTCGGroup, consolidated 7 redundant as-casts in validator.ts into a toRec() helper, removed dead cssColorString no-op export
+    41 turns · 262s · $0.82
+
+  Merging to main: Core package has scattered type safety issues that undermine the resolver pipeline
+Already up to date.

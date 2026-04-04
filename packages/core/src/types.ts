@@ -6,6 +6,7 @@
  */
 
 import { TOKEN_TYPES, DimensionUnit } from './constants.js';
+import type { DTCGGroup } from './dtcg-types.js';
 
 // ---------------------------------------------------------------------------
 // Primitive / Composite Token Value Types
@@ -253,7 +254,7 @@ export interface ResolverRef {
 }
 
 /** A source: either a file/pointer reference or inline tokens. */
-export type ResolverSource = ResolverRef | Record<string, unknown>;
+export type ResolverSource = ResolverRef | DTCGGroup;
 
 /** A named set of token sources in the resolver. */
 export interface ResolverSet {

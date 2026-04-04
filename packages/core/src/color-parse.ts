@@ -588,11 +588,3 @@ export function srgbFallbackHex(colorStr: string): string | null {
   return toHex(parsed);
 }
 
-/**
- * Get a CSS string that any browser can render for this color.
- * For sRGB colors, returns as-is. For wide-gamut, returns the original string
- * (modern browsers support it). Use srgbFallbackHex() for the fallback.
- */
-export function cssColorString(colorStr: string): string {
-  return colorStr; // modern browsers handle CSS Color 4 natively
-}
