@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { ShadowScaleConfig, ShadowScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import { OverrideRow } from './generatorShared';
+import { OverrideRow, CompactColorInput } from './generatorShared';
 import { TokenRefInput } from './TokenRefInput';
+import { Collapsible } from '../Collapsible';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -185,35 +186,22 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
         onUnlink={clearColorTokenRef}
       >
         <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={config.color.slice(0, 7)}
-            onChange={e => onChange({ ...config, color: e.target.value })}
-            className="w-7 h-7 rounded cursor-pointer border border-[var(--color-figma-border)]"
+          <CompactColorInput
+            value={config.color}
+            onChange={hex => onChange({ ...config, color: hex })}
             aria-label="Shadow base color"
-          />
-          <input
-            value={config.color.slice(0, 7)}
-            onChange={e => {
-              const val = e.target.value;
-              if (/^#[0-9a-fA-F]{0,6}$/.test(val)) onChange({ ...config, color: val });
-            }}
-            className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
-            aria-label="Shadow color hex"
           />
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">(opacity set per step)</span>
         </div>
       </TokenRefInput>
 
       {/* Steps toggle */}
-      <div>
-        <button onClick={() => setShowSteps(v => !v)} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3" /></svg>
-          Edit steps ({config.steps.length})
-        </button>
-
-        {showSteps && (
-          <div className="mt-2 flex flex-col gap-1.5">
+      <Collapsible
+        open={showSteps}
+        onToggle={() => setShowSteps(v => !v)}
+        label={`Edit steps (${config.steps.length})`}
+      >
+        <div className="mt-2 flex flex-col gap-1.5">
             {/* Column headers */}
             <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] pl-0.5">
               <span className="w-12">Name</span>
@@ -252,8 +240,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
             ))}
             <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
-        )}
-      </div>
+      </Collapsible>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { TokenGenerator } from '../../hooks/useGenerators';
+import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
 // Node kinds & transform operations
@@ -149,19 +150,6 @@ export function portPosition(
 // Generator → graph conversion
 // ---------------------------------------------------------------------------
 
-const GENERATOR_TYPE_LABELS: Record<string, string> = {
-  colorRamp: 'Color Ramp',
-  typeScale: 'Type Scale',
-  spacingScale: 'Spacing Scale',
-  opacityScale: 'Opacity Scale',
-  borderRadiusScale: 'Border Radius',
-  zIndexScale: 'Z-Index',
-  customScale: 'Custom Scale',
-  accessibleColorPair: 'Accessible Pair',
-  darkModeInversion: 'Dark Mode',
-  contrastCheck: 'Contrast Check',
-};
-
 function getStepCount(gen: TokenGenerator): number {
   const cfg = gen.config as Record<string, unknown>;
   if (Array.isArray(cfg.steps)) return (cfg.steps as unknown[]).length;
@@ -204,7 +192,7 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
     nodes.push({
       id: genId,
       kind: 'generator',
-      label: gen.name || GENERATOR_TYPE_LABELS[gen.type] || gen.type,
+      label: gen.name || TYPE_LABELS[gen.type as keyof typeof TYPE_LABELS] || gen.type,
       x: COL_GEN,
       y: rowY,
       width: NODE_WIDTHS.generator,

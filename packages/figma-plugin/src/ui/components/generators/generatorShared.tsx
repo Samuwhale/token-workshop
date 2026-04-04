@@ -4,6 +4,120 @@ import type { GeneratedTokenResult } from '../../hooks/useGenerators';
 import { formatTokenValueForDisplay } from '../../shared/tokenFormatting';
 
 // ---------------------------------------------------------------------------
+// Shared input primitives for generator config editors
+// ---------------------------------------------------------------------------
+
+/**
+ * A compact hex color input: a native color swatch + a hex text field.
+ * Used in generator config editors that don't need the full ColorEditor
+ * (format cycling, wide-gamut detection, etc.).
+ */
+export function CompactColorInput({
+  value,
+  onChange,
+  'aria-label': ariaLabel,
+}: {
+  value: string;
+  onChange: (hex: string) => void;
+  'aria-label'?: string;
+}) {
+  const hex6 = value.slice(0, 7);
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={/^#[0-9a-fA-F]{6}$/.test(hex6) ? hex6 : '#808080'}
+        onChange={e => onChange(e.target.value)}
+        className="w-7 h-7 rounded cursor-pointer border border-[var(--color-figma-border)]"
+        aria-label={ariaLabel ?? 'Pick color'}
+      />
+      <input
+        value={hex6}
+        onChange={e => {
+          const val = e.target.value;
+          if (/^#[0-9a-fA-F]{0,6}$/.test(val)) onChange(val);
+        }}
+        className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+        aria-label={`${ariaLabel ?? 'Color'} hex value`}
+      />
+    </div>
+  );
+}
+
+/**
+ * A row of pill buttons for selecting a unit (px, rem, etc.).
+ * Renders consistently across all generator config editors.
+ */
+export function UnitToggle<T extends string>({
+  units,
+  value,
+  onChange,
+}: {
+  units: readonly T[];
+  value: T;
+  onChange: (unit: T) => void;
+}) {
+  return (
+    <div className="flex gap-0.5">
+      {units.map(u => (
+        <button
+          key={u}
+          type="button"
+          onClick={() => onChange(u)}
+          className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+            value === u
+              ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          {u}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const DIM_UNITS = ['px', 'rem'] as const;
+
+/**
+ * A number input combined with a UnitToggle (px / rem by default).
+ * Used in generator config editors for dimension values.
+ */
+export function CompactDimensionInput({
+  value,
+  unit,
+  units = DIM_UNITS,
+  onValueChange,
+  onUnitChange,
+  placeholder,
+  className,
+}: {
+  value: number | undefined;
+  unit: string;
+  units?: readonly string[];
+  onValueChange: (v: number | undefined) => void;
+  onUnitChange: (u: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-2 ${className ?? ''}`}>
+      <input
+        type="number"
+        value={value ?? ''}
+        onChange={e => {
+          const num = parseFloat(e.target.value);
+          onValueChange(isNaN(num) ? undefined : num);
+        }}
+        placeholder={placeholder}
+        className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+      />
+      <UnitToggle units={units} value={unit} onChange={onUnitChange} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Type guard for DTCG dimension values ({ value: number; unit: string })
 // ---------------------------------------------------------------------------
 

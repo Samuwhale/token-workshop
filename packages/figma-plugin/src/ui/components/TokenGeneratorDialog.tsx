@@ -35,9 +35,10 @@ import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/ContrastCheckGenerator';
 import { AccessiblePairConfigEditor } from './generators/AccessiblePairGenerator';
 import { DarkModeInversionConfigEditor } from './generators/DarkModeInversionGenerator';
-import { GenericPreview } from './generators/generatorShared';
-import { PRIMARY_TYPES, ADVANCED_TYPES } from './generators/generatorUtils';
+import { GenericPreview, CompactColorInput, CompactDimensionInput } from './generators/generatorShared';
+import { PRIMARY_TYPES, ADVANCED_TYPES, TYPE_LABELS } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
+import { Collapsible } from './Collapsible';
 
 // ---------------------------------------------------------------------------
 // Main dialog
@@ -66,19 +67,6 @@ export interface TokenGeneratorDialogProps {
   pathToSet?: Record<string, string>;
 }
 
-export const TYPE_LABELS: Record<GeneratorType, string> = {
-  colorRamp: 'Color Ramp',
-  typeScale: 'Type Scale',
-  spacingScale: 'Spacing Scale',
-  opacityScale: 'Opacity Scale',
-  borderRadiusScale: 'Border Radius',
-  zIndexScale: 'Z-Index',
-  shadowScale: 'Shadow Scale',
-  customScale: 'Custom',
-  accessibleColorPair: 'Accessible Pair',
-  darkModeInversion: 'Dark Mode',
-  contrastCheck: 'Contrast Check',
-};
 
 // ---------------------------------------------------------------------------
 // InputTableEditor sub-component
@@ -724,23 +712,23 @@ export function TokenGeneratorDialog({
               {PRIMARY_TYPES.map(typeButton)}
             </div>
             {/* Advanced types — collapsible */}
-            <button
-              onClick={() => setShowAdvancedTypes(v => !v)}
-              className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+            <Collapsible
+              open={showAdvancedTypes}
+              onToggle={() => setShowAdvancedTypes(v => !v)}
+              className="mt-1.5"
+              label={
+                <>
+                  Advanced
+                  {ADVANCED_TYPES.includes(selectedType) && !showAdvancedTypes && (
+                    <span className="text-[var(--color-figma-accent)] ml-1">({TYPE_LABELS[selectedType]})</span>
+                  )}
+                </>
+              }
             >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showAdvancedTypes ? 'rotate-90' : ''}`}>
-                <path d="M2 1l4 3-4 3" />
-              </svg>
-              Advanced
-              {ADVANCED_TYPES.includes(selectedType) && !showAdvancedTypes && (
-                <span className="text-[var(--color-figma-accent)] ml-1">({TYPE_LABELS[selectedType]})</span>
-              )}
-            </button>
-            {showAdvancedTypes && (
               <div className="grid grid-cols-2 gap-1 mt-1">
                 {ADVANCED_TYPES.map(typeButton)}
               </div>
-            )}
+            </Collapsible>
           </div>
 
           {/* Source token binding — shown when type needs a value */}
@@ -830,63 +818,30 @@ export function TokenGeneratorDialog({
                 <span className="text-[9px] text-[var(--color-figma-text-secondary)]">fallback</span>
               </div>
               {typeExpectsColor && (
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-7 h-7 rounded border border-[var(--color-figma-border)] shrink-0 cursor-pointer relative overflow-hidden"
-                    style={{ backgroundColor: typeof inlineValue === 'string' && /^#[0-9a-f]{3,8}$/i.test(inlineValue) ? inlineValue : '#808080' }}
-                  >
-                    <input
-                      type="color"
-                      value={typeof inlineValue === 'string' && /^#[0-9a-f]{6}$/i.test(inlineValue) ? inlineValue : '#808080'}
-                      onChange={e => setInlineValue(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      aria-label="Pick base color"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    value={typeof inlineValue === 'string' ? inlineValue : ''}
-                    onChange={e => setInlineValue(e.target.value)}
-                    placeholder="#6366F1"
-                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
-                  />
-                </div>
+                <CompactColorInput
+                  value={typeof inlineValue === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(inlineValue) ? inlineValue : '#808080'}
+                  onChange={hex => setInlineValue(hex)}
+                  aria-label="Base color"
+                />
               )}
-              {typeExpectsDimension && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>) ? (inlineValue as { value: number }).value : ''}
-                    onChange={e => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) {
-                        const existing = typeof inlineValue === 'object' && inlineValue !== null ? inlineValue as { unit?: string } : {};
-                        setInlineValue({ value: num, unit: existing.unit || 'px' });
-                      } else if (e.target.value === '') {
-                        setInlineValue(undefined);
-                      }
-                    }}
+              {typeExpectsDimension && (() => {
+                const dimValue = typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>)
+                  ? (inlineValue as { value: number; unit?: string })
+                  : null;
+                const currentUnit = dimValue?.unit ?? 'px';
+                return (
+                  <CompactDimensionInput
+                    value={dimValue?.value}
+                    unit={currentUnit}
                     placeholder={selectedType === 'typeScale' ? '16' : selectedType === 'spacingScale' ? '4' : '8'}
-                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                    onValueChange={num => {
+                      if (num === undefined) { setInlineValue(undefined); return; }
+                      setInlineValue({ value: num, unit: currentUnit });
+                    }}
+                    onUnitChange={u => setInlineValue({ value: dimValue?.value ?? 0, unit: u })}
                   />
-                  <div className="flex gap-0.5">
-                    {(['px', 'rem'] as const).map(u => (
-                      <button
-                        key={u}
-                        onClick={() => {
-                          const existing = typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>) ? (inlineValue as { value: number }) : { value: 0 };
-                          setInlineValue({ ...existing, unit: u });
-                        }}
-                        className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
-                          (typeof inlineValue === 'object' && inlineValue !== null && (inlineValue as { unit?: string }).unit === u) || (!inlineValue && u === 'px')
-                            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                            : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                        }`}
-                      >{u}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               {/* Matching token suggestions */}
               {matchingTokens.length > 0 && (
                 <div className="mt-2 border-t border-[var(--color-figma-border)] pt-2">

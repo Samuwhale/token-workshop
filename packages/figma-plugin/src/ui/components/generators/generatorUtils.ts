@@ -50,26 +50,13 @@ export function suggestTargetGroup(sourceTokenPath: string, sourceTokenName?: st
 }
 
 export function autoName(sourceTokenPath: string | undefined, type: GeneratorType): string {
-  const typeLabels: Record<GeneratorType, string> = {
-    colorRamp: 'Color Ramp',
-    typeScale: 'Type Scale',
-    spacingScale: 'Spacing Scale',
-    opacityScale: 'Opacity Scale',
-    borderRadiusScale: 'Border Radius',
-    zIndexScale: 'Z-Index',
-    shadowScale: 'Shadow Scale',
-    customScale: 'Custom Scale',
-    accessibleColorPair: 'Accessible Pair',
-    darkModeInversion: 'Dark Mode',
-    contrastCheck: 'Contrast Check',
-  };
   // Use just the type label — the target group provides the context
   if (sourceTokenPath) {
     const parts = sourceTokenPath.split('.');
     const shortName = parts.length > 1 ? parts[parts.length - 2] : parts[0];
-    return `${shortName.charAt(0).toUpperCase() + shortName.slice(1)} ${typeLabels[type]}`;
+    return `${shortName.charAt(0).toUpperCase() + shortName.slice(1)} ${TYPE_LABELS[type]}`;
   }
-  return typeLabels[type];
+  return TYPE_LABELS[type];
 }
 
 export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
@@ -98,6 +85,21 @@ export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
 // Keep for backward compat in save validation — types that need source OR inline value
 export const SOURCE_REQUIRED_TYPES = VALUE_REQUIRED_TYPES;
+
+/** Human-readable labels for every generator type. Canonical source of truth. */
+export const TYPE_LABELS: Record<GeneratorType, string> = {
+  colorRamp: 'Color Ramp',
+  typeScale: 'Type Scale',
+  spacingScale: 'Spacing Scale',
+  opacityScale: 'Opacity Scale',
+  borderRadiusScale: 'Border Radius',
+  zIndexScale: 'Z-Index',
+  shadowScale: 'Shadow Scale',
+  customScale: 'Custom',
+  accessibleColorPair: 'Accessible Pair',
+  darkModeInversion: 'Dark Mode',
+  contrastCheck: 'Contrast Check',
+};
 
 /** Primary generator types shown by default */
 export const PRIMARY_TYPES: GeneratorType[] = [
