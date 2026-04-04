@@ -665,3 +665,19 @@ Already up to date.
 
   Merging to main: No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
 Already up to date.
+[main 2a7030c9] chore(backlog): done – No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
+ 9 files changed, 226 insertions(+), 41 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/recentTokens.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
+- Added a "Recently used" section (last 5 tokens, up to 10 stored) above all other results in both QuickApplyPicker.tsx and PropertyRow.tsx inline bind UI
+- Created `packages/figma-plugin/src/ui/shared/recentTokens.ts` — `getRecentTokens()` and `addRecentToken(path)` backed by `STORAGE_KEYS.RECENT_TOKENS` (`tm_recent_tokens`)
+- Added `RECENT_TOKENS: 'tm_recent_tokens'` to `STORAGE_KEYS` in `storage.ts`
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  7 queued · 3 in-progress · last took 5m53s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel "Publish All" silently downgrades to "Publish without Git" when merge conflicts exist — the button label changes subtly but there's no toast, banner, or modal explaining why Git was skipped; users may think their tokens were pushed to Git when they weren't; show an explicit notification after Publish All completes explaining that Git sync was skipped due to unresolved merge conflicts, with a link to the Git section (PublishPanel.tsx ~L publish-all orchestration)
+  Worktree: /tmp/backlog-91949-cKlrJd
+  Running agent… (started 03:43:58)

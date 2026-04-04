@@ -644,3 +644,18 @@
   - Move `showSuggestedDivider` computation to after `mainCandidates` is derived, since the divider should reflect the non-recent subset
   - Unified keyboard index across sections: use `[...recentCandidates, ...mainCandidates]` as `allVisible` for arrow key bounds and Enter-key target lookup
 ---
+
+## 2026-04-04 - HistoryPanel.tsx 2358-line monolith decomposition
+- Decomposed HistoryPanel.tsx (2358 lines, 69 useState calls) into 5 focused files plus a slim navigation shell.
+- Created `history/types.ts` — shared interfaces (CommitEntry, CommitDetail, SnapshotSummary, SnapshotDiff, UndoSlot, OperationEntry, HistoryPanelProps) and utility functions (snapshotDiffToChange, defaultSnapshotLabel).
+- Created `history/ChangesBySetList.tsx` — extracted shared component replacing 3 copy-pasted grouped-by-set rendering blocks. Exports StatusBadge, ChangeRow, ChangesBySetList. Props: `changes`, `openSections`, `onToggleSection`, optional `renderRowActions` (for restore buttons in GitCommitsSource), optional `showSummaryBar` (for CommitCompareView's N-across-M-sets bar).
+- Created `history/GitCommitsSource.tsx` — moved from HistoryPanel.tsx ~L952-1583. Uses ChangesBySetList with renderRowActions for per-token restore buttons.
+- Created `history/CommitCompareView.tsx` — moved from HistoryPanel.tsx ~L1589-1726. Uses ChangesBySetList with showSummaryBar. Upgraded from `cancelled` boolean to a proper AbortController.
+- Created `history/SnapshotsSource.tsx` — moved from HistoryPanel.tsx ~L1732-2358. Applied 3 targeted bug fixes: (1) split shared `error` state into `listError`, `singleCompareError`, `pairCompareError` to prevent cross-contamination between views; (2) added `singleCompareAbortRef` AbortController to `handleCompare` to prevent races on rapid compare clicks; (3) added `pairCompareAbortRef` AbortController to `handlePairCompare` for the same reason.
+- Rewrote HistoryPanel.tsx as a navigation shell (~430 lines vs 2358) importing from history/ subdirectory.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` (rewritten, ~430 lines), + 5 new files in `packages/figma-plugin/src/ui/components/history/`.
+- **Learnings for future iterations:**
+  - The `ChangesBySetList` pattern (grouped-by-set rendering with caller-owned openSections state) works cleanly: callers initialize sections on data arrival and pass them as props, giving each view independent collapse state while eliminating the rendering duplication.
+  - When splitting a shared error state in SnapshotsSource, each operation (load, compare, pair-compare, revert, delete) must explicitly write to its own error variable. The Back button handler should also clear the relevant error variable on navigation to avoid stale errors leaking to the destination view.
+  - AbortController cleanup in mount-only effects (with empty dep array): the cleanup function (`return () => controller.abort()`) fires on unmount, which is correct — it aborts any in-flight request when the component is removed from the tree.
+---
