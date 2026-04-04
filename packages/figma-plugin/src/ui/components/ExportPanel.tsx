@@ -1376,20 +1376,45 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   {/* File tabs */}
                   <div className="flex gap-0.5 overflow-x-auto pb-1 mb-1 scrollbar-thin">
                     {results.map((file, i) => (
-                      <button
+                      <div
                         key={i}
-                        onClick={() => setPreviewFileIndex(i)}
-                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-t-md text-[10px] font-mono whitespace-nowrap shrink-0 transition-colors border border-b-0 ${
+                        className={`group flex items-center rounded-t-md border border-b-0 shrink-0 overflow-hidden transition-colors ${
                           i === previewFileIndex
-                            ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] border-[var(--color-figma-border)]'
-                            : 'bg-transparent text-[var(--color-figma-text-tertiary)] border-transparent hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                            ? 'bg-[var(--color-figma-bg)] border-[var(--color-figma-border)]'
+                            : 'bg-transparent border-transparent hover:bg-[var(--color-figma-bg-hover)]'
                         }`}
                       >
-                        <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase font-sans">
-                          {file.platform}
-                        </span>
-                        {file.path}
-                      </button>
+                        <button
+                          onClick={() => setPreviewFileIndex(i)}
+                          className={`flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-mono whitespace-nowrap transition-colors ${
+                            i === previewFileIndex
+                              ? 'text-[var(--color-figma-text)]'
+                              : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
+                          }`}
+                        >
+                          <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase font-sans">
+                            {file.platform}
+                          </span>
+                          {file.path}
+                        </button>
+                        <button
+                          onClick={() => handleCopyFile(file)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0"
+                          title={`Copy ${file.path} to clipboard`}
+                          aria-label={`Copy ${file.path}`}
+                        >
+                          {copiedFile === file.path ? (
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          ) : (
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2" />
+                              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     ))}
                   </div>
 

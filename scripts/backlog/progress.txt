@@ -456,3 +456,11 @@
   - The click-outside `setTimeout(..., 0)` defer is required — without it, the same click that opens the picker immediately closes it because the document click handler is registered synchronously.
   - AliasAutocomplete's `document.addEventListener('keydown')` handles arrow navigation and Escape independently; the input's `onKeyDown` can also handle Escape — double-close is harmless since React state updates are idempotent.
 ---
+
+## 2026-04-04 - Export panel has no "copy to clipboard" option
+- Added a hover-reveal copy icon button to each file tab in the platform export preview. Each tab now wraps the switch-button and a copy button in a `group` div; the copy button fades in on hover and shows a checkmark on success. Leverages the existing `handleCopyFile` and `copiedFile` state.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1377
+- **Learnings for future iterations:**
+  - File tabs were single `<button>` elements; to add a nested click target, convert to a `div.group` wrapper + two sibling buttons. Avoid nesting buttons.
+  - The `copiedFile` state tracks the last-copied file path, so the checkmark correctly targets whichever tab was clicked even if it wasn't the active preview tab.
+---
