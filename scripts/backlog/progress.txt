@@ -1,2 +1,8 @@
 # Backlog Progress Log
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store shutdown, manual-snapshot recovery, style-dict export cleanup, lint config save, themes store lock), packages/server/src/routes/ (themes withThemeLock pattern, export CSS selector validation), packages/figma-plugin/src/ui/hooks/useTokens.ts (buildTree vs flattenWithNames, fetchAllSets error handling, refreshTokens error surfacing), packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx (useSyncBindings closure), packages/figma-plugin/src/plugin/ (variableUtils, selectionHandling applyTokenValue), packages/core/src/ (types.ts, constants.ts, resolver.ts type inference)
+- Found 6 items — written to backlog-inbox.md
+- Notable: TokenStore.shutdown() does not await in-flight save chains — can corrupt token files on server exit; buildTree() recurses into arrays while flattenWithNames() correctly excludes them, causing tree/flat representation divergence
+---
