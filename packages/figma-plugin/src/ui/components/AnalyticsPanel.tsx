@@ -4,7 +4,6 @@ import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes, tokenPathToUrlSegment } from '../shared/utils';
-import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 import { LINT_RULE_BY_ID } from '../shared/lintRules';
 import { apiFetch } from '../shared/apiFetch';
 import type { ValidationIssue } from '../hooks/useValidationCache';
@@ -80,9 +79,8 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   const resultsStale = resultsStaleFromCache;
   const validatedAt = validatedAtProp;
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
-  const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(
-    () => new Set(lsGetJson<string[]>(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, []))
-  );
+  const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(new Set());
+  const suppressionsLoadedRef = useRef(false);
   const [showSuppressed, setShowSuppressed] = useState(false);
   const [allTokensUnified, setAllTokensUnified] = useState<Record<string, { $value: unknown; $type: string; set: string }>>({});
   const [showUnused, setShowUnused] = useState(false);
@@ -103,9 +101,36 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   const coveragePendingRef = useRef<Map<string, (data: any) => void>>(new Map());
   const coverageCancelRef = useRef<(() => void) | null>(null);
 
+  // Load suppressions from server when connected
   useEffect(() => {
-    lsSetJson(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, [...suppressedKeys]);
-  }, [suppressedKeys]);
+    if (!connected) {
+      suppressionsLoadedRef.current = false;
+      setSuppressedKeys(new Set());
+      return;
+    }
+    let cancelled = false;
+    apiFetch<{ suppressions: string[] }>(`${serverUrl}/api/lint/suppressions`)
+      .then(data => {
+        if (!cancelled) {
+          setSuppressedKeys(new Set(data.suppressions ?? []));
+          suppressionsLoadedRef.current = true;
+        }
+      })
+      .catch(() => {
+        if (!cancelled) suppressionsLoadedRef.current = true;
+      });
+    return () => { cancelled = true; };
+  }, [connected, serverUrl]);
+
+  // Sync suppressions to server whenever they change (skip on initial load)
+  useEffect(() => {
+    if (!connected || !suppressionsLoadedRef.current) return;
+    apiFetch(`${serverUrl}/api/lint/suppressions`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suppressions: [...suppressedKeys] }),
+    }).catch(() => {});
+  }, [suppressedKeys, serverUrl, connected]);
 
   // Notify parent of validation issue count whenever results change
   useEffect(() => {

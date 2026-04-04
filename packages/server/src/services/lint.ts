@@ -43,6 +43,8 @@ export interface LintConfig {
     'max-alias-depth'?: LintRuleConfig;
     'no-duplicate-values'?: LintRuleConfig;
   };
+  /** Server-persisted suppression keys shared across all team members. Format: "rule:setName:tokenPath" */
+  suppressions?: string[];
 }
 
 export interface LintViolation {
@@ -118,6 +120,17 @@ export class LintConfigStore {
     };
     await this.save(updated);
     return updated;
+  }
+
+  async getSuppressions(): Promise<string[]> {
+    const config = await this.load();
+    return config.suppressions ?? [];
+  }
+
+  async setSuppressions(suppressions: string[]): Promise<void> {
+    const config = await this.load();
+    config.suppressions = suppressions;
+    await this.save(config);
   }
 }
 

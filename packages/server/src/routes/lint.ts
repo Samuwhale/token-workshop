@@ -96,6 +96,29 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
     }
   });
 
+  // GET /api/lint/suppressions — get current server-persisted suppression keys
+  fastify.get('/lint/suppressions', async () => {
+    const suppressions = await lintConfigStore.getSuppressions();
+    return { suppressions };
+  });
+
+  // PUT /api/lint/suppressions — replace the full set of suppression keys
+  fastify.put<{ Body: unknown }>('/lint/suppressions', async (request, reply) => {
+    const body = request.body;
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+      return reply.status(400).send({ error: 'Request body must be a JSON object' });
+    }
+    const b = body as Record<string, unknown>;
+    if (!('suppressions' in b) || !Array.isArray(b.suppressions)) {
+      return reply.status(400).send({ error: '"suppressions" must be an array' });
+    }
+    if (!(b.suppressions as unknown[]).every(s => typeof s === 'string')) {
+      return reply.status(400).send({ error: '"suppressions" must be an array of strings' });
+    }
+    await lintConfigStore.setSuppressions(b.suppressions as string[]);
+    return { ok: true, suppressions: b.suppressions };
+  });
+
   // GET /api/lint/config/default — get default lint configuration
   fastify.get('/lint/config/default', async () => {
     return DEFAULT_LINT_CONFIG;

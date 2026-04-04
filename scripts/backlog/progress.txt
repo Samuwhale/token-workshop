@@ -389,3 +389,19 @@
   - Keeping the server-side commit search while adding client-side filtering for actions/snapshots gives the best of both worlds — server search reaches commits beyond the loaded page limit, client-side search is instant for already-loaded data
   - The `isFiltering` computed variable (search text OR type subset) cleanly drives both the "Clear" shortcut button and the no-results empty state
 ---
+
+## 2026-04-04 - Validation suppressions are session-only and not shared
+- Added `suppressions?: string[]` to `LintConfig` (persisted in `$lint.json`), with `getSuppressions()` / `setSuppressions()` methods on `LintConfigStore`.
+- Added `GET /api/lint/suppressions` and `PUT /api/lint/suppressions` endpoints for reading and replacing the suppression list.
+- Updated `AnalyticsPanel.tsx`: suppressions now load from server on connect (replacing localStorage init), and sync back to server via a `PUT` on every change. Optimistic local state updates keep the UI instant. Falls back to empty set when disconnected.
+- Removed `ANALYTICS_SUPPRESSIONS` from `storage.ts` key map, `SettingsPanel.tsx` importable-keys list, and `SettingsPanel.tsx` label map (suppressions are now server-side, not per-user settings).
+- Files changed:
+  - `packages/server/src/services/lint.ts` ~L38, ~L109
+  - `packages/server/src/routes/lint.ts` ~L99
+  - `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L83, ~L106
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L26
+  - `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L167
+- **Learnings for future iterations:**
+  - The "load then sync" pattern for server-persisted UI state: use a `loadedRef` to skip the initial sync-back effect that fires right after loading from server, preventing a redundant write.
+  - `apiFetch<T>` returns the JSON-parsed body directly as `T` — no `.then(r => r.json())` needed.
+---

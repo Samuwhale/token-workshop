@@ -164,7 +164,6 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.EXPORT_CHANGES_ONLY,
   STORAGE_KEYS.EXPORT_PRESETS,
   STORAGE_KEYS.UNDO_MAX_HISTORY,
-  STORAGE_KEYS.ANALYTICS_SUPPRESSIONS,
 ]);
 
 /** Returns true only for keys that the export produces and safe to import. */
@@ -193,7 +192,6 @@ const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.EXPORT_CHANGES_ONLY]:  'Export changes only',
   [STORAGE_KEYS.EXPORT_PRESETS]:       'Export presets',
   [STORAGE_KEYS.UNDO_MAX_HISTORY]:     'Max undo steps',
-  [STORAGE_KEYS.ANALYTICS_SUPPRESSIONS]: 'Analytics suppressions',
 };
 
 // ---------------------------------------------------------------------------
@@ -263,7 +261,6 @@ export function SettingsPanel({
       STORAGE_KEYS.EXPORT_CHANGES_ONLY,
       STORAGE_KEYS.EXPORT_PRESETS,
       STORAGE_KEYS.UNDO_MAX_HISTORY,
-      STORAGE_KEYS.ANALYTICS_SUPPRESSIONS,
     ];
 
     const out: Record<string, string> = {};
