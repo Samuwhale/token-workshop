@@ -10,6 +10,7 @@ import { GRAPH_TEMPLATES, templateIdForTokenType } from './graph-templates';
 import type { GraphTemplate } from './graph-templates';
 import { TemplatePicker } from './TemplatePicker';
 import { GeneratorPipelineCard, getGeneratorTypeLabel } from './GeneratorPipelineCard';
+import { Spinner } from './Spinner';
 
 // ---------------------------------------------------------------------------
 // SVG export
@@ -78,6 +79,7 @@ export interface GraphPanelProps {
   activeSet: string;
   allSets: string[];
   generators: TokenGenerator[];
+  loading?: boolean;
   connected: boolean;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -96,6 +98,7 @@ export function GraphPanel({
   activeSet,
   allSets,
   generators,
+  loading = false,
   connected,
   onRefresh,
   onPushUndo,
@@ -610,6 +613,16 @@ export function GraphPanel({
             }
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Loading state — generators haven't loaded yet
+  if (loading && setGenerators.length === 0) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
+        <Spinner size="md" />
+        <span className="text-[11px]">Loading generators…</span>
       </div>
     );
   }

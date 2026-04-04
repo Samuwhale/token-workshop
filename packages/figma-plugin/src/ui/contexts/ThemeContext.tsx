@@ -31,6 +31,7 @@ export interface ResolverState {
   activeModifiers: Record<string, string>;
   resolverError: string | null;
   loading: boolean;
+  resolversLoading: boolean;
   fetchResolvers: () => void;
   convertFromThemes: () => Promise<void>;
   deleteResolver: (name: string) => Promise<void>;

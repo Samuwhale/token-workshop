@@ -15,6 +15,7 @@ import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
+import { Spinner } from './Spinner';
 
 export interface ResolverContentProps {
   serverUrl: string;
@@ -29,6 +30,7 @@ export interface ResolverContentProps {
   resolvedTokens: Record<string, { $value: unknown; $type: string }> | null;
   resolverError: string | null;
   loading: boolean;
+  resolversLoading?: boolean;
   fetchResolvers: () => void;
   convertFromThemes: (name?: string) => Promise<unknown>;
   deleteResolver: (name: string) => Promise<void>;
@@ -69,6 +71,7 @@ function ResolverInner({
   resolvedTokens,
   resolverError,
   loading,
+  resolversLoading = false,
   fetchResolvers,
   convertFromThemes,
   deleteResolver,
@@ -415,7 +418,13 @@ function ResolverInner({
 
       {/* Resolver list */}
       <div className="flex-1 overflow-y-auto">
-        {resolvers.length === 0 && !creating && !creatingFromTemplate && (
+        {resolversLoading && resolvers.length === 0 && !creating && !creatingFromTemplate && (
+          <div className="flex flex-col h-full items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
+            <Spinner size="md" />
+            <span className="text-[11px]">Loading resolvers…</span>
+          </div>
+        )}
+        {!resolversLoading && resolvers.length === 0 && !creating && !creatingFromTemplate && (
           <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
             {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
@@ -735,7 +744,8 @@ function ResolverInner({
                   {/* Resolution status */}
                   <div className="rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] px-2 py-1.5">
                     {loading ? (
-                      <div className="text-[10px] text-[var(--color-figma-text-tertiary)] animate-pulse">
+                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        <Spinner size="sm" />
                         Resolving tokens…
                       </div>
                     ) : resolverError ? (

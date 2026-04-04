@@ -54,6 +54,7 @@ export interface TokenDataContextValue {
 
   // ---- useGenerators ------------------------------------------------------
   generators: TokenGenerator[];
+  generatorsLoading: boolean;
   refreshGenerators: () => void;
   generatorsBySource: Map<string, TokenGenerator[]>;
   derivedTokenPaths: Map<string, TokenGenerator>;
@@ -105,7 +106,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
     tokensError,
   } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
 
-  const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(
+  const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(
     serverUrl,
     connected,
   );
@@ -121,7 +122,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
       allTokensFlat, pathToSet, perSetFlat,
       filteredSetCount, setFilteredSetCount, syncSnapshot,
       tokensLoading, tokensError,
-      generators, refreshGenerators, generatorsBySource, derivedTokenPaths,
+      generators, generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths,
     }),
     [
       sets, setSets, activeSet, setActiveSet,
@@ -133,7 +134,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
       allTokensFlat, pathToSet, perSetFlat,
       filteredSetCount, setFilteredSetCount, syncSnapshot,
       tokensLoading, tokensError,
-      generators, refreshGenerators, generatorsBySource, derivedTokenPaths,
+      generators, generatorsLoading, refreshGenerators, generatorsBySource, derivedTokenPaths,
     ],
   );
 

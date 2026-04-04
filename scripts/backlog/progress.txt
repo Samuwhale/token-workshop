@@ -484,3 +484,23 @@
   - The per-row `catch` inside `Promise.all` needs `if (signal.aborted) return null` before building the error message, otherwise aborted fetches record spurious failures.
   - The `if (signal.aborted) return` guard after `Promise.all` should come before looping over results to populate `pullFailures`, preventing stale state writes on unmounted component.
 ---
+
+## 2026-04-04 - No loading indicators in GraphPanel, ResolverPanel, or TokenFlowPanel
+- Added proper Spinner component loading states to all three panels:
+  - **GraphPanel**: Added `loading?: boolean` prop; imported `Spinner`; added a centered spinner+text before the empty state check so `loading && setGenerators.length === 0` shows spinner instead of empty state. Exposed `generatorsLoading` from `useGenerators` through `TokenDataContext` and passed it from `PanelRouter`.
+  - **ResolverPanel**: Added `resolversLoading` tracking to `useResolvers` hook (`setResolversLoading(true)` before fetch, `.finally()` clears it); added `resolversLoading` to `ResolverState` type in `ThemeContext.tsx` and to `ResolverContentProps`; rendered a centered spinner when `resolversLoading && resolvers.length === 0`; replaced `animate-pulse` text in token resolution status with `<Spinner size="sm" />`.
+  - **TokenFlowPanel**: Imported `Spinner`; replaced custom inline `<span className="...animate-spin"/>` with `<Spinner size="md" />` for consistency.
+- Files changed:
+  - `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` ~L56 (added `generatorsLoading` to interface and value)
+  - `packages/figma-plugin/src/ui/hooks/useGenerators.ts` (returns `loading` — already existed, just not exposed in context)
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L46 (added `resolversLoading` state and `.finally()` on fetchResolvers)
+  - `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx` ~L33 (added `resolversLoading` to `ResolverState`)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L203 (destructured `generatorsLoading`), ~L565 (passed to GraphPanel), ~L613 (passed to ResolverPanel + ThemeManager resolverState)
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L13 (Spinner import), ~L82 (loading prop), ~L618 (loading guard before empty state)
+  - `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L18 (Spinner import), ~L33 (resolversLoading prop), ~L421 (loading spinner block), ~L738 (animate-pulse → Spinner)
+  - `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L8 (Spinner import), ~L693 (replaced custom spinner)
+- **Learnings for future iterations:**
+  - `useGenerators` already returned `loading` but `TokenDataContext` didn't expose it — check context interfaces before adding new state to hooks.
+  - For `fetchResolvers` (list fetch), use a separate `resolversLoading` state distinct from `loading` (which is for the token-resolution step). The names collide conceptually but serve different UX needs.
+  - The loading guard `loading && items.length === 0` is the right pattern — don't replace populated data with a spinner if the panel is refreshing.
+---

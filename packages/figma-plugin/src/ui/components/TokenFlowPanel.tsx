@@ -5,6 +5,7 @@ import { extractAliasPath, isAlias, resolveTokenValue } from '../../shared/resol
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { edgePath } from '../shared/graphUtils';
+import { Spinner } from './Spinner';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -691,13 +692,9 @@ export function TokenFlowPanel({
 
       {/* Graph area */}
       {loading && (
-        <div className="flex-1 flex items-center justify-center text-xs opacity-40 px-4 text-center">
-          <div>
-            <div className="flex justify-center mb-2">
-              <span className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" />
-            </div>
-            Loading tokens…
-          </div>
+        <div className="flex-1 flex items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
+          <Spinner size="md" />
+          <span className="text-[11px]">Loading tokens…</span>
         </div>
       )}
       {!loading && !selectedPath && (

@@ -203,7 +203,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     sets, activeSet, setActiveSet, tokens, allTokensFlat, pathToSet, generators,
     derivedTokenPaths, perSetFlat, setCollectionNames, setModeNames, syncSnapshot,
     fetchError, tokensError, tokensLoading, refreshTokens, setFilteredSetCount,
-    refreshGenerators,
+    generatorsLoading, refreshGenerators,
   } = useTokenDataContext();
   const {
     dimensions, setDimensions, activeThemes, setActiveThemes, resolverState, themedAllTokensFlat,
@@ -563,6 +563,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           activeSet={activeSet}
           allSets={sets}
           generators={generators}
+          loading={generatorsLoading}
           connected={connected}
           onRefresh={() => { p.refreshAll(); refreshGenerators(); }}
           onPushUndo={p.pushUndo}
@@ -610,6 +611,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 resolvedTokens: resolverState.resolvedTokens,
                 resolverError: resolverState.resolverError,
                 loading: resolverState.loading,
+                resolversLoading: resolverState.resolversLoading,
                 fetchResolvers: resolverState.fetchResolvers,
                 convertFromThemes: resolverState.convertFromThemes,
                 deleteResolver: resolverState.deleteResolver,
@@ -639,6 +641,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           resolvedTokens={resolverState.resolvedTokens}
           resolverError={resolverState.resolverError}
           loading={resolverState.loading}
+          resolversLoading={resolverState.resolversLoading}
           fetchResolvers={resolverState.fetchResolvers}
           convertFromThemes={resolverState.convertFromThemes}
           deleteResolver={resolverState.deleteResolver}

@@ -44,6 +44,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   const [resolvedTokens, setResolvedTokens] = useState<Record<string, TokenMapEntry> | null>(null);
   const [resolverError, setResolverError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resolversLoading, setResolversLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   // Aborted on component unmount to prevent state updates on stale instances.
@@ -75,6 +76,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   const fetchResolvers = useCallback(() => {
     if (!connected) return;
     const signal = createFetchSignal(unmountAbortRef.current.signal);
+    setResolversLoading(true);
     apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`, { signal })
       .then(data => {
         if (unmountAbortRef.current.signal.aborted) return;
@@ -84,6 +86,9 @@ export function useResolvers(serverUrl: string, connected: boolean) {
         if (err instanceof Error && err.name === 'AbortError') return;
         if (unmountAbortRef.current.signal.aborted) return;
         setResolverError(getErrorMessage(err, 'Failed to load resolvers'));
+      })
+      .finally(() => {
+        if (!unmountAbortRef.current.signal.aborted) setResolversLoading(false);
       });
   }, [connected, serverUrl]);
 
@@ -231,6 +236,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     activeModifiers,
     resolverError,
     loading,
+    resolversLoading,
     fetchResolvers,
     convertFromThemes,
     deleteResolver,
@@ -246,6 +252,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     activeModifiers,
     resolverError,
     loading,
+    resolversLoading,
     fetchResolvers,
     convertFromThemes,
     deleteResolver,
