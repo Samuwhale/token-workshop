@@ -549,3 +549,16 @@
   - The `GET /api/generators/:id/tokens` route only returns `{setName, path, generatorId}` (no values) — not useful for UX that needs current values. The preview method is the right tool.
   - `OverrideRow` in `generatorShared.tsx` is composable via children prop: pass a color swatch + value text as children to get consistent override UX matching the full generator dialog.
 ---
+
+## 2026-04-04 - GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher
+- Added `startWriteGuard(absoluteFilePath)` and `reloadFile(relativePath)` public methods to `TokenStore`.
+- Updated `applyDiffChoices` to accept an optional `tokenStore?: TokenStore` parameter.
+- Before each `git checkout`, calls `tokenStore.startWriteGuard(absPath)` for all pulled files upfront so watcher events from the checkout are suppressed.
+- After all checkouts complete, explicitly calls `tokenStore.reloadFile(relativePath)` for each successfully pulled file so TokenStore is in sync without racing the watcher.
+- Updated the route handler in `sync.ts` to pass `fastify.tokenStore` to `applyDiffChoices`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L201, `packages/server/src/services/git-sync.ts` ~L1,739, `packages/server/src/routes/sync.ts` ~L557
+- **Learnings for future iterations:**
+  - Write guards must be set for ALL files before the loop begins (not inside), so no file's watcher event fires during the checkout loop while the guard for a later file hasn't been set yet.
+  - Making `_startWriteGuard` public via a thin wrapper (`startWriteGuard`) and adding a `reloadFile` public method keeps the TokenStore API clean while enabling external coordination.
+  - The `tokenStore` parameter is optional so the method stays testable in isolation (no TokenStore mock needed in git-sync unit tests).
+---

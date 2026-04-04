@@ -214,6 +214,32 @@ export class TokenStore {
     this._writingFiles.delete(filePath);
   }
 
+  /**
+   * Public write guard — suppress the next watcher event for an absolute file path.
+   * Use before external processes (e.g. git checkout) write to a token file so the
+   * watcher does not trigger a redundant reload.
+   */
+  startWriteGuard(absoluteFilePath: string): void {
+    this._startWriteGuard(absoluteFilePath);
+  }
+
+  /**
+   * Explicitly reload a token file by its relative path (relative to this.dir).
+   * Acquires the internal lock so it serializes correctly with watcher callbacks.
+   * Emits a 'set-updated' event after loading.
+   */
+  async reloadFile(relativePath: string): Promise<void> {
+    const setName = relativePath.replace('.tokens.json', '');
+    await this.lock.withLock(async () => {
+      await this.loadSet(relativePath).catch(err => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
+        this.emitEvent({ type: 'file-load-error', setName, message });
+      });
+      this.scheduleRebuild({ type: 'set-updated', setName });
+    });
+  }
+
   private startWatching(): void {
     this.watcher = watch(path.join(this.dir, '**/*.tokens.json'), {
       ignoreInitial: true,

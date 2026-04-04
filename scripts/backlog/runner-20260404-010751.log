@@ -717,3 +717,10 @@ Already up to date.
   → GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files — `git checkout origin/branch -- file` writes to disk, the chokidar watcher fires (no write-guard set for these paths), and TokenStore reloads the file into memory while GitSync is still iterating; then `git add` stages whatever the watcher loaded, which may differ from what was checked out if another write happened in between; applyDiffChoices should call tokenStore._startWriteGuard for each pulled file before checkout and reload explicitly after all checkouts complete (packages/server/src/services/git-sync.ts L752-773)
   Worktree: /tmp/backlog-92209-m6luuw
   Running agent… (started 03:25:55)
+
+  ✓ done: GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files
+    Added startWriteGuard/reloadFile public methods to TokenStore; applyDiffChoices now suppresses watcher events before checkout and explicitly reloads pulled files after, eliminating the race with chokidar
+    28 turns · 133s · $0.54
+
+  Merging to main: GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files
+Already up to date.

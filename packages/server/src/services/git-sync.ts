@@ -2,6 +2,7 @@ import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { BadRequestError, GitTimeoutError } from '../errors.js';
+import type { TokenStore } from './token-store.js';
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).
@@ -736,7 +737,10 @@ export class GitSync {
   }
 
   /** Apply direction choices: push, pull, or skip per file */
-  async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<ApplyDiffResult> {
+  async applyDiffChoices(
+    choices: Record<string, 'push' | 'pull' | 'skip'>,
+    tokenStore?: TokenStore,
+  ): Promise<ApplyDiffResult> {
     return this.withLock(async () => {
       const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
       const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
@@ -750,6 +754,14 @@ export class GitSync {
       };
 
       if (toPull.length > 0) {
+        // Suppress watcher events for all files we're about to check out so the
+        // watcher doesn't reload them mid-iteration while git is still writing.
+        if (tokenStore) {
+          for (const file of toPull) {
+            tokenStore.startWriteGuard(path.join(this.dir, file));
+          }
+        }
+
         // Checkout individual files from remote
         const branch = await this.getCurrentBranch();
         for (const file of toPull) {
@@ -769,6 +781,15 @@ export class GitSync {
             console.warn('[GitSync] Pull commit failed (may have no changes):', err);
             result.pullCommitFailed = true;
             result.pullCommitError = String(err);
+          }
+          // Explicitly reload all successfully pulled token files so TokenStore is
+          // in sync with the checked-out content without relying on the watcher.
+          if (tokenStore) {
+            for (const file of pulledFiles) {
+              await tokenStore.reloadFile(file).catch(err => {
+                console.warn(`[GitSync] Failed to reload "${file}" after pull:`, err);
+              });
+            }
           }
         }
       }

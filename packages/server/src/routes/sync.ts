@@ -554,7 +554,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const { choices } = request.body ?? {};
         if (!choices) return reply.status(400).send({ error: 'choices is required' });
-        const result = await fastify.gitSync.applyDiffChoices(choices);
+        const result = await fastify.gitSync.applyDiffChoices(choices, fastify.tokenStore);
         const hasFailures = result.pullFailedFiles.length > 0
           || result.pullCommitFailed
           || result.pushCommitFailed

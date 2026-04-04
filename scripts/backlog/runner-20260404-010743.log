@@ -577,3 +577,18 @@ Already up to date.
 
   Merging to main: Generator step override UX requires API knowledge
 Already up to date.
+[main 2274ef30] chore(backlog): done – Generator step override UX requires API knowledge
+ 7 files changed, 171 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator step override UX requires API knowledge
+- Added click-to-pin UX on each step in the GeneratorPipelineCard. Added a "Steps" toggle button in the actions row (shows "Steps (N pinned)" when overrides exist). When toggled, fetches computed step values via a new GET /api/generators/:id/steps endpoint and renders each step using the existing OverrideRow component (pencil icon to edit inline, × to clear). Color tokens show a swatch. The server re-runs the generator automatically after each pin/unpin, and the step list refreshes to reflect new values.
+- Files changed: `packages/server/src/routes/generators.ts` ~L688 (new GET /generators/:id/steps route), `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L1-10 (imports), ~L551 (state), ~L626 (handlers), ~L790 (Steps button), ~L826 (step overrides panel JSX)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  3 queued · 3 in-progress · last took 7m55s
+═══════════════════════════════════════════════════════════════
+  → HistoryPanel.tsx is a 2358-line monolith with 69 useState calls across 4 independent source views (timeline, git commits, commit compare, snapshots) that share a single error state — SnapshotsSource single-compare and pair-compare both write to the same `error` state causing cross-contamination; snapshot API calls have no AbortController so rapid comparisons race; the change-list-grouped-by-set rendering pattern is copy-pasted across 3 locations (~L1318, ~L1688, ~L1996); decompose into separate source components with isolated state and extract a shared ChangesBySetList component
+  Worktree: /tmp/backlog-91634-dozSlS
+  Running agent… (started 03:27:22)
