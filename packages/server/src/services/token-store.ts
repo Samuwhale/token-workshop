@@ -224,6 +224,15 @@ export class TokenStore {
   }
 
   /**
+   * Cancel a write guard that was started with startWriteGuard() but whose
+   * file was never written (e.g. git checkout failed). Prevents the guard
+   * from silencing watcher events for the full 30-second fallback window.
+   */
+  endWriteGuard(absoluteFilePath: string): void {
+    this._clearWriteGuard(absoluteFilePath);
+  }
+
+  /**
    * Explicitly reload a token file by its relative path (relative to this.dir).
    * Acquires the internal lock so it serializes correctly with watcher callbacks.
    * Emits a 'set-updated' event after loading.

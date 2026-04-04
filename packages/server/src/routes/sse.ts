@@ -31,9 +31,13 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
       reply.raw.end();
     };
 
-    // Check if the client is reconnecting with a Last-Event-ID
-    const lastEventId = request.headers['last-event-id'];
-    const lastSeq = lastEventId ? parseInt(lastEventId as string, 10) : NaN;
+    // Check if the client is reconnecting with a Last-Event-ID.
+    // When the browser creates a new EventSource instance (after CLOSED), it cannot
+    // carry the header automatically, so clients also pass it as a query param.
+    const lastEventIdHeader = request.headers['last-event-id'];
+    const lastEventIdQuery = (request.query as Record<string, string>)['lastEventId'];
+    const rawLastEventId = lastEventIdHeader ?? lastEventIdQuery;
+    const lastSeq = rawLastEventId ? parseInt(rawLastEventId as string, 10) : NaN;
 
     if (!isNaN(lastSeq)) {
       // Client is reconnecting — try to replay missed events

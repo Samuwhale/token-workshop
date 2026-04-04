@@ -46,11 +46,19 @@ export function useServerEvents(
     let retryDelay = BASE_DELAY;
     let disposed = false;
     let hasConnectedBefore = false;
+    // Track the last received event ID so manual reconnects can request replay.
+    // The browser's built-in reconnect (while CONNECTING) carries the header
+    // automatically, but when we create a new EventSource instance after CLOSED
+    // we must pass it explicitly as a query parameter.
+    let lastEventId: string | null = null;
 
     function connect() {
       if (disposed) return;
 
-      es = new EventSource(`${serverUrl}/api/events`);
+      const url = lastEventId
+        ? `${serverUrl}/api/events?lastEventId=${encodeURIComponent(lastEventId)}`
+        : `${serverUrl}/api/events`;
+      es = new EventSource(url);
 
       es.onopen = () => {
         // Reset backoff on successful connection
@@ -58,11 +66,14 @@ export function useServerEvents(
       };
 
       // Handle the 'stale' named event — server couldn't replay missed events
-      es.addEventListener('stale', () => {
+      es.addEventListener('stale', (ev: Event) => {
+        const id = (ev as MessageEvent).lastEventId;
+        if (id) lastEventId = id;
         refreshRef.current?.();
       });
 
       es.onmessage = (e) => {
+        if (e.lastEventId) lastEventId = e.lastEventId;
         let data: Record<string, unknown>;
         try {
           data = JSON.parse(e.data as string);

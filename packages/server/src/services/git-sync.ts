@@ -577,7 +577,7 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    await wrapNetworkOp('fetch', this.git.fetch());
+    return this.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
@@ -640,7 +640,7 @@ export class GitSync {
     commits: Array<{ hash: string; date: string; message: string; author: string }>;
     fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
   }> {
-    await wrapNetworkOp('fetch', this.git.fetch());
+    await this.fetch();
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -680,7 +680,7 @@ export class GitSync {
     commits: Array<{ hash: string; date: string; message: string; author: string }>;
     fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
   }> {
-    await wrapNetworkOp('fetch', this.git.fetch());
+    await this.fetch();
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -722,7 +722,7 @@ export class GitSync {
     remoteOnly: string[];
     conflicts: string[];
   }> {
-    await wrapNetworkOp('fetch', this.git.fetch());
+    await this.fetch();
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
@@ -782,6 +782,14 @@ export class GitSync {
             result.pullFailedFiles.push(file);
           }
         }
+        // Clear guards for files that failed checkout — git never wrote them,
+        // so the watcher won't fire to clear them automatically.
+        if (tokenStore && result.pullFailedFiles.length > 0) {
+          for (const file of result.pullFailedFiles) {
+            tokenStore.endWriteGuard(path.join(this.dir, file));
+          }
+        }
+
         const pulledFiles = toPull.filter(f => !result.pullFailedFiles.includes(f));
         if (pulledFiles.length > 0) {
           await this.git.add(pulledFiles);

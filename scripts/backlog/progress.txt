@@ -238,3 +238,19 @@
   - `.tmp` file rename failures require explicit cleanup — the same `try { rename } catch { unlink(tmp); throw }` pattern applies anywhere atomic writes are used.
   - Any staleness/comparison logic that operates on nested objects must use `stableStringify`, not `JSON.stringify` — applies to both service and route layers.
 ---
+
+## 2026-04-04 - Git sync has multiple concurrency gaps and reconnection data loss
+- Fixed all three issues:
+  1. **`fetch()` outside `withLock()`**: Wrapped `fetch()` body in `this.withLock()`. Replaced the three inline `wrapNetworkOp('fetch', this.git.fetch())` calls in `getPushPreview`, `getPullPreview`, and `computeUnifiedDiff` with `await this.fetch()` to centralise lock discipline.
+  2. **Leaked write guards on pull failure**: Added public `endWriteGuard(absoluteFilePath)` method to `TokenStore` that delegates to `_clearWriteGuard`. In `applyDiffChoices`, after the checkout loop, immediately call `tokenStore.endWriteGuard()` for every file in `pullFailedFiles` so watcher events aren't suppressed for 30s on files git never wrote.
+  3. **Manual reconnect loses `Last-Event-ID`**: Track `lastEventId` (string | null) in the `useServerEvents` closure. Update it in `onmessage` and the `stale` event listener. Build the URL with `?lastEventId=...` when a previous ID is known. Updated the SSE server route (`sse.ts`) to also accept the ID via `request.query.lastEventId` as a fallback when the `last-event-id` header is absent.
+- Files changed:
+  - `packages/server/src/services/git-sync.ts` ~L579, ~L643, ~L683, ~L725, ~L785
+  - `packages/server/src/services/token-store.ts` ~L225
+  - `packages/server/src/routes/sse.ts` ~L35
+  - `packages/figma-plugin/src/ui/hooks/useServerEvents.ts` ~L53
+- **Learnings for future iterations:**
+  - Promise-chain mutexes are NOT re-entrant: calling `withLock` from inside `withLock` deadlocks. Safe to call from outside (chains behind current operation). Check whether public methods are called from within `withLock` before wrapping their internals.
+  - `EventSource` only carries `Last-Event-ID` automatically while in `CONNECTING` state. After `CLOSED`, any manually constructed `new EventSource(url)` starts fresh with no ID. Use a query parameter as a carrier and read it server-side as a fallback after the header.
+  - Write guards need a matching "cancel" path for every early-exit code path (network error, auth failure, etc.) — not just the happy path where the watcher fires.
+---
