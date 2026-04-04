@@ -254,3 +254,11 @@
   - `EventSource` only carries `Last-Event-ID` automatically while in `CONNECTING` state. After `CLOSED`, any manually constructed `new EventSource(url)` starts fresh with no ID. Use a query parameter as a carrier and read it server-side as a fallback after the header.
   - Write guards need a matching "cancel" path for every early-exit code path (network error, auth failure, etc.) — not just the happy path where the watcher fires.
 ---
+
+## 2026-04-04 - ThemeContext re-renders all consumers on every provider render
+- Wrapped the `return` object in `useResolvers` with `useMemo` (deps: all returned values). Previously, the hook returned a plain object literal on every render, giving it a new reference each time. That new reference was included in `ThemeContext`'s `useMemo` dep array, defeating memoization and causing all ThemeContext consumers to re-render on every ThemeProvider render.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L224
+- **Learnings for future iterations:**
+  - A hook that returns `{ ...many values }` as a plain object literal creates a new reference on every render — must be wrapped in `useMemo` if the result feeds a context `useMemo` dep array.
+  - All the constituent values (`useCallback`s, `useMemo`s, `useState` setters) are already stable by themselves; the plain object wrapper was the only unstable part.
+---

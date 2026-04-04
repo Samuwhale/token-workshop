@@ -221,7 +221,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     fetchResolvers();
   }, [serverUrl, fetchResolvers]);
 
-  return {
+  return useMemo(() => ({
     resolvers,
     activeResolver,
     setActiveResolver,
@@ -236,5 +236,20 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     deleteResolver,
     getResolverFile,
     updateResolver,
-  };
+  }), [
+    resolvers,
+    activeResolver,
+    setActiveResolver,
+    resolverInput,
+    setResolverInput,
+    resolvedTokens,
+    activeModifiers,
+    resolverError,
+    loading,
+    fetchResolvers,
+    convertFromThemes,
+    deleteResolver,
+    getResolverFile,
+    updateResolver,
+  ]);
 }
