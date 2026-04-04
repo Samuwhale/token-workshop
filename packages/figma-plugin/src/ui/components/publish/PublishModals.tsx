@@ -33,21 +33,44 @@ export function SyncPreviewModal({
   const deletesFromLocal = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'figma-only');
   const skipped = rows.filter(r => dirs[r.path] === 'skip');
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  const sections: { label: string; badge: string; rows: PreviewRow[]; color: string }[] = [
+  const allSections: { label: string; badge: string; rows: PreviewRow[]; color: string }[] = [
     { label: 'Add to Figma', badge: '+', rows: pushAdds, color: 'var(--color-figma-success)' },
     { label: 'Update in Figma', badge: '~', rows: pushUpdates, color: 'var(--color-figma-warning, #e5a000)' },
     { label: 'Remove from Figma', badge: '-', rows: deletesFromLocal, color: 'var(--color-figma-error)' },
     { label: 'Add to local', badge: '+', rows: pullAdds, color: 'var(--color-figma-success)' },
     { label: 'Update in local', badge: '~', rows: pullUpdates, color: 'var(--color-figma-warning, #e5a000)' },
     { label: 'Remove from local', badge: '-', rows: deletesFromFigma, color: 'var(--color-figma-error)' },
-    { label: 'Skipped', badge: '·', rows: skipped, color: 'var(--color-figma-text-tertiary)' },
-  ].filter(s => s.rows.length > 0);
+    { label: 'Skipped', badge: '\u00b7', rows: skipped, color: 'var(--color-figma-text-tertiary)' },
+  ];
+  const sections = allSections.filter(s => s.rows.length > 0);
+
+  // Collapsed by default when there are many rows to show the summary first
+  const totalActionRows = rows.length - skipped.length;
+  const defaultCollapsed = totalActionRows > 8;
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(defaultCollapsed ? sections.map(s => s.label) : [])
+  );
+  const toggleSection = (label: string) => setCollapsedSections(prev => {
+    const next = new Set(prev);
+    if (next.has(label)) next.delete(label); else next.add(label);
+    return next;
+  });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Summary badge data for the header
+  const summaryItems = [
+    pushAdds.length > 0 && { label: `\u2191 create ${pushAdds.length}`, color: 'var(--color-figma-success)', bg: 'var(--color-figma-success)' },
+    pushUpdates.length > 0 && { label: `\u2191 update ${pushUpdates.length}`, color: 'var(--color-figma-warning, #e5a000)', bg: 'var(--color-figma-warning, #e5a000)' },
+    deletesFromLocal.length > 0 && { label: `\u2191 remove ${deletesFromLocal.length}`, color: 'var(--color-figma-error)', bg: 'var(--color-figma-error)' },
+    (pullAdds.length + pullUpdates.length) > 0 && { label: `\u2193 pull ${pullAdds.length + pullUpdates.length}`, color: 'var(--color-figma-success)', bg: 'var(--color-figma-success)' },
+    deletesFromFigma.length > 0 && { label: `\u2193 remove ${deletesFromFigma.length}`, color: 'var(--color-figma-error)', bg: 'var(--color-figma-error)' },
+    skipped.length > 0 && { label: `skip ${skipped.length}`, color: 'var(--color-figma-text-tertiary)', bg: 'var(--color-figma-text-tertiary)' },
+  ].filter(Boolean) as { label: string; color: string; bg: string }[];
 
   return (
     <div
@@ -60,68 +83,95 @@ export function SyncPreviewModal({
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             {onConfirm ? 'Review changes before applying.' : 'Dry run \u2014 no changes will be written.'}
           </p>
+          {summaryItems.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {summaryItems.map(item => (
+                <span
+                  key={item.label}
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded-full font-medium"
+                  style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.bg} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${item.bg} 25%, transparent)` }}
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {sections.length === 0 ? (
             <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Nothing to sync — all items skipped.</p>
           ) : (
-            sections.map(section => (
-              <div key={section.label} className="mb-2">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span
-                    className="text-[10px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded"
-                    style={{ color: section.color }}
+            sections.map(section => {
+              const isCollapsed = collapsedSections.has(section.label);
+              return (
+                <div key={section.label} className="mb-1.5">
+                  <button
+                    onClick={() => toggleSection(section.label)}
+                    className="w-full flex items-center gap-1.5 py-1 hover:bg-[var(--color-figma-bg-secondary)] rounded px-0.5 transition-colors"
                   >
-                    {section.badge}
-                  </span>
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                    {section.label} ({section.rows.length})
-                  </span>
-                </div>
-                <div className="ml-5 space-y-0">
-                  {section.rows.map(r => {
-                    const valStr = (v: string | undefined) => v ?? '';
-                    const isColor = r.localType === 'color' || r.figmaType === 'color';
-                    const isPush = section.label.includes('Figma');
-                    const beforeVal = isPush ? r.figmaValue : r.localValue;
-                    const afterVal = isPush ? r.localValue : r.figmaValue;
-                    return (
-                      <div key={r.path} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</span>
-                        </div>
-                        {r.cat === 'conflict' && (
-                          <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                    <svg
+                      width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                      className={`shrink-0 transition-transform text-[var(--color-figma-text-tertiary)] ${isCollapsed ? '' : 'rotate-90'}`}
+                    >
+                      <path d="M2 1l4 3-4 3V1z" />
+                    </svg>
+                    <span
+                      className="text-[10px] font-bold w-3 h-3 flex items-center justify-center rounded shrink-0"
+                      style={{ color: section.color }}
+                    >
+                      {section.badge}
+                    </span>
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                      {section.label} ({section.rows.length})
+                    </span>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="ml-8 space-y-0">
+                      {section.rows.map(r => {
+                        const valStr = (v: string | undefined) => v ?? '';
+                        const isColor = r.localType === 'color' || r.figmaType === 'color';
+                        const isPush = section.label.includes('Figma');
+                        const beforeVal = isPush ? r.figmaValue : r.localValue;
+                        const afterVal = isPush ? r.localValue : r.figmaValue;
+                        return (
+                          <div key={r.path} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                              {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
-                              <span className="text-[var(--color-figma-text-secondary)] truncate" title={valStr(beforeVal)}>{truncateValue(valStr(beforeVal), 40)}</span>
+                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</span>
                             </div>
-                            <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                              {isColor && isHexColor(afterVal) && <DiffSwatch hex={afterVal} />}
-                              <span className="text-[var(--color-figma-text)] truncate" title={valStr(afterVal)}>{truncateValue(valStr(afterVal), 40)}</span>
-                            </div>
+                            {r.cat === 'conflict' && (
+                              <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                                  {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
+                                  <span className="text-[var(--color-figma-text-secondary)] truncate" title={valStr(beforeVal)}>{truncateValue(valStr(beforeVal), 40)}</span>
+                                </div>
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                                  {isColor && isHexColor(afterVal) && <DiffSwatch hex={afterVal} />}
+                                  <span className="text-[var(--color-figma-text)] truncate" title={valStr(afterVal)}>{truncateValue(valStr(afterVal), 40)}</span>
+                                </div>
+                              </div>
+                            )}
+                            {r.cat === 'local-only' && r.localValue !== undefined && (
+                              <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                                {isColor && isHexColor(r.localValue) && <DiffSwatch hex={r.localValue} />}
+                                <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue}>{truncateValue(r.localValue, 40)}</span>
+                              </div>
+                            )}
+                            {r.cat === 'figma-only' && r.figmaValue !== undefined && (
+                              <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                                {isColor && isHexColor(r.figmaValue) && <DiffSwatch hex={r.figmaValue} />}
+                                <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.figmaValue}>{truncateValue(r.figmaValue, 40)}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {r.cat === 'local-only' && r.localValue !== undefined && (
-                          <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
-                            {isColor && isHexColor(r.localValue) && <DiffSwatch hex={r.localValue} />}
-                            <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue}>{truncateValue(r.localValue, 40)}</span>
-                          </div>
-                        )}
-                        {r.cat === 'figma-only' && r.figmaValue !== undefined && (
-                          <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
-                            {isColor && isHexColor(r.figmaValue) && <DiffSwatch hex={r.figmaValue} />}
-                            <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.figmaValue}>{truncateValue(r.figmaValue, 40)}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
         {confirmError && (

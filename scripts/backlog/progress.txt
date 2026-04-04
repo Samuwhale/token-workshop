@@ -367,3 +367,12 @@
   - When an imperative handle method needs to set multiple state vars, capture all setters inside the handle's useEffect closure — setState functions are stable and don't need to be in the deps array.
   - `useCompareState` was the only consumer; deleting it when folding state into a child component is safe here.
 ---
+
+## 2026-04-04 - Preview before publish — dry-run step with create/update/skip summary
+- Added a prominent summary banner to `SyncPreviewModal` showing "↑ create N · ↑ update N · skip N" badges at the top of both the apply confirmation and dry-run preview modals. Added collapsible sections (collapsed by default when >8 action rows) so users see the summary first, then can expand each category for details. The existing "Apply" flow already went through `SyncPreviewModal` — this enhancement makes the dry-run nature explicit and prominent.
+- Files changed: `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L11
+- **Learnings for future iterations:**
+  - `SyncPreviewModal` is shared between dry-run (no `onConfirm`) and apply (with `onConfirm`) flows — summary and collapsible sections benefit both modes
+  - `color-mix(in srgb, var --color 12%, transparent)` works for tinted badge backgrounds without defining extra CSS vars
+  - Default collapse threshold at 8 action rows (excluding skipped) keeps the modal compact for typical use cases while showing details for small changesets
+---
