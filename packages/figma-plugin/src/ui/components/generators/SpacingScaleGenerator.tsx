@@ -99,7 +99,7 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function SpacingScaleConfigEditor({ config, onChange }: { config: SpacingScaleConfig; onChange: (c: SpacingScaleConfig) => void }) {
+export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart }: { config: SpacingScaleConfig; onChange: (c: SpacingScaleConfig) => void; onInteractionStart?: () => void }) {
   const [showSteps, setShowSteps] = useState(false);
   const activePresetIdx = SPACING_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s.name === config.steps[i]?.name)
@@ -121,7 +121,7 @@ export function SpacingScaleConfigEditor({ config, onChange }: { config: Spacing
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {SPACING_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} title={preset.description} onClick={() => { setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
+            <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
@@ -138,7 +138,7 @@ export function SpacingScaleConfigEditor({ config, onChange }: { config: Spacing
                   aria-label={`Step ${i + 1} name`}
                   placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">&times;</span>
-                <input type="number" step="0.5" value={step.multiplier} onChange={e => updateStep(i, { multiplier: Number(e.target.value), name: step.name === String(step.multiplier) ? e.target.value : step.name })}
+                <input type="number" step="0.5" value={step.multiplier} onFocus={onInteractionStart} onChange={e => updateStep(i, { multiplier: Number(e.target.value), name: step.name === String(step.multiplier) ? e.target.value : step.name })}
                   aria-label={`Step ${step.name} multiplier`}
                   className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>

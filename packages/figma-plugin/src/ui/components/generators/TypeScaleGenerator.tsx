@@ -170,9 +170,12 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokensFlat, pathToSet }: {
+export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, sourceValue, allTokensFlat, pathToSet }: {
   config: TypeScaleConfig;
   onChange: (c: TypeScaleConfig) => void;
+  /** Call at the start of each discrete user interaction so the undo system can
+   *  flush the previous snapshot before this one begins. */
+  onInteractionStart?: () => void;
   sourceValue?: number;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
@@ -194,7 +197,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
   const activeStepPresetIdx = TYPE_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s.name === config.steps[i]?.name)
   );
-  const handleRatioPreset = (val: number) => { setIsCustomRatio(false); onChange({ ...config, ratio: val }); };
+  const handleRatioPreset = (val: number) => { onInteractionStart?.(); setIsCustomRatio(false); onChange({ ...config, ratio: val }); };
   const handleCustomRatioCommit = () => {
     const val = parseFloat(customRatio);
     if (!isNaN(val) && val > 1) onChange({ ...config, ratio: Math.round(val * 1000) / 1000 });
@@ -205,6 +208,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
     if (!isNaN(val) && val > 1) setCompareRatio(Math.round(val * 1000) / 1000);
   };
   const applyCompareRatio = () => {
+    onInteractionStart?.();
     onChange({ ...config, ratio: compareRatio });
     setIsCustomRatio(false);
     setCompareMode(false);
@@ -302,6 +306,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
                   ))}
                   <input type="number" min="1.001" max="4" step="0.001"
                     value={isCustomRatio ? customRatio : config.ratio}
+                    onFocus={onInteractionStart}
                     onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
                     onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
                     aria-label="Custom scale ratio A"
@@ -408,7 +413,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
           {TYPE_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} title={preset.description} onClick={() => { setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })), baseStep: preset.steps.find(s => s.exponent === 0)?.name ?? preset.steps[Math.floor(preset.steps.length / 2)]?.name ?? config.baseStep }); }}
+            <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })), baseStep: preset.steps.find(s => s.exponent === 0)?.name ?? preset.steps[Math.floor(preset.steps.length / 2)]?.name ?? config.baseStep }); }}
               className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}

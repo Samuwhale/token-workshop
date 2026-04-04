@@ -52,6 +52,10 @@ interface UseGeneratorDialogReturn {
   canRedo: boolean;
   handleUndo: () => void;
   handleRedo: () => void;
+  /** Call at the start of each discrete user interaction (drag begin, field focus).
+   *  Flushes the pending snapshot from the previous interaction so each action
+   *  gets its own undo entry. */
+  handleConfigInteractionStart: () => void;
   // State
   selectedType: GeneratorType;
   name: string;
@@ -224,6 +228,16 @@ export function useGeneratorDialog({
   const canUndo = configUndoStack.length > 0;
   const canRedo = configRedoStack.length > 0;
 
+  /** Flush any pending snapshot when a new discrete interaction starts (drag, focus).
+   *  This ensures each distinct user action lands in its own undo slot rather than
+   *  being coalesced with the previous one by the debounce. */
+  const handleConfigInteractionStart = useCallback(() => {
+    if (undoDebounceRef.current) { clearTimeout(undoDebounceRef.current); undoDebounceRef.current = null; }
+    flushSnapshot();
+    // pendingSnapshotRef is now null — the first onChange from the new interaction
+    // will capture the pre-interaction state via pushConfigSnapshotDebounced.
+  }, [flushSnapshot]);
+
   const handleUndo = useCallback(() => {
     if (configUndoStack.length === 0) return;
     const currentCfg = configs[selectedType];
@@ -395,6 +409,7 @@ export function useGeneratorDialog({
     canRedo,
     handleUndo,
     handleRedo,
+    handleConfigInteractionStart,
     // State
     selectedType,
     name,

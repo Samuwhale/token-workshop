@@ -584,3 +584,17 @@
   - For search inputs that are rendered inside loops (e.g., one per missing-override group), `e.currentTarget.blur()` is the right approach since a single ref can't track multiple instances simultaneously.
   - The canonical Escape pattern: `e.preventDefault(); if (query) clearQuery(); inputRef.current?.blur();` — always blur, clear only if needed.
 ---
+
+## 2026-04-04 - Generator config editors have no undo affordance for individual field changes
+- Added `handleConfigInteractionStart` to `useGeneratorDialog.ts`: flushes the pending debounced snapshot when a new discrete user interaction begins (drag start, input focus, preset click). This ensures each distinct interaction lands in its own undo slot instead of being coalesced with the previous one by the 500ms debounce.
+- Threaded `onConfigInteractionStart` from `useGeneratorDialog` → `TokenGeneratorDialog` → `StepWhat` → each config editor.
+- `BezierCurveEditor.tsx`: added `onDragStart?: () => void` prop; called on `handlePointerDown` (each new drag = separate undo entry) and on all preset button clicks.
+- `ColorRampGenerator.tsx`: `ColorRampConfigEditor` accepts `onInteractionStart?`; wired to all three range sliders (`lightEnd`, `darkEnd`, `chromaBoost`) via `onPointerDown`, to `BezierCurveEditor` as `onDragStart`, and to Steps preset buttons.
+- `TypeScaleGenerator.tsx`: `TypeScaleConfigEditor` accepts `onInteractionStart?`; wired to ratio preset buttons (`handleRatioPreset`), custom ratio input `onFocus`, `applyCompareRatio`, and step preset buttons.
+- `SpacingScaleGenerator.tsx`: `SpacingScaleConfigEditor` accepts `onInteractionStart?`; wired to preset buttons and multiplier inputs via `onFocus`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L55,L224,L400, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L283, `packages/figma-plugin/src/ui/components/generator-steps/StepWhat.tsx` ~L79,L179,L470, `packages/figma-plugin/src/ui/components/generators/BezierCurveEditor.tsx` ~L57,L114,L211, `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L238,L275,L297,L317,L320, `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L176,L200,L307,L416, `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx` ~L102,L124,L141
+- **Learnings for future iterations:**
+  - The existing debounce captures the config state BEFORE the first onChange in a session (because `pendingSnapshotRef` is set only once, capturing `configs` at the time of first edit). The bug is not the debounce itself but that multiple distinct interactions within 500ms share one snapshot. Fix: flush on interaction start, not on interaction end.
+  - `onPointerDown` on `<input type="range">` fires before `onChange`, making it the right hook for range slider "start of drag". The snapshot captures the pre-drag state via the first onChange's `pushConfigSnapshotDebounced` call.
+  - For preset buttons (discrete one-shot changes), calling `onInteractionStart` before `onChange` ensures the previous session's snapshot is flushed first, then the preset change gets its own debounce window.
+---

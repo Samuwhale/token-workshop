@@ -235,9 +235,12 @@ function SwatchCell({
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFlat, pathToSet }: {
+export function ColorRampConfigEditor({ config, onChange, onInteractionStart, sourceHex, allTokensFlat, pathToSet }: {
   config: ColorRampConfig;
   onChange: (c: ColorRampConfig) => void;
+  /** Call at the start of each discrete user interaction (drag, focus) so the
+   *  undo system can flush the previous snapshot before this one begins. */
+  onInteractionStart?: () => void;
   sourceHex?: string;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
@@ -269,7 +272,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {COLOR_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} title={preset.description} onClick={() => onChange({ ...config, steps: [...preset.steps] })}
+            <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); onChange({ ...config, steps: [...preset.steps] }); }}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
@@ -294,7 +297,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
             />
             <span className="text-[var(--color-figma-text)]">{config.lightEnd}</span>
           </div>
-          <input type="range" min={80} max={99} step={1} value={config.lightEnd} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
+          <input type="range" min={80} max={99} step={1} value={config.lightEnd} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </TokenRefInput>
         <TokenRefInput
           label="Dark end L*"
@@ -314,7 +317,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
             />
             <span className="text-[var(--color-figma-text)]">{config.darkEnd}</span>
           </div>
-          <input type="range" min={2} max={30} step={1} value={config.darkEnd} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
+          <input type="range" min={2} max={30} step={1} value={config.darkEnd} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </TokenRefInput>
       </div>
       <BezierCurveEditor
@@ -323,6 +326,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
         darkEnd={config.darkEnd}
         stepCount={config.steps.length}
         onChange={c => onChange({ ...config, lightnessCurve: c })}
+        onDragStart={onInteractionStart}
         sourceHex={sourceHex}
         chromaBoost={config.chromaBoost}
       />
@@ -345,7 +349,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
             />
             <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span>
           </div>
-          <input type="range" min={0.3} max={2.0} step={0.1} value={config.chromaBoost} onChange={e => onChange({ ...config, chromaBoost: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
+          <input type="range" min={0.3} max={2.0} step={0.1} value={config.chromaBoost} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, chromaBoost: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
           <div className="flex justify-between mt-0.5">
             <span className="text-[8px] text-[var(--color-figma-text-secondary)]">0.3 muted</span>
             <span className="text-[8px] text-[var(--color-figma-text-secondary)]">2.0 vivid</span>

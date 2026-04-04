@@ -948,3 +948,26 @@ Already up to date.
 
   Merging to main: Escape key behavior is inconsistent between search inputs across panels
 Already up to date.
+[main 3c25f144] chore(backlog): done – Escape key behavior is inconsistent between search inputs across panels
+ 6 files changed, 47 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Escape key behavior is inconsistent between search inputs across panels
+- Standardized Escape-to-clear-and-blur behavior across all search inputs:
+  1. **`TokenList.tsx`** (~L2647): The Escape handler already cleared the query (added in a previous session) but never blurred the input. Updated to always blur on Escape (clear if needed, then `searchRef.current?.blur()`).
+  2. **`ThemeManager.tsx`** (~L76): Added `previewSearchRef = useRef<HTMLInputElement | null>(null)` for the preview token search input.
+
+═══════════════════════════════════════════════════════════════
+  #36  ·  24 queued · 0
+0 in-progress · last took 11m58s
+═══════════════════════════════════════════════════════════════
+  → Generator config editors have no undo affordance for individual field changes — while the generator dialog stepper (StepWhat) has undo/redo buttons for config snapshots, individual form fields within generator config editors (ColorRampGenerator bezier points, SpacingScaleGenerator step multipliers, TypeScaleConfigEditor ratio/base values) support no Ctrl+Z undo beyond native browser input undo; if a user accidentally drags a bezier control point or changes a ratio value, the only recovery is the snapshot-level undo which may roll back multiple changes at once; this is especially problematic for the interactive bezier curve editor where precise adjustments are easily lost (violates: user control and freedom, error recovery)
+  Worktree: /tmp/backlog-3108-RcAFAJ
+  Running agent… (started 23:38:27)
+
+  ✓ done: Generator config editors have no undo affordance for individual field changes
+    Added handleConfigInteractionStart that flushes the pending debounced snapshot at the start of each discrete interaction; wired to bezier drag (pointerDown), range sliders (pointerDown), preset buttons, and text inputs (onFocus) across BezierCurveEditor, ColorRampConfigEditor, TypeScaleConfigEditor, and SpacingScaleConfigEditor — each drag/edit now gets its own undo entry
+    63 turns · 587s · $2.26
+
+  Merging to main: Generator config editors have no undo affordance for individual field changes
+Already up to date.

@@ -60,6 +60,9 @@ interface BezierCurveEditorProps {
   darkEnd: number;
   stepCount: number;
   onChange: (curve: [number, number, number, number]) => void;
+  /** Called at the start of each drag or preset click so the undo system can
+   *  flush the previous interaction's snapshot before this one begins. */
+  onDragStart?: () => void;
   /** Source color hex — when provided, renders a live color swatch strip. */
   sourceHex?: string;
   /** Chroma boost multiplier — used for live color swatch computation. */
@@ -71,7 +74,7 @@ const MIN_W = 200;
 const MIN_H = 140;
 const ASPECT = 1.5; // width:height
 
-export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChange, sourceHex, chromaBoost = 1.0 }: BezierCurveEditorProps) {
+export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChange, onDragStart, sourceHex, chromaBoost = 1.0 }: BezierCurveEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<0 | 1 | null>(null);
@@ -113,9 +116,10 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
 
   const handlePointerDown = useCallback((idx: 0 | 1, e: React.PointerEvent) => {
     e.preventDefault();
+    onDragStart?.();
     (e.target as Element).setPointerCapture(e.pointerId);
     setDragging(idx);
-  }, []);
+  }, [onDragStart]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (dragging === null || !svgRef.current) return;
@@ -213,7 +217,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
           return (
             <button
               key={p.label}
-              onClick={() => onChange([...p.curve])}
+              onClick={() => { onDragStart?.(); onChange([...p.curve]); }}
               title={`cubic-bezier(${p.curve.join(', ')})`}
               className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
                 isActive

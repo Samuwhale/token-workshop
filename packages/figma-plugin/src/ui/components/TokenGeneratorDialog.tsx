@@ -282,6 +282,7 @@ export function TokenGeneratorDialog({
               canRedo={dialog.canRedo}
               onUndo={dialog.handleUndo}
               onRedo={dialog.handleRedo}
+              onConfigInteractionStart={dialog.handleConfigInteractionStart}
               onTypeChange={dialog.handleTypeChange}
               onConfigChange={dialog.handleConfigChange}
               onSourcePathChange={dialog.setEditableSourcePath}
