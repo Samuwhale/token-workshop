@@ -1,6 +1,7 @@
 import type { ColorValue, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
 import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
+import { getErrorMessage } from '../shared/utils.js';
 
 // ---------------------------------------------------------------------------
 // Token shapes flowing into applyStyles — these carry a `path` field added by
@@ -126,7 +127,7 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
         if (created) createdStyleIds.push(created.id);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       console.error(`Failed to apply style for ${token.path}:`, error);
       failures.push({ path: token.path, error: message });
     }
@@ -148,10 +149,11 @@ export async function revertStyles(
 ) {
   const failures: string[] = [];
 
-  for (const snap of data.snapshots) {
+  // Restore pre-sync state for every style that was modified — run in parallel
+  const restoreTasks = data.snapshots.map(async (snap) => {
+    const style = await figma.getStyleByIdAsync(snap.id);
+    if (!style) { failures.push(`style ${snap.id} no longer exists`); return; }
     try {
-      const style = await figma.getStyleByIdAsync(snap.id);
-      if (!style) { failures.push(`style ${snap.id} no longer exists`); continue; }
       if (snap.type === 'paint') {
         (style as PaintStyle).paints = snap.data;
       } else if (snap.type === 'text') {
@@ -165,24 +167,26 @@ export async function revertStyles(
         (style as EffectStyle).effects = snap.data;
       }
     } catch (e) {
-      failures.push(`restore(${snap.id}): ${e}`);
+      failures.push(`restore(${snap.id}): ${getErrorMessage(e)}`);
     }
-  }
+  });
+  await Promise.allSettled(restoreTasks);
 
   if (failures.length > 0) {
     // Skip deletions — one or more restores failed, so deleting created styles now would
     // cause unrecoverable data loss (the originals didn't restore cleanly).
     console.error('[revertStyles] skipping deletion phase because restore(s) failed:', failures);
   } else {
-    // Delete styles that were created during the sync
-    for (const id of [...data.createdIds].reverse()) {
+    // Delete styles that were created during the sync — run in parallel
+    const deleteTasks = [...data.createdIds].reverse().map(async (id) => {
       try {
         const style = await figma.getStyleByIdAsync(id);
         if (style) style.remove();
       } catch (e) {
-        failures.push(`delete(${id}): ${e}`);
+        failures.push(`delete(${id}): ${getErrorMessage(e)}`);
       }
-    }
+    });
+    await Promise.allSettled(deleteTasks);
   }
 
   figma.ui.postMessage({ type: 'styles-reverted', correlationId, failures });

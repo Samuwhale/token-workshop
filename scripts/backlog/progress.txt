@@ -426,3 +426,16 @@
   - Cache the Promise, not the resolved value — concurrent callers during the first await would otherwise each start their own API call.
   - Clear the promise cache in a `.catch` on the promise itself (not in a try/catch around the caller) so all concurrent waiters get the rejection AND the next independent call starts fresh.
 ---
+
+## 2026-04-04 - Plugin variableSync.ts rollback error handling has inconsistent error-type coercion
+- Used the existing `getErrorMessage(err: unknown): string` helper from `shared/utils.ts` to normalize all error coercion in both files, replacing direct `${e}` and `${r.reason}` template literal interpolations where `e`/`reason` is typed `unknown`
+- Added `import { getErrorMessage } from '../shared/utils.js'` to `styleSync.ts` (already imported in `variableSync.ts`)
+- Replaced inline `error instanceof Error ? error.message : String(error)` in `applyStyles` with `getErrorMessage(error)`
+- Converted `revertStyles` from a sequential `for` loop with try-catch to parallel `Promise.allSettled` tasks, matching the `revertVariables` pattern
+- Added skip-deletions-on-restore-failure guard to `revertVariables` (it was missing — `revertStyles` and `applyVariables`'s rollback both had it, making the variable revert the odd one out)
+- All catch blocks in both `applyVariables` rollback and `revertVariables` now use `getErrorMessage(e)` consistently
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L148-197, L229-253; `packages/figma-plugin/src/plugin/styleSync.ts` ~L1-3, L129, L151-186
+- **Learnings for future iterations:**
+  - `getErrorMessage` already existed in `shared/utils.ts` — no need to create a `toErrorMessage` alias; the item was describing the concept, not the exact name
+  - `revertVariables` was missing the skip-deletions-on-restore-failure guard that both `revertStyles` and `applyVariables` had; aligning rollback patterns across the two files caught this latent bug
+---

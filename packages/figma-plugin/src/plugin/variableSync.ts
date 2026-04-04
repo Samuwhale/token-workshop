@@ -145,22 +145,22 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       if (!v) return;
       const errs: string[] = [];
       for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
-        try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { errs.push(`setValueForMode(${modeId}): ${e}`); }
+        try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { errs.push(`setValueForMode(${modeId}): ${getErrorMessage(e)}`); }
       }
-      try { v.name = snapshot.name; } catch (e) { errs.push(`name: ${e}`); }
-      try { v.description = snapshot.description; } catch (e) { errs.push(`description: ${e}`); }
-      try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { errs.push(`hiddenFromPublishing: ${e}`); }
-      try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { errs.push(`scopes: ${e}`); }
+      try { v.name = snapshot.name; } catch (e) { errs.push(`name: ${getErrorMessage(e)}`); }
+      try { v.description = snapshot.description; } catch (e) { errs.push(`description: ${getErrorMessage(e)}`); }
+      try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { errs.push(`hiddenFromPublishing: ${getErrorMessage(e)}`); }
+      try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { errs.push(`scopes: ${getErrorMessage(e)}`); }
       try {
         v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
         v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
-      } catch (e) { errs.push(`pluginData: ${e}`); }
+      } catch (e) { errs.push(`pluginData: ${getErrorMessage(e)}`); }
       if (errs.length > 0) throw new Error(`var ${varId}: ${errs.join('; ')}`);
     });
     const restoreResults = await Promise.allSettled(restoreTasks);
     const restoresFailed = restoreResults.filter(r => r.status === 'rejected');
     for (const r of restoreResults) {
-      if (r.status === 'rejected') rollbackFailures.push(`restore: ${r.reason}`);
+      if (r.status === 'rejected') rollbackFailures.push(`restore: ${getErrorMessage(r.reason)}`);
     }
 
     if (restoresFailed.length > 0) {
@@ -175,7 +175,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     });
     const deleteResults = await Promise.allSettled(deleteTasks);
     for (const r of deleteResults) {
-      if (r.status === 'rejected') rollbackFailures.push(`delete variable: ${r.reason}`);
+      if (r.status === 'rejected') rollbackFailures.push(`delete variable: ${getErrorMessage(r.reason)}`);
     }
 
     // Delete collections created during this operation if they are now empty
@@ -190,11 +190,11 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         const col = colsById.get(colId);
         if (col) {
           const hasVars = allVarsAfter.some(v => v.variableCollectionId === colId);
-          if (!hasVars) { try { col.remove(); } catch (e) { rollbackFailures.push(`delete collection ${colId}: ${e}`); } }
+          if (!hasVars) { try { col.remove(); } catch (e) { rollbackFailures.push(`delete collection ${colId}: ${getErrorMessage(e)}`); } }
         }
       }
     } catch (e) {
-      rollbackFailures.push(`collection cleanup fetch failed: ${e}`);
+      rollbackFailures.push(`collection cleanup fetch failed: ${getErrorMessage(e)}`);
     }
     } // end else (restores succeeded)
 
@@ -225,32 +225,38 @@ export async function revertVariables(
 ) {
   const failures: string[] = [];
 
-  // Restore pre-sync state for every variable that was modified
+  // Restore pre-sync state for every variable that was modified — run in parallel
   const restoreTasks = Object.entries(data.records).map(async ([varId, snapshot]) => {
     const v = await figma.variables.getVariableByIdAsync(varId);
     if (!v) { failures.push(`var ${varId} no longer exists`); return; }
     for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
-      try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { failures.push(`setValueForMode(${varId}, ${modeId}): ${e}`); }
+      try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { failures.push(`setValueForMode(${varId}, ${modeId}): ${getErrorMessage(e)}`); }
     }
-    try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${e}`); }
-    try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${e}`); }
-    try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${e}`); }
-    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${e}`); }
+    try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${getErrorMessage(e)}`); }
+    try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${getErrorMessage(e)}`); }
+    try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${getErrorMessage(e)}`); }
+    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); }
     try {
       v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
       v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
-    } catch (e) { failures.push(`pluginData(${varId}): ${e}`); }
+    } catch (e) { failures.push(`pluginData(${varId}): ${getErrorMessage(e)}`); }
   });
   await Promise.allSettled(restoreTasks);
 
-  // Delete variables that were created during the sync
-  const deleteTasks = [...data.createdIds].reverse().map(async (varId) => {
-    const v = await figma.variables.getVariableByIdAsync(varId);
-    if (v) {
-      try { v.remove(); } catch (e) { failures.push(`delete(${varId}): ${e}`); }
-    }
-  });
-  await Promise.allSettled(deleteTasks);
+  if (failures.length > 0) {
+    // Skip deletions — one or more restores failed, so deleting created variables now would
+    // cause unrecoverable data loss (the originals didn't restore cleanly).
+    console.error('[revertVariables] skipping deletion phase because restore(s) failed:', failures);
+  } else {
+    // Delete variables that were created during the sync — run in parallel
+    const deleteTasks = [...data.createdIds].reverse().map(async (varId) => {
+      const v = await figma.variables.getVariableByIdAsync(varId);
+      if (v) {
+        try { v.remove(); } catch (e) { failures.push(`delete(${varId}): ${getErrorMessage(e)}`); }
+      }
+    });
+    await Promise.allSettled(deleteTasks);
+  }
 
   figma.ui.postMessage({
     type: 'variables-reverted',

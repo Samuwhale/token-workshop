@@ -135,3 +135,26 @@ Already up to date.
 
   Merging to main: Plugin sandbox fontLoading.ts cache poisoned by API errors
 Already up to date.
+[main 2a2326d9] chore(backlog): done – Plugin sandbox fontLoading.ts cache poisoned by API errors
+ 6 files changed, 54 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Plugin sandbox fontLoading.ts cache poisoned by API errors
+- Changed `cachedFonts: Font[] | null` to `cachedFontsPromise: Promise<Font[]> | null` so concurrent callers share the same in-flight request.
+- On rejection, the `.catch` handler clears `cachedFontsPromise = null` so retries trigger a fresh API call.
+- `getAvailableFonts()` is now synchronous (returns the cached/new Promise directly) rather than async, eliminating the redundant await.
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  6 queued · 0
+0 in-progress · last took 58s
+═══════════════════════════════════════════════════════════════
+  → Plugin `variableSync.ts` rollback error handling has inconsistent error-type coercion — Promise rejection `reason` values are interpolated directly into strings via template literals (L158, L163, L178) but `reason` can be any type (Error, string, object, undefined); similarly `revertVariables` (L229-243) pushes formatted errors but `revertStyles` (styleSync.ts L151-186) uses a different sequential try-catch pattern for the same conceptual operation; should normalize error coercion with a shared `toErrorMessage(reason: unknown): string` helper and align the rollback patterns between variable and style sync (packages/figma-plugin/src/plugin/variableSync.ts, packages/figma-plugin/src/plugin/styleSync.ts)
+  Worktree: /tmp/backlog-60297-ySK3Xp
+  Running agent… (started 10:22:13)
+
+  ✓ done: Plugin variableSync.ts rollback error handling has inconsistent error-type coercion
+    Used existing getErrorMessage() for all unknown error coercion in both files; converted revertStyles to parallel Promise.allSettled; added missing skip-deletions-on-failure guard to revertVariables
+    17 turns · 152s · $0.53
+
+  Merging to main: Plugin variableSync.ts rollback error handling has inconsistent error-type coercion
+Already up to date.
