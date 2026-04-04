@@ -405,3 +405,16 @@
   - The "load then sync" pattern for server-persisted UI state: use a `loadedRef` to skip the initial sync-back effect that fires right after loading from server, preventing a redundant write.
   - `apiFetch<T>` returns the JSON-parsed body directly as `T` — no `.then(r => r.json())` needed.
 ---
+
+## 2026-04-04 - Batch delete from multi-select mode
+- Added `onRequestDelete?: () => void` prop to `BatchEditorProps` in `BatchEditor.tsx`
+- Added a "Delete N selected" button at the bottom of the BatchEditor panel, after the Move/Copy section, separated by a border-top divider. Uses error color styling (`border-[var(--color-figma-error)]`) to visually distinguish it as a destructive action.
+- Passed `onRequestDelete={requestBulkDelete}` to `BatchEditor` in `TokenList.tsx`. `requestBulkDelete` scans all sets for alias references to the selected tokens, then sets `deleteConfirm` state. The existing confirmation dialog (`getDeleteModalProps` bulk case) shows the count, list of paths to delete, and any dependent alias references.
+- The confirmation dialog and `requestBulkDelete` were already fully implemented — only the button was missing from the BatchEditor panel.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L21, ~L138, ~L1506
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2221
+- **Learnings for future iterations:**
+  - The select-mode toolbar already had a "Delete N" button at the top level; this item specifically added delete to the expanded BatchEditor sub-panel for discoverability when users are in the batch-editing workflow.
+  - `requestBulkDelete` (TokenList.tsx) wraps `requestBulkDeleteFromHook` from `useTokenCrud.ts`, which already detects dependent alias refs across all sets and triggers the ConfirmModal via `deleteConfirm` state — no new deletion infrastructure was needed.
+---

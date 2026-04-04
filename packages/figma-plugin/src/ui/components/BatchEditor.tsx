@@ -27,6 +27,7 @@ interface BatchEditorProps {
   connected: boolean;
   onApply: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onRequestDelete?: () => void;
 }
 
 type NumericOpMode = 'multiply' | 'divide' | 'add' | 'subtract';
@@ -143,6 +144,7 @@ export function BatchEditor({
   connected,
   onApply,
   onPushUndo,
+  onRequestDelete,
 }: BatchEditorProps) {
   const [description, setDescription] = useState('');
   const [opacityPct, setOpacityPct] = useState('');
@@ -1502,6 +1504,24 @@ export function BatchEditor({
             </div>
           )}
         </>)}
+
+        {/* Delete selected — destructive action, separated visually */}
+        {onRequestDelete && (
+          <div className="border-t border-[var(--color-figma-border)] pt-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Delete</span>
+              <button
+                type="button"
+                onClick={onRequestDelete}
+                disabled={!connected || selectedPaths.size === 0}
+                title={!connected ? 'Not connected to server' : `Delete ${selectedPaths.size} selected token${selectedPaths.size === 1 ? '' : 's'}`}
+                className="px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-error,#ef4444)] text-[var(--color-figma-error,#ef4444)] hover:bg-[rgba(239,68,68,0.08)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Delete {selectedPaths.size} selected
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2227,6 +2227,7 @@ export function TokenList({
             connected={connected}
             onApply={onRefresh}
             onPushUndo={onPushUndo}
+            onRequestDelete={requestBulkDelete}
           />
         )}
 
