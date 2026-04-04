@@ -141,23 +141,30 @@ function queryNumericIndex(
 export async function scanConsistency(
   tokenMap: Record<string, TokenMapEntry>,
   scope: 'selection' | 'page' | 'all-pages',
+  signal?: { aborted: boolean },
 ) {
   try {
     // Collect nodes
     const nodes: SceneNode[] = [];
     if (scope === 'all-pages') {
       for (const page of figma.root.children) {
-        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES })) {
+        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES, signal })) {
           nodes.push(node);
         }
+        if (signal?.aborted) break;
       }
     } else {
       const roots = scope === 'selection'
         ? figma.currentPage.selection
         : figma.currentPage.children;
-      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
+      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES, signal })) {
         nodes.push(node);
       }
+    }
+
+    if (signal?.aborted) {
+      figma.ui.postMessage({ type: 'consistency-scan-cancelled' });
+      return;
     }
 
     // Build reverse indexes upfront — O(tokens) once, then O(1) or O(log tokens) per lookup
@@ -382,6 +389,10 @@ export async function scanConsistency(
           total: nodes.length,
         });
         await new Promise<void>(r => setTimeout(r, 0));
+        if (signal?.aborted) {
+          figma.ui.postMessage({ type: 'consistency-scan-cancelled' });
+          return;
+        }
       }
     }
 

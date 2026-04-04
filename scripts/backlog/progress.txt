@@ -591,3 +591,23 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: applyColorModifiers silently drops alpha channel on lighten/darken/mix because hexToLab strips alpha and labToHex never restores it — affects both resolver and UI preview
 ---
+
+## 2026-04-04 - No cancellation for long-running plugin scans
+- Added a shared `ScanSignal` (`{ aborted: boolean }`) pattern to all four long-running plugin scans
+- `walkNodes.ts`: Added optional `signal` field to `WalkOptions`; generator returns early when `signal.aborted` is true
+- `heatmapScanning.ts`: `scanCanvasHeatmap`, `scanComponentCoverage`, `scanTokenUsage` now accept `signal?`; each posts a `*-cancelled` message and returns early when aborted
+- `consistencyScanner.ts`: `scanConsistency` accepts `signal?`; checks it during node collection and in the processing batch loop; posts `consistency-scan-cancelled` when aborted
+- `selectionHandling.ts`: Converted `scanTokenUsageMap` from synchronous `findAll` to `walkNodes` loop so it supports `signal?`; cancellation silently drops the result (no message posted — next scan auto-starts)
+- `controller.ts`: Added `_activeScanSignal`, `createScanSignal()`, `cancelActiveScan()`, `clearScanSignal()` helpers; all five scan cases (`scan-canvas-heatmap`, `scan-component-coverage`, `scan-consistency`, `scan-token-usage`, `scan-single-token-usage`) now call `createScanSignal()` before starting and `clearScanSignal()` in `finally`; new `cancel-scan` case calls `cancelActiveScan()` and posts `scan-cancelled`
+- `shared/types.ts`: Added `CancelScanMessage` interface and added it to the `PluginMessage` union
+- `useHeatmap.ts`: `cancelHeatmapScan` now posts `cancel-scan`; timeout handler also posts `cancel-scan`; added handler for `canvas-heatmap-cancelled` that clears loading state
+- `ConsistencyPanel.tsx`: Added 60s timeout (sends `cancel-scan` on expiry), Cancel button replaces Scan while scanning, `consistency-scan-cancelled` handler, `clearScanTimeout` on unmount
+- `AnalyticsPanel.tsx`: Added `coverageCancelRef`; refactored `runCoverageScan` promise to support user-initiated cancel (posts `cancel-scan`, rejects with `'Cancelled'` sentinel, swallowed silently in catch); timeout also sends `cancel-scan`; Cancel/Scan buttons toggled on `coverageLoading`
+- Files changed: `packages/figma-plugin/src/plugin/walkNodes.ts` ~L13, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L7, ~L90, ~L224, `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L141, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L1, ~L686, `packages/figma-plugin/src/plugin/controller.ts` ~L26, ~L332, `packages/figma-plugin/src/shared/types.ts` ~L595, ~L980, `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` ~L26, ~L42, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L148, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L100, ~L141
+- **Learnings for future iterations:**
+  - The `{ aborted: boolean }` object pattern (passed by reference) is simpler than a full AbortController in Figma's sandbox — no DOM AbortController available, and a plain mutable object lets the message handler flip the flag while the scan awaits
+  - `createScanSignal()` cancels the previous signal before returning a new one — this means starting a new scan automatically aborts any in-progress scan, preventing stale results
+  - Use identity comparison (`_activeScanSignal === signal`) in `clearScanSignal` to avoid clearing a newer scan's signal when an older one completes
+  - For UI cancel: user-initiated cancel should be silent (no error state); timeout cancel should show an error message. Use a sentinel string (`'Cancelled'`) to distinguish in catch blocks
+  - Synchronous `findAll` scans (like `scanTokenUsageMap`) must be converted to `walkNodes` loops to get signal support — `findAll` returns all nodes upfront with no interleave opportunity
+---

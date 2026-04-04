@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
 
 interface ConsistencyPanelProps {
@@ -145,6 +145,8 @@ function SuggestionCard({
   );
 }
 
+const CONSISTENCY_SCAN_TIMEOUT_MS = 60_000;
+
 export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyPanelProps) {
   const [scope, setScope] = useState<ScanScope>('page');
   const [scanning, setScanning] = useState(false);
@@ -153,6 +155,21 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
   const [totalNodes, setTotalNodes] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [snappedKeys, setSnappedKeys] = useState<Set<string>>(new Set());
+  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearScanTimeout = useCallback(() => {
+    if (scanTimeoutRef.current !== null) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    clearScanTimeout();
+    parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+    setScanning(false);
+    setProgress(null);
+  }, [clearScanTimeout]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -161,27 +178,45 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
       if (msg.type === 'consistency-scan-progress') {
         setProgress({ processed: msg.processed, total: msg.total });
       } else if (msg.type === 'consistency-scan-result') {
+        clearScanTimeout();
         setScanning(false);
         setProgress(null);
         setSuggestions(msg.suggestions);
         setTotalNodes(msg.totalNodes);
         setError(null);
       } else if (msg.type === 'consistency-scan-error') {
+        clearScanTimeout();
         setScanning(false);
         setProgress(null);
         setError(msg.error);
+      } else if (msg.type === 'consistency-scan-cancelled') {
+        clearScanTimeout();
+        setScanning(false);
+        setProgress(null);
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+    return () => {
+      window.removeEventListener('message', handler);
+      clearScanTimeout();
+    };
+  }, [clearScanTimeout]);
 
   const handleScan = useCallback(() => {
+    clearScanTimeout();
     setScanning(true);
     setProgress(null);
     setSuggestions(null);
     setError(null);
     setSnappedKeys(new Set());
+
+    scanTimeoutRef.current = setTimeout(() => {
+      scanTimeoutRef.current = null;
+      parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+      setScanning(false);
+      setProgress(null);
+      setError('Scan timed out. Try a smaller scope (Page instead of All pages).');
+    }, CONSISTENCY_SCAN_TIMEOUT_MS);
 
     // Build a flat resolved token map (color, dimension, number, and all typography types)
     const tokenMap: Record<string, { $value: any; $type: string }> = {};
@@ -194,7 +229,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     parent.postMessage({
       pluginMessage: { type: 'scan-consistency', tokenMap, scope },
     }, '*');
-  }, [availableTokens, scope]);
+  }, [availableTokens, scope, clearScanTimeout]);
 
   const handleSnap = useCallback((suggestion: ConsistencySuggestion) => {
     const entry = availableTokens[suggestion.tokenPath];
@@ -245,13 +280,22 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
             </button>
           ))}
         </div>
-        <button
-          onClick={handleScan}
-          disabled={scanning || !hasTokens}
-          className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-        >
-          {scanning ? 'Scanning…' : 'Scan'}
-        </button>
+        {scanning ? (
+          <button
+            onClick={handleCancel}
+            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-red-500 text-white hover:opacity-90 transition-opacity"
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            onClick={handleScan}
+            disabled={!hasTokens}
+            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          >
+            Scan
+          </button>
+        )}
       </div>
 
       {/* Body */}

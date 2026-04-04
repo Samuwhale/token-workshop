@@ -826,3 +826,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox
 Already up to date.
+[main 010cd021] chore(backlog): code pass – code-pass
+ 6 files changed, 36 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/core/src/ (color-modifier, color-math, color-parse, resolver, validator, generator-engine, eval-expr, dtcg-types), packages/server/src/services/ (git-sync, resolver-store, event-bus, manual-snapshot), packages/server/src/routes/ (themes, export, sync, snapshots), packages/figma-plugin/src/plugin/ (controller, variableSync, styleSync, fontLoading, selectionHandling, colorUtils), packages/figma-plugin/src/ui/hooks/ (useVariableSync, useStyleSync, useFigmaSync, useDragDrop, useThemeSwitcher, useAnalyticsState, useTokenCrud), packages/figma-plugin/src/ui/components/publish/ (VariableSyncSubPanel, StyleSyncSubPanel, PublishShared, PublishModals), packages/figma-plugin/src/ui/components/ (ThemeManager, GraphPanel, SelectionInspector, PreviewPanel, SettingsPanel, ImportPanel)
+- Found 5 items — written to backlog-inbox.md
+- Notable: applyColorModifiers silently drops alpha channel on lighten/darken/mix because hexToLab strips alpha and labToHex never restores it — affects both resolver and UI preview
+
+═══════════════════════════════════════════════════════════════
+  #36  ·  11 queued · 3 in-progress · last took 7m15s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] `applyColorModifiers` drops alpha channel when applying lighten/darken/mix — `hexToLab` strips the alpha from 8-char hex inputs and `labToHex` returns only `#RRGGBB`; a `#ff000080` (50% transparent red) lightened by 20 becomes fully opaque; the alpha modifier case works correctly via `setHexAlpha` but the other three modifier types silently lose transparency; must extract alpha before conversion, carry it through the pipeline, and re-append after the LAB round-trip (packages/core/src/color-modifier.ts L44-86, called from resolver.ts L361 and ColorModifiersEditor.tsx L24)
+  Worktree: /tmp/backlog-91949-4Cojma
+  Running agent… (started 04:21:35)

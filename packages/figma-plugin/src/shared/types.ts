@@ -596,6 +596,10 @@ export interface GetAvailableFontsMessage {
   type: 'get-available-fonts';
 }
 
+export interface CancelScanMessage {
+  type: 'cancel-scan';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Controller → UI (plugin sandbox → iframe) message types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -977,4 +981,5 @@ export type PluginMessage =
   | FindPeersForPropertyMessage
   | ApplyToNodesMessage
   | RemoveBindingFromNodeMessage
-  | SearchLayersMessage;
+  | SearchLayersMessage
+  | CancelScanMessage;

@@ -773,3 +773,10 @@ Already up to date.
   → No cancellation for long-running plugin scans — operations like `scan-canvas-heatmap`, `scan-component-coverage`, `scan-consistency`, and `scan-token-usage` can run for many seconds on large Figma files but have no cancel button or timeout; the user must wait for completion or close and reopen the plugin (controller.ts scan handlers)
   Worktree: /tmp/backlog-91634-RtUX1a
   Running agent… (started 04:09:51)
+
+  ✓ done: No cancellation for long-running plugin scans
+    Added shared { aborted: boolean } signal pattern to all 5 scan handlers in controller.ts; walkNodes supports early exit; UI sends cancel-scan message with Cancel buttons in HeatmapPanel (already had it), ConsistencyPanel (new), and AnalyticsPanel coverage scan (new); timeouts also send cancel-scan to actually abort the plugin-side scan
+    77 turns · 721s · $3.07
+
+  Merging to main: No cancellation for long-running plugin scans
+Already up to date.

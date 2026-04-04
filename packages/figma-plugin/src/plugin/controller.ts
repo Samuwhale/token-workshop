@@ -34,6 +34,38 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Scan cancellation
+// ---------------------------------------------------------------------------
+// Long-running scans (heatmap, consistency, coverage, token-usage) share a
+// single active signal object. The UI sends `cancel-scan` to abort the current
+// scan; each scan function checks `signal.aborted` at batch boundaries and
+// posts a *-cancelled message before returning early.
+// ---------------------------------------------------------------------------
+
+let _activeScanSignal: { aborted: boolean } | null = null;
+
+/** Abort any in-flight scan and return a fresh signal for the next one. */
+function createScanSignal(): { aborted: boolean } {
+  if (_activeScanSignal) _activeScanSignal.aborted = true;
+  const signal = { aborted: false };
+  _activeScanSignal = signal;
+  return signal;
+}
+
+/** Abort the in-flight scan without starting a new one. */
+function cancelActiveScan(): void {
+  if (_activeScanSignal) {
+    _activeScanSignal.aborted = true;
+    _activeScanSignal = null;
+  }
+}
+
+/** Clear the active signal after a scan completes, but only if it's still ours. */
+function clearScanSignal(signal: { aborted: boolean }): void {
+  if (_activeScanSignal === signal) _activeScanSignal = null;
+}
+
 /** Extract a human-readable message from an unknown thrown value. */
 function describeError(e: unknown, fallback: string): string {
   return e instanceof Error ? e.message : fallback;
@@ -99,6 +131,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'set-active-themes':          [['themes', 'object']],
   'revert-variables':           [['varSnapshot', 'object']],
   'revert-styles':              [['styleSnapshot', 'object']],
+  'cancel-scan':                [],
 };
 
 /**
@@ -296,20 +329,32 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('delete-orphan-variables', e);
       }
       break;
-    case 'scan-token-usage':
+    case 'cancel-scan':
+      cancelActiveScan();
+      figma.ui.postMessage({ type: 'scan-cancelled' });
+      break;
+    case 'scan-token-usage': {
+      const signal = createScanSignal();
       try {
-        await scanTokenUsageMap();
+        await scanTokenUsageMap(signal);
       } catch (e) {
         reportError('scan-token-usage', e);
+      } finally {
+        clearScanSignal(signal);
       }
       break;
-    case 'scan-component-coverage':
+    }
+    case 'scan-component-coverage': {
+      const signal = createScanSignal();
       try {
-        await scanComponentCoverage(msg.correlationId);
+        await scanComponentCoverage(msg.correlationId, signal);
       } catch (e) {
         reportError('scan-component-coverage', e);
+      } finally {
+        clearScanSignal(signal);
       }
       break;
+    }
     case 'select-node':
       try {
         await selectNode(msg.nodeId);
@@ -320,13 +365,17 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'select-next-sibling':
       selectNextSibling();
       break;
-    case 'scan-canvas-heatmap':
+    case 'scan-canvas-heatmap': {
+      const signal = createScanSignal();
       try {
-        await scanCanvasHeatmap(msg.scope ?? 'page');
+        await scanCanvasHeatmap(msg.scope ?? 'page', signal);
       } catch (e) {
         reportError('scan-canvas-heatmap', e);
+      } finally {
+        clearScanSignal(signal);
       }
       break;
+    }
     case 'select-heatmap-nodes':
       try {
         await selectHeatmapNodes(msg.nodeIds);
@@ -341,13 +390,17 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('batch-bind-heatmap-nodes', e);
       }
       break;
-    case 'scan-single-token-usage':
+    case 'scan-single-token-usage': {
+      const signal = createScanSignal();
       try {
-        await scanTokenUsage(msg.tokenPath);
+        await scanTokenUsage(msg.tokenPath, signal);
       } catch (e) {
         reportError('scan-single-token-usage', e);
+      } finally {
+        clearScanSignal(signal);
       }
       break;
+    }
     case 'scan-token-variable-bindings':
       try {
         await scanTokenVariableBindings(msg.tokenPath);
@@ -362,13 +415,17 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('extract-tokens-from-selection', e);
       }
       break;
-    case 'scan-consistency':
+    case 'scan-consistency': {
+      const signal = createScanSignal();
       try {
-        await scanConsistency(msg.tokenMap, msg.scope);
+        await scanConsistency(msg.tokenMap, msg.scope, signal);
       } catch (e) {
         reportError('scan-consistency', e);
+      } finally {
+        clearScanSignal(signal);
       }
       break;
+    }
     case 'search-layers':
       try {
         searchLayers(msg.query);

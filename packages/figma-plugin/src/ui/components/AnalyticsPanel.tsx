@@ -101,6 +101,7 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   const [coverageError, setCoverageError] = useState<string | null>(null);
   const [showCoverage, setShowCoverage] = useState(false);
   const coveragePendingRef = useRef<Map<string, (data: any) => void>>(new Map());
+  const coverageCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, [...suppressedKeys]);
@@ -139,17 +140,41 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   }, []);
 
   const runCoverageScan = useCallback(async () => {
+    // Cancel any in-progress scan before starting a new one
+    coverageCancelRef.current?.();
     setCoverageLoading(true);
     setCoverageResult(null);
     setCoverageError(null);
     try {
       const result = await new Promise<any>((resolve, reject) => {
         const cid = `coverage-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
+        let done = false;
+        const finish = (data: any) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timeout);
           coveragePendingRef.current.delete(cid);
+          coverageCancelRef.current = null;
+          resolve(data);
+        };
+        const timeout = setTimeout(() => {
+          if (done) return;
+          done = true;
+          coveragePendingRef.current.delete(cid);
+          coverageCancelRef.current = null;
+          parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
           reject(new Error('Scan timed out'));
         }, 30000);
-        coveragePendingRef.current.set(cid, (data) => { clearTimeout(timeout); resolve(data); });
+        coveragePendingRef.current.set(cid, finish);
+        coverageCancelRef.current = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timeout);
+          coveragePendingRef.current.delete(cid);
+          coverageCancelRef.current = null;
+          parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+          reject(new Error('Cancelled'));
+        };
         parent.postMessage({ pluginMessage: { type: 'scan-component-coverage', correlationId: cid } }, '*');
       });
       if (result?.__error) {
@@ -159,6 +184,10 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
         setShowCoverage(true);
       }
     } catch (err) {
+      if (err instanceof Error && err.message === 'Cancelled') {
+        // User cancelled — clear state silently
+        return;
+      }
       setCoverageError(err instanceof Error && err.message === 'Scan timed out'
         ? 'Scan timed out. Try selecting fewer components.'
         : 'Scan failed. Make sure the plugin is running on the Figma canvas.');
@@ -1409,13 +1438,21 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
       <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Component Coverage</span>
-          <button
-            onClick={runCoverageScan}
-            disabled={coverageLoading}
-            className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-          >
-            {coverageLoading ? 'Scanning…' : 'Scan'}
-          </button>
+          {coverageLoading ? (
+            <button
+              onClick={() => coverageCancelRef.current?.()}
+              className="text-[10px] px-2 py-0.5 rounded border border-red-400 text-red-600 hover:bg-red-50 transition-colors"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={runCoverageScan}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Scan
+            </button>
+          )}
         </div>
         {coverageResult && (
           <>

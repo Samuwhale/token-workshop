@@ -15,6 +15,8 @@ export interface WalkOptions {
   filter?: Set<string>;
   /** How many nodes to visit before yielding to the main thread. Default 200. */
   batchSize?: number;
+  /** If provided, the walk stops early when `signal.aborted` becomes true. */
+  signal?: { aborted: boolean };
 }
 
 /**
@@ -32,11 +34,13 @@ export async function* walkNodes(
   roots: readonly SceneNode[],
   opts: WalkOptions = {},
 ): AsyncGenerator<SceneNode> {
-  const { filter, batchSize = 200 } = opts;
+  const { filter, batchSize = 200, signal } = opts;
   const stack: SceneNode[] = [...roots];
   let walkCount = 0;
 
   while (stack.length > 0) {
+    if (signal?.aborted) return;
+
     const current = stack.pop()!;
 
     if (!filter || filter.has(current.type)) {

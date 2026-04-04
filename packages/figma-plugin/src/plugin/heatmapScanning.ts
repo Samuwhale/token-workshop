@@ -4,7 +4,7 @@ import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 
 // Scan component nodes for token coverage
-export async function scanComponentCoverage(correlationId?: string) {
+export async function scanComponentCoverage(correlationId?: string, signal?: { aborted: boolean }) {
   try {
     const components = figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] });
     const CHECKABLE_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius'];
@@ -13,6 +13,11 @@ export async function scanComponentCoverage(correlationId?: string) {
     const untokenized: { id: string; name: string; hardcodedCount: number }[] = [];
 
     for (const node of components) {
+      if (signal?.aborted) {
+        figma.ui.postMessage({ type: 'component-coverage-cancelled', correlationId });
+        return;
+      }
+
       const bound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
       const boundProps = new Set(Object.keys(bound).filter(k => {
         const v = bound[k];
@@ -87,7 +92,7 @@ export function selectNextSibling() {
 }
 
 // Scan visual nodes for token/variable binding coverage
-export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
+export async function scanCanvasHeatmap(scope: HeatmapScope = 'page', signal?: { aborted: boolean }) {
   try {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
 
@@ -98,17 +103,23 @@ export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
     if (scope === 'all-pages') {
       const pages = figma.root.children;
       for (const page of pages) {
-        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES })) {
+        for await (const node of walkNodes(page.children, { filter: VISUAL_TYPES, signal })) {
           nodes.push(node);
         }
+        if (signal?.aborted) break;
       }
     } else {
       const roots = scope === 'selection'
         ? figma.currentPage.selection
         : figma.currentPage.children;
-      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
+      for await (const node of walkNodes(roots, { filter: VISUAL_TYPES, signal })) {
         nodes.push(node);
       }
+    }
+
+    if (signal?.aborted) {
+      figma.ui.postMessage({ type: 'canvas-heatmap-cancelled' });
+      return;
     }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';
@@ -116,6 +127,11 @@ export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
     let greenCount = 0, yellowCount = 0, redCount = 0;
 
     for (let i = 0; i < nodes.length; i++) {
+      if (signal?.aborted) {
+        figma.ui.postMessage({ type: 'canvas-heatmap-cancelled' });
+        return;
+      }
+
       const node = nodes[i];
 
       // Figma variable bindings
@@ -221,11 +237,11 @@ function findComponentAncestor(node: SceneNode): string | null {
 
 // Scan all nodes on the current page to find layers bound to a specific token path.
 // Returns a list of { id, name, type, componentName, properties } for each node using this token.
-export async function scanTokenUsage(tokenPath: string) {
+export async function scanTokenUsage(tokenPath: string, signal?: { aborted: boolean }) {
   try {
     const layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[] = [];
 
-    for await (const current of walkNodes(figma.currentPage.children)) {
+    for await (const current of walkNodes(figma.currentPage.children, { signal })) {
       // Check plugin data bindings for this token path
       const boundProps: string[] = [];
       for (const prop of ALL_BINDABLE_PROPERTIES) {
@@ -249,6 +265,11 @@ export async function scanTokenUsage(tokenPath: string) {
           properties: boundProps,
         });
       }
+    }
+
+    if (signal?.aborted) {
+      figma.ui.postMessage({ type: 'token-usage-cancelled', tokenPath });
+      return;
     }
 
     // Collect unique component names from all found layers

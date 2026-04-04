@@ -25,6 +25,7 @@ export function useHeatmap() {
 
   const cancelHeatmapScan = useCallback(() => {
     clearScanTimeout();
+    parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
     setHeatmapLoading(false);
     setHeatmapError(null);
     setHeatmapProgress(null);
@@ -41,6 +42,7 @@ export function useHeatmap() {
 
     timeoutRef.current = setTimeout(() => {
       timeoutRef.current = null;
+      parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
       setHeatmapLoading(false);
       setHeatmapError('Scan timed out — the plugin may have lost connection. Try rescanning.');
       setHeatmapProgress(null);
@@ -69,6 +71,10 @@ export function useHeatmap() {
         setHeatmapProgress(null);
         setHeatmapLoading(false);
         setHeatmapError(`Scan failed: ${msg.error}`);
+      } else if (msg?.type === 'canvas-heatmap-cancelled') {
+        clearScanTimeout();
+        setHeatmapProgress(null);
+        setHeatmapLoading(false);
       }
     };
     window.addEventListener('message', handler);

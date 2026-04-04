@@ -5,6 +5,7 @@ import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { resolveStyleForWeight, fontStyleToWeight } from './fontLoading.js';
+import { walkNodes } from './walkNodes.js';
 
 // Apply a resolved token value to a specific node property
 export async function applyTokenValue(node: SceneNode, property: string, value: ResolvedTokenValue, tokenType: string) {
@@ -683,10 +684,10 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
 }
 
 // Scan the current page and build a map of tokenPath → number of layers using it
-export async function scanTokenUsageMap() {
+export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
   const usageMap: Record<string, number> = {};
-  const nodes = figma.currentPage.findAll(() => true);
-  for (const node of nodes) {
+  for await (const node of walkNodes(figma.currentPage.children, { signal })) {
+    if (signal?.aborted) return; // cancelled — silently drop (no result posted)
     const seen = new Set<string>();
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
@@ -695,7 +696,7 @@ export async function scanTokenUsageMap() {
         usageMap[tokenPath] = (usageMap[tokenPath] || 0) + 1;
       }
     }
-    for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
+    for (const [legacyKey] of Object.entries(LEGACY_KEY_MAP)) {
       const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
       if (tokenPath && !seen.has(tokenPath)) {
         seen.add(tokenPath);
@@ -703,6 +704,7 @@ export async function scanTokenUsageMap() {
       }
     }
   }
+  if (signal?.aborted) return;
   figma.ui.postMessage({ type: 'token-usage-map', usageMap });
 }
 
