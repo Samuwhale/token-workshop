@@ -542,6 +542,7 @@ function ManageView({
                       onClick={() => onReorder(set, 'left')}
                       disabled={isFirst}
                       title="Move up"
+                      aria-label="Move up"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -554,6 +555,7 @@ function ManageView({
                       onClick={() => onReorder(set, 'right')}
                       disabled={isLast}
                       title="Move down"
+                      aria-label="Move down"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -566,6 +568,7 @@ function ManageView({
                     <button
                       onClick={() => onEditInfo(set)}
                       title="Edit set info"
+                      aria-label="Edit set info"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)]"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -580,6 +583,7 @@ function ManageView({
                     <button
                       onClick={() => onRename(set)}
                       title="Rename"
+                      aria-label="Rename"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)]"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -593,6 +597,7 @@ function ManageView({
                     <button
                       onClick={() => onDuplicate(set)}
                       title="Duplicate"
+                      aria-label="Duplicate"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)]"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -606,6 +611,7 @@ function ManageView({
                     <button
                       onClick={() => onDelete(set)}
                       title="Delete"
+                      aria-label="Delete"
                       className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-red-500 hover:bg-[var(--color-figma-bg-secondary)]"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

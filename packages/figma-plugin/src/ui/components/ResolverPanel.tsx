@@ -584,6 +584,7 @@ function ResolverInner({
                       onClick={(e) => { e.stopPropagation(); handleEditClick(resolver.name); }}
                       className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
                       title="Edit resolver"
+                      aria-label="Edit resolver"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -595,6 +596,7 @@ function ResolverInner({
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(resolver.name); }}
                     className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
                     title="Delete resolver"
+                    aria-label="Delete resolver"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 6L6 18M6 6l12 12" />

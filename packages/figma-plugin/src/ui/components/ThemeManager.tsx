@@ -1240,6 +1240,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       onClick={() => { setDimSearch(''); dimSearchRef.current?.focus(); }}
                       className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
                       title="Clear search"
+                      aria-label="Clear search"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M18 6L6 18M6 6l12 12" />

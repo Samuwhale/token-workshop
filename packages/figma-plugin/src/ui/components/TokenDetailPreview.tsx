@@ -79,7 +79,7 @@ export function TokenDetailPreview({
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
           <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Preview</span>
-          <button onClick={onClose} className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" title="Close">
+          <button onClick={onClose} className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" title="Close" aria-label="Close">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -95,7 +95,7 @@ export function TokenDetailPreview({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
         <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate mr-2">Preview</span>
-        <button onClick={onClose} className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0" title="Close">
+        <button onClick={onClose} className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0" title="Close" aria-label="Close">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
       </div>

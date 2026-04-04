@@ -400,6 +400,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             <button
               onClick={() => setShowLegend(v => !v)}
               title={showLegend ? 'Hide legend' : 'What do Rollback, Restore, and git Revert mean?'}
+              aria-label={showLegend ? 'Hide legend' : 'What do Rollback, Restore, and git Revert mean?'}
               aria-pressed={showLegend}
               className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-colors ${
                 showLegend
@@ -767,6 +768,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                         onClick={() => setCompareA(null)}
                         className="text-[9px] px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                         title="Clear A"
+                        aria-label="Clear A"
                       >
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M18 6L6 18M6 6l12 12" />

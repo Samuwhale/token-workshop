@@ -212,3 +212,26 @@ Already up to date.
 
   Merging to main: SelectionInspector binding operations give no visible feedback
 Already up to date.
+[main fd2345ea] chore(backlog): done – SelectionInspector binding operations give no visible feedback
+ 7 files changed, 56 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - SelectionInspector binding operations give no visible feedback
+- Added success toast feedback for all three binding-removal operations:
+  - `handleRemoveBinding`: shows "Binding removed" toast (only when a real binding existed, not mixed)
+  - `handleUnbindAllInGroup`: shows "Unbound N binding(s)" toast (matches undo description)
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  4 queued · 0
+0 in-progress · last took 3m9s
+═══════════════════════════════════════════════════════════════
+  → ResolverPanel edit and delete icon buttons use title-only with no aria-label — the pencil edit button (ResolverPanel.tsx:583-592) and X delete button (:594-602) set `title="Edit resolver"` / `title="Delete resolver"` but have no `aria-label`, making them invisible to screen readers; this also applies broadly: the agent audit found ~117 icon-only buttons across 50 component files with neither aria-label nor title, concentrated in AnalyticsPanel, ExportPanel, BatchEditor, Collapsible, and CreatePanel (violates: accessibility)
+  Worktree: /tmp/backlog-3108-4bxObh
+  Running agent… (started 18:55:48)
+
+  ✓ done: ResolverPanel edit and delete icon buttons use title-only with no aria-label
+    Added aria-label to 20+ icon-only and cryptic-text buttons across 8 files (ResolverPanel, TokenDetailPreview, ThemeManager, HistoryPanel, SetSwitcher, TokenTreeNode, PreviewPanel, TokenList); all 4 validation gates pass
+    73 turns · 1069s · $3.61
+
+  Merging to main: ResolverPanel edit and delete icon buttons use title-only with no aria-label
+Already up to date.

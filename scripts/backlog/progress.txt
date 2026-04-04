@@ -653,3 +653,21 @@
   - Toast messages mirror the undo description text for cognitive consistency (user sees "Cleared 5 bindings" both as toast and in undo tooltip)
   - `setSuccessToast` was already passed to other PanelRouter consumers (useSetDelete, etc.) but not wired to PanelRouter itself — the prop was simply missing from the interface
 ---
+
+## 2026-04-04 - ResolverPanel edit and delete icon buttons use title-only with no aria-label
+- Added `aria-label` to all icon-only buttons that relied solely on `title=` for accessibility across 8 component files
+- **ResolverPanel.tsx** ~L586, L597: pencil edit + X delete buttons — added `aria-label="Edit resolver"` / `aria-label="Delete resolver"`
+- **TokenDetailPreview.tsx** ~L82, L98: two close buttons — added `aria-label="Close"`
+- **ThemeManager.tsx** ~L1242: clear dimension-search button — added `aria-label="Clear search"`
+- **HistoryPanel.tsx** ~L402, L769: legend toggle (icon-only info circle) + Clear A X button — added dynamic `aria-label` matching `title` in both cases
+- **SetSwitcher.tsx** ~L541-610: six set action buttons (move up, move down, edit info, rename, duplicate, delete) — all icon-only SVG, added matching `aria-label`
+- **TokenTreeNode.tsx** ~L1224: color swatch editor button — added `aria-label={`Edit color: ${displayValue}`}`
+- **PreviewPanel.tsx** ~L622, L670, L1036, L1087: four "Go to token" arrow buttons — added `aria-label={`Go to token: ${path}`}`
+- **TokenList.tsx** ~L2288, L2743-2797: view mode buttons (added label for cryptic "</>"), and 10 filter clear pill buttons ("Refs ✕", "Dups ✕", etc.) — added descriptive `aria-label` so screen readers announce the full filter name instead of the abbreviated pill text
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx`, `TokenDetailPreview.tsx`, `ThemeManager.tsx`, `HistoryPanel.tsx`, `SetSwitcher.tsx`, `TokenTreeNode.tsx`, `PreviewPanel.tsx`, `TokenList.tsx`
+- **Learnings for future iterations:**
+  - `title` attribute is NOT reliably announced by screen readers; `aria-label` is required for accessible icon-only buttons
+  - For abbreviated filter pill buttons like "Refs ✕" or "Dups ✕", add `aria-label` with the full action description even though visible text exists — screen readers would just say "Refs ✕" which is confusing
+  - For dynamic toggle titles (e.g., `title={conditionA ? 'Hide' : 'Show...'}`) copy the same expression to `aria-label` to keep them in sync
+  - Search for `title=` occurrences in button contexts across the codebase as a reliable proxy for "needs aria-label" — most buttons that provide tooltip text should also have `aria-label` for screen readers
+---

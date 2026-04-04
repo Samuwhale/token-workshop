@@ -2285,6 +2285,7 @@ export function TokenList({
                     key={mode}
                     onClick={() => setViewMode(mode)}
                     title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'JSON editor'}
+                    aria-label={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'JSON editor'}
                     aria-pressed={viewMode === mode}
                     className={`px-1.5 py-1 rounded text-[10px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
@@ -2741,6 +2742,7 @@ export function TokenList({
                       <button
                         onClick={() => setRefFilter('all')}
                         title="Clear reference filter"
+                        aria-label="Clear reference filter"
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                       >
                         {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
@@ -2750,6 +2752,7 @@ export function TokenList({
                       <button
                         onClick={() => setShowDuplicates(false)}
                         title="Clear duplicate filter"
+                        aria-label="Clear duplicate filter"
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                       >
                         Dups ✕
@@ -2759,6 +2762,7 @@ export function TokenList({
                       <button
                         onClick={onToggleIssuesOnly}
                         title="Clear issues filter"
+                        aria-label="Clear issues filter"
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
                       >
                         Issues ✕
@@ -2768,6 +2772,7 @@ export function TokenList({
                       <button
                         onClick={() => setShowRecentlyTouched(false)}
                         title="Clear recently touched filter"
+                        aria-label="Clear recently touched filter"
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                       >
                         Recent ✕
@@ -2777,6 +2782,7 @@ export function TokenList({
                       <button
                         onClick={() => setShowPinnedOnly(false)}
                         title="Clear pinned filter"
+                        aria-label="Clear pinned filter"
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                       >
                         Pinned ✕
@@ -2786,6 +2792,7 @@ export function TokenList({
                       <button
                         onClick={() => setTypeFilter('')}
                         title="Clear type filter"
+                        aria-label={`Clear ${typeFilter} type filter`}
                         className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                       >
                         {typeFilter} ✕
@@ -2801,6 +2808,7 @@ export function TokenList({
                     <button
                       onClick={() => setTypeFilter('')}
                       title="Clear type filter"
+                      aria-label={`Clear ${typeFilter} type filter`}
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       Type: {typeFilter} ✕
@@ -2810,6 +2818,7 @@ export function TokenList({
                     <button
                       onClick={() => setRefFilter('all')}
                       title="Clear reference filter"
+                      aria-label="Clear reference filter"
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
@@ -2819,6 +2828,7 @@ export function TokenList({
                     <button
                       onClick={() => setShowDuplicates(false)}
                       title="Clear duplicate filter"
+                      aria-label="Clear duplicate filter"
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       Dups ✕
@@ -2828,6 +2838,7 @@ export function TokenList({
                     <button
                       onClick={onToggleIssuesOnly}
                       title="Clear issues filter"
+                      aria-label="Clear issues filter"
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
                     >
                       Issues ✕
@@ -2837,6 +2848,7 @@ export function TokenList({
                     <button
                       onClick={() => setShowRecentlyTouched(false)}
                       title="Clear recently touched filter"
+                      aria-label="Clear recently touched filter"
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       Recent ✕
@@ -2846,6 +2858,7 @@ export function TokenList({
                     <button
                       onClick={() => setShowPinnedOnly(false)}
                       title="Clear pinned filter"
+                      aria-label="Clear pinned filter"
                       className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                     >
                       Pinned ✕

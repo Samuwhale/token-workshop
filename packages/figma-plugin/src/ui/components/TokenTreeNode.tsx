@@ -1222,6 +1222,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000'); setColorPickerOpen(true); }}
               title={`${displayValue} — click to edit`}
+              aria-label={`Edit color: ${displayValue}`}
               className="rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
               style={{ backgroundColor: displayValue, width: swatchSize, height: swatchSize }}
             />
