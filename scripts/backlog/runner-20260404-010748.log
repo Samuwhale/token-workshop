@@ -533,3 +533,18 @@ Already up to date.
 
   Merging to main: PreviewPanel template system is disconnected from actual token data
 Already up to date.
+[main 4ac82c79] chore(backlog): done – PreviewPanel template system is disconnected from actual token data
+ 5 files changed, 81 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - PreviewPanel template system disconnected from actual token data
+- Added `relevantTemplates` useMemo that scans `allTokensFlat` token types and returns a Set of template IDs that have matching data: `colors`/`buttons`/`forms`/`card` when color tokens exist, `type-scale` when fontSize tokens exist, `effects` when shadow/transition/duration tokens exist.
+- Added `visibleTemplates` derived array (TEMPLATES filtered to relevant ones) used in the tab bar render.
+- Added `effectiveTemplate` derived value that falls back to the first visible template when the stored template selection is no longer relevant.
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  11 queued · 2 in-progress · last took 2m3s
+═══════════════════════════════════════════════════════════════
+  → No token search from the Inspect panel — when inspecting a Figma selection, users see bound tokens and unbound properties but have no way to search for a token to bind without switching to the Define tab; add an inline token search/filter within the Inspect panel's unbound property rows so users can find and bind tokens without losing their inspection context (SelectionInspector.tsx, QuickApplyPicker.tsx)
+  Worktree: /tmp/backlog-91949-LANhtO
+  Running agent… (started 03:05:52)

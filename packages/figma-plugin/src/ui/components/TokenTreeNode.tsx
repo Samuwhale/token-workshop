@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment } from 'react';
+import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
@@ -165,7 +165,536 @@ function MultiModeCell({
   );
 }
 
-export function TokenTreeNode(props: TokenTreeNodeProps) {
+// ---------------------------------------------------------------------------
+// TokenGroupNode — renders a group row (expand/collapse header)
+// ---------------------------------------------------------------------------
+const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
+  const {
+    node, depth, lintViolations = [],
+    isPinned, onMoveUp, onMoveDown,
+  } = props;
+
+  const ctx = useTokenTree();
+  const {
+    density, selectMode,
+    expandedPaths, onToggleExpand, highlightedToken,
+    searchHighlight, selectedNodes: _selectedNodes,
+    dragOverGroup, dragOverGroupIsInvalid, dragSource, dragOverReorder: _dragOverReorder,
+    onDeleteGroup, onToggleSelect: _onToggleSelect,
+    onNavigateToAlias: _onNavigateToAlias, onCreateSibling, onCreateGroup, onRenameGroup,
+    onUpdateGroupMeta, onRequestMoveGroup, onRequestCopyGroup,
+    onDuplicateGroup, allTokensFlat,
+    onSyncGroup, onSyncGroupStyles,
+    onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType: _onFilterByType,
+    onZoomIntoGroup, onDragStart: _onDragStart, onDragEnd: _onDragEnd,
+    onDragOverGroup, onDropOnGroup,
+    generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths,
+    themeCoverage,
+  } = ctx;
+
+  const pyClass = DENSITY_PY_CLASS[density];
+  const isExpanded = expandedPaths.has(node.path);
+  const isHighlighted = highlightedToken === node.path;
+
+  // Group-specific state
+  const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [renamingGroup, setRenamingGroup] = useState(false);
+  const [renameGroupVal, setRenameGroupVal] = useState('');
+  const renameGroupInputRef = useRef<HTMLInputElement>(null);
+  const renameGroupEscapedRef = useRef(false);
+  const [editingGroupMeta, setEditingGroupMeta] = useState(false);
+  const [groupMetaType, setGroupMetaType] = useState('');
+  const [groupMetaDescription, setGroupMetaDescription] = useState('');
+  const [groupMetaSaving, setGroupMetaSaving] = useState(false);
+
+  useLayoutEffect(() => {
+    if (renamingGroup && renameGroupInputRef.current) {
+      renameGroupInputRef.current.focus();
+      renameGroupInputRef.current.select();
+    }
+  }, [renamingGroup]);
+
+  useEffect(() => {
+    if (!groupMenuPos) return;
+    const close = () => setGroupMenuPos(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close(); return; }
+      const key = e.key.toLowerCase();
+      const menuEl = document.querySelector('[data-context-menu="group"]');
+      if (!menuEl) return;
+      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
+      if (btn) { e.preventDefault(); btn.click(); }
+    };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
+  }, [groupMenuPos]);
+
+  const leafCount = countLeaves(node);
+
+  const confirmGroupRename = useCallback(() => {
+    const newName = renameGroupVal.trim();
+    setRenamingGroup(false);
+    if (!newName || newName === node.name) return;
+    const parentPath = nodeParentPath(node.path, node.name);
+    const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
+    onRenameGroup?.(node.path, newGroupPath);
+  }, [renameGroupVal, node.name, node.path, onRenameGroup]);
+
+  const handleSaveGroupMeta = useCallback(async () => {
+    setGroupMetaSaving(true);
+    try {
+      await onUpdateGroupMeta?.(node.path, {
+        $type: groupMetaType || null,
+        $description: groupMetaDescription || null,
+      });
+      setEditingGroupMeta(false);
+    } catch (err) {
+      console.error('Failed to save group metadata:', err);
+    } finally {
+      setGroupMetaSaving(false);
+    }
+  }, [onUpdateGroupMeta, node.path, groupMetaType, groupMetaDescription]);
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={`Toggle group ${node.name}`}
+        data-group-path={node.path}
+        data-node-name={node.name}
+        className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        onClick={() => !renamingGroup && onToggleExpand(node.path)}
+        onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
+          e.preventDefault();
+          const isInvalid = dragSource ? dragSource.paths.every((oldPath, i) => {
+            const newPath = node.path ? `${node.path}.${dragSource.names[i]}` : dragSource.names[i];
+            return newPath === oldPath || node.path.startsWith(oldPath + '.');
+          }) : false;
+          e.dataTransfer.dropEffect = isInvalid ? 'none' : 'move';
+          onDragOverGroup?.(node.path, isInvalid);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            onDragOverGroup?.(null);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDropOnGroup?.(node.path);
+        }}
+        onKeyDown={e => {
+          if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
+            e.preventDefault();
+            onToggleExpand(node.path);
+          }
+          if (e.key === 'n' && !renamingGroup && !selectMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            onCreateSibling?.(node.path, inferGroupTokenType(node.children));
+          }
+        }}
+        onContextMenu={e => {
+          e.preventDefault();
+          setGroupMenuPos({
+            x: Math.min(e.clientX, window.innerWidth - 168),
+            y: Math.min(e.clientY, window.innerHeight - 220),
+          });
+        }}
+      >
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 8 8"
+          className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M2 1l4 3-4 3V1z" />
+        </svg>
+        {renamingGroup ? (
+          <input
+            ref={renameGroupInputRef}
+            value={renameGroupVal}
+            onChange={e => setRenameGroupVal(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') confirmGroupRename();
+              if (e.key === 'Escape') { renameGroupEscapedRef.current = true; setRenamingGroup(false); }
+            }}
+            onBlur={() => {
+              if (!renameGroupEscapedRef.current) confirmGroupRename();
+              renameGroupEscapedRef.current = false;
+            }}
+            onClick={e => e.stopPropagation()}
+            aria-label="Rename group"
+            className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
+          />
+        ) : (
+          <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
+        )}
+        {!renamingGroup && node.children && (
+          <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
+            {leafCount === 0 ? 'empty' : `(${leafCount})`}
+          </span>
+        )}
+        {!renamingGroup && themeCoverage && (() => {
+          const cov = themeCoverage!.get(node.path);
+          if (!cov || cov.total === 0) return null;
+          const isFull = cov.themed === cov.total;
+          return (
+            <span
+              className={`text-[10px] ml-1 shrink-0 ${isFull ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+              title={`${cov.themed} of ${cov.total} tokens have themed overrides`}
+            >
+              {cov.themed}/{cov.total} themed
+            </span>
+          );
+        })()}
+        {!renamingGroup && node.$type && (
+          <span
+            className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
+            title={`$type: ${node.$type} (inherited by all children)`}
+          >
+            {node.$type}
+          </span>
+        )}
+        {!selectMode && !renamingGroup && (
+          <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
+        )}
+        {!selectMode && !renamingGroup && (
+          <div className="hidden group-hover/group:flex items-center gap-0.5 shrink-0 ml-auto">
+            {onMoveUp && (
+              <button
+                onClick={e => { e.stopPropagation(); onMoveUp(); }}
+                title="Move up"
+                aria-label="Move up"
+                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 15l-6-6-6 6"/>
+                </svg>
+              </button>
+            )}
+            {onMoveDown && (
+              <button
+                onClick={e => { e.stopPropagation(); onMoveDown(); }}
+                title="Move down"
+                aria-label="Move down"
+                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateSibling?.(node.path, inferGroupTokenType(node.children));
+              }}
+              title="Add token to group"
+              aria-label="Add token to group"
+              className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setGroupMenuPos({
+                  x: Math.min(rect.left, window.innerWidth - 168),
+                  y: Math.min(rect.bottom + 2, window.innerHeight - 220),
+                });
+              }}
+              title="Group actions"
+              aria-label="Group actions"
+              className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Group context menu */}
+      {groupMenuPos && (
+        <div
+          role="menu"
+          data-context-menu="group"
+          className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
+          style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
+        >
+          {onCreateGroup && (
+            <button
+              role="menuitem"
+              data-accel="n"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onCreateGroup(node.path);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>New subgroup…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
+            </button>
+          )}
+          <button
+            role="menuitem"
+            data-accel="r"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              setRenameGroupVal(node.name);
+              setRenamingGroup(true);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Rename group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
+          </button>
+          <button
+            role="menuitem"
+            data-accel="e"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              setGroupMetaType(node.$type ?? '');
+              setGroupMetaDescription(node.$description ?? '');
+              setEditingGroupMeta(true);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Edit type &amp; description…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
+          </button>
+          <button
+            role="menuitem"
+            data-accel="m"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              onRequestMoveGroup?.(node.path);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Move group to set…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
+          </button>
+          <button
+            role="menuitem"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              onRequestCopyGroup?.(node.path);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Copy group to set…</span>
+          </button>
+          <button
+            role="menuitem"
+            data-accel="d"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              onDuplicateGroup?.(node.path);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
+          </button>
+          {onZoomIntoGroup && (
+            <button
+              role="menuitem"
+              data-accel="f"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onZoomIntoGroup(node.path);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>Focus on group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F</span>
+            </button>
+          )}
+          {onSetGroupScopes && (
+            <button
+              role="menuitem"
+              data-accel="s"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onSetGroupScopes(node.path);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>Set scopes for group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">S</span>
+            </button>
+          )}
+          {onSyncGroup && (
+            <button
+              role="menuitem"
+              data-accel="v"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                const count = node.children ? countTokensInGroup(node) : 0;
+                onSyncGroup(node.path, count);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+            >
+              <span>Create variables from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
+            </button>
+          )}
+          {onSyncGroupStyles && (
+            <button
+              role="menuitem"
+              data-accel="y"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                const count = node.children ? countTokensInGroup(node) : 0;
+                onSyncGroupStyles(node.path, count);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>Create styles from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">Y</span>
+            </button>
+          )}
+          {onGenerateScaleFromGroup && (
+            <button
+              role="menuitem"
+              data-accel="g"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                // Detect the dominant token type from this group's leaves
+                const prefix = node.path + '.';
+                const types: Record<string, number> = {};
+                for (const [path, entry] of Object.entries(allTokensFlat)) {
+                  if (path === node.path || path.startsWith(prefix)) {
+                    const t = entry.$type;
+                    if (t) types[t] = (types[t] ?? 0) + 1;
+                  }
+                }
+                const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+                onGenerateScaleFromGroup(node.path, dominant);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+            >
+              <span>Generate scale from this group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+            </button>
+          )}
+          <button
+            role="menuitem"
+            data-accel="x"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setGroupMenuPos(null);
+              onDeleteGroup(node.path, node.name, leafCount);
+            }}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
+          >
+            <span>Delete group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">X</span>
+          </button>
+        </div>
+      )}
+
+      {editingGroupMeta && (
+        <div
+          className="mx-2 mb-1 p-2 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
+          style={{ marginLeft: `${depth * 16 + 8}px` }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$type</label>
+            <select
+              value={groupMetaType}
+              onChange={e => setGroupMetaType(e.target.value)}
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+            >
+              <option value="">(none)</option>
+              <option value="color">color</option>
+              <option value="dimension">dimension</option>
+              <option value="fontFamily">fontFamily</option>
+              <option value="fontWeight">fontWeight</option>
+              <option value="duration">duration</option>
+              <option value="cubicBezier">cubicBezier</option>
+              <option value="number">number</option>
+              <option value="string">string</option>
+              <option value="boolean">boolean</option>
+              <option value="shadow">shadow</option>
+              <option value="gradient">gradient</option>
+              <option value="typography">typography</option>
+              <option value="border">border</option>
+              <option value="strokeStyle">strokeStyle</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$description</label>
+            <input
+              type="text"
+              value={groupMetaDescription}
+              onChange={e => setGroupMetaDescription(e.target.value)}
+              placeholder="Optional description…"
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); handleSaveGroupMeta(); }
+                if (e.key === 'Escape') setEditingGroupMeta(false);
+              }}
+            />
+          </div>
+          <div className="flex gap-1 justify-end">
+            <button
+              onClick={() => setEditingGroupMeta(false)}
+              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveGroupMeta}
+              disabled={groupMetaSaving}
+              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
+            >
+              {groupMetaSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!props.skipChildren && isExpanded && node.children?.map(child => (
+        <TokenTreeNode
+          key={child.path}
+          node={child}
+          depth={depth + 1}
+          isSelected={false}
+          lintViolations={lintViolations.filter(v => v.path === child.path)}
+        />
+      ))}
+    </div>
+  );
+}, (prev, next) => {
+  return (
+    prev.node === next.node &&
+    prev.depth === next.depth &&
+    prev.isPinned === next.isPinned &&
+    prev.onMoveUp === next.onMoveUp &&
+    prev.onMoveDown === next.onMoveDown
+  );
+});
+
+// ---------------------------------------------------------------------------
+// TokenLeafNode — renders a leaf token row
+// ---------------------------------------------------------------------------
+const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const {
     node, depth, isSelected, lintViolations = [],
     skipChildren, showFullPath, isPinned,
@@ -175,33 +704,37 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
   const ctx = useTokenTree();
   const {
-    density, setName, selectionCapabilities, allTokensFlat, selectMode,
-    expandedPaths, onToggleExpand, duplicateCounts, highlightedToken,
+    density, setName: _setName, selectionCapabilities, allTokensFlat, selectMode,
+    expandedPaths: _expandedPaths, onToggleExpand: _onToggleExpand, duplicateCounts, highlightedToken,
     inspectMode, syncSnapshot, cascadeDiff, generatorsBySource,
     derivedTokenPaths, tokenUsageCounts, searchHighlight, selectedNodes,
-    dragOverGroup, dragOverGroupIsInvalid, dragSource, dragOverReorder,
+    dragOverGroup: _dragOverGroup, dragOverGroupIsInvalid: _dragOverGroupIsInvalid,
+    dragSource: _dragSource, dragOverReorder,
     selectedLeafNodes,
-    onEdit, onPreview, onDelete, onDeleteGroup, onToggleSelect,
-    onNavigateToAlias, onCreateSibling, onCreateGroup, onRenameGroup,
-    onUpdateGroupMeta, onRequestMoveGroup, onRequestCopyGroup, onRequestMoveToken, onRequestCopyToken,
-    onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
-    onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
-    onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
-    onJumpToGroup, onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onDragStart, onDragEnd,
-    onDragOverGroup, onDropOnGroup,
+    onEdit, onPreview, onDelete, onDeleteGroup: _onDeleteGroup, onToggleSelect,
+    onNavigateToAlias, onCreateSibling, onCreateGroup: _onCreateGroup, onRenameGroup: _onRenameGroup,
+    onUpdateGroupMeta: _onUpdateGroupMeta, onRequestMoveGroup: _onRequestMoveGroup,
+    onRequestCopyGroup: _onRequestCopyGroup, onRequestMoveToken, onRequestCopyToken,
+    onDuplicateGroup: _onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
+    onExtractToAliasForLint, onSyncGroup: _onSyncGroup, onSyncGroupStyles: _onSyncGroupStyles,
+    onSetGroupScopes: _onSetGroupScopes, onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
+    onFilterByType,
+    onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
+    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes,
+    onDragStart, onDragEnd,
+    onDragOverGroup: _onDragOverGroup, onDropOnGroup: _onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
     showResolvedValues,
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
+    onNavigateToGenerator,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
   const swatchSize = DENSITY_SWATCH_SIZE[density];
 
-  const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
   const [hovered, setHovered] = useState(false);
   const [hoverPreviewVisible, setHoverPreviewVisible] = useState(false);
@@ -224,29 +757,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const canInlineEditRef = useRef(false);
   const clearPendingTabEditRef = useRef(clearPendingTabEdit);
 
-  // Group-specific state
-  const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [renamingGroup, setRenamingGroup] = useState(false);
-  const [renameGroupVal, setRenameGroupVal] = useState('');
-  const renameGroupInputRef = useRef<HTMLInputElement>(null);
-  const renameGroupEscapedRef = useRef(false);
-  const [editingGroupMeta, setEditingGroupMeta] = useState(false);
-  const [groupMetaType, setGroupMetaType] = useState('');
-  const [groupMetaDescription, setGroupMetaDescription] = useState('');
-  const [groupMetaSaving, setGroupMetaSaving] = useState(false);
-
   // Token rename state
   const [renamingToken, setRenamingToken] = useState(false);
   const [renameTokenVal, setRenameTokenVal] = useState('');
   const renameTokenInputRef = useRef<HTMLInputElement>(null);
   const renameTokenEscapedRef = useRef(false);
-
-  useLayoutEffect(() => {
-    if (renamingGroup && renameGroupInputRef.current) {
-      renameGroupInputRef.current.focus();
-      renameGroupInputRef.current.select();
-    }
-  }, [renamingGroup]);
 
   useLayoutEffect(() => {
     if (renamingToken && renameTokenInputRef.current) {
@@ -257,12 +772,12 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
   // When this token is the pending rename target (e.g. after Cmd+D duplicate), activate inline rename
   useEffect(() => {
-    if (!node.isGroup && pendingRenameToken === node.path) {
+    if (pendingRenameToken === node.path) {
       setRenameTokenVal(node.name);
       setRenamingToken(true);
       clearPendingRename();
     }
-  }, [pendingRenameToken, node.isGroup, node.path, node.name, clearPendingRename]);
+  }, [pendingRenameToken, node.path, node.name, clearPendingRename]);
 
   // When Tab navigation lands on this token (non-multi-mode), activate inline edit.
   // Reads node/canInlineEdit/clearPendingTabEdit via stable refs so the effect only
@@ -270,29 +785,12 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   useEffect(() => {
     const n = nodeDataRef.current;
     if (!pendingTabEdit || pendingTabEdit.path !== n.path || pendingTabEdit.columnId !== null) return;
-    if (n.isGroup) { clearPendingTabEditRef.current(); return; }
     if (canInlineEditRef.current && n.$type && n.$type !== 'color' && n.$type !== 'boolean') {
       setInlineEditValue(getEditableString(n.$type, n.$value));
       setInlineEditActive(true);
     }
     clearPendingTabEditRef.current();
   }, [pendingTabEdit]);
-
-  useEffect(() => {
-    if (!groupMenuPos) return;
-    const close = () => setGroupMenuPos(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { close(); return; }
-      const key = e.key.toLowerCase();
-      const menuEl = document.querySelector('[data-context-menu="group"]');
-      if (!menuEl) return;
-      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
-      if (btn) { e.preventDefault(); btn.click(); }
-    };
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
-  }, [groupMenuPos]);
 
   // Close context menu on outside click + letter-key accelerators
   useEffect(() => {
@@ -321,27 +819,27 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
   // Delayed hover preview for complex token types (typography, shadow, gradient, border)
   useEffect(() => {
-    if (!hovered || node.isGroup || !node.$type || !COMPLEX_PREVIEW_TYPES.has(node.$type)) {
+    if (!hovered || !node.$type || !COMPLEX_PREVIEW_TYPES.has(node.$type)) {
       setHoverPreviewVisible(false);
       return;
     }
     const timer = setTimeout(() => setHoverPreviewVisible(true), 300);
     return () => clearTimeout(timer);
-  }, [hovered, node.isGroup, node.$type]);
+  }, [hovered, node.$type]);
 
-  const resolveResult = isAlias(node.$value)
-    ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat)
-    : null;
+  // Memoized alias resolution — expensive traversal, only recompute when value/type/map changes
+  const resolveResult = useMemo(
+    () => isAlias(node.$value)
+      ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat)
+      : null,
+    [node.$value, node.$type, allTokensFlat],
+  );
+
   const displayValue = resolveResult ? (resolveResult.value ?? node.$value) : node.$value;
   // chain.length is the number of alias hops (e.g. chain=['B','C'] = A→B→C→value = 3 hops)
   const aliasChain = resolveResult?.chain ?? [];
   const showChainBadge = aliasChain.length >= 2;
   const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
-
-  // Full resolution chain label for alias hover tooltip
-  const aliasChainLabel = isAlias(node.$value) && !isBrokenAlias
-    ? [node.path, ...aliasChain, formatValue(node.$type, displayValue)].join(' → ')
-    : null;
 
   // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
   const setThemeMap = useMemo(
@@ -349,15 +847,15 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     [dimensions, activeThemes],
   );
   const resolutionSteps: ResolutionStep[] | null = useMemo(() => {
-    if (!isAlias(node.$value) || node.isGroup) return null;
+    if (!isAlias(node.$value)) return null;
     return buildResolutionChain(
       node.path, node.$value, node.$type || 'unknown',
       allTokensFlat, pathToSet, setThemeMap,
     );
-  }, [node.path, node.$value, node.$type, node.isGroup, allTokensFlat, pathToSet, setThemeMap]);
+  }, [node.path, node.$value, node.$type, allTokensFlat, pathToSet, setThemeMap]);
 
   // Inline quick-edit eligibility
-  const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
+  const canInlineEdit = !isAlias(node.$value) && !!node.$type
     && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
 
   // Keep stable refs up-to-date for the tab-edit effect
@@ -368,7 +866,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   // Nearby token match for inline editing nudge
   const nearbyMatches = useNearbyTokenMatch(
     node.$value, node.$type || '', allTokensFlat, node.path,
-    !node.isGroup && !isAlias(node.$value) && inlineNudgeVisible,
+    !isAlias(node.$value) && inlineNudgeVisible,
   );
 
   const handleInlineSubmit = useCallback(() => {
@@ -402,7 +900,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const dimParts = node.$type === 'dimension' && inlineEditActive
     ? (inlineEditValue.trim().match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/) ?? null)
     : null;
-  const stepInlineValue = (delta: number) => {
+  const stepInlineValue = useCallback((delta: number) => {
     if (node.$type === 'dimension') {
       const m = inlineEditValue.trim().match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/);
       if (m) setInlineEditValue(`${Math.round((parseFloat(m[1]) + delta) * 100) / 100}${m[2] || 'px'}`);
@@ -410,36 +908,36 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       const n = parseFloat(inlineEditValue);
       if (!isNaN(n)) setInlineEditValue(String(Math.round((n + delta) * 100) / 100));
     }
-  };
+  }, [node.$type, inlineEditValue]);
 
   // Sync state indicator
-  const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
+  const syncChanged = syncSnapshot && node.path in syncSnapshot
     && syncSnapshot[node.path] !== stableStringify(node.$value);
 
   // Cascade diff: token resolves to a different value under the proposed set order
-  const cascadeChange = !node.isGroup ? cascadeDiff?.[node.path] : undefined;
+  const cascadeChange = cascadeDiff?.[node.path];
 
-  const handleCopyPath = () => {
+  const handleCopyPath = useCallback(() => {
     navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
     setCopiedWhat('path');
     setTimeout(() => setCopiedWhat(null), 1500);
-  };
+  }, [node.path]);
 
-  const handleCopyValue = () => {
+  const handleCopyValue = useCallback(() => {
     const val = typeof displayValue === 'string' ? displayValue : JSON.stringify(displayValue);
     navigator.clipboard.writeText(val).catch(e => console.warn('[clipboard] write failed:', e));
     setCopiedWhat('value');
     setTimeout(() => setCopiedWhat(null), 1500);
-  };
+  }, [displayValue]);
 
-  const handleAliasClick = (e: React.MouseEvent) => {
+  const handleAliasClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAlias(node.$value) || isBrokenAlias) return;
     const aliasPath = (node.$value as string).slice(1, -1);
     onNavigateToAlias?.(aliasPath, node.path);
-  };
+  }, [node.$value, isBrokenAlias, onNavigateToAlias, node.path]);
 
-  const applyWithProperty = (property: BindableProperty) => {
+  const applyWithProperty = useCallback((property: BindableProperty) => {
     const resolved = resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat);
     if (resolved.error) {
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Cannot apply: ${resolved.error}` } }, '*');
@@ -455,9 +953,9 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       },
     }, '*');
     setShowPicker(false);
-  };
+  }, [node.$value, node.$type, node.path, allTokensFlat]);
 
-  const handleApplyToSelection = (e: React.MouseEvent) => {
+  const handleApplyToSelection = useCallback((e: React.MouseEvent) => {
     if (!node.$type) return;
 
     // Composition tokens apply all their properties at once
@@ -523,479 +1021,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       setPickerProps(null);
       setShowPicker(true);
     }
-  };
+  }, [node.$type, node.$value, node.path, allTokensFlat, selectedNodes, applyWithProperty]);
 
-  const confirmTokenRename = () => {
+  const confirmTokenRename = useCallback(() => {
     const newName = renameTokenVal.trim();
     setRenamingToken(false);
     if (!newName || newName === node.name) return;
     const parentPath = nodeParentPath(node.path, node.name);
     const newPath = parentPath ? `${parentPath}.${newName}` : newName;
     onRenameToken?.(node.path, newPath);
-  };
+  }, [renameTokenVal, node.name, node.path, onRenameToken]);
 
-  if (node.isGroup) {
-    const leafCount = countLeaves(node);
-
-    const confirmGroupRename = () => {
-      const newName = renameGroupVal.trim();
-      setRenamingGroup(false);
-      if (!newName || newName === node.name) return;
-      const parentPath = nodeParentPath(node.path, node.name);
-      const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
-      onRenameGroup?.(node.path, newGroupPath);
-    };
-
-    const handleSaveGroupMeta = async () => {
-      setGroupMetaSaving(true);
-      try {
-        await onUpdateGroupMeta?.(node.path, {
-          $type: groupMetaType || null,
-          $description: groupMetaDescription || null,
-        });
-        setEditingGroupMeta(false);
-      } catch (err) {
-        console.error('Failed to save group metadata:', err);
-      } finally {
-        setGroupMetaSaving(false);
-      }
-    };
-
-    return (
-      <div>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={isExpanded}
-          aria-label={`Toggle group ${node.name}`}
-          data-group-path={node.path}
-          data-node-name={node.name}
-          className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => !renamingGroup && onToggleExpand(node.path)}
-          onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
-          onDragOver={(e) => {
-            if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
-            e.preventDefault();
-            const isInvalid = dragSource ? dragSource.paths.every((oldPath, i) => {
-              const newPath = node.path ? `${node.path}.${dragSource.names[i]}` : dragSource.names[i];
-              return newPath === oldPath || node.path.startsWith(oldPath + '.');
-            }) : false;
-            e.dataTransfer.dropEffect = isInvalid ? 'none' : 'move';
-            onDragOverGroup?.(node.path, isInvalid);
-          }}
-          onDragLeave={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-              onDragOverGroup?.(null);
-            }
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            onDropOnGroup?.(node.path);
-          }}
-          onKeyDown={e => {
-            if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
-              e.preventDefault();
-              onToggleExpand(node.path);
-            }
-            if (e.key === 'n' && !renamingGroup && !selectMode) {
-              e.preventDefault();
-              e.stopPropagation();
-              onCreateSibling?.(node.path, inferGroupTokenType(node.children));
-            }
-          }}
-          onContextMenu={e => {
-            e.preventDefault();
-            setGroupMenuPos({
-              x: Math.min(e.clientX, window.innerWidth - 168),
-              y: Math.min(e.clientY, window.innerHeight - 220),
-            });
-          }}
-        >
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M2 1l4 3-4 3V1z" />
-          </svg>
-          {renamingGroup ? (
-            <input
-              ref={renameGroupInputRef}
-              value={renameGroupVal}
-              onChange={e => setRenameGroupVal(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') confirmGroupRename();
-                if (e.key === 'Escape') { renameGroupEscapedRef.current = true; setRenamingGroup(false); }
-              }}
-              onBlur={() => {
-                if (!renameGroupEscapedRef.current) confirmGroupRename();
-                renameGroupEscapedRef.current = false;
-              }}
-              onClick={e => e.stopPropagation()}
-              aria-label="Rename group"
-              className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
-            />
-          ) : (
-            <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
-          )}
-          {!renamingGroup && node.children && (
-            <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
-              {leafCount === 0 ? 'empty' : `(${leafCount})`}
-            </span>
-          )}
-          {!renamingGroup && ctx.themeCoverage && (() => {
-            const cov = ctx.themeCoverage!.get(node.path);
-            if (!cov || cov.total === 0) return null;
-            const isFull = cov.themed === cov.total;
-            return (
-              <span
-                className={`text-[10px] ml-1 shrink-0 ${isFull ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
-                title={`${cov.themed} of ${cov.total} tokens have themed overrides`}
-              >
-                {cov.themed}/{cov.total} themed
-              </span>
-            );
-          })()}
-          {!renamingGroup && node.$type && (
-            <span
-              className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
-              title={`$type: ${node.$type} (inherited by all children)`}
-            >
-              {node.$type}
-            </span>
-          )}
-          {!selectMode && !renamingGroup && (
-            <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
-          )}
-          {!selectMode && !renamingGroup && (
-            <div className="hidden group-hover/group:flex items-center gap-0.5 shrink-0 ml-auto">
-              {onMoveUp && (
-                <button
-                  onClick={e => { e.stopPropagation(); onMoveUp(); }}
-                  title="Move up"
-                  aria-label="Move up"
-                  className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M18 15l-6-6-6 6"/>
-                  </svg>
-                </button>
-              )}
-              {onMoveDown && (
-                <button
-                  onClick={e => { e.stopPropagation(); onMoveDown(); }}
-                  title="Move down"
-                  aria-label="Move down"
-                  className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCreateSibling?.(node.path, inferGroupTokenType(node.children));
-                }}
-                title="Add token to group"
-                aria-label="Add token to group"
-                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setGroupMenuPos({
-                    x: Math.min(rect.left, window.innerWidth - 168),
-                    y: Math.min(rect.bottom + 2, window.innerHeight - 220),
-                  });
-                }}
-                title="Group actions"
-                aria-label="Group actions"
-                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Group context menu */}
-        {groupMenuPos && (
-          <div
-            role="menu"
-            data-context-menu="group"
-            className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
-            style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
-          >
-            {onCreateGroup && (
-              <button
-                role="menuitem"
-                data-accel="n"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  onCreateGroup(node.path);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <span>New subgroup…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
-              </button>
-            )}
-            <button
-              role="menuitem"
-              data-accel="r"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                setRenameGroupVal(node.name);
-                setRenamingGroup(true);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Rename group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
-            </button>
-            <button
-              role="menuitem"
-              data-accel="e"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                setGroupMetaType(node.$type ?? '');
-                setGroupMetaDescription(node.$description ?? '');
-                setEditingGroupMeta(true);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Edit type &amp; description…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
-            </button>
-            <button
-              role="menuitem"
-              data-accel="m"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onRequestMoveGroup?.(node.path);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Move group to set…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
-            </button>
-            <button
-              role="menuitem"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onRequestCopyGroup?.(node.path);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Copy group to set…</span>
-            </button>
-            <button
-              role="menuitem"
-              data-accel="d"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onDuplicateGroup?.(node.path);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
-            </button>
-            {onZoomIntoGroup && (
-              <button
-                role="menuitem"
-                data-accel="f"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  onZoomIntoGroup(node.path);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <span>Focus on group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F</span>
-              </button>
-            )}
-            {onSetGroupScopes && (
-              <button
-                role="menuitem"
-                data-accel="s"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  onSetGroupScopes(node.path);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <span>Set scopes for group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">S</span>
-              </button>
-            )}
-            {onSyncGroup && (
-              <button
-                role="menuitem"
-                data-accel="v"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  const count = node.children ? countTokensInGroup(node) : 0;
-                  onSyncGroup(node.path, count);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
-              >
-                <span>Create variables from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
-              </button>
-            )}
-            {onSyncGroupStyles && (
-              <button
-                role="menuitem"
-                data-accel="y"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  const count = node.children ? countTokensInGroup(node) : 0;
-                  onSyncGroupStyles(node.path, count);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <span>Create styles from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">Y</span>
-              </button>
-            )}
-            {onGenerateScaleFromGroup && (
-              <button
-                role="menuitem"
-                data-accel="g"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => {
-                  setGroupMenuPos(null);
-                  // Detect the dominant token type from this group's leaves
-                  const prefix = node.path + '.';
-                  const types: Record<string, number> = {};
-                  for (const [path, entry] of Object.entries(allTokensFlat)) {
-                    if (path === node.path || path.startsWith(prefix)) {
-                      const t = entry.$type;
-                      if (t) types[t] = (types[t] ?? 0) + 1;
-                    }
-                  }
-                  const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-                  onGenerateScaleFromGroup(node.path, dominant);
-                }}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
-              >
-                <span>Generate scale from this group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
-              </button>
-            )}
-            <button
-              role="menuitem"
-              data-accel="x"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setGroupMenuPos(null);
-                onDeleteGroup(node.path, node.name, leafCount);
-              }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
-            >
-              <span>Delete group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">X</span>
-            </button>
-          </div>
-        )}
-
-        {editingGroupMeta && (
-          <div
-            className="mx-2 mb-1 p-2 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
-            style={{ marginLeft: `${depth * 16 + 8}px` }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
-            <div className="flex items-center gap-1.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$type</label>
-              <select
-                value={groupMetaType}
-                onChange={e => setGroupMetaType(e.target.value)}
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
-              >
-                <option value="">(none)</option>
-                <option value="color">color</option>
-                <option value="dimension">dimension</option>
-                <option value="fontFamily">fontFamily</option>
-                <option value="fontWeight">fontWeight</option>
-                <option value="duration">duration</option>
-                <option value="cubicBezier">cubicBezier</option>
-                <option value="number">number</option>
-                <option value="string">string</option>
-                <option value="boolean">boolean</option>
-                <option value="shadow">shadow</option>
-                <option value="gradient">gradient</option>
-                <option value="typography">typography</option>
-                <option value="border">border</option>
-                <option value="strokeStyle">strokeStyle</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$description</label>
-              <input
-                type="text"
-                value={groupMetaDescription}
-                onChange={e => setGroupMetaDescription(e.target.value)}
-                placeholder="Optional description…"
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleSaveGroupMeta(); }
-                  if (e.key === 'Escape') setEditingGroupMeta(false);
-                }}
-              />
-            </div>
-            <div className="flex gap-1 justify-end">
-              <button
-                onClick={() => setEditingGroupMeta(false)}
-                className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveGroupMeta}
-                disabled={groupMetaSaving}
-                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
-              >
-                {groupMetaSaving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!skipChildren && isExpanded && node.children?.map(child => (
-          <TokenTreeNode
-            key={child.path}
-            node={child}
-            depth={depth + 1}
-            isSelected={false}
-            lintViolations={lintViolations.filter(v => v.path === child.path)}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    if (node.isGroup) return;
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenuPos({
       x: Math.min(e.clientX, window.innerWidth - 168),
       y: Math.min(e.clientY, window.innerHeight - 280),
     });
-  };
+  }, []);
 
   // Activate inline editing for simple types (keyboard or double-click)
   const activateInlineEdit = useCallback(() => {
@@ -1012,9 +1055,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     }
   }, [canInlineEdit, node, onInlineSave]);
 
-  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (node.isGroup) return;
-
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     // Enter or e: inline edit for simple types, full editor for complex
     if (e.key === 'Enter' || (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey)) {
       e.preventDefault();
@@ -1058,19 +1099,14 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       setRenamingToken(true);
       return;
     }
-  };
+  }, [canInlineEdit, activateInlineEdit, onEdit, node.path, node.name, selectMode, onToggleSelect, onDelete, onDuplicateToken]);
 
-  const parentGroupPath = node.path.length > node.name.length ? nodeParentPath(node.path, node.name) : null;
-
-  const handleJumpToGroup = (groupPath: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onJumpToGroup) {
-      onJumpToGroup(groupPath);
-    } else {
-      const el = document.querySelector<HTMLElement>(`[data-group-path="${groupPath}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  };
+  // Memoize quick bind targets for the apply button tooltip
+  const quickBindTargets = useMemo(() => {
+    if (!node.$type || !selectedNodes || selectedNodes.length === 0) return null;
+    const entry = allTokensFlat[node.path];
+    return getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
+  }, [node.$type, node.path, allTokensFlat, selectedNodes]);
 
   const reorderPos = dragOverReorder?.path === node.path ? dragOverReorder.position : null;
 
@@ -1325,7 +1361,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               <button
                 title={gen ? `Generated by ${gen.name} — click to open generator` : 'Auto-generated by a token generator'}
                 className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)] shrink-0 max-w-[120px] transition-colors ${canNavigate ? 'cursor-pointer hover:bg-[var(--color-figma-accent)]/15 hover:text-[var(--color-figma-accent)]' : 'cursor-default'}`}
-                onClick={canNavigate ? (e) => { e.stopPropagation(); onNavigateToGenerator(gen.id); } : undefined}
+                onClick={canNavigate ? (e) => { e.stopPropagation(); onNavigateToGenerator!(gen.id); } : undefined}
               >
                 <svg className="shrink-0" width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                   <path d="M2 2l6 6M8 2l-3 3-3 3"/>
@@ -1354,7 +1390,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       </div>
 
       {/* Multi-mode value columns — per-theme-option resolved values */}
-      {multiModeValues && multiModeValues.length > 0 && !node.isGroup && (
+      {multiModeValues && multiModeValues.length > 0 && (
         <div className="flex items-center shrink-0 ml-auto">
           {multiModeValues.map(mv => (
             <MultiModeCell
@@ -1606,12 +1642,10 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
             title={quickBound ? `Bound to ${quickBound}` : (() => {
-              if (!node.$type || !selectedNodes || selectedNodes.length === 0) return 'Apply to selection';
-              const entry = allTokensFlat[node.path];
-              const targets = getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
-              if (targets.length === 0) return 'No compatible properties on selection';
-              if (targets.length === 1) return `Quick bind to ${PROPERTY_LABELS[targets[0]]}`;
-              return `Apply to ${targets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
+              if (!quickBindTargets) return 'Apply to selection';
+              if (quickBindTargets.length === 0) return 'No compatible properties on selection';
+              if (quickBindTargets.length === 1) return `Quick bind to ${PROPERTY_LABELS[quickBindTargets[0]]}`;
+              return `Apply to ${quickBindTargets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
             })()}
             aria-label={quickBound ? `Bound to ${quickBound}` : 'Apply to selection'}
             className={`p-1 rounded ${quickBound ? 'text-[var(--color-figma-success)]' : 'hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'}`}
@@ -2041,4 +2075,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     )}
     </div>
   );
+}, (prev, next) => {
+  return (
+    prev.node === next.node &&
+    prev.isSelected === next.isSelected &&
+    prev.lintViolations === next.lintViolations &&
+    prev.multiModeValues === next.multiModeValues &&
+    prev.isPinned === next.isPinned &&
+    prev.chainExpanded === next.chainExpanded &&
+    prev.depth === next.depth
+  );
+});
+
+// ---------------------------------------------------------------------------
+// TokenTreeNode — thin dispatcher; delegates to TokenGroupNode or TokenLeafNode
+// ---------------------------------------------------------------------------
+export function TokenTreeNode(props: TokenTreeNodeProps) {
+  if (props.node.isGroup) return <TokenGroupNode {...props} />;
+  return <TokenLeafNode {...props} />;
 }
+
+export default TokenTreeNode;

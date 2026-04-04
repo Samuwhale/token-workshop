@@ -399,3 +399,33 @@
   - Derive `effectiveTemplate` as a plain const (not state) from the stored `template` + `relevantTemplates` — no useEffect needed. The tab highlighting and render both use `effectiveTemplate`, while clicks still write to `template` state/localStorage. Clean and simple.
   - "Fall back to all templates when empty" is the right UX: shows the user what's possible rather than a blank tab bar.
 ---
+  - For mutations (POST): don't abort the HTTP request (server may have already processed it); use a `mountedRef` to gate all setState calls in catch/finally instead.
+  - `finally { setLoading(false) }` must be guarded with `if (!controller.signal.aborted)` — `finally` runs even when `return` is in `catch`, so an early return on `AbortError` still hits the finally block and would trigger a state update on an unmounted component.
+---
+
+## 2026-04-04 - TokenStore rebuildFlatTokens() non-atomic + missing rebuild on error path
+- Fixed `rebuildFlatTokens()` to build into a new `Map` and assign atomically (`this.flatTokens = newMap`), eliminating the window where concurrent SSE/resolveTokens readers could observe an empty or partial token map
+- Added `this.rebuildFlatTokens()` in the `updateToken` catch block after `restoreSnapshots()`: `updateToken` mutates token properties in-place (`existing.$value = …`), which corrupts the existing `flatTokens` entries; `restoreSnapshots` replaces the tree with a deep clone but `flatTokens` still held references to the mutated objects — the rebuild re-derives from the restored snapshot
+- `setToken`, `deleteToken`, `createGroup`, `updateGroupMeta` don't need error-path rebuilds because they either replace whole objects (not mutate in-place) or run inside `withBatch` (whose `endBatch` always calls `rebuildFlatTokens`)
+- Files changed: `packages/server/src/services/token-store.ts` ~L266, ~L800
+- **Learnings for future iterations:**
+  - In-place mutation of objects already referenced by a derived data structure (flatTokens) is the subtle bug — `setTokenAtPath` replaces the node so old references stay valid, but `updateToken`'s property-assignment pattern corrupts the referenced object
+  - Atomic Map swap is a one-liner: build into a local `newMap`, assign to `this.flatTokens` at the end; readers never see a partial state
+---
+
+## 2026-04-04 - Optimize TokenTreeNode for virtualized list performance
+- Split monolithic TokenTreeNode (~2044 lines, 25 useState) into three components:
+  - `TokenGroupNode` (React.memo, custom comparator): ~9 useState, group-specific state only
+  - `TokenLeafNode` (React.memo, custom comparator): ~16 useState, leaf-specific state only
+  - `TokenTreeNode`: thin dispatcher (2 lines) that delegates to one of the above
+- Memoized `resolveResult` with `useMemo([node.$value, node.$type, allTokensFlat])` — eliminates alias traversal on every render
+- Wrapped all handlers in `useCallback`: `handleCopyPath`, `handleCopyValue`, `handleAliasClick`, `applyWithProperty`, `handleApplyToSelection`, `confirmTokenRename`, `stepInlineValue`, `confirmGroupRename`, `handleSaveGroupMeta`, `handleContextMenu`, `activateInlineEdit`, `handleRowKeyDown`
+- Memoized `getQuickBindTargets()` call with `useMemo` (was running inline in JSX on every render)
+- Also added `onNavigateToGenerator` to the leaf's context destructuring (was missing in original, used but undeclared)
+- Removed unused `aliasChainLabel`, `parentGroupPath`, `handleJumpToGroup` variables
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` (full rewrite)
+- **Learnings for future iterations:**
+  - When splitting a component with an early-return branch, underscore-prefix unused destructuring names (`_varName`) rather than removing them — it avoids TypeScript narrowing issues while keeping lint warnings suppressible
+  - `React.memo` with a custom comparator for virtualized rows is most impactful when the comparator checks only the props that actually affect rendering (not all 20 props)
+  - `useMemo` for alias resolution (`resolveTokenValue`) is the single highest-impact optimization because it runs O(depth) traversal per render on every visible row
+---

@@ -466,3 +466,10 @@ Already up to date.
   → TokenTreeNode.tsx is 2044 lines with 25 useState calls and defines ~15 non-memoized handler functions that create new closures on every render — handleApplyToSelection (L442) performs expensive token resolution including alias traversal on every render (not wrapped in useCallback or gated behind user interaction); the component renders once per visible token in a potentially 1000+ item virtualized list, so these per-render allocations multiply; additionally the component mixes rendering logic for leaf tokens, group headers, inline editors, context menus, drag handles, and binding indicators in a single function body with no sub-component extraction — this makes it impossible to memoize individual concerns and means any state change (e.g., hovering a different row) re-runs all handler definitions for every visible row (TokenTreeNode.tsx)
   Worktree: /tmp/backlog-91634-iB5DaK
   Running agent… (started 02:49:07)
+
+  ✓ done: TokenTreeNode.tsx per-render allocation and expensive alias resolution on every render
+    Split into TokenGroupNode + TokenLeafNode (React.memo) + thin dispatcher; memoized resolveResult (useMemo), all handlers (useCallback), and getQuickBindTargets; all 4 validation gates pass
+    11 turns · 1022s · $2.82
+
+  Merging to main: TokenTreeNode.tsx per-render allocation and expensive alias resolution on every render
+Already up to date.
