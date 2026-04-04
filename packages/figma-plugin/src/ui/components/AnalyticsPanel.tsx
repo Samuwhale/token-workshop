@@ -54,22 +54,6 @@ function getRuleLabel(rule: string): { label: string; tip: string } | undefined 
   return VALIDATION_LABELS[rule] ?? (LINT_RULE_BY_ID[rule] ? { label: LINT_RULE_BY_ID[rule].label, tip: LINT_RULE_BY_ID[rule].tip } : undefined);
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  color:      '#e85d4a',
-  dimension:  '#4a9ee8',
-  spacing:    '#5bc4a0',
-  typography: '#a77de8',
-  fontFamily: '#c47de8',
-  fontSize:   '#e8a77d',
-  fontWeight: '#7de8c4',
-  lineHeight: '#e8c47d',
-  number:     '#7db8e8',
-  string:     '#aae87d',
-  shadow:     '#e87dc4',
-  border:     '#e8e07d',
-};
-const TYPE_COLOR_FALLBACK = '#8888aa';
-
 interface DuplicateGroup {
   canonical: string;
   canonicalSet: string;
@@ -413,14 +397,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
       </div>
     );
   }
-
-  const allByType: Record<string, number> = {};
-  for (const s of stats) {
-    for (const [t, c] of Object.entries(s.byType)) {
-      allByType[t] = (allByType[t] || 0) + c;
-    }
-  }
-  const sortedTypes = Object.entries(allByType).sort((a, b) => b[1] - a[1]);
 
   const suppressKey = (issue: ValidationIssue) => `${issue.rule}:${issue.setName}:${issue.path}`;
 
@@ -940,128 +916,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Summary */}
-      <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-        <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-          Summary
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-[var(--color-figma-border)]">
-          <div className="px-3 py-3 text-center">
-            <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{totalTokens}</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Total tokens</div>
-          </div>
-          <div className="px-3 py-3 text-center">
-            <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{stats.length}</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Sets</div>
-          </div>
-          <div className="px-3 py-3 text-center">
-            <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{sortedTypes.length}</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Types</div>
-          </div>
-        </div>
-        {sortedTypes.length > 0 && totalTokens > 0 && (
-          <div className="px-3 pb-3">
-            <div className="h-2 rounded-full overflow-hidden flex gap-px">
-              {sortedTypes.map(([type, count]) => (
-                <div
-                  key={type}
-                  style={{ width: `${(count / totalTokens) * 100}%`, backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK }}
-                  title={`${type}: ${count}`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* By type */}
-      {sortedTypes.length > 0 && (
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-            By Type
-          </div>
-          <div className="divide-y divide-[var(--color-figma-border)]">
-            {sortedTypes.map(([type, count]) => {
-              const pct = Math.round((count / totalTokens) * 100);
-              const color = TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK;
-              return (
-                <div key={type} className="px-3 py-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: color }}
-                      aria-hidden="true"
-                    />
-                    <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1 truncate">{type}</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{pct}%</span>
-                    <span className="text-[11px] font-semibold text-[var(--color-figma-text)] w-7 text-right shrink-0">{count}</span>
-                  </div>
-                  <div className="h-3 rounded-sm bg-[var(--color-figma-bg-hover)] overflow-hidden">
-                    <div
-                      className="h-full rounded-sm transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: color,
-                        opacity: 0.85,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* By set */}
-      {stats.length > 0 && (
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-            By Set
-          </div>
-          <div className="divide-y divide-[var(--color-figma-border)]">
-            {stats.map((s) => {
-              const sortedTypes = Object.entries(s.byType).sort((a, b) => b[1] - a[1]);
-              return (
-                <div key={s.name} className="px-3 py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{s.name}</span>
-                      </div>
-                      {s.description && (
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate mb-1">{s.description}</div>
-                      )}
-                      <div className="h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                          style={{ width: totalTokens > 0 ? `${Math.round((s.total / totalTokens) * 100)}%` : '0%' }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right flex-shrink-0">{s.total}</span>
-                  </div>
-                  {sortedTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
-                      {sortedTypes.map(([type, count]) => (
-                        <span key={type} className="flex items-center gap-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          <span
-                            className="w-1.5 h-1.5 rounded-full shrink-0 inline-block"
-                            style={{ backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK }}
-                            aria-hidden="true"
-                          />
-                          {count} {type}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

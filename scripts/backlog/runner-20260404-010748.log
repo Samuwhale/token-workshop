@@ -488,3 +488,18 @@ Already up to date.
 
   Merging to main: Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
 Already up to date.
+[main 919914c8] chore(backlog): done – Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
+ 5 files changed, 42 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
+- The `lintDuplicateGroups` memo already read from `validateResults` filtered by `rule === 'no-duplicate-values'` — the data source was already unified. The remaining problem was that the generic Violations section ALSO rendered `no-duplicate-values` violations via `issueGroups`, creating parallel display of the same data.
+- Fixed by excluding `rule === 'no-duplicate-values'` from `activeIssues` and `suppressedIssues` (the source for the Violations section). This makes the Duplicate Values accordion the sole canonical display for duplicate violations.
+- Updated the "All tokens valid" empty-state check from `validateResults.length === 0` to `validateResults.every(i => i.rule === 'no-duplicate-values')` so the checkmark correctly appears when there are no structural issues even if duplicate violations exist.
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  14 queued · 3 in-progress · last took 5m41s
+═══════════════════════════════════════════════════════════════
+  → useThemeCompare hook is orphaned — only imported by ThemeManager.tsx but the equivalent functionality now lives in ThemeCompare.tsx component via comparisonUtils; remove the hook and any dead references to reduce maintenance surface (packages/figma-plugin/src/ui/hooks/useThemeCompare.ts)
+  Worktree: /tmp/backlog-91949-vGkIxC
+  Running agent… (started 02:56:47)

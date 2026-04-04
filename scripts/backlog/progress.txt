@@ -658,3 +658,16 @@
   - When a lint rule has a dedicated rich-UI section, filtering it out of the generic violations list makes the dedicated section the canonical view and eliminates the "parallel display" problem.
   - The `validateResults.every(i => i.rule === 'no-duplicate-values')` check is the correct pattern for "are there any non-duplicate-values violations?" — covers the case where only duplicate violations exist (which should still show "All tokens valid" in the structural check).
 ---
+
+## 2026-04-04 - Consolidate AnalyticsPanel Stats tab into token list toolbar
+- Removed the Summary, By Type, and By Set sections from `AnalyticsPanel.tsx` — they were passive read-only stats that cluttered the Validation sub-tab alongside lint violations and contrast checks
+- Removed unused `TYPE_COLORS`/`TYPE_COLOR_FALLBACK` constants and the `allByType`/`sortedTypes` intermediate computations that only fed the removed sections; kept `stats`/`totalTokens` for the existing empty state guard and `colorTokens` loading
+- Added `TOKEN_TYPE_COLORS`/`TOKEN_TYPE_COLOR_FALLBACK` module-level constants to `TokenList.tsx`
+- Added `statsBarOpen` state (persisted to localStorage via `'tm_token_stats_bar_open'`) and three memos (`statsByType`, `statsTotalTokens`, `statsSetTotals`) computed from the already-available `allTokensFlat` and `perSetFlat` props — no extra fetches needed
+- Added a collapsible stats bar between the toolbar and the token list: collapsed shows total count + inline type color bar + top-3 type summary; expanded shows full type breakdown with color dots/bars and per-set proportional bars (only when >1 set exists)
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L57, ~L417, ~L944; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L43, ~L100, ~L419, ~L2739
+- **Learnings for future iterations:**
+  - `allTokensFlat` in TokenList is the cross-set flat map (all sets merged), and `perSetFlat` is the per-set breakdown — both already loaded with no extra fetch needed for stats
+  - The `stats` state in AnalyticsPanel (fetched separately via `/api/tokens/:set`) is still needed for the empty state guard (`totalTokens === 0`) and for populating `colorTokens` used by the contrast matrix; do not remove it even though the Stats display sections are gone
+  - TYPE_COLORS can simply be duplicated as a module constant in TokenList — it's 12 entries and shared utility would be overkill for a static display map
+---

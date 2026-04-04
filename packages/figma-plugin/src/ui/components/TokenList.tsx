@@ -41,6 +41,22 @@ import { useTokenCrud } from '../hooks/useTokenCrud';
 import { useFigmaMessage } from '../hooks/useFigmaMessage';
 import { extractSyncApplyResult } from '../hooks/useTokenSyncBase';
 
+const TOKEN_TYPE_COLORS: Record<string, string> = {
+  color:      '#e85d4a',
+  dimension:  '#4a9ee8',
+  spacing:    '#5bc4a0',
+  typography: '#a77de8',
+  fontFamily: '#c47de8',
+  fontSize:   '#e8a77d',
+  fontWeight: '#7de8c4',
+  lineHeight: '#e8c47d',
+  number:     '#7db8e8',
+  string:     '#aae87d',
+  shadow:     '#e87dc4',
+  border:     '#e8e07d',
+};
+const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
+
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
@@ -84,6 +100,7 @@ export function TokenList({
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
+  const [statsBarOpen, setStatsBarOpen] = useState(() => lsGet('tm_token_stats_bar_open') === 'true');
 
   // Track editor saves: highlightedToken is set to saved path after TokenEditor save
   const prevHighlightRef = useRef<string | null>(null);
@@ -398,6 +415,25 @@ export function TokenList({
     }
     return paths.size > 0 ? paths : undefined;
   }, [tokenUsageCounts, allTokensFlat]);
+
+  // Stats computed from allTokensFlat (cross-set) and perSetFlat for the stats bar
+  const statsByType = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const entry of Object.values(allTokensFlat)) {
+      const t = entry.$type || 'unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [allTokensFlat]);
+
+  const statsTotalTokens = useMemo(() => Object.keys(allTokensFlat).length, [allTokensFlat]);
+
+  const statsSetTotals = useMemo(() => {
+    if (!perSetFlat) return [];
+    return Object.entries(perSetFlat)
+      .map(([name, flat]) => ({ name, total: Object.keys(flat).length }))
+      .sort((a, b) => b.total - a.total);
+  }, [perSetFlat]);
 
   const flattenTokens = (nodes: TokenNode[]): any[] => {
     const result: any[] = [];
@@ -2701,6 +2737,83 @@ export function TokenList({
           </div>
         )}
       </div>
+      {/* Token stats bar — collapsible summary of token counts by type and set */}
+      {statsTotalTokens > 0 && (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)]">
+          <button
+            onClick={() => { setStatsBarOpen(v => { lsSet('tm_token_stats_bar_open', String(!v)); return !v; }); }}
+            className="w-full flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            aria-expanded={statsBarOpen}
+            aria-label="Token statistics"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${statsBarOpen ? 'rotate-90' : ''}`} aria-hidden="true">
+              <path d="M2 1l4 3-4 3V1z" />
+            </svg>
+            <span className="font-medium text-[var(--color-figma-text)]">{statsTotalTokens}</span>
+            <span>token{statsTotalTokens !== 1 ? 's' : ''}</span>
+            {statsByType.length > 0 && !statsBarOpen && (
+              <div className="flex-1 ml-1 h-1.5 rounded-full overflow-hidden flex gap-px min-w-0 max-w-[120px]">
+                {statsByType.map(([type, count]) => (
+                  <div
+                    key={type}
+                    style={{ width: `${(count / statsTotalTokens) * 100}%`, backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }}
+                    title={`${type}: ${count}`}
+                    className="shrink-0"
+                  />
+                ))}
+              </div>
+            )}
+            {!statsBarOpen && (
+              <span className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {statsByType.slice(0, 3).map(([t, c]) => `${c} ${t}`).join(' · ')}
+                {statsByType.length > 3 ? ' …' : ''}
+              </span>
+            )}
+          </button>
+          {statsBarOpen && (
+            <div className="px-3 pb-2 flex flex-col gap-2">
+              {/* Type breakdown */}
+              <div>
+                <div className="h-2 rounded-full overflow-hidden flex gap-px mb-1.5">
+                  {statsByType.map(([type, count]) => (
+                    <div
+                      key={type}
+                      style={{ width: `${(count / statsTotalTokens) * 100}%`, backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }}
+                      title={`${type}: ${count}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                  {statsByType.map(([type, count]) => (
+                    <span key={type} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TOKEN_TYPE_COLORS[type] ?? TOKEN_TYPE_COLOR_FALLBACK }} aria-hidden="true" />
+                      <span className="font-medium text-[var(--color-figma-text)]">{count}</span>
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Per-set breakdown (only when multiple sets) */}
+              {statsSetTotals.length > 1 && (
+                <div className="flex flex-col gap-0.5">
+                  {statsSetTotals.map(({ name, total }) => (
+                    <div key={name} className="flex items-center gap-2 text-[10px]">
+                      <span className="text-[var(--color-figma-text-secondary)] truncate flex-1" title={name}>{name}</span>
+                      <div className="h-1 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden w-16 shrink-0">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-figma-accent)]"
+                          style={{ width: `${Math.round((total / statsTotalTokens) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[var(--color-figma-text)] font-medium w-6 text-right shrink-0">{total}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {/* Promote duplicates callout — shown when the duplicates filter is active */}
       {showDuplicates && promotableDuplicateCount > 0 && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[11px]">
