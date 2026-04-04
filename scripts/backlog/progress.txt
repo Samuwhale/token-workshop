@@ -471,3 +471,9 @@
   - Always clear `rawValue` when the user manually edits the text input (the manual edit takes precedence), so the two states don't diverge silently.
   - `flattenTokenGroup` from `@tokenmanager/core` handles `$type` inheritance from parent groups, making it safe to use for any valid DTCG JSON including partial structures.
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (navigation architecture, 13 concepts across 3 top tabs + 10 sub-tabs + 2 overflow panels), SettingsPanel.tsx (892 lines, 8 sections), CreatePanel.tsx (1,034 lines, 3 creation modes), TokenEditor.tsx (1,708 lines, no inline editing), HistoryPanel.tsx (879 lines, 3 undo systems), ConsistencyPanel.tsx (338 lines, snap workflow), ResolverPanel.tsx (889 lines, overlap with ThemeManager), GraphPanel.tsx (700 lines, generator stale indicators), PublishPanel.tsx (2,070 lines, sequential publish flow), SetSwitcher.tsx (737 lines), CommandPalette.tsx (814 lines, 40+ commands), shortcutRegistry.ts (23 shortcuts), server routes (68 routes across 13 files), token-store.ts (file watcher, validation), operation-log.ts (50-entry ring buffer)
+- Found 12 items — written to backlog-inbox.md
+- Notable: ResolverPanel and ThemeManager are two separate panels managing the same conceptual feature (theme-like behavior) with a "convert from themes" migration button confirming they should be unified; server accepts any $value regardless of declared $type with no structural validation
+---

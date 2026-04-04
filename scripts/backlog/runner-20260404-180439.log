@@ -752,3 +752,15 @@ Already up to date.
 
   Merging to main: Bulk create tab only supports a flat text-area format
 Already up to date.
+[main e0798185] chore(backlog): done – Bulk create tab only supports a flat text-area format
+ 5 files changed, 120 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1398 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — highlights: merge Resolver into ThemeManager, inline token editing, command palette token ops, unified undo timeline, server $value validation, Publish All fast path
+Already up to date.
