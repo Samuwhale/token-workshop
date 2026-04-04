@@ -333,3 +333,25 @@ Already up to date.
 
   Merging to main: Plugin sandbox lacks mutual exclusion for concurrent sync operations
 Already up to date.
+[main 9f04cbe2] chore(backlog): done – Plugin sandbox lacks mutual exclusion for concurrent sync operations
+ 5 files changed, 73 insertions(+), 14 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Plugin sandbox lacks mutual exclusion for concurrent sync operations
+- Added promise-chain mutex (`_syncChain` + `withSyncLock`) in `controller.ts` immediately after `deepInspectEnabled` declaration.
+- Wrapped `apply-variables`, `apply-styles`, and `delete-orphan-variables` cases in `withSyncLock()` — these are the only operations that mutate Figma variables/styles. Read-only operations (`read-variables`, `read-styles`, `get-selection`, etc.) bypass the lock intentionally.
+- The lock chain absorbs per-operation rejections so a failed sync does not permanently block the queue.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  18 queued · 3 in-progress · last took 1m46s
+═══════════════════════════════════════════════════════════════
+  → Generator dependency chain failures are silent — if Generator A fails, Generator B (which sources from A's output) is silently skipped during topological execution with no UI indication of why B didn't run; surface a "blocked by failed dependency" status on downstream generators so users can diagnose chain failures (generator-service.ts topological sort ~L504-565, GeneratorPanel UI)
+  Worktree: /tmp/backlog-92209-DnhLbX
+  Running agent… (started 02:04:52)
+
+  ✓ done: Generator dependency chain failures are silent — surface a "blocked by failed dependency" status on downstream generators
+    Added blockedBy field to GeneratorRunError; downstream generators now show a distinct amber "Blocked" badge naming the upstream generator that caused the skip, separate from red error state for direct failures
+    26 turns · 298s · $0.87
+
+  Merging to main: Generator dependency chain failures are silent — surface a "blocked by failed dependency" status on downstream generators
+Already up to date.

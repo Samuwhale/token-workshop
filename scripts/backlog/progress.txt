@@ -592,3 +592,15 @@
   - Only destructive/write operations need serialization. Wrapping reads would unnecessarily starve them behind long syncs.
   - Absorbing rejections on `_syncChain` (not on the returned promise) is the key detail: the caller still gets the rejection, but the chain itself recovers so subsequent queued operations can proceed.
 ---
+
+## 2026-04-04 - Generator dependency chain failures are silent
+- Added `blockedBy?: string` field to `GeneratorRunError` interface in `generator-service.ts` to distinguish "blocked by upstream dependency" from "directly failed"
+- Updated `runForSourceToken` to find the specific blocking upstream generator and set its name in `blockedBy` when skipping downstream generators; updated log message to name both generators
+- Updated `lastRunError` type in `useGenerators.ts` to include `blockedBy?: string`
+- Updated `GraphPanel.tsx` `GeneratorPipelineCard`: added `isBlocked` state derived from `lastRunError?.blockedBy`; changed `hasError` to exclude blocked generators; added distinct amber/orange border for blocked state; added "Blocked" badge with tooltip naming the upstream generator; added banner message "Blocked by '[name]' — fix that generator first, then re-run."
+- Files changed: `packages/server/src/services/generator-service.ts` ~L66-69, ~L471-485; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L175-182; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L962-964, ~L1035, ~L1054-1083
+- **Learnings for future iterations:**
+  - The server already had the right topological execution and skip logic — the gap was purely UX: mixing "blocked" and "failed" into the same red error style made chain failures undiagnosable
+  - Adding a typed `blockedBy` field is cleaner than string-prefix detection; the UI can branch on presence of the field rather than parsing the message
+  - Three visual states (red=failed, orange=blocked, yellow=stale) give users a clear triage path without overwhelming the card
+---

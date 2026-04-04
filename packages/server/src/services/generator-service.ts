@@ -66,6 +66,9 @@ function validateGeneratorShape(gen: unknown): string | null {
 export interface GeneratorRunError {
   message: string;
   at: string;
+  /** Present when the error is a dependency block rather than a direct failure.
+   *  Contains the name of the upstream generator whose failure caused this skip. */
+  blockedBy?: string;
 }
 
 export class GeneratorService {
@@ -469,16 +472,15 @@ export class GeneratorService {
       if (!gen) continue;
 
       // Skip if any upstream generator (whose output this one sources from) failed.
-      const upstreamFailed = gen.sourceToken
-        ? [...failedIds].some(failedId => {
-            const failedGen = this.generators.get(failedId);
-            return failedGen && gen.sourceToken!.startsWith(failedGen.targetGroup + '.');
-          })
-        : false;
-      if (upstreamFailed) {
-        const message = `Skipped: upstream generator failed`;
-        this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
-        console.warn(`[GeneratorService] Generator "${genId}" skipped because an upstream dependency failed`);
+      const blockingGen = gen.sourceToken
+        ? [...failedIds]
+            .map(failedId => this.generators.get(failedId))
+            .find(failedGen => failedGen && gen.sourceToken!.startsWith(failedGen.targetGroup + '.'))
+        : undefined;
+      if (blockingGen) {
+        const message = `Blocked: upstream generator "${blockingGen.name}" failed`;
+        this.generatorErrors.set(genId, { message, at: new Date().toISOString(), blockedBy: blockingGen.name });
+        console.warn(`[GeneratorService] Generator "${gen.name}" blocked because upstream "${blockingGen.name}" failed`);
         tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
         failedIds.add(genId);
         continue;

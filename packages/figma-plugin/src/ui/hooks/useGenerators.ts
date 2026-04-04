@@ -173,7 +173,13 @@ export interface TokenGenerator {
    */
   isStale?: boolean;
   /** Set when the last auto-run (triggered by a source token update) failed. Cleared on success. */
-  lastRunError?: { message: string; at: string };
+  lastRunError?: {
+    message: string;
+    at: string;
+    /** Present when the generator was blocked by an upstream failure, not a direct failure itself.
+     *  Contains the name of the upstream generator whose failure caused this skip. */
+    blockedBy?: string;
+  };
 }
 
 export interface GeneratedTokenResult {
