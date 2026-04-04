@@ -792,3 +792,25 @@ Already up to date.
 
   Merging to main: ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
 Already up to date.
+[main c65175a7] chore(backlog): done – ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
+ 5 files changed, 83 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ThemeManager "Base" vs "Override" set terminology is technical and unexplained inline
+- Replaced the compact horizontal status legend (colored dots + labels in one row) with a visual stacking diagram that shows how Base + Override sets merge into resolved tokens; uses a "+"/arrow layout with labeled layer boxes and a "Resolved" result indicator
+- Replaced the one-liner italic empty state ("No sets assigned yet...") with an instructive card that explains Base (full-coverage sets, e.g. global primitives) vs Override (variant-specific replacements, e.g. dark-mode colors) with color-coded icons and a call-to-action to expand Excluded
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1562-1582 (legend), ~L1653-1658 (empty state)
+
+═══════════════════════════════════════════════════════════════
+  #35  ·  8 queued · 3 in-progress · last took 2m51s
+═══════════════════════════════════════════════════════════════
+  → Export presets are localStorage-only and not included in settings backup/restore — users who save named export configurations (platform + filter + CSS selector combos) lose them on plugin reinstall or browser clear; presets should either be included in the settings export/import flow or persisted server-side alongside token data (ExportPanel.tsx presets, SettingsPanel.tsx export/import)
+  Worktree: /tmp/backlog-91949-kRJgfm
+  Running agent… (started 04:14:20)
+
+  ✓ done: Export presets are localStorage-only and not included in settings backup/restore
+    Added EXPORT_PRESETS key to SettingsPanel export/import flow (preferenceKeys, IMPORTABLE_EXACT_KEYS, IMPORT_KEY_LABELS) and improved diff preview to show preset count instead of raw JSON
+    14 turns · 167s · $0.46
+
+  Merging to main: Export presets are localStorage-only and not included in settings backup/restore
+Already up to date.

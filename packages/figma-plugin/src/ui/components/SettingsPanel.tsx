@@ -159,6 +159,7 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.EXPORT_CSS_SELECTOR,
   STORAGE_KEYS.EXPORT_ZIP_FILENAME,
   STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+  STORAGE_KEYS.EXPORT_PRESETS,
   STORAGE_KEYS.UNDO_MAX_HISTORY,
 ]);
 
@@ -182,6 +183,7 @@ const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.EXPORT_CSS_SELECTOR]:  'CSS selector',
   [STORAGE_KEYS.EXPORT_ZIP_FILENAME]:  'ZIP filename',
   [STORAGE_KEYS.EXPORT_NEST_PLATFORM]: 'Nest by platform',
+  [STORAGE_KEYS.EXPORT_PRESETS]:       'Export presets',
   [STORAGE_KEYS.UNDO_MAX_HISTORY]:     'Max undo steps',
 };
 
@@ -247,6 +249,7 @@ export function SettingsPanel({
       STORAGE_KEYS.EXPORT_CSS_SELECTOR,
       STORAGE_KEYS.EXPORT_ZIP_FILENAME,
       STORAGE_KEYS.EXPORT_NEST_PLATFORM,
+      STORAGE_KEYS.EXPORT_PRESETS,
       STORAGE_KEYS.UNDO_MAX_HISTORY,
     ];
 
@@ -321,7 +324,18 @@ export function SettingsPanel({
             else if (key.startsWith('tm_pinned:')) label = `Pinned: ${key.slice('tm_pinned:'.length)}`;
             else label = key;
           }
-          diff.push({ key, label, oldValue, newValue, status: oldValue === null ? 'added' : 'changed' });
+          // For presets, show a human-friendly count instead of raw JSON
+          let displayOld = oldValue;
+          let displayNew = newValue;
+          if (key === STORAGE_KEYS.EXPORT_PRESETS) {
+            const summarize = (v: string | null) => {
+              if (v === null) return null;
+              try { const arr = JSON.parse(v); return Array.isArray(arr) ? `${arr.length} preset${arr.length !== 1 ? 's' : ''}` : v; } catch { return v; }
+            };
+            displayOld = summarize(oldValue);
+            displayNew = summarize(newValue) ?? newValue;
+          }
+          diff.push({ key, label, oldValue: displayOld, newValue: displayNew, status: oldValue === null ? 'added' : 'changed' });
         }
 
         if (diff.length === 0) {

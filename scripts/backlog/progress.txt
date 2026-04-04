@@ -558,3 +558,13 @@
   - Small plugin UIs benefit from compact stacking diagrams (Base + Override → Result) over horizontal dot legends — the visual flow communicates the merge model at a glance without requiring tooltip hover
   - Empty states are prime real estate for teaching moments: replace generic "no items yet" messages with concrete role explanations and examples (e.g. "e.g. a global primitives set")
 ---
+
+## 2026-04-04 - Export presets are localStorage-only and not included in settings backup/restore
+- Added `STORAGE_KEYS.EXPORT_PRESETS` to the settings export/import flow in `SettingsPanel.tsx`: added to `preferenceKeys` array in `handleExportSettings`, to `IMPORTABLE_EXACT_KEYS`, and to `IMPORT_KEY_LABELS`
+- Enhanced the import diff preview for the presets key to show a human-friendly count ("3 presets") instead of raw JSON
+- The preset JSON string is already stored as a string in localStorage, so it round-trips cleanly through the existing settings file format (exported as a JSON string value, imported and written back verbatim)
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L151, ~L174, ~L239, ~L327
+- **Learnings for future iterations:**
+  - When a localStorage value is a JSON-serialized array/object, it's still a string at the `localStorage.getItem` level, so it flows through existing string-based export/import logic unchanged — no special handling needed for the round-trip itself
+  - Showing raw JSON in diff previews is technically correct but poor UX; for structured values, add a key-specific summarizer at the `diff.push` call site to show a human-readable description instead
+---
