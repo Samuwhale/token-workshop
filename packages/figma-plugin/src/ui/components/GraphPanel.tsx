@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { TokenGenerator, GeneratorTemplate } from '../hooks/useGenerators';
+import type { TokenGenerator, GeneratorTemplate, GeneratorType } from '../hooks/useGenerators';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
@@ -122,6 +122,7 @@ export function GraphPanel({
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<GeneratorType | null>(null);
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
   const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
@@ -269,13 +270,25 @@ export function GraphPanel({
   }, [selectedTemplate, serverUrl, activeSet, handleApplied]);
 
   const q = searchQuery.trim().toLowerCase();
-  const filteredGenerators = q
-    ? setGenerators.filter(g =>
-        g.name.toLowerCase().includes(q) ||
-        (g.sourceToken ?? '').toLowerCase().includes(q) ||
-        g.targetGroup.toLowerCase().includes(q),
-      )
-    : setGenerators;
+  const filteredGenerators = setGenerators.filter(g => {
+    if (typeFilter && g.type !== typeFilter) return false;
+    if (!q) return true;
+    return (
+      g.name.toLowerCase().includes(q) ||
+      (g.sourceToken ?? '').toLowerCase().includes(q) ||
+      g.targetGroup.toLowerCase().includes(q) ||
+      getGeneratorTypeLabel(g.type).toLowerCase().includes(q)
+    );
+  });
+
+  // Types present in the current set — used for filter pills
+  const presentTypes = useMemo<GeneratorType[]>(() => {
+    const seen = new Set<GeneratorType>();
+    for (const g of setGenerators) seen.add(g.type);
+    return Array.from(seen).sort((a, b) =>
+      getGeneratorTypeLabel(a).localeCompare(getGeneratorTypeLabel(b)),
+    );
+  }, [setGenerators]);
   const filteredTemplates = q
     ? GRAPH_TEMPLATES.filter(t =>
         t.label.toLowerCase().includes(q) ||
@@ -313,7 +326,7 @@ export function GraphPanel({
             <div>
               <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {q
+              {(q || typeFilter)
                 ? <>{filteredGenerators.length} of {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''}</>
                 : <>{setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span></>
               }
@@ -544,10 +557,33 @@ export function GraphPanel({
           </div>
         </div>
 
+        {/* Type filter pills — shown only when multiple types exist */}
+        {presentTypes.length > 1 && (
+          <div className="px-3 pb-2 shrink-0 flex items-center gap-1 flex-wrap">
+            <button
+              onClick={() => setTypeFilter(null)}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${typeFilter === null ? 'bg-[var(--color-figma-accent)]/10 border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              aria-pressed={typeFilter === null}
+            >
+              All
+            </button>
+            {presentTypes.map(type => (
+              <button
+                key={type}
+                onClick={() => setTypeFilter(typeFilter === type ? null : type)}
+                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${typeFilter === type ? 'bg-[var(--color-figma-accent)]/10 border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                aria-pressed={typeFilter === type}
+              >
+                {getGeneratorTypeLabel(type)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Node graph view */}
         {viewMode === 'graph' && (
           <NodeGraphCanvas
-            generators={setGenerators}
+            generators={filteredGenerators}
             activeSet={activeSet}
             serverUrl={serverUrl}
             onRefresh={onRefresh}

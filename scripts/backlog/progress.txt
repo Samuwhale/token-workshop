@@ -341,3 +341,12 @@
   - `HealthPanel` already had `serverUrl` in the interface but it was never destructured — it was effectively ignored. Always check interface vs destructured props.
   - For the `path-pattern` rename fix, providing the full corrected path in `suggestion` (not just the segment) is much cleaner than having the client reconstruct it.
 ---
+
+## 2026-04-04 - Generator search/filter in GraphPanel
+- Implemented type filter pills below the search bar in the pipeline view. The pills appear only when the active set has generators of multiple types. Clicking a pill filters to that type; clicking again (or "All") clears the filter. Also applied type filter to the graph view by passing `filteredGenerators` to `NodeGraphCanvas` instead of `setGenerators`. Added generator type label to the text search so searching "color" or "type scale" also matches by type. Updated the header subtitle to reflect active filters.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1, ~L124, ~L271, ~L549, ~L558
+- **Learnings for future iterations:**
+  - The search bar already existed in GraphPanel before this item; the missing piece was the type filter pills.
+  - `presentTypes` is derived from `setGenerators` (not `filteredGenerators`) so pill labels stay stable while filtering.
+  - `NodeGraphCanvas` already accepted a `generators` prop for the node list — switching it to `filteredGenerators` is all that was needed to apply both search and type filter to graph view.
+---
