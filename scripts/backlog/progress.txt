@@ -693,3 +693,9 @@
   - Adding `switchToResolverMode()` to the imperative handle is the cleanest way to let App.tsx trigger internal view-state changes in ThemeManager without prop-drilling or lifting state
   - A small `setTimeout(..., 50)` is needed when navigating to a tab and then calling an imperative handle method — the ThemeManager isn't mounted until after navigation renders, so the handle ref is null synchronously
 ---
+  - `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L105 (description update)
+- **Learnings for future iterations:**
+  - The existing "simple/advanced" mode toggle in ThemeManager was already the right architecture for embedding ResolverContent — the only real issue was the redundant separate sub-tab
+  - Adding `switchToResolverMode()` to the imperative handle is the cleanest way to let App.tsx trigger internal view-state changes in ThemeManager without prop-drilling or lifting state
+  - A small `setTimeout(..., 50)` is needed when navigating to a tab and then calling an imperative handle method — the ThemeManager isn't mounted until after navigation renders, so the handle ref is null synchronously
+---

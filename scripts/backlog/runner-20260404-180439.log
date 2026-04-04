@@ -1151,3 +1151,15 @@ Already up to date.
 
   Merging to main: Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
 Already up to date.
+[main df0a02ae] chore(backlog): done – Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+ 9 files changed, 87 insertions(+), 77 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1413 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — keyboard tree navigation, batch editor preview, generator quick-edit, command palette autocomplete, batch delete API, import diff view, silent import skip feedback, PanelHelpHint coverage, recent tokens, resolver error exposure, search consolidation
+Already up to date.
