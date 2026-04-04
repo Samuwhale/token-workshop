@@ -621,6 +621,71 @@ export function App() {
     }
   }, [paletteDeleteConfirm, allTokensFlat, serverUrl, activeSet, pushUndo, refreshAll, setSuccessToast, setErrorToast]);
 
+  // Duplicate a token from the command palette (shared between contextual command and token search button)
+  const handlePaletteDuplicate = useCallback(async (path: string) => {
+    const entry = allTokensFlat[path];
+    if (!entry || !connected) return;
+    const tokenNode = findLeafByPath(tokens, path);
+    const targetSet = pathToSet[path] ?? activeSet;
+    const baseCopy = `${path}-copy`;
+    let newPath = baseCopy;
+    let i = 2;
+    while (allTokensFlat[newPath]) { newPath = `${baseCopy}-${i++}`; }
+    try {
+      const body: Record<string, unknown> = { $type: entry.$type, $value: entry.$value };
+      if (tokenNode?.$description) body.$description = tokenNode.$description;
+      if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPathToUrlSegment(newPath)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      await refreshTokens();
+      navigateTo('define', 'tokens');
+      if (targetSet !== activeSet) {
+        setActiveSet(targetSet);
+        setPendingHighlight(newPath);
+      } else {
+        setHighlightedToken(newPath);
+      }
+    } catch (err) {
+      console.warn('[App] duplicate token from palette failed:', err);
+    }
+  }, [allTokensFlat, connected, tokens, pathToSet, activeSet, serverUrl, navigateTo, refreshTokens, setActiveSet, setPendingHighlight, setHighlightedToken]);
+
+  // Navigate to a token and trigger inline rename mode
+  const handlePaletteRename = useCallback((path: string) => {
+    const targetSet = pathToSet[path];
+    navigateTo('define', 'tokens');
+    setEditingToken(null);
+    if (targetSet && targetSet !== activeSet) {
+      setActiveSet(targetSet);
+      setPendingHighlight(path);
+    } else {
+      setHighlightedToken(path);
+      tokenListCompareRef.current?.triggerInlineRename(path);
+    }
+  }, [pathToSet, activeSet, navigateTo, setEditingToken, setActiveSet, setPendingHighlight, setHighlightedToken]);
+
+  // Trigger the move-to-set dialog for a token
+  const handlePaletteMove = useCallback((path: string) => {
+    const targetSet = pathToSet[path];
+    navigateTo('define', 'tokens');
+    setEditingToken(null);
+    if (targetSet && targetSet !== activeSet) {
+      setActiveSet(targetSet);
+      setPendingHighlight(path);
+    } else {
+      setHighlightedToken(path);
+      tokenListCompareRef.current?.triggerMoveToken(path);
+    }
+  }, [pathToSet, activeSet, navigateTo, setEditingToken, setActiveSet, setPendingHighlight, setHighlightedToken]);
+
+  // Trigger delete confirm for a single token from the token search row
+  const handlePaletteDeleteToken = useCallback((path: string) => {
+    setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
+  }, []);
+
   // Split the command palette registry into focused sub-memos so that
   // frequently-changing state (highlightedToken on every hover, undo stack on
   // every op) only rebuilds its own small slice instead of all 40+ commands.
@@ -927,6 +992,43 @@ export function App() {
   // Contextual commands — rebuilds on hover/selection changes (most frequent).
   // Kept small (~5 entries) so the rebuild cost is negligible.
   const contextualCommands = useMemo<Command[]>(() => [
+    // Rename highlighted token (only when a token in the active set is focused)
+    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
+      id: 'rename-highlighted-token',
+      label: `Rename: ${highlightedToken}`,
+      description: 'Start inline rename mode for this token',
+      category: 'Tokens' as const,
+      handler: () => handlePaletteRename(highlightedToken),
+    }] : []),
+    // Duplicate highlighted token
+    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
+      id: 'duplicate-highlighted-token',
+      label: `Duplicate: ${highlightedToken}`,
+      description: 'Create a copy of this token with a new path',
+      category: 'Tokens' as const,
+      handler: () => { handlePaletteDuplicate(highlightedToken); },
+    }] : []),
+    // Move highlighted token to a different set
+    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
+      id: 'move-highlighted-token',
+      label: `Move to set: ${highlightedToken}`,
+      description: 'Move this token to a different token set',
+      category: 'Tokens' as const,
+      handler: () => handlePaletteMove(highlightedToken),
+    }] : []),
+    // Extract highlighted token value to an alias
+    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
+      id: 'extract-highlighted-token-to-alias',
+      label: `Extract to alias: ${highlightedToken}`,
+      description: 'Create a primitive alias token and replace this value with a reference',
+      category: 'Tokens' as const,
+      handler: () => {
+        const entry = allTokensFlat[highlightedToken];
+        navigateTo('define', 'tokens');
+        setHighlightedToken(highlightedToken);
+        tokenListCompareRef.current?.triggerExtractToAlias(highlightedToken, entry?.$type, entry?.$value);
+      },
+    }] : []),
     // Delete highlighted token (only when a token in the active set is focused)
     ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
       id: 'delete-highlighted-token',
@@ -970,7 +1072,7 @@ export function App() {
       category: 'Tokens' as const,
       handler: () => { themeManagerHandleRef.current?.navigateToCompare('cross-theme'); navigateTo('define', 'themes'); },
     }] : []),
-  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare]);
+  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare, handlePaletteRename, handlePaletteDuplicate, handlePaletteMove, allTokensFlat, setHighlightedToken]);
 
   // Undo/redo commands — rebuilds when the operation log or redo stack changes.
   const undoRedoCommands = useMemo<Command[]>(() => [
@@ -2711,38 +2813,10 @@ export function App() {
             const cssVar = `var(--${path.replace(/\./g, '-')})`;
             navigator.clipboard.writeText(cssVar).catch((err) => { console.warn('[App] clipboard write failed for CSS var:', err); });
           }}
-          onDuplicateToken={async (path) => {
-            const entry = allTokensFlat[path];
-            if (!entry || !connected) return;
-            const tokenNode = findLeafByPath(tokens, path);
-            const targetSet = pathToSet[path] ?? activeSet;
-            const baseCopy = `${path}-copy`;
-            let newPath = baseCopy;
-            let i = 2;
-            while (allTokensFlat[newPath]) {
-              newPath = `${baseCopy}-${i++}`;
-            }
-            try {
-              const body: Record<string, unknown> = { $type: entry.$type, $value: entry.$value };
-              if (tokenNode?.$description) body.$description = tokenNode.$description;
-              if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPathToUrlSegment(newPath)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-              });
-              await refreshTokens();
-              navigateTo('define', 'tokens');
-              if (targetSet !== activeSet) {
-                setActiveSet(targetSet);
-                setPendingHighlight(newPath);
-              } else {
-                setHighlightedToken(newPath);
-              }
-            } catch (err) {
-              console.warn('[App] duplicate token from palette failed:', err);
-            }
-          }}
+          onDuplicateToken={handlePaletteDuplicate}
+          onRenameToken={handlePaletteRename}
+          onMoveToken={handlePaletteMove}
+          onDeleteToken={handlePaletteDeleteToken}
           onClose={() => setShowCommandPalette(false)}
         />
       )}

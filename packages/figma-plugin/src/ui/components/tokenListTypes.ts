@@ -123,6 +123,12 @@ export interface TokenListActions {
 export interface TokenListImperativeHandle {
   /** Enter multi-select mode (no navigation — user selects tokens then clicks Compare) */
   openCompareMode: () => void;
+  /** Trigger inline rename mode for the given token path */
+  triggerInlineRename: (path: string) => void;
+  /** Open the move-to-set dialog for the given token path */
+  triggerMoveToken: (path: string) => void;
+  /** Open the extract-to-alias dialog for the given token */
+  triggerExtractToAlias: (path: string, $type?: string, $value?: unknown) => void;
 }
 
 export interface TokenListProps {

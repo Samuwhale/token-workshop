@@ -86,6 +86,9 @@ interface CommandPaletteProps {
   onCopyTokenRef?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
   onDuplicateToken?: (path: string) => void;
+  onRenameToken?: (path: string) => void;
+  onDeleteToken?: (path: string) => void;
+  onMoveToken?: (path: string) => void;
   onClose: () => void;
   initialQuery?: string;
 }
@@ -148,7 +151,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onClose, initialQuery = '' }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onRenameToken, onDeleteToken, onMoveToken, onClose, initialQuery = '' }: CommandPaletteProps) {
   const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -616,6 +619,36 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                       onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
                     >
                       Dup
+                    </button>
+                  )}
+                  {onRenameToken && (
+                    <button
+                      tabIndex={-1}
+                      title={`Rename token: ${token.path}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onRenameToken(token.path); onClose(); }}
+                    >
+                      Ren
+                    </button>
+                  )}
+                  {onMoveToken && (
+                    <button
+                      tabIndex={-1}
+                      title={`Move to set: ${token.path}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onMoveToken(token.path); onClose(); }}
+                    >
+                      Mov
+                    </button>
+                  )}
+                  {onDeleteToken && (
+                    <button
+                      tabIndex={-1}
+                      title={`Delete token: ${token.path}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onDeleteToken(token.path); onClose(); }}
+                    >
+                      Del
                     </button>
                   )}
                 </div>

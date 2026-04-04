@@ -1945,13 +1945,22 @@ export function TokenList({
     }
   }, [onOpenCrossThemeCompare]);
 
-  // Expose imperative compare actions to the parent via compareHandle ref
+  // Expose imperative actions to the parent via compareHandle ref
   useEffect(() => {
     if (!compareHandle) return;
     compareHandle.current = {
       openCompareMode: () => {
         setSelectMode(true);
         setShowBatchEditor(false);
+      },
+      triggerInlineRename: (path: string) => {
+        setPendingRenameToken(path);
+      },
+      triggerMoveToken: (path: string) => {
+        setMovingToken(path);
+      },
+      triggerExtractToAlias: (path: string, $type?: string, $value?: unknown) => {
+        handleOpenExtractToAlias(path, $type, $value as any);
       },
     };
     return () => { compareHandle.current = null; };

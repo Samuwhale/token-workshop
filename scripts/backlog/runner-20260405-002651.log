@@ -32,3 +32,27 @@
 
   Merging to main: Add inline token value editing on double-click in the token tree
 Already up to date.
+[main 2317ef95] chore(backlog): done – Add inline token value editing on double-click in the token tree
+ 6 files changed, 100 insertions(+), 12 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260405-002651.log
+  ✓ Merged and marked done
+
+## 2026-04-05 - Add inline token value editing on double-click in the token tree
+- Inline editing was already comprehensively implemented (INLINE_SIMPLE_TYPES, inlineEditActive state, stepper inputs, text inputs, color picker via swatch, boolean toggle, Tab navigation). The one gap: the hex value text for color tokens was a static non-clickable span — only the color swatch on the left was clickable. Fixed by adding a new branch in the value cell conditional for `canInlineEdit && node.$type === 'color'` that makes the hex text clickable with cursor-pointer/hover-underline styling, opening the same ColorPicker via setPendingColor + setColorPickerOpen.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1521
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  31 queued · 0
+0 in-progress · last took 5m33s
+═══════════════════════════════════════════════════════════════
+  → Expose token operations in the command palette — CommandPalette.tsx (814 lines) supports navigation and panel commands but cannot perform token-level operations like rename, duplicate, delete, move-to-group, or extract-to-alias; power users managing hundreds of tokens should be able to hit Cmd+K, type "rename color.brand.500", and start renaming without first finding the token in the tree and right-clicking
+  Worktree: /tmp/backlog-54964-vWEQwf
+  Running agent… (started 00:32:25)
+
+  ✓ done: Expose token operations in the command palette
+    Added rename, duplicate, move-to-set, extract-to-alias, and delete operations via contextual commands (when token is hovered) and inline row buttons in token search mode (Ren/Mov/Del alongside existing Dup); extended TokenListImperativeHandle with triggerInlineRename/triggerMoveToken/triggerExtractToAlias methods
+    35 turns · 517s · $1.6
+
+  Merging to main: Expose token operations in the command palette
+Already up to date.

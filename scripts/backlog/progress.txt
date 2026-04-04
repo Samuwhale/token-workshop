@@ -707,3 +707,21 @@
   - Inline editing for non-color simple types uses single-click on the value text (activates on first click; double-click selects all text in the freshly opened input — excellent UX). Color is different: the value text and the color swatch are separate UI elements; both should trigger the picker.
   - The value cell conditional chain is: alias → editable-non-color → editable-color → static. Keep the color branch before static to maintain this O(1) rendering order.
 ---
+
+## 2026-04-05 - Expose token operations in the command palette
+- Added rename, duplicate, move-to-set, extract-to-alias, and delete operations to the command palette via two surfaces:
+  1. **Contextual commands** (command mode): When a token is hovered/highlighted in the tree, the palette shows "Rename: {path}", "Duplicate: {path}", "Move to set: {path}", "Extract to alias: {path}", and "Delete token: {path}" commands. These update on every hover change via `contextualCommands` useMemo.
+  2. **Token search row buttons** (token mode `>`): Each token result row now has "Dup", "Ren", "Mov", "Del" inline action buttons alongside the existing copy buttons.
+- Extended `TokenListImperativeHandle` with three new methods: `triggerInlineRename(path)`, `triggerMoveToken(path)`, `triggerExtractToAlias(path, $type?, $value?)` — populated in the existing `compareHandle` useEffect in TokenList.
+- Extracted inline duplicate logic from CommandPalette JSX into `handlePaletteDuplicate` useCallback in App.tsx so it can be referenced from both contextual commands and the `onDuplicateToken` prop.
+- Added `handlePaletteRename`, `handlePaletteMove`, `handlePaletteDeleteToken` callbacks in App.tsx — all navigate to the tokens tab before triggering the operation; cross-set tokens fall back to navigate+highlight only.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L123 (extend TokenListImperativeHandle)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1948 (populate extended handle)
+  - `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L88, ~L151, ~L611 (new props + buttons)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L622 (new callbacks), ~L929 (contextual commands), ~L2816 (wire up props)
+- **Learnings for future iterations:**
+  - The `compareHandle` ref pattern is the right way to expose imperative TokenList actions — just add more methods to the interface and populate them in the same useEffect. The effect only deps on `compareHandle` (stable ref object), so all inner setState/callbacks are captured by closure without needing to be deps.
+  - When adding contextual commands for a focused entity, include the full set of CRUD operations (rename, duplicate, move, delete, extract) in one go — users expect symmetry with the context menu.
+  - The "Ren/Dup/Mov/Del" abbreviations match the existing "Dup" pattern already in the palette — short labels are intentional to avoid row overflow.
+---
