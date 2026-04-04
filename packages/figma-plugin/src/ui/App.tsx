@@ -78,7 +78,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
-type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
+type ShipSubTab = 'publish' | 'export' | 'history' | 'validation';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type OverflowPanel = 'import' | 'settings' | null;
 
@@ -133,7 +133,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'publish', label: 'Publish' },
     { id: 'export', label: 'Export' },
     { id: 'history', label: 'History' },
-    { id: 'health', label: 'Health' },
+    { id: 'validation', label: 'Validation' },
   ]},
 ];
 
@@ -870,14 +870,14 @@ export function App() {
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
-        handler: () => { navigateTo('ship', 'health'); refreshValidation(); },
+        handler: () => { navigateTo('ship', 'validation'); refreshValidation(); },
       },
       {
         id: 'health-dashboard',
-        label: 'Token Health Dashboard',
-        description: 'Single-view summary: lint, validation, generators, canvas coverage, and unused tokens',
+        label: 'Token Validation',
+        description: 'Validation report, lint summary, generator health, canvas coverage, and unused tokens',
         category: 'Navigation',
-        handler: () => navigateTo('ship', 'health'),
+        handler: () => navigateTo('ship', 'validation'),
       },
       {
         id: 'generate-color-scale',
@@ -1377,10 +1377,10 @@ export function App() {
               </button>
               <button
                 role="menuitem"
-                onClick={() => { setMenuOpen(false); navigateTo('ship', 'health'); }}
+                onClick={() => { setMenuOpen(false); navigateTo('ship', 'validation'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Health &amp; Analysis
+                Validation
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button

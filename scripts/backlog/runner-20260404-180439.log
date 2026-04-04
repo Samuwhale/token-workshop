@@ -494,3 +494,28 @@ Already up to date.
 
   Merging to main: Consolidate AnalyticsPanel sub-features into their host panels
 Already up to date.
+[main 6f431d50] chore(backlog): done – Consolidate AnalyticsPanel sub-features into their host panels
+ 11 files changed, 1211 insertions(+), 1703 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ComponentCoveragePanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-04 - Consolidate AnalyticsPanel sub-features into their host panels
+- Eliminated the 1596-line `AnalyticsPanel.tsx` omnibus grab-bag by distributing its 6 sub-features to their natural host panels:
+  1. **Validation Issues** → moved into `HealthPanel.tsx` as a "Validation Report" accordion in the Token Analysis section (with severity filtering, copy MD, export JSON/CSV, per-issue fix buttons, and "Go →" navigation)
+  2. **Color Contrast Matrix** → moved into `HealthPanel.tsx` as a collapsible accordion (group filters, sort by luminance/failures, pagination, failures-only list, CSV export)
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  17 queued · 0
+0 in-progress · last took 21m35s
+═══════════════════════════════════════════════════════════════
+  → Merge HealthPanel into the Validation sub-tab — HealthPanel shows a high-level summary of lint violations, generator health, heatmap coverage, and validation issues, but each of those already has its own dedicated panel; the Health tab adds a layer of indirection where users see a summary card then click a CTA that navigates to the real panel; folding the health summary into the top of the Validation sub-tab (as a collapsible dashboard strip) would reduce the tab count by one without losing any information
+  Worktree: /tmp/backlog-3108-8BnYrL
+  Running agent… (started 21:08:44)
+
+  ✓ done: Merge HealthPanel into the Validation sub-tab
+    Renamed 'health' sub-tab to 'validation' and restructured HealthPanel so the 5 health summary cards (lint, cross-set validation, generators, canvas, dependencies) collapse into a 'Health summary' strip (hidden by default), making the validation report + analysis tools the immediate primary content
+    54 turns · 598s · $2.33
+
+  Merging to main: Merge HealthPanel into the Validation sub-tab
+Already up to date.

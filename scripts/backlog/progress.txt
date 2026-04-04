@@ -829,3 +829,19 @@
   - The "Full report" CTA in a HealthSection that previously cross-navigated can be repurposed as a local accordion trigger when the report is now inline
   - `resolveColorHex` as a `useMemo`-returned closure works cleanly for recursive alias resolution without exposing the visited set to callers
 ---
+
+## 2026-04-04 - Merge HealthPanel into the Validation sub-tab
+- Renamed the "health" sub-tab to "validation" across the codebase and restructured HealthPanel.tsx so validation is the primary content
+- Changes:
+  - `App.tsx`: `ShipSubTab` type `'health'` → `'validation'`; `TOP_TABS` label "Health" → "Validation"; three `navigateTo('ship', 'health')` calls updated; command palette entry "Token Health Dashboard" → "Token Validation"; menu item "Health & Analysis" → "Validation"
+  - `PanelRouter.tsx`: `PANEL_MAP` key `health` → `validation`; function `renderShipHealth` → `renderShipValidation`; ErrorBoundary panel name updated
+  - `HealthPanel.tsx`: Restructured JSX — header is now validation-focused (shows validation pass/fail status and last-refresh time); the 5 HealthSection cards (lint, cross-set validation, generators, canvas, dependencies) moved into a new collapsible "Health summary" strip (collapsed by default, `max-h-52` when expanded); validation report + unused tokens + duplicates + contrast matrix + lightness inspector are now the primary body content immediately visible without scrolling past health cards; removed dead `showSuppressed` state (was set but never consumed); removed unused `totalTokens` and `relativeTime` derived values; "Full report" CTA on cross-set validation card now collapses the dashboard strip to reveal the full report below
+- Files changed:
+  - `packages/figma-plugin/src/ui/App.tsx` ~L81, ~L136, ~L873, ~L876-881, ~L1380-1383
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L376, ~L754
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L191-861 (JSX restructure)
+- **Learnings for future iterations:**
+  - When restructuring a panel's content hierarchy (summary → primary), the collapsible strip pattern works well: `shrink-0 border-b` container with a toggle button + `max-h-[Npx] overflow-y-auto` content area keeps the strip from consuming all vertical space when expanded
+  - Dead state (`showSuppressed`) set via CTA but never consumed in JSX is easy to introduce when CTAs navigate or toggle UI state that no longer exists — audit CTA handlers when restructuring JSX
+  - Removing a `useState` declaration whose setter is still referenced in JSX will cause TypeScript compile errors, not ESLint warnings — both the declaration and all call sites must be removed together
+---
