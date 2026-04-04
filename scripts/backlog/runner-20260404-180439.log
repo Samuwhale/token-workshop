@@ -1,0 +1,37 @@
+./scripts/backlog/backlog.sh: line 251: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    3108
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-180439.log
+  Passes: enabled (every 15 items)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+  Queue:    6 ready · 0
+0 in-progress · 0
+0 failed
+  Done:     1370 total (next passes: product in 13, ux in 2, code in 10)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  6 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Generalize variable/style/scope sync into a parameterized abstraction — useFigmaSync.ts declares multiple useState hooks tripling the same (pending/applying/progress/error) pattern for variables, styles, and scopes; PublishPanel.tsx duplicates near-identical builder functions for var vs style diff rows (buildVarFigmaMap ↔ buildStyleFigmaMap, buildVarLocalOnlyRow ↔ buildStyleLocalOnlyRow, etc., differing only in field names); consolidating into parameterized factories and a single state-per-flow record type would halve the sync code
+  Worktree: /tmp/backlog-3108-3F4SMg
+  Running agent… (started 18:04:39)
+
+  ✓ done: Generalize variable/style/scope sync into a parameterized abstraction
+    Extracted useSyncFlow<T> hook in useFigmaSync.ts (8 useState → 2 flow objects); replaced 14 parallel builder functions in PublishPanel.tsx with createSyncBuilders(spec) factory + unified DiffRow type
+    31 turns · 1046s · $2.35
+
+  Merging to main: Generalize variable/style/scope sync into a parameterized abstraction
+Already up to date.

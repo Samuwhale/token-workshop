@@ -550,3 +550,16 @@
   - The missing-overrides computation only makes sense when there are enabled sets — if all sets are `source`, there's no override layer and nothing is "missing". Guard with `hasEnabledSets` before collecting.
   - Search input for long lists: only show it when list length > 8 to avoid clutter for small options.
 ---
+
+## 2026-04-04 - Generalize variable/style/scope sync into a parameterized abstraction
+- **`useFigmaSync.ts`**: Extracted `useSyncFlow<TPending>()` helper hook (pending + applying + progress + error) at module level. Replaced 8 tripled `useState` declarations (4 for variables, 4 for styles) with `const varFlow = useSyncFlow<GroupPending>()` and `const styleFlow = useSyncFlow<GroupPending>()`. Updated `handleSyncGroup` and `handleSyncGroupStyles` to pass `varFlow.*` / `styleFlow.*` fields to `syncGroupBase`. Return object maps flow fields back to original names, preserving the external API.
+- **`PublishPanel.tsx`**: Introduced `SyncBuildersSpec` interface + `createSyncBuilders(spec)` factory. Replaced 14 parallel builder functions (`buildVarFigmaMap` / `buildStyleFigmaMap`, `buildVarLocalOnlyRow` / `buildStyleLocalOnlyRow`, etc.) with two module-level calls: `varBuilders = createSyncBuilders(VAR_SYNC_SPEC)` and `styleBuilders = createSyncBuilders(STYLE_SYNC_SPEC)`. Unified `VarDiffRow` + `StyleDiffRow` into a single `DiffRow` type. The `useSyncEntity` calls now spread `...varBuilders` / `...styleBuilders` and only define entity-specific `buildApplyPayload` and `buildRevertPayload` inline. Updated var apply payload to use `r.localRaw` (string for vars, raw for styles — both consistent).
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L1-220 (full rewrite)
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L14-175 (type/builder section replaced)
+- **Learnings for future iterations:**
+  - `useSyncFlow<T>()` pattern: a small private hook encapsulating `pending + applying + progress + error` cleanly replaces 4 `useState` calls per entity. Destructuring at the call site with aliased names (e.g. `const varFlow = useSyncFlow<GroupPending>()`) keeps the external API unchanged.
+  - `createSyncBuilders(spec)` factory: when multiple "sync entity" sets share the same 7-function pattern differing only in value extraction, type filtering, equality check, and display formatting — a `SyncBuildersSpec` interface captures exactly those 4 varying axes and the factory returns the full set of builders.
+  - Unified row type: `VarDiffRow` (string value) and `StyleDiffRow` (raw + string) collapse to one `DiffRow` with optional `localRaw`/`figmaRaw`. Both var and style builders populate `localRaw` (string for vars, raw object for styles), and apply payloads use `r.localRaw` uniformly.
+  - Spreading `...varBuilders` into `useSyncEntity` config cleanly separates "what differs per entity" from "what the factory provides". The config site only needs entity-specific `buildApplyPayload`, `buildRevertPayload`, and text strings.
+---

@@ -1,1 +1,0 @@
-- [ ] **[UX] Audit UI for component consolidation opportunities** — scan the plugin UI for repeated patterns (e.g. list rows, empty states, action buttons, form controls, panels, modals) that are implemented as one-offs instead of shared components; consolidating these would reduce inconsistency, shrink the codebase, and make future UX changes cheaper to apply uniformly.

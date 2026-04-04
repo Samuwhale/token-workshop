@@ -16,8 +16,17 @@ import { ApplyDiffConfirmModal } from './publish/PublishModals';
 type VarSyncSnapshot = { records: Record<string, any>; createdIds: string[] };
 type StyleSyncSnapshot = { snapshots: Array<{ id: string; type: 'paint' | 'text' | 'effect'; data: any }>; createdIds: string[] };
 
-interface VarDiffRow { path: string; cat: 'local-only' | 'figma-only' | 'conflict'; localValue?: string; figmaValue?: string; localType?: string; figmaType?: string; }
-interface StyleDiffRow { path: string; cat: 'local-only' | 'figma-only' | 'conflict'; localValue?: string; figmaValue?: string; localRaw?: any; figmaRaw?: any; localType?: string; figmaType?: string; }
+// Unified row type — superset of what both variable and style sync need.
+interface DiffRow {
+  path: string;
+  cat: 'local-only' | 'figma-only' | 'conflict';
+  localValue?: string;   // display string (always a string, even for styles)
+  figmaValue?: string;   // display string
+  localRaw?: any;        // raw $value (used in apply/pull payloads)
+  figmaRaw?: any;        // raw $value
+  localType?: string;
+  figmaType?: string;
+}
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
@@ -37,26 +46,68 @@ const STYLE_MESSAGES: SyncMessages<StyleSyncSnapshot> = {
   revertSendType: 'revert-styles', revertResponseType: 'styles-reverted', revertTimeout: 30000,
 };
 
-// ── Variable sync pure helpers ────────────────────────────────────────────
+// ── Sync builders factory ─────────────────────────────────────────────────
+// Eliminates the parallel var/style builder function sets that differed only
+// in field names (value vs raw), type filtering, conflict comparison, and
+// value summarization.
 
-function buildVarFigmaMap(tokens: any[]) {
-  return new Map(tokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }]));
+interface SyncBuildersSpec {
+  /** Extract a raw value + type from a Figma token */
+  fromFigmaToken: (token: any) => { raw: any; type: string };
+  /** Extract a raw value + type from a local token; return null to exclude */
+  fromLocalToken: (token: any) => { raw: any; type: string } | null;
+  /** Are two raw values equal? */
+  isEqual: (a: any, b: any) => boolean;
+  /** Convert raw value to a display string for the UI */
+  displayValue: (raw: any, type: string) => string;
 }
-function buildVarLocalMap(tokens: Map<string, any>) {
-  const m = new Map<string, { value: string; type: string }>();
-  for (const [path, token] of tokens) m.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
-  return m;
-}
-const buildVarLocalOnlyRow = (path: string, local: { value: string; type: string }): VarDiffRow =>
-  ({ path, cat: 'local-only', localValue: local.value, localType: local.type });
-const buildVarFigmaOnlyRow = (path: string, figma: { value: string; type: string }): VarDiffRow =>
-  ({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type });
-const buildVarConflictRow = (path: string, local: { value: string; type: string }, figma: { value: string; type: string }): VarDiffRow =>
-  ({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type });
-const varIsConflict = (local: { value: string }, figma: { value: string }) => figma.value !== local.value;
-const buildVarPullPayload = (row: VarDiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaValue ?? '' });
 
-// ── Style sync pure helpers ───────────────────────────────────────────────
+function createSyncBuilders(spec: SyncBuildersSpec) {
+  return {
+    buildFigmaMap: (tokens: any[]) =>
+      new Map(tokens.map(t => [t.path, spec.fromFigmaToken(t)])),
+
+    buildLocalMap: (tokens: Map<string, any>) => {
+      const m = new Map<string, { raw: any; type: string }>();
+      for (const [path, token] of tokens) {
+        const entry = spec.fromLocalToken(token);
+        if (entry !== null) m.set(path, entry);
+      }
+      return m;
+    },
+
+    buildLocalOnlyRow: (path: string, local: { raw: any; type: string }): DiffRow => ({
+      path, cat: 'local-only',
+      localRaw: local.raw, localValue: spec.displayValue(local.raw, local.type), localType: local.type,
+    }),
+
+    buildFigmaOnlyRow: (path: string, figma: { raw: any; type: string }): DiffRow => ({
+      path, cat: 'figma-only',
+      figmaRaw: figma.raw, figmaValue: spec.displayValue(figma.raw, figma.type), figmaType: figma.type,
+    }),
+
+    buildConflictRow: (path: string, local: { raw: any; type: string }, figma: { raw: any; type: string }): DiffRow => ({
+      path, cat: 'conflict',
+      localRaw: local.raw, figmaRaw: figma.raw,
+      localValue: spec.displayValue(local.raw, local.type),
+      figmaValue: spec.displayValue(figma.raw, figma.type),
+      localType: local.type, figmaType: figma.type,
+    }),
+
+    isConflict: (local: { raw: any }, figma: { raw: any }) => !spec.isEqual(local.raw, figma.raw),
+
+    buildPullPayload: (row: DiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaRaw }),
+  };
+}
+
+// ── Builder specs ─────────────────────────────────────────────────────────
+
+const VAR_SYNC_SPEC: SyncBuildersSpec = {
+  fromFigmaToken: (t) => ({ raw: String(t.$value ?? ''), type: String(t.$type ?? 'string') }),
+  fromLocalToken: (t) => ({ raw: String(t.$value), type: String(t.$type ?? 'string') }),
+  isEqual: (a, b) => a === b,
+  displayValue: (raw) => raw,
+};
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
@@ -73,25 +124,20 @@ function summarizeStyleValue(value: any, type: string): string {
   }
   return JSON.stringify(value).slice(0, 28);
 }
-function buildStyleFigmaMap(tokens: any[]) {
-  return new Map(tokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }]));
-}
-function buildStyleLocalMap(tokens: Map<string, any>) {
-  const m = new Map<string, { raw: any; type: string }>();
-  for (const [path, token] of tokens) {
-    const type = String(token.$type ?? 'string');
-    if (STYLE_TYPES.has(type)) m.set(path, { raw: token.$value, type });
-  }
-  return m;
-}
-const buildStyleLocalOnlyRow = (path: string, local: { raw: any; type: string }): StyleDiffRow =>
-  ({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type });
-const buildStyleFigmaOnlyRow = (path: string, figma: { raw: any; type: string }): StyleDiffRow =>
-  ({ path, cat: 'figma-only', figmaRaw: figma.raw, figmaValue: summarizeStyleValue(figma.raw, figma.type), figmaType: figma.type });
-const buildStyleConflictRow = (path: string, local: { raw: any; type: string }, figma: { raw: any; type: string }): StyleDiffRow =>
-  ({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figma.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figma.raw, figma.type), localType: local.type, figmaType: figma.type });
-const styleIsConflict = (local: { raw: any }, figma: { raw: any }) => JSON.stringify(figma.raw) !== JSON.stringify(local.raw);
-const buildStylePullPayload = (row: StyleDiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaRaw });
+
+const STYLE_SYNC_SPEC: SyncBuildersSpec = {
+  fromFigmaToken: (t) => ({ raw: t.$value, type: String(t.$type ?? 'string') }),
+  fromLocalToken: (t) => {
+    const type = String(t.$type ?? 'string');
+    if (!STYLE_TYPES.has(type)) return null;
+    return { raw: t.$value, type };
+  },
+  isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  displayValue: summarizeStyleValue,
+};
+
+const varBuilders = createSyncBuilders(VAR_SYNC_SPEC);
+const styleBuilders = createSyncBuilders(STYLE_SYNC_SPEC);
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 
@@ -135,16 +181,13 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   });
 
   // ── Extracted hooks ──
-  const varSync = useSyncEntity<VarDiffRow, VarSyncSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
+  const varSync = useSyncEntity<DiffRow, VarSyncSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
-    buildFigmaMap: buildVarFigmaMap, buildLocalMap: buildVarLocalMap,
-    buildLocalOnlyRow: buildVarLocalOnlyRow, buildFigmaOnlyRow: buildVarFigmaOnlyRow, buildConflictRow: buildVarConflictRow,
-    isConflict: varIsConflict,
+    ...varBuilders,
     buildApplyPayload: (rows) => ({
-      tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localValue ?? '', setName: activeSet })),
+      tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw ?? '', setName: activeSet })),
       collectionMap, modeMap,
     }),
-    buildPullPayload: buildVarPullPayload,
     buildRevertPayload: (snapshot) => ({ varSnapshot: snapshot }),
     onApplySuccess: (result) => {
       if ((result.overwritten ?? 0) > 0) {
@@ -158,13 +201,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     autoComputeOnConnect: true,
   });
 
-  const styleSync = useSyncEntity<StyleDiffRow, StyleSyncSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
+  const styleSync = useSyncEntity<DiffRow, StyleSyncSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
     progressEventType: 'style-sync-progress',
-    buildFigmaMap: buildStyleFigmaMap, buildLocalMap: buildStyleLocalMap,
-    buildLocalOnlyRow: buildStyleLocalOnlyRow, buildFigmaOnlyRow: buildStyleFigmaOnlyRow, buildConflictRow: buildStyleConflictRow,
-    isConflict: styleIsConflict,
+    ...styleBuilders,
     buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),
-    buildPullPayload: buildStylePullPayload,
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
     successMessage: 'Style sync applied', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Apply style sync',
     revertSuccessMessage: 'Style sync reverted', revertErrorMessage: 'Failed to revert style sync',
