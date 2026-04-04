@@ -97,3 +97,26 @@ Already up to date.
 
   Merging to main: ExportPanel live preview debounce
 Already up to date.
+[main 5c5ff321] chore(backlog): done – ExportPanel live preview debounce
+ 5 files changed, 58 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ExportPanel live preview debounce
+- Added 250ms debounced auto-re-export: when `results.length > 0` (preview is showing) and export-affecting settings change (`selected`, `cssSelector`, `selectedSets`, `selectedTypes`, `pathPrefix`, `changesOnly`, `diffPaths`, `connected`), the export automatically re-runs after 250ms idle, keeping the preview in sync without hammering the server on every keystroke/toggle.
+- Used "stable callback ref" pattern: `livePreviewFnRef.current = handleExport` on every render so the timer always calls the latest closure; `livePreviewHasResultsRef.current = results.length > 0` avoids putting `results` in deps (which would cause an infinite re-export loop since each export updates `results`).
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L811-L826
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  9 queued · 0
+0 in-progress · last took 8m33s
+═══════════════════════════════════════════════════════════════
+  → Manual snapshot restore has no concurrency guard — `manual-snapshot.ts:restore()` writes a restore journal then iterates sets, but two concurrent restore calls can interleave journal writes and corrupt state; needs a mutex (same promise-chain pattern as TokenStore/GitSync)
+  Worktree: /tmp/backlog-3108-ELW01Z
+  Running agent… (started 18:39:32)
+
+  ✓ done: Manual snapshot restore has no concurrency guard
+    Added promise-chain mutex (lockChain + withLock) to ManualSnapshotStore, serializing save(), delete(), and restore() to prevent concurrent restore interleaving journal writes
+    10 turns · 95s · $0.27
+
+  Merging to main: Manual snapshot restore has no concurrency guard
+Already up to date.

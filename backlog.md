@@ -109,11 +109,11 @@
 
 ### Performance
 
-- [~] ExportPanel live preview re-runs all format generators on every settings change without debounce — changing a single toggle synchronously rebuilds the full ZIP and all preview strings; for large token sets this causes visible jank; debounce the preview rebuild by ~250ms (ExportPanel.tsx)
+- [x] ExportPanel live preview re-runs all format generators on every settings change without debounce — changing a single toggle synchronously rebuilds the full ZIP and all preview strings; for large token sets this causes visible jank; debounce the preview rebuild by ~250ms (ExportPanel.tsx)
 
 ### Correctness & Safety
 
-- [ ] Manual snapshot restore has no concurrency guard — `manual-snapshot.ts:restore()` writes a restore journal then iterates sets, but two concurrent restore calls can interleave journal writes and corrupt state; needs a mutex (same promise-chain pattern as TokenStore/GitSync)
+- [~] Manual snapshot restore has no concurrency guard — `manual-snapshot.ts:restore()` writes a restore journal then iterates sets, but two concurrent restore calls can interleave journal writes and corrupt state; needs a mutex (same promise-chain pattern as TokenStore/GitSync)
 - [ ] Server resolver routes accept unvalidated request bodies and token rename routes skip path validation — POST /resolvers, POST /resolvers/from-themes, and PUT /resolvers/:name cast request.body directly to ResolverFile without validating required fields; token rename-preview endpoints (tokens.ts) check query params for truthiness but skip isValidTokenPath() validation that all other path-accepting endpoints use
 
 ### Accessibility

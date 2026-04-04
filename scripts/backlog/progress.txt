@@ -594,3 +594,11 @@
   - Never put `results` (the output of the export) in the auto-export effect's deps — it would trigger an infinite loop. Use a ref (`hasResultsRef.current`) to check for initial results without adding it to deps.
   - `changesOnly` and `diffPaths` should both be in deps: `changesOnly` toggles the mode, `diffPaths` carries the actual diff data and can change independently when the user refreshes the diff.
 ---
+
+## 2026-04-04 - Manual snapshot restore has no concurrency guard
+- Added promise-chain mutex (`lockChain` + `withLock`) to `ManualSnapshotStore` serializing all mutating operations: `save()`, `delete()`, and `restore()`. Concurrent `restore()` calls now queue behind each other so journal writes and token-set iteration never interleave.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L58-67 (lockChain field + withLock helper), ~L109 (save), ~L164 (delete), ~L253 (restore)
+- **Learnings for future iterations:**
+  - The mutex should cover all methods that write shared mutable state (snapshots array + disk files), not just the primary offender — `save()` and `delete()` both call `persist()` and mutate `this.snapshots`, so they need the same protection.
+  - `withLock` swallows errors in the chain tail (`lockChain = next.then(() => {}, () => {})`) so a failed operation doesn't permanently block subsequent callers.
+---

@@ -57,6 +57,13 @@ export class ManualSnapshotStore {
   private journalPath: string;
   private snapshots: ManualSnapshotEntry[] = [];
   private loadPromise: Promise<void> | null = null;
+  private lockChain: Promise<void> = Promise.resolve();
+
+  private withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.lockChain.then(() => fn());
+    this.lockChain = next.then(() => {}, () => {});
+    return next;
+  }
 
   constructor(tokenDir: string) {
     const tmDir = path.join(path.resolve(tokenDir), '.tokenmanager');
@@ -92,41 +99,43 @@ export class ManualSnapshotStore {
   }
 
   /** Capture the current state of all token sets. */
-  async save(label: string, tokenStore: TokenStore): Promise<ManualSnapshotEntry> {
-    await this.ensureLoaded();
+  save(label: string, tokenStore: TokenStore): Promise<ManualSnapshotEntry> {
+    return this.withLock(async () => {
+      await this.ensureLoaded();
 
-    const sets = await tokenStore.getSets();
-    const data: Record<string, Record<string, ManualSnapshotToken>> = {};
+      const sets = await tokenStore.getSets();
+      const data: Record<string, Record<string, ManualSnapshotToken>> = {};
 
-    for (const setName of sets) {
-      const setObj = await tokenStore.getSet(setName);
-      if (!setObj) continue;
-      const flat: Record<string, ManualSnapshotToken> = {};
-      for (const [p, token] of flattenTokenGroup(setObj.tokens)) {
-        flat[p] = {
-          $value: token.$value,
-          $type: token.$type,
-          $description: token.$description,
-          $extensions: token.$extensions,
-        };
+      for (const setName of sets) {
+        const setObj = await tokenStore.getSet(setName);
+        if (!setObj) continue;
+        const flat: Record<string, ManualSnapshotToken> = {};
+        for (const [p, token] of flattenTokenGroup(setObj.tokens)) {
+          flat[p] = {
+            $value: token.$value,
+            $type: token.$type,
+            $description: token.$description,
+            $extensions: token.$extensions,
+          };
+        }
+        data[setName] = flat;
       }
-      data[setName] = flat;
-    }
 
-    const entry: ManualSnapshotEntry = {
-      id: randomUUID(),
-      label,
-      timestamp: new Date().toISOString(),
-      data,
-    };
+      const entry: ManualSnapshotEntry = {
+        id: randomUUID(),
+        label,
+        timestamp: new Date().toISOString(),
+        data,
+      };
 
-    this.snapshots.push(entry);
-    if (this.snapshots.length > MAX_SNAPSHOTS) {
-      this.snapshots = this.snapshots.slice(this.snapshots.length - MAX_SNAPSHOTS);
-    }
+      this.snapshots.push(entry);
+      if (this.snapshots.length > MAX_SNAPSHOTS) {
+        this.snapshots = this.snapshots.slice(this.snapshots.length - MAX_SNAPSHOTS);
+      }
 
-    await this.persist();
-    return entry;
+      await this.persist();
+      return entry;
+    });
   }
 
   async list(): Promise<ManualSnapshotSummary[]> {
@@ -148,15 +157,17 @@ export class ManualSnapshotStore {
     return this.snapshots.find(s => s.id === id);
   }
 
-  async delete(id: string): Promise<boolean> {
-    await this.ensureLoaded();
-    const before = this.snapshots.length;
-    this.snapshots = this.snapshots.filter(s => s.id !== id);
-    if (this.snapshots.length < before) {
-      await this.persist();
-      return true;
-    }
-    return false;
+  delete(id: string): Promise<boolean> {
+    return this.withLock(async () => {
+      await this.ensureLoaded();
+      const before = this.snapshots.length;
+      this.snapshots = this.snapshots.filter(s => s.id !== id);
+      if (this.snapshots.length < before) {
+        await this.persist();
+        return true;
+      }
+      return false;
+    });
   }
 
   /** Compare two snapshots against each other (idA = "before", idB = "after"). */
@@ -237,39 +248,41 @@ export class ManualSnapshotStore {
   }
 
   /** Restore a snapshot by overwriting current token files. */
-  async restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
-    await this.ensureLoaded();
-    const snapshot = this.snapshots.find(s => s.id === id);
-    if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
+  restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
+    return this.withLock(async () => {
+      await this.ensureLoaded();
+      const snapshot = this.snapshots.find(s => s.id === id);
+      if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
 
-    // Write journal BEFORE touching any token files. On crash, startup reads this
-    // and replays the sets not yet in completedSets.
-    const journal: RestoreJournal = {
-      snapshotId: snapshot.id,
-      snapshotLabel: snapshot.label,
-      data: snapshot.data,
-      completedSets: [],
-    };
-    await this.writeRestoreJournal(journal);
-
-    const restoredSets: string[] = [];
-    // If this loop throws, the journal is left intact so startup recovery can
-    // replay the remaining sets. deleteRestoreJournal() only runs on success.
-    for (const [setName, flatTokens] of Object.entries(snapshot.data)) {
-      const items = Object.entries(flatTokens).map(([p, token]) => ({
-        path: p,
-        token: token as Token,
-      }));
-      await tokenStore.restoreSnapshot(setName, items);
-      restoredSets.push(setName);
-      // Advance the journal checkpoint after each successful set write.
-      journal.completedSets.push(setName);
+      // Write journal BEFORE touching any token files. On crash, startup reads this
+      // and replays the sets not yet in completedSets.
+      const journal: RestoreJournal = {
+        snapshotId: snapshot.id,
+        snapshotLabel: snapshot.label,
+        data: snapshot.data,
+        completedSets: [],
+      };
       await this.writeRestoreJournal(journal);
-    }
 
-    // All sets written — journal is no longer needed.
-    await this.deleteRestoreJournal();
-    return { restoredSets };
+      const restoredSets: string[] = [];
+      // If this loop throws, the journal is left intact so startup recovery can
+      // replay the remaining sets. deleteRestoreJournal() only runs on success.
+      for (const [setName, flatTokens] of Object.entries(snapshot.data)) {
+        const items = Object.entries(flatTokens).map(([p, token]) => ({
+          path: p,
+          token: token as Token,
+        }));
+        await tokenStore.restoreSnapshot(setName, items);
+        restoredSets.push(setName);
+        // Advance the journal checkpoint after each successful set write.
+        journal.completedSets.push(setName);
+        await this.writeRestoreJournal(journal);
+      }
+
+      // All sets written — journal is no longer needed.
+      await this.deleteRestoreJournal();
+      return { restoredSets };
+    });
   }
 
   /**
