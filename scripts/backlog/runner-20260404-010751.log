@@ -436,3 +436,10 @@ Already up to date.
   → No cross-set token move — moving a token from Set A to Set B requires deleting and recreating it, losing operation history; add a "Move to set…" action in the token context menu that atomically creates in the target set and removes from the source, updating alias references across all sets (TokenTreeNode.tsx context menu, server tokens.ts/sets.ts)
   Worktree: /tmp/backlog-92209-AEqYLw
   Running agent… (started 02:23:44)
+
+  ✓ done: No cross-set token move — moving a token from Set A to Set B requires deleting and recreating it, losing operation history; add a "Move to set…" action in the token context menu that atomically creates in the target set and removes from the source, updating alias references across all sets (TokenTreeNode.tsx context menu, server tokens.ts/sets.ts)
+    stale — already done; full implementation exists: context menu, modal dialog, POST /api/tokens/:set/tokens/move endpoint, TokenStore.moveToken() atomic op, and operation log recording
+    9 turns · 221s · $0.71
+
+  Merging to main: No cross-set token move — moving a token from Set A to Set B requires deleting and recreating it, losing operation history; add a "Move to set…" action in the token context menu that atomically creates in the target set and removes from the source, updating alias references across all sets (TokenTreeNode.tsx context menu, server tokens.ts/sets.ts)
+Already up to date.

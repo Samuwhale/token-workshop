@@ -448,3 +448,13 @@
   - `makeReferenceGlobalRegex()` uses `[^}]+` (1+ chars) so `m[1]` can't currently be `undefined` or `""`, but the guard is still the right defensive move — the regex could change, and malformed paths like `{.}` still produce a string that poisons the dependency graph
   - `TOKEN_TYPE_VALUES` (a `Set<string>`) is the canonical membership check for valid token types; use `.has()` rather than casting `as TokenType` at any external/untrusted data boundary
 ---
+
+## 2026-04-04 - No cross-set token move — atomic "Move to set…" action
+- Feature already fully implemented. No changes needed.
+- The context menu "Move to set..." button in TokenTreeNode.tsx calls `onRequestMoveToken` → `handleRequestMoveToken` (useTokenCrud.ts) → opens a modal (TokenListModals.tsx) → calls `POST /api/tokens/:set/tokens/move` → `TokenStore.moveToken()` atomically moves the token and saves both sets → `operationLog.record()` logs it for undo.
+- Alias references don't need rewriting because the token path stays identical across sets — alias resolution (`flatTokens`) covers all sets, so `{path}` refs continue to resolve correctly after a move.
+- All 4 validation gates pass (tests, build, lint, UI).
+- **Learnings for future iterations:**
+  - Token path doesn't change during a cross-set move, so aliases automatically resolve to the new location without any reference rewriting.
+  - The move endpoint, dialog, and operation log were all pre-existing; the backlog item predates this implementation.
+---
