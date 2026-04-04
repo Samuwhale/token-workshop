@@ -5,6 +5,7 @@ import type { TokenListImperativeHandle } from './components/tokenListTypes';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
+import type { ThemeManagerHandle } from './components/ThemeManager';
 import { ResolverPanel } from './components/ResolverPanel';
 import { UnifiedComparePanel } from './components/UnifiedComparePanel';
 import { PublishPanel } from './components/PublishPanel';
@@ -454,6 +455,9 @@ export function App() {
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
+  // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
+  const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
+  const [themeGapCount, setThemeGapCount] = useState(0);
   // Open unified compare tab in 'tokens' mode with the given paths pre-loaded
   const handleOpenTokenCompare = useCallback((paths: Set<string>) => {
     setCompareTokenPaths(paths);
@@ -995,6 +999,19 @@ export function App() {
         handler: () => navigateTo('define', 'themes'),
       },
       {
+        id: 'autofill-theme-gaps',
+        label: 'Auto-fill theme gaps',
+        description: themeGapCount > 0
+          ? `Fill ${themeGapCount} missing token value${themeGapCount !== 1 ? 's' : ''} from source sets`
+          : 'No fillable gaps detected — open Themes to run a coverage check',
+        category: 'Themes',
+        handler: () => {
+          navigateTo('define', 'themes');
+          // Small delay so ThemeManager has time to mount / receive focus before the modal opens
+          setTimeout(() => { themeManagerHandleRef.current?.autoFillAllGaps(); }, 150);
+        },
+      },
+      {
         id: 'resolver',
         label: 'Open DTCG Resolver',
         description: 'Configure DTCG v2025.10 resolver rules and preview resolved tokens',
@@ -1102,7 +1119,7 @@ export function App() {
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
     ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {
@@ -2614,7 +2631,7 @@ export function App() {
               )}
               <div className="flex-1 overflow-hidden">
                 <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} resolverState={{
+                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} onGapsDetected={setThemeGapCount} themeManagerHandle={themeManagerHandleRef} resolverState={{
                     serverUrl,
                     connected,
                     sets,

@@ -492,3 +492,15 @@
   - `Promise.allSettled` returns results with `.status === 'rejected'` for failures; check these before proceeding to destructive follow-up steps.
   - For sequential restore loops (styleSync.ts), a non-empty `failures` array after the loop is the equivalent guard.
 ---
+
+## 2026-04-04 - ThemeManager "Auto-fill" feature is buried and unnamed
+- Added command palette entry "Auto-fill theme gaps" in App.tsx baseCommands (category: 'Themes') that navigates to Themes and triggers auto-fill for the first dimension with fillable gaps, showing the confirmation modal.
+- Added `ThemeManagerHandle` exported interface and two new props (`onGapsDetected`, `themeManagerHandle`) to ThemeManager.tsx, wired via ref + callback to App.tsx.
+- Added `totalFillableGaps` useMemo across all dimensions/options in ThemeManager.
+- Added a global "X gaps can be auto-filled" suggestion banner above the dimension card list (visible without expanding any section) with an "Auto-fill gaps" button.
+- Added a single-option fill banner at the dimension level (visible without expanding coverage accordion) when only one option has fillable gaps — previously only the cross-option banner showed for multi-option gaps.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L30-68 (interface+props), ~L330-367 (useMemo+effects), ~L1124-1153 (global banner), ~L1407-1425 (single-option banner); `packages/figma-plugin/src/ui/App.tsx` ~L8 (import), ~L459-461 (ref+state), ~L994-1007 (command entry), ~L1122 (dep array), ~L2650 (ThemeManager props)
+- **Learnings for future iterations:**
+  - The `useRef` + `useEffect` imperative handle pattern works cleanly for exposing internal component actions (like showing a modal) to the command palette without lifting state — declare `handleXxxRef = useRef(fn)`, assign `.current = fn` on every render (callback ref), and populate the handle's method using `handleXxxRef.current()` inside the effect closure to avoid stale captures.
+  - For conditional command descriptions (showing gap count), add the state to the `useMemo` dependency array of `baseCommands` — the TypeScript linter does not warn about missing deps in `useMemo`, so this is easy to miss.
+---

@@ -570,3 +570,10 @@ Already up to date.
   → ThemeManager "Auto-fill" feature is buried and unnamed — the auto-fill capability (filling token gaps across theme options) is hidden inside the coverage analysis section with no command palette entry, no keyboard shortcut, and no mention in the guided setup; add a command palette entry "Auto-fill theme gaps" and surface it as a suggested action when coverage analysis detects gaps (ThemeManager.tsx auto-fill section, App.tsx command palette)
   Worktree: /tmp/backlog-91949-O6NHSB
   Running agent… (started 03:13:14)
+
+  ✓ done: ThemeManager "Auto-fill" feature is buried and unnamed
+    Added "Auto-fill theme gaps" command palette entry (App.tsx), exported ThemeManagerHandle for imperative control, added global gap suggestion banner above dimension cards, and added single-option gap banner at dimension level — all gates pass.
+    36 turns · 387s · $1.12
+
+  Merging to main: ThemeManager "Auto-fill" feature is buried and unnamed
+Already up to date.

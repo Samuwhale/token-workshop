@@ -27,6 +27,11 @@ const STATE_DESCRIPTIONS: Record<string, string> = {
   enabled: 'Highest priority — these tokens override Base set values',
 };
 
+export interface ThemeManagerHandle {
+  /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
+  autoFillAllGaps: () => void;
+}
+
 interface ThemeManagerProps {
   serverUrl: string;
   connected: boolean;
@@ -41,6 +46,10 @@ interface ThemeManagerProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token path → owning set name (for ThemeCompare) */
   pathToSet?: Record<string, string>;
+  /** Called whenever the total count of auto-fillable token gaps changes. */
+  onGapsDetected?: (count: number) => void;
+  /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
+  themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
 }
 
 
@@ -53,7 +62,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {} }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, themeManagerHandle }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
@@ -318,6 +327,38 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleAutoFillSingle, handleAutoFillAll, executeAutoFillAll,
     handleAutoFillAllOptions, executeAutoFillAllOptions,
   } = useThemeAutoFill({ serverUrl, dimensions, coverage, debouncedFetchDimensions, setError });
+
+  // Total fillable gaps across all dimensions and options
+  const totalFillableGaps = useMemo(() => {
+    let total = 0;
+    for (const dimCoverage of Object.values(coverage)) {
+      for (const optCoverage of Object.values(dimCoverage)) {
+        total += optCoverage.uncovered.filter(i => i.missingRef && i.fillValue !== undefined).length;
+      }
+    }
+    return total;
+  }, [coverage]);
+
+  useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
+
+  // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
+  const handleAutoFillAllRef = useRef(handleAutoFillAllOptions);
+  handleAutoFillAllRef.current = handleAutoFillAllOptions;
+  useEffect(() => {
+    if (!themeManagerHandle) return;
+    themeManagerHandle.current = {
+      autoFillAllGaps: () => {
+        const dimWithGaps = dimensions.find(dim => {
+          const dimCov = coverage[dim.id] ?? {};
+          return Object.values(dimCov).some(opt =>
+            opt.uncovered.some(i => i.missingRef && i.fillValue !== undefined),
+          );
+        });
+        if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
+      },
+    };
+    return () => { themeManagerHandle.current = null; };
+  }, [themeManagerHandle, dimensions, coverage]);
 
   // --- Create dimension ---
 
@@ -1080,6 +1121,38 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             )}
 
+            {/* Global auto-fill suggestion banner — visible without expanding any section */}
+            {totalFillableGaps > 0 && (
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/8">
+                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <span>
+                    <strong>{totalFillableGaps}</strong> gap{totalFillableGaps !== 1 ? 's' : ''} can be auto-filled from source sets
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    const dimWithGaps = dimensions.find(dim => {
+                      const dimCov = coverage[dim.id] ?? {};
+                      return Object.values(dimCov).some(opt =>
+                        opt.uncovered.some(i => i.missingRef && i.fillValue !== undefined),
+                      );
+                    });
+                    if (dimWithGaps) handleAutoFillAllOptions(dimWithGaps.id);
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors shrink-0"
+                  title={`Auto-fill ${totalFillableGaps} missing token${totalFillableGaps !== 1 ? 's' : ''} — opens confirmation dialog`}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  Auto-fill gaps
+                </button>
+              </div>
+            )}
+
             {/* Dimension layer cards */}
             <div className="flex flex-col">
               {filteredDimensions.map((dim) => {
@@ -1328,6 +1401,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           </div>
                         )}
                         {addOptionErrors[dim.id] && <p role="alert" className="text-[10px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
+                      </div>
+                    )}
+
+                    {/* Single-option fill banner — surfaced at dimension level so it's visible without expanding coverage */}
+                    {!multiOptionGaps && totalDimFillable > 0 && (
+                      <div className="flex items-center justify-between px-3 py-1.5 border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span>{totalDimFillable} gap{totalDimFillable !== 1 ? 's' : ''} in "{optionsWithGaps[0]?.name}"</span>
+                        </div>
+                        <button
+                          onClick={() => optionsWithGaps[0] && handleAutoFillAll(dim.id, optionsWithGaps[0].name)}
+                          disabled={fillingKeys.has(`${dim.id}:${optionsWithGaps[0]?.name}:__all__`)}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          title={`Auto-fill ${totalDimFillable} token${totalDimFillable !== 1 ? 's' : ''} from source sets`}
+                        >
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                          {fillingKeys.has(`${dim.id}:${optionsWithGaps[0]?.name}:__all__`) ? 'Filling…' : `Fill from source (${totalDimFillable})`}
+                        </button>
                       </div>
                     )}
 

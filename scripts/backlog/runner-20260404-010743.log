@@ -555,3 +555,18 @@ Already up to date.
 
   Merging to main: Plugin revert functions delete created variables/styles even when restores fail
 Already up to date.
+[main cc7ffa99] chore(backlog): done – Plugin revert functions delete created variables/styles even when restores fail
+ 6 files changed, 60 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Plugin revert functions delete created variables/styles even when restores fail
+- Added a guard in `revertVariables` (variableSync.ts) to skip the deletion phase when any restore `Promise.allSettled` result is rejected. The `restoresFailed` check wraps the entire deletion block (variables + collections) in an `else` branch.
+- Added a guard in `revertStyles` (styleSync.ts) to skip the deletion phase when the `failures` array is non-empty after the restore loop. The delete loop is wrapped in an `else` branch.
+- Both cases log a console.error explaining that deletions were skipped, so the partial rollback is visible in Figma DevTools.
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  8 queued · 3 in-progress · last took 1m13s
+═══════════════════════════════════════════════════════════════
+  → Generator step override UX requires API knowledge — overriding individual steps in a generator (e.g., pinning a specific color in a ramp) requires knowing the step name and using the override API endpoints; the GeneratorPipelineCard shows steps but doesn't offer inline click-to-override on individual generated values; add click-to-pin on each step's preview swatch/value in the pipeline card (GeneratorPipelineCard.tsx step rendering, generators.ts override endpoints)
+  Worktree: /tmp/backlog-91634-TnzwYu
+  Running agent… (started 03:19:28)
