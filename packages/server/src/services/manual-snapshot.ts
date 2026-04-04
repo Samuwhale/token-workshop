@@ -21,6 +21,8 @@ interface RestoreJournal {
   data: Record<string, Record<string, ManualSnapshotToken>>;
   /** Set names that have already been fully written to disk */
   completedSets: string[];
+  /** Number of consecutive recovery failures per set — sets reaching MAX_RECOVERY_RETRIES are quarantined */
+  failedSets?: Record<string, number>;
 }
 
 export interface ManualSnapshotEntry {
@@ -48,6 +50,7 @@ export interface TokenDiff {
 }
 
 const MAX_SNAPSHOTS = 20;
+const MAX_RECOVERY_RETRIES = 3;
 
 export class ManualSnapshotStore {
   private filePath: string;
@@ -302,7 +305,20 @@ export class ManualSnapshotStore {
       `(${journal.snapshotId}): replaying ${pending.length} set(s): ${pending.join(', ')}`
     );
 
+    if (!journal.failedSets) journal.failedSets = {};
+
+    let allResolved = true;
     for (const setName of pending) {
+      const retries = journal.failedSets[setName] ?? 0;
+      if (retries >= MAX_RECOVERY_RETRIES) {
+        console.error(
+          `[ManualSnapshotStore] Set "${setName}" has failed recovery ${retries} time(s) — ` +
+          `skipping (quarantined). Manual intervention required.`
+        );
+        // Count as resolved so we don't block journal cleanup forever
+        continue;
+      }
+
       const flatTokens = journal.data[setName];
       const items = Object.entries(flatTokens).map(([p, token]) => ({
         path: p,
@@ -313,12 +329,19 @@ export class ManualSnapshotStore {
         journal.completedSets.push(setName);
         await this.writeRestoreJournal(journal);
       } catch (err) {
-        console.error(`[ManualSnapshotStore] Recovery failed for set "${setName}":`, err);
-        // Leave the journal — retry on next startup
-        return;
+        console.error(
+          `[ManualSnapshotStore] Recovery failed for set "${setName}" ` +
+          `(attempt ${retries + 1}/${MAX_RECOVERY_RETRIES}):`,
+          err
+        );
+        journal.failedSets[setName] = retries + 1;
+        await this.writeRestoreJournal(journal);
+        allResolved = false;
       }
     }
 
-    await this.deleteRestoreJournal();
+    if (allResolved) {
+      await this.deleteRestoreJournal();
+    }
   }
 }

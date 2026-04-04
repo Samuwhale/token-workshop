@@ -112,3 +112,12 @@
   - Array-valued DTCG tokens (shadow arrays, gradient stops) have `$value` set to an array — `isDTCGToken` returns true for them because `'$value' in value`. The bug only affected the case where a *non-token* object happened to be an array (which shouldn't exist in valid DTCG, but defensive coding is still correct).
   - Group nodes and token nodes should carry the same optional metadata fields ($type, $description, $extensions) — omitting $extensions on groups was the subtle inconsistency.
 ---
+
+## 2026-04-04 - Manual snapshot recovery retries the same failed set infinitely on every server startup
+- Added `failedSets?: Record<string, number>` to `RestoreJournal` to track per-set retry counts. In `recoverPendingRestore`, sets at or above `MAX_RECOVERY_RETRIES` (3) are quarantined with a console.error and skipped. Sets below the threshold are attempted; on failure the counter is incremented and persisted to the journal. Recovery now iterates all pending sets instead of returning on first failure (`allResolved` flag). The journal is deleted only when all pending sets are either completed or quarantined.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L17-24 (interface), ~L51 (constant), ~L308-345 (recoverPendingRestore loop)
+- **Learnings for future iterations:**
+  - Quarantined sets use `continue` (not `return`) so other pending sets still get their chance — important to process all sets in one startup pass.
+  - Writing the updated `failedSets` count back to the journal immediately after each failure ensures the counter survives another crash mid-recovery.
+  - `allResolved` starts `true` and flips `false` only on an actual failure (not on quarantine) — quarantined sets are intentionally "resolved" so they don't block journal cleanup indefinitely.
+---
