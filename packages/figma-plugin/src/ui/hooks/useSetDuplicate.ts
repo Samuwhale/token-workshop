@@ -25,22 +25,14 @@ export function useSetDuplicate({
   const handleDuplicateSet = async (setName: string) => {
     setTabMenuOpen(null);
     if (!connected) return;
-    let newName = `${setName}-copy`;
-    let i = 2;
-    while (sets.includes(newName)) {
-      newName = `${setName}-copy-${i++}`;
-    }
-    let savedTokens: Record<string, unknown> = {};
+    let newName: string;
     try {
       const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
-      const data = await apiFetch<{ tokens: Record<string, unknown> }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
-      savedTokens = data.tokens || {};
-      await apiFetch(`${serverUrl}/api/sets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, tokens: data.tokens }),
-        signal,
-      });
+      const result = await apiFetch<{ ok: true; name: string; originalName: string }>(
+        `${serverUrl}/api/sets/${encodeURIComponent(setName)}/duplicate`,
+        { method: 'POST', signal },
+      );
+      newName = result.name;
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -50,7 +42,6 @@ export function useSetDuplicate({
     setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
     const url = serverUrl;
     const dupName = newName;
-    const dupTokens = savedTokens;
     pushUndo({
       description: `Duplicated set "${setName}" → "${dupName}"`,
       restore: async () => {
@@ -58,10 +49,10 @@ export function useSetDuplicate({
         refreshTokens();
       },
       redo: async () => {
-        await apiFetch(`${url}/api/sets`, {
+        await apiFetch(`${url}/api/sets/${encodeURIComponent(setName)}/duplicate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: dupName, tokens: dupTokens }),
+          body: JSON.stringify({ newName: dupName }),
         });
         refreshTokens();
       },

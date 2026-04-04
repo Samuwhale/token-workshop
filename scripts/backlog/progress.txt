@@ -310,3 +310,13 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: The product has strong keyboard-first UX and comprehensive batch operations, but several panels (Compare, Health, Analytics) are read-only with no quick-fix actions — users must navigate away to resolve issues they've just identified, breaking flow. The publish step also lacks a dry-run preview, which is a significant gap for a sync operation that mutates Figma state.
 ---
+
+## 2026-04-04 - Duplicate token set
+- Added `POST /api/sets/:name/duplicate` server route in `packages/server/src/routes/sets.ts`. The route auto-generates a unique name (`{name}-copy`, `-copy-2`, etc.) or accepts an explicit `newName` in the body. It deep-copies the full token group (which includes `$description`, `$figmaCollection`, `$figmaMode` metadata fields stored inline), records to the operation log with rollback step `delete-set`, and returns `{ ok, name, originalName }`.
+- Updated `useSetDuplicate.ts` hook to use the new single-request `POST /api/sets/:name/duplicate` instead of the previous two-request GET+POST flow. Redo also uses the duplicate route with explicit `newName`.
+- The UI (SetSwitcher.tsx manage view + App.tsx tab context menu) was already wired to `handleDuplicateSet` — no UI changes needed.
+- Files changed: `packages/server/src/routes/sets.ts` ~L188, `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` ~L25
+- **Learnings for future iterations:**
+  - Metadata (`$description`, `$figmaCollection`, `$figmaMode`) is stored as special `$`-prefixed fields directly in the token group object. A deep-copy of `source.tokens` automatically copies all metadata — no need for separate metadata calls.
+  - The `/api/sets/:name/duplicate` route must be registered BEFORE `/api/sets/:name` DELETE route — Fastify matches by registration order and both match the same URL pattern if not careful (though method differs here, it's good hygiene).
+---

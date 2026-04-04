@@ -184,6 +184,57 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // POST /api/sets/:name/duplicate — duplicate a set (copies tokens + metadata)
+  fastify.post<{ Params: { name: string }; Body?: { newName?: string } }>('/sets/:name/duplicate', async (request, reply) => {
+    const { name } = request.params;
+    const requestedName = request.body?.newName;
+
+    return withLock(async () => {
+      try {
+        const source = await fastify.tokenStore.getSet(name);
+        if (!source) {
+          return reply.status(404).send({ error: `Token set "${name}" not found` });
+        }
+
+        // Auto-generate a unique name if not provided
+        let newName = requestedName;
+        if (!newName) {
+          const allSets = await fastify.tokenStore.getSets();
+          newName = `${name}-copy`;
+          let i = 2;
+          while (allSets.includes(newName)) {
+            newName = `${name}-copy-${i++}`;
+          }
+        } else {
+          if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+            return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
+          }
+          const existing = await fastify.tokenStore.getSet(newName);
+          if (existing) {
+            return reply.status(409).send({ error: `Token set "${newName}" already exists` });
+          }
+        }
+
+        // Deep-copy tokens (includes $description, $figmaCollection, $figmaMode metadata fields)
+        const tokensCopy = JSON.parse(JSON.stringify(source.tokens));
+        const set = await fastify.tokenStore.createSet(newName, tokensCopy);
+        const afterSnap = await snapshotSet(fastify.tokenStore, newName);
+        await fastify.operationLog.record({
+          type: 'set-create',
+          description: `Duplicate set "${name}" → "${newName}"`,
+          setName: newName,
+          affectedPaths: Object.keys(afterSnap),
+          beforeSnapshot: {},
+          afterSnapshot: afterSnap,
+          rollbackSteps: [{ action: 'delete-set', name: newName }],
+        });
+        return reply.status(201).send({ ok: true, name: set.name, originalName: name });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to duplicate set');
+      }
+    });
+  });
+
   // DELETE /api/sets/:name — delete a set
   fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
     const { name } = request.params;
