@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
 
@@ -20,6 +21,18 @@ export function ImportConflictResolver() {
     clearConflictState,
     executeImport,
   } = useImportPanel();
+
+  // Stable-ref pattern: handler is replaced each render so it always captures fresh closures
+  const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => handlerRef.current?.(e);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // Clear handler when no conflicts so shortcuts are inactive
+  handlerRef.current = null;
 
   if (!conflictPaths || conflictPaths.length === 0) return null;
 
@@ -51,6 +64,19 @@ export function ImportConflictResolver() {
     setConflictDecisions(next);
   };
 
+  // Register keyboard handler with current-render closures
+  handlerRef.current = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      if (!importing) clearConflictState();
+      return;
+    }
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (e.key === 'a' || e.key === 'A') { e.preventDefault(); applyToVisible('accept'); }
+    else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); applyToVisible('merge'); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); applyToVisible('reject'); }
+  };
+
   const conflictTypes = new Set<string>();
   for (const p of conflictPaths) {
     const t = tokens.find(tk => tk.path === p);
@@ -71,18 +97,24 @@ export function ImportConflictResolver() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => applyToVisible('accept')}
+            title={`Accept ${hasActiveFilter ? 'visible' : 'all'} (A)`}
+            aria-keyshortcuts="a"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10 transition-colors"
           >
             Accept{hasActiveFilter ? ' visible' : ' all'}
           </button>
           <button
             onClick={() => applyToVisible('merge')}
+            title={`Merge ${hasActiveFilter ? 'visible' : 'all'} (M)`}
+            aria-keyshortcuts="m"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
           >
             Merge{hasActiveFilter ? ' visible' : ' all'}
           </button>
           <button
             onClick={() => applyToVisible('reject')}
+            title={`Reject ${hasActiveFilter ? 'visible' : 'all'} (R)`}
+            aria-keyshortcuts="r"
             className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30 transition-colors"
           >
             Reject{hasActiveFilter ? ' visible' : ' all'}
@@ -144,7 +176,11 @@ export function ImportConflictResolver() {
                   <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
                     {path}
                   </span>
-                  <div className="shrink-0 flex items-center rounded overflow-hidden border border-[var(--color-figma-border)]">
+                  <div
+                    role="group"
+                    aria-label={`Resolution for ${path}`}
+                    className="shrink-0 flex items-center rounded overflow-hidden border border-[var(--color-figma-border)]"
+                  >
                     {(['accept', 'merge', 'reject'] as const).map((d, i) => (
                       <button
                         key={d}
@@ -153,6 +189,7 @@ export function ImportConflictResolver() {
                           next.set(path, d);
                           setConflictDecisions(next);
                         }}
+                        aria-pressed={decision === d}
                         title={
                           d === 'accept'
                             ? 'Accept: overwrite existing value with incoming'
@@ -245,6 +282,8 @@ export function ImportConflictResolver() {
       <button
         onClick={() => clearConflictState()}
         disabled={importing}
+        title="Revise selection (Esc)"
+        aria-keyshortcuts="Escape"
         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
       >
         Revise selection

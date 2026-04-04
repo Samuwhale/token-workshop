@@ -320,3 +320,26 @@ Already up to date.
 
   Merging to main: No success feedback after ThemeManager and ResolverPanel mutations
 Already up to date.
+[main 1330b717] chore(backlog): done – No success feedback after ThemeManager and ResolverPanel mutations
+ 7 files changed, 57 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No success feedback after ThemeManager and ResolverPanel mutations
+- Added `onSuccess?: (msg: string) => void` prop to `ThemeManagerProps` and `ResolverContentProps`
+- Called `onSuccess?.(...)` after each successful mutation:
+  - ThemeManager: create dimension ("Created dimension \"${name}\""), rename dimension ("Renamed dimension to \"${name}\""), rename option ("Renamed option to \"${name}\""), add option ("Added option \"${name}\"")
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  5 queued · 0
+0 in-progress · last took 3m50s
+═══════════════════════════════════════════════════════════════
+  → Import panel lacks Escape key handling and keyboard shortcuts for bulk actions — ImportPanel.tsx, ImportSourceSelector.tsx, and ImportConflictResolver.tsx have no onKeyDown handlers for Escape to go back or cancel; the conflict resolver's bulk action buttons (Accept all, Merge all, Reject all at ImportConflictResolver.tsx:72-89) have no keyboard shortcuts; and the per-token cycling button has no keyboard alternative to clicking (violates: flexibility and efficiency of use, accessibility)
+  Worktree: /tmp/backlog-3108-cWX2W9
+  Running agent… (started 19:30:13)
+
+  ✓ done: Import panel lacks Escape key handling and keyboard shortcuts for bulk actions
+    Added Escape handlers to all three components (ImportConflictResolver, ImportPanel, ImportSourceSelector) plus A/M/R bulk-action keyboard shortcuts and ARIA attributes (aria-pressed, role=group, aria-keyshortcuts) to ImportConflictResolver.
+    30 turns · 451s · $1.11
+
+  Merging to main: Import panel lacks Escape key handling and keyboard shortcuts for bulk actions
+Already up to date.

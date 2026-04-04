@@ -718,3 +718,18 @@
   - `resolverState` in ThemeManagerProps is typed as `ResolverContentProps` — when adding new props to `ResolverContentProps`, they must also be forwarded at the `<ResolverContent {...resolverState} />` call site inside ThemeManager if they should be active in the embedded advanced mode view
   - The `useCallback` dep array must include `onSuccess` (or any prop-derived callback) to avoid stale closures
 ---
+
+## 2026-04-04 - Import panel lacks Escape key handling and keyboard shortcuts for bulk actions
+- Added keyboard handling across all three Import components:
+  - **ImportConflictResolver.tsx**: global `keydown` listener via `useEffect` + stable-ref pattern. Escape → `clearConflictState()` (= Revise selection, blocked while importing). `a`/`A` → Accept all/visible, `m`/`M` → Merge all/visible, `r`/`R` → Reject all/visible (suppressed when focus is in INPUT/SELECT/TEXTAREA). Added `title` + `aria-keyshortcuts` to bulk action buttons. Added `role="group"` + `aria-label` to per-token decision toggle groups. Added `aria-pressed` to each toggle button. Added `title="Revise selection (Esc)"` + `aria-keyshortcuts="Escape"` to the Revise button.
+  - **ImportPanel.tsx** (ImportPanelRoot): global `keydown` listener. Escape → `handleBack()` when variables/token-list view is active and no active conflicts; Escape → `clearSuccessState()` when success view is active. Moved derived-state and hook declarations before the `if (!connected)` early return for correct hook ordering.
+  - **ImportSourceSelector.tsx**: `useEffect` keydown listener on `handleBack` dep. Escape → `handleBack()` (no-op from initial state, but consistent and future-safe).
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx` ~L1-20 (imports + refs + handler)
+  - `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L1-51 (imports + escape logic)
+  - `packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx` ~L1-30 (import + effect)
+- **Learnings for future iterations:**
+  - The `handlerRef.current = null` reset at the top of a component body (before any early return) is the clean way to ensure a globally-registered handler is inactive when the component renders null/is in an irrelevant state.
+  - When a global keydown handler needs to stay inactive during a sibling handler's active period, use the ref pattern to assign `null` and check with `?.()` — no need for event.stopPropagation across separate addEventListener calls.
+  - `aria-keyshortcuts` on buttons documents keyboard shortcuts to AT users without changing visual appearance; pair with a `title` attribute for sighted users.
+---

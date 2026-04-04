@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 
 export function ImportSourceSelector() {
@@ -16,7 +17,17 @@ export function ImportSourceSelector() {
     cssFileInputRef,
     tailwindFileInputRef,
     tokensStudioFileInputRef,
+    handleBack,
   } = useImportPanel();
+
+  // Escape cancels/goes back (no-op from the initial state, but consistent with other views)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleBack();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [handleBack]);
 
   return (
     <div className="flex flex-col gap-2">

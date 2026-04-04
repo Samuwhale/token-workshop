@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Spinner } from './Spinner';
 import { ImportPanelProvider, useImportPanel, type ImportPanelProps } from './ImportPanelContext';
 import { ImportSourceSelector } from './ImportSourceSelector';
@@ -17,11 +18,37 @@ function ImportPanelRoot() {
     source,
     successMessage,
     isDragging,
+    conflictPaths,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    handleBack,
+    clearSuccessState,
   } = useImportPanel();
+
+  const showSourceSelector = collectionData.length === 0 && tokens.length === 0 && !loading && !successMessage;
+  const showSuccess = collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage;
+  const showVariables = collectionData.length > 0 && !loading;
+  const showTokenList = tokens.length > 0 && !loading;
+
+  // Escape key: go back from data views or dismiss success screen.
+  // Let ImportConflictResolver handle Escape when conflicts are active.
+  const escapeRef = useRef<(() => void) | null>(null);
+  escapeRef.current = null;
+  if (showSuccess) {
+    escapeRef.current = clearSuccessState;
+  } else if ((showVariables || showTokenList) && (!conflictPaths || conflictPaths.length === 0)) {
+    escapeRef.current = handleBack;
+  }
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') escapeRef.current?.();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   if (!connected) {
     return (
@@ -30,11 +57,6 @@ function ImportPanelRoot() {
       </div>
     );
   }
-
-  const showSourceSelector = collectionData.length === 0 && tokens.length === 0 && !loading && !successMessage;
-  const showSuccess = collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage;
-  const showVariables = collectionData.length > 0 && !loading;
-  const showTokenList = tokens.length > 0 && !loading;
 
   return (
     <div
