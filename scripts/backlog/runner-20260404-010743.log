@@ -510,3 +510,10 @@ Already up to date.
   → No keyboard navigation between token tree nodes — the token list supports mouse interaction, drag-drop, and context menus, but arrow-key navigation through the tree (up/down to move between siblings, right to expand, left to collapse, Enter to edit) is not implemented; this is a standard tree-view accessibility pattern and a major productivity gap for keyboard-heavy users (TokenList.tsx, TokenTreeNode.tsx, TokenTreeContext.tsx)
   Worktree: /tmp/backlog-91634-x8zJIv
   Running agent… (started 03:12:07)
+
+  ✓ done: No keyboard navigation between token tree nodes
+    stale — already done; full arrow-key navigation (↑/↓/←/→), Enter to edit, Shift+arrow range select, and Cmd+←/→ expand/collapse all are implemented in TokenList.tsx:1277-1383 and TokenTreeNode.tsx:1058-1101
+    8 turns · 121s · $0.41
+
+  Merging to main: No keyboard navigation between token tree nodes
+Already up to date.

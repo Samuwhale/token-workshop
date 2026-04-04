@@ -657,3 +657,18 @@ Already up to date.
 
   Merging to main: LintConfigPanel has no per-set or per-group rule scoping
 Already up to date.
+[main cf28aeeb] chore(backlog): done – LintConfigPanel has no per-set or per-group rule scoping
+ 9 files changed, 302 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - LintConfigPanel has no per-set or per-group rule scoping
+- Added `excludePaths?: string[]` and `setOverrides?: Record<string, LintRuleSetOverride>` to `LintRuleConfig` in both server service and client hook
+- Added `LintRuleSetOverride` interface (enabled?, severity?, options?)
+- Added `resolveRuleForSet(rule, setName)` helper in lint.ts that merges global rule with per-set override before running
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  6 queued · 3 in-progress · last took 6m30s
+═══════════════════════════════════════════════════════════════
+  → No unified "token health" dashboard — lint violations, canvas coverage gaps, stale generators, broken aliases, and unused tokens are each discoverable through separate panels (Validation, Canvas Audit, Generators, Token Flow); a single health summary showing all actionable issues in one place would eliminate checking 4+ panels to understand overall token quality; surface as a status bar widget or command palette summary (AnalyticsPanel.tsx, HeatmapPanel.tsx, GeneratorPipelineCard.tsx staleness, TokenFlowPanel.tsx)
+  Worktree: /tmp/backlog-92209-ke0GBN
+  Running agent… (started 03:13:41)
