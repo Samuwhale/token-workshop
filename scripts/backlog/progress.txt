@@ -482,3 +482,15 @@
   - The "Re-run stale" button uses yellow accent styling (`border-yellow-400/60 text-yellow-700`) to visually echo the stale card border, creating a consistent color language
   - Disabling both bulk-run buttons while either is running prevents race conditions without needing a shared mutex
 ---
+
+## 2026-04-04 - Snapshot save input has no default name
+- Added `defaultSnapshotLabel(lastOpDescription?)` helper function that returns "Before [operation]" when a recent operation exists, or "Snapshot YYYY-MM-DD HH:mm" as fallback.
+- Timeline toolbar ("Save state" button): pre-populates `saveLabel` with the last operation's description before showing the input; falls back to date/time format when no operations are available.
+- SnapshotsSource ("Save current state" button): pre-populates `labelInput` with date/time format.
+- Both inputs: added `onFocus={e => e.target.select()}` so the default text is selected on focus — users can immediately type to replace it.
+- Updated placeholder text from "Snapshot label (optional)" / "Label (optional)" to "Snapshot label" since the field now always has a pre-populated value.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L120 (helper), ~L477 (timeline button), ~L449 (timeline input), ~L2147 (SnapshotsSource button), ~L2183 (SnapshotsSource input)
+- **Learnings for future iterations:**
+  - Pre-populating + select-all-on-focus is the right pattern for "quick save" forms — users either confirm the default (Enter) or immediately type to replace it.
+  - `onFocus={e => e.target.select()}` works reliably with `autoFocus` in React.
+---

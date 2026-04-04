@@ -422,3 +422,18 @@ Already up to date.
 
   Merging to main: Generator stale indicators not surfaced
 Already up to date.
+[main 4bc7b57a] chore(backlog): done – Generator stale indicators not surfaced
+ 6 files changed, 126 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator stale indicators not surfaced
+- The per-card stale badge was already implemented in `GeneratorPipelineCard.tsx` (yellow border + "Needs re-run" badge with tooltip)
+- Added "Re-run stale (N)" bulk action button to the GraphPanel toolbar:
+  - Button appears only when stale generators exist, styled in yellow accent to match stale card border
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  9 queued · 2 in-progress · last took 3m11s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
+  Worktree: /tmp/backlog-91949-oZkkLQ
+  Running agent… (started 02:28:08)

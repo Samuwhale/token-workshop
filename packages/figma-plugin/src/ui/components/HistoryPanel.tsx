@@ -117,6 +117,19 @@ function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
   };
 }
 
+/* ── Snapshot default label ─────────────────────────────────────────────── */
+
+function defaultSnapshotLabel(lastOpDescription?: string): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  if (lastOpDescription) return `Before ${lastOpDescription}`;
+  return `Snapshot ${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
 /* ── Type pill ──────────────────────────────────────────────────────────── */
 
 function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' }) {
@@ -433,9 +446,10 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <input
               className="flex-1 min-w-0 px-2 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-              placeholder="Snapshot label (optional)"
+              placeholder="Snapshot label"
               value={saveLabel}
               onChange={e => setSaveLabel(e.target.value)}
+              onFocus={e => e.target.select()}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleSaveSnapshot();
                 if (e.key === 'Escape') { setShowSaveInput(false); setSaveLabel(''); }
@@ -459,7 +473,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         ) : (
           <>
             <button
-              onClick={() => setShowSaveInput(true)}
+              onClick={() => {
+                const lastOp = recentOperations?.[0];
+                setSaveLabel(defaultSnapshotLabel(lastOp?.description));
+                setShowSaveInput(true);
+              }}
               className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
               title="Save current token state as a snapshot"
             >
@@ -2130,7 +2148,7 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
           <div className="flex items-center gap-2">
             <button
               className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              onClick={() => setShowLabelInput(true)}
+              onClick={() => { setLabelInput(defaultSnapshotLabel()); setShowLabelInput(true); }}
               disabled={saving}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -2166,9 +2184,10 @@ function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPa
           <div className="flex flex-col gap-2">
             <input
               className="w-full px-2 py-1.5 text-[11px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-              placeholder="Label (optional)"
+              placeholder="Snapshot label"
               value={labelInput}
               onChange={e => setLabelInput(e.target.value)}
+              onFocus={e => e.target.select()}
               onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setShowLabelInput(false); setLabelInput(''); } }}
               autoFocus
             />

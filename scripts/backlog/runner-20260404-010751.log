@@ -458,3 +458,10 @@ Already up to date.
   → Snapshot save input has no default name — creating a manual snapshot requires typing a name from scratch every time; pre-populate with a contextual default like "Snapshot YYYY-MM-DD HH:mm" or "Before [last operation]" to reduce friction for quick save-points (HistoryPanel.tsx snapshot save form)
   Worktree: /tmp/backlog-92209-MmCsOW
   Running agent… (started 02:27:32)
+
+  ✓ done: Snapshot save input has no default name — creating a manual snapshot requires typing a name from scratch every time; pre-populate with a contextual default like "Snapshot YYYY-MM-DD HH:mm" or "Before [last operation]" to reduce friction for quick save-points (HistoryPanel.tsx snapshot save form)
+    Pre-populates snapshot label with "Before [last operation]" in the timeline toolbar (or "Snapshot YYYY-MM-DD HH:mm" fallback), and "Snapshot YYYY-MM-DD HH:mm" in SnapshotsSource; adds select-all-on-focus so users can confirm or replace immediately.
+    22 turns · 131s · $0.5
+
+  Merging to main: Snapshot save input has no default name — creating a manual snapshot requires typing a name from scratch every time; pre-populate with a contextual default like "Snapshot YYYY-MM-DD HH:mm" or "Before [last operation]" to reduce friction for quick save-points (HistoryPanel.tsx snapshot save form)
+Already up to date.
