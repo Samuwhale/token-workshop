@@ -8,6 +8,8 @@ import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
 import type { DeleteConfirm, PromoteRow, AffectedRef } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
+import { FieldMessage } from '../shared/FieldMessage';
+import { fieldBorderClass } from '../shared/editorClasses';
 
 export interface TokenListModalsProps {
   // Quick Start Dialog
@@ -297,7 +299,7 @@ function ExtractToAliasModal() {
                   type="text"
                   value={newPrimitivePath}
                   onChange={e => { onSetNewPrimitivePath(e.target.value); onSetExtractError(''); }}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
+                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] font-mono ${fieldBorderClass(!!extractError)}`}
                   autoFocus
                   placeholder="e.g. primitives.color.blue-500"
                 />
@@ -344,9 +346,7 @@ function ExtractToAliasModal() {
             </>
           )}
 
-          {extractError && (
-            <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
-          )}
+          <FieldMessage error={extractError} />
         </div>
 
         <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
@@ -541,16 +541,21 @@ export function TokenListModals() {
               type="text"
               placeholder={newGroupDialogParent ? 'subgroup-name' : 'group-name'}
               value={newGroupName}
-              onChange={e => { onSetNewGroupName(e.target.value); onSetNewGroupError(''); }}
+              onChange={e => {
+                const v = e.target.value;
+                onSetNewGroupName(v);
+                if (v.includes('.')) onSetNewGroupError('Group name cannot contain dots — dots separate path segments');
+                else onSetNewGroupError('');
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleCreateGroup(newGroupDialogParent ?? '', newGroupName);
                 if (e.key === 'Escape') { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }
               }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${newGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] ${fieldBorderClass(!!newGroupError)}`}
               aria-label="New group name"
               autoFocus
             />
-            {newGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{newGroupError}</p>}
+            <FieldMessage error={newGroupError} />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }}
@@ -560,7 +565,7 @@ export function TokenListModals() {
               </button>
               <button
                 onClick={() => handleCreateGroup(newGroupDialogParent ?? '', newGroupName)}
-                disabled={!newGroupName.trim()}
+                disabled={!newGroupName.trim() || !!newGroupError}
                 className="px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
@@ -743,9 +748,7 @@ export function TokenListModals() {
               </label>
 
               {/* Preview */}
-              {frFind && frIsRegex && frRegexError && (
-                <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
-              )}
+              <FieldMessage error={frFind && frIsRegex && frRegexError ? `Invalid regex: ${frRegexError}` : undefined} />
 
               {frTarget === 'names' && (() => {
                 if (frFind && !frRegexError && frPreview.length === 0) {
@@ -914,7 +917,7 @@ export function TokenListModals() {
                   }
                 </div>
               )}
-              {frError && <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
+              <FieldMessage error={frError || undefined} />
               {!frError && frTarget === 'names' && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                   ⚠ Empty replacement will delete the matched segment from token paths. This may break references.
@@ -1313,7 +1316,7 @@ export function TokenListModals() {
               aria-label="Target group path"
               autoFocus
             />
-            {moveToGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{moveToGroupError}</p>}
+            <FieldMessage error={moveToGroupError} />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}

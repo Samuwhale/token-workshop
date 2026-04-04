@@ -875,3 +875,29 @@ Already up to date.
   ✓ ux pass: ux-pass
     6 items written to inbox — context menu discoverability, clipboard copy feedback gap, CreatePanel keyboard shortcut gap, CreatePanel vs TokenEditor divergence, publish readiness staleness, settings auto-save with no undo
 Already up to date.
+[main 797ef24a] chore(backlog): ux pass – ux-pass
+ 5 files changed, 27 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - TokenList search input has no clear button and no Escape-to-clear
+- Added Escape-to-clear: in `onKeyDown`, check `e.key === 'Escape'` before the qualifier-hints guard — if `searchQuery` is non-empty, `preventDefault`, clear query, reset `hintIndex`, and return
+- Added clear button: conditionally rendered `<button>` with the X SVG (same pattern as ThemeManager.tsx:706-717) positioned `absolute right-1.5 top-1/2 -translate-y-1/2`, visible only when `searchQuery` is truthy; clicking clears query, resets `hintIndex`, and restores focus to `searchRef`
+- Updated input `pr-2` → dynamic `${searchQuery ? 'pr-6' : 'pr-2'}` to avoid text overlapping the clear button
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  27 queued · 0
+0 in-progress · last took 7m6s
+═══════════════════════════════════════════════════════════════
+  → Token editor form validation feedback is inconsistent across token types — simple types (color, dimension, number) show inline validation with red borders and error text; the Find & Replace modal shows regex errors immediately and uses colored banners for warnings; but the New Group dialog (TokenListModals.tsx:395-435) only shows errors after submission; Extract to Alias path validation shows errors inline but with different styling than the group dialog; Typography editor shows unavailable font weight warnings in the sub-field but no field-level error state; dimension unit conversion warnings use a different display pattern (inline text vs banner vs border); there is no single shared validation feedback component — each form invents its own error display approach (violates: consistency, error prevention)
+  Worktree: /tmp/backlog-3108-SmAS6H
+  Running agent… (started 23:12:42)
+
+  ✓ done: Token editor form validation feedback is inconsistent across token types
+    Created shared FieldMessage component + fieldBorderClass utility; fixed New Group dialog to validate inline on change (dots forbidden), Extract to Alias to show red border on error, and standardized warning display in Typography + Dimension editors
+    45 turns · 501s · $1.6
+
+  Merging to main: Token editor form validation feedback is inconsistent across token types
+Already up to date.

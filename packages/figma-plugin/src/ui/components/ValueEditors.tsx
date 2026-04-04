@@ -11,8 +11,9 @@ import { GamutIndicator } from './GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
 
-import { inputClass, labelClass } from '../shared/editorClasses';
+import { inputClass, labelClass, fieldBorderClass } from '../shared/editorClasses';
 export { inputClass, labelClass } from '../shared/editorClasses';
+import { FieldMessage } from '../shared/FieldMessage';
 
 /** Per-type format hints shown below the "Value" label in the token editor. */
 export const VALUE_FORMAT_HINTS: Record<string, string> = {
@@ -370,7 +371,7 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet
         </div>
       )}
       {conversionWarning && (
-        <div className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-warning,#e8a820)] bg-[var(--color-figma-warning,#e8a820)]/10 border border-[var(--color-figma-warning,#e8a820)]/30">
+        <div className="px-2 py-1.5 rounded text-[10px] text-amber-700 bg-amber-50 border border-amber-200">
           {conversionWarning}
         </div>
       )}
@@ -753,7 +754,7 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
               <select
                 value={val.fontWeight ?? 400}
                 onChange={e => update('fontWeight', parseInt(e.target.value))}
-                className={inputClass + (weightUnavailable ? ' border-amber-400' : '')}
+                className={`${inputClass} ${fieldBorderClass(false, weightUnavailable)}`}
               >
                 {FONT_WEIGHTS.map(fw => {
                   const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
@@ -764,11 +765,7 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
                   );
                 })}
               </select>
-              {weightUnavailable && (
-                <div className="mt-0.5 text-[10px] text-amber-500 leading-tight">
-                  Weight {currentWeight} not available in this font family
-                </div>
-              )}
+              <FieldMessage warning={weightUnavailable ? `Weight ${currentWeight} not available in this font family` : undefined} />
             </div>
           )}
         </div>

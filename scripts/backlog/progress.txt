@@ -539,3 +539,20 @@
   - The Escape handler must run BEFORE the `if (!showQualifierHints || qualifierHints.length === 0) return;` guard — otherwise Escape is a no-op when hints are closed (the common case when you just want to clear the query)
   - Dynamic `pr-*` class is necessary; a fixed `pr-6` would leave dead space when the clear button is absent
 ---
+
+## 2026-04-04 - Token editor form validation feedback is inconsistent across token types
+- Created `packages/figma-plugin/src/ui/shared/FieldMessage.tsx` — shared component with `error`, `warning`, `info` props; renders the first non-empty prop with role="alert" (error), amber text (warning), or tertiary text (info)
+- Added `fieldBorderClass(hasError?, hasWarning?)` to `packages/figma-plugin/src/ui/shared/editorClasses.ts` — returns the appropriate border + focus-visible border Tailwind classes for error/warning/normal states
+- Fixed New Group dialog (TokenListModals.tsx ~L540): added real-time client-side validation in `onChange` that sets error immediately when name contains dots (dots are path separators); button disabled when error is set; replaced inline `<p>` with `<FieldMessage>`
+- Fixed Extract to Alias path input (TokenListModals.tsx ~L296): added `fieldBorderClass(!!extractError)` so input shows red border when there's an error (previously had error text but no border); replaced inline `<div>` with `<FieldMessage>`
+- Fixed Move to Group dialog (TokenListModals.tsx ~L1316): replaced inline `<p>` with `<FieldMessage>`
+- Fixed Find & Replace errors (TokenListModals.tsx ~L746, ~L917): replaced inline `<div>` alerts with `<FieldMessage>`
+- Fixed Typography editor weight warning (ValueEditors.tsx ~L756): replaced custom `border-amber-400` + inline `div` with `fieldBorderClass(false, weightUnavailable)` on the select and `<FieldMessage warning=...>`
+- Fixed Dimension editor conversion warning (ValueEditors.tsx ~L372): changed from `var(--color-figma-warning)` CSS variable to `text-amber-700 bg-amber-50 border-amber-200` banner classes, matching Find & Replace warning style
+- Files changed: `packages/figma-plugin/src/ui/shared/FieldMessage.tsx` (new), `packages/figma-plugin/src/ui/shared/editorClasses.ts` ~L3, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L1,L296,L540,L746,L917,L1316, `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L14,L372,L756
+- **Learnings for future iterations:**
+  - Keep `FieldMessage` to 3 props (error/warning/info) with priority ordering — this covers all use cases without over-engineering
+  - `fieldBorderClass` belongs in `editorClasses.ts` alongside `inputClass` so callers import both from the same place
+  - Inline validation (onChange) only makes sense for format rules knowable without a network call — semantic rules (duplicate names, conflict checks) are still server-side
+  - The dimension conversion warning is a contextual banner (post-action feedback), not a field error — it uses the banner style, not the inline FieldMessage style
+---
