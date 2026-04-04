@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { TokenGenerator, GeneratorTemplate } from '../hooks/useGenerators';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
@@ -151,14 +151,14 @@ export function GraphPanel({
     setJustApplied(null);
   };
 
-  const handleApplied = () => {
+  const handleApplied = useCallback(() => {
     setJustApplied(selectedTemplate?.label ?? null);
     setSelectedTemplate(null);
     setBrowsingTemplates(false);
     if (onApplyTemplate) onApplyTemplate('');
     if (onClearPendingGroup) onClearPendingGroup();
     onRefresh();
-  };
+  }, [selectedTemplate, onApplyTemplate, onClearPendingGroup, onRefresh]);
 
   const handleBack = () => {
     setSelectedTemplate(null);
@@ -220,6 +220,54 @@ export function GraphPanel({
     onRefresh();
   };
 
+  // Memoize template object so TokenGeneratorDialog receives a stable prop reference.
+  const generatorTemplate = useMemo<GeneratorTemplate | undefined>(() => {
+    if (!selectedTemplate) return undefined;
+    return {
+      id: selectedTemplate.id,
+      label: selectedTemplate.label,
+      description: selectedTemplate.description,
+      defaultPrefix: selectedTemplate.defaultPrefix,
+      generatorType: selectedTemplate.generatorType,
+      config: selectedTemplate.config,
+      requiresSource: selectedTemplate.requiresSource,
+    };
+  }, [selectedTemplate]);
+
+  // Stable callback — must be at hook scope, not inside the conditional render branch.
+  const handleTemplateSaved = useCallback(async (info?: { targetGroup: string }) => {
+    if (!selectedTemplate) return;
+    const targetGroup = info?.targetGroup ?? selectedTemplate.defaultPrefix;
+    for (const layer of selectedTemplate.semanticLayers) {
+      for (const mapping of layer.mappings) {
+        const fullPath = `${layer.prefix}.${mapping.semantic}`;
+        const tokenBody = {
+          $type: mapping.type,
+          $value: `{${targetGroup}.${mapping.step}}`,
+          $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
+        };
+        try {
+          await apiFetch(
+            `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
+          );
+        } catch (postErr: any) {
+          if (postErr?.status !== 409) {
+            try {
+              await apiFetch(
+                `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
+                { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
+              );
+            } catch {
+              // best-effort — skip conflicts silently
+            }
+          }
+        }
+      }
+    }
+    handleApplied();
+  }, [selectedTemplate, serverUrl, activeSet, handleApplied]);
+
   const q = searchQuery.trim().toLowerCase();
   const filteredGenerators = q
     ? setGenerators.filter(g =>
@@ -237,53 +285,9 @@ export function GraphPanel({
       )
     : GRAPH_TEMPLATES;
 
-  // Template configuration — open full TokenGeneratorDialog pre-filled from template
+  // Template configuration — open full TokenGeneratorDialog pre-filled from template.
+  // generatorTemplate and handleTemplateSaved are memoized at hook scope above.
   if (selectedTemplate) {
-    const generatorTemplate: GeneratorTemplate = {
-      id: selectedTemplate.id,
-      label: selectedTemplate.label,
-      description: selectedTemplate.description,
-      defaultPrefix: selectedTemplate.defaultPrefix,
-      generatorType: selectedTemplate.generatorType,
-      config: selectedTemplate.config,
-      requiresSource: selectedTemplate.requiresSource,
-    };
-
-    // After the generator is saved, apply the template's predefined semantic layers.
-    // onInterceptSemanticMapping suppresses the dialog's own suggestion so our fixed
-    // layers don't compete with it.
-    const handleTemplateSaved = async (info?: { targetGroup: string }) => {
-      const targetGroup = info?.targetGroup ?? selectedTemplate.defaultPrefix;
-      for (const layer of selectedTemplate.semanticLayers) {
-        for (const mapping of layer.mappings) {
-          const fullPath = `${layer.prefix}.${mapping.semantic}`;
-          const tokenBody = {
-            $type: mapping.type,
-            $value: `{${targetGroup}.${mapping.step}}`,
-            $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
-          };
-          try {
-            await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-              { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
-            );
-          } catch (postErr: any) {
-            if (postErr?.status !== 409) {
-              try {
-                await apiFetch(
-                  `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-                  { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
-                );
-              } catch {
-                // best-effort — skip conflicts silently
-              }
-            }
-          }
-        }
-      }
-      handleApplied();
-    };
-
     return (
       <TokenGeneratorDialog
         serverUrl={serverUrl}

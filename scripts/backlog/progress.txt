@@ -40,3 +40,12 @@
   - Import depth: files in `src/ui/components/generators/` need 3 levels (`../../../shared/`) to reach `src/shared/`, not 2 (like `src/ui/components/` files)
   - The TypeScale ratio section has an A/B compare mode state — wrapping the entire ratio block (including compare mode UI) in a single TokenRefInput keeps the feature coherent; the label is shown by TokenRefInput, not duplicated inside
 ---
+
+## 2026-04-04 - React error #300 crash when creating a token generator
+- Moved `handleTemplateSaved` from inline inside the `if (selectedTemplate)` render branch to a `useCallback` at hook scope in `GraphPanel.tsx`. Memoized `generatorTemplate` with `useMemo` at hook scope. Also wrapped `handleApplied` in `useCallback` since `handleTemplateSaved` depends on it — plain function references would still be unstable in the dep array.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L154, L223
+- **Learnings for future iterations:**
+  - React error #300 ("Cannot update a component while rendering a different component") can be triggered by unstable function/object props that cause downstream `useCallback` to recreate on every render and setState during render indirectly. Root cause is always a hook or callback defined outside of hook scope (inside a conditional/return branch).
+  - Any function defined inside a conditional render branch (`if (x) { const fn = ... }`) is recreated on every render — move to `useCallback` at top-level hook scope to prevent cascading instability.
+  - When a `useCallback` lists another plain function in its deps array, that dependency is always unstable. The chain of instability propagates: plain fn → useCallback recreates → downstream useCallback recreates → React error #300. Fix the root, not each link.
+---
