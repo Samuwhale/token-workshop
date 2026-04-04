@@ -409,3 +409,26 @@ Already up to date.
 
   Merging to main: variableSync main mutation loop has no per-token try-catch
 Already up to date.
+[main 57b1bfd6] chore(backlog): done – variableSync main mutation loop has no per-token try-catch
+ 5 files changed, 67 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - variableSync main mutation loop has no per-token try-catch
+- Added per-token try-catch around the mutation block (setValueForMode, scopes assignment, setPluginData) in `applyVariables`. Failures are logged with `console.error` and pushed to a `failures` array; the loop continues to the next token. Added `failures` field to the `variables-applied` postMessage (`count` now reflects successful tokens only). The `VariablesAppliedMessage` type and `extractSyncApplyResult` already had `failures` support — no UI changes needed.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L20, ~L109-135, ~L155
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  14 queued · 0
+0 in-progress · last took 1m29s
+═══════════════════════════════════════════════════════════════
+  → Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null (resolver.ts:307-311) — if a formula like `{spacing.base} * 2` references a dimension token with unit 'em', the resolved number correctly evaluates to the scaled value but the unit is lost and defaults to 'px'; extractFormulaUnit should walk the resolved dependencies to inherit the unit from the referenced token rather than using a hardcoded fallback
+  Worktree: /tmp/backlog-3108-TAG8PA
+  Running agent… (started 20:12:02)
+
+  ✓ done: Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null (resolver.ts:307-311)
+    Two fixes: (1) bare-number dimension/duration tokens now normalize to {value,unit} objects during resolution; (2) extractFormulaUnit now uses type-based inference (resolved.$type === 'dimension' → 'px') instead of hardcoded fallback when a referenced token's value is a plain number. 12 new tests added covering em/rem/s inheritance, alias chains, formula chains, and bare-number normalization.
+    82 turns · 1329s · $3.45
+
+  Merging to main: Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null (resolver.ts:307-311)
+Already up to date.

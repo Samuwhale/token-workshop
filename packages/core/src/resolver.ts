@@ -299,15 +299,23 @@ export class TokenResolver {
       let resolvedValue = this.resolveValue(token.$value, path);
       const $type = this.resolveType(token, path);
 
-      // Formula tokens that reference dimension/duration values return a plain
-      // number from evalExpr. Reconstruct the typed {value, unit} object so that
-      // downstream consumers receive a properly-typed DimensionValue/DurationValue.
-      if (typeof resolvedValue === 'number' && typeof token.$value === 'string' && isFormula(token.$value)) {
+      // Dimension and duration tokens must always carry an explicit {value, unit}
+      // object so that downstream formula references can reliably inherit the unit
+      // via extractFormulaUnit (which inspects the resolved $value for a 'unit' key).
+      //
+      // Two sub-cases both produce a plain number that needs wrapping:
+      //   1. Formula tokens — evalExpr strips the unit; reconstruct it by walking
+      //      the resolved dependencies of each {ref} in the formula.
+      //   2. Bare-number tokens — e.g. {$type:"dimension", $value:8}. The W3C DTCG
+      //      spec treats a bare dimension number as pixels; wrap it explicitly so the
+      //      resolved value is consistent with object-format tokens.
+      if (typeof resolvedValue === 'number' && ($type === 'dimension' || $type === 'duration')) {
+        const isFormulaSrc = typeof token.$value === 'string' && isFormula(token.$value);
         if ($type === 'dimension') {
-          const unit = this.extractFormulaUnit(token.$value) ?? 'px';
+          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value) ?? 'px') : 'px';
           resolvedValue = { value: resolvedValue, unit } as DimensionValue;
-        } else if ($type === 'duration') {
-          const unit = this.extractFormulaUnit(token.$value) ?? 'ms';
+        } else {
+          const unit = isFormulaSrc ? (this.extractFormulaUnit(token.$value) ?? 'ms') : 'ms';
           resolvedValue = { value: resolvedValue, unit } as DurationValue;
         }
       }
@@ -471,9 +479,20 @@ export class TokenResolver {
   }
 
   /**
-   * For a formula string, find the first resolved reference that carries a
-   * structured {value, unit} object and return its unit string.  Used to
-   * reconstruct the typed value after evalExpr returns a plain number.
+   * Walk all {ref} tokens in a formula and return the unit of the first
+   * resolved reference that carries dimensional information. Two strategies:
+   *
+   *   1. Structured value — resolved.$value is a {value, unit} object.
+   *      Return its unit directly (covers explicit dimension/duration tokens
+   *      and previously-normalised formula results).
+   *
+   *   2. Type-based inference — resolved.$value is a plain number but the
+   *      resolved token has $type 'dimension' or 'duration'. Inherit the
+   *      DTCG-default unit for that type ('px' / 'ms') rather than falling
+   *      back to a hardcoded constant at the call site.
+   *
+   * Returns null only when no reference in the formula carries any
+   * dimensional type information (e.g. pure-number arithmetic formulas).
    */
   private extractFormulaUnit(formula: string): string | null {
     const matches = formula.matchAll(makeReferenceGlobalRegex());
@@ -482,8 +501,14 @@ export class TokenResolver {
       const resolved = this.resolved.get(m[1]);
       if (!resolved) continue;
       const val = resolved.$value;
+      // Strategy 1: resolved value already carries an explicit unit
       if (typeof val === 'object' && val !== null && 'unit' in val) {
         return (val as { unit: string }).unit;
+      }
+      // Strategy 2: plain-number value — infer unit from the token's resolved $type
+      if (typeof val === 'number') {
+        if (resolved.$type === 'dimension') return 'px';
+        if (resolved.$type === 'duration') return 'ms';
       }
     }
     return null;

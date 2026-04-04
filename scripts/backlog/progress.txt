@@ -772,3 +772,17 @@
   - `VariablesAppliedMessage` in `types.ts` already had `failures?: { path: string; error: string }[]` and the UI hook `extractSyncApplyResult` already read `msg.failures ?? []` — the type was already anticipating this pattern but the plugin never populated it.
   - Per-token try-catch scope: only wrap the Figma API mutation calls (setValueForMode, scopes, setPluginData) — not the variable lookup/creation block, which has its own `continue` logic for unresolvable values.
 ---
+
+## 2026-04-04 - Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null
+- Two improvements made to `resolver.ts`:
+  1. **Bare-number dimension/duration normalization**: Extended the typed-value reconstruction block (formerly formula-only) to also wrap bare-number dimension/duration tokens (e.g. `{$type:"dimension", $value:8}`) into `{value:8, unit:'px'}` / `{value:200, unit:'ms'}` objects. Condition changed from `isFormula(token.$value)` guard to `$type === 'dimension' || $type === 'duration'` guard, with `isFormulaSrc` used only for the unit-extraction call.
+  2. **`extractFormulaUnit` type-based inference**: Added Strategy 2 — when a referenced token's resolved `$value` is a plain number (not a `{unit}` object), check `resolved.$type`. If 'dimension' return 'px'; if 'duration' return 'ms'. This removes the `?? 'px'` / `?? 'ms'` hardcoded fallbacks as the primary mechanism — the unit is now inherited from the referenced token's type rather than hardcoded at the call site. The `??` fallbacks remain as a last resort for pure-number arithmetic formulas with no dimension/duration refs.
+- New test file: `packages/core/src/__tests__/formula_unit_bug.test.ts` — 12 tests covering em/rem/s unit inheritance (direct, alias chain, formula chain), number-token multipliers, bare-number normalization, and `updateToken` unit changes.
+- Files changed:
+  - `packages/core/src/resolver.ts` ~L302-325 (normalization block), ~L478-510 (extractFormulaUnit)
+  - `packages/core/src/__tests__/formula_unit_bug.test.ts` (new)
+- **Learnings for future iterations:**
+  - The existing code already handled explicit `{value, unit}` references correctly through DFS; the bug was specifically about bare-number typed tokens (validated tokens should always have {value,unit} objects, but the resolver now handles the fallback case robustly)
+  - Normalizing typed tokens at resolution time (wrapping bare numbers) is safer than relying on the call-site fallback — downstream consumers reliably get `{value, unit}` objects for all dimension/duration tokens
+  - When `extractFormulaUnit` returns null, the `?? 'px'` fallback is still needed for formulas that reference only non-dimensional tokens (pure arithmetic) but is no longer needed for dimension/duration token references
+---
