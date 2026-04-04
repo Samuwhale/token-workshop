@@ -1732,6 +1732,24 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               </svg>
             )}
           </button>
+          {/* More actions — opens full context menu */}
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setContextMenuPos({
+                x: Math.min(rect.left, window.innerWidth - 168),
+                y: Math.min(rect.bottom + 2, window.innerHeight - 280),
+              });
+            }}
+            title="More actions"
+            aria-label="More actions"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+            </svg>
+          </button>
         </div>
       )}
 

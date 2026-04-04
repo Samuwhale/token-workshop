@@ -836,3 +836,13 @@
   - For "inline expandable" patterns in compact banners (like a connection status bar), toggle state + `autoFocus` on the input + `if (ok) setExpanded(false)` on success is a clean pattern that doesn't require a separate component.
   - The EmptyState's `onConnect` wrapper approach (passing `updateServerUrlAndConnect` directly from PanelRouter after type is fixed) is cleaner than wrapping in an arrow function that discards the return value.
 ---
+
+## 2026-04-05 - Token tree context menus have no visible affordance
+- Added a "⋮" (more actions) hover button to token rows that opens the full context menu at the button's position — matches the existing group row pattern (which already had a ⋮ button at line 410).
+- The button uses `getBoundingClientRect()` to position the context menu below the button, with viewport boundary clamping.
+- Group rows already had a ⋮ button (hidden/flex on hover), so no change was needed there.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1735 (after copy-value button, before closing div)
+- **Learnings for future iterations:**
+  - Group rows had this affordance already — the item description was partially stale for groups. Token rows were the real gap.
+  - The ⋮ button pattern: `getBoundingClientRect()` on `e.currentTarget`, then `setContextMenuPos({ x: Math.min(rect.left, window.innerWidth - menuWidth), y: Math.min(rect.bottom + 2, window.innerHeight - menuHeight) })` — identical to how the group row's ⋮ button works.
+---

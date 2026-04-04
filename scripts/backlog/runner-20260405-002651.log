@@ -240,3 +240,26 @@ Already up to date.
 
   Merging to main: Server connection setup is buried in Settings — new users must navigate to Settings (gear icon in overflow panel) to enter the server URL and connect; the Welcome/QuickStart modal exists but is only shown once; if the plugin loads without a server connection, show a prominent inline connection prompt on the main Tokens tab instead of requiring users to find Settings
 Already up to date.
+[main eccf5b5f] chore(backlog): done – Server connection setup is buried in Settings — new users must navigate to Settings (gear icon in overflow panel) to enter the server URL and connect; the Welcome/QuickStart modal exists but is only shown once; if the plugin loads without a server connection, show a prominent inline connection prompt on the main Tokens tab instead of requiring users to find Settings
+ 8 files changed, 196 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Server connection setup is buried in Settings
+- Added prominent inline connection prompt on the Tokens tab (EmptyState) and an expandable inline URL editor in the disconnect banner, eliminating the need to navigate to Settings to configure the server URL:
+  1. **`EmptyState.tsx`**: Replaced the minimal "server offline" banner with a full connection setup card when disconnected. The card shows: server icon + status, editable URL input (pre-populated from current serverUrl), "Connect" button with loading state, success/failure feedback, and a how-to-start code snippet (`npx @tokenmanager/server`). New props: `serverUrl?`, `checking?`, `onConnect?: (url: string) => Promise<boolean>`.
+  2. **`PanelRouter.tsx`**: Passes `serverUrl`, `checking`, and `onConnect={updateServerUrlAndConnect}` to `EmptyState` (all already available from `useConnectionContext()`).
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  22 queued · 0
+0 in-progress · last took 7m32s
+═══════════════════════════════════════════════════════════════
+  → Token and group context menus in the token tree have no visible affordance — TokenTreeNode.tsx token rows and group rows expose 12+ actions (rename, duplicate, move to set, copy to set, link to token, detach from generator, compare with, view history, etc.) only via right-click with zero visual hint that a context menu exists; ThemeManager set rows have a ⋮ button and NodeGraphCanvas has a + button with explicit "Right-click or + to add" help text, but the token tree — where users spend most of their time — has no equivalent; group rows are worse: ALL group operations (rename, edit type, move/copy to set, duplicate, set scopes, create variables) are context-menu-only with no toolbar or hover button alternative (violates: visibility, discoverability, consistency)
+  Worktree: /tmp/backlog-54964-7CSMs1
+  Running agent… (started 01:29:42)
+
+  ✓ done: Token tree context menus have no visible affordance
+    Added ⋮ more-actions hover button to token rows that opens the full context menu at button position — group rows already had this pattern.
+    11 turns · 136s · $0.49
+
+  Merging to main: Token tree context menus have no visible affordance
+Already up to date.
