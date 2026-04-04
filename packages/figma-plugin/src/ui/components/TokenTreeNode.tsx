@@ -18,6 +18,7 @@ import { ComplexTypePreviewCard, COMPLEX_PREVIEW_TYPES } from './ComplexTypePrev
 import { formatHexAs, type ColorFormat } from '../shared/colorUtils';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
+import { AliasAutocomplete } from './AliasAutocomplete';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -751,6 +752,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [inlineNudgeVisible, setInlineNudgeVisible] = useState(false);
   const [quickBound, setQuickBound] = useState<string | null>(null);
   const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(null);
+  const [aliasPickerOpen, setAliasPickerOpen] = useState(false);
+  const [aliasQuery, setAliasQuery] = useState('');
+  const [aliasPickerPos, setAliasPickerPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const nodeRef = useRef<HTMLDivElement>(null);
   // Stable refs for the tab-edit effect (see useEffect near pendingTabEdit)
   const nodeDataRef = useRef(node);
@@ -809,6 +813,14 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
   }, [contextMenuPos]);
+
+  // Close alias picker on outside click
+  useEffect(() => {
+    if (!aliasPickerOpen) return;
+    const close = () => setAliasPickerOpen(false);
+    const timer = setTimeout(() => document.addEventListener('click', close), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('click', close); };
+  }, [aliasPickerOpen]);
 
   // Scroll highlighted token into view (only when NOT in virtual scroll mode)
   useEffect(() => {
@@ -1760,19 +1772,23 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           >
             <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F2</span>
           </button>
-          {!isAlias(node.$value) && (
-            <button
-              data-accel="l"
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                setContextMenuPos(null);
-                onExtractToAlias?.(node.path, node.$type, node.$value);
-              }}
-            >
-              <span>Link to token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">L</span>
-            </button>
-          )}
+          <button
+            data-accel="l"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              const rect = nodeRef.current?.getBoundingClientRect();
+              setAliasPickerPos({
+                x: rect ? Math.min(rect.left, window.innerWidth - 264) : 0,
+                y: rect ? Math.min(rect.bottom + 2, window.innerHeight - 320) : 0,
+              });
+              setAliasQuery('');
+              setAliasPickerOpen(true);
+            }}
+          >
+            <span>Link to token…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">L</span>
+          </button>
           <button
             data-accel="m"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1948,6 +1964,43 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           >
             <span>Delete token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">⌫</span>
           </button>
+        </div>
+      )}
+
+      {/* Inline alias picker popover — opened via "Link to token…" context menu item */}
+      {aliasPickerOpen && (
+        <div
+          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 w-64"
+          style={{ top: aliasPickerPos.y, left: aliasPickerPos.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5 uppercase tracking-wide">
+            Link <span className="font-mono normal-case text-[var(--color-figma-text)]">{node.name}</span> to…
+          </div>
+          <div className="relative">
+            <input
+              autoFocus
+              type="text"
+              value={aliasQuery}
+              onChange={e => setAliasQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') { e.stopPropagation(); setAliasPickerOpen(false); }
+              }}
+              className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+              placeholder="Search tokens…"
+            />
+            <AliasAutocomplete
+              query={aliasQuery}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+              filterType={node.$type}
+              onSelect={path => {
+                onInlineSave?.(node.path, node.$type || 'color', `{${path}}`);
+                setAliasPickerOpen(false);
+              }}
+              onClose={() => setAliasPickerOpen(false)}
+            />
+          </div>
         </div>
       )}
 

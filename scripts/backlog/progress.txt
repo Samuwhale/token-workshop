@@ -447,3 +447,12 @@
   - ResizeObserver in a `ref` (`containerSizeRef`) lets the wheel handler access container dimensions without adding it as a dependency and re-registering the listener on every resize
   - A layout key (totalWidth × totalHeight × node counts) as a `useRef` prevents re-triggering fit-to-view on pan/zoom state changes while still firing when the selected token changes
 ---
+
+## 2026-04-04 - Inline alias creation from token tree
+- Replaced the "Link to token (L)" context menu item (which opened a full modal via `onExtractToAlias`) with a lightweight inline popover. The new item opens a fixed-position popover containing a text search input + `AliasAutocomplete` dropdown. Selecting a token from the autocomplete immediately calls `onInlineSave(path, type, '{selectedPath}')` — no modal, no form, just one click from autocomplete to done. The guard `{!isAlias(node.$value)}` was removed so re-linking an existing alias also works. Click-outside and Escape both close the picker.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L17 (import), ~L756 (state), ~L820 (useEffect), ~L1770 (context menu item), ~L1960 (popover JSX)
+- **Learnings for future iterations:**
+  - `AliasAutocomplete` positions itself as `absolute z-50 mt-1 left-0 right-0` — wrap it in a `relative` div alongside the search input so it pops below the input, not below the entire popover.
+  - The click-outside `setTimeout(..., 0)` defer is required — without it, the same click that opens the picker immediately closes it because the document click handler is registered synchronously.
+  - AliasAutocomplete's `document.addEventListener('keydown')` handles arrow navigation and Escape independently; the input's `onKeyDown` can also handle Escape — double-close is harmless since React state updates are idempotent.
+---
