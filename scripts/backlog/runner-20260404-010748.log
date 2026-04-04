@@ -510,3 +510,26 @@ Already up to date.
 
   Merging to main: useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
 Already up to date.
+[main 7dc1f9da] chore(backlog): done – useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
+ 6 files changed, 63 insertions(+), 275 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/hooks/useThemeCompare.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
+- Deleted `packages/figma-plugin/src/ui/hooks/useThemeCompare.ts` (the orphaned hook)
+- Replaced `useThemeCompare` usage in `ThemeManager.tsx` with the `<ThemeCompare>` component from `ThemeCompare.tsx`
+- Added `allTokensFlat` and `pathToSet` optional props to `ThemeManagerProps` (with empty-object defaults)
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  12 queued · 2 in-progress · last took 7m3s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel template system is disconnected from actual token data — the 6 hardcoded templates (Colors, Type Scale, Buttons, Forms, Card, Effects) render static CSS-variable-based layouts but don't adapt to what token types actually exist in the workspace; if a user has only color and spacing tokens, they still see all 6 templates including irrelevant ones like Forms; filter or auto-select templates based on available token types (PreviewPanel.tsx TEMPLATES array ~L24)
+  Worktree: /tmp/backlog-91949-8MRjIB
+  Running agent… (started 03:03:49)
+
+  ✓ done: PreviewPanel template system is disconnected from actual token data
+    Added relevantTemplates/visibleTemplates/effectiveTemplate derived values — tab bar now filters to only show templates with matching token types (colors needs color tokens, type-scale needs fontSize tokens, effects needs shadow/transition tokens, buttons/forms/card need color tokens); falls back to all tabs when workspace is empty
+    13 turns · 115s · $0.45
+
+  Merging to main: PreviewPanel template system is disconnected from actual token data
+Already up to date.

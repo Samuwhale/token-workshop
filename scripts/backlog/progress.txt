@@ -386,3 +386,16 @@
   - ThemeCompare's `onCreateToken` signature `(path, set, type, value?)` is a superset of ThemeManager's `(path, set)` — TypeScript allows callback parameter narrowing, so no adapter was needed.
   - Replacing an inline compare panel with a standalone component gained CSV export, copy, type filtering, and "create missing" actions for free.
 ---
+
+## 2026-04-04 - PreviewPanel template system disconnected from actual token data
+- Added `relevantTemplates` useMemo that scans `allTokensFlat` token types and returns a Set of template IDs that have matching data: `colors`/`buttons`/`forms`/`card` when color tokens exist, `type-scale` when fontSize tokens exist, `effects` when shadow/transition/duration tokens exist.
+- Added `visibleTemplates` derived array (TEMPLATES filtered to relevant ones) used in the tab bar render.
+- Added `effectiveTemplate` derived value that falls back to the first visible template when the stored template selection is no longer relevant.
+- Tab bar now iterates `visibleTemplates` instead of `TEMPLATES`, and highlights against `effectiveTemplate`.
+- Template content rendering switched from `template` to `effectiveTemplate`.
+- When no specific token types are found (empty workspace), all templates remain visible as before.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L364-396 (new memos), ~L430 (tab iteration), ~L432 (active check), ~L500-505 (template render)
+- **Learnings for future iterations:**
+  - Derive `effectiveTemplate` as a plain const (not state) from the stored `template` + `relevantTemplates` — no useEffect needed. The tab highlighting and render both use `effectiveTemplate`, while clicks still write to `template` state/localStorage. Clean and simple.
+  - "Fall back to all templates when empty" is the right UX: shows the user what's possible rather than a blank tab bar.
+---

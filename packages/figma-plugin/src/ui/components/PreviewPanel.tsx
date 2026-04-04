@@ -363,6 +363,40 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
 
   const isEmpty = Object.keys(allTokensFlat).length === 0;
 
+  // Determine which templates are relevant based on token types actually present
+  const relevantTemplates = useMemo(() => {
+    const types = new Set(Object.values(allTokensFlat).map(e => e.$type ?? ''));
+    const hasColors = types.has('color');
+    const hasGradients = types.has('gradient');
+    const hasFontSize = types.has('fontSize') || types.has('fontSizes') || types.has('fontsize');
+    const hasShadows = types.has('shadow') || types.has('boxShadow') || types.has('innerShadow');
+    const hasTimings = types.has('transition') || types.has('animation') || types.has('duration') || types.has('cubicBezier');
+
+    const available = new Set<Template>();
+    if (hasColors || hasGradients) available.add('colors');
+    if (hasFontSize) available.add('type-scale');
+    if (hasColors) {
+      available.add('buttons');
+      available.add('forms');
+      available.add('card');
+    }
+    if (hasShadows || hasTimings) available.add('effects');
+
+    // Fall back to all templates when no tokens exist yet (empty state)
+    if (available.size === 0) return new Set(TEMPLATES.map(t => t.id as Template));
+    return available;
+  }, [allTokensFlat]);
+
+  const visibleTemplates = useMemo(
+    () => TEMPLATES.filter(t => relevantTemplates.has(t.id)),
+    [relevantTemplates]
+  );
+
+  // If the selected template is no longer relevant, fall back to the first visible one
+  const effectiveTemplate = relevantTemplates.has(template)
+    ? template
+    : (visibleTemplates[0]?.id ?? 'colors');
+
   // Context-aware: when a token is focused, show its detail instead of collection templates
   if (focusedToken) {
     return (
@@ -390,12 +424,12 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       <div className="flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
         <div className="flex items-center gap-1 px-2 py-1.5">
           <div className="flex items-center gap-0.5 overflow-x-auto flex-1">
-            {TEMPLATES.map(t => (
+            {visibleTemplates.map(t => (
               <button
                 key={t.id}
                 onClick={() => { setTemplate(t.id); localStorage.setItem(STORAGE_KEY_TEMPLATE, t.id); }}
                 className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
-                  template === t.id
+                  effectiveTemplate === t.id
                     ? 'bg-[var(--color-figma-accent)] text-white'
                     : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
@@ -461,12 +495,12 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             style={{ ...cssVars, ...previewSlots } as React.CSSProperties}
             className={`rounded-lg overflow-hidden ${darkMode ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}
           >
-            {template === 'colors' && <ColorsTemplate groups={colorGroups} gradients={gradientTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
-            {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
-            {template === 'buttons' && <ButtonsTemplate darkMode={darkMode} />}
-            {template === 'forms' && <FormsTemplate darkMode={darkMode} />}
-            {template === 'card' && <CardTemplate darkMode={darkMode} />}
-            {template === 'effects' && <EffectsTemplate shadows={shadowTokens} timings={effectTimingTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
+            {effectiveTemplate === 'colors' && <ColorsTemplate groups={colorGroups} gradients={gradientTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
+            {effectiveTemplate === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
+            {effectiveTemplate === 'buttons' && <ButtonsTemplate darkMode={darkMode} />}
+            {effectiveTemplate === 'forms' && <FormsTemplate darkMode={darkMode} />}
+            {effectiveTemplate === 'card' && <CardTemplate darkMode={darkMode} />}
+            {effectiveTemplate === 'effects' && <EffectsTemplate shadows={shadowTokens} timings={effectTimingTokens} darkMode={darkMode} onGoToTokens={onGoToTokens} onNavigateToToken={onNavigateToToken} />}
           </div>
         )}
       </div>
