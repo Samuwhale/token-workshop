@@ -729,3 +729,26 @@ Already up to date.
 
   Merging to main: Generator editor has no "preview diff" before regenerating
 Already up to date.
+[main ef8b67a7] chore(backlog): done – Generator editor has no "preview diff" before regenerating
+ 4 files changed, 38 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator editor has no "preview diff" before regenerating
+- Stale — feature is already fully implemented. Thorough code review confirmed:
+  1. `StepWhat.tsx` ~L600-620: shows a live "Overwrites diff" section in the right column that updates in real-time (300ms debounce via `useGeneratorPreview`) as the user changes generator settings. Uses `ValueDiff` to display old→new for every token whose value will change.
+  2. `useGeneratorPreview.ts` ~L220-244: computes `overwrittenEntries` by comparing each proposed preview token's value against the current token value in the target set (`JSON.stringify` equality check). Works for both new generators (overwriting existing paths) and edit generators (re-running with new config).
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  14 queued · 0
+0 in-progress · last took 10m4s
+═══════════════════════════════════════════════════════════════
+  → Bulk create tab only supports a flat text-area format — CreatePanel.tsx BulkTab accepts a path:value text format but doesn't support pasting a DTCG JSON group structure, which is the most common format users would copy from another tool or documentation; the bulk tab should detect and parse nested DTCG JSON input in addition to the flat format
+  Worktree: /tmp/backlog-3108-juboPw
+  Running agent… (started 22:24:00)
+
+  ✓ done: Bulk create tab only supports a flat text-area format
+    BulkTab paste handler now detects and parses nested DTCG JSON using flattenTokenGroup; rawValue field preserves composite token objects; type select expanded to all DTCG types
+    21 turns · 173s · $0.51
+
+  Merging to main: Bulk create tab only supports a flat text-area format
+Already up to date.

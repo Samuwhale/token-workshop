@@ -455,3 +455,19 @@
   - When a backlog item says "no way to see X before committing", check both the live-preview column (StepWhat right column) and the dedicated review step (StepReview) — the feature may already exist in one or both places
   - `overwrittenEntries` in `useGeneratorPreview` is a client-side diff computed from `previewTokens` vs `existingSetTokens` (fetched from `/api/tokens/:set`). It correctly shows before→after for both edit and new-generator flows
 ---
+
+## 2026-04-04 - Bulk create tab only supports a flat text-area format
+- Added DTCG JSON detection and parsing to the BulkTab paste handler in CreatePanel.tsx:
+  1. Imported `flattenTokenGroup` from `@tokenmanager/core` to handle nested DTCG JSON structures
+  2. Updated paste handler to try JSON.parse first when text starts with `{`; calls `flattenTokenGroup` on success to flatten nested token groups into path→token entries
+  3. Each flattened token becomes a row with full dot-path as name, `$type` as type, and display string for the value; `rawValue` stores the actual JS value for complex composite tokens
+  4. Added `rawValue?: unknown` field to the row type; `handleCreateAll` uses `rawValue` when set instead of `parseInlineValue`, preserving object values for composite types
+  5. `updateRow` clears `rawValue` when the user manually edits the value field so subsequent edits use `parseInlineValue`
+  6. Expanded the type `<select>` from 6 options to all DTCG types (color, dimension, number, string, boolean, typography, shadow, border, gradient, transition, duration, fontFamily, fontWeight, fontStyle, letterSpacing, lineHeight, cubicBezier, percentage, strokeStyle, textDecoration, textTransform, link, asset) grouped by Core/Composite/Specialized
+  7. Updated the hint text to mention DTCG JSON support
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1 (import), ~L697 (row type), ~L710 (updateRow), ~L722 (handleCreateAll), ~L752 (handlePaste), ~L793 (hint text), ~L829 (type select)
+- **Learnings for future iterations:**
+  - When populating rows from parsed structured data, add a `rawValue?: unknown` field alongside the text representation — `parseInlineValue` only handles string→primitive conversions and would mangle composite object values. Use `rawValue !== undefined ? rawValue : parseInlineValue(...)` pattern in create handlers.
+  - Always clear `rawValue` when the user manually edits the text input (the manual edit takes precedence), so the two states don't diverge silently.
+  - `flattenTokenGroup` from `@tokenmanager/core` handles `$type` inheritance from parent groups, making it safe to use for any valid DTCG JSON including partial structures.
+---

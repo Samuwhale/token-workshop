@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { parseInlineValue, valuePlaceholderForType } from './tokenListHelpers';
 import { getDefaultValue } from './tokenListUtils';
@@ -693,7 +694,7 @@ function BulkTab({
   onRefresh: () => void;
 }) {
   const [group, setGroup] = useState('');
-  const [rows, setRows] = useState<Array<{ id: string; name: string; type: string; value: string }>>([
+  const [rows, setRows] = useState<Array<{ id: string; name: string; type: string; value: string; rawValue?: unknown }>>([
     { id: '1', name: '', type: 'color', value: '' },
     { id: '2', name: '', type: 'color', value: '' },
     { id: '3', name: '', type: 'color', value: '' },
@@ -708,7 +709,13 @@ function BulkTab({
   };
 
   const updateRow = (id: string, field: string, value: string) => {
-    setRows(r => r.map(row => row.id === id ? { ...row, [field]: value } : row));
+    setRows(r => r.map(row => {
+      if (row.id !== id) return row;
+      // Clear rawValue when user manually edits the value field so parseInlineValue is used
+      const update: typeof row = { ...row, [field]: value };
+      if (field === 'value') delete update.rawValue;
+      return update;
+    }));
   };
 
   const removeRow = (id: string) => {
@@ -724,7 +731,7 @@ function BulkTab({
     try {
       for (const row of validRows) {
         const fullPath = group.trim() ? `${group.trim()}.${row.name.trim()}` : row.name.trim();
-        const parsedValue = parseInlineValue(row.type, row.value.trim());
+        const parsedValue = row.rawValue !== undefined ? row.rawValue : parseInlineValue(row.type, row.value.trim());
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(fullPath)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -748,9 +755,45 @@ function BulkTab({
 
   const validCount = rows.filter(r => r.name.trim()).length;
 
-  // Paste handler: detect tab-separated values and auto-populate rows
+  // Paste handler: detect DTCG JSON or tab-separated values and auto-populate rows
   const handlePaste = (e: React.ClipboardEvent) => {
-    const text = e.clipboardData.getData('text/plain');
+    const text = e.clipboardData.getData('text/plain').trim();
+
+    // Try DTCG JSON format first (nested token group)
+    if (text.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(text) as Record<string, unknown>;
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const flat = flattenTokenGroup(parsed);
+          if (flat.size > 0) {
+            e.preventDefault();
+            const newRows = Array.from(flat.entries()).map(([path, token]) => {
+              const rawValue = token.$value;
+              const displayValue = typeof rawValue === 'string'
+                ? rawValue
+                : typeof rawValue === 'number' || typeof rawValue === 'boolean'
+                  ? String(rawValue)
+                  : JSON.stringify(rawValue);
+              return {
+                id: String(nextId.current++),
+                name: path,
+                type: token.$type || 'string',
+                value: displayValue,
+                rawValue,
+              };
+            });
+            if (newRows.length > 0) {
+              setRows(newRows);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Not valid JSON — fall through to tab-separated handling
+      }
+    }
+
+    // Tab-separated fallback (name, type, value)
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length < 2 || !lines[0].includes('\t')) return; // Not tabular data
     e.preventDefault();
@@ -788,7 +831,7 @@ function BulkTab({
       </div>
 
       <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-        Paste tab-separated data (name, type, value) to auto-fill rows.
+        Paste DTCG JSON (nested token group) or tab-separated data (name, type, value) to auto-fill rows.
       </p>
 
       {/* Column headers */}
@@ -828,12 +871,35 @@ function BulkTab({
                 onChange={e => updateRow(row.id, 'type', e.target.value)}
                 className="px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px]"
               >
-                <option value="color">color</option>
-                <option value="dimension">dimension</option>
-                <option value="number">number</option>
-                <option value="string">string</option>
-                <option value="boolean">boolean</option>
-                <option value="duration">duration</option>
+                <optgroup label="Core">
+                  <option value="color">color</option>
+                  <option value="dimension">dimension</option>
+                  <option value="number">number</option>
+                  <option value="string">string</option>
+                  <option value="boolean">boolean</option>
+                </optgroup>
+                <optgroup label="Composite">
+                  <option value="typography">typography</option>
+                  <option value="shadow">shadow</option>
+                  <option value="border">border</option>
+                  <option value="gradient">gradient</option>
+                  <option value="transition">transition</option>
+                </optgroup>
+                <optgroup label="Specialized">
+                  <option value="duration">duration</option>
+                  <option value="fontFamily">fontFamily</option>
+                  <option value="fontWeight">fontWeight</option>
+                  <option value="fontStyle">fontStyle</option>
+                  <option value="letterSpacing">letterSpacing</option>
+                  <option value="lineHeight">lineHeight</option>
+                  <option value="cubicBezier">cubicBezier</option>
+                  <option value="percentage">percentage</option>
+                  <option value="strokeStyle">strokeStyle</option>
+                  <option value="textDecoration">textDecoration</option>
+                  <option value="textTransform">textTransform</option>
+                  <option value="link">link</option>
+                  <option value="asset">asset</option>
+                </optgroup>
               </select>
               {/* Type-aware value input */}
               <div className="flex items-center gap-1">
