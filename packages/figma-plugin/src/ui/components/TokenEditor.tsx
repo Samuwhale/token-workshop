@@ -570,6 +570,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   } = fields;
 
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionsRef = useRef(new Map<string, number>());
 
   // Alias editor hook — needed by load hook (refInputRef) and save hook (handleToggleAlias)
   // We initialize it early since load hook needs refInputRef
@@ -766,6 +768,19 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   // onDirtyChange cross-cut effect
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+
+  // Restore scroll position when navigating between tokens.
+  // Uses a per-session Map keyed by token path so returning to a previously-
+  // scrolled token restores the saved position; first visits start at 0.
+  useEffect(() => {
+    const saved = scrollPositionsRef.current.get(tokenPath) ?? 0;
+    const raf = requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = saved;
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [tokenPath]);
 
   // Auto-save draft to sessionStorage whenever the editor has unsaved changes.
   useEffect(() => {
@@ -990,7 +1005,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       )}
 
       {/* Editor body */}
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto p-3 flex flex-col gap-3"
+        onScroll={(e) => { scrollPositionsRef.current.set(tokenPath, e.currentTarget.scrollTop); }}
+      >
         {displayError && (
           <div role="alert" className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto flex items-start gap-2">
             <span className="flex-1">{displayError}</span>

@@ -884,3 +884,16 @@
   - For floating feedback toasts within a positioned container, add `relative` to the outermost wrapper div and use `absolute top-2 left-1/2 -translate-x-1/2` on the toast
   - `PreferredCopyFormat` type exported from SettingsPanel can be imported into TokenList — avoids defining the same union type in two places
 ---
+
+## 2026-04-04 - Token editor should preserve scroll position when saving
+- Added per-token-path scroll position persistence to `TokenEditor.tsx`:
+  - `scrollContainerRef` (`useRef<HTMLDivElement>`) attached to the `overflow-y-auto` editor body div
+  - `scrollPositionsRef` (`useRef(new Map<string, number>())`) stores scroll position keyed by token path
+  - `onScroll` handler on the editor body div saves `scrollTop` to the map on every scroll event
+  - `useEffect([tokenPath])` restores the saved position for the new token path (defaults to 0 for first visit) via `requestAnimationFrame`, so the restoration happens after React has committed the content render
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L572 (refs), ~L769 (effect), ~L1007 (div props)
+- **Learnings for future iterations:**
+  - When a scroll container persists across prop changes (no key/remount), `scrollTop` is naturally preserved by the browser UNLESS content height shrinks below the current scroll offset (browser clamps to 0). The fix pattern handles both cases: restores saved position on navigation, defaults to 0 for first-visit tokens.
+  - Using `requestAnimationFrame` inside a `useEffect([dep])` ensures the scroll restoration happens after React has committed the render for the new content, avoiding a race where content hasn't expanded to its final height yet.
+  - Map refs (`useRef(new Map())`) are the right tool for per-key ephemeral state inside a component — no re-renders, no external storage, cleaned up automatically when the component unmounts.
+---

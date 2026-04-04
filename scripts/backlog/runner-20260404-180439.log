@@ -570,3 +570,26 @@ Already up to date.
 
   Merging to main: Add "Copy token value" to the Figma Edit menu and plugin shortcuts
 Already up to date.
+[main f41eb6f7] chore(backlog): done – Add "Copy token value" to the Figma Edit menu and plugin shortcuts
+ 9 files changed, 155 insertions(+), 19 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Add "Copy token value" to the Figma Edit menu and plugin shortcuts
+- Added `⌘⇧C` keyboard shortcut that copies the focused/selected token(s) in the user's preferred format, configurable in Settings
+- Added `PREFERRED_COPY_FORMAT` storage key (`tm_preferred_copy_format`) with default `'css-var'`
+- Added "Preferred copy format" segmented control in SettingsPanel → UI Preferences section (CSS, {ref}, $scss, Value, JSON) with `dispatchSettingsChanged` event
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  14 queued · 0
+0 in-progress · last took 8m23s
+═══════════════════════════════════════════════════════════════
+  → Token editor should preserve scroll position when saving — TokenEditor.tsx remounts on each editingToken state change (the key is the token path), so saving a token and immediately opening the next one via Cmd+Down resets the editor scroll to top; for composite types (typography, shadow) where the editor is taller than the viewport, this means users lose their place after every save; the editor should either persist scroll position keyed by token path or use a transition that doesn't remount
+  Worktree: /tmp/backlog-3108-kSpBts
+  Running agent… (started 21:39:46)
+
+  ✓ done: Token editor should preserve scroll position when saving
+    Added scrollContainerRef + scrollPositionsRef Map to TokenEditor; saves scrollTop on scroll, restores per-token-path position via requestAnimationFrame on tokenPath change
+    32 turns · 602s · $1.44
+
+  Merging to main: Token editor should preserve scroll position when saving
+Already up to date.
