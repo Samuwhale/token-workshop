@@ -432,3 +432,27 @@ Already up to date.
 
   Merging to main: Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null (resolver.ts:307-311)
 Already up to date.
+[main 4812a679] chore(backlog): done – Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null (resolver.ts:307-311)
+ 6 files changed, 206 insertions(+), 13 deletions(-)
+ create mode 100644 packages/core/src/__tests__/formula_unit_bug.test.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null
+- Two improvements made to `resolver.ts`:
+  1. **Bare-number dimension/duration normalization**: Extended the typed-value reconstruction block (formerly formula-only) to also wrap bare-number dimension/duration tokens (e.g. `{$type:"dimension", $value:8}`) into `{value:8, unit:'px'}` / `{value:200, unit:'ms'}` objects. Condition changed from `isFormula(token.$value)` guard to `$type === 'dimension' || $type === 'duration'` guard, with `isFormulaSrc` used only for the unit-extraction call.
+  2. **`extractFormulaUnit` type-based inference**: Added Strategy 2 — when a referenced token's resolved `$value` is a plain number (not a `{unit}` object), check `resolved.$type`. If 'dimension' return 'px'; if 'duration' return 'ms'. This removes the `?? 'px'` / `?? 'ms'` hardcoded fallbacks as the primary mechanism — the unit is now inherited from the referenced token's type rather than hardcoded at the call site. The `??` fallbacks remain as a last resort for pure-number arithmetic formulas with no dimension/duration refs.
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  13 queued · 0
+0 in-progress · last took 22m16s
+═══════════════════════════════════════════════════════════════
+  → Plugin controller.ts scan signal management has a race condition (controller.ts:46-67, 336-345) — if two scan-token-usage messages arrive before the first scan completes, createScanSignal overwrites _activeScanSignal with the second signal, then when the first scan's finally block calls clearScanSignal(signal) it clears the second scan's signal because _activeScanSignal was already replaced; the second scan then runs without a registered abort signal so cancelActiveScan() becomes a no-op
+  Worktree: /tmp/backlog-3108-0X2g48
+  Running agent… (started 20:34:18)
+
+  ✓ done: Plugin controller.ts scan signal management has a race condition (controller.ts:46-67, 336-345)
+    stale — already done; clearScanSignal has used an identity check (=== signal) since the cancellation feature was first added, which prevents the described race
+    13 turns · 399s · $0.58
+
+  Merging to main: Plugin controller.ts scan signal management has a race condition (controller.ts:46-67, 336-345)
+Already up to date.

@@ -786,3 +786,10 @@
   - Normalizing typed tokens at resolution time (wrapping bare numbers) is safer than relying on the call-site fallback — downstream consumers reliably get `{value, unit}` objects for all dimension/duration tokens
   - When `extractFormulaUnit` returns null, the `?? 'px'` fallback is still needed for formulas that reference only non-dimensional tokens (pure arithmetic) but is no longer needed for dimension/duration token references
 ---
+  - `packages/core/src/resolver.ts` ~L302-325 (normalization block), ~L478-510 (extractFormulaUnit)
+  - `packages/core/src/__tests__/formula_unit_bug.test.ts` (new)
+- **Learnings for future iterations:**
+  - The existing code already handled explicit `{value, unit}` references correctly through DFS; the bug was specifically about bare-number typed tokens (validated tokens should always have {value,unit} objects, but the resolver now handles the fallback case robustly)
+  - Normalizing typed tokens at resolution time (wrapping bare numbers) is safer than relying on the call-site fallback — downstream consumers reliably get `{value, unit}` objects for all dimension/duration tokens
+  - When `extractFormulaUnit` returns null, the `?? 'px'` fallback is still needed for formulas that reference only non-dimensional tokens (pure arithmetic) but is no longer needed for dimension/duration token references
+---
