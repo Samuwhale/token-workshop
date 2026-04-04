@@ -367,3 +367,16 @@
   - Fastify route ordering: the new `/snapshots/:idA/compare/:idB` path has a fixed "compare" literal segment which prevents collision with `/snapshots/:id/diff` regardless of registration order, but registering before the single-param routes is the safe convention.
   - The A/B button UX (disable A on the B row and vice versa, tint the selected rows) mirrors the commit compare mode pattern already in the panel — consistent mental model for users.
 ---
+
+## 2026-04-04 - Variable/style group sync operations have no progress reporting
+- Added `syncGroupApplying`, `syncGroupProgress`, `syncGroupStylesApplying`, `syncGroupStylesProgress` state to `useFigmaSync.ts`
+- Added `useEffect` in `useFigmaSync.ts` to listen for `variable-sync-progress` and `style-sync-progress` plugin messages and update the respective progress state
+- Updated `handleSyncGroup` to set `syncGroupApplying=true` / clear on finish with `finally` block
+- Updated `handleSyncGroupStyles` to set `syncGroupStylesApplying=true` / clear on finish with `finally` block
+- Added two progress overlay modals in `App.tsx` (one for variables, one for styles) that show after confirmation, displaying "Syncing variables… X / Y" or "Creating styles… X / Y"
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L24-36 (state), ~L43-56 (effect), ~L68-104 (handleSyncGroup), ~L116-160 (handleSyncGroupStyles), ~L180-200 (return); `packages/figma-plugin/src/ui/App.tsx` ~L589 (destructure), ~L2940-2980 (overlays)
+- **Learnings for future iterations:**
+  - The plugin already emits `variable-sync-progress` / `style-sync-progress` messages during all apply operations — any new apply flow just needs a listener in the UI hook to surface them
+  - Progress overlays should appear after the confirm modal closes (not replace it), so the UX flow is: confirm → modal closes → progress overlay appears → overlay closes on completion
+  - `abortRef.current.signal.aborted` check in `finally` prevents state updates after component unmount during navigation
+---

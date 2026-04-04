@@ -392,3 +392,10 @@ Already up to date.
   → Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting — users see a spinner with no indication of how many tokens have been processed or how many remain; only scope application has batch progress; add progress callbacks for the main sync flows (useFigmaSync.ts, SyncPanel.tsx)
   Worktree: /tmp/backlog-92209-CcSamw
   Running agent… (started 02:12:07)
+
+  ✓ done: Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting
+    Added syncGroupApplying/Progress and syncGroupStylesApplying/Progress state to useFigmaSync.ts with a plugin message listener; shows a progress overlay modal (X / Y count) in App.tsx after confirmation, for both variable and style group sync flows
+    28 turns · 298s · $0.92
+
+  Merging to main: Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting
+Already up to date.

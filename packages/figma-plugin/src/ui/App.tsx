@@ -587,7 +587,7 @@ export function App() {
   const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
 
   // Group sync + scope state
-  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
+  const { syncGroupPending, setSyncGroupPending, syncGroupApplying, syncGroupProgress, syncGroupStylesPending, setSyncGroupStylesPending, syncGroupStylesApplying, syncGroupStylesProgress, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
 
   useEffect(() => {
     if (syncGroupStylesError) setErrorToast(syncGroupStylesError);
@@ -2937,6 +2937,42 @@ export function App() {
           onConfirm={handleSyncGroupStyles}
           onCancel={() => setSyncGroupStylesPending(null)}
         />
+      )}
+
+      {/* Variable sync progress overlay */}
+      {syncGroupApplying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl px-4 py-4 flex flex-col items-center gap-3">
+            <svg className="animate-spin text-[var(--color-figma-accent)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <div className="text-center">
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                {syncGroupProgress && syncGroupProgress.total > 0
+                  ? `Syncing variables… ${syncGroupProgress.current} / ${syncGroupProgress.total}`
+                  : 'Syncing variables…'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Style sync progress overlay */}
+      {syncGroupStylesApplying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[240px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl px-4 py-4 flex flex-col items-center gap-3">
+            <svg className="animate-spin text-[var(--color-figma-accent)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <div className="text-center">
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                {syncGroupStylesProgress && syncGroupStylesProgress.total > 0
+                  ? `Creating styles… ${syncGroupStylesProgress.current} / ${syncGroupStylesProgress.total}`
+                  : 'Creating styles…'}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Group Scope Editor */}

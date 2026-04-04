@@ -23,11 +23,29 @@ export function useFigmaSync(
   const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
   const [syncGroupStylesError, setSyncGroupStylesError] = useState<string | null>(null);
   const [syncGroupError, setSyncGroupError] = useState<string | null>(null);
+  const [syncGroupApplying, setSyncGroupApplying] = useState(false);
+  const [syncGroupProgress, setSyncGroupProgress] = useState<{ current: number; total: number } | null>(null);
+  const [syncGroupStylesApplying, setSyncGroupStylesApplying] = useState(false);
+  const [syncGroupStylesProgress, setSyncGroupStylesProgress] = useState<{ current: number; total: number } | null>(null);
 
   const abortRef = useRef(new AbortController());
   useEffect(() => {
     const controller = abortRef.current;
     return () => { controller.abort(); };
+  }, []);
+
+  // Listen for incremental progress messages from the plugin sandbox
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'variable-sync-progress') {
+        setSyncGroupProgress({ current: msg.current as number, total: msg.total as number });
+      } else if (msg?.type === 'style-sync-progress') {
+        setSyncGroupStylesProgress({ current: msg.current as number, total: msg.total as number });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, []);
 
   const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
@@ -48,6 +66,8 @@ export function useFigmaSync(
     if (!syncGroupPending || !connected) return;
     const saved = syncGroupPending;
     setSyncGroupPending(null);
+    setSyncGroupApplying(true);
+    setSyncGroupProgress(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
@@ -69,6 +89,11 @@ export function useFigmaSync(
       if (abortRef.current.signal.aborted) return;
       console.error('Failed to sync group to Figma:', err);
       setSyncGroupError(getErrorMessage(err, 'Failed to sync group to Figma'));
+    } finally {
+      if (!abortRef.current.signal.aborted) {
+        setSyncGroupApplying(false);
+        setSyncGroupProgress(null);
+      }
     }
   }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames, sendVarApply]);
 
@@ -77,6 +102,8 @@ export function useFigmaSync(
     const saved = syncGroupStylesPending;
     setSyncGroupStylesPending(null);
     setSyncGroupStylesError(null);
+    setSyncGroupStylesApplying(true);
+    setSyncGroupStylesProgress(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
@@ -98,6 +125,11 @@ export function useFigmaSync(
       if (abortRef.current.signal.aborted) return;
       console.error('Failed to create styles from group:', err);
       setSyncGroupStylesError(getErrorMessage(err, 'Failed to create styles from group'));
+    } finally {
+      if (!abortRef.current.signal.aborted) {
+        setSyncGroupStylesApplying(false);
+        setSyncGroupStylesProgress(null);
+      }
     }
   }, [syncGroupStylesPending, connected, serverUrl, pathToSet, sendStyleApply]);
 
@@ -158,8 +190,12 @@ export function useFigmaSync(
   return {
     syncGroupPending,
     setSyncGroupPending,
+    syncGroupApplying,
+    syncGroupProgress,
     syncGroupStylesPending,
     setSyncGroupStylesPending,
+    syncGroupStylesApplying,
+    syncGroupStylesProgress,
     groupScopesPath,
     setGroupScopesPath,
     groupScopesSelected,

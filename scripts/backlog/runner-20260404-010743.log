@@ -296,3 +296,11 @@ Already up to date.
 --- Cleanup: archiving completed items (≥22) ---
   → Archived 22 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 54)
+[main 87290022] chore(backlog): archive 22 completed items + trim progress
+ 5 files changed, 32 insertions(+), 319 deletions(-)
+
+  Milestone: 1245 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
