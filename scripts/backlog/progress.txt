@@ -475,3 +475,12 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: useTokenSyncBase.applyDiff fires parallel pull API calls with no abort signal — unmounting mid-pull causes setState-after-unmount; useFigmaSync triples the same 4-state pattern (pending/applying/progress/error) for 3 sync flows creating 13 useState hooks
 ---
+
+## 2026-04-04 - useTokenSyncBase applyDiff pull operations have no abort/unmount guard
+- Added `abortRef = useRef(new AbortController())` and a mount/unmount `useEffect` that resets the controller on mount and calls `controller.abort()` on unmount.
+- In `applyDiff`: captured `const signal = abortRef.current.signal` at function entry; passed `signal` to `createFetchSignal(signal, 10000)` for all parallel pull PATCH requests; guarded the `setProgress` call inside each row's `finally` with `!signal.aborted`; added early `if (signal.aborted) return` after `Promise.all` and before the outer `setChecked`; guarded the outer `catch`/`finally` setState calls (`setError`, `setSyncing`, `setProgress`) with `!signal.aborted`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L124-132 (abortRef + useEffect), ~L210-295 (applyDiff signal propagation and guards)
+- **Learnings for future iterations:**
+  - The per-row `catch` inside `Promise.all` needs `if (signal.aborted) return null` before building the error message, otherwise aborted fetches record spurious failures.
+  - The `if (signal.aborted) return` guard after `Promise.all` should come before looping over results to populate `pullFailures`, preventing stale state writes on unmounted component.
+---

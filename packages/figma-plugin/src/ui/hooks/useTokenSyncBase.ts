@@ -120,6 +120,14 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
   const [progress, setProgress] = useState<SyncProgress | null>(null);
   const progressRef = useRef<SyncProgress | null>(null);
 
+  // AbortController reset on every mount; aborted on unmount to cancel in-flight pull fetches
+  const abortRef = useRef(new AbortController());
+  useEffect(() => {
+    abortRef.current = new AbortController();
+    const controller = abortRef.current;
+    return () => { controller.abort(); };
+  }, []);
+
   // Keep config in a ref so the effect and callbacks don't re-register on every render
   const configRef = useRef(config);
   configRef.current = config;
@@ -197,6 +205,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
     const cfg = configRef.current;
     const dirsSnapshot = dirsRef.current;
     const rowsSnapshot = rowsRef.current;
+    const signal = abortRef.current.signal;
     setSyncing(true);
     setError(null);
     setProgress(null);
@@ -223,25 +232,28 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-                signal: createFetchSignal(undefined, 10000),
+                signal: createFetchSignal(signal, 10000),
               },
             );
             return null;
           } catch (err) {
+            if (signal.aborted) return null;
             const msg = err instanceof ApiError
               ? `${err.status}: ${err.message}`
               : (err instanceof Error ? err.message : String(err));
             return { path: r.path, error: msg };
           } finally {
             pullDone++;
-            setProgress({ current: pullBase + pullDone, total: totalOps });
+            if (!signal.aborted) setProgress({ current: pullBase + pullDone, total: totalOps });
           }
         }));
+        if (signal.aborted) return;
         for (const f of results) {
           if (f) pullFailures.push(f);
         }
       }
 
+      if (signal.aborted) return;
       setChecked(true);
 
       // Report errors or show success toast
@@ -275,11 +287,13 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
         parent.postMessage({ pluginMessage: { type: 'notify', message: cfg.successMessage } }, '*');
       }
     } catch (err) {
-      setError(describeError(err, cfg.applyErrorLabel));
+      if (!signal.aborted) setError(describeError(err, cfg.applyErrorLabel));
     } finally {
-      setSyncing(false);
-      setProgress(null);
-      progressRef.current = null;
+      if (!signal.aborted) {
+        setSyncing(false);
+        setProgress(null);
+        progressRef.current = null;
+      }
     }
   }, [serverUrl, activeSet]);
 
