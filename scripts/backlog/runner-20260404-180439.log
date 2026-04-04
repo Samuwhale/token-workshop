@@ -994,3 +994,30 @@ Already up to date.
 
   Merging to main: ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls — extract into domain-specific hooks
 Already up to date.
+[main df6eccd4] chore(backlog): done – ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls — extract into domain-specific hooks
+ 9 files changed, 1434 insertions(+), 1074 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useImportApply.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useImportConflicts.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useImportSets.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useImportSource.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls
+- Decomposed `ImportPanelContext.tsx` (1,265 lines) into 4 domain-specific hooks following the same pattern as useTokenCrud/useSetTabs:
+  1. **`useImportSets.ts`** (~85 lines) — target set selection, available sets list, new-set creation, localStorage persistence
+  2. **`useImportSource.ts`** (~475 lines) — reading tokens from all sources (Figma variables/styles, JSON, CSS, Tailwind, Tokens Studio), drag-and-drop, file input refs, toggle selection, Figma message listener
+
+═══════════════════════════════════════════════════════════════
+  #38  ·  22 queued · 0
+0 in-progress · last took 11m33s
+═══════════════════════════════════════════════════════════════
+  → Token store file watcher fires scheduleRebuild unconditionally after loadSet fails — in token-store.ts lines 262-269 and 276-283, the catch block on loadSet logs the error and emits a file-load-error event, but scheduleRebuild still runs immediately after, broadcasting a set-updated/set-added SSE event that triggers full client-side token refreshes with potentially stale or missing data; the rebuild call should be skipped (or a degraded-mode event emitted) when loadSet fails
+  Worktree: /tmp/backlog-3108-wa5Dbt
+  Running agent… (started 23:59:55)
+
+  ✓ done: Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
+    Added `let loaded = true` flag in all 3 call sites (reloadFile + change/add watcher handlers); scheduleRebuild now only fires when loadSet succeeds
+    12 turns · 74s · $0.27
+
+  Merging to main: Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
+Already up to date.

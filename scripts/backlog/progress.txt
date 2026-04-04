@@ -618,3 +618,10 @@
   - Cross-cutting async error propagation (apply hooks returning `{ error }` instead of throwing) keeps the provider in control of which state gets the error message without exposing `setError` setters everywhere
   - When a hook's `useCallback` needs to call a sibling hook's state setter (e.g. `handleImportStyles` setting conflict state), pass the setters as params rather than exporting the setter directly — this keeps the calling hook pure and testable
 ---
+
+## 2026-04-05 - Token store file watcher fires scheduleRebuild unconditionally after loadSet fails
+- Fixed 3 locations in `token-store.ts` where `scheduleRebuild` was called unconditionally after `loadSet`: `reloadFile()` (~L242), `watcher.on('change')` (~L262), and `watcher.on('add')` (~L276). Added a `let loaded = true` flag before each `.catch()` block; the catch sets `loaded = false`. Wrapped the `scheduleRebuild` call with `if (loaded)` so it only fires when the file was parsed successfully, preventing stale-data SSE broadcasts on load errors.
+- Files changed: `packages/server/src/services/token-store.ts` ~L242, ~L264, ~L280
+- **Learnings for future iterations:**
+  - The `.catch()` swallow pattern (logging + emitting error event) makes the success/failure invisible to subsequent lines. A boolean flag (`let loaded = true` + set false in catch) is the minimal, readable fix — avoids restructuring to try/catch.
+---

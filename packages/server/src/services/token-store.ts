@@ -240,12 +240,14 @@ export class TokenStore {
   async reloadFile(relativePath: string): Promise<void> {
     const setName = relativePath.replace('.tokens.json', '');
     await this.lock.withLock(async () => {
+      let loaded = true;
       await this.loadSet(relativePath).catch(err => {
+        loaded = false;
         const message = err instanceof Error ? err.message : String(err);
         console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
         this.emitEvent({ type: 'file-load-error', setName, message });
       });
-      this.scheduleRebuild({ type: 'set-updated', setName });
+      if (loaded) this.scheduleRebuild({ type: 'set-updated', setName });
     });
   }
 
@@ -260,12 +262,14 @@ export class TokenStore {
       const relativePath = path.relative(this.dir, filePath as string);
       const setName = relativePath.replace('.tokens.json', '');
       void this.lock.withLock(async () => {
+        let loaded = true;
         await this.loadSet(relativePath).catch(err => {
+          loaded = false;
           const message = err instanceof Error ? err.message : String(err);
           console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
           this.emitEvent({ type: 'file-load-error', setName, message });
         });
-        this.scheduleRebuild({ type: 'set-updated', setName });
+        if (loaded) this.scheduleRebuild({ type: 'set-updated', setName });
       });
     });
 
@@ -274,12 +278,14 @@ export class TokenStore {
       const relativePath = path.relative(this.dir, filePath as string);
       const setName = relativePath.replace('.tokens.json', '');
       void this.lock.withLock(async () => {
+        let loaded = true;
         await this.loadSet(relativePath).catch(err => {
+          loaded = false;
           const message = err instanceof Error ? err.message : String(err);
           console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err);
           this.emitEvent({ type: 'file-load-error', setName, message });
         });
-        this.scheduleRebuild({ type: 'set-added', setName });
+        if (loaded) this.scheduleRebuild({ type: 'set-added', setName });
       });
     });
 
