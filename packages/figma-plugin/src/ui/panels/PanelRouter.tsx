@@ -23,7 +23,6 @@ import { TokenEditor } from '../components/TokenEditor';
 import { TokenDetailPreview } from '../components/TokenDetailPreview';
 import { ThemeManager } from '../components/ThemeManager';
 import type { ThemeManagerHandle } from '../components/ThemeManager';
-import { ResolverPanel } from '../components/ResolverPanel';
 import { PublishPanel } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
@@ -351,7 +350,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       tokens:     renderDefineTokens,
       generators: renderDefineGenerators,
       themes:     renderDefineThemes,
-      resolver:   renderDefineResolver,
     },
     apply: {
       inspect:          renderApplyInspect,
@@ -586,34 +584,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </ErrorBoundary>
         </div>
       </div>
-    );
-  }
-
-  function renderDefineResolver(): ReactNode {
-    return (
-      <ErrorBoundary panelName="Resolver" onReset={() => navigateTo('define', 'tokens')}>
-        <ResolverPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          sets={sets}
-          resolvers={resolverState.resolvers}
-          activeResolver={resolverState.activeResolver}
-          setActiveResolver={resolverState.setActiveResolver}
-          resolverInput={resolverState.resolverInput}
-          setResolverInput={resolverState.setResolverInput}
-          activeModifiers={resolverState.activeModifiers}
-          resolvedTokens={resolverState.resolvedTokens}
-          resolverError={resolverState.resolverError}
-          loading={resolverState.loading}
-          resolversLoading={resolverState.resolversLoading}
-          fetchResolvers={resolverState.fetchResolvers}
-          convertFromThemes={resolverState.convertFromThemes}
-          deleteResolver={resolverState.deleteResolver}
-          getResolverFile={resolverState.getResolverFile}
-          updateResolver={resolverState.updateResolver}
-          onSuccess={p.setSuccessToast}
-        />
-      </ErrorBoundary>
     );
   }
 

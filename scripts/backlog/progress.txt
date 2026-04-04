@@ -674,3 +674,22 @@
   - Components deep in the render tree can call `useTokenDataContext()` directly — no need to thread props through PanelRouter
   - When replacing a stale-state GET fetch with context data, also update the POST/mutation path to call context mutation helpers (`addSetToState`) so the canonical list stays current after creates
 ---
+
+## 2026-04-05 - Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+- Removed the standalone "Resolver" sub-tab from the Define tab, reducing it from 4 to 3 sub-tabs (tokens, themes, generators)
+- The resolver UI was already embedded in ThemeManager via a mode toggle (simple/advanced); made this the canonical access point
+- Renamed mode toggle labels from "simple"/"advanced" to "Theme Layers"/"DTCG Resolvers" for clarity
+- Added `switchToResolverMode()` to `ThemeManagerHandle` so keyboard shortcut (⌘⇧R) and command palette still jump directly into the resolver view
+- Keyboard shortcut now calls `navigateTo('define', 'themes')` then `themeManagerHandleRef.current?.switchToResolverMode()` after a 50ms delay
+- `ResolverPanel` (standalone with header) is no longer referenced externally; only `ResolverContent` (embeddable) remains imported by ThemeManager
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L10 (removed resolver from DefineSubTab and TOP_TABS)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L26 (removed ResolverPanel import, resolver from PANEL_MAP, renderDefineResolver function)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L22 (added switchToResolverMode to handle), ~L407 (MODE_LABELS + renamed toggle labels)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L507 (keyboard shortcut), ~L773 (command palette)
+  - `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L105 (description update)
+- **Learnings for future iterations:**
+  - The existing "simple/advanced" mode toggle in ThemeManager was already the right architecture for embedding ResolverContent — the only real issue was the redundant separate sub-tab
+  - Adding `switchToResolverMode()` to the imperative handle is the cleanest way to let App.tsx trigger internal view-state changes in ThemeManager without prop-drilling or lifting state
+  - A small `setTimeout(..., 50)` is needed when navigating to a tab and then calling an imperative handle method — the ThemeManager isn't mounted until after navigation renders, so the handle ref is null synchronously
+---

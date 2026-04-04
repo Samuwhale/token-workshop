@@ -1128,3 +1128,26 @@ Already up to date.
 
   Merging to main: ExportPanel.tsx independently fetches /api/sets in 3 separate locations instead of receiving set data from TokenDataContext
 Already up to date.
+[main 2ba7226e] chore(backlog): done – ExportPanel.tsx independently fetches /api/sets in 3 separate locations instead of receiving set data from TokenDataContext
+ 5 files changed, 52 insertions(+), 29 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - ExportPanel.tsx independently fetches /api/sets in 3 separate locations
+- Replaced 3 independent `/api/sets` fetches with `useTokenDataContext()`:
+  1. Removed `availableSets` state and the `useEffect` GET fetch (was ~L260) — replaced with `sets` from context
+  2. Removed the GET fetch inside `handlePreviewSave` (~L536) — now uses `const existingSlugs = new Set(sets)` directly
+
+═══════════════════════════════════════════════════════════════
+  #43  ·  22 queued · 0
+0 in-progress · last took 3m30s
+═══════════════════════════════════════════════════════════════
+  → Merge Resolver panel into ThemeManager — ResolverPanel.tsx (889 lines) and ThemeManager.tsx (1,741 lines) both manage theme-like behavior with overlapping concepts; resolvers are DTCG v2025.10 modifiers that serve the same user goal as theme dimensions; having them as a separate sub-tab forces users to learn two mental models ("themes" vs "resolvers") and the `convertFromThemes` migration button confirms they're the same concept at different abstraction levels; fold resolver editing into ThemeManager as a "DTCG Resolver" section within each dimension, eliminating the separate sub-tab and reducing the Define tab from 4 sub-tabs to 3
+  Worktree: /tmp/backlog-3108-P28s6Z
+  Running agent… (started 00:14:37)
+
+  ✓ done: Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+    Removed standalone Resolver sub-tab (Define now has 3 sub-tabs); renamed ThemeManager mode toggle to "Theme Layers"/"DTCG Resolvers"; keyboard shortcut and command palette still jump directly to resolver mode via new switchToResolverMode() imperative handle
+    51 turns · 397s · $1.47
+
+  Merging to main: Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+Already up to date.

@@ -24,6 +24,8 @@ export interface ThemeManagerHandle {
   autoFillAllGaps: () => void;
   /** Opens the Compare view inside ThemeManager for the given mode. */
   navigateToCompare: (mode: CompareMode, path?: string, tokenPaths?: Set<string>, optionA?: string, optionB?: string) => void;
+  /** Switches to the DTCG Resolvers mode (advanced) inside ThemeManager. */
+  switchToResolverMode: () => void;
 }
 
 interface ThemeManagerProps {
@@ -180,6 +182,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
       navigateToCompare,
+      switchToResolverMode: () => setThemeMode('advanced'),
     };
     return () => { themeManagerHandle.current = null; };
   }, [themeManagerHandle, dimensions, coverage, navigateToCompare]);
@@ -401,28 +404,30 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     );
   }
 
+  const MODE_LABELS: Record<'simple' | 'advanced', string> = {
+    simple: 'Theme Layers',
+    advanced: 'DTCG Resolvers',
+  };
+
   // Advanced mode: render the resolver UI instead of the theme dimension grid
   if (themeMode === 'advanced' && resolverState) {
     return (
       <div className="flex flex-col h-full">
         {/* Mode toggle bar */}
-        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex items-center gap-1">
-            {(['simple', 'advanced'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setThemeMode(m)}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
-                  themeMode === m
-                    ? 'bg-[var(--color-figma-accent)] text-white'
-                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">DTCG Resolvers</span>
+        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+          {(['simple', 'advanced'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => setThemeMode(m)}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                themeMode === m
+                  ? 'bg-[var(--color-figma-accent)] text-white'
+                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
         </div>
         <div className="flex-1 overflow-hidden">
           <ResolverContent {...resolverState} onSuccess={onSuccess} />
@@ -453,27 +458,20 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     <div className="flex flex-col h-full">
       {/* Mode toggle bar — only shown when resolver state is available */}
       {resolverState && (
-        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-          <div className="flex items-center gap-1">
-            {(['simple', 'advanced'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setThemeMode(m)}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
-                  themeMode === m
-                    ? 'bg-[var(--color-figma-accent)] text-white'
-                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          {resolverState.resolvers.length > 0 && (
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-              {resolverState.resolvers.length} resolver{resolverState.resolvers.length !== 1 ? 's' : ''} available
-            </span>
-          )}
+        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+          {(['simple', 'advanced'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => setThemeMode(m)}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                themeMode === m
+                  ? 'bg-[var(--color-figma-accent)] text-white'
+                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
         </div>
       )}
       {error && (

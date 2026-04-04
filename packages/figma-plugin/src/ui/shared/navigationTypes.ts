@@ -7,7 +7,7 @@
 import { STORAGE_KEYS } from './storage';
 
 export type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
+type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'validation';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -18,7 +18,6 @@ export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
-    { id: 'resolver', label: 'Resolver' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },

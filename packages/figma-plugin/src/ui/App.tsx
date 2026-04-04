@@ -506,7 +506,8 @@ export function App() {
     }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'r') {
       e.preventDefault();
-      navigateTo('define', 'resolver');
+      navigateTo('define', 'themes');
+      setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50);
     }
     if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
@@ -771,10 +772,10 @@ export function App() {
       {
         id: 'resolver',
         label: 'Open DTCG Resolver',
-        description: 'Configure DTCG v2025.10 resolver rules and preview resolved tokens',
+        description: 'Configure DTCG v2025.10 resolver rules and preview resolved tokens (in Themes)',
         category: 'Navigation',
         shortcut: adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER),
-        handler: () => navigateTo('define', 'resolver'),
+        handler: () => { navigateTo('define', 'themes'); setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50); },
       },
       {
         id: 'canvas-audit',
