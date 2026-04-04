@@ -94,7 +94,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [renameOptionValue, setRenameOptionValue] = useState('');
   const [renameOptionError, setRenameOptionError] = useState<string | null>(null);
 
-  // (delete confirm removed — deletes are immediate with undo toast)
+  // Delete dimension confirmation
+  const [dimensionDeleteConfirm, setDimensionDeleteConfirm] = useState<string | null>(null);
 
   // Add option per dimension
   const [newOptionNames, setNewOptionNames] = useState<Record<string, string>>({});
@@ -1388,7 +1389,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </button>
                           )}
                           <button
-                            onClick={() => executeDeleteDimension(dim.id)}
+                            onClick={() => setDimensionDeleteConfirm(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
                             title="Delete layer" aria-label="Delete layer"
                           >
@@ -2163,6 +2164,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             </ConfirmModal>
           );
         }
+      })()}
+
+      {/* Delete dimension confirmation */}
+      {dimensionDeleteConfirm && (() => {
+        const dim = dimensions.find(d => d.id === dimensionDeleteConfirm);
+        if (!dim) return null;
+        return (
+          <ConfirmModal
+            title={`Delete layer "${dim.name}"?`}
+            description={`This will permanently delete the layer and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''} it contains. Token resolution across all sets that use this layer will be affected.`}
+            confirmLabel="Delete layer"
+            danger
+            onConfirm={async () => {
+              setDimensionDeleteConfirm(null);
+              await executeDeleteDimension(dim.id);
+            }}
+            onCancel={() => setDimensionDeleteConfirm(null)}
+          />
+        );
       })()}
 
       {/* Bulk set-status context menu */}

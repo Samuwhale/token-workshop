@@ -522,3 +522,11 @@
   - The most efficient pattern for a sweeping focus-style fix: (1) add global CSS rule as the foundation, (2) use sed batch replacement for the common `outline-none focus:border-` pattern, (3) manually fix template-literal conditional class strings, (4) fix div-based interactive widgets (sliders, listboxes) that aren't covered by element-type selectors
   - Transparent inputs embedded in styled containers (search boxes) should NOT have `focus:outline-none` unless the container provides a `focus-within:` indicator — remove the suppression and let the global rule provide the ring
 ---
+
+## 2026-04-04 - ThemeManager dimension delete uses undo-toast instead of pre-confirmation
+- Added a `dimensionDeleteConfirm` state (`useState<string | null>(null)`) in ThemeManager; changed the delete button's `onClick` from calling `executeDeleteDimension(dim.id)` directly to `setDimensionDeleteConfirm(dim.id)`; added a `ConfirmModal` (already imported) rendered when the state is set, with the dimension name, option count, and impact description in the modal body — `onConfirm` clears state then calls `executeDeleteDimension`, `onCancel` just clears state
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L97 (state), ~L1391 (button), ~L2168 (modal)
+- **Learnings for future iterations:**
+  - `ConfirmModal` was already imported in ThemeManager — the previous "delete confirm removed" comment at L97 was a tombstone from an earlier refactor; check for such comments before assuming a pattern is absent
+  - For IIFE-style conditional rendering `{cond && (() => { ... })()}`, passing the looked-up object directly into the modal (rather than into a derived state) keeps the modal description always in sync without extra state
+---
