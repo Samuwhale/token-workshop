@@ -663,3 +663,10 @@ Already up to date.
   → SelectionInspector has propFilter/propFilterMode state declared but no filter UI rendered — the state exists at the top of the component but the corresponding input/toggle is never shown to users; either implement the property filter UI (useful when inspecting layers with many properties) or remove the dead state to reduce confusion (SelectionInspector.tsx ~L208-209)
   Worktree: /tmp/backlog-91634-QnKOkL
   Running agent… (started 03:53:22)
+
+  ✓ done: SelectionInspector has propFilter/propFilterMode state declared but no filter UI rendered
+    stale — already done; filter bar with text input + mode toggles (Bound/Unbound/Colors/Dims/Mixed) is fully rendered at ~L1028-1081 and wired to matchesPropFilter()
+    15 turns · 87s · $0.36
+
+  Merging to main: SelectionInspector has propFilter/propFilterMode state declared but no filter UI rendered
+Already up to date.

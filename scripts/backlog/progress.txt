@@ -441,3 +441,13 @@
   - The "stale on Go→ navigation" pattern (`setResultsStale(true)` on every navigation click) was speculative — the cache's `tokenChangeKey` debounce covers real staleness; removed it
   - `onValidationComplete` in AnalyticsPanel was a side effect of fetch completion; after moving the fetch out, convert it to a `useEffect` watching the incoming prop
 ---
+
+## 2026-04-04 - SelectionInspector propFilter/propFilterMode dead state
+- Stale item — the property filter UI was already fully implemented prior to this session
+- Text search input + mode toggle buttons (Bound, Unbound, Colors, Dims, Mixed) are rendered at ~L1028-1081
+- `matchesPropFilter()` helper at ~L779 is applied to `visibleProps` per group at ~L1108
+- Empty state "No properties match filter" + Clear button at ~L1153-1169
+- Files changed: none
+- **Learnings for future iterations:**
+  - No new patterns; backlog item was already complete
+---

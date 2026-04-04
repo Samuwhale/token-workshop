@@ -710,3 +710,19 @@ Already up to date.
 
   Merging to main: Analytics panel and Health panel both run token validation independently with no shared cache
 Already up to date.
+[main 46f8b7ab] chore(backlog): done – Analytics panel and Health panel both run token validation independently with no shared cache
+ 9 files changed, 235 insertions(+), 128 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useValidationCache.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Analytics panel and Health panel both run token validation independently with no shared cache
+- Created `useValidationCache` hook in `packages/figma-plugin/src/ui/hooks/useValidationCache.ts` that centralises `POST /api/tokens/validate` fetching: auto-validates on first connect, triggers immediate re-validation when `validateKey` increments, and debounces 2s re-validation when `tokenChangeKey` increments (only if results already exist)
+- Exported `ValidationIssue` and `ValidationSummary` types from the new hook; both panels now import from there instead of duplicating local interface declarations
+- Removed all internal validation fetch logic from `HealthPanel.tsx`: deleted `runValidation` callback, 5 `useState` declarations, and the mount-only `useEffect`; panel now receives `validationIssues`, `validationSummary`, `validationLoading`, `validationError`, `validationLastRefreshed`, `onRefreshValidation` as props
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  6 queued · 3 in-progress · last took 7m53s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel "changes only" mode is hidden behind a small checkbox with no discoverability — this powerful feature (export only git-tracked modified/added tokens) is easy to miss; surface it as a toggle pill next to the export button or as a prominent option in the export flow, and add a brief explanation of what "changes" means (since last commit vs uncommitted) (ExportPanel.tsx changes-only UI)
+  Worktree: /tmp/backlog-91949-EsiyQz
+  Running agent… (started 03:54:34)
