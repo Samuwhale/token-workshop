@@ -4,7 +4,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 
@@ -244,7 +244,7 @@ export function useTokenCrud({
     onSetOperationLoading(deletedType === 'bulk' ? `Deleting ${deletedPaths.length} tokens…` : 'Deleting…');
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(deletedPath)}`, { method: 'DELETE' });
       } else {
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
           method: 'POST',
@@ -273,7 +273,7 @@ export function useTokenCrud({
             }
             await Promise.all(
               captured.map(({ path, data }) =>
-                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${tokenPathToUrlSegment(path)}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data),
@@ -312,7 +312,7 @@ export function useTokenCrud({
       const body: Record<string, unknown> = { $type: token.$type, $value: token.$value };
       if (tokenNode?.$description) body.$description = tokenNode.$description;
       if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(newPath)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -330,7 +330,7 @@ export function useTokenCrud({
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: unknown) => {
     if (!connected) return;
     const oldEntry = allTokensFlat[path];
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const encodedPath = tokenPathToUrlSegment(path);
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
         method: 'PATCH',
@@ -378,7 +378,7 @@ export function useTokenCrud({
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const encodedPath = tokenPathToUrlSegment(path);
     const oldEntry = allTokensFlat[path];
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
@@ -429,7 +429,7 @@ export function useTokenCrud({
   const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: unknown, targetSet: string) => {
     if (!connected) return;
     const oldEntry = perSetFlat?.[targetSet]?.[path];
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const encodedPath = tokenPathToUrlSegment(path);
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
         method: 'PATCH',
@@ -469,7 +469,7 @@ export function useTokenCrud({
 
   const handleDetachFromGenerator = useCallback(async (path: string) => {
     if (!connected) return;
-    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const encodedPath = tokenPathToUrlSegment(path);
     const url = `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`;
     let tokenData: { token: Record<string, unknown> } | null = null;
     try {

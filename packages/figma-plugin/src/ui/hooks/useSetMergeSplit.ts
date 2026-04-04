@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import type { UndoSlot } from './useUndo';
 import { apiFetch } from '../shared/apiFetch';
+import { tokenPathToUrlSegment } from '../shared/utils';
 
 interface UseSetMergeSplitParams {
   serverUrl: string;
@@ -121,14 +122,14 @@ export function useSetMergeSplit({
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
           if (mergeResolutions[path] === 'source') {
-            writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+            writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${tokenPathToUrlSegment(path)}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
             }));
           }
         } else if (!tgtFlat[path]) {
-          writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+          writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${tokenPathToUrlSegment(path)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),

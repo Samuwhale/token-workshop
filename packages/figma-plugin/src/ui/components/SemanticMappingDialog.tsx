@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { useState } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
 import { apiFetch } from '../shared/apiFetch';
@@ -84,7 +84,7 @@ export function SemanticMappingDialog({
     try {
       for (const mapping of validMappings) {
         const fullPath = `${semanticPrefix.trim()}.${mapping.semantic}`;
-        const encodedFullPath = fullPath.split('.').map(encodeURIComponent).join('/');
+        const encodedFullPath = tokenPathToUrlSegment(fullPath);
         const tokenType = generatedTokens.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
         const body = {
           $type: tokenType,

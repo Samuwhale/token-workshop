@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ExtractedTokenEntry, TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
 interface ExtractTokensPanelProps {
@@ -160,7 +160,7 @@ export function ExtractTokensPanel({
 
     try {
       for (const item of toCreate) {
-        const pathEncoded = item.name.split('.').map(encodeURIComponent).join('/');
+        const pathEncoded = tokenPathToUrlSegment(item.name);
         const existing = tokenMap[item.name];
         const method = existing ? 'PATCH' : 'POST';
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {

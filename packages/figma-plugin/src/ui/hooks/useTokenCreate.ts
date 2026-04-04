@@ -6,6 +6,7 @@ import { getDefaultValue, nodeParentPath } from '../components/tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { tokenPathToUrlSegment } from '../shared/utils';
 
 export interface PathValidation {
   error: string | null;
@@ -229,7 +230,7 @@ export function useTokenCreate({
     const parsedValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
     if (parsedValue === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${tokenPathToUrlSegment(trimmedPath)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -243,7 +244,7 @@ export function useTokenCreate({
       const createdValue = parsedValue;
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
-      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
+      const capturedEncodedPath = tokenPathToUrlSegment(createdPath);
       // Persist last-used group so reopening the form defaults to it
       try { localStorage.setItem('tm_last_create_group', newTokenGroup.trim()); } catch (e) { console.debug('[useTokenCreate] storage write failed:', e); }
       if (keepOpen) {

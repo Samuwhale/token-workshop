@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
-import { describeError } from '../shared/utils';
+import { describeError, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 
 // ── Shared helpers ──
@@ -211,7 +211,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
           try {
             const payload = cfg.buildPullPayload(r);
             await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`,
+              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(r.path)}`,
               {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },

@@ -592,3 +592,10 @@ Already up to date.
   → Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files (useTokenCrud 7x, AnalyticsPanel 5x, TokenList 3x, TokenEditor 3x, PropertyRow 2x, and 11 more) — extract a shared `tokenPathToUrlSegment(path)` utility into `shared/utils.ts` to eliminate the duplication and ensure any future encoding changes (e.g., handling segments with dots) apply everywhere (grep for the pattern to find all sites)
   Worktree: /tmp/backlog-91949-BrJd6Z
   Running agent… (started 03:19:48)
+
+  ✓ done: Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files
+    Added tokenPathToUrlSegment(path) to shared/utils.ts and replaced all 35 call-sites across 17 files; all 4 validation gates pass
+    13 turns · 383s · $2.31
+
+  Merging to main: Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files
+Already up to date.

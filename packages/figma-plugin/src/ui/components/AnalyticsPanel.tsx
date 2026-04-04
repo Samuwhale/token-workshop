@@ -3,7 +3,7 @@ import { Spinner } from './Spinner';
 import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
-import { countLeafNodes } from '../shared/utils';
+import { countLeafNodes, tokenPathToUrlSegment } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 import { LINT_RULE_BY_ID } from '../shared/lintRules';
 import { apiFetch } from '../shared/apiFetch';
@@ -402,7 +402,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
 
   const applyFix = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
-    const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${issue.path.split('.').map(encodeURIComponent).join('/')}`;
+    const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${tokenPathToUrlSegment(issue.path)}`;
     setFixingKeys(prev => { const next = new Set(prev); next.add(key); return next; });
     try {
       if (issue.suggestedFix === 'add-description') {
@@ -510,7 +510,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     setDeduplicating(canonical);
     try {
       await Promise.all(others.map(({ path, setName }) =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(path)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: `{${canonical}}` }),
@@ -533,7 +533,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
         const others = group.tokens.filter(t => t.path !== group.canonical);
         for (const { path, setName } of others) {
           patches.push(
-            apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+            apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(path)}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $value: `{${group.canonical}}` }),
@@ -556,7 +556,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     const key = `${set}:${path}`;
     setDeletingUnused(prev => new Set([...prev, key]));
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, { method: 'DELETE' });
       setReloadKey(k => k + 1);
     } catch (err) {
       console.warn('[AnalyticsPanel] delete unused token failed:', err);
@@ -569,7 +569,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     setDeletingUnused(new Set(['__all__']));
     try {
       await Promise.all(unusedTokens.map(({ path, set }) =>
-        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' })
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${tokenPathToUrlSegment(path)}`, { method: 'DELETE' })
       ));
       setConfirmDeleteAllUnused(false);
       setReloadKey(k => k + 1);

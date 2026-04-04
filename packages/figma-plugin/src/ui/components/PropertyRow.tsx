@@ -4,7 +4,7 @@ import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import {
@@ -168,7 +168,7 @@ export function PropertyRow({
     const tokenType = getTokenTypeForProperty(prop);
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
-    const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+    const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
     setCreating(true);
     try {
@@ -204,7 +204,7 @@ export function PropertyRow({
     const tokenType = getTokenTypeForProperty(prop);
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
-    const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+    const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
     setCreating(true);
     try {

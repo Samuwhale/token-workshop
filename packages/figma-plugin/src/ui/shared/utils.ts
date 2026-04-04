@@ -44,6 +44,14 @@ export function stableStringify(value: unknown): string {
   return '{' + parts.join(',') + '}';
 }
 
+/** Convert a dot-separated token path to a URL path segment by encoding each segment.
+ * e.g. "color.brand.primary" → "color/brand/primary"
+ * Handles segment names containing dots (e.g. "spacing.1.5" → "spacing/1.5") correctly
+ * because each segment is individually encoded before joining with "/". */
+export function tokenPathToUrlSegment(path: string): string {
+  return path.split('.').map(encodeURIComponent).join('/');
+}
+
 /** Count leaf token nodes in a nested DTCG token group, with breakdown by $type. */
 export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
   let total = 0;

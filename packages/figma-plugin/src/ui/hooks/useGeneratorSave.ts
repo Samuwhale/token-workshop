@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import type {
@@ -133,7 +133,7 @@ export function useGeneratorSave({
           const validMappings = semanticMappingsAtSave.filter(m => m.semantic.trim() && m.step);
           for (const mapping of validMappings) {
             const fullPath = `${semanticPrefixAtSave.trim()}.${mapping.semantic}`;
-            const encodedFullPath = fullPath.split('.').map(encodeURIComponent).join('/');
+            const encodedFullPath = tokenPathToUrlSegment(fullPath);
             const tokenType = tokensForMapping.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
             const body = {
               $type: tokenType,

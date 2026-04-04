@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
@@ -163,7 +163,7 @@ export function useFigmaSync(
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async path => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(path)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),

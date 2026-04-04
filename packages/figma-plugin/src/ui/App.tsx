@@ -70,7 +70,7 @@ import { useGraphState } from './hooks/useGraphState';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
-import { adaptShortcut } from './shared/utils';
+import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
@@ -3311,7 +3311,7 @@ export function App() {
               const body: Record<string, unknown> = { $type: entry.$type, $value: entry.$value };
               if (tokenNode?.$description) body.$description = tokenNode.$description;
               if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPathToUrlSegment(newPath)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),

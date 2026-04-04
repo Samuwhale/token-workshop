@@ -3,6 +3,7 @@ import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
+import { tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 
 export interface TableRow {
@@ -217,7 +218,7 @@ export function useTableCreate({
       const g = tableGroup.trim();
       const n = row.name.trim();
       const path = g ? `${g}.${n}` : n;
-      const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+      const encodedPath = tokenPathToUrlSegment(path);
       const parsedValue = row.value.trim()
         ? parseInlineValue(row.type, row.value.trim())
         : getDefaultValue(row.type);

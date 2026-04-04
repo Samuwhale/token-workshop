@@ -5,7 +5,7 @@ import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from 
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
-import { stableStringify, getErrorMessage } from '../shared/utils';
+import { stableStringify, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
@@ -1493,7 +1493,7 @@ export function TokenList({
     if (extractMode === 'new') {
       if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
       try {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim().split('.').map(encodeURIComponent).join('/')}`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${tokenPathToUrlSegment(newPrimitivePath.trim())}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
@@ -1502,14 +1502,14 @@ export function TokenList({
         setExtractError(err instanceof ApiError ? err.message : 'Failed to create primitive token.');
         return;
       }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
       });
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${existingAlias}}` }),

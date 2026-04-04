@@ -1,4 +1,4 @@
-import { getErrorMessage, adaptShortcut } from '../shared/utils';
+import { getErrorMessage, adaptShortcut, tokenPathToUrlSegment } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { Spinner } from './Spinner';
 import { apiFetch } from '../shared/apiFetch';
@@ -350,7 +350,7 @@ function ThemeValuesSection({
     setSavingKey(optionName);
     setSaveError(null);
     try {
-      const encodedPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+      const encodedPath = tokenPathToUrlSegment(tokenPath);
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -653,7 +653,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   // Brief visual feedback when a clipboard paste is successfully parsed
   const [pasteFlash, setPasteFlash] = useState(false);
 
-  const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+  const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -1131,7 +1131,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
-      const encodedTargetPath = targetPath.split('.').map(encodeURIComponent).join('/');
+      const encodedTargetPath = tokenPathToUrlSegment(targetPath);
       const method = isCreateMode ? 'POST' : 'PATCH';
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
         method,

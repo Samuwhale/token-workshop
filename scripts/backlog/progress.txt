@@ -531,3 +531,12 @@
   - When `checkCircularReferences` is called with overrides for a path that exists in multiple sets (multi-set flat map), the override applies to ALL sets' versions of that path, masking dependencies that differ per-set. The override mechanism is only safe for pre-mutation "what-if" checks (single set, single value per path). Post-mutation checks should build the dep map from live set state with no overrides.
   - The pattern "build dep map with no overrides from live sets" vs "build dep map with overrides from stale flatTokens" captures the pre- vs post-mutation check distinction. Pre-mutation: use overrides + stale flatTokens. Post-mutation: use no overrides + live flatTokens.
 ---
+
+## 2026-04-04 - Extract tokenPathToUrlSegment utility to eliminate duplicated URL encoding pattern
+- Added `tokenPathToUrlSegment(path)` to `packages/figma-plugin/src/ui/shared/utils.ts`
+- Replaced 35 call-sites of `.split('.').map(encodeURIComponent).join('/')` across 17 files with the new utility
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L47 (new function), `hooks/useTokenCrud.ts`, `hooks/useTokenSyncBase.ts`, `hooks/useTableCreate.ts`, `hooks/useGeneratorSave.ts`, `hooks/useTokenPromotion.ts`, `hooks/useTokenCreate.ts`, `hooks/useFigmaSync.ts`, `hooks/useThemeAutoFill.ts`, `hooks/useSetMergeSplit.ts`, `App.tsx`, `components/ExtractTokensPanel.tsx`, `components/SemanticMappingDialog.tsx`, `components/SelectionInspector.tsx`, `components/TokenList.tsx`, `components/AnalyticsPanel.tsx`, `components/PropertyRow.tsx`, `components/TokenEditor.tsx`
+- **Learnings for future iterations:**
+  - The subagent approach for bulk replacements across many files is efficient — it reads each file, adds the import intelligently (merging with existing utils imports), and replaces all call sites without missing any
+  - For files that already import from shared/utils, the agent correctly extends the named import list rather than adding a duplicate import
+---

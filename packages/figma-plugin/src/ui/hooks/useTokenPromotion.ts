@@ -6,6 +6,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { colorDeltaE } from '@tokenmanager/core';
 import { valuesEqual } from '../components/tokenListHelpers';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { tokenPathToUrlSegment } from '../shared/utils';
 
 export interface UseTokenPromotionParams {
   connected: boolean;
@@ -80,7 +81,7 @@ export function useTokenPromotion({
     try {
       await Promise.all(
         toApply.map(r =>
-          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
+          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(r.path)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $value: `{${r.proposedAlias}}` }),

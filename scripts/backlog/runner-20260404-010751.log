@@ -702,3 +702,18 @@ Already up to date.
 
   Merging to main: bulkRename's circular-reference check runs against stale flatTokens during a batch
 Already up to date.
+[main a69fd303] chore(backlog): done – bulkRename's circular-reference check runs against stale flatTokens during a batch
+ 5 files changed, 80 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - bulkRename circular-reference check uses stale flatTokens inside batch
+- Fixed the circular-reference check in `bulkRename` which was effectively a no-op: inside `withBatch`, `rebuildFlatTokens()` is deferred, so `this.flatTokens` holds pre-rename state; the old code read new token values from stale flatTokens (always `undefined`) and passed them as overrides, which masked the actual alias-updated dependencies in other sets.
+- Extracted DFS logic from `checkCircularReferences` into a new private `runCycleDFS(deps, startPaths)` helper to eliminate duplication.
+- Added `buildLiveFlatTokens()` private helper that does a fresh flatten of `this.sets` without the batch depth guard — reflects post-mutation state even inside a batch.
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  5 queued · 3 in-progress · last took 5m13s
+═══════════════════════════════════════════════════════════════
+  → GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files — `git checkout origin/branch -- file` writes to disk, the chokidar watcher fires (no write-guard set for these paths), and TokenStore reloads the file into memory while GitSync is still iterating; then `git add` stages whatever the watcher loaded, which may differ from what was checked out if another write happened in between; applyDiffChoices should call tokenStore._startWriteGuard for each pulled file before checkout and reload explicitly after all checkouts complete (packages/server/src/services/git-sync.ts L752-773)
+  Worktree: /tmp/backlog-92209-m6luuw
+  Running agent… (started 03:25:55)

@@ -7,7 +7,7 @@ import {
 import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMapEntry, LayerSearchResult, ExtractedTokenEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
-import { adaptShortcut, getErrorMessage } from '../shared/utils';
+import { adaptShortcut, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
@@ -647,7 +647,7 @@ export function SelectionInspector({
         let created = 0;
         try {
           for (const token of unboundTokens) {
-            const pathEncoded = token.suggestedName.split('.').map(encodeURIComponent).join('/');
+            const pathEncoded = tokenPathToUrlSegment(token.suggestedName);
             const existing = tokenMap[token.suggestedName];
             const method = existing ? 'PATCH' : 'POST';
             await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
