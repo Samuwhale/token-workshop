@@ -577,3 +577,10 @@
   - sed replacements on the source file that defines the new utility will corrupt the implementation — exclude utils.ts from the find|sed pipeline or restore it immediately after
   - When adding to existing `import { ... } from` lines, sed works cleanly for literal import strings; just make sure each sed pattern is specific enough to target only the right file
 ---
+
+## 2026-04-04 - ux-pass
+- Areas explored: ThemeManager (2415 lines), ResolverPanel (802 lines), ImportPanel + ImportConflictResolver + ImportSourceSelector + ImportPanelContext (full import flow), SelectionInspector binding operations, ConfirmModal baseline, SuccessToast/UndoToast/ToastStack feedback system, icon button aria-label audit across all components, SnapshotsSource delete flow, AnalyticsPanel delete flow, GeneratorPipelineCard delete flow
+- Heuristics most relevant: consistency (destructive action safety varies by panel), visibility of system status (silent mutations), accessibility (icon buttons missing aria-label), recognition over recall (import conflict cycling)
+- Found 6 items — written to backlog-inbox.md
+- Notable: Destructive action safety is the most systemic issue — delete confirmation ranges from full ConfirmModal (ThemeManager dimensions, GeneratorPipelineCard) to inline confirm (AnalyticsPanel bulk delete) to completely absent (ThemeManager options, SnapshotsSource snapshots, AnalyticsPanel individual tokens). This inconsistency means users can't build reliable expectations about what will happen when they click a delete button.
+---
