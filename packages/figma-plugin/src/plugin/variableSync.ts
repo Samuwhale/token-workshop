@@ -18,6 +18,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
   const createdCollectionIds: string[] = [];
   // Tokens whose Figma variable type is unsupported, or whose value could not be converted
   const skipped: Array<{ path: string; $type: string }> = [];
+  const failures: Array<{ path: string; error: string }> = [];
 
   try {
     // Get or create collection by name, with caching
@@ -106,28 +107,33 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         localVariables.push(variable);
       }
 
-      // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
-      const desiredModeName = token.setName ? modeMap[token.setName] : undefined;
-      const modeId = desiredModeName
-        ? getOrCreateMode(collection, desiredModeName)
-        : collection.modes[0].modeId;
-      if (figmaValue !== null) {
-        variable.setValueForMode(modeId, figmaValue);
-      }
+      try {
+        // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
+        const desiredModeName = token.setName ? modeMap[token.setName] : undefined;
+        const modeId = desiredModeName
+          ? getOrCreateMode(collection, desiredModeName)
+          : collection.modes[0].modeId;
+        if (figmaValue !== null) {
+          variable.setValueForMode(modeId, figmaValue);
+        }
 
-      // Apply scopes if specified (read from $extensions or legacy $scopes)
-      const scopeOverrides: string[] = (
-        (Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] : null) ??
-        (Array.isArray(token.$scopes) ? token.$scopes : null) ??
-        []
-      );
-      if (scopeOverrides.length > 0) {
-        (variable as Variable & { scopes: string[] }).scopes = scopeOverrides;
-      }
+        // Apply scopes if specified (read from $extensions or legacy $scopes)
+        const scopeOverrides: string[] = (
+          (Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] : null) ??
+          (Array.isArray(token.$scopes) ? token.$scopes : null) ??
+          []
+        );
+        if (scopeOverrides.length > 0) {
+          (variable as Variable & { scopes: string[] }).scopes = scopeOverrides;
+        }
 
-      // Store mapping in shared plugin data
-      variable.setPluginData('tokenPath', token.path);
-      variable.setPluginData('tokenSet', token.setName || '');
+        // Store mapping in shared plugin data
+        variable.setPluginData('tokenPath', token.path);
+        variable.setPluginData('tokenSet', token.setName || '');
+      } catch (tokenError) {
+        console.error(`Failed to apply variable for ${token.path}:`, tokenError);
+        failures.push({ path: token.path, error: getErrorMessage(tokenError) });
+      }
     }
 
     // Serialize snapshot so the UI can offer a "Revert last sync" action.
@@ -147,10 +153,11 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
     figma.ui.postMessage({
       type: 'variables-applied',
-      count: tokens.length,
+      count: tokens.length - failures.length,
       created: createdVariableIds.length,
       overwritten: variableSnapshots.size,
       skipped,
+      failures,
       correlationId,
       varSnapshot: { records: snapshotRecords, createdIds: [...createdVariableIds] },
     });

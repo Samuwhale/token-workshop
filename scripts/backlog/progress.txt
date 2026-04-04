@@ -764,3 +764,11 @@
   - `useMemo` and derived state must always appear BEFORE conditional early returns (rules-of-hooks TDZ rule)
   - `useThemeManagerModalsValue` helper using `Object.values(deps)` as useMemo dep array is an anti-pattern — use explicit dep arrays instead
 ---
+
+## 2026-04-04 - variableSync main mutation loop has no per-token try-catch
+- Added per-token try-catch around the mutation block (setValueForMode, scopes assignment, setPluginData) in `applyVariables`. Failures are logged with `console.error` and pushed to a `failures` array; the loop continues to the next token. Added `failures` field to the `variables-applied` postMessage (`count` now reflects successful tokens only). The `VariablesAppliedMessage` type and `extractSyncApplyResult` already had `failures` support — no UI changes needed.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L20, ~L109-135, ~L155
+- **Learnings for future iterations:**
+  - `VariablesAppliedMessage` in `types.ts` already had `failures?: { path: string; error: string }[]` and the UI hook `extractSyncApplyResult` already read `msg.failures ?? []` — the type was already anticipating this pattern but the plugin never populated it.
+  - Per-token try-catch scope: only wrap the Figma API mutation calls (setValueForMode, scopes, setPluginData) — not the variable lookup/creation block, which has its own `continue` logic for unresolvable values.
+---

@@ -381,3 +381,31 @@ Already up to date.
 
   Merging to main: ThemeManager.tsx is a 2439-line monolith with 44 useState hooks — extract domain-specific custom hooks (useThemeDimensions, useThemeCoverage, useThemeCompare, useThemeOptions) and use a context provider to eliminate prop-drilling, mirroring the TokenListModalsContext pattern already applied to TokenList; the component has 8 identical error-handling blocks, duplicated dimension/option existence checks, and no loading guards on async server calls allowing duplicate submissions
 Already up to date.
+[main 173319e5] chore(backlog): done – ThemeManager.tsx is a 2439-line monolith with 44 useState hooks — extract domain-specific custom hooks (useThemeDimensions, useThemeCoverage, useThemeCompare, useThemeOptions) and use a context provider to eliminate prop-drilling, mirroring the TokenListModalsContext pattern already applied to TokenList; the component has 8 identical error-handling blocks, duplicated dimension/option existence checks, and no loading guards on async server calls allowing duplicate submissions
+ 11 files changed, 1386 insertions(+), 845 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeCompare.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeOptions.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - ThemeManager.tsx is a 2439-line monolith with 44 useState hooks
+- Extracted 4 domain-specific custom hooks + context provider from ThemeManager.tsx:
+  - **New `useThemeDimensions`** (`packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts`): owns all dimension data, fetch/coverage/missingOverrides computation, dimension CRUD (create/rename/delete) with loading guards (`isCreatingDim`, `isRenamingDim`, `isDeletingDim`)
+  - **New `useThemeOptions`** (`packages/figma-plugin/src/ui/hooks/useThemeOptions.ts`): owns option-level CRUD (add, duplicate, rename, delete) with per-dim loading guards (`isAddingOption` record, `isDuplicatingOption`, `isRenamingOption`, `isDeletingOption`)
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  15 queued · 0
+0 in-progress · last took 24m50s
+═══════════════════════════════════════════════════════════════
+  → Plugin variableSync main mutation loop (variableSync.ts:109-130) has no per-token try-catch — a single failed Figma API call (setValueForMode, scopes assignment, or setPluginData) aborts the entire sync loop and triggers a full rollback of all previously successful variables; styleSync already handles this correctly with per-token try-catch (styleSync.ts:108-133) that logs failures and continues; variableSync should adopt the same per-token error isolation pattern so one bad token doesn't undo the entire batch
+  Worktree: /tmp/backlog-3108-r9LpvW
+  Running agent… (started 20:10:33)
+
+  ✓ done: variableSync main mutation loop has no per-token try-catch
+    Wrapped setValueForMode/scopes/setPluginData in per-token try-catch; failures logged and collected without aborting the batch; failures array added to variables-applied message
+    19 turns · 82s · $0.38
+
+  Merging to main: variableSync main mutation loop has no per-token try-catch
+Already up to date.
