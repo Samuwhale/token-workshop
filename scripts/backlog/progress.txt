@@ -442,3 +442,11 @@
   - When an inline confirm UI needs to pass a boolean choice to the delete handler, use a checkbox inside ConfirmModal's `children` prop — cleaner than adding extra confirm button variants
   - Always reset the checkbox state when opening the modal (pass `false` as initializer on the open handler) so it doesn't retain previous user choice
 ---
+
+## 2026-04-04 - ArrowLeft/Right do not expand/collapse groups in the token tree
+- Feature was already fully implemented (TokenList.tsx lines 1353–1401): ArrowRight expands collapsed group or moves to first child; ArrowLeft collapses expanded group or moves focus to parent; token leaves navigate to parent group on ArrowLeft.
+- Collateral fix: replaced two uses of `groupPath.lastIndexOf('.')` / `tokenPath.lastIndexOf('.')` for parent path computation with `nodeParentPath(path, nodeName)` (read from `activeEl.dataset.nodeName`) to correctly handle segment names containing literal dots (e.g., `spacing."1.5"`).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1378, ~L1391
+- **Learnings for future iterations:**
+  - Always use `nodeParentPath(path, name)` from `tokenListUtils.ts` when computing parent path from DOM data attributes — `data-node-name` is set on every tree row alongside `data-group-path`/`data-token-path`, so both pieces needed for the call are available.
+---

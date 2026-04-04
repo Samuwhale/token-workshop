@@ -1375,9 +1375,8 @@ export function TokenList({
           if (isExpanded) {
             handleToggleExpand(groupPath);
           } else {
-            const dotIdx = groupPath.lastIndexOf('.');
-            if (dotIdx > 0) {
-              const parentPath = groupPath.slice(0, dotIdx);
+            const parentPath = nodeParentPath(groupPath, activeEl.dataset.nodeName ?? '');
+            if (parentPath) {
               const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
               if (parentEl) {
                 parentEl.focus();
@@ -1388,9 +1387,8 @@ export function TokenList({
         }
       } else if (tokenPath && e.key === 'ArrowLeft') {
         e.preventDefault();
-        const dotIdx = tokenPath.lastIndexOf('.');
-        if (dotIdx > 0) {
-          const parentPath = tokenPath.slice(0, dotIdx);
+        const parentPath = nodeParentPath(tokenPath, activeEl.dataset.nodeName ?? '');
+        if (parentPath) {
           const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
           if (parentEl) {
             parentEl.focus();
