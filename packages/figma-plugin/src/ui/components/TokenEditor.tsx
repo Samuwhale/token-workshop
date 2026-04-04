@@ -586,9 +586,11 @@ interface TokenEditorProps {
   onShowReferences?: (path: string) => void;
   /** Navigate to a token by path in the token list (highlight it, switch sets if needed) */
   onNavigateToToken?: (path: string, fromPath?: string) => void;
+  /** Navigate to a generator in GraphPanel */
+  onNavigateToGenerator?: (generatorId: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken, onNavigateToGenerator }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -1896,6 +1898,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           sourceGenerators={existingGeneratorsForToken}
           onNavigateToToken={onNavigateToToken}
           onShowReferences={onShowReferences}
+          onNavigateToGenerator={onNavigateToGenerator}
         />
       )}
 

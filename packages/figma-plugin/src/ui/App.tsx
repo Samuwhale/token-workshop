@@ -2300,6 +2300,7 @@ export function App() {
                     derivedTokenPaths={derivedTokenPaths}
                     onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
                     onNavigateToToken={handleNavigateToAlias}
+                    onNavigateToGenerator={handleNavigateToGenerator}
                   />
                   ) : previewingToken ? (
                   <TokenDetailPreview
@@ -2686,6 +2687,7 @@ export function App() {
                 derivedTokenPaths={derivedTokenPaths}
                 onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
                 onNavigateToToken={handleNavigateToAlias}
+                onNavigateToGenerator={handleNavigateToGenerator}
               />
             </div>
           </div>
