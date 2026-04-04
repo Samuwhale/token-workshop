@@ -18,3 +18,15 @@ export type AutoFillPendingItem = { path: string; $value: unknown; $type?: strin
 export type AutoFillPreview =
   | { mode: 'single-option'; dimId: string; optionName: string; targetSet: string; tokens: AutoFillPendingItem[] }
   | { mode: 'all-options'; dimId: string; perSetBatch: Record<string, AutoFillPendingItem[]>; totalCount: number };
+
+/** A token that exists in a source set but has no counterpart in any enabled/override set */
+export type MissingOverrideToken = {
+  path: string;
+  /** Which source set this token lives in */
+  sourceSet: string;
+  value: unknown;
+  type?: string;
+};
+
+/** Maps dimId → optionName → list of tokens missing from override sets */
+export type MissingOverridesMap = Record<string, Record<string, { missing: MissingOverrideToken[] }>>;

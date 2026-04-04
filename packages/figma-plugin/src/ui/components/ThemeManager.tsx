@@ -8,7 +8,7 @@ import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
-import type { CoverageMap, CoverageToken, AutoFillPreview } from './themeManagerTypes';
+import type { CoverageMap, CoverageToken, AutoFillPreview, MissingOverrideToken, MissingOverridesMap } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
 import { UnifiedComparePanel } from './UnifiedComparePanel';
@@ -103,11 +103,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [addOptionErrors, setAddOptionErrors] = useState<Record<string, string>>({});
   const addOptionInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Coverage gaps
+  // Coverage gaps (unresolved alias chains)
   const [coverage, setCoverage] = useState<CoverageMap>({});
   const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set());
   const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set());
   const [showMissingOnly, setShowMissingOnly] = useState<Set<string>>(new Set());
+
+  // Missing overrides: source tokens absent from any enabled/override set
+  const [missingOverrides, setMissingOverrides] = useState<MissingOverridesMap>({});
+  const [expandedMissingOverrides, setExpandedMissingOverrides] = useState<Set<string>>(new Set());
+  const [creatingMissingKeys, setCreatingMissingKeys] = useState<Set<string>>(new Set());
+  const [missingOverrideSearch, setMissingOverrideSearch] = useState<Record<string, string>>({});
 
   // Per-option set ordering
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
@@ -288,6 +294,44 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         }
       }
       setExpandedCoverage(keysWithGaps);
+
+      // Compute missing overrides: tokens in source sets absent from all enabled sets
+      const moMap: MissingOverridesMap = {};
+      for (const dim of allDimensions) {
+        moMap[dim.id] = {};
+        for (const opt of dim.options) {
+          // Collect paths present in any enabled (override) set
+          const enabledPaths = new Set<string>();
+          for (const [setName, state] of Object.entries(opt.sets)) {
+            if (state === 'enabled') {
+              for (const path of Object.keys(tokenValues[setName] ?? {})) {
+                enabledPaths.add(path);
+              }
+            }
+          }
+          // Only meaningful when there's at least one enabled set
+          const hasEnabledSets = enabledPaths.size > 0 || Object.values(opt.sets).some(s => s === 'enabled');
+          const missing: MissingOverrideToken[] = [];
+          if (hasEnabledSets) {
+            for (const [setName, state] of Object.entries(opt.sets)) {
+              if (state === 'source') {
+                for (const [path, value] of Object.entries(tokenValues[setName] ?? {})) {
+                  if (!enabledPaths.has(path)) {
+                    missing.push({
+                      path,
+                      sourceSet: setName,
+                      value,
+                      type: tokenTypes[setName]?.[path],
+                    });
+                  }
+                }
+              }
+            }
+          }
+          moMap[dim.id][opt.name] = { missing };
+        }
+      }
+      setMissingOverrides(moMap);
     } catch (err) {
       if (controller.signal.aborted) return; // superseded by a newer fetch
       setError(getErrorMessage(err));
@@ -340,6 +384,30 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleAutoFillSingle, handleAutoFillAll, executeAutoFillAll,
     handleAutoFillAllOptions, executeAutoFillAllOptions,
   } = useThemeAutoFill({ serverUrl, dimensions, coverage, debouncedFetchDimensions, setError });
+
+  // Bulk-create missing override tokens: creates all source tokens absent from enabled sets into the first override set
+  const handleBulkCreateMissingOverrides = useCallback(async (dimId: string, optionName: string, targetSet: string, tokens: MissingOverrideToken[]) => {
+    if (tokens.length === 0) return;
+    const fillKey = `${dimId}:${optionName}:__missing__`;
+    setCreatingMissingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    try {
+      const batch = tokens.map(t => {
+        const entry: { path: string; $value: unknown; $type?: string } = { path: t.path, $value: t.value };
+        if (t.type) entry.$type = t.type;
+        return entry;
+      });
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: batch, strategy: 'skip' }),
+      });
+      debouncedFetchDimensions();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to create missing override tokens'));
+    } finally {
+      setCreatingMissingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
+    }
+  }, [serverUrl, debouncedFetchDimensions, setError]);
 
   // Total fillable gaps across all dimensions and options
   const totalFillableGaps = useMemo(() => {
@@ -1407,6 +1475,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {dim.options.map((o, oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
                           const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
+                          const optMissingOverrideCount = missingOverrides[dim.id]?.[o.name]?.missing.length ?? 0;
                           const isSelected = selectedOpt === o.name;
                           const diffCount = isSelected ? 0 : (optionDiffCounts[`${dim.id}/${o.name}`] ?? 0);
                           const isBeingDragged = draggingOpt?.dimId === dim.id && draggingOpt?.optionName === o.name;
@@ -1438,9 +1507,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             {optMissingCount > 0 && (
                               <span
                                 className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]"
-                                title={`${optMissingCount} missing token${optMissingCount !== 1 ? 's' : ''}`}
+                                title={`${optMissingCount} unresolved alias${optMissingCount !== 1 ? 'es' : ''}`}
                               >
                                 {optMissingCount}
+                              </span>
+                            )}
+                            {optMissingOverrideCount > 0 && (
+                              <span
+                                className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-violet-500/15 text-violet-600"
+                                title={`${optMissingOverrideCount} Base token${optMissingOverrideCount !== 1 ? 's' : ''} not overridden`}
+                              >
+                                {optMissingOverrideCount}
                               </span>
                             )}
                             {isSelected && (
@@ -1904,6 +1981,120 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           </div>
                           );
                         })()}
+                        {/* Missing overrides: source tokens absent from enabled/override sets */}
+                        {(() => {
+                          const moItems = missingOverrides[dim.id]?.[selectedOpt]?.missing ?? [];
+                          if (moItems.length === 0 || overrideSets.length === 0) return null;
+                          const moKey = covKey;
+                          const isExpanded = expandedMissingOverrides.has(moKey);
+                          const searchQ = (missingOverrideSearch[moKey] ?? '').toLowerCase();
+                          const filteredMo = searchQ ? moItems.filter(i => i.path.toLowerCase().includes(searchQ)) : moItems;
+                          const targetSet = overrideSets[0];
+                          const isCreating = creatingMissingKeys.has(`${dim.id}:${selectedOpt}:__missing__`);
+                          return (
+                            <div className="border-t border-[var(--color-figma-border)]">
+                              {/* Collapsible header */}
+                              <button
+                                onClick={() => setExpandedMissingOverrides(prev => {
+                                  const next = new Set(prev);
+                                  next.has(moKey) ? next.delete(moKey) : next.add(moKey);
+                                  return next;
+                                })}
+                                className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                aria-expanded={isExpanded}
+                                title={`${moItems.length} token${moItems.length !== 1 ? 's' : ''} from Base sets have no override in "${targetSet}"`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform flex-shrink-0 text-[var(--color-figma-text-tertiary)] ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                                    Missing overrides
+                                  </span>
+                                  <span className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9px] font-bold leading-none bg-violet-500/15 text-violet-600">
+                                    {moItems.length}
+                                  </span>
+                                </div>
+                                {isExpanded && (
+                                  <button
+                                    onClick={e => { e.stopPropagation(); handleBulkCreateMissingOverrides(dim.id, selectedOpt, targetSet, moItems); }}
+                                    disabled={isCreating}
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                                    title={`Copy all ${moItems.length} Base token${moItems.length !== 1 ? 's' : ''} into "${targetSet}" as overrides (skip existing)`}
+                                    aria-label={`Create ${moItems.length} missing overrides in ${targetSet}`}
+                                  >
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                                    {isCreating ? 'Creating…' : `Create all (${moItems.length})`}
+                                  </button>
+                                )}
+                              </button>
+                              {isExpanded && (
+                                <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 pb-2">
+                                  <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5">
+                                    These tokens are in Base sets but have no value in <span className="font-medium text-[var(--color-figma-text-secondary)]">{targetSet}</span>. Creating them copies the Base value as a starting point.
+                                  </p>
+                                  {moItems.length > 8 && (
+                                    <input
+                                      type="text"
+                                      placeholder="Filter tokens…"
+                                      value={missingOverrideSearch[moKey] ?? ''}
+                                      onChange={e => setMissingOverrideSearch(prev => ({ ...prev, [moKey]: e.target.value }))}
+                                      className="w-full mb-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                                    />
+                                  )}
+                                  <div className="flex flex-col gap-0 max-h-48 overflow-y-auto rounded" role="list" aria-label={`Missing override tokens for ${selectedOpt}`}>
+                                    {filteredMo.length === 0 && (
+                                      <div className="py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">No tokens match</div>
+                                    )}
+                                    {filteredMo.map(item => {
+                                      const isItemCreating = creatingMissingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
+                                      return (
+                                        <div key={item.path} className="flex items-center gap-1.5 group/mo py-0.5" role="listitem">
+                                          <div className="flex-1 min-w-0">
+                                            {onNavigateToToken ? (
+                                              <button
+                                                onClick={() => onNavigateToToken(item.path, item.sourceSet)}
+                                                className="text-left text-[10px] text-[var(--color-figma-text)] font-mono truncate hover:underline cursor-pointer block w-full"
+                                                title={`${item.path} — from "${item.sourceSet}"${item.type ? ` (${item.type})` : ''}`}
+                                              >
+                                                {item.path}
+                                              </button>
+                                            ) : (
+                                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={`${item.path} — from "${item.sourceSet}"${item.type ? ` (${item.type})` : ''}`}>
+                                                {item.path}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <span className="flex-shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] truncate max-w-[60px]" title={String(item.value)}>
+                                            {String(item.value).slice(0, 20)}{String(item.value).length > 20 ? '…' : ''}
+                                          </span>
+                                          <button
+                                            onClick={() => {
+                                              const key = `${dim.id}:${selectedOpt}:${item.path}`;
+                                              setCreatingMissingKeys(prev => { const n = new Set(prev); n.add(key); return n; });
+                                              handleBulkCreateMissingOverrides(dim.id, selectedOpt, targetSet, [item]).finally(() => {
+                                                setCreatingMissingKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
+                                              });
+                                            }}
+                                            disabled={isItemCreating || isCreating}
+                                            className="flex-shrink-0 opacity-0 group-hover/mo:opacity-100 pointer-events-none group-hover/mo:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-violet-600/80 text-white hover:bg-violet-600 disabled:opacity-40 transition-opacity"
+                                            title={`Copy "${item.path}" from Base into "${targetSet}"`}
+                                          >
+                                            {isItemCreating ? '…' : 'Copy'}
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {filteredMo.length < moItems.length && (
+                                    <div className="pt-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                      Showing {filteredMo.length} of {moItems.length}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         {expandedStale.has(covKey) && staleSetNames.length > 0 && (
                           <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
                             <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">

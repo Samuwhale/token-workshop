@@ -530,3 +530,23 @@
   - `ConfirmModal` was already imported in ThemeManager — the previous "delete confirm removed" comment at L97 was a tombstone from an earlier refactor; check for such comments before assuming a pattern is absent
   - For IIFE-style conditional rendering `{cond && (() => { ... })()}`, passing the looked-up object directly into the modal (rather than into a derived state) keeps the modal description always in sync without extra state
 ---
+
+## 2026-04-04 - No "show theme gaps" view for missing overrides
+- Added "Missing overrides" section per theme option in ThemeManager: shows tokens present in source (Base) sets but absent from any enabled (Override) set
+- New types: `MissingOverrideToken` and `MissingOverridesMap` in `themeManagerTypes.ts`
+- Computed during `fetchDimensions` — after the existing unresolved-alias coverage computation; only populated when the option has at least one `enabled` set (so options with only Base sets are not flagged)
+- Per-option tab badges: added violet badge (distinct from the existing orange alias-gap badge) showing count of not-overridden Base tokens
+- Collapsible "Missing overrides (N)" section in the option detail view:
+  - Filtered token list (search input appears when >8 items)
+  - Per-row "Copy" hover button: creates single token in first enabled set via existing `POST /api/tokens/:set/batch` endpoint with strategy `skip`
+  - "Create all (N)" bulk button in section header; disables during any in-flight create
+  - Brief description text explains that creating copies the Base value as a starting point
+- Handler `handleBulkCreateMissingOverrides` in ThemeManager (not extracted to useThemeAutoFill because it operates on a different data type and key namespace)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/themeManagerTypes.ts` ~L16 (new types)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L11 (import), ~L107 (state), ~L285 (computation), ~L388 (handler), ~L1477 (tab badge), ~L1975 (UI section)
+- **Learnings for future iterations:**
+  - "Missing overrides" (source token absent from enabled set) is conceptually distinct from "unresolved alias" (alias chain broken). Keep them in separate sections with distinct badge colors (orange vs violet) to avoid confusion.
+  - The missing-overrides computation only makes sense when there are enabled sets — if all sets are `source`, there's no override layer and nothing is "missing". Guard with `hasEnabledSets` before collecting.
+  - Search input for long lists: only show it when list length > 8 to avoid clutter for small options.
+---
