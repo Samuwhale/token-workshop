@@ -91,6 +91,7 @@ export function TokenList({
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [copyCssFeedback, setCopyCssFeedback] = useState(false);
   const [copyPreferredFeedback, setCopyPreferredFeedback] = useState(false);
+  const [copyAliasFeedback, setCopyAliasFeedback] = useState(false);
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
   const [moveToGroupError, setMoveToGroupError] = useState('');
@@ -146,6 +147,7 @@ export function TokenList({
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsCssVarRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsPreferredRef = useRef<(nodes: TokenNode[]) => void>(() => {});
+  const copyTokensAsDtcgRefRef = useRef<(nodes: TokenNode[]) => void>(() => {});
 
   // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
   const virtualScrollTopRef = useRef(0);
@@ -1206,6 +1208,28 @@ export function TokenList({
       }
     }
 
+    // Cmd/Ctrl+Alt+C: copy selected tokens as DTCG alias reference ({path.to.token})
+    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && e.altKey && !e.shiftKey) {
+      if (selectMode && selectedPaths.size > 0) {
+        e.preventDefault();
+        const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
+        copyTokensAsDtcgRefRef.current(nodes);
+        return;
+      }
+      // Single focused token row — copy that token
+      if (!isTyping) {
+        const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
+        if (focusedPath) {
+          const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
+          if (node) {
+            e.preventDefault();
+            copyTokensAsDtcgRefRef.current([node]);
+            return;
+          }
+        }
+      }
+    }
+
     // Cmd/Ctrl+] / Cmd/Ctrl+[: navigate to next/previous token in the editor (works from list when side panel is visible)
     if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && editingTokenPath) {
       e.preventDefault();
@@ -1666,6 +1690,18 @@ export function TokenList({
     }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
   }, []);
   copyTokensAsCssVarRef.current = copyTokensAsCssVar;
+
+  /** Copy token paths as DTCG alias reference syntax ({path.to.token}) — ⌘⌥C. */
+  const copyTokensAsDtcgRef = useCallback((nodes: TokenNode[]) => {
+    const leafNodes = nodes.filter(n => !n.isGroup);
+    if (leafNodes.length === 0) return;
+    const text = leafNodes.map(n => `{${n.path}}`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyAliasFeedback(true);
+      setTimeout(() => setCopyAliasFeedback(false), 1500);
+    }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
+  }, []);
+  copyTokensAsDtcgRefRef.current = copyTokensAsDtcgRef;
 
   /** Copy the focused/selected token(s) in the user's preferred format (⌘⇧C). */
   const copyTokensAsPreferred = useCallback((nodes: TokenNode[]) => {
@@ -2209,6 +2245,12 @@ export function TokenList({
 
   return (
     <div className="flex flex-col h-full relative" onKeyDown={handleListKeyDown}>
+      {/* ⌘⌥C alias-ref copy feedback toast */}
+      {copyAliasFeedback && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md" aria-live="polite">
+          Copied!
+        </div>
+      )}
       {/* ⌘⇧C preferred-format copy feedback toast */}
       {copyPreferredFeedback && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md" aria-live="polite">
@@ -2276,6 +2318,16 @@ export function TokenList({
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'Copy CSS var'}</span>
+                </button>
+                <button
+                  title="Copy as DTCG alias reference — {path.to.token} (⌘⌥C)"
+                  onClick={() => {
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
+                    copyTokensAsDtcgRef(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
+                >
+                  <span aria-live="polite">{copyAliasFeedback ? 'Copied!' : 'Copy {ref}'}</span>
                 </button>
                 <button
                   onClick={requestBulkDelete}

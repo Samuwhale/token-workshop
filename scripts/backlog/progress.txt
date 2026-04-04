@@ -778,3 +778,19 @@
   - The group field was already preserved after creation — only name/value/description/refMode were cleared. So "pre-fill parent group" was already working; only the auto-focus was missing.
   - `setTimeout(() => ref.current?.focus(), 0)` is needed because React state updates are batched and the DOM must settle before focus works reliably.
 ---
+
+## 2026-04-05 - Add "copy as alias reference" action for tokens
+- Added dedicated `copyTokensAsDtcgRef` function that produces `{path.to.token}` DTCG alias syntax for one or more tokens
+- Added `Cmd+Alt+C` (⌘⌥C) keyboard shortcut — works in both single-focus mode (copies the focused token) and multi-select mode (copies all selected tokens, newline-separated)
+- Added `copyAliasFeedback` state + toast for visual confirmation (1500ms, same pattern as other copy toasts)
+- Added "Copy {ref}" button to the select-mode toolbar alongside "Copy JSON" and "Copy CSS var"
+- Updated the `{ref}` button tooltip in the context menu "Copy as…" section to advertise `⌘⌥C`
+- Note: the context menu already had a `{ref}` click button; this change adds the missing keyboard shortcut + toolbar access
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L91 (state), ~L148 (ref), ~L1209 (shortcut handler), ~L1669 (function), ~L2214 (toast), ~L2291 (toolbar button)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1936 (tooltip)
+- **Learnings for future iterations:**
+  - `Cmd+Alt+C` (metaKey + altKey) is a clean slot for a third copy format — Cmd+C is JSON, Cmd+Shift+C is preferred format, Cmd+Alt+C is alias ref
+  - When the context menu already has a click-only button for something, the main UX gap is usually the keyboard shortcut — check context menu accel coverage first
+  - `r` is already taken in the token context menu (Rename), so alias ref got no menu accel — the global shortcut fills that gap instead
+---

@@ -148,3 +148,26 @@ Already up to date.
 
   Merging to main: Add "create another" action in CreatePanel
 Already up to date.
+[main 4ed969d5] chore(backlog): done – Add "create another" action in CreatePanel
+ 5 files changed, 47 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Add "create another" action in CreatePanel
+- Added `nameInputRef` to the name input in `SingleCreateTab`; after successful token creation, `setTimeout(() => nameInputRef.current?.focus(), 0)` refocuses the name field with the group path pre-filled (group was already preserved — only name/value/description were reset)
+- Added `onKeyDown` on the name input for `Cmd+Shift+Enter` (or `Ctrl+Shift+Enter`) to trigger `handleCreate`, matching the TokenEditor pattern
+- Added a `title` attribute to the Create Token button hinting at the keyboard shortcut (⌘⇧↵)
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  26 queued · 0
+0 in-progress · last took 1m53s
+═══════════════════════════════════════════════════════════════
+  → Add a "copy as alias reference" action for tokens — users frequently need to copy the alias reference syntax (`{path.to.token}`) to paste into another token's value; the existing copy shortcuts only offer JSON (Cmd+C) and CSS variable (Cmd+Shift+C) formats; add a third copy format that produces the DTCG alias string, accessible via right-click context menu and a keyboard shortcut
+  Worktree: /tmp/backlog-54964-jEY66J
+  Running agent… (started 01:03:59)
+
+  ✓ done: Add "copy as alias reference" action for tokens
+    Added Cmd+Alt+C (⌘⌥C) shortcut for copying DTCG alias ref {path.to.token}, plus "Copy {ref}" button in select-mode toolbar; context menu {ref} button tooltip now advertises the shortcut
+    29 turns · 288s · $0.9
+
+  Merging to main: Add "copy as alias reference" action for tokens
+Already up to date.

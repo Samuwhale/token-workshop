@@ -1933,7 +1933,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             const preferredFmt = lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ?? 'css-var';
             const formats: Array<{ label: string; value: string; title: string; accel?: string; fmtKey: string }> = [
               { label: 'CSS var', value: cssVar, title: cssVar, fmtKey: 'css-var' },
-              { label: '{ref}', value: dtcgRef, title: dtcgRef, fmtKey: 'dtcg-ref' },
+              { label: '{ref}', value: dtcgRef, title: `${dtcgRef} · alias reference (⌘⌥C)`, fmtKey: 'dtcg-ref' },
               { label: '$scss', value: scssVar, title: scssVar, fmtKey: 'scss' },
               { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v', fmtKey: 'raw' },
               { label: 'JSON', value: jsonText, title: 'Copy as JSON snippet', accel: 'j', fmtKey: 'json' },
