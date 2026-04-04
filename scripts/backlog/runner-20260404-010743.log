@@ -495,3 +495,18 @@ Already up to date.
 
   Merging to main: ExportPanel has no "export diff since last export" mode
 Already up to date.
+[main c2fa0470] chore(backlog): done – ExportPanel has no "export diff since last export" mode
+ 8 files changed, 331 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ExportPanel has no "export diff since last export" mode
+- Added "Changes only" toggle to ExportPanel that filters exported tokens to those changed/added since the last git commit.
+- Server: added `changedPaths?: string[]` parameter to `POST /api/export` body. Added `filterTokensByPaths(group, paths, prefix?)` helper that recursively walks the TokenGroup and keeps only tokens whose full dot-separated path is in the set.
+- Client: added `changesOnly`, `diffLoading`, `diffError`, `diffPaths`, `isGitRepo` state. `fetchDiff()` calls `GET /api/sync/diff/tokens` and extracts `added`/`modified` paths. Auto-fetches when `changesOnly` is first enabled. Shows a summary (N tokens changed) with a Refresh button. Shows a warning when the token directory is not a git repo. Disables the export button when changesOnly + no git.
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  8 queued · 3 in-progress · last took 5m50s
+═══════════════════════════════════════════════════════════════
+  → No keyboard navigation between token tree nodes — the token list supports mouse interaction, drag-drop, and context menus, but arrow-key navigation through the tree (up/down to move between siblings, right to expand, left to collapse, Enter to edit) is not implemented; this is a standard tree-view accessibility pattern and a major productivity gap for keyboard-heavy users (TokenList.tsx, TokenTreeNode.tsx, TokenTreeContext.tsx)
+  Worktree: /tmp/backlog-91634-x8zJIv
+  Running agent… (started 03:12:07)

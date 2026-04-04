@@ -548,3 +548,10 @@ Already up to date.
   → No token search from the Inspect panel — when inspecting a Figma selection, users see bound tokens and unbound properties but have no way to search for a token to bind without switching to the Define tab; add an inline token search/filter within the Inspect panel's unbound property rows so users can find and bind tokens without losing their inspection context (SelectionInspector.tsx, QuickApplyPicker.tsx)
   Worktree: /tmp/backlog-91949-LANhtO
   Running agent… (started 03:05:52)
+
+  ✓ done: No token search from the Inspect panel
+    Added an always-visible "🔍 bind" chip to unbound property rows in PropertyRow.tsx — promotes the bind trigger out of the opacity-40 hover-only group so users can immediately search for tokens to bind without switching tabs
+    25 turns · 435s · $1.64
+
+  Merging to main: No token search from the Inspect panel
+Already up to date.

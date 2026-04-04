@@ -443,3 +443,13 @@
   - `changedPaths` filter in the export route must walk the nested TokenGroup depth-first and track the prefix, building full dot-separated paths — segment names can contain dots so this must be done carefully (we use prefix accumulation, not string split).
   - Auto-fetch on toggle (inside `useEffect([changesOnly, connected])`) is the right pattern; inline fetch as fallback in handleExport ensures correctness even if the effect hasn't fired yet.
 ---
+
+## 2026-04-04 - No token search from the Inspect panel
+- Added an always-visible "🔍 bind" chip to each unbound property row in the Inspect panel. Previously, the bind button was hidden at opacity-40 and only appeared on hover, making it hard to discover. The chip is bordered, always visible, and clicking it opens the existing inline bind panel (which already has search, scoring, and candidate display with autoFocus).
+- The `canBind` button was removed from the opacity-40 hover-only container and promoted to a standalone always-visible chip. The hover-only container now only contains bound-row actions (navigate, remove, remap) and the "create token" action.
+- No changes needed to `SelectionInspector.tsx` or `QuickApplyPicker.tsx` — only `PropertyRow.tsx` was modified.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L298-371
+- **Learnings for future iterations:**
+  - When a button needs to be always-discoverable (not hover-revealed), promote it outside the opacity-40 group container. Keep secondary/destructive actions in the hover-only zone.
+  - The `canBind` gate (`!isBound && connected && hasAnyTokens && !isThisPropActive`) naturally suppresses the chip when the bind panel is open for that row, preventing double-display.
+---
