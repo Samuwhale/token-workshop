@@ -262,3 +262,13 @@
   - A hook that returns `{ ...many values }` as a plain object literal creates a new reference on every render — must be wrapped in `useMemo` if the result feeds a context `useMemo` dep array.
   - All the constituent values (`useCallback`s, `useMemo`s, `useState` setters) are already stable by themselves; the plain object wrapper was the only unstable part.
 ---
+
+## 2026-04-04 - useFigmaMessage leaks pending promise timers on unmount
+- **useFigmaMessage.ts**: Extended the `useEffect` cleanup (was just `removeEventListener`) to also iterate `pendingRef.current`, call `clearTimeout` on each entry's timer, `reject()` each promise, and `clear()` the map. This prevents dangling `setTimeout` callbacks from firing after unmount and prevents post-unmount `setState` warnings in callers.
+- **useThemeSwitcher.ts**: Added `figmaThemesReadyRef` (tracks whether `active-themes-loaded` has arrived) and `pendingDimensionsForPruneRef` (holds dimensions when fetch resolves before Figma clientStorage responds). In `fetchThemesInner`, if Figma hasn't responded yet, dimensions are stored in `pendingDimensionsForPruneRef` instead of pruning immediately. When `active-themes-loaded` fires, it now calls `setActiveThemes` (write-through to localStorage + plugin) rather than `setActiveThemesState`, then applies the deferred prune against the Figma-loaded value.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaMessage.ts` ~L57-58, `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L32-75
+- **Learnings for future iterations:**
+  - Timer cleanup in `useEffect` needs to cover both unmount and re-run (config change). Rejecting pending promises on re-run is correct: old config can no longer serve those promises.
+  - When two async sources (HTTP fetch and postMessage) race to initialise the same state, use a ready-flag ref (`figmaThemesReadyRef`) and a deferred-action ref (`pendingDimensionsForPruneRef`) to sequence them without timers or artificial delays.
+  - `setActiveThemesState` (state-only) vs `setActiveThemes` (write-through): the `active-themes-loaded` handler must use the write-through version so localStorage and the plugin stay consistent with the Figma-loaded value.
+---

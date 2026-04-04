@@ -55,7 +55,16 @@ export function useFigmaMessage<TResponse = any>(
     };
 
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+      // Clear all pending timers so they don't fire after unmount (or after deps change).
+      // Reject each promise so callers don't hang waiting for a response that will never arrive.
+      for (const [, entry] of pendingRef.current) {
+        clearTimeout(entry.timer);
+        entry.reject(new Error('Hook unmounted or reconfigured'));
+      }
+      pendingRef.current.clear();
+    };
   }, [responseType, errorType, extractResponse]);
 
   const send = useCallback(

@@ -29,19 +29,42 @@ export function useThemeSwitcher(
   // Preview state: hover over an option to see its values without committing
   const [previewThemes, setPreviewThemes] = useState<Record<string, string>>({});
 
+  // Whether Figma clientStorage has responded with the per-file active themes.
+  // Used to guard against fetchThemesInner pruning against a stale localStorage value
+  // before the real Figma value arrives.
+  const figmaThemesReadyRef = useRef(false);
+  // Dimensions received before Figma clientStorage responded; pruned once it arrives.
+  const pendingDimensionsForPruneRef = useRef<ThemeDimension[] | null>(null);
+
   // Load per-file active themes from clientStorage on mount
   useEffect(() => {
     parent.postMessage({ pluginMessage: { type: 'get-active-themes' } }, '*');
     const handler = (e: MessageEvent) => {
       const msg = e.data?.pluginMessage;
       if (msg?.type === 'active-themes-loaded') {
-        setActiveThemesState(msg.themes ?? {});
+        figmaThemesReadyRef.current = true;
+        const figmaThemes: Record<string, string> = msg.themes ?? {};
+        // Write through so localStorage and the plugin stay in sync with the Figma value.
+        setActiveThemes(figmaThemes);
+        // If fetchThemesInner already completed, run the deferred prune now using
+        // the Figma-loaded value (not the stale localStorage value).
+        const pending = pendingDimensionsForPruneRef.current;
+        if (pending !== null) {
+          pendingDimensionsForPruneRef.current = null;
+          const next: Record<string, string> = {};
+          for (const dim of pending) {
+            if (figmaThemes[dim.id] && dim.options.some(o => o.name === figmaThemes[dim.id])) {
+              next[dim.id] = figmaThemes[dim.id];
+            }
+          }
+          setActiveThemes(next);
+        }
         window.removeEventListener('message', handler);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [setActiveThemes]);
 
   const [openDimDropdown, setOpenDimDropdown] = useState<string | null>(null);
   const dimDropdownRef = useRef<HTMLDivElement>(null);
@@ -58,6 +81,12 @@ export function useThemeSwitcher(
         if (signal.aborted) return;
         const all: ThemeDimension[] = data.dimensions || [];
         setDimensions(all);
+        if (!figmaThemesReadyRef.current) {
+          // Figma clientStorage hasn't responded yet. Defer the prune so we don't clobber
+          // the real per-file themes with a stale localStorage value.
+          pendingDimensionsForPruneRef.current = all;
+          return;
+        }
         // Remove active entries whose dimension or option no longer exists
         const prev = activeThemesRef.current;
         const next: Record<string, string> = {};
