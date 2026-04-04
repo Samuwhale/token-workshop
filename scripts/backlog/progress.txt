@@ -525,3 +525,14 @@
   - `orderedKeys` items are segment names (keys), not full paths — use `isNonEmptyTrimmedString` not `isValidTokenPath` to avoid rejecting segment names like `1.5` that look like paths with internal dots
   - The `replace` param in bulk-rename is intentionally allowed to be an empty string (replacing with nothing is valid delete behavior), so the check is `typeof replace !== 'string'` not `!replace`
 ---
+
+## 2026-04-04 - Quick-create token form only offers 13 of 26 supported token types
+- Replaced hardcoded 13-type flat list in quick-create dropdown with all 25 types from TOKEN_TYPE_BADGE_CLASS, organized into optgroups: Color, Size & Layout, Typography, Animation, Border & Effects, Composite, Other
+- Added missing types: composition, asset, cubicBezier, transition, fontStyle, lineHeight, letterSpacing, percentage, link, textDecoration, textTransform, custom
+- Added value placeholder strings for all new types in VALUE_PLACEHOLDERS (tokenListHelpers.tsx)
+- Added format hint strings for complex new types (lineHeight, letterSpacing, cubicBezier, transition, composition, percentage) in VALUE_FORMAT_HINTS
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3598, `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L398, ~L423
+- **Learnings for future iterations:**
+  - TOKEN_TYPE_BADGE_CLASS in shared/types.ts is the canonical list of all supported token types — any new UI picker should derive from it rather than maintain a separate hardcoded list
+  - `<optgroup>` is a clean HTML-native way to group long <select> lists; no JS needed
+---

@@ -3600,19 +3600,45 @@ export function TokenList({
               onChange={e => { setNewTokenType(e.target.value); setTypeAutoInferred(false); }}
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none ${typeAutoInferred ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}
             >
-              <option value="color">Color</option>
-              <option value="dimension">Dimension</option>
-              <option value="typography">Typography</option>
-              <option value="shadow">Shadow</option>
-              <option value="border">Border</option>
-              <option value="gradient">Gradient</option>
-              <option value="duration">Duration</option>
-              <option value="fontFamily">Font Family</option>
-              <option value="fontWeight">Font Weight</option>
-              <option value="strokeStyle">Stroke Style</option>
-              <option value="number">Number</option>
-              <option value="string">String</option>
-              <option value="boolean">Boolean</option>
+              <optgroup label="Color">
+                <option value="color">Color</option>
+                <option value="gradient">Gradient</option>
+              </optgroup>
+              <optgroup label="Size &amp; Layout">
+                <option value="dimension">Dimension</option>
+                <option value="percentage">Percentage</option>
+                <option value="number">Number</option>
+              </optgroup>
+              <optgroup label="Typography">
+                <option value="typography">Typography</option>
+                <option value="fontFamily">Font Family</option>
+                <option value="fontWeight">Font Weight</option>
+                <option value="fontStyle">Font Style</option>
+                <option value="lineHeight">Line Height</option>
+                <option value="letterSpacing">Letter Spacing</option>
+                <option value="textDecoration">Text Decoration</option>
+                <option value="textTransform">Text Transform</option>
+              </optgroup>
+              <optgroup label="Animation">
+                <option value="duration">Duration</option>
+                <option value="cubicBezier">Cubic Bezier</option>
+                <option value="transition">Transition</option>
+              </optgroup>
+              <optgroup label="Border &amp; Effects">
+                <option value="shadow">Shadow</option>
+                <option value="border">Border</option>
+                <option value="strokeStyle">Stroke Style</option>
+              </optgroup>
+              <optgroup label="Composite">
+                <option value="composition">Composition</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="string">String</option>
+                <option value="boolean">Boolean</option>
+                <option value="link">Link</option>
+                <option value="asset">Asset</option>
+                <option value="custom">Custom</option>
+              </optgroup>
             </select>
             <div className="flex gap-1.5">
               <button

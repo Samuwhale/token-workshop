@@ -736,3 +736,25 @@ Already up to date.
 
   Merging to main: Server token routes accept path-operation parameters without validation
 Already up to date.
+[main 0b282782] chore(backlog): done – Server token routes accept path-operation parameters without validation
+ 6 files changed, 147 insertions(+), 40 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Server token routes accept path-operation parameters without validation
+- Added three validator helpers at the top of `tokens.ts` (after `validateTokenBody`): `isValidTokenPath` (non-empty string, no leading/trailing whitespace, no leading/trailing/consecutive dots, max 500 chars), `isValidSetName` (non-empty string, no null bytes or `..` path traversal), `isNonEmptyTrimmedString` (for segment keys in orderedKeys arrays)
+- Updated all 14+ route handlers to use these validators instead of bare `!param` truthiness checks: groups/rename, groups/move, groups/copy, groups/duplicate, groups/reorder, groups/create, groups/meta, bulk-rename, batch-update, batch-rename-paths, batch-move, batch-copy, batch (upsert), tokens/rename, tokens/move, tokens/copy, bulk-delete
+- groups/move, groups/copy, tokens/move, tokens/copy, batch-move, batch-copy now validate `targetSet` with `isValidSetName` instead of a bare truthiness check
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  11 queued · 3 in-progress · last took 8m3s
+═══════════════════════════════════════════════════════════════
+  → Quick-create token form only offers 13 of 26 supported token types — types like `composition`, `cubicBezier`, `transition`, `letterSpacing`, `lineHeight`, `percentage`, `textDecoration`, `textTransform`, and `asset` are only accessible through the full editor; users who want to quickly create an easing token or a transition must open the full editor and change the type there (TokenList.tsx quick-create dropdown ~L3603-3616)
+  Worktree: /tmp/backlog-91634-XHSLtp
+  Running agent… (started 04:05:54)
+
+  ✓ done: Quick-create token form only offers 13 of 26 supported token types
+    Expanded quick-create dropdown from 13 to all 25 types, organized into optgroups; added value placeholders and format hints for new types
+    34 turns · 231s · $0.69
+
+  Merging to main: Quick-create token form only offers 13 of 26 supported token types
+Already up to date.

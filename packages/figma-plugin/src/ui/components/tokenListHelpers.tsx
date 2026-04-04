@@ -405,10 +405,22 @@ const VALUE_PLACEHOLDERS: Record<string, string> = {
   duration: '200ms, 0.3s',
   fontFamily: 'Inter, Arial, sans-serif',
   fontWeight: '400, bold, semi-bold',
+  fontStyle: 'normal, italic, oblique',
+  lineHeight: '1.5, 24px, 150%',
+  letterSpacing: '0.01em, 1px',
+  textDecoration: 'none, underline, line-through',
+  textTransform: 'none, uppercase, lowercase, capitalize',
   strokeStyle: 'solid, dashed, dotted',
   number: '1.5, 4, 100',
+  percentage: '50, 100',
   string: 'any text value',
   boolean: 'true / false',
+  link: 'https://…',
+  asset: 'url(…) or base64 data URI',
+  cubicBezier: '[0.25, 0.1, 0.25, 1]',
+  transition: '{"duration":{"value":200,"unit":"ms"},"timingFunction":[0.25,0.1,0.25,1]}',
+  composition: '{"opacity":1,"borderRadius":"4px"}',
+  custom: 'any value',
 };
 
 export function valuePlaceholderForType(type: string): string {
@@ -431,7 +443,13 @@ const VALUE_FORMAT_HINTS: Record<string, string> = {
   duration: 'Number with unit: 200ms, 0.3s',
   fontFamily: 'Font name or comma-separated list: Inter, Arial, sans-serif',
   fontWeight: 'Number (100–900) or name: 400, bold, semi-bold',
+  lineHeight: 'Unitless ratio (1.5) or value with unit: 24px, 150%',
+  letterSpacing: 'Number with unit: 0.01em, 1px',
+  cubicBezier: 'Array of 4 numbers [x1, y1, x2, y2] between 0 and 1: [0.25, 0.1, 0.25, 1]',
+  transition: 'JSON object: { "duration": { "value": 200, "unit": "ms" }, "delay": { "value": 0, "unit": "ms" }, "timingFunction": [0.25, 0.1, 0.25, 1] }',
+  composition: 'JSON object of token properties: { "opacity": 1, "borderRadius": "4px" }',
   number: 'Plain number: 1.5, 4, 100',
+  percentage: 'Plain number (0–100): 50, 100',
   boolean: 'true or false',
 };
 
