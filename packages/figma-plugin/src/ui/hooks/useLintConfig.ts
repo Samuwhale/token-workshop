@@ -80,5 +80,5 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
     }
   }, [serverUrl, updateConfig]);
 
-  return { config, loading, saving, updateRule, resetToDefaults, refetch: fetchConfig };
+  return { config, loading, saving, updateRule, applyConfig: updateConfig, resetToDefaults, refetch: fetchConfig };
 }

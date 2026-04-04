@@ -366,3 +366,28 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — consolidation (AnalyticsPanel stats/duplicates tabs), dead code (useThemeCompare), workflow gaps (keyboard tree nav, inspector search, export diffs, generator overrides, auto-fill discoverability), and UX improvements (preview templates, lint scoping, health dashboard, value paste)
 Already up to date.
+[main 517d5303] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (state management, navigation, command palette), all 100+ components in ui/components/, all hooks in ui/hooks/, all server routes and services, shared utilities, ThemeManager, AnalyticsPanel, PreviewPanel, ExportPanel, LintConfigPanel, comparison panels (ComparePanel, CrossThemeComparePanel, ThemeCompare, UnifiedComparePanel), TokenEditor, TokenTreeNode, CanvasAuditPanel, PublishPanel, HistoryPanel, SelectionInspector, GeneratorPipelineCard, ResolverPanel, SetSwitcher, MetadataEditor, plugin controller message types
+- Found 12 items — written to backlog-inbox.md
+- Notable: AnalyticsPanel has a "Stats" tab and a "Duplicates" tab that overlap with existing features (token list counts and lint no-duplicate-values rule) — consolidating these would reduce panel count and cognitive load. Also, useThemeCompare.ts is orphaned after comparison refactoring.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  18 queued · 3 in-progress · last took 8m55s
+═══════════════════════════════════════════════════════════════
+  → No lint rule presets — LintConfigPanel requires toggling each rule individually with no way to apply a bundle; add preset configurations like "Strict" (all rules on, low thresholds), "Recommended" (common rules), and "Permissive" (structural rules only) as one-click starting points (LintConfigPanel.tsx)
+  Worktree: /tmp/backlog-91634-dL0bkQ
+  Running agent… (started 02:33:42)
+
+  ✓ done: No lint rule presets — LintConfigPanel requires toggling each rule individually with no way to apply a bundle; add preset configurations like "Strict" (all rules on, low thresholds), "Recommended" (common rules), and "Permissive" (structural rules only) as one-click starting points (LintConfigPanel.tsx)
+    Added Strict/Recommended/Permissive preset buttons to LintConfigPanel with hover tooltips previewing enabled rules; presets apply a full LintConfig in one PUT via new onApplyConfig prop
+    20 turns · 136s · $0.46
+
+  Merging to main: No lint rule presets — LintConfigPanel requires toggling each rule individually with no way to apply a bundle; add preset configurations like "Strict" (all rules on, low thresholds), "Recommended" (common rules), and "Permissive" (structural rules only) as one-click starting points (LintConfigPanel.tsx)
+Already up to date.

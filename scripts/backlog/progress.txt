@@ -514,3 +514,15 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: AnalyticsPanel has a "Stats" tab and a "Duplicates" tab that overlap with existing features (token list counts and lint no-duplicate-values rule) — consolidating these would reduce panel count and cognitive load. Also, useThemeCompare.ts is orphaned after comparison refactoring.
 ---
+
+## 2026-04-04 - No lint rule presets — LintConfigPanel requires toggling each rule individually
+- Added `LINT_PRESETS` array and `buildLintConfigFromPreset()` helper to `lintRules.ts`; three presets: Strict (all rules, error severity, tight thresholds), Recommended (color/alias/duplicate rules, warning severity), Permissive (alias depth only, info severity)
+- Exposed `applyConfig` (the full-config PUT) from `useLintConfig` hook in addition to the per-rule `updateRule`
+- Added preset buttons row to `LintConfigPanel.tsx` between the header and rule list; each button has a hover tooltip showing which rules are enabled with colored severity dots
+- Added `onApplyConfig` prop to `LintConfigPanel`; `SettingsPanel` passes `lintApplyConfig` through
+- Files changed: `packages/figma-plugin/src/ui/shared/lintRules.ts` ~L62, `packages/figma-plugin/src/ui/hooks/useLintConfig.ts` ~L83, `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` (rewritten), `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L214, ~L770
+- **Learnings for future iterations:**
+  - Preset tooltips showing active rules + severity dots are an effective "preview before apply" pattern; hover state on the button triggers the tooltip, pointer-events-none on the tooltip prevents focus-stealing
+  - `buildLintConfigFromPreset` iterates LINT_RULE_REGISTRY to ensure all rule IDs are present in the output even if the preset only specifies a subset (missing rules default to disabled)
+  - Adding a new full-config apply path (`applyConfig`) alongside the per-rule `updateRule` is the cleanest approach — avoids N sequential API calls when applying a preset
+---

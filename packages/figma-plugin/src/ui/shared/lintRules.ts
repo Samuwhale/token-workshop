@@ -62,3 +62,63 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
 export const LINT_RULE_BY_ID: Record<string, LintRuleMeta> = Object.fromEntries(
   LINT_RULE_REGISTRY.map(r => [r.id, r]),
 );
+
+// ---------------------------------------------------------------------------
+// Presets — one-click starting configurations for LintConfigPanel
+// ---------------------------------------------------------------------------
+
+export interface LintPreset {
+  id: string;
+  label: string;
+  description: string;
+  /** Partial rule config keyed by rule id; omitted rules are disabled */
+  rules: Record<string, { enabled: boolean; severity?: 'error' | 'warning' | 'info'; options?: Record<string, unknown> }>;
+}
+
+/** Build a full LintConfig (all rules present) from a preset */
+export function buildLintConfigFromPreset(preset: LintPreset): { lintRules: Record<string, { enabled: boolean; severity?: 'error' | 'warning' | 'info'; options?: Record<string, unknown> }> } {
+  const lintRules: Record<string, { enabled: boolean; severity?: 'error' | 'warning' | 'info'; options?: Record<string, unknown> }> = {};
+  for (const rule of LINT_RULE_REGISTRY) {
+    lintRules[rule.id] = preset.rules[rule.id] ?? { enabled: false };
+  }
+  return { lintRules };
+}
+
+export const LINT_PRESETS: LintPreset[] = [
+  {
+    id: 'strict',
+    label: 'Strict',
+    description: 'All rules enabled with error severity and tight thresholds — best for mature, production design systems.',
+    rules: {
+      'no-raw-color':        { enabled: true, severity: 'error' },
+      'require-description': { enabled: true, severity: 'error' },
+      'path-pattern':        { enabled: true, severity: 'error', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
+      'max-alias-depth':     { enabled: true, severity: 'error', options: { maxDepth: 2 } },
+      'no-duplicate-values': { enabled: true, severity: 'error' },
+    },
+  },
+  {
+    id: 'recommended',
+    label: 'Recommended',
+    description: 'Common quality rules with warning severity — a balanced starting point for most token libraries.',
+    rules: {
+      'no-raw-color':        { enabled: true, severity: 'warning' },
+      'require-description': { enabled: false },
+      'path-pattern':        { enabled: false },
+      'max-alias-depth':     { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
+      'no-duplicate-values': { enabled: true, severity: 'warning' },
+    },
+  },
+  {
+    id: 'permissive',
+    label: 'Permissive',
+    description: 'Structural rules only with info severity — minimal friction, useful early in a project.',
+    rules: {
+      'no-raw-color':        { enabled: false },
+      'require-description': { enabled: false },
+      'path-pattern':        { enabled: false },
+      'max-alias-depth':     { enabled: true, severity: 'info', options: { maxDepth: 5 } },
+      'no-duplicate-values': { enabled: false },
+    },
+  },
+];

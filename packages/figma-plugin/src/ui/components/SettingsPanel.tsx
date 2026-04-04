@@ -211,7 +211,7 @@ export function SettingsPanel({
   onClose,
 }: SettingsPanelProps) {
   // ---- Lint / Validation config ----
-  const { config: lintConfig, saving: lintSaving, updateRule: lintUpdateRule, resetToDefaults: lintResetDefaults } = useLintConfig(serverUrl, connected);
+  const { config: lintConfig, saving: lintSaving, updateRule: lintUpdateRule, applyConfig: lintApplyConfig, resetToDefaults: lintResetDefaults } = useLintConfig(serverUrl, connected);
 
   // ---- UI Preferences (local state from localStorage) ----
   const [density, setDensity] = useState<Density>(() => {
@@ -771,6 +771,7 @@ export function SettingsPanel({
                 config={lintConfig}
                 saving={lintSaving}
                 onUpdateRule={lintUpdateRule}
+                onApplyConfig={lintApplyConfig}
                 onReset={lintResetDefaults}
                 onLintRefresh={() => {}}
               />
