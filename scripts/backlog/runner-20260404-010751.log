@@ -304,3 +304,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — highlights: plugin sandbox sync concurrency (HIGH), cross-set token move, generator stale indicators, EmptyState progressive disclosure, theme set-status legend, lint rule presets
+Already up to date.

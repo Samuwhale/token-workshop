@@ -575,3 +575,9 @@
   - For semantic mapping consolidation: the hook owns the state; the dialog renders the UI. Avoid having the hook import from a React component — extract shared data to a plain `.ts` file.
   - The `onInterceptSemanticMapping` callback path is preserved unchanged for external consumers (QuickStartWizard) — the `showSemanticSection` guard (`!onInterceptSemanticMapping`) ensures the inline section doesn't appear when the parent will handle it externally.
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: ThemeManager (set-status UX, coverage, auto-fill, compare), ImportPanel/ExportPanel (sources, conflict resolution, formats), GeneratorPanel/GraphPanel/TokenGeneratorDialog (templates, multi-brand, semantic mapping, preview), LintConfigPanel/AnalyticsPanel (rules, presets, auto-fix), SetSwitcher/TokenEditor/ValueEditors (set CRUD, folder hierarchy, cross-set moves), HistoryPanel/SettingsPanel/EmptyState/SyncPanel (undo, snapshots, onboarding), Plugin sandbox (message protocol, correlationId gaps, concurrency), Keyboard shortcuts (App.tsx global, TokenList tree nav)
+- Found 11 items — written to backlog-inbox.md
+- Notable: Plugin sandbox has no mutual exclusion for concurrent sync operations — two apply-variables calls can interleave and corrupt Figma variable state; also generator stale indicators are computed server-side but never shown in UI
+---

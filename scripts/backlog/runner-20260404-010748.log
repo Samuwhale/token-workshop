@@ -308,3 +308,19 @@ Already up to date.
 
   Merging to main: Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step
 Already up to date.
+[main 49ef41b6] chore(backlog): done – Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step
+ 10 files changed, 463 insertions(+), 240 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/semanticPatterns.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator save flow requires up to 3 sequential confirmation dialogs
+- Consolidated three sequential dialogs (preview confirmation → overwrite warning modal → semantic mapping screen) into a single unified "Review & Create/Update" view.
+- Created `packages/figma-plugin/src/ui/shared/semanticPatterns.ts` — moved `SEMANTIC_PATTERNS` array and `SemanticPattern` interface from `SemanticMappingDialog.tsx` so both the hook and the dialog can import them without circular deps.
+- Rewrote `useGeneratorSave.ts`: `handleSave()` now triggers the overwrite check async in the background (while the review screen is already visible, showing a spinner), initializes semantic mapping state based on generator type + preview tokens. `handleConfirmSave()` calls `commitSave()` directly (no intermediate step). `commitSave()` creates semantic alias tokens inline if the user opted in. Removed `handleOverwriteConfirm`, `handleOverwriteCancel`, `handleSemanticMappingClose`, `showSemanticMapping`, `savedTokens`, `savedTargetGroup`.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  9 queued · 2 in-progress · last took 11m53s
+═══════════════════════════════════════════════════════════════
+  → GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
+  Worktree: /tmp/backlog-91949-Cv4oEl
+  Running agent… (started 02:01:47)
