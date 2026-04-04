@@ -503,3 +503,10 @@ Already up to date.
   → useThemeCompare hook is orphaned — only imported by ThemeManager.tsx but the equivalent functionality now lives in ThemeCompare.tsx component via comparisonUtils; remove the hook and any dead references to reduce maintenance surface (packages/figma-plugin/src/ui/hooks/useThemeCompare.ts)
   Worktree: /tmp/backlog-91949-vGkIxC
   Running agent… (started 02:56:47)
+
+  ✓ done: useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
+    Deleted useThemeCompare.ts, replaced 160-line inline compare JSX in ThemeManager with <ThemeCompare> component (gaining CSV export, copy, type filtering), added allTokensFlat/pathToSet props to ThemeManager passed from App.tsx
+    52 turns · 416s · $1.62
+
+  Merging to main: useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
+Already up to date.

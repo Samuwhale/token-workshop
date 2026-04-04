@@ -372,3 +372,17 @@
   - `e.preventDefault()` called in a bubbling handler DOES prevent text insertion in child inputs (default action runs after propagation completes), so it's safe to call from the container.
   - The existing `parseInitialValueForType` function was a useful reference but needed a richer version that returns null (can't parse) vs a fallback, handles JSON DTCG format, and covers more types.
 ---
+
+## 2026-04-04 - useThemeCompare hook is orphaned — remove it and replace with ThemeCompare component
+- Deleted `packages/figma-plugin/src/ui/hooks/useThemeCompare.ts` (the orphaned hook)
+- Replaced `useThemeCompare` usage in `ThemeManager.tsx` with the `<ThemeCompare>` component from `ThemeCompare.tsx`
+- Added `allTokensFlat` and `pathToSet` optional props to `ThemeManagerProps` (with empty-object defaults)
+- Replaced 6-value hook destructure (showCompare, compareOptA/B, compareSearch, compareDiffsOnly, compareRows) with 3 simple useState calls (showCompare, initialCompareKeyA, initialCompareKeyB)
+- Replaced 160-line inline compare table JSX with a 12-line `<ThemeCompare>` rendering block
+- Updated `App.tsx` to pass `allTokensFlat` and `pathToSet` to `<ThemeManager>` so ThemeCompare can resolve tokens correctly
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeCompare.ts` (deleted), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L13, ~L36, ~L56, ~L300, ~L1004, ~L1794, `packages/figma-plugin/src/ui/App.tsx` ~L2617
+- **Learnings for future iterations:**
+  - `useThemeCompare` used a different data model (`setTokenValues: Record<string, Record<string, any>>`) than `ThemeCompare` (`allTokensFlat: Record<string, TokenMapEntry>` + `pathToSet`). To switch, ThemeManager needed to receive the typed token map via props (already available in App.tsx).
+  - ThemeCompare's `onCreateToken` signature `(path, set, type, value?)` is a superset of ThemeManager's `(path, set)` — TypeScript allows callback parameter narrowing, so no adapter was needed.
+  - Replacing an inline compare panel with a standalone component gained CSV export, copy, type filtering, and "create missing" actions for free.
+---

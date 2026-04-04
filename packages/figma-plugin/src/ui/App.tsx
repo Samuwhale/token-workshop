@@ -2614,7 +2614,7 @@ export function App() {
               )}
               <div className="flex-1 overflow-hidden">
                 <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} resolverState={{
+                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} resolverState={{
                     serverUrl,
                     connected,
                     sets,

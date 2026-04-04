@@ -10,8 +10,9 @@ import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
 import type { CoverageMap, CoverageToken, AutoFillPreview } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
-import { useThemeCompare } from '../hooks/useThemeCompare';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
+import { ThemeCompare } from './ThemeCompare';
+import type { TokenMapEntry } from '../../shared/types';
 import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
 
 const STATE_LABELS: Record<string, string> = {
@@ -36,6 +37,10 @@ interface ThemeManagerProps {
   onPushUndo?: (slot: UndoSlot) => void;
   /** Resolver state — when provided, enables the Advanced mode toggle */
   resolverState?: ResolverContentProps;
+  /** Flat token map across all sets (for ThemeCompare) */
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  /** Maps token path → owning set name (for ThemeCompare) */
+  pathToSet?: Record<string, string>;
 }
 
 
@@ -48,7 +53,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {} }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
@@ -297,14 +302,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleOptDragStart, handleOptDragOver, handleOptDrop, handleOptDragEnd,
   } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
 
-  const {
-    showCompare, setShowCompare,
-    compareOptA, setCompareOptA,
-    compareOptB, setCompareOptB,
-    compareSearch, setCompareSearch,
-    compareDiffsOnly, setCompareDiffsOnly,
-    compareRows,
-  } = useThemeCompare({ dimensions, setTokenValues });
+  const [showCompare, setShowCompare] = useState(false);
+  const [initialCompareKeyA, setInitialCompareKeyA] = useState('');
+  const [initialCompareKeyB, setInitialCompareKeyB] = useState('');
 
   const {
     bulkMenu, setBulkMenu, bulkMenuRef, savingKeys,
@@ -1007,16 +1007,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       const next = !prev;
                       if (next) {
                         setShowPreview(false);
-                        // Auto-select defaults when opening for the first time
-                        if (!compareOptA && !compareOptB) {
-                          const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
-                          if (firstDimWithTwo) {
-                            setCompareOptA({ dimId: firstDimWithTwo.id, optionName: firstDimWithTwo.options[0].name });
-                            setCompareOptB({ dimId: firstDimWithTwo.id, optionName: firstDimWithTwo.options[1].name });
-                          } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
-                            setCompareOptA({ dimId: dimensions[0].id, optionName: dimensions[0].options[0].name });
-                            setCompareOptB({ dimId: dimensions[1].id, optionName: dimensions[1].options[0].name });
-                          }
+                        // Auto-select defaults on open
+                        const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
+                        if (firstDimWithTwo) {
+                          setInitialCompareKeyA(`${firstDimWithTwo.id}:${firstDimWithTwo.options[0].name}`);
+                          setInitialCompareKeyB(`${firstDimWithTwo.id}:${firstDimWithTwo.options[1].name}`);
+                        } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
+                          setInitialCompareKeyA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
+                          setInitialCompareKeyB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
                         }
                       }
                       return next;
@@ -1794,173 +1792,21 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             )}
 
             {/* Compare two options */}
-            {showCompare && dimensions.length > 0 && (() => {
-              const allOptions = dimensions.flatMap(d =>
-                d.options.map(o => ({ dimId: d.id, dimName: d.name, optionName: o.name }))
-              );
-              const valA = compareOptA ? `${compareOptA.dimId}:${compareOptA.optionName}` : '';
-              const valB = compareOptB ? `${compareOptB.dimId}:${compareOptB.optionName}` : '';
-              const diffCount = compareRows.filter(r => r.isDiff).length;
-              const totalCount = (() => {
-                if (!compareOptA || !compareOptB) return 0;
-                const dimA = dimensions.find(d => d.id === compareOptA.dimId);
-                const dimB = dimensions.find(d => d.id === compareOptB.dimId);
-                const optA = dimA?.options.find(o => o.name === compareOptA.optionName);
-                const optB = dimB?.options.find(o => o.name === compareOptB.optionName);
-                if (!optA || !optB) return 0;
-                const pathsA = new Set(
-                  [...Object.entries(optA.sets)]
-                    .filter(([, s]) => s === 'source' || s === 'enabled')
-                    .flatMap(([s]) => Object.keys(setTokenValues[s] ?? {}))
-                );
-                const pathsB = new Set(
-                  [...Object.entries(optB.sets)]
-                    .filter(([, s]) => s === 'source' || s === 'enabled')
-                    .flatMap(([s]) => Object.keys(setTokenValues[s] ?? {}))
-                );
-                return new Set([...pathsA, ...pathsB]).size;
-              })();
-
-              return (
-                <div className="border-t-2 border-[var(--color-figma-accent)]/30">
-                  {/* Header */}
-                  <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                        <path d="M9 12h6" />
-                      </svg>
-                      Compare Options
-                    </div>
-                    {totalCount > 0 && (
-                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                        {diffCount} diff{diffCount !== 1 ? 's' : ''} / {totalCount} tokens
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Option selectors */}
-                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center gap-2">
-                    <div className="flex-1 flex flex-col gap-1">
-                      <label className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wider">Option A</label>
-                      <select
-                        value={valA}
-                        onChange={e => {
-                          const [dimId, ...rest] = e.target.value.split(':');
-                          setCompareOptA({ dimId, optionName: rest.join(':') });
-                        }}
-                        className="w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-                      >
-                        {allOptions.length === 0 && <option value="">No options</option>}
-                        {dimensions.map(d => (
-                          <optgroup key={d.id} label={d.name}>
-                            {d.options.map(o => (
-                              <option key={o.name} value={`${d.id}:${o.name}`}>{o.name}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex-shrink-0 mt-4 text-[var(--color-figma-text-tertiary)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <label className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wider">Option B</label>
-                      <select
-                        value={valB}
-                        onChange={e => {
-                          const [dimId, ...rest] = e.target.value.split(':');
-                          setCompareOptB({ dimId, optionName: rest.join(':') });
-                        }}
-                        className="w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-                      >
-                        {allOptions.length === 0 && <option value="">No options</option>}
-                        {dimensions.map(d => (
-                          <optgroup key={d.id} label={d.name}>
-                            {d.options.map(o => (
-                              <option key={o.name} value={`${d.id}:${o.name}`}>{o.name}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Search + filter controls */}
-                  <div className="px-3 py-1 border-t border-[var(--color-figma-border)] flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Search tokens..."
-                      value={compareSearch}
-                      onChange={e => setCompareSearch(e.target.value)}
-                      className="flex-1 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-                    />
-                    <button
-                      onClick={() => setCompareDiffsOnly(v => !v)}
-                      className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                        compareDiffsOnly
-                          ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                          : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                      }`}
-                      title={compareDiffsOnly ? 'Showing differences only — click to show all' : 'Showing all tokens — click to show differences only'}
-                    >
-                      Diffs only
-                    </button>
-                  </div>
-
-                  {/* Diff table */}
-                  <div className="max-h-56 overflow-y-auto">
-                    {!compareOptA || !compareOptB ? (
-                      <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-tertiary)] text-center italic">
-                        Select two options above to compare
-                      </div>
-                    ) : compareRows.length === 0 ? (
-                      <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-tertiary)] text-center italic">
-                        {compareSearch
-                          ? 'No matching tokens'
-                          : compareDiffsOnly
-                          ? 'No differences — options resolve to identical values'
-                          : 'No tokens resolved for these options'}
-                      </div>
-                    ) : (
-                      <table className="w-full text-[10px]">
-                        <thead>
-                          <tr className="text-left text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] sticky top-0">
-                            <th className="px-3 py-0.5 font-medium">Token</th>
-                            <th className="px-2 py-0.5 font-medium" title={compareOptA ? `${compareOptA.optionName}` : 'A'}>
-                              {compareOptA?.optionName ?? 'A'}
-                            </th>
-                            <th className="px-2 py-0.5 font-medium" title={compareOptB ? `${compareOptB.optionName}` : 'B'}>
-                              {compareOptB?.optionName ?? 'B'}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--color-figma-border)]">
-                          {compareRows.map(row => (
-                            <tr
-                              key={row.path}
-                              className={`hover:bg-[var(--color-figma-bg-hover)] cursor-default ${row.isDiff ? '' : 'opacity-50'}`}
-                              title={row.path}
-                            >
-                              <td className="px-3 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[100px]">{row.path}</td>
-                              <td className={`px-2 py-0.5 ${row.isDiff ? 'bg-red-500/5' : ''}`}>
-                                {row.a !== undefined ? renderValuePreview(row.a) : <span className="text-[var(--color-figma-text-tertiary)] italic">—</span>}
-                              </td>
-                              <td className={`px-2 py-0.5 ${row.isDiff ? 'bg-emerald-500/5' : ''}`}>
-                                {row.b !== undefined ? renderValuePreview(row.b) : <span className="text-[var(--color-figma-text-tertiary)] italic">—</span>}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+            {showCompare && dimensions.length > 0 && (
+              <div className="border-t-2 border-[var(--color-figma-accent)]/30 max-h-96 overflow-y-auto">
+                <ThemeCompare
+                  dimensions={dimensions}
+                  allTokensFlat={allTokensFlat}
+                  pathToSet={pathToSet}
+                  initialOptionKeyA={initialCompareKeyA}
+                  initialOptionKeyB={initialCompareKeyB}
+                  serverUrl={serverUrl}
+                  onTokensCreated={debouncedFetchDimensions}
+                  onEditToken={onNavigateToToken ? (set, path) => onNavigateToToken(path, set) : undefined}
+                  onCreateToken={onCreateToken}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
