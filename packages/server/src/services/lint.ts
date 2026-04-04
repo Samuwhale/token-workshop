@@ -296,7 +296,8 @@ export async function lintTokens(
       if (isPathExcluded(tokenPath, pathPattern.excludePaths)) continue;
       // Test each segment
       const segments = tokenPath.split('.');
-      for (const seg of segments) {
+      for (let idx = 0; idx < segments.length; idx++) {
+        const seg = segments[idx];
         if (!regex.test(seg)) {
           // Suggest a kebab-case version of the segment
           const suggested = seg
@@ -304,15 +305,19 @@ export async function lintTokens(
             .replace(/[^a-z0-9.-]+/gi, '-')
             .toLowerCase()
             .replace(/^-+|-+$/g, '');
-          const suggestion = suggested && suggested !== seg ? suggested : undefined;
-          const hint = suggestion ? ` Try "${suggestion}".` : '';
+          // suggestion is the full corrected path (not just the segment) so callers can rename directly
+          const suggestedSeg = suggested && suggested !== seg ? suggested : undefined;
+          const suggestedPath = suggestedSeg
+            ? segments.map((s, i) => (i === idx ? suggestedSeg : s)).join('.')
+            : undefined;
+          const hint = suggestedSeg ? ` Try "${suggestedSeg}".` : '';
           violations.push({
             rule: 'path-pattern',
             path: tokenPath,
             severity,
             message: `Path segment "${seg}" in "${tokenPath}" does not match pattern ${pattern}.${hint}`,
             suggestedFix: 'rename-token',
-            suggestion,
+            suggestion: suggestedPath,
           });
           break;
         }
@@ -429,6 +434,18 @@ const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
   boolean: v => typeof v === 'boolean',
 };
 
+/** Guess the most appropriate DTCG type from a raw value. Returns undefined if ambiguous. */
+function inferTypeFromValue(v: unknown): string | undefined {
+  if (typeof v === 'boolean') return 'boolean';
+  if (typeof v === 'number') return 'number';
+  if (typeof v === 'string') {
+    if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return 'color';
+    return 'string';
+  }
+  if (typeof v === 'object' && v !== null && 'value' in v && 'unit' in v) return 'dimension';
+  return undefined;
+}
+
 export async function validateAllTokens(tokenStore: TokenStore, config?: LintConfig): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
 
@@ -473,6 +490,7 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
           path: tokenPath,
           rule: 'broken-alias',
           message: `Alias "${token.$value}" references non-existent token "${refPath}".`,
+          suggestedFix: 'delete-token',
         });
       }
 
@@ -511,12 +529,15 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
       // Value/type mismatch
       const check = TYPE_VALUE_CHECKS[token.$type];
       if (!check(token.$value)) {
+        const inferredType = inferTypeFromValue(token.$value);
         issues.push({
           severity: 'error',
           setName,
           path: tokenPath,
           rule: 'type-mismatch',
           message: `Value does not match declared type "${token.$type}".`,
+          suggestedFix: 'fix-type',
+          suggestion: inferredType,
         });
       }
     }

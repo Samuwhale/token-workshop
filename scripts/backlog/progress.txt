@@ -320,3 +320,24 @@
   - Metadata (`$description`, `$figmaCollection`, `$figmaMode`) is stored as special `$`-prefixed fields directly in the token group object. A deep-copy of `source.tokens` automatically copies all metadata — no need for separate metadata calls.
   - The `/api/sets/:name/duplicate` route must be registered BEFORE `/api/sets/:name` DELETE route — Fastify matches by registration order and both match the same URL pattern if not careful (though method differs here, it's good hygiene).
 ---
+
+## 2026-04-04 - Quick-fix actions from HealthPanel and AnalyticsPanel
+- Added inline fix buttons for automatable issues in both panels:
+  - **AnalyticsPanel**: `broken-alias` → "Delete" button (DELETE token); `rename-token` (path-pattern lint) → "Rename" button (POST rename API with `updateAliases: true`); `fix-type` (type-mismatch) → "Fix type" button (PATCH `$type`)
+  - **HealthPanel**: Broken alias items now have "Delete" buttons (shown on hover); lint violations with `rename-token` suggestion now have "Rename" buttons
+  - "Delete" buttons styled in error color; fix buttons styled in success green
+- Server changes:
+  - `path-pattern` lint rule: `suggestion` now provides the full corrected path (not just the segment) so clients can call rename directly
+  - `broken-alias` validation: added `suggestedFix: 'delete-token'`
+  - `type-mismatch` validation: added `suggestedFix: 'fix-type'` with `suggestion` = inferred type (via new `inferTypeFromValue()` helper)
+- Added `activeSet` prop to `HealthPanelProps` (needed to call rename API for lint violations which have no `setName`)
+- Files changed:
+  - `packages/server/src/services/lint.ts` ~L295, ~L440, ~L480, ~L515
+  - `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L373, ~L802
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L113, ~L150, ~L292, ~L325
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2598
+- **Learnings for future iterations:**
+  - `LintViolation` (from `useLint`) has no `setName` — fix actions require `activeSet` to be threaded in. `ValidationIssue` (from `useValidationCache`) does include `setName`.
+  - `HealthPanel` already had `serverUrl` in the interface but it was never destructured — it was effectively ignored. Always check interface vs destructured props.
+  - For the `path-pattern` rename fix, providing the full corrected path in `suggestion` (not just the segment) is much cleaner than having the client reconstruct it.
+---

@@ -4,6 +4,8 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { HeatmapResult } from './HeatmapPanel';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationCache';
+import { apiFetch } from '../shared/apiFetch';
+import { tokenPathToUrlSegment } from '../shared/utils';
 
 type HealthStatus = 'healthy' | 'warning' | 'critical';
 
@@ -113,6 +115,7 @@ function HealthSection({ title, status, count, detail, children, ctaLabel, onCta
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
+  activeSet: string;
   generators: TokenGenerator[];
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
@@ -130,7 +133,9 @@ export interface HealthPanelProps {
 }
 
 export function HealthPanel({
+  serverUrl,
   connected,
+  activeSet,
   generators,
   lintViolations,
   allTokensFlat,
@@ -149,6 +154,43 @@ export function HealthPanel({
   const validating = validationLoading;
   const lastRefreshed = validationLastRefreshed;
   const runValidation = onRefreshValidation;
+
+  const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
+
+  const applyValidationFix = async (issue: ValidationIssue) => {
+    const key = `${issue.rule}:${issue.setName}:${issue.path}`;
+    const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${tokenPathToUrlSegment(issue.path)}`;
+    setFixingKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+    try {
+      if (issue.suggestedFix === 'delete-token') {
+        await apiFetch(tokenUrl, { method: 'DELETE' });
+      }
+      onRefreshValidation();
+    } catch {
+      // silently ignore; re-validate remains
+    } finally {
+      setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
+
+  const applyLintFix = async (violation: LintViolation) => {
+    const key = `lint:${violation.rule}:${violation.path}`;
+    setFixingKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+    try {
+      if (violation.suggestedFix === 'rename-token' && violation.suggestion) {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/tokens/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldPath: violation.path, newPath: violation.suggestion, updateAliases: true }),
+        });
+      }
+      onRefreshValidation();
+    } catch {
+      // silently ignore
+    } finally {
+      setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
 
   // ── Derived metrics ──────────────────────────────────────────────────────
   const lintErrors = lintViolations.filter(v => v.severity === 'error').length;
@@ -287,12 +329,25 @@ export function HealthPanel({
               onCta={() => onNavigateTo('define', 'tokens')}
             >
               <ul className="space-y-1">
-                {lintViolations.slice(0, 5).map((v, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className={`mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full ${v.severity === 'error' ? 'bg-[var(--color-figma-error)]' : v.severity === 'warning' ? 'bg-amber-500' : 'bg-sky-500'}`} />
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed">{v.path}</span>
-                  </li>
-                ))}
+                {lintViolations.slice(0, 5).map((v, i) => {
+                  const fixKey = `lint:${v.rule}:${v.path}`;
+                  return (
+                    <li key={i} className="group flex items-start gap-1.5">
+                      <span className={`mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full ${v.severity === 'error' ? 'bg-[var(--color-figma-error)]' : v.severity === 'warning' ? 'bg-amber-500' : 'bg-sky-500'}`} />
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed flex-1 min-w-0">{v.path}</span>
+                      {v.suggestedFix === 'rename-token' && v.suggestion && (
+                        <button
+                          onClick={() => applyLintFix(v)}
+                          disabled={fixingKeys.has(fixKey)}
+                          className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                          title={`Rename to ${v.suggestion}`}
+                        >
+                          {fixingKeys.has(fixKey) ? '…' : 'Rename'}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
                 {lintViolations.length > 5 && (
                   <li className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 pl-3">
                     +{lintViolations.length - 5} more
@@ -320,11 +375,24 @@ export function HealthPanel({
                 <div className="mb-2">
                   <p className="text-[10px] font-semibold text-[var(--color-figma-error)] mb-1">Broken aliases</p>
                   <ul className="space-y-0.5">
-                    {brokenAliases.slice(0, 4).map((issue, i) => (
-                      <li key={i} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed">
-                        {issue.setName}/{issue.path}
-                      </li>
-                    ))}
+                    {brokenAliases.slice(0, 4).map((issue, i) => {
+                      const fixKey = `${issue.rule}:${issue.setName}:${issue.path}`;
+                      return (
+                        <li key={i} className="group flex items-center gap-1.5">
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed flex-1 min-w-0">
+                            {issue.setName}/{issue.path}
+                          </span>
+                          <button
+                            onClick={() => applyValidationFix(issue)}
+                            disabled={fixingKeys.has(fixKey)}
+                            className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                            title="Delete this token (the alias target no longer exists)"
+                          >
+                            {fixingKeys.has(fixKey) ? '…' : 'Delete'}
+                          </button>
+                        </li>
+                      );
+                    })}
                     {brokenAliases.length > 4 && (
                       <li className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
                         +{brokenAliases.length - 4} more

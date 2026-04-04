@@ -373,12 +373,19 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   const applyFix = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
     const tokenUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/${tokenPathToUrlSegment(issue.path)}`;
+    const renameUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/tokens/rename`;
     setFixingKeys(prev => { const next = new Set(prev); next.add(key); return next; });
     try {
       if (issue.suggestedFix === 'add-description') {
         await apiFetch(tokenUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ $description: '' }) });
       } else if ((issue.suggestedFix === 'flatten-alias-chain' || issue.suggestedFix === 'extract-to-alias') && issue.suggestion) {
         await apiFetch(tokenUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ $value: issue.suggestion }) });
+      } else if (issue.suggestedFix === 'delete-token') {
+        await apiFetch(tokenUrl, { method: 'DELETE' });
+      } else if (issue.suggestedFix === 'rename-token' && issue.suggestion) {
+        await apiFetch(renameUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPath: issue.path, newPath: issue.suggestion, updateAliases: true }) });
+      } else if (issue.suggestedFix === 'fix-type' && issue.suggestion) {
+        await apiFetch(tokenUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ $type: issue.suggestion }) });
       }
       await runValidate();
     } catch {
@@ -800,22 +807,35 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
                           Suppress
                         </button>
                         {(issue.suggestedFix === 'add-description' ||
-                          ((issue.suggestedFix === 'flatten-alias-chain' || issue.suggestedFix === 'extract-to-alias') && !!issue.suggestion)
+                          ((issue.suggestedFix === 'flatten-alias-chain' || issue.suggestedFix === 'extract-to-alias') && !!issue.suggestion) ||
+                          issue.suggestedFix === 'delete-token' ||
+                          (issue.suggestedFix === 'rename-token' && !!issue.suggestion) ||
+                          (issue.suggestedFix === 'fix-type' && !!issue.suggestion)
                         ) && (
                           <button
                             onClick={() => applyFix(issue)}
                             disabled={fixingKeys.has(suppressKey(issue))}
-                            className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                            className={`opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${
+                              issue.suggestedFix === 'delete-token'
+                                ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10'
+                                : 'border-[var(--color-figma-success,#34a853)] text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/10'
+                            }`}
                             title={
                               issue.suggestedFix === 'add-description' ? 'Add an empty $description field' :
                               issue.suggestedFix === 'flatten-alias-chain' ? `Point directly to ${issue.suggestion}` :
-                              `Alias to ${issue.suggestion}`
+                              issue.suggestedFix === 'extract-to-alias' ? `Alias to ${issue.suggestion}` :
+                              issue.suggestedFix === 'delete-token' ? 'Delete this token (the alias target no longer exists)' :
+                              issue.suggestedFix === 'rename-token' ? `Rename to ${issue.suggestion}` :
+                              `Change $type to "${issue.suggestion}"`
                             }
                           >
                             {fixingKeys.has(suppressKey(issue)) ? '…' :
                               issue.suggestedFix === 'add-description' ? 'Add desc' :
                               issue.suggestedFix === 'flatten-alias-chain' ? 'Flatten' :
-                              'Make alias'}
+                              issue.suggestedFix === 'extract-to-alias' ? 'Make alias' :
+                              issue.suggestedFix === 'delete-token' ? 'Delete' :
+                              issue.suggestedFix === 'rename-token' ? 'Rename' :
+                              `Fix type`}
                           </button>
                         )}
                         {onNavigateToToken && (

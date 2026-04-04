@@ -2597,6 +2597,7 @@ export function App() {
               <HealthPanel
                 serverUrl={serverUrl}
                 connected={connected}
+                activeSet={activeSet}
                 generators={generators}
                 lintViolations={lintViolations}
                 allTokensFlat={allTokensFlat}
