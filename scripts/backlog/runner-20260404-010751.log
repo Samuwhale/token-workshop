@@ -377,3 +377,18 @@ Already up to date.
 
   Merging to main: ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching
 Already up to date.
+[main 2a09983b] chore(backlog): done – ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching
+ 6 files changed, 124 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ResolverPanel template creation silently guesses set assignments
+- Added a two-step flow to the "Light / Dark preset" template creation. Step 1: enter resolver name. Step 2: review and edit the auto-detected set assignments (foundation/light/dark) before creating.
+- Split `handleCreateFromTemplate` into `handleTemplateNameNext` (detects sets, transitions to confirm step) and `handleCreateFromTemplate` (uses confirmed `templateAssignments`).
+- Added `templateStep: 'name' | 'confirm'` and `templateAssignments: { foundation, light, dark }` state variables.
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  15 queued · 3 in-progress · last took 2m10s
+═══════════════════════════════════════════════════════════════
+  → Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting — users see a spinner with no indication of how many tokens have been processed or how many remain; only scope application has batch progress; add progress callbacks for the main sync flows (useFigmaSync.ts, SyncPanel.tsx)
+  Worktree: /tmp/backlog-92209-CcSamw
+  Running agent… (started 02:12:07)

@@ -637,3 +637,16 @@
   - Two-step wizard pattern (name → confirm) is a clean way to surface auto-detected values without breaking the fast path.
   - The "detected" label (shown only when the auto-detection rule matches) helps users understand which values came from guessing vs. explicit selection.
 ---
+
+## 2026-04-04 - GraphPanel 1820-line monolith decomposition
+- Extracted 7 template definitions (SemanticMapping, SemanticLayer, GraphTemplate types + GRAPH_TEMPLATES array + getTemplateStepCount + templateIdForTokenType) to `graph-templates.ts`
+- Extracted template picker UI (PipelineStages, TemplateIcon, getRequiresSourceLabel, TemplateCard, TemplatePicker component) to `TemplatePicker.tsx`
+- Extracted generator card UI (getGeneratorTypeLabel, getGeneratorStepCount, DryRunPreview, QuickEditTypeFields, QuickEditPanel, GeneratorPipelineCard) to `GeneratorPipelineCard.tsx`
+- Slimmed `GraphPanel.tsx` down to: exportGraphAsSVG + main GraphPanel component (imports from the 3 new files)
+- Updated `App.tsx` to import `GRAPH_TEMPLATES` from `./components/graph-templates` instead of `./components/GraphPanel`
+- Files changed: `packages/figma-plugin/src/ui/components/graph-templates.ts` (new, ~220 lines), `packages/figma-plugin/src/ui/components/TemplatePicker.tsx` (new, ~220 lines), `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` (new, ~380 lines), `packages/figma-plugin/src/ui/components/GraphPanel.tsx` (~440 lines, down from 1820), `packages/figma-plugin/src/ui/App.tsx` ~L33
+- **Learnings for future iterations:**
+  - When a monolith exports symbols consumed by parent components (e.g. GRAPH_TEMPLATES used in App.tsx command palette), the symbol must be re-exported from the new file OR the parent import must be updated — both work, updating the parent is cleaner.
+  - The original GraphPanel had allTokensFlat referenced inside GeneratorPipelineCard but not declared in GraphPanelProps — the prop was implicitly undefined. Adding it as an optional prop in both GraphPanelProps and the sub-component is clean and backwards-compatible.
+  - Flat components file → separate files pattern: move private helpers (formatTokenValue, RATIO_PRESETS, QE_INPUT constant strings) alongside the component that owns them. Don't try to share constants that are only used in one component.
+---

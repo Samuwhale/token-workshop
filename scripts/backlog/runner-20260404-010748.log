@@ -324,3 +324,10 @@ Already up to date.
   → GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
   Worktree: /tmp/backlog-91949-Cv4oEl
   Running agent… (started 02:01:47)
+
+  ✓ done: GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
+    Extracted template data to graph-templates.ts, template picker UI to TemplatePicker.tsx, generator card to GeneratorPipelineCard.tsx; GraphPanel.tsx reduced from 1820 → ~440 lines
+    38 turns · 726s · $1.94
+
+  Merging to main: GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
+Already up to date.
