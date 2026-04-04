@@ -595,11 +595,14 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
 
   try {
     const nodes = collectNodesForScope(scope);
+    const total = nodes.length;
 
     let updatedBindings = 0;
     let updatedNodes = 0;
+    const REMAP_BATCH = 100;
 
-    for (const node of nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
       let nodeUpdated = false;
       for (const prop of ALL_BINDABLE_PROPERTIES) {
         const current = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
@@ -612,6 +615,10 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
         }
       }
       if (nodeUpdated) updatedNodes++;
+      // Report progress every REMAP_BATCH nodes so UI stays responsive
+      if ((i + 1) % REMAP_BATCH === 0 || i === nodes.length - 1) {
+        figma.ui.postMessage({ type: 'remap-progress', processed: i + 1, total });
+      }
     }
 
     figma.ui.postMessage({ type: 'remap-complete', updatedBindings, updatedNodes });
@@ -868,10 +875,12 @@ export function searchLayers(query: string) {
 
   const results: Array<{ id: string; name: string; type: string; parentName?: string; boundCount: number }> = [];
   const MAX_RESULTS = 50;
+  let totalSearched = 0;
 
   const stack: SceneNode[] = [...figma.currentPage.children];
   while (stack.length > 0 && results.length < MAX_RESULTS) {
     const node = stack.pop()!;
+    totalSearched++;
 
     // Check match: name or type
     const nameMatch = node.name.toLowerCase().includes(q);
@@ -903,7 +912,7 @@ export function searchLayers(query: string) {
     }
   }
 
-  figma.ui.postMessage({ type: 'search-layers-result', results });
+  figma.ui.postMessage({ type: 'search-layers-result', results, totalSearched });
 }
 
 // Check if a node supports a given bindable property
@@ -968,8 +977,10 @@ export async function applyToNodes(
 ) {
   let applied = 0;
   const errors: string[] = [];
+  const total = nodeIds.length;
 
-  for (const id of nodeIds) {
+  for (let i = 0; i < nodeIds.length; i++) {
+    const id = nodeIds[i];
     try {
       const node = await figma.getNodeByIdAsync(id);
       if (!node || !('parent' in node)) continue;
@@ -979,6 +990,9 @@ export async function applyToNodes(
       applied++;
     } catch (err) {
       errors.push(getErrorMessage(err));
+    }
+    if (total > 1) {
+      figma.ui.postMessage({ type: 'apply-progress', processed: i + 1, total });
     }
   }
 

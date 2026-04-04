@@ -35,6 +35,7 @@ import { ExtractTokensPanel } from './ExtractTokensPanel';
 function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LayerSearchResult[]>([]);
+  const [totalSearched, setTotalSearched] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +46,7 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
       const msg = event.data?.pluginMessage;
       if (msg?.type === 'search-layers-result') {
         setResults(msg.results);
+        setTotalSearched(msg.totalSearched ?? null);
         setSearching(false);
       }
     };
@@ -62,6 +64,7 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!value.trim()) {
       setResults([]);
+      setTotalSearched(null);
       setSearching(false);
       return;
     }
@@ -115,6 +118,13 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
 
       {results.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)]">
+          {totalSearched !== null && (
+            <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]">
+              {results.length < 50
+                ? `${results.length} result${results.length !== 1 ? 's' : ''} · searched ${totalSearched} layer${totalSearched !== 1 ? 's' : ''}`
+                : `Top 50 results · searched ${totalSearched} layer${totalSearched !== 1 ? 's' : ''}`}
+            </div>
+          )}
           {results.map(layer => (
             <button
               key={layer.id}
@@ -232,6 +242,9 @@ export function SelectionInspector({
   // Error feedback for remove-binding-from-node failures
   const [deepRemoveError, setDeepRemoveError] = useState<string | null>(null);
 
+  // Progress tracking for apply-to-nodes operations (e.g. apply to all peers)
+  const [applyProgress, setApplyProgress] = useState<{ processed: number; total: number } | null>(null);
+
   const prevNodeIdsRef = useRef<string>('');
 
   // Listen for binding results from the plugin sandbox
@@ -260,6 +273,12 @@ export function SelectionInspector({
       if (msg?.type === 'removed-binding-from-node' && !msg.success) {
         setDeepRemoveError(msg.error ?? 'Failed to remove binding');
         setTimeout(() => setDeepRemoveError(null), 3000);
+      }
+      if (msg?.type === 'apply-progress') {
+        setApplyProgress({ processed: msg.processed, total: msg.total });
+      }
+      if (msg?.type === 'applied-to-nodes') {
+        setApplyProgress(null);
       }
     };
     window.addEventListener('message', handler);
@@ -911,8 +930,14 @@ export function SelectionInspector({
           Deep
         </button>
         <span aria-live="polite">{syncing && syncProgress ? (
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Syncing... {syncProgress.processed}/{syncProgress.total} layers
+          <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="inline-block w-16 h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden align-middle">
+              <span
+                className="block h-full rounded-full bg-[var(--color-figma-accent)] transition-all"
+                style={{ width: `${Math.round((syncProgress.processed / syncProgress.total) * 100)}%` }}
+              />
+            </span>
+            {syncProgress.processed}/{syncProgress.total}
           </span>
         ) : syncError ? (
           <span role="alert" className="text-[10px] text-[var(--color-figma-error)]" title={syncError}>
@@ -1346,6 +1371,18 @@ export function SelectionInspector({
               Next layer →
             </button>
           )}
+        </div>
+      )}
+
+      {/* Apply-to-nodes progress banner */}
+      {applyProgress && applyProgress.total > 1 && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-1.5 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)] shrink-0" aria-live="polite">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)] animate-spin" aria-hidden="true">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
+            Applying… {applyProgress.processed}/{applyProgress.total} layers
+          </span>
         </div>
       )}
 

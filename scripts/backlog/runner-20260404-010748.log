@@ -852,3 +852,18 @@ Already up to date.
 
   Merging to main: applyColorModifiers drops alpha channel when applying lighten/darken/mix
 Already up to date.
+[main 2d49d2a4] chore(backlog): done – applyColorModifiers drops alpha channel when applying lighten/darken/mix
+ 7 files changed, 106 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - applyColorModifiers drops alpha channel when applying lighten/darken/mix
+- Fixed `applyColorModifiers` in `packages/core/src/color-modifier.ts` to preserve the alpha channel from 8-char hex inputs through LAB round-trips
+- Added `extractAlpha(hex)` helper that reads the alpha byte from an 8-char hex (returns `null` for 6-char/opaque inputs)
+- Added `reapplyAlpha(result, alpha)` helper that appends the alpha suffix back to a `#RRGGBB` result only when `alpha !== null`
+
+═══════════════════════════════════════════════════════════════
+  #37  ·  9 queued · 3 in-progress · last took 1m44s
+═══════════════════════════════════════════════════════════════
+  → PreviewPanel has no loading indicator while resolving CSS custom property slots — switching templates or changing tokens causes a visible stutter with no spinner or skeleton state; other panels (Export, Publish) use spinners consistently but PreviewPanel has none (PreviewPanel.tsx)
+  Worktree: /tmp/backlog-91949-b1QEBD
+  Running agent… (started 04:23:18)

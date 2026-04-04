@@ -17,15 +17,19 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
   });
   const [remapScope, setRemapScope] = useState<'selection' | 'page'>('page');
   const [remapRunning, setRemapRunning] = useState(false);
+  const [remapProgress, setRemapProgress] = useState<{ processed: number; total: number } | null>(null);
   const [remapResult, setRemapResult] = useState<{ updatedBindings: number; updatedNodes: number } | null>(null);
   const [remapError, setRemapError] = useState<string | null>(null);
 
-  // Listen for remap-complete messages from the plugin controller
+  // Listen for remap-progress and remap-complete messages from the plugin controller
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage;
-      if (msg?.type === 'remap-complete') {
+      if (msg?.type === 'remap-progress') {
+        setRemapProgress({ processed: msg.processed, total: msg.total });
+      } else if (msg?.type === 'remap-complete') {
         setRemapRunning(false);
+        setRemapProgress(null);
         if (msg.error) {
           setRemapError(msg.error);
           setRemapResult(null);
@@ -115,12 +119,17 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
           + Add row
         </button>
         <div className="flex items-center gap-1.5">
-          {remapError && (
+          {remapRunning && remapProgress && (
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]" aria-live="polite">
+              {remapProgress.processed}/{remapProgress.total} layers
+            </span>
+          )}
+          {remapError && !remapRunning && (
             <span className="text-[10px] text-[var(--color-figma-error)]" title={remapError}>
               Error: {remapError.length > 40 ? remapError.slice(0, 40) + '…' : remapError}
             </span>
           )}
-          {!remapError && remapResult && (
+          {!remapError && !remapRunning && remapResult && (
             <span className={`text-[10px] ${remapResult.updatedBindings > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
               {remapResult.updatedBindings > 0
                 ? `${remapResult.updatedBindings} binding${remapResult.updatedBindings !== 1 ? 's' : ''} remapped`

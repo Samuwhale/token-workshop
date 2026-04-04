@@ -721,6 +721,18 @@ export interface AppliedToNodesMessage {
   errors: string[];
 }
 
+export interface ApplyProgressMessage {
+  type: 'apply-progress';
+  processed: number;
+  total: number;
+}
+
+export interface RemapProgressMessage {
+  type: 'remap-progress';
+  processed: number;
+  total: number;
+}
+
 export interface RemovedBindingFromNodeMessage {
   type: 'removed-binding-from-node';
   success: boolean;
@@ -771,6 +783,7 @@ export interface SelectionResponseMessage {
 export interface LayerSearchResultMessage {
   type: 'search-layers-result';
   results: LayerSearchResult[];
+  totalSearched?: number;
   correlationId?: string;
 }
 
@@ -884,6 +897,8 @@ export type ControllerMessage =
   | RemapCompleteResponseMessage
   | AppliedToSelectionMessage
   | AppliedToNodesMessage
+  | ApplyProgressMessage
+  | RemapProgressMessage
   | RemovedBindingFromNodeMessage
   | SelectNextSiblingResultMessage
   | CanvasHeatmapProgressMessage
@@ -925,6 +940,8 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'remap-complete',
   'applied-to-selection',
   'applied-to-nodes',
+  'apply-progress',
+  'remap-progress',
   'removed-binding-from-node',
   'select-next-sibling-result',
   'canvas-heatmap-progress',

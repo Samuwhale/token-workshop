@@ -626,3 +626,19 @@
   - Pattern: `const alpha = extractAlpha(current); … current = reapplyAlpha(labToHex(…), alpha)` — two tiny helpers keep all 3 LAB-path modifier cases consistent
   - For `mix`, both operands may independently have alpha; interpolate them with the same linear ratio used for L/a/b, but only include the alpha channel in the output if either source explicitly specified one
 ---
+
+## 2026-04-04 - No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
+- **`syncBindings`**: Already had `sync-progress` messages; replaced plain "Syncing... X/Y layers" text with an inline progress bar (16px wide, accent color fill) + count for clearer non-frozen feedback.
+- **`remapBindings`** (plugin): Added `remap-progress: { processed, total }` postMessage every 100 nodes during the node loop. Total is computed once before the loop.
+- **`remapBindings`** (UI, `RemapBindingsPanel.tsx`): Added `remapProgress` state, listens for `remap-progress` events, shows "X/Y layers" count next to the "Remapping…" button label.
+- **`applyToNodes`** (plugin): Added `apply-progress: { processed, total }` postMessage after each node (only when `total > 1` to avoid noise for single-node applies).
+- **`applyToNodes`** (UI, `SelectionInspector.tsx`): Added `applyProgress` state, listens for `apply-progress` (sets progress) and `applied-to-nodes` (clears progress). Shows a spinner + "Applying… X/Y layers" banner at the bottom of the inspector when active.
+- **`search-layers`** (plugin): Added `totalSearched` counter during DFS traversal; included in `search-layers-result` message.
+- **`search-layers`** (UI, `LayerSearchPanel` in `SelectionInspector.tsx`): Stores `totalSearched`, shows a header row in the results list: "X results · searched Y layers" (or "Top 50 results · searched Y layers" when capped).
+- Added `ApplyProgressMessage` and `RemapProgressMessage` interfaces to `shared/types.ts`; added to `ControllerMessage` union and `KNOWN_CONTROLLER_MESSAGE_TYPES` set.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L596, ~L870, ~L967; `packages/figma-plugin/src/shared/types.ts` ~L714, ~L783, ~L895; `packages/figma-plugin/src/ui/components/RemapBindingsPanel.tsx` ~L19; `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L35, ~L236, ~L913
+- **Learnings for future iterations:**
+  - For synchronous plugin loops (remapBindings), `figma.ui.postMessage` calls DO queue up and the UI iframe processes them asynchronously — progress updates are visible even from tight synchronous loops because the UI has its own event loop.
+  - Skip `apply-progress` for single-node applies (`total > 1`) to avoid pointless flash of the progress banner.
+  - For search operations with early exit (MAX_RESULTS), tracking `totalSearched` and including it in the result message is the right approach — no intermediate messages needed since the operation completes in one shot.
+---

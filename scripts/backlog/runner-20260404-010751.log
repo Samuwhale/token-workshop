@@ -934,3 +934,10 @@ Already up to date.
   → No progress reporting for `search-layers`, `syncBindings`, `remapBindings`, or `applyToNodes` plugin operations — these can process hundreds of nodes silently with no progress bar or count; on large pages this looks like the plugin has frozen (controller.ts, selectionHandling.ts)
   Worktree: /tmp/backlog-92209-I55W1Q
   Running agent… (started 04:19:27)
+
+  ✓ done: No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
+    Added remap-progress/apply-progress plugin messages, progress bar for syncBindings, X/Y layer counts for remapBindings and applyToNodes, and a totalSearched count in search-layers results
+    52 turns · 397s · $1.7
+
+  Merging to main: No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
+Already up to date.
