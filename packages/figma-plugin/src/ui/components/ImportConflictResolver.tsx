@@ -137,7 +137,6 @@ export function ImportConflictResolver() {
             const decision = conflictDecisions.get(path) ?? 'accept';
             const incoming = tokens.find(t => t.path === path);
             const existing = conflictExistingValues?.get(path);
-            const nextDecision = decision === 'accept' ? 'merge' : decision === 'merge' ? 'reject' : 'accept';
             return (
               <div key={path} className="px-2 py-1.5 bg-[var(--color-figma-bg)]">
                 {/* Path + toggle */}
@@ -145,29 +144,38 @@ export function ImportConflictResolver() {
                   <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
                     {path}
                   </span>
-                  <button
-                    onClick={() => {
-                      const next = new Map(conflictDecisions);
-                      next.set(path, nextDecision);
-                      setConflictDecisions(next);
-                    }}
-                    className={`shrink-0 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium cursor-pointer transition-colors ${
-                      decision === 'accept'
-                        ? 'bg-[var(--color-figma-success,#16a34a)]/15 text-[var(--color-figma-success,#16a34a)]'
-                        : decision === 'merge'
-                          ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                          : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
-                    }`}
-                  >
-                    {decision === 'accept' ? (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    ) : decision === 'merge' ? (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v10M16 3v4M8 13a4 4 0 008 0v-6" /></svg>
-                    ) : (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                    )}
-                    {decision === 'accept' ? 'Accept' : decision === 'merge' ? 'Merge' : 'Reject'}
-                  </button>
+                  <div className="shrink-0 flex items-center rounded overflow-hidden border border-[var(--color-figma-border)]">
+                    {(['accept', 'merge', 'reject'] as const).map((d, i) => (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          const next = new Map(conflictDecisions);
+                          next.set(path, d);
+                          setConflictDecisions(next);
+                        }}
+                        title={
+                          d === 'accept'
+                            ? 'Accept: overwrite existing value with incoming'
+                            : d === 'merge'
+                              ? 'Merge: update value, keep existing description & extensions'
+                              : 'Reject: skip this token, keep existing unchanged'
+                        }
+                        className={`px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                          i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
+                        } ${
+                          decision === d
+                            ? d === 'accept'
+                              ? 'bg-[var(--color-figma-success,#16a34a)]/15 text-[var(--color-figma-success,#16a34a)]'
+                              : d === 'merge'
+                                ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                                : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
+                            : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/20'
+                        }`}
+                      >
+                        {d === 'accept' ? 'Accept' : d === 'merge' ? 'Merge' : 'Reject'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {/* Value diff */}
                 <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">

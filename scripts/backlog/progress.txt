@@ -671,3 +671,14 @@
   - For dynamic toggle titles (e.g., `title={conditionA ? 'Hide' : 'Show...'}`) copy the same expression to `aria-label` to keep them in sync
   - Search for `title=` occurrences in button contexts across the codebase as a reliable proxy for "needs aria-label" — most buttons that provide tooltip text should also have `aria-label` for screen readers
 ---
+
+## 2026-04-04 - Import conflict resolution cycling behavior is opaque
+- Replaced the single cycle button (accept→merge→reject→accept) with a 3-segment control showing all three options simultaneously
+- Each segment is directly clickable, no cycling required; active state is highlighted with its respective color (green/accent/muted), inactive states show faint text with hover affordance
+- Tooltips on each segment explain what the decision does (e.g. "Accept: overwrite existing value with incoming")
+- Removed now-unused `nextDecision` variable
+- Files changed: `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx` ~L148-170
+- **Learnings for future iterations:**
+  - 3-segment controls with `border-l` dividers inside a `rounded overflow-hidden border` wrapper give a compact pill-group look without extra styling complexity
+  - Using `(['accept', 'merge', 'reject'] as const).map(...)` with a `title` tooltip on each button is the cleanest way to expose direct state selection in constrained spaces
+---

@@ -235,3 +235,26 @@ Already up to date.
 
   Merging to main: ResolverPanel edit and delete icon buttons use title-only with no aria-label
 Already up to date.
+[main b4dc859b] chore(backlog): done – ResolverPanel edit and delete icon buttons use title-only with no aria-label
+ 12 files changed, 75 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ResolverPanel edit and delete icon buttons use title-only with no aria-label
+- Added `aria-label` to all icon-only buttons that relied solely on `title=` for accessibility across 8 component files
+- **ResolverPanel.tsx** ~L586, L597: pencil edit + X delete buttons — added `aria-label="Edit resolver"` / `aria-label="Delete resolver"`
+- **TokenDetailPreview.tsx** ~L82, L98: two close buttons — added `aria-label="Close"`
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  3 queued · 0
+0 in-progress · last took 17m57s
+═══════════════════════════════════════════════════════════════
+  → Import conflict resolution cycling behavior is opaque — the per-token decision button in ImportConflictResolver.tsx (lines 148-170) cycles through accept→merge→reject→accept on each click, but there is no visible affordance explaining this order or what the current state means; users must click repeatedly to discover the three states and learn the cycle direction, and there is no way to jump directly to a specific decision without cycling past unwanted options (violates: recognition over recall, user control)
+  Worktree: /tmp/backlog-3108-k55VNB
+  Running agent… (started 19:13:45)
+
+  ✓ done: Import conflict resolution cycling behavior is opaque
+    Replaced single-cycle button with a 3-segment control (Accept | Merge | Reject) — all options visible and directly clickable, with tooltips explaining each decision
+    9 turns · 95s · $0.26
+
+  Merging to main: Import conflict resolution cycling behavior is opaque
+Already up to date.
