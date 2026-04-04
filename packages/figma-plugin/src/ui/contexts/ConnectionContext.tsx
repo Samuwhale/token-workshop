@@ -53,6 +53,9 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
   const [result, setResult] = useState<SyncCompleteMessage | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Use a ref for the syncing guard so the callback always reads the latest value
+  // without being recreated on every sync start/end (which caused stale closure races).
+  const syncingRef = useRef(false);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -61,6 +64,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
       if (msg.type === 'sync-progress') {
         setProgress({ processed: msg.processed, total: msg.total });
       } else if (msg.type === 'sync-complete') {
+        syncingRef.current = false;
         setSyncing(false);
         setProgress(null);
         setResult(msg as SyncCompleteMessage);
@@ -75,7 +79,8 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
   }, []);
 
   const sync = useCallback(async (scope: 'page' | 'selection') => {
-    if (!connected || syncing) return;
+    if (!connected || syncingRef.current) return;
+    syncingRef.current = true;
     setSyncing(true);
     setSyncError(null);
     setResult(null);
@@ -91,9 +96,10 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
         ? 'Could not reach the token server. Check that it is running.'
         : 'Could not load tokens. Restart the server and try again.';
       setSyncError(friendly);
+      syncingRef.current = false;
       setSyncing(false);
     }
-  }, [serverUrl, connected, syncing, onNetworkError]);
+  }, [serverUrl, connected, onNetworkError]);
 
   return { syncing, syncProgress: progress, syncResult: result, syncError, sync };
 }

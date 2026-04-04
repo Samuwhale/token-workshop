@@ -129,3 +129,11 @@
   - The per-platform try-catch at line 392 caught most errors from StyleDictionary, but setup code *between* the outer loop and the inner try (e.g., `fs.mkdir(buildPath)`) was unguarded. A single `try/finally` around the whole body is simpler and covers all cases.
   - Moving `return { results, warnings }` inside the `try` block and keeping only the cleanup in `finally` is the idiomatic pattern — the `finally` cleanup runs regardless of whether the function returns normally or throws.
 ---
+
+## 2026-04-04 - useSyncBindings callback has `syncing` in its dependency array causing stale closure races
+- Replaced the `syncing` state variable in the `sync` callback guard with a `syncingRef` (mutable ref). The ref is set to `true` immediately when sync starts and `false` on both the success path (`sync-complete` message handler) and the error path. Removed `syncing` from the `useCallback` dependency array so the callback is no longer recreated on every sync start/end.
+- Files changed: `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx` ~L51-96
+- **Learnings for future iterations:**
+  - For boolean guards inside `useCallback` that must be read synchronously (before any re-render), always use a `useRef` instead of reading state; state reads inside callbacks capture the value at creation time, not at call time.
+  - Both mutation sites (the guard check and the reset) must use the ref, not the state setter alone, to remain in sync.
+---
