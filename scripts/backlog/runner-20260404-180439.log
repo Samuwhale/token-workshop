@@ -593,3 +593,26 @@ Already up to date.
 
   Merging to main: Token editor should preserve scroll position when saving
 Already up to date.
+[main a174a8a4] chore(backlog): done – Token editor should preserve scroll position when saving
+ 5 files changed, 59 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Token editor should preserve scroll position when saving
+- Added per-token-path scroll position persistence to `TokenEditor.tsx`:
+  - `scrollContainerRef` (`useRef<HTMLDivElement>`) attached to the `overflow-y-auto` editor body div
+  - `scrollPositionsRef` (`useRef(new Map<string, number>())`) stores scroll position keyed by token path
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  13 queued · 0
+0 in-progress · last took 10m9s
+═══════════════════════════════════════════════════════════════
+  → Resolver panel has no inline preview of resolved output — ResolverPanel.tsx lets users create and edit resolver rules but provides no immediate feedback about what the resolver produces; users must save the resolver, switch to the Tokens tab, and mentally diff the values to understand the effect; adding a live "Resolved preview" section that shows a sample of 5-10 tokens with their before/after resolved values would make resolver authoring dramatically faster
+  Worktree: /tmp/backlog-3108-awEJN6
+  Running agent… (started 21:49:54)
+
+  ✓ done: Resolver panel has no inline preview of resolved output
+    Added live "Resolved preview" section showing 8 sample tokens (colors first) with resolved values + before/after comparison against allTokensFlat; updates live on modifier context changes.
+    28 turns · 426s · $0.95
+
+  Merging to main: Resolver panel has no inline preview of resolved output
+Already up to date.

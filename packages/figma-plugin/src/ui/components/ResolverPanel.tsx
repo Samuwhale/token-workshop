@@ -9,13 +9,16 @@
  * header and is kept for backward compatibility.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { ResolverFile } from '@tokenmanager/core';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
+import { useTokenDataContext } from '../contexts/TokenDataContext';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import { swatchBgColor } from '../shared/colorUtils';
 
 export interface ResolverContentProps {
   serverUrl: string;
@@ -300,6 +303,28 @@ function ResolverInner({
   }, []);
 
   const resolvedCount = resolvedTokens ? Object.keys(resolvedTokens).length : 0;
+
+  const { allTokensFlat } = useTokenDataContext();
+
+  /** Up to 8 sample tokens from the resolved output for live preview. Colors first. */
+  const previewEntries = useMemo(() => {
+    if (!resolvedTokens) return [];
+    const all = Object.entries(resolvedTokens);
+    // Sort: color tokens first, then others with a known type, then unknown
+    const sorted = [...all].sort(([, a], [, b]) => {
+      const rank = (t: string) => t === 'color' ? 0 : t === 'unknown' ? 2 : 1;
+      return rank(a.$type) - rank(b.$type);
+    });
+    return sorted.slice(0, 8).map(([path, entry]) => {
+      const rawEntry = allTokensFlat[path];
+      const rawValue = rawEntry?.$value;
+      // Detect if the resolved value differs from the raw value in allTokensFlat
+      const rawStr = rawValue !== undefined ? formatTokenValueForDisplay(rawEntry.$type, rawValue) : null;
+      const resolvedStr = formatTokenValueForDisplay(entry.$type, entry.$value);
+      const differs = rawStr !== null && rawStr !== resolvedStr;
+      return { path, entry, rawStr: differs ? rawStr : null, resolvedStr };
+    });
+  }, [resolvedTokens, allTokensFlat]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -774,6 +799,58 @@ function ResolverInner({
                       </div>
                     )}
                   </div>
+
+                  {/* Resolved preview */}
+                  {previewEntries.length > 0 && !loading && (
+                    <div className="mt-2">
+                      <div className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide mb-1">
+                        Resolved preview
+                      </div>
+                      <div className="flex flex-col divide-y divide-[var(--color-figma-border)] rounded border border-[var(--color-figma-border)] overflow-hidden">
+                        {previewEntries.map(({ path, entry, rawStr, resolvedStr }) => {
+                          const isColor = entry.$type === 'color' && typeof entry.$value === 'string';
+                          const leafName = path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path;
+                          const parentPath = path.includes('.') ? path.slice(0, path.lastIndexOf('.')) : '';
+                          return (
+                            <div key={path} className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] min-w-0">
+                              {/* Color swatch */}
+                              {isColor ? (
+                                <div
+                                  className="shrink-0 w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)]"
+                                  style={{ backgroundColor: swatchBgColor(entry.$value as string) }}
+                                />
+                              ) : (
+                                <div className="shrink-0 w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-center">
+                                  <span className="text-[6px] font-mono text-[var(--color-figma-text-tertiary)] leading-none">
+                                    {entry.$type === 'dimension' ? 'px' : entry.$type === 'duration' ? 'ms' : entry.$type.slice(0, 2)}
+                                  </span>
+                                </div>
+                              )}
+                              {/* Path */}
+                              <div className="flex-1 min-w-0">
+                                {parentPath && (
+                                  <span className="text-[8px] text-[var(--color-figma-text-tertiary)] truncate block leading-none mb-0.5">{parentPath}</span>
+                                )}
+                                <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate block leading-none">{leafName}</span>
+                              </div>
+                              {/* Value */}
+                              <div className="shrink-0 text-right">
+                                {rawStr && (
+                                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] line-through leading-none mb-0.5 max-w-[80px] truncate">{rawStr}</div>
+                                )}
+                                <div className="text-[9px] text-[var(--color-figma-text-secondary)] leading-none max-w-[80px] truncate font-mono">{resolvedStr}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {resolvedCount > previewEntries.length && (
+                        <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1 text-right">
+                          + {resolvedCount - previewEntries.length} more tokens
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Sets info */}
                   {resolver.modifiers && Object.keys(resolver.modifiers).length > 0 && (

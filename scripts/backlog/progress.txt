@@ -897,3 +897,12 @@
   - Using `requestAnimationFrame` inside a `useEffect([dep])` ensures the scroll restoration happens after React has committed the render for the new content, avoiding a race where content hasn't expanded to its final height yet.
   - Map refs (`useRef(new Map())`) are the right tool for per-key ephemeral state inside a component — no re-renders, no external storage, cleaned up automatically when the component unmounts.
 ---
+
+## 2026-04-04 - Resolver panel has no inline preview of resolved output
+- Added a "Resolved preview" section to `ResolverPanel.tsx` that shows up to 8 sample tokens with their resolved values when a resolver is active and loaded. Colors are shown first (sorted by type). Each row shows a color swatch (for color tokens) or a type badge, the token path split into parent/leaf, and the formatted resolved value. If the resolved value differs from the raw value in `allTokensFlat`, the raw value is shown with a strikethrough above it, giving a before/after comparison. A "N more tokens" count appears when there are more than 8. The preview updates live whenever modifier contexts change.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L12-15 (new imports), ~L303-328 (previewEntries useMemo), ~L803-851 (preview section JSX)
+- **Learnings for future iterations:**
+  - `allTokensFlat` from `useTokenDataContext()` serves as a reasonable "before" baseline — it contains tokens merged from all sets without modifier overrides applied, so a resolver override will often produce a visually different value.
+  - `formatTokenValueForDisplay` from `tokenFormatting.ts` handles all DTCG types and is the right tool for before/after string comparison; simple string equality on the formatted values is a practical "did it change?" check.
+  - Sorting resolved tokens by type (color < other < unknown) gives the best first impression — color tokens are the most visually meaningful and worth showing first.
+---
