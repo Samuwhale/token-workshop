@@ -41,13 +41,16 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const [commitOffset, setCommitOffset] = useState(0);
   const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
-  const [commitSearch, setCommitSearch] = useState('');
-  const [debouncedCommitSearch, setDebouncedCommitSearch] = useState('');
+  const [timelineSearch, setTimelineSearch] = useState('');
+  const [debouncedTimelineSearch, setDebouncedTimelineSearch] = useState('');
+  const [activeTypeFilters, setActiveTypeFilters] = useState<Set<'action' | 'commit' | 'snapshot'>>(
+    new Set(['action', 'commit', 'snapshot'])
+  );
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedCommitSearch(commitSearch), 300);
+    const timer = setTimeout(() => setDebouncedTimelineSearch(timelineSearch), 300);
     return () => clearTimeout(timer);
-  }, [commitSearch]);
+  }, [timelineSearch]);
 
   // Navigation state — controls which sub-view is rendered
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null);
@@ -100,8 +103,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   }, [serverUrl, connected]);
 
   useEffect(() => {
-    fetchTimeline(debouncedCommitSearch);
-  }, [fetchTimeline, debouncedCommitSearch]);
+    fetchTimeline(debouncedTimelineSearch);
+  }, [fetchTimeline, debouncedTimelineSearch]);
 
   const handleLoadMoreCommits = useCallback(async () => {
     if (!connected || loadingMoreCommits) return;
@@ -109,7 +112,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     setLoadMoreError(null);
     const nextOffset = commitOffset + 50;
     try {
-      const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
+      const searchParam = debouncedTimelineSearch ? `&search=${encodeURIComponent(debouncedTimelineSearch)}` : '';
       const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
         `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
       );
@@ -122,7 +125,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     } finally {
       setLoadingMoreCommits(false);
     }
-  }, [serverUrl, connected, loadingMoreCommits, commitOffset, debouncedCommitSearch]);
+  }, [serverUrl, connected, loadingMoreCommits, commitOffset, debouncedTimelineSearch]);
 
   const handleRollback = useCallback(async (opId: string) => {
     setRollingBack(opId);
@@ -155,7 +158,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       });
       setSaveLabel('');
       setShowSaveInput(false);
-      await fetchTimeline();
+      await fetchTimeline(debouncedTimelineSearch);
     } finally {
       setSaving(false);
     }
@@ -241,8 +244,30 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     })),
   ].sort((a, b) => b.ts - a.ts);
 
+  const searchQuery = timelineSearch.trim().toLowerCase();
+  const filteredEntries = allEntries.filter(entry => {
+    if (!activeTypeFilters.has(entry.kind)) return false;
+    if (!searchQuery) return true;
+    if (entry.kind === 'action') {
+      const op = entry.data;
+      return op.description.toLowerCase().includes(searchQuery) ||
+        op.setName.toLowerCase().includes(searchQuery) ||
+        op.affectedPaths.some(p => p.toLowerCase().includes(searchQuery));
+    }
+    if (entry.kind === 'commit') {
+      const c = entry.data;
+      return c.message.toLowerCase().includes(searchQuery) ||
+        c.author.toLowerCase().includes(searchQuery) ||
+        c.hash.toLowerCase().includes(searchQuery);
+    }
+    // snapshot
+    return (entry.data as SnapshotSummary).label.toLowerCase().includes(searchQuery);
+  });
+
+  const isFiltering = searchQuery.length > 0 || activeTypeFilters.size < 3;
   const hasLocal = (undoDescriptions ?? []).length > 0;
   const isEmpty = allEntries.length === 0 && !hasLocal && !timelineError;
+  const isFilteredEmpty = !isEmpty && filteredEntries.length === 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -336,14 +361,14 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               </svg>
               <input
                 type="text"
-                value={commitSearch}
-                onChange={e => setCommitSearch(e.target.value)}
-                placeholder="Search commits…"
+                value={timelineSearch}
+                onChange={e => setTimelineSearch(e.target.value)}
+                placeholder="Search history…"
                 className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
               />
-              {commitSearch && (
+              {timelineSearch && (
                 <button
-                  onClick={() => setCommitSearch('')}
+                  onClick={() => setTimelineSearch('')}
                   className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
                   aria-label="Clear search"
                 >
@@ -388,7 +413,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               </svg>
             </button>
             <button
-              onClick={() => fetchTimeline(debouncedCommitSearch)}
+              onClick={() => fetchTimeline(debouncedTimelineSearch)}
               className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               Refresh
@@ -396,6 +421,58 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           </>
         )}
       </div>
+
+      {/* Type filter bar */}
+      {!showSaveInput && (
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
+          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Show:</span>
+          {(['action', 'commit', 'snapshot'] as const).map(kind => {
+            const active = activeTypeFilters.has(kind);
+            const styles: Record<string, string> = {
+              action: active
+                ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)] border-[color-mix(in_srgb,var(--color-figma-accent)_30%,transparent)]'
+                : 'bg-transparent text-[var(--color-figma-text-tertiary)] border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]',
+              commit: active
+                ? 'bg-[color-mix(in_srgb,#a855f7_14%,transparent)] text-[#a855f7] border-[color-mix(in_srgb,#a855f7_30%,transparent)]'
+                : 'bg-transparent text-[var(--color-figma-text-tertiary)] border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]',
+              snapshot: active
+                ? 'bg-[color-mix(in_srgb,var(--color-figma-success)_14%,transparent)] text-[var(--color-figma-success)] border-[color-mix(in_srgb,var(--color-figma-success)_30%,transparent)]'
+                : 'bg-transparent text-[var(--color-figma-text-tertiary)] border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]',
+            };
+            const labels: Record<string, string> = { action: 'Action', commit: 'Commit', snapshot: 'Snapshot' };
+            return (
+              <button
+                key={kind}
+                onClick={() => {
+                  setActiveTypeFilters(prev => {
+                    const next = new Set(prev);
+                    if (next.has(kind)) {
+                      next.delete(kind);
+                    } else {
+                      next.add(kind);
+                    }
+                    return next;
+                  });
+                }}
+                className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border transition-colors ${styles[kind]}`}
+                aria-pressed={active}
+                title={active ? `Hide ${labels[kind]}s` : `Show ${labels[kind]}s`}
+              >
+                {labels[kind]}
+              </button>
+            );
+          })}
+          {isFiltering && (
+            <button
+              onClick={() => { setTimelineSearch(''); setActiveTypeFilters(new Set(['action', 'commit', 'snapshot'])); }}
+              className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+              title="Clear all filters"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Compare mode banner */}
       {compareMode && (
@@ -533,7 +610,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Failed to load history</p>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{timelineError}</p>
             <button
-              onClick={() => fetchTimeline(debouncedCommitSearch)}
+              onClick={() => fetchTimeline(debouncedTimelineSearch)}
               className="mt-1 px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
             >
               Retry
@@ -553,8 +630,23 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           </div>
         )}
 
+        {!timelineLoading && isFilteredEmpty && (
+          <div className="flex flex-col items-center justify-center py-8 px-6 gap-2 text-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No results.</p>
+            <button
+              onClick={() => { setTimelineSearch(''); setActiveTypeFilters(new Set(['action', 'commit', 'snapshot'])); }}
+              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+
         {/* Merged timeline entries */}
-        {allEntries.map((entry) => {
+        {filteredEntries.map((entry) => {
           if (entry.kind === 'action') {
             const op = entry.data;
             const isError = op.type.includes('error');

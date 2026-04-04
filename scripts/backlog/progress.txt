@@ -376,3 +376,16 @@
   - `color-mix(in srgb, var --color 12%, transparent)` works for tinted badge backgrounds without defining extra CSS vars
   - Default collapse threshold at 8 action rows (excluding skipped) keeps the modal compact for typical use cases while showing details for small changesets
 ---
+
+## 2026-04-04 - History timeline filter and search
+- Added a search input and type-pill toggles (Action | Commit | Snapshot) to the HistoryPanel header
+- Renamed `commitSearch` → `timelineSearch`; the debounced value still drives server-side commit search via `/api/sync/log?search=`, while client-side filtering applies to all three entry types (actions: description/setName/affectedPaths; commits: message/author/hash; snapshots: label)
+- Added `activeTypeFilters: Set<kind>` state defaulting to all three types enabled; each pill toggles its type on/off
+- Added a type-filter bar (a second row below the main toolbar) with three bordered toggle pills styled with each type's accent color when active; includes a "Clear" button when any filter is active
+- Added a "no results" empty state with a "Clear filters" button when filtering leaves zero entries
+- `isFiltering` flag drives "Clear" button visibility; `isFilteredEmpty` drives the no-results state
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L44-270, ~L390-480, ~L580-650
+- **Learnings for future iterations:**
+  - Keeping the server-side commit search while adding client-side filtering for actions/snapshots gives the best of both worlds — server search reaches commits beyond the loaded page limit, client-side search is instant for already-loaded data
+  - The `isFiltering` computed variable (search text OR type subset) cleanly drives both the "Clear" shortcut button and the no-results empty state
+---
