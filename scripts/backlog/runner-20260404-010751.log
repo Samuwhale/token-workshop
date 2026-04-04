@@ -724,3 +724,25 @@ Already up to date.
 
   Merging to main: GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files
 Already up to date.
+[main 33392086] chore(backlog): done – GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher when checking out remote files
+ 8 files changed, 87 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - GitSync.applyDiffChoices does not coordinate with TokenStore's file watcher
+- Added `startWriteGuard(absoluteFilePath)` and `reloadFile(relativePath)` public methods to `TokenStore`.
+- Updated `applyDiffChoices` to accept an optional `tokenStore?: TokenStore` parameter.
+- Before each `git checkout`, calls `tokenStore.startWriteGuard(absPath)` for all pulled files upfront so watcher events from the checkout are suppressed.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  2 queued · 3 in-progress · last took 2m20s
+═══════════════════════════════════════════════════════════════
+  → Server-side validation gaps allow invalid state to persist until runtime failure — (1) operation-log.ts rollback (L333-337) has a TOCTOU race: concurrent rollback requests both read `entry.rolledBack === false` before either sets it to true, causing double-execution of structural rollback steps; the lock is only acquired at `pushAndPersist` at the end, not at the start; (2) generator-service.ts create/update (L508) does not call `buildDependencyOrder()` to validate for circular generator dependencies, so cycles are only detected at runtime when `runForSourceToken` fires; (3) git-sync.ts resolveConflicts (L373-392) validates provided region indices but does not enforce that ALL conflict regions have choices, allowing partial resolution that leaves merge markers in staged files
+  Worktree: /tmp/backlog-92209-3ab8C9
+  Running agent… (started 03:28:16)
+
+  ✓ done: Server-side validation gaps allow invalid state to persist until runtime failure
+    Fixed three gaps: (1) TOCTOU race in operation-log rollback by wrapping the entire body in withLock; (2) generator create/update now call buildDependencyOrder() with in-memory revert on cycle detection; (3) git-sync resolveAllConflicts now rejects partial resolutions that leave some conflict regions without choices.
+    18 turns · 172s · $0.46
+
+  Merging to main: Server-side validation gaps allow invalid state to persist until runtime failure
+Already up to date.

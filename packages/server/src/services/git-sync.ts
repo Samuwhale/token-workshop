@@ -390,6 +390,16 @@ export class GitSync {
             );
           }
         }
+        const missingIndices: number[] = [];
+        for (let i = 0; i < regionCount; i++) {
+          if (!(i in choices)) missingIndices.push(i);
+        }
+        if (missingIndices.length > 0) {
+          throw new BadRequestError(
+            `Incomplete resolution for "${file}": missing choices for conflict region(s) ${missingIndices.join(', ')} ` +
+              `(file has ${regionCount} conflict region(s); all must be resolved in a single request)`,
+          );
+        }
       }
 
       // --- 4. Resolve all file contents in memory (no side effects yet) ---

@@ -139,6 +139,15 @@ export class GeneratorService {
       updatedAt: now,
     };
     this.generators.set(generator.id, generator);
+    try {
+      this.buildDependencyOrder();
+    } catch {
+      this.generators.delete(generator.id);
+      throw new BadRequestError(
+        `Creating generator "${generator.name}" would introduce a circular dependency. ` +
+          'Ensure no generator sources from its own output group.',
+      );
+    }
     await this.saveGenerators();
     return generator;
   }
@@ -157,6 +166,15 @@ export class GeneratorService {
       updatedAt: new Date().toISOString(),
     };
     this.generators.set(id, updated);
+    try {
+      this.buildDependencyOrder();
+    } catch {
+      this.generators.set(id, existing);
+      throw new BadRequestError(
+        `Updating generator "${updated.name}" would introduce a circular dependency. ` +
+          'Ensure no generator sources from its own output group.',
+      );
+    }
     await this.saveGenerators();
     return updated;
   }

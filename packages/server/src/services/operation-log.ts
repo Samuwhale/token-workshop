@@ -332,73 +332,76 @@ export class OperationLog {
   /** Roll back an operation by restoring structural state and token snapshots. */
   async rollback(id: string, ctx: RollbackContext): Promise<{ restoredPaths: string[]; rollbackEntryId: string }> {
     await this.ensureLoaded();
-    const entry = this.entries.find(e => e.id === id);
-    if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
-    if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);
+    // Acquire the lock for the entire rollback so that concurrent rollback requests
+    // for the same operation cannot both pass the `rolledBack` check before either
+    // sets it to true (TOCTOU race).
+    return this.withLock(async () => {
+      const entry = this.entries.find(e => e.id === id);
+      if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
+      if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);
 
-    // Compute inverse of structural steps before executing them
-    let inverseSteps: RollbackStep[] | undefined;
-    if (entry.rollbackSteps?.length) {
-      inverseSteps = await this.computeInverseSteps(entry.rollbackSteps, ctx);
-    }
-
-    // Execute structural rollback steps, snapshot current token state, and restore tokens
-    // atomically: if any step fails, revert structural changes using the pre-computed inverse steps.
-    const currentSnapshot: Record<string, SnapshotEntry> = {};
-    try {
-      // Execute structural rollback steps first (e.g. re-create a deleted set)
+      // Compute inverse of structural steps before executing them
+      let inverseSteps: RollbackStep[] | undefined;
       if (entry.rollbackSteps?.length) {
-        await this.executeSteps(entry.rollbackSteps, ctx);
+        inverseSteps = await this.computeInverseSteps(entry.rollbackSteps, ctx);
       }
 
-      // Capture current token state as "before" for the rollback operation itself
-      for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
-        try {
-          const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
-          currentSnapshot[tokenPath] = {
-            token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
-            setName: snap.setName,
-          };
-        } catch {
-          // Set may not exist yet (will be created by token restoration)
-          currentSnapshot[tokenPath] = { token: null, setName: snap.setName };
+      // Execute structural rollback steps, snapshot current token state, and restore tokens
+      // atomically: if any step fails, revert structural changes using the pre-computed inverse steps.
+      const currentSnapshot: Record<string, SnapshotEntry> = {};
+      try {
+        // Execute structural rollback steps first (e.g. re-create a deleted set)
+        if (entry.rollbackSteps?.length) {
+          await this.executeSteps(entry.rollbackSteps, ctx);
         }
-      }
 
-      // Group by set for batch token processing
-      const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
-      for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
-        let list = bySet.get(snap.setName);
-        if (!list) {
-          list = [];
-          bySet.set(snap.setName, list);
+        // Capture current token state as "before" for the rollback operation itself
+        for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+          try {
+            const flatTokens = await ctx.tokenStore.getFlatTokensForSet(snap.setName);
+            currentSnapshot[tokenPath] = {
+              token: flatTokens[tokenPath] ? structuredClone(flatTokens[tokenPath]) : null,
+              setName: snap.setName,
+            };
+          } catch {
+            // Set may not exist yet (will be created by token restoration)
+            currentSnapshot[tokenPath] = { token: null, setName: snap.setName };
+          }
         }
-        list.push({ path: tokenPath, token: snap.token });
-      }
 
-      // Restore tokens
-      for (const [setName, items] of bySet) {
-        await ctx.tokenStore.restoreSnapshot(setName, items);
-      }
-    } catch (err) {
-      // Rollback failed mid-way — attempt to revert any structural steps that already ran,
-      // restoring structural state to what it was before we started. Best-effort: if the
-      // revert also fails we surface the original error so the caller sees the root cause.
-      if (inverseSteps?.length) {
-        try {
-          await this.executeSteps(inverseSteps, ctx);
-        } catch {
-          // Revert failed — state may be inconsistent, but we still re-throw the original error.
+        // Group by set for batch token processing
+        const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
+        for (const [tokenPath, snap] of Object.entries(entry.beforeSnapshot)) {
+          let list = bySet.get(snap.setName);
+          if (!list) {
+            list = [];
+            bySet.set(snap.setName, list);
+          }
+          list.push({ path: tokenPath, token: snap.token });
         }
-      }
-      throw err;
-    }
 
-    // Mark the original entry as rolled-back and record the rollback entry atomically
-    // under the lock so no concurrent record() can interleave between the two writes.
-    const rollbackEntry = await this.withLock(async () => {
+        // Restore tokens
+        for (const [setName, items] of bySet) {
+          await ctx.tokenStore.restoreSnapshot(setName, items);
+        }
+      } catch (err) {
+        // Rollback failed mid-way — attempt to revert any structural steps that already ran,
+        // restoring structural state to what it was before we started. Best-effort: if the
+        // revert also fails we surface the original error so the caller sees the root cause.
+        if (inverseSteps?.length) {
+          try {
+            await this.executeSteps(inverseSteps, ctx);
+          } catch {
+            // Revert failed — state may be inconsistent, but we still re-throw the original error.
+          }
+        }
+        throw err;
+      }
+
+      // Mark the original entry as rolled-back and record the rollback entry.
+      // Already inside withLock, so no inner lock needed.
       entry.rolledBack = true;
-      return this.pushAndPersist({
+      const rollbackEntry = await this.pushAndPersist({
         type: 'rollback',
         description: `Undo: ${entry.description}`,
         setName: entry.setName,
@@ -407,9 +410,9 @@ export class OperationLog {
         afterSnapshot: entry.beforeSnapshot,
         ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
       });
-    });
 
-    return { restoredPaths: Object.keys(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
+      return { restoredPaths: Object.keys(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
+    });
   }
 
 }

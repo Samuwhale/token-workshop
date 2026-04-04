@@ -562,3 +562,18 @@
   - Making `_startWriteGuard` public via a thin wrapper (`startWriteGuard`) and adding a `reloadFile` public method keeps the TokenStore API clean while enabling external coordination.
   - The `tokenStore` parameter is optional so the method stays testable in isolation (no TokenStore mock needed in git-sync unit tests).
 ---
+
+## 2026-04-04 - Server-side validation gaps allow invalid state to persist until runtime failure
+- Fixed three server-side validation gaps:
+  1. `operation-log.ts` TOCTOU race in `rollback()`: wrapped the entire rollback body inside `withLock()` (a single lock for the whole operation). Previously the `rolledBack` check and the final `withLock` mark-and-persist were separate, allowing concurrent requests to both pass the check before either set `rolledBack = true`. Removed the inner nested `withLock()` call since we now hold the lock for the whole operation and `pushAndPersist` is documented to be called while holding the lock.
+  2. `generator-service.ts` circular dependency check: `create()` and `update()` now call `buildDependencyOrder()` immediately after updating `this.generators`. On cycle detection, the change is reverted in-memory and a `BadRequestError` (HTTP 400) is thrown before `saveGenerators()` is called. Previously cycles were only discovered at runtime when a generator fired.
+  3. `git-sync.ts` partial conflict resolution: `resolveAllConflicts()` now checks that every conflict region (0..regionCount-1) has a corresponding choice entry. Missing indices are collected and reported in a `BadRequestError` before any file writes occur, preventing merge markers from persisting in staged files.
+- Files changed:
+  - `packages/server/src/services/operation-log.ts` ~L332-413 (rollback wrapping)
+  - `packages/server/src/services/generator-service.ts` ~L133-162 (create/update cycle check)
+  - `packages/server/src/services/git-sync.ts` ~L384-399 (complete-resolution check)
+- **Learnings for future iterations:**
+  - When a mutex (`withLock`) is used, the check and the guarded mutation must both happen inside the same lock scope. Checking a condition before acquiring the lock and setting it after is a TOCTOU race even in single-threaded async code, because `await` yields between the check and the set.
+  - For in-memory state mutations with async validation, the pattern is: apply mutation → validate → revert on failure → save. This makes the validation path clean with no intermediate writes.
+  - Partial-resolution validation (checking all indices are covered) belongs alongside range validation in the same step, before any file I/O.
+---
