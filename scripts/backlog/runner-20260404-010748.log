@@ -331,3 +331,21 @@ Already up to date.
 
   Merging to main: GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
 Already up to date.
+[main 13d31f95] chore(backlog): done – GraphPanel is an 1820-line monolith with 6 template definitions hardcoded inline (~200 lines of template data) — extract templates to a separate `graph-templates.ts` config file and decompose the canvas, node editor, and template picker into sub-components; the current structure makes adding new templates or modifying canvas behavior unnecessarily coupled (GraphPanel.tsx L38-200+)
+ 10 files changed, 1419 insertions(+), 1324 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/TemplatePicker.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/graph-templates.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - GraphPanel 1820-line monolith decomposition
+- Extracted 7 template definitions (SemanticMapping, SemanticLayer, GraphTemplate types + GRAPH_TEMPLATES array + getTemplateStepCount + templateIdForTokenType) to `graph-templates.ts`
+- Extracted template picker UI (PipelineStages, TemplateIcon, getRequiresSourceLabel, TemplateCard, TemplatePicker component) to `TemplatePicker.tsx`
+- Extracted generator card UI (getGeneratorTypeLabel, getGeneratorStepCount, DryRunPreview, QuickEditTypeFields, QuickEditPanel, GeneratorPipelineCard) to `GeneratorPipelineCard.tsx`
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  14 queued · 3 in-progress · last took 12m13s
+═══════════════════════════════════════════════════════════════
+  → Server routes use two incompatible error handling patterns — 27 routes use inline `reply.status(500).send({ error, detail })` while 70 routes use `handleRouteError(reply, err)` from `errors.ts`; the inline pattern loses typed HTTP errors (NotFoundError→404, ConflictError→409, BadRequestError→400) and always returns 500 even for client errors; worst offenders are sync.ts (12 inline), sets.ts (4 inline), tokens.ts (5 inline), and themes.ts (2 inline); all inline `reply.status(500)` catches should be replaced with `handleRouteError` to get correct status codes and consistent response shape (all route files under packages/server/src/routes/)
+  Worktree: /tmp/backlog-91949-18Wj7l
+  Running agent… (started 02:14:00)

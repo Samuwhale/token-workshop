@@ -156,6 +156,39 @@ export class ManualSnapshotStore {
     return false;
   }
 
+  /** Compare two snapshots against each other (idA = "before", idB = "after"). */
+  async diffSnapshots(idA: string, idB: string): Promise<TokenDiff[]> {
+    await this.ensureLoaded();
+    const snapshotA = this.snapshots.find(s => s.id === idA);
+    if (!snapshotA) throw new NotFoundError(`Snapshot "${idA}" not found`);
+    const snapshotB = this.snapshots.find(s => s.id === idB);
+    if (!snapshotB) throw new NotFoundError(`Snapshot "${idB}" not found`);
+
+    const sets = new Set([...Object.keys(snapshotA.data), ...Object.keys(snapshotB.data)]);
+    const diffs: TokenDiff[] = [];
+
+    for (const setName of sets) {
+      const aSet = snapshotA.data[setName] ?? {};
+      const bSet = snapshotB.data[setName] ?? {};
+      const allPaths = new Set([...Object.keys(aSet), ...Object.keys(bSet)]);
+      for (const p of allPaths) {
+        const before = aSet[p];
+        const after = bSet[p];
+        if (!before && after) {
+          diffs.push({ path: p, set: setName, status: 'added', after });
+        } else if (before && !after) {
+          diffs.push({ path: p, set: setName, status: 'removed', before });
+        } else if (before && after) {
+          if (stableStringify(before) !== stableStringify(after)) {
+            diffs.push({ path: p, set: setName, status: 'modified', before, after });
+          }
+        }
+      }
+    }
+
+    return diffs;
+  }
+
   /** Compare snapshot with current token state. */
   async diff(id: string, tokenStore: TokenStore): Promise<TokenDiff[]> {
     await this.ensureLoaded();

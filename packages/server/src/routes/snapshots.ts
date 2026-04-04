@@ -37,6 +37,16 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
     return { ok: true };
   });
 
+  // GET /api/snapshots/:idA/compare/:idB — compare two snapshots against each other
+  fastify.get<{ Params: { idA: string; idB: string } }>('/snapshots/:idA/compare/:idB', async (request, reply) => {
+    try {
+      const diffs = await fastify.manualSnapshots.diffSnapshots(request.params.idA, request.params.idB);
+      return { diffs };
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
+  });
+
   // GET /api/snapshots/:id/diff — compare with current state
   fastify.get<{ Params: { id: string } }>('/snapshots/:id/diff', async (request, reply) => {
     try {

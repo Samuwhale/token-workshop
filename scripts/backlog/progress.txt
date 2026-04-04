@@ -650,3 +650,14 @@
   - The original GraphPanel had allTokensFlat referenced inside GeneratorPipelineCard but not declared in GraphPanelProps — the prop was implicitly undefined. Adding it as an optional prop in both GraphPanelProps and the sub-component is clean and backwards-compatible.
   - Flat components file → separate files pattern: move private helpers (formatTokenValue, RATIO_PRESETS, QE_INPUT constant strings) alongside the component that owns them. Don't try to share constants that are only used in one component.
 ---
+
+## 2026-04-04 - No manual snapshot-to-snapshot diff
+- Added `diffSnapshots(idA, idB)` method to `ManualSnapshotStore` — compares two snapshot data maps directly without touching `TokenStore`; same stableStringify-based equality check as the existing `diff()` method.
+- Added `GET /api/snapshots/:idA/compare/:idB` route to `snapshots.ts`, registered before the existing `/snapshots/:id/diff` route (fixed segment "compare" means no ambiguity with parameterized routes).
+- Added snapshot compare mode to `SnapshotsSource` in `HistoryPanel.tsx`: a "Compare" toggle button appears in the save bar when ≥2 snapshots exist; in compare mode each row shows A/B selector buttons; a banner tracks selection state and exposes a "View diff" button once both are chosen; a new pair diff view renders the diff with an "A → B" header, summary badges, and set-grouped change rows — no "Revert to saved" since it's a pure comparison.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L159 (new method), `packages/server/src/routes/snapshots.ts` ~L41 (new route), `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L1727 (new state), ~L1841 (handlePairCompare), ~L1908 (pair diff view), ~L2059 (compare mode banner), ~L2103 (A/B buttons in list rows)
+- **Learnings for future iterations:**
+  - The `diffSnapshots` method is a pure data-to-data comparison — no `TokenStore` dependency — making it easy to test and reuse for export/audit features.
+  - Fastify route ordering: the new `/snapshots/:idA/compare/:idB` path has a fixed "compare" literal segment which prevents collision with `/snapshots/:id/diff` regardless of registration order, but registering before the single-param routes is the safe convention.
+  - The A/B button UX (disable A on the B row and vice versa, tint the selected rows) mirrors the commit compare mode pattern already in the panel — consistent mental model for users.
+---

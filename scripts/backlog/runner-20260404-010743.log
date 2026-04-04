@@ -282,3 +282,10 @@ Already up to date.
   → No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
   Worktree: /tmp/backlog-91634-Wruhm6
   Running agent… (started 02:11:49)
+
+  ✓ done: No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
+    Added diffSnapshots() service method, GET /api/snapshots/:idA/compare/:idB endpoint, and a snapshot pair compare mode in SnapshotsSource with A/B selector buttons per row and a dedicated diff view
+    26 turns · 287s · $1.07
+
+  Merging to main: No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
+Already up to date.
