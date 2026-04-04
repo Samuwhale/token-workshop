@@ -16,6 +16,7 @@ import {
   collectBoundPrefixes,
 } from './selectionInspectorUtils';
 import { swatchBgColor } from '../shared/colorUtils';
+import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
 
 // ---------------------------------------------------------------------------
 // Fuzzy match (same algorithm as CommandPalette)
@@ -134,13 +135,28 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
     return { candidates: filtered.slice(0, MAX_CANDIDATES), totalCount: filtered.length };
   }, [tokenMap, activeProp, rootNodes, query]);
 
-  const suggestedCount = candidates.filter(c => c.score > 0).length;
-  const showSuggestedDivider = suggestedCount > 0 && suggestedCount < candidates.length && !query;
+  // Recently-used tokens: filter global recents to those present in the current candidate list
+  const { recentCandidates, mainCandidates } = useMemo(() => {
+    if (query) return { recentCandidates: [], mainCandidates: candidates };
+    const recentPaths = getRecentTokens();
+    const candidateByPath = new Map(candidates.map(c => [c.path, c]));
+    const recent = recentPaths
+      .map(p => candidateByPath.get(p))
+      .filter((c): c is typeof candidates[0] => c !== undefined)
+      .slice(0, 5);
+    const recentSet = new Set(recent.map(c => c.path));
+    const main = candidates.filter(c => !recentSet.has(c.path));
+    return { recentCandidates: recent, mainCandidates: main };
+  }, [candidates, query]);
+
+  const suggestedCount = mainCandidates.filter(c => c.score > 0).length;
+  const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainCandidates.length && !query;
 
   // Current binding for this property
   const currentBinding = getBindingForProperty(rootNodes, activeProp);
 
   const handleSelect = (candidate: typeof candidates[0]) => {
+    addRecentToken(candidate.path);
     onApply(candidate.path, candidate.entry.$type, activeProp, candidate.resolved);
   };
 
@@ -165,15 +181,16 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
       setActiveProp(next);
       return;
     }
+    const allVisible = [...recentCandidates, ...mainCandidates];
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIdx(i => Math.min(i + 1, candidates.length - 1));
+      setActiveIdx(i => Math.min(i + 1, allVisible.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIdx(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const target = candidates[activeIdx];
+      const target = allVisible[activeIdx];
       if (target) handleSelect(target);
     }
   };
@@ -288,11 +305,71 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             </div>
           ) : (
             <>
-              {candidates.map((c, idx) => {
-                const isSelected = idx === activeIdx;
+              {/* Recently used section */}
+              {recentCandidates.length > 0 && (
+                <>
+                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                    </svg>
+                    Recently used
+                  </div>
+                  {recentCandidates.map((c, idx) => {
+                    const isSelected = idx === activeIdx;
+                    const isCurrent = currentBinding === c.path;
+                    let colorSwatch: string | null = null;
+                    let valueDisplay: string | null = null;
+                    if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
+                      colorSwatch = c.resolved;
+                    } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && c.resolved != null) {
+                      valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
+                    }
+                    return (
+                      <button
+                        key={c.path}
+                        data-qa-item
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
+                          isSelected
+                            ? 'bg-[var(--color-figma-accent)] text-white'
+                            : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                        } ${isCurrent ? 'opacity-50' : ''}`}
+                        onMouseEnter={() => setActiveIdx(idx)}
+                        onClick={() => handleSelect(c)}
+                      >
+                        {colorSwatch ? (
+                          <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchBgColor(colorSwatch) }} />
+                        ) : (
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
+                          </div>
+                        )}
+                        <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
+                        {isCurrent && (
+                          <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>current</span>
+                        )}
+                        {valueDisplay && !isCurrent && (
+                          <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
+                        )}
+                        <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
+                      </button>
+                    );
+                  })}
+                  {mainCandidates.length > 0 && (
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] px-3 pt-1.5 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                      {showSuggestedDivider ? 'Suggested' : 'All tokens'}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Main candidates */}
+              {mainCandidates.map((c, idx) => {
+                const globalIdx = recentCandidates.length + idx;
+                const isSelected = globalIdx === activeIdx;
                 const isCurrent = currentBinding === c.path;
 
-                // Resolve display values
                 let colorSwatch: string | null = null;
                 let valueDisplay: string | null = null;
                 if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
@@ -301,9 +378,8 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                   valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
                 }
 
-                // Section dividers
-                const showSuggestedHeader = showSuggestedDivider && idx === 0;
-                const showOthersHeader = showSuggestedDivider && c.score === 0 && (idx === 0 || candidates[idx - 1].score > 0);
+                const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentCandidates.length === 0;
+                const showOthersHeader = showSuggestedDivider && c.score === 0 && (idx === 0 || mainCandidates[idx - 1].score > 0);
 
                 return (
                   <div key={c.path}>
@@ -329,10 +405,9 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                           ? 'bg-[var(--color-figma-accent)] text-white'
                           : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                       } ${isCurrent ? 'opacity-50' : ''}`}
-                      onMouseEnter={() => setActiveIdx(idx)}
+                      onMouseEnter={() => setActiveIdx(globalIdx)}
                       onClick={() => handleSelect(c)}
                     >
-                      {/* Swatch */}
                       {colorSwatch ? (
                         <div
                           className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
@@ -343,27 +418,17 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                           <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
                         </div>
                       )}
-
-                      {/* Token path */}
-                      <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>
-                        {c.path}
-                      </span>
-
-                      {/* Current badge */}
+                      <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
                       {isCurrent && (
                         <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                           current
                         </span>
                       )}
-
-                      {/* Value display */}
                       {valueDisplay && !isCurrent && (
                         <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
                           {valueDisplay}
                         </span>
                       )}
-
-                      {/* Type badge */}
                       <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
                         {c.entry.$type}
                       </span>

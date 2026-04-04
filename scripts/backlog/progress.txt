@@ -631,3 +631,16 @@
   - Lazy state initializers (`useState(() => lsGet(...))`) are cleaner than a separate mount effect for reading from localStorage — the value is available synchronously on the first render, avoiding a flicker where the component briefly shows the empty/null state.
   - When `setActiveResolver` already handles defaults on explicit user selection, there's no need to intercept the restore path — just initialize from storage and let explicit selections overwrite as normal.
 ---
+
+## 2026-04-04 - No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
+- Added a "Recently used" section (last 5 tokens, up to 10 stored) above all other results in both QuickApplyPicker.tsx and PropertyRow.tsx inline bind UI
+- Created `packages/figma-plugin/src/ui/shared/recentTokens.ts` — `getRecentTokens()` and `addRecentToken(path)` backed by `STORAGE_KEYS.RECENT_TOKENS` (`tm_recent_tokens`)
+- Added `RECENT_TOKENS: 'tm_recent_tokens'` to `STORAGE_KEYS` in `storage.ts`
+- In QuickApplyPicker: recent tokens are filtered from the scored candidates for the active property, shown in a "Recently used" section with clock icon; deduped from the main list; keyboard navigation covers both sections with unified index; `addRecentToken` called on every apply
+- In PropertyRow: same pattern for the inline bind panel — `recentBindCandidates` pulled from `bindCandidatesAll` (not the paged slice), shown first with a "Recently used" header; `mainBindCandidates` excludes recents; `showSuggestedDivider` recomputed based on `mainBindCandidates`; Enter key and arrow keys navigate the combined list; `handleBindToken` wrapper calls `addRecentToken` before delegating to `onBindToken`
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L45, `packages/figma-plugin/src/ui/shared/recentTokens.ts` (new), `packages/figma-plugin/src/ui/components/QuickApplyPicker.tsx` ~L20,138-160,284-400, `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L8,134-156,514-640
+- **Learnings for future iterations:**
+  - When adding a "recent" section that deduplicates from the main list, compute recents from the FULL unsliced candidate list (not the paged slice) so recent tokens aren't dropped by pagination
+  - Move `showSuggestedDivider` computation to after `mainCandidates` is derived, since the divider should reflect the non-recent subset
+  - Unified keyboard index across sections: use `[...recentCandidates, ...mainCandidates]` as `allVisible` for arrow key bounds and Enter-key target lookup
+---

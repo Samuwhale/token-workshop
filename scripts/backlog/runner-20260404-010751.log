@@ -805,3 +805,18 @@ Already up to date.
 
   Merging to main: useFigmaSync hook appears to be a legacy/parallel sync path unused by PublishPanel
 Already up to date.
+[main 03c22e9d] chore(backlog): done – useFigmaSync hook appears to be a legacy/parallel sync path unused by PublishPanel
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Resolver modifier inputs and active resolver not persisted between sessions
+- Added localStorage persistence for `activeResolver` (string key) and `resolverInput` (JSON object) in `useResolvers.ts`.
+- Added `ACTIVE_RESOLVER` and `RESOLVER_INPUT` keys to `STORAGE_KEYS` in `storage.ts`.
+- Initialized both state variables from localStorage via lazy initializer functions so values are restored on mount without any extra effects.
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  8 queued · 3 in-progress · last took 1m27s
+═══════════════════════════════════════════════════════════════
+  → No batch value editing for multi-selected tokens — users can multi-select tokens (M key) and bulk delete or move them, but cannot edit a shared field (value, description, $type) across the selection; this is the single biggest productivity gap for power users managing large token systems; add a "Edit N selected" action that opens a batch editor for common fields like $type, $description, or a value formula (e.g., "multiply all by 1.5" for dimension tokens) (TokenList.tsx, tokenListTypes.ts, useTokenCrud.ts)
+  Worktree: /tmp/backlog-92209-jv98e6
+  Running agent… (started 03:40:06)

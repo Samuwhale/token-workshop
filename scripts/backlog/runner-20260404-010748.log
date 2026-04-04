@@ -658,3 +658,10 @@ Already up to date.
   → No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel — every time a user opens the token picker to bind a property, the search starts completely blank; power users binding the same token across dozens of layers must re-type the same search each time; add a "Recently used" section (last 5-10 bound tokens from localStorage) above the search results in both QuickApplyPicker.tsx and PropertyRow.tsx inline bind UI
   Worktree: /tmp/backlog-91949-tHEJqN
   Running agent… (started 03:38:06)
+
+  ✓ done: No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
+    Added "Recently used" section (last 5, up to 10 stored) above search results in both QuickApplyPicker and PropertyRow inline bind UI, backed by new recentTokens.ts utility and STORAGE_KEYS.RECENT_TOKENS
+    30 turns · 346s · $1.17
+
+  Merging to main: No "recent tokens" section in QuickApplyPicker or PropertyRow inline bind panel
+Already up to date.
