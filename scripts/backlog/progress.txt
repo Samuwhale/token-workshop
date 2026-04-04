@@ -416,3 +416,13 @@
   - Initialize each test suite with its own temp dir + `makeStore(dir)` and call `store.shutdown()` in `afterEach` to stop chokidar watchers; without shutdown, vitest reports open handles.
   - `batchCopyTokens` overwrites existing target tokens (no ConflictError), unlike `copyToken` which does throw — document this asymmetry in tests.
 ---
+
+## 2026-04-04 - Plugin sandbox fontLoading.ts cache poisoned by API errors
+- Changed `cachedFonts: Font[] | null` to `cachedFontsPromise: Promise<Font[]> | null` so concurrent callers share the same in-flight request.
+- On rejection, the `.catch` handler clears `cachedFontsPromise = null` so retries trigger a fresh API call.
+- `getAvailableFonts()` is now synchronous (returns the cached/new Promise directly) rather than async, eliminating the redundant await.
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L27-38
+- **Learnings for future iterations:**
+  - Cache the Promise, not the resolved value — concurrent callers during the first await would otherwise each start their own API call.
+  - Clear the promise cache in a `.catch` on the promise itself (not in a try/catch around the caller) so all concurrent waiters get the rejection AND the next independent call starts fresh.
+---

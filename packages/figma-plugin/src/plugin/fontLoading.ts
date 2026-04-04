@@ -24,17 +24,20 @@ function weightToFontStyleFallback(weight: number): string {
   return 'Black';
 }
 
-let cachedFonts: Font[] | null = null;
+let cachedFontsPromise: Promise<Font[]> | null = null;
 
 export function invalidateFontCache(): void {
-  cachedFonts = null;
+  cachedFontsPromise = null;
 }
 
-async function getAvailableFonts(): Promise<Font[]> {
-  if (!cachedFonts) {
-    cachedFonts = await figma.listAvailableFontsAsync();
+function getAvailableFonts(): Promise<Font[]> {
+  if (!cachedFontsPromise) {
+    cachedFontsPromise = figma.listAvailableFontsAsync().catch((err) => {
+      cachedFontsPromise = null;
+      throw err;
+    });
   }
-  return cachedFonts;
+  return cachedFontsPromise;
 }
 
 /** Returns deduplicated sorted list of font family names available in Figma. */

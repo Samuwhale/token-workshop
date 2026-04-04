@@ -107,3 +107,31 @@ Already up to date.
 
   Merging to main: Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
 Already up to date.
+[main 085cec7d] chore(backlog): done – Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+ 6 files changed, 1377 insertions(+), 3 deletions(-)
+ create mode 100644 packages/server/src/__tests__/token-store.test.ts
+  ✓ Merged and marked done
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 3 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - Server token-store.ts has no unit tests
+- Created `packages/server/src/__tests__/token-store.test.ts` with 150 tests across 16 describe blocks, covering: set CRUD (create/delete/rename/clearAll/reorder), set metadata (description/collectionName/modeName), token CRUD (create/get/update/delete/deleteTokens), circular reference detection (self-ref, 2-step cycle, 3-step cycle, batch checks), token rename/move/copy with alias cascade updates, group operations (create/rename/move/copy/duplicate/reorder), batch operations (batchUpsertTokens with skip/overwrite/merge, batchUpdateTokens, batchRenameTokens, batchMoveTokens, batchCopyTokens), bulkRename (plain + regex), token resolution (resolveTokens/resolveToken), cross-set dependents (getDependents/getGroupDependents), searchTokens (q/type/has/value/desc/pagination qualifiers), generator ID helpers (findTokensByGeneratorId/deleteTokensByGeneratorId), restoreSnapshot, onChange events, disk persistence on initialize, pending-rename crash recovery, and beginBatch/endBatch deferred rebuild.
+- Fixed 2 test failures: `ResolvedToken` uses `.$value` not `.resolvedValue`.
+- Files changed: `packages/server/src/__tests__/token-store.test.ts` (new, 570 lines)
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  7 queued · 0
+0 in-progress · last took 7m42s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox `fontLoading.ts` cache is poisoned by API errors — `getAvailableFonts()` (L33-38) sets `cachedFonts` to the promise result of `figma.listAvailableFontsAsync()`, but if the API call throws, the caught exception propagates and `cachedFonts` remains `null`; however the real bug is that a concurrent second caller during the first in-flight `await` will start a duplicate API call because `cachedFonts` is still `null` during the await; should cache the Promise itself (not the result) so concurrent callers share the same in-flight request, and clear the cache on rejection so retries work (packages/figma-plugin/src/plugin/fontLoading.ts L27-38)
+  Worktree: /tmp/backlog-60297-7aIyUX
+  Running agent… (started 10:21:15)
+
+  ✓ done: Plugin sandbox fontLoading.ts cache poisoned by API errors
+    Cache the Promise itself (not the result) so concurrent callers share the in-flight request; clear on rejection so retries work
+    6 turns · 51s · $0.16
+
+  Merging to main: Plugin sandbox fontLoading.ts cache poisoned by API errors
+Already up to date.
