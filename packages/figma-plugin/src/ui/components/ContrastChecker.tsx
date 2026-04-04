@@ -48,7 +48,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToSet, co
                   onFocus={() => { setBgQuery(''); setBgSearchOpen(true); }}
                   onBlur={() => setTimeout(() => setBgSearchOpen(false), 150)}
                   placeholder="Search color tokens…"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
                 />
                 {bgTokenPath && !bgSearchOpen && (
                   <button

@@ -504,3 +504,21 @@
   - For `fetchResolvers` (list fetch), use a separate `resolversLoading` state distinct from `loading` (which is for the token-resolution step). The names collide conceptually but serve different UX needs.
   - The loading guard `loading && items.length === 0` is the right pattern — don't replace populated data with a spinner if the panel is refreshing.
 ---
+
+## 2026-04-04 - Inconsistent focus-visible styles across interactive elements
+- Standardized all focusable elements to use `focus-visible:` pattern for WCAG 2.4.7 compliance:
+  1. **`styles.css`**: Extended the `button:focus-visible` CSS rule to include `input`, `textarea`, `select`, `[role="slider"]`, `[role="group"][tabindex]`, `[role="combobox"]` — this is the global safety net that adds a 1.5px accent-color outline on keyboard focus for all interactive elements, overriding Tailwind's `outline-none` utility (unlayered CSS beats `@layer utilities`)
+  2. **`editorClasses.ts`**: Changed `outline-none focus:border-[var(--color-figma-accent)]` → `focus-visible:border-[var(--color-figma-accent)]` in the shared `inputClass` constant
+  3. **`ColorPicker.tsx`**: Fixed local `inputClass` constant + changed 3 div slider focus styles from `focus:ring-2` → `focus-visible:ring-1`
+  4. **`GeneratorPipelineCard.tsx`**: Fixed `QE_INPUT` class constant
+  5. **Batch sed replacements** across ~46 files: `outline-none focus:border-X` → `focus-visible:border-X` and `focus:outline-none focus:border-X` → `focus-visible:border-X`
+  6. **Template literal cases** in `MetadataEditor.tsx`, `TokenEditor.tsx`, `TokenList.tsx`, `BatchEditor.tsx`: manually updated conditional class strings
+  7. **`ThemeManager.tsx`**: Fixed `focus:ring-1` → `focus-visible:ring-1` on div role=list elements
+  8. **`PropertyPicker.tsx`**: Fixed non-standard `focus:border-[var(--color-figma-border-selected)]` → `focus-visible:border-[var(--color-figma-accent)]`
+  9. **Transparent search inputs** (`HistoryPanel.tsx`, `history/GitCommitsSource.tsx`): Removed `focus:outline-none` — these inputs rely on the global CSS rule
+- Files changed: `packages/figma-plugin/src/ui/styles.css` ~L82, `packages/figma-plugin/src/ui/shared/editorClasses.ts` ~L1, `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L80,599,627,655, `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L168, plus ~50 other files with inline patterns
+- **Learnings for future iterations:**
+  - In Tailwind 4 (`@import "tailwindcss"`), utilities are in `@layer utilities`. Unlayered CSS in `styles.css` has higher cascade priority and will override `outline-none` on matching selectors — this makes global focus-visible CSS rules very reliable even when Tailwind classes try to suppress them
+  - The most efficient pattern for a sweeping focus-style fix: (1) add global CSS rule as the foundation, (2) use sed batch replacement for the common `outline-none focus:border-` pattern, (3) manually fix template-literal conditional class strings, (4) fix div-based interactive widgets (sliders, listboxes) that aren't covered by element-type selectors
+  - Transparent inputs embedded in styled containers (search boxes) should NOT have `focus:outline-none` unless the container provides a `focus-within:` indicator — remove the suppression and let the global rule provide the ring
+---

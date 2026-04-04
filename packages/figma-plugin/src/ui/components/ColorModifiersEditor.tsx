@@ -57,7 +57,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                     return { type, amount: 20 };
                   }));
                 }}
-                className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
               >
                 <option value="lighten">Lighten</option>
                 <option value="darken">Darken</option>

@@ -504,7 +504,7 @@ export function PropertyRow({
                 }
               }}
               placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
-              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 text-center">
@@ -683,7 +683,7 @@ export function PropertyRow({
                   if (e.key === 'Escape') onCancelCreate();
                 }}
                 placeholder="group.token-name"
-                className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               />
               {conflictExists && (
                 <div className="flex items-center gap-1 text-[10px]">

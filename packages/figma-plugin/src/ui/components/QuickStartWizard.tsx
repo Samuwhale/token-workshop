@@ -134,7 +134,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           value={dimName}
           onChange={e => setDimName(e.target.value)}
           placeholder="Color Mode"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
         />
       </div>
       <div className="flex gap-2">
@@ -145,7 +145,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
             value={lightName}
             onChange={e => setLightName(e.target.value)}
             placeholder="Light"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
         <div className="flex-1">
@@ -155,7 +155,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
             value={darkName}
             onChange={e => setDarkName(e.target.value)}
             placeholder="Dark"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
       </div>

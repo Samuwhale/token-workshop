@@ -924,7 +924,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       if (e.key === 'Escape') { setShowSavePreset(false); setPresetName(''); }
                     }}
                     placeholder="Preset name…"
-                    className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                    className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
                   <button
                     onClick={handleSavePreset}
@@ -1064,7 +1064,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     onChange={e => setCssSelector(e.target.value)}
                     placeholder=":root"
                     spellCheck={false}
-                    className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                    className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
                   <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
                     Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
@@ -1194,7 +1194,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 onChange={e => setPathPrefix(e.target.value)}
                 placeholder="e.g. color or spacing.scale"
                 spellCheck={false}
-                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
               />
               <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
                 Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
@@ -1591,7 +1591,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                         const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
                                         setSlugRenames(prev => ({ ...prev, [item.itemKey]: val }));
                                       }}
-                                      className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] transition-colors"
+                                      className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors"
                                       spellCheck={false}
                                       aria-label={`Set name for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                                     />
@@ -1941,7 +1941,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   <select
                     value={selectedExportMode ?? ''}
                     onChange={e => setSelectedExportMode(e.target.value || null)}
-                    className="flex-1 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors"
+                    className="flex-1 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] transition-colors"
                     aria-label="Select mode for DTCG JSON export"
                   >
                     <option value="">All modes (with $extensions)</option>

@@ -410,7 +410,7 @@ export function TokenListModals() {
                 if (e.key === 'Enter') handleCreateGroup(newGroupDialogParent ?? '', newGroupName);
                 if (e.key === 'Escape') { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }
               }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${newGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${newGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               aria-label="New group name"
               autoFocus
             />
@@ -539,7 +539,7 @@ export function TokenListModals() {
                         type="text"
                         value={newPrimitivePath}
                         onChange={e => { onSetNewPrimitivePath(e.target.value); onSetExtractError(''); }}
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
                         autoFocus
                         placeholder="e.g. primitives.color.blue-500"
                       />
@@ -549,7 +549,7 @@ export function TokenListModals() {
                       <select
                         value={newPrimitiveSet}
                         onChange={e => onSetNewPrimitiveSet(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                       >
                         {sets.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -562,7 +562,7 @@ export function TokenListModals() {
                       value={existingAliasSearch}
                       onChange={e => onSetExistingAliasSearch(e.target.value)}
                       placeholder="Search tokens…"
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
                       aria-label="Search tokens"
                       autoFocus
                     />
@@ -668,7 +668,7 @@ export function TokenListModals() {
                   <select
                     value={frTypeFilter}
                     onChange={e => { onSetFrTypeFilter(e.target.value); onSetFrError(''); }}
-                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] cursor-pointer"
+                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
                   >
                     <option value="all">All types</option>
                     {frAvailableTypes.map(t => (
@@ -685,7 +685,7 @@ export function TokenListModals() {
                   type="text"
                   value={frFind}
                   onChange={e => { onSetFrFind(e.target.value); onSetFrError(''); }}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                   autoFocus
                   placeholder={frTarget === 'values'
                     ? (frIsRegex ? 'e.g. ^#[Ff][Ff]' : 'e.g. #FF0000')
@@ -698,7 +698,7 @@ export function TokenListModals() {
                   type="text"
                   value={frReplace}
                   onChange={e => onSetFrReplace(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                   placeholder={frTarget === 'values'
                     ? (frIsRegex ? 'e.g. #EE' : 'e.g. #EE0000')
                     : (frIsRegex ? 'e.g. palette.' : 'e.g. palette')}
@@ -1014,7 +1014,7 @@ export function TokenListModals() {
               <select
                 value={moveTargetSet}
                 onChange={e => onSetMoveTargetSet(e.target.value)}
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
                 {sets.filter(s => s !== setName).map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -1065,7 +1065,7 @@ export function TokenListModals() {
                       type="text"
                       value={moveConflictNewPath}
                       onChange={e => onSetMoveConflictNewPath?.(e.target.value)}
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                       placeholder="e.g. color.primary.new"
                       autoFocus
                     />
@@ -1105,7 +1105,7 @@ export function TokenListModals() {
               <select
                 value={copyTargetSet}
                 onChange={e => onSetCopyTargetSet(e.target.value)}
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
                 {sets.filter(s => s !== setName).map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -1156,7 +1156,7 @@ export function TokenListModals() {
                       type="text"
                       value={copyConflictNewPath}
                       onChange={e => onSetCopyConflictNewPath?.(e.target.value)}
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                       placeholder="e.g. color.primary.new"
                       autoFocus
                     />
@@ -1196,7 +1196,7 @@ export function TokenListModals() {
               <select
                 value={moveTargetSet}
                 onChange={e => onSetMoveTargetSet(e.target.value)}
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
                 {sets.filter(s => s !== setName).map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -1235,7 +1235,7 @@ export function TokenListModals() {
               <select
                 value={copyTargetSet}
                 onChange={e => onSetCopyTargetSet(e.target.value)}
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
                 {sets.filter(s => s !== setName).map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -1281,7 +1281,7 @@ export function TokenListModals() {
                 if (e.key === 'Enter' && moveToGroupTarget.trim()) handleBatchMoveToGroup();
                 if (e.key === 'Escape') { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }
               }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] ${moveToGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)] ${moveToGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               aria-label="Target group path"
               autoFocus
             />

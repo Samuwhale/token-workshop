@@ -339,7 +339,7 @@ function ResolverInner({
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false); }}
               placeholder="Resolver name…"
               autoFocus
-              className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             <button onClick={handleCreate} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white">Create</button>
             <button onClick={() => { setCreating(false); setCreateError(null); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
@@ -370,7 +370,7 @@ function ResolverInner({
                 onKeyDown={e => { if (e.key === 'Enter') handleTemplateNameNext(); if (e.key === 'Escape') { setCreatingFromTemplate(false); setTemplateError(null); setTemplateStep('name'); } }}
                 placeholder="Resolver name…"
                 autoFocus
-                className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
               <button onClick={handleTemplateNameNext} disabled={!templateName.trim()} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white disabled:opacity-50">Next →</button>
               <button onClick={() => { setCreatingFromTemplate(false); setTemplateError(null); setTemplateStep('name'); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
@@ -386,7 +386,7 @@ function ResolverInner({
                   <select
                     value={templateAssignments[role]}
                     onChange={e => setTemplateAssignments(prev => ({ ...prev, [role]: e.target.value }))}
-                    className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                    className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                   >
                     <option value="">(none)</option>
                     {sets.map(s => (
@@ -618,7 +618,7 @@ function ResolverInner({
                           value={editForm.description}
                           onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Optional description…"
-                          className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                          className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                         />
                       </div>
 
@@ -642,7 +642,7 @@ function ResolverInner({
                                       modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, description: e.target.value } },
                                     })}
                                     placeholder="Optional modifier description…"
-                                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                                   />
                                 </div>
                                 {contexts.length > 0 && (

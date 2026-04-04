@@ -209,7 +209,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                 onChange={e => setBaseHex(e.target.value)}
                 placeholder="#3b82f6"
                 aria-label="Base color hex value"
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
               />
             </div>
           </div>
@@ -290,7 +290,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                 onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, ''))}
                 placeholder="e.g. brand, primary, neutral"
                 aria-label="Token prefix"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               />
               {prefix && scale.length > 0 && (
                 <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] font-mono">

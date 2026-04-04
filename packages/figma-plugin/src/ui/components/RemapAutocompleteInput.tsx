@@ -104,7 +104,7 @@ export function RemapAutocompleteInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         aria-label="Remap token target"
-        className="w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+        className="w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
       />
       {showDropdown && (
         <div

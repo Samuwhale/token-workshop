@@ -165,7 +165,7 @@ function DryRunPreview({ diff, onConfirmRun, onClose, running }: {
 // Quick edit panel
 // ---------------------------------------------------------------------------
 
-const QE_INPUT = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]';
+const QE_INPUT = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]';
 const QE_LABEL = 'block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
 const RATIO_PRESETS = [

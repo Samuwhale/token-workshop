@@ -759,7 +759,7 @@ export function BatchEditor({
           onChange={e => setDescription(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
           placeholder="Set on all selected…"
-          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
       </div>
 
@@ -769,7 +769,7 @@ export function BatchEditor({
         <select
           value={newType}
           onChange={e => { setNewType(e.target.value); setShowTypeConfirm(false); }}
-          className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
         >
           <option value="">— keep current —</option>
           {DTCG_TYPES.map(t => (
@@ -853,7 +853,7 @@ export function BatchEditor({
                   value={entry.key}
                   onChange={e => setBatchExtensions(prev => prev.map((x, j) => j === i ? { ...x, key: e.target.value } : x))}
                   placeholder="com.company.key"
-                  className="w-[120px] h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-[120px] h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <input
                   type="text"
@@ -861,7 +861,7 @@ export function BatchEditor({
                   value={entry.value}
                   onChange={e => setBatchExtensions(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
                   placeholder='"value" or true or 42'
-                  className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] font-mono text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <button
                   type="button"
@@ -915,10 +915,10 @@ export function BatchEditor({
                 if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
               }}
               placeholder="—"
-              className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none text-right ${
+              className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] text-right ${
                 opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
-                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
-                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+                  ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
               }`}
             />
             {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
@@ -941,7 +941,7 @@ export function BatchEditor({
             <select
               value={colorAdjustOp}
               onChange={e => setColorAdjustOp(e.target.value as ColorAdjustOp)}
-              className="h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] shrink-0"
+              className="h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] shrink-0"
             >
               <option value="lighten">Lighten</option>
               <option value="darken">Darken</option>
@@ -957,7 +957,7 @@ export function BatchEditor({
               onChange={e => setColorAdjustAmt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
               placeholder={colorAdjustOp === 'hue' ? '°' : '%'}
-              className="w-16 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-16 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
             {colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt)) && (
               <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -1031,10 +1031,10 @@ export function BatchEditor({
               onChange={e => setScaleFactor(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
               placeholder={numericOpMode === 'add' || numericOpMode === 'subtract' ? 'e.g. 4' : 'e.g. 1.5'}
-              className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none ${
+              className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] ${
                 scaleFactor !== '' && !numericTransformActive
-                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
-                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+                  ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
               }`}
             />
             {scaleFactor !== '' && !numericTransformActive && !isNaN(parseFloat(scaleFactor)) ? (
@@ -1098,7 +1098,7 @@ export function BatchEditor({
           onChange={e => setSetValueInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleApplyRef.current(); }}
           placeholder={setValueMode === 'json' ? 'JSON value…' : 'e.g. 16px, #ff0000, true…'}
-          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
         <button
           type="button"
@@ -1157,7 +1157,7 @@ export function BatchEditor({
               }
             }}
             placeholder="{color.brand.primary}"
-            className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
           />
           {aliasInput && (
             <button
@@ -1319,10 +1319,10 @@ export function BatchEditor({
               value={findText}
               onChange={e => setFindText(e.target.value)}
               placeholder="find in path…"
-              className={`w-full h-6 pl-1.5 pr-7 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none ${
+              className={`w-full h-6 pl-1.5 pr-7 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] ${
                 regexError
-                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
-                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+                  ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'
               }`}
             />
             <button
@@ -1344,7 +1344,7 @@ export function BatchEditor({
             value={replaceText}
             onChange={e => setReplaceText(e.target.value)}
             placeholder="replace with…"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
           />
           <button
             onClick={handleRename}
@@ -1392,7 +1392,7 @@ export function BatchEditor({
             value={aliasFindText}
             onChange={e => setAliasFindText(e.target.value)}
             placeholder="color.primary"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
           />
           <input
             type="text"
@@ -1400,7 +1400,7 @@ export function BatchEditor({
             value={aliasReplaceText}
             onChange={e => setAliasReplaceText(e.target.value)}
             placeholder="brand.primary"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] font-mono focus:focus-visible:border-[var(--color-figma-accent)]"
           />
           <button
             onClick={handleAliasReplace}
@@ -1449,7 +1449,7 @@ export function BatchEditor({
             <select
               value={targetSet}
               onChange={e => setTargetSet(e.target.value)}
-              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               <option value="">— choose set —</option>
               {otherSets.map(s => (

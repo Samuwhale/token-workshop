@@ -37,7 +37,7 @@ export function CompactColorInput({
           const val = e.target.value;
           if (/^#[0-9a-fA-F]{0,6}$/.test(val)) onChange(val);
         }}
-        className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+        className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
         aria-label={`${ariaLabel ?? 'Color'} hex value`}
       />
     </div>
@@ -110,7 +110,7 @@ export function CompactDimensionInput({
           onValueChange(isNaN(num) ? undefined : num);
         }}
         placeholder={placeholder}
-        className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+        className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
       />
       <UnitToggle units={units} value={unit} onChange={onUnitChange} />
     </div>

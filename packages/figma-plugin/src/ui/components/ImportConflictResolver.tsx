@@ -99,14 +99,14 @@ export function ImportConflictResolver() {
             value={conflictSearch}
             onChange={e => setConflictSearch(e.target.value)}
             placeholder="Search conflicts…"
-            className="w-full pl-6 pr-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="w-full pl-6 pr-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
         <div className="flex items-center gap-1">
           <select
             value={conflictStatusFilter}
             onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'merge' | 'reject')}
-            className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
           >
             <option value="all">All status</option>
             <option value="accept">Accepted</option>
@@ -117,7 +117,7 @@ export function ImportConflictResolver() {
             <select
               value={conflictTypeFilter}
               onChange={e => setConflictTypeFilter(e.target.value)}
-              className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               <option value="all">All types</option>
               {sortedConflictTypes.map(t => <option key={t} value={t}>{t}</option>)}

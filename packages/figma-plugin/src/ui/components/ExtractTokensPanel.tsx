@@ -305,7 +305,7 @@ export function ExtractTokensPanel({
               onChange={e => setPrefix(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') applyPrefix(); }}
               placeholder="e.g. color.brand"
-              className="flex-1 min-w-0 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+              className="flex-1 min-w-0 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             <button
               onClick={applyPrefix}
@@ -350,7 +350,7 @@ export function ExtractTokensPanel({
                         type="text"
                         value={name}
                         onChange={(e) => updateName(idx, e.target.value)}
-                        className="flex-1 min-w-0 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+                        className="flex-1 min-w-0 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                         disabled={!isSelected}
                       />
                       {isConflict && isSelected && (

@@ -280,7 +280,7 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFl
           <div className="mt-1.5 ml-5">
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Pin to step</label>
             <select value={config.sourceStep ?? config.steps[Math.floor(config.steps.length / 2)]} onChange={e => onChange({ ...config, sourceStep: Number(e.target.value) })}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]">
               {config.steps.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>

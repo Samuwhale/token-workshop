@@ -203,7 +203,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               <select
                 value={scope}
                 onChange={e => { const s = e.target.value as HeatmapScope; onScopeChange(s); onRescan(s); }}
-                className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
               >
                 {SCOPE_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -374,7 +374,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
             <select
               value={scope}
               onChange={e => onScopeChange(e.target.value as HeatmapScope)}
-              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               {SCOPE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -504,7 +504,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
                 value={bindToken}
                 onChange={e => setBindToken(e.target.value)}
                 placeholder="Token path…"
-                className="w-full text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               />
               <datalist id="heatmap-quick-bind-tokens">
                 {tokenPaths.slice(0, 300).map(p => (
@@ -515,7 +515,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
             <select
               value={bindProperty}
               onChange={e => setBindProperty(e.target.value as BindableProperty)}
-              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               {ALL_BINDABLE_PROPERTIES.map(p => (
                 <option key={p} value={p}>{PROPERTY_LABELS[p]}</option>

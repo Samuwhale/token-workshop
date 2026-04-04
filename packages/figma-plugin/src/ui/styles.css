@@ -79,7 +79,13 @@ body {
   box-sizing: border-box;
 }
 
-button:focus-visible {
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="slider"]:focus-visible,
+[role="group"][tabindex]:focus-visible,
+[role="combobox"]:focus-visible {
   outline: 1.5px solid var(--color-figma-accent);
   outline-offset: 1px;
 }

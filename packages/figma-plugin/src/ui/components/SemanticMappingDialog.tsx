@@ -169,7 +169,7 @@ export function SemanticMappingDialog({
               value={semanticPrefix}
               onChange={e => setSemanticPrefix(e.target.value)}
               placeholder="semantic"
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
             />
           </div>
 
@@ -192,7 +192,7 @@ export function SemanticMappingDialog({
                     value={mapping.semantic}
                     onChange={e => setMappings(prev => prev.map((m, idx) => idx === i ? { ...m, semantic: e.target.value } : m))}
                     placeholder="action.default"
-                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] min-w-0"
+                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] min-w-0"
                   />
                   <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)]">
                     <path d="M2 6h8M7 3l3 3-3 3" />
@@ -200,7 +200,7 @@ export function SemanticMappingDialog({
                   <select
                     value={mapping.step}
                     onChange={e => setMappings(prev => prev.map((m, idx) => idx === i ? { ...m, step: e.target.value } : m))}
-                    className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                    className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
                   >
                     {availableSteps.map(s => (
                       <option key={s} value={s}>{s}</option>

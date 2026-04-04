@@ -312,7 +312,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
         {showSaveInput ? (
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <input
-              className="flex-1 min-w-0 px-2 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 min-w-0 px-2 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               placeholder="Snapshot label"
               value={saveLabel}
               onChange={e => setSaveLabel(e.target.value)}
@@ -364,7 +364,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                 value={timelineSearch}
                 onChange={e => setTimelineSearch(e.target.value)}
                 placeholder="Search history…"
-                className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
               />
               {timelineSearch && (
                 <button

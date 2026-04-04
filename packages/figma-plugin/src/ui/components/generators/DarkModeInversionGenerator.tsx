@@ -58,7 +58,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
           onChange={e => onChange({ ...config, stepName: e.target.value })}
           placeholder="inverted"
           aria-label="Step name"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
         <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
           Token name for the generated dark-mode color.
@@ -86,7 +86,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
               step={0.05}
               onChange={e => handleChromaChange(e.target.value)}
               aria-label="Chroma boost value"
-              className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] text-right"
+              className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)] text-right"
             />
           </div>
           <input

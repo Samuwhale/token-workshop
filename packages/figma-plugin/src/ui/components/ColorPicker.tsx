@@ -77,7 +77,7 @@ function applyAlpha(hex6: string, alpha: number): string {
   return hex6.slice(0, 7) + a;
 }
 
-const inputClass = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] text-center tabular-nums';
+const inputClass = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] text-center tabular-nums';
 
 // ---------------------------------------------------------------------------
 // Canvas drawing helpers
@@ -596,7 +596,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
     >
       {/* Color area */}
       <div
-        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        className="relative rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         style={{ height: 150 }}
         tabIndex={0}
         role="group"
@@ -624,7 +624,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Hue strip */}
       <div
-        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        className="relative rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         style={{ height: 12 }}
         tabIndex={0}
         role="slider"
@@ -652,7 +652,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Alpha strip */}
       <div
-        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        className="relative rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         style={{ height: 12 }}
         tabIndex={0}
         role="slider"

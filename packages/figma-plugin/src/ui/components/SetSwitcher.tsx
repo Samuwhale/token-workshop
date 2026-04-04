@@ -637,7 +637,7 @@ function ManageView({
                         if (e.key === 'Escape') { e.preventDefault(); setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
                       }}
                       placeholder="Set name (e.g. primitives or brand/colors)"
-                      className="flex-1 px-2 py-1 text-[11px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded outline-none focus:border-[var(--color-figma-accent)] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+                      className="flex-1 px-2 py-1 text-[11px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded focus-visible:border-[var(--color-figma-accent)] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
                       disabled={createPending}
                     />
                     <button

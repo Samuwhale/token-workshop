@@ -107,7 +107,7 @@ function syncFromEntries(
   }
 }
 
-const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
+const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
 
 interface JsonErrorInfo {
   message: string;
@@ -294,7 +294,7 @@ function ExtensionsEditor({
                 placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
                 rows={5}
                 spellCheck={false}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
               />
               {extensionsJsonError && (
                 <div className="flex flex-col gap-0.5">
@@ -425,7 +425,7 @@ export function MetadataEditor({
           onChange={e => onDescriptionChange(e.target.value)}
           placeholder="Optional description"
           rows={2}
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
         />
       </div>
 
@@ -533,7 +533,7 @@ export function MetadataEditor({
                             if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
                           }}
                           placeholder={aliasMode ? (reference || 'value or {reference}') : String(value !== '' && value !== undefined ? value : 'value or {reference}')}
-                          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
                         />
                         {showingAutocomplete && (
                           <AliasAutocomplete

@@ -77,7 +77,7 @@ function DeepBindPanel({
             }
           }}
           placeholder={`Search ${compatibleTypes.join(' / ')} tokens…`}
-          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
         />
         {candidates.length === 0 ? (
           <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">

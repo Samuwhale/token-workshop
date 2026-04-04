@@ -51,7 +51,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
         </label>
         <input value={config.formula} onChange={e => onChange({ ...config, formula: e.target.value })}
           placeholder="base * multiplier"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
         <div className="flex gap-1 mt-1 flex-wrap">
           {['base * multiplier', 'base + index * 8', 'base * (1.25 ** index)', 'prev + 8'].map(ex => (
             <button key={ex} onClick={() => onChange({ ...config, formula: ex })}
@@ -64,7 +64,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
         <div>
           <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Output type</label>
           <select value={config.outputType} onChange={e => onChange({ ...config, outputType: e.target.value as TokenType })}
-            className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
+            className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]">
             {DTCG_OUTPUT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -104,15 +104,15 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
               <div key={sortedIdx} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(origIdx, { name: e.target.value })}
                   aria-label={`Step ${step.name} name`}
-                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">idx</span>
                 <input type="number" value={step.index} onChange={e => updateStep(origIdx, { index: Number(e.target.value) })}
                   aria-label={`Step ${step.name} index`}
-                  className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">×</span>
                 <input type="number" step="0.1" value={step.multiplier ?? 1} onChange={e => updateStep(origIdx, { multiplier: Number(e.target.value) })}
                   aria-label={`Step ${step.name} multiplier`}
-                  className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 <button onClick={() => removeStep(origIdx)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">×</button>
               </div>
             );

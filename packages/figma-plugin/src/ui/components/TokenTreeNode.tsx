@@ -620,7 +620,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             <select
               value={groupMetaType}
               onChange={e => setGroupMetaType(e.target.value)}
-              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
             >
               <option value="">(none)</option>
               <option value="color">color</option>
@@ -646,7 +646,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
               value={groupMetaDescription}
               onChange={e => setGroupMetaDescription(e.target.value)}
               placeholder="Optional description…"
-              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
               onKeyDown={e => {
                 if (e.key === 'Enter') { e.preventDefault(); handleSaveGroupMeta(); }
                 if (e.key === 'Escape') setEditingGroupMeta(false);
@@ -1986,7 +1986,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               onKeyDown={e => {
                 if (e.key === 'Escape') { e.stopPropagation(); setAliasPickerOpen(false); }
               }}
-              className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+              className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
               placeholder="Search tokens…"
             />
             <AliasAutocomplete

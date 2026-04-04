@@ -163,7 +163,7 @@ function TokenSearch({
       <input
         ref={inputRef}
         type="text"
-        className="w-full px-2 py-1.5 text-xs bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus:border-[var(--color-figma-accent)] focus:outline-none"
+        className="w-full px-2 py-1.5 text-xs bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus-visible:border-[var(--color-figma-accent)]"
         placeholder="Search token to visualize…"
         value={query}
         onChange={e => setQuery(e.target.value)}

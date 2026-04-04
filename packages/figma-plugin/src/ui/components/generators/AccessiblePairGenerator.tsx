@@ -58,7 +58,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             onChange={e => onChange({ ...config, backgroundStep: e.target.value })}
             placeholder="bg"
             aria-label="Background step name"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
             Token name for the background — receives the source color.
@@ -74,7 +74,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             onChange={e => onChange({ ...config, foregroundStep: e.target.value })}
             placeholder="fg"
             aria-label="Foreground step name"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
             Token name for the foreground — receives black or white for {config.contrastLevel} contrast.

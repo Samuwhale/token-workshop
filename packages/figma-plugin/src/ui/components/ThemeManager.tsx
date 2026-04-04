@@ -1161,7 +1161,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     onChange={e => setDimSearch(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Escape') { setDimSearch(''); dimSearchRef.current?.blur(); } }}
                     placeholder="Filter dimensions / options…"
-                    className="w-full pl-6 pr-6 py-1 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                    className="w-full pl-6 pr-6 py-1 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                   {dimSearch && (
                     <button
@@ -1316,7 +1316,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               value={renameValue}
                               onChange={e => { setRenameValue(e.target.value); setRenameError(null); }}
                               onKeyDown={e => { if (e.key === 'Enter') executeRenameDim(); else if (e.key === 'Escape') cancelRenameDim(); }}
-                              className={`flex-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                              className={`flex-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${renameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                               autoFocus
                             />
                             <button onClick={executeRenameDim} disabled={!renameValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
@@ -1475,7 +1475,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               if (e.key === 'Escape') { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); setCopyFromNewOption(prev => ({ ...prev, [dim.id]: '' })); }
                             }}
                             placeholder={dim.options.length === 0 ? 'First option (e.g. Light, Dark)' : 'Option name'}
-                            className={`flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${addOptionErrors[dim.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                            className={`flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${addOptionErrors[dim.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                             autoFocus
                           />
                           <button onClick={() => handleAddOption(dim.id)} disabled={!newOptionNames[dim.id]?.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Add</button>
@@ -1490,7 +1490,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <select
                               value={copyFromNewOption[dim.id] || ''}
                               onChange={e => setCopyFromNewOption(prev => ({ ...prev, [dim.id]: e.target.value }))}
-                              className="flex-1 px-1 py-0.5 rounded text-[9px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                              className="flex-1 px-1 py-0.5 rounded text-[9px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                             >
                               <option value="">None (start empty)</option>
                               {dim.options.map(o => (
@@ -1554,7 +1554,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   value={renameOptionValue}
                                   onChange={e => { setRenameOptionValue(e.target.value); setRenameOptionError(null); }}
                                   onKeyDown={e => { if (e.key === 'Enter') executeRenameOption(); else if (e.key === 'Escape') cancelRenameOption(); }}
-                                  className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                                  className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                                   autoFocus
                                 />
                                 <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
@@ -1880,7 +1880,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               )}
                             </div>
 
-                            <div className="flex flex-col gap-0 max-h-48 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
+                            <div className="flex flex-col gap-0 max-h-48 overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
                               {/* Unfillable tokens first (most urgent) */}
                               {unfillableItems.length > 0 && (
                                 <>
@@ -1909,7 +1909,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               Deleted sets ({staleSetNames.length})
                             </div>
                             <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced but no longer exist.</p>
-                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Deleted sets for ${selectedOpt}`}>
+                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Deleted sets for ${selectedOpt}`}>
                               {staleSetNames.map(s => (
                                 <div key={s} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem" title={s}>{s}</div>
                               ))}
@@ -1957,7 +1957,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     placeholder="Search tokens..."
                     value={previewSearch}
                     onChange={e => setPreviewSearch(e.target.value)}
-                    className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                    className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                 </div>
                 <div className="max-h-48 overflow-y-auto">
@@ -2021,7 +2021,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               value={newDimName}
               onChange={e => { setNewDimName(e.target.value); setCreateDimError(null); }}
               placeholder="Layer name (e.g. Color Mode, Brand)"
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
               autoFocus
             />

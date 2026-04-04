@@ -735,7 +735,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   value={git.remoteUrl}
                   onChange={e => git.setRemoteUrl(e.target.value)}
                   placeholder="https://github.com/org/repo.git"
-                  className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                 />
               </div>
               <button

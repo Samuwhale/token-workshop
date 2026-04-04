@@ -478,7 +478,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
               value={commitSearch}
               onChange={e => setCommitSearch(e.target.value)}
               placeholder="Search commits…"
-              className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
+              className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
             />
             {commitSearch && (
               <button

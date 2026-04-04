@@ -97,7 +97,7 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
           value={table.inputKey}
           onChange={e => updateInputKey(e.target.value)}
           placeholder="brandColor"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -112,13 +112,13 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
               value={row.brand}
               onChange={e => updateRow(i, { brand: e.target.value })}
               placeholder="berry"
-              className="w-24 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-24 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
             />
             <input
               value={String(row.inputs[table.inputKey] ?? '')}
               onChange={e => updateRowInput(i, e.target.value)}
               placeholder="#8B5CF6"
-              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
             />
             <button
               onClick={() => removeRow(i)}
@@ -473,7 +473,7 @@ export function TokenGeneratorDialog({
                         value={semanticPrefix}
                         onChange={e => setSemanticPrefix(e.target.value)}
                         placeholder="semantic"
-                        className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                        className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                       />
                     </div>
 
@@ -496,13 +496,13 @@ export function TokenGeneratorDialog({
                               value={mapping.semantic}
                               onChange={e => setSemanticMappings(semanticMappings.map((m, idx) => idx === i ? { ...m, semantic: e.target.value } : m))}
                               placeholder="action.default"
-                              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] min-w-0"
+                              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] min-w-0"
                             />
                             <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)]"><path d="M2 6h8M7 3l3 3-3 3" /></svg>
                             <select
                               value={mapping.step}
                               onChange={e => setSemanticMappings(semanticMappings.map((m, idx) => idx === i ? { ...m, step: e.target.value } : m))}
-                              className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                              className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
                             >
                               {availableSteps.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
@@ -751,7 +751,7 @@ export function TokenGeneratorDialog({
                     onFocus={() => setShowSourceAutocomplete(true)}
                     onBlur={() => setTimeout(() => setShowSourceAutocomplete(false), 150)}
                     placeholder={allTokensFlat ? 'Search or type a token path…' : 'e.g. colors.brand.primary'}
-                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                   />
                   {editableSourcePath && (
                     <button
@@ -1022,7 +1022,7 @@ export function TokenGeneratorDialog({
                     value={targetSetTemplate}
                     onChange={e => setTargetSetTemplate(e.target.value)}
                     placeholder="brands/{brand}"
-                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
                   />
                   <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
                     {'{brand}'} is replaced per row — e.g. <span className="font-mono">brands/berry</span>
@@ -1035,13 +1035,13 @@ export function TokenGeneratorDialog({
               <div className="flex-1">
                 <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group</label>
                 <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} placeholder="e.g. colors.primary"
-                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono ${!targetGroup.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
+                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono ${!targetGroup.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
               </div>
               {!isMultiBrand && (
                 <div className="w-28">
                   <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Set</label>
                   <select value={targetSet} onChange={e => setTargetSet(e.target.value)}
-                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
+                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]">
                     {allSets.map(s => <option key={s} value={s}>{s}</option>)}
                     {allSets.length === 0 && <option value={activeSet}>{activeSet}</option>}
                   </select>
@@ -1057,7 +1057,7 @@ export function TokenGeneratorDialog({
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Name</label>
               <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
                 placeholder="My generator"
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
             </div>
           </div>
 

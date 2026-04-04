@@ -452,7 +452,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
         ) : (
           <div className="flex flex-col gap-2">
             <input
-              className="w-full px-2 py-1.5 text-[11px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 text-[11px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               placeholder="Snapshot label"
               value={labelInput}
               onChange={e => setLabelInput(e.target.value)}

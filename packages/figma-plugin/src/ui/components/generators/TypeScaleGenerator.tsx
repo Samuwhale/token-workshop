@@ -305,7 +305,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
                     onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
                     onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
                     aria-label="Custom scale ratio A"
-                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 </div>
               </div>
 
@@ -328,7 +328,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
                     onChange={e => { setIsCustomCompareRatio(true); setCustomCompareRatio(e.target.value); }}
                     onBlur={handleCustomCompareRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomCompareRatioCommit()}
                     aria-label="Custom scale ratio B"
-                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 </div>
               </div>
             </div>
@@ -391,7 +391,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
                 onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
                 onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
                 aria-label="Custom scale ratio"
-                className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]" />
+                className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]" />
             </div>
           </div>
         )}
@@ -423,11 +423,11 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokens
               <div key={i} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
-                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">exp</span>
                 <input type="number" step="1" value={step.exponent} onChange={e => updateStep(i, { exponent: Number(e.target.value) })}
                   aria-label={`Step ${step.name} exponent`}
-                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                 <button onClick={() => setBaseStep(step.name)} title={step.name === config.baseStep ? 'Base step (ratio^0)' : 'Set as base step'} aria-label={`Set ${step.name} as base step`}
                   className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors shrink-0 ${step.name === config.baseStep ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                 >base</button>

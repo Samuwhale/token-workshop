@@ -2587,7 +2587,7 @@ export function TokenList({
                       }
                     }}
                     placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : `Search (/) — try ${PLACEHOLDER_EXAMPLES[placeholderIdx]}`}
-                    className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'} focus:border-[var(--color-figma-accent)]`}
+                    className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
                   />
                   {/* Qualifier autocomplete hints */}
                   {showQualifierHints && qualifierHints.length > 0 && (
@@ -3519,7 +3519,7 @@ export function TokenList({
                   onChange={e => { setNewTokenGroup(e.target.value); setGroupDropdownOpen(true); setCreateError(''); }}
                   onFocus={() => setGroupDropdownOpen(true)}
                   onBlur={() => { setTimeout(() => setGroupDropdownOpen(false), 150); }}
-                  className="w-full px-2 py-1.5 pr-6 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 pr-6 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                   onKeyDown={e => {
                     if (e.key === 'Escape') { setGroupDropdownOpen(false); (e.target as HTMLInputElement).blur(); return; }
                     if (groupDropdownOpen && filteredGroups.length > 0) {
@@ -3612,7 +3612,7 @@ export function TokenList({
                 ref={nameInputRef}
                 value={newTokenName}
                 onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError || pathValidation.error ? 'border-[var(--color-figma-error)]' : pathValidation.warning ? 'border-amber-400' : 'border-[var(--color-figma-border)]'}`}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createError || pathValidation.error ? 'border-[var(--color-figma-error)]' : pathValidation.warning ? 'border-amber-400' : 'border-[var(--color-figma-border)]'}`}
                 onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
                 autoFocus
               />
@@ -3671,7 +3671,7 @@ export function TokenList({
                     setTypeAutoInferred(false);
                   }
                 }}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                 onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
               />
             </div>
@@ -3693,7 +3693,7 @@ export function TokenList({
               placeholder="Description (optional)"
               value={newTokenDescription}
               onChange={e => setNewTokenDescription(e.target.value)}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
             />
             <select
@@ -3793,7 +3793,7 @@ export function TokenList({
                 value={tableGroup}
                 onChange={e => setTableGroup(e.target.value)}
                 aria-label="Token group for bulk create"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               />
               <datalist id="table-create-groups-list">
                 {allGroupPaths.map(g => <option key={g} value={g} />)}
@@ -3857,13 +3857,13 @@ export function TokenList({
                       aria-label={`Token ${idx + 1} name`}
                       // eslint-disable-next-line jsx-a11y/no-autofocus
                       autoFocus={idx === 0}
-                      className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                      className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                     />
                     <select
                       value={row.type}
                       onChange={e => updateTableRow(row.id, 'type', e.target.value)}
                       aria-label={`Token ${idx + 1} type`}
-                      className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                      className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                     >
                       <option value="color">Color</option>
                       <option value="dimension">Dimension</option>
@@ -3901,7 +3901,7 @@ export function TokenList({
                         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleCreateAll();
                       }}
                       aria-label={`Token ${idx + 1} value`}
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                     />
                     <button
                       type="button"

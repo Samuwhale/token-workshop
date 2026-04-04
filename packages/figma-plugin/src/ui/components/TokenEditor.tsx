@@ -110,7 +110,7 @@ function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, 
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={`Search ${tokenType} tokens…`}
-          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setSearch(''); } }}
         />
         <button
@@ -457,7 +457,7 @@ function ThemeValuesSection({
                               value={displayValue}
                               placeholder={rawEntry ? '' : 'inherited'}
                               onChange={e => setEdits(prev => ({ ...prev, [optionName]: e.target.value }))}
-                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
                             />
                             {isDirtyRow && targetSet && (
                               <button
@@ -856,7 +856,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 placeholder="Token path (e.g. color.brand.500)"
                 autoFocus
                 autoComplete="off"
-                className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
+                className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
               />
               {showPathAutocomplete && editPath.trim() && (
                 <PathAutocomplete

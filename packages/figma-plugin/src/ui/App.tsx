@@ -2304,7 +2304,7 @@ export function App() {
                 onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 rows={3}
                 placeholder="What is this token set for?"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -2315,7 +2315,7 @@ export function App() {
                 onChange={e => setMetadataCollectionName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 placeholder="TokenManager"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               />
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Tokens in this set will sync to this Figma variable collection.</p>
             </div>
@@ -2327,7 +2327,7 @@ export function App() {
                 onChange={e => setMetadataModeName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 placeholder="Mode 1"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               />
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">When multiple sets share a collection, each set maps to a mode. Leave blank to use the first mode.</p>
             </div>
@@ -2527,7 +2527,7 @@ export function App() {
                 <select
                   value={mergeTargetSet}
                   onChange={e => changeMergeTarget(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                 >
                   {sets.filter(s => s !== mergingSet).map(s => (
                     <option key={s} value={s}>{s}</option>

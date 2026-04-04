@@ -47,7 +47,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
               value={git.remoteUrl}
               onChange={e => git.setRemoteUrl(e.target.value)}
               placeholder="https://github.com/org/repo.git"
-              className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
           </div>
           <button
@@ -273,7 +273,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   onChange={e => git.setCommitMsg(e.target.value)}
                   placeholder="Describe your changes\u2026"
                   aria-label="Commit message"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                   onKeyDown={e => {
                     if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) onRequestConfirm('git-commit');
                   }}
@@ -301,7 +301,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 onChange={e => git.setRemoteUrl(e.target.value)}
                 placeholder="https://github.com/user/repo.git"
                 aria-label="Remote URL"
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
               />
               <button
                 onClick={() => git.doAction('remote', { url: git.remoteUrl })}

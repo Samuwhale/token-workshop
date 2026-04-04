@@ -224,14 +224,14 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     value={searchPath}
                     onChange={e => setSearchPath(e.target.value)}
                     placeholder="Search by path…"
-                    className="w-full pl-5 pr-1.5 py-1 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                    className="w-full pl-5 pr-1.5 py-1 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                 </div>
                 {opTypes.length > 1 && (
                   <select
                     value={filterType}
                     onChange={e => setFilterType(e.target.value)}
-                    className="shrink-0 py-1 pl-1.5 pr-4 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] appearance-none"
+                    className="shrink-0 py-1 pl-1.5 pr-4 text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] appearance-none"
                     style={{ backgroundImage: 'none' }}
                     aria-label="Filter by operation type"
                   >

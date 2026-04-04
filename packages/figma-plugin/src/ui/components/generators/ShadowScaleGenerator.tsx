@@ -218,23 +218,23 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
                   onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
                   placeholder="name"
-                  className="w-12 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  className="w-12 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <input type="number" step="1" value={step.offsetX} onChange={e => updateStep(i, { offsetX: Number(e.target.value) })}
                   aria-label={`Step ${step.name} offsetX`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" value={step.offsetY} onChange={e => updateStep(i, { offsetY: Number(e.target.value) })}
                   aria-label={`Step ${step.name} offsetY`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" min="0" value={step.blur} onChange={e => updateStep(i, { blur: Number(e.target.value) })}
                   aria-label={`Step ${step.name} blur`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" value={step.spread} onChange={e => updateStep(i, { spread: Number(e.target.value) })}
                   aria-label={`Step ${step.name} spread`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="0.01" min="0" max="1" value={step.opacity} onChange={e => updateStep(i, { opacity: Number(e.target.value) })}
                   aria-label={`Step ${step.name} opacity`}
-                  className="w-10 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right outline-none focus:border-[var(--color-figma-accent)]" />
+                  className="w-10 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
               </div>
             ))}

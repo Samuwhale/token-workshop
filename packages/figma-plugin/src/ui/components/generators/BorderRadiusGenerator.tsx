@@ -42,13 +42,13 @@ export function BorderRadiusConfigEditor({ config, onChange }: { config: BorderR
             <div key={i} className="flex items-center gap-1.5">
               <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
                 aria-label={`Step ${i + 1} name`}
-                placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
               {step.exactValue !== undefined ? (
                 <>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">exact:</span>
                   <input type="number" value={step.exactValue} onChange={e => updateStep(i, { exactValue: Number(e.target.value) })}
                     aria-label={`Step ${step.name} exact value`}
-                    className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                    className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                   <button onClick={() => updateStep(i, { exactValue: undefined, multiplier: 1 })} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">×exact</button>
                 </>
               ) : (
@@ -56,7 +56,7 @@ export function BorderRadiusConfigEditor({ config, onChange }: { config: BorderR
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">×</span>
                   <input type="number" step="0.1" value={step.multiplier} onChange={e => updateStep(i, { multiplier: Number(e.target.value) })}
                     aria-label={`Step ${step.name} multiplier`}
-                    className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
+                    className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
                   <button onClick={() => updateStep(i, { exactValue: 0 })} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">+exact</button>
                 </>
               )}

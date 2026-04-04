@@ -190,7 +190,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         }}
                         disabled={saving}
                         placeholder={opt.placeholder}
-                        className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50"
+                        className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-50"
                         {...(opt.type === 'number' ? { min: 1, max: 100 } : {})}
                       />
                     </label>
@@ -210,7 +210,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         disabled={saving}
                         placeholder="e.g. legacy, internal.raw"
                         title="Comma-separated path prefixes to exclude from this rule. A path is excluded if it equals the prefix or starts with '<prefix>.'"
-                        className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50"
+                        className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-50"
                       />
                     </label>
                     <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">

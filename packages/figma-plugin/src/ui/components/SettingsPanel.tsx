@@ -526,7 +526,7 @@ export function SettingsPanel({
                   value={contrastBg}
                   onChange={e => handleContrastBgChange(e.target.value)}
                   placeholder="e.g. #ffffff"
-                  className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                  className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
                 />
               </div>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
@@ -565,7 +565,7 @@ export function SettingsPanel({
                 }
               }}
               placeholder="http://localhost:9400"
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
             />
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Run <span className="font-mono">npm start</span> in the TokenManager directory, then press Enter or click Connect.
@@ -656,7 +656,7 @@ export function SettingsPanel({
                 value={cssSelector}
                 onChange={e => handleCssSelectorChange(e.target.value)}
                 placeholder=":root"
-                className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
               />
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
                 CSS selector wrapping exported custom properties (default: <code className="font-mono">:root</code>).
@@ -678,7 +678,7 @@ export function SettingsPanel({
                   setUndoMaxHistory(v);
                   lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
                 }}
-                className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right outline-none focus:border-[var(--color-figma-accent)]"
+                className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right focus-visible:border-[var(--color-figma-accent)]"
               />
             </label>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
