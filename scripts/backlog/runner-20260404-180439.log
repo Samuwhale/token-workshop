@@ -468,3 +468,29 @@ Already up to date.
   ✓ ux pass: ux-pass
     6 items written to inbox: inconsistent modal accessibility (focus trap/Escape/ARIA), TokenList search missing clear button and Escape-to-clear, form validation feedback inconsistency across token types, export panel cognitive overload from unprioritized filters, Escape key behavior inconsistency across search inputs, generator config editors lacking per-field undo
 Already up to date.
+[main 406bde71] chore(backlog): ux pass – ux-pass
+ 5 files changed, 27 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - Core resolver formula unit extraction silently falls back to 'px'/'ms' when extractFormulaUnit returns null
+- Two improvements made to `resolver.ts`:
+  1. **Bare-number dimension/duration normalization**: Extended the typed-value reconstruction block (formerly formula-only) to also wrap bare-number dimension/duration tokens (e.g. `{$type:"dimension", $value:8}`) into `{value:8, unit:'px'}` / `{value:200, unit:'ms'}` objects. Condition changed from `isFormula(token.$value)` guard to `$type === 'dimension' || $type === 'duration'` guard, with `isFormulaSrc` used only for the unit-extraction call.
+  2. **`extractFormulaUnit` type-based inference**: Added Strategy 2 — when a referenced token's resolved `$value` is a plain number (not a `{unit}` object), check `resolved.$type`. If 'dimension' return 'px'; if 'duration' return 'ms'. This removes the `?? 'px'` / `?? 'ms'` hardcoded fallbacks as the primary mechanism — the unit is now inherited from the referenced token's type rather than hardcoded at the call site. The `??` fallbacks remain as a last resort for pure-number arithmetic formulas with no dimension/duration refs.
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  18 queued · 0
+0 in-progress · last took 12m51s
+═══════════════════════════════════════════════════════════════
+  → Consolidate AnalyticsPanel sub-features into their host panels — AnalyticsPanel (1596 lines) is a grab-bag of six unrelated features (validation issues, set statistics, contrast matrix, duplicate detection, scale inspector, component coverage) each of which belongs closer to the panel that owns its domain: validation issues should be inline in the Tokens tab as a filter (already partially exists via showIssuesOnly), contrast matrix fits in the Preview panel or a color-specific tool, duplicate detection belongs in Health, and component coverage already has a dedicated canvas-audit tab; consolidating would eliminate a 1600-line omnibus panel and make each feature discoverable where users are already working
+  Worktree: /tmp/backlog-3108-hXyY4n
+  Running agent… (started 20:47:09)
+
+  ✓ done: Consolidate AnalyticsPanel sub-features into their host panels
+    Deleted 1596-line AnalyticsPanel.tsx; 6 sub-features distributed to HealthPanel (validation report, contrast matrix, duplicates, lightness inspector, unused tokens) and CanvasAuditPanel (component coverage as 3rd tab); removed Ship > Validation sub-tab entirely; all 4 validate gates pass
+    82 turns · 1288s · $5.29
+
+  Merging to main: Consolidate AnalyticsPanel sub-features into their host panels
+Already up to date.

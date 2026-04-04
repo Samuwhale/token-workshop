@@ -78,7 +78,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
-type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'health';
+type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type OverflowPanel = 'import' | 'settings' | null;
 
@@ -132,7 +132,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   { id: 'ship', label: 'Ship', subTabs: [
     { id: 'publish', label: 'Publish' },
     { id: 'export', label: 'Export' },
-    { id: 'validation', label: 'Validation' },
     { id: 'history', label: 'History' },
     { id: 'health', label: 'Health' },
   ]},
@@ -365,7 +364,7 @@ export function App() {
     navigateTo('define', 'generators');
     setFocusGeneratorId(generatorId);
   }, [navigateTo]);
-  const { validateKey, setValidateKey, analyticsIssueCount, setAnalyticsIssueCount, showIssuesOnly, setShowIssuesOnly, showValidationReturn, setShowValidationReturn } = useAnalyticsState();
+  const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
   const {
     validationIssues,
     validationSummary,
@@ -374,7 +373,7 @@ export function App() {
     validationLastRefreshed,
     validationIsStale,
     refreshValidation,
-  } = useValidationCache({ serverUrl, connected, tokenChangeKey, validateKey });
+  } = useValidationCache({ serverUrl, connected, tokenChangeKey });
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
   // Command palette bulk-delete state
@@ -871,7 +870,7 @@ export function App() {
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
-        handler: () => { navigateTo('ship', 'validation'); setValidateKey(k => k + 1); },
+        handler: () => { navigateTo('ship', 'health'); refreshValidation(); },
       },
       {
         id: 'health-dashboard',
@@ -1378,10 +1377,10 @@ export function App() {
               </button>
               <button
                 role="menuitem"
-                onClick={() => { setMenuOpen(false); navigateTo('ship', 'validation'); setValidateKey(k => k + 1); }}
+                onClick={() => { setMenuOpen(false); navigateTo('ship', 'health'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Validation
+                Health &amp; Analysis
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
@@ -2153,12 +2152,9 @@ export function App() {
               fontWeightsByFamily={fontWeightsByFamily}
               showIssuesOnly={showIssuesOnly}
               setShowIssuesOnly={setShowIssuesOnly}
-              showValidationReturn={showValidationReturn}
-              setShowValidationReturn={setShowValidationReturn}
               effectiveTokens={effectiveTokens}
               lintViolations={lintViolations}
               cascadeDiff={cascadeDiff ?? null}
-              setValidateKey={setValidateKey}
               validationIssues={validationIssues}
               validationSummary={validationSummary}
               validationLoading={validationLoading}
@@ -2166,8 +2162,6 @@ export function App() {
               validationLastRefreshed={validationLastRefreshed}
               validationIsStale={validationIsStale}
               refreshValidation={refreshValidation}
-              analyticsIssueCount={analyticsIssueCount}
-              setAnalyticsIssueCount={setAnalyticsIssueCount}
               historyFilterPath={historyFilterPath}
               setHistoryFilterPath={setHistoryFilterPath}
               recentOperations={recentOperations}

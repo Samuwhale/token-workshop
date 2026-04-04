@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { HeatmapPanel } from './HeatmapPanel';
 import { ConsistencyPanel } from './ConsistencyPanel';
+import { ComponentCoveragePanel } from './ComponentCoveragePanel';
 import type { HeatmapResult, HeatmapScope } from './HeatmapPanel';
 import type { BindableProperty, TokenMapEntry } from '../../shared/types';
 
 export type { HeatmapResult, HeatmapScope };
 
-type AuditTab = 'coverage' | 'consistency';
+type AuditTab = 'coverage' | 'consistency' | 'components';
 
 interface CanvasAuditPanelProps {
   // HeatmapPanel props
@@ -31,6 +32,7 @@ interface CanvasAuditPanelProps {
 const AUDIT_TABS: { id: AuditTab; label: string }[] = [
   { id: 'coverage', label: 'Coverage' },
   { id: 'consistency', label: 'Consistency' },
+  { id: 'components', label: 'Components' },
 ];
 
 export function CanvasAuditPanel({
@@ -93,6 +95,9 @@ export function CanvasAuditPanel({
             availableTokens={availableTokens}
             onSelectNode={onSelectNode}
           />
+        )}
+        {activeTab === 'components' && (
+          <ComponentCoveragePanel />
         )}
       </div>
     </div>

@@ -800,3 +800,32 @@
   - Normalizing typed tokens at resolution time (wrapping bare numbers) is safer than relying on the call-site fallback — downstream consumers reliably get `{value, unit}` objects for all dimension/duration tokens
   - When `extractFormulaUnit` returns null, the `?? 'px'` fallback is still needed for formulas that reference only non-dimensional tokens (pure arithmetic) but is no longer needed for dimension/duration token references
 ---
+
+## 2026-04-04 - Consolidate AnalyticsPanel sub-features into their host panels
+- Eliminated the 1596-line `AnalyticsPanel.tsx` omnibus grab-bag by distributing its 6 sub-features to their natural host panels:
+  1. **Validation Issues** → moved into `HealthPanel.tsx` as a "Validation Report" accordion in the Token Analysis section (with severity filtering, copy MD, export JSON/CSV, per-issue fix buttons, and "Go →" navigation)
+  2. **Color Contrast Matrix** → moved into `HealthPanel.tsx` as a collapsible accordion (group filters, sort by luminance/failures, pagination, failures-only list, CSV export)
+  3. **Duplicate Values** → moved into `HealthPanel.tsx` (deduplicate to alias, bulk promote all, confirmation flow)
+  4. **Color Scale Lightness Inspector** → moved into `HealthPanel.tsx` (SVG lightness graph, anomaly detection)
+  5. **Unused Tokens** (canvas-unused detail view) → moved into `HealthPanel.tsx` (delete individual or delete all with confirmation)
+  6. **Component Coverage** → extracted into `ComponentCoveragePanel.tsx` and added as third tab ("Components") in `CanvasAuditPanel.tsx`
+- Removed `Ship > Validation` sub-tab entirely from `TOP_TABS`, `ShipSubTab` type, `PanelRouter.tsx` PANEL_MAP, and overflow menu
+- Trimmed `useAnalyticsState.ts` to only `showIssuesOnly`/`setShowIssuesOnly`
+- Removed from `PanelRouterProps`: `setValidateKey`, `analyticsIssueCount`, `setAnalyticsIssueCount`, `showValidationReturn`, `setShowValidationReturn`
+- Updated command palette "Validate All Tokens" to navigate to `ship > health` and call `refreshValidation()`
+- `HealthPanel.tsx` now derives color token data (resolved aliases, color scales, allTokensUnified) from existing `allTokensFlat` + `pathToSet` props via `useMemo` — no extra API calls needed
+- Fixed pre-existing type bug: `validationLastRefreshed` in `PanelRouterProps` was `string | null`, corrected to `Date | null` to match `useValidationCache` return type
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ComponentCoveragePanel.tsx` (new, ~165 lines)
+  - `packages/figma-plugin/src/ui/components/CanvasAuditPanel.tsx` (add 'components' tab)
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` (expanded from 545 → ~850 lines with 5 analytics sections)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` (remove validation tab/func, update health props)
+  - `packages/figma-plugin/src/ui/App.tsx` (remove validation tab, update command palette/menu)
+  - `packages/figma-plugin/src/ui/hooks/useAnalyticsState.ts` (trimmed to showIssuesOnly only)
+  - `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` (deleted)
+- **Learnings for future iterations:**
+  - `useMemo` on `allTokensFlat`+`pathToSet` is sufficient to derive resolved color token data without additional API calls — the host panel's existing context data already contains all tokens from all sets
+  - When eliminating a grab-bag panel, anchor each sub-feature in the panel that owns its domain: token quality features → Health, canvas features → Canvas Audit
+  - The "Full report" CTA in a HealthSection that previously cross-navigated can be repurposed as a local accordion trigger when the report is now inline
+  - `resolveColorHex` as a `useMemo`-returned closure works cleanly for recursive alias resolution without exposing the visited set to callers
+---

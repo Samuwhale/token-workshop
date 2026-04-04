@@ -26,7 +26,6 @@ import type { ThemeManagerHandle } from '../components/ThemeManager';
 import { ResolverPanel } from '../components/ResolverPanel';
 import { PublishPanel } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
-import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
 import { CanvasAuditPanel } from '../components/CanvasAuditPanel';
 import { GraphPanel } from '../components/GraphPanel';
@@ -102,8 +101,6 @@ export interface PanelRouterProps {
   // Token list display state
   showIssuesOnly: boolean;
   setShowIssuesOnly: Dispatch<SetStateAction<boolean>>;
-  showValidationReturn: boolean;
-  setShowValidationReturn: (v: boolean) => void;
   /** Effective tokens: simpleModeTokens when isSimpleMode, else tokens from TokenDataContext */
   effectiveTokens: TokenNode[];
   lintViolations: LintViolation[];
@@ -111,16 +108,13 @@ export interface PanelRouterProps {
   cascadeDiff: Record<string, { before: unknown; after: unknown }> | null;
 
   // Validation
-  setValidateKey: Dispatch<SetStateAction<number>>;
   validationIssues: ValidationIssue[] | null;
   validationSummary: ValidationSummary | null;
   validationLoading: boolean;
   validationError: string | null;
-  validationLastRefreshed: string | null;
+  validationLastRefreshed: Date | null;
   validationIsStale: boolean;
   refreshValidation: () => void;
-  analyticsIssueCount: number;
-  setAnalyticsIssueCount: (n: number) => void;
 
   // History / operations
   historyFilterPath: string | null;
@@ -378,7 +372,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     ship: {
       publish:    renderShipPublish,
       export:     renderShipExport,
-      validation: renderShipValidation,
       history:    renderShipHistory,
       health:     renderShipHealth,
     },
@@ -394,26 +387,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   function renderDefineTokens(): ReactNode {
     return (
       <>
-        {/* Validation return banner */}
-        {p.showValidationReturn && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-accent)]/10 border-b border-[var(--color-figma-accent)]/20 shrink-0">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">Fix the token, then return to re-validate.</span>
-            <button
-              onClick={() => { p.navigateTo('ship', 'validation'); p.setShowValidationReturn(false); }}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
-            >
-              Back to Validation
-            </button>
-            <button
-              onClick={() => p.setShowValidationReturn(false)}
-              className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
-              aria-label="Dismiss"
-            >
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-        )}
         {/* Fetch error banner */}
         {(fetchError || tokensError) && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
@@ -755,31 +728,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  function renderShipValidation(): ReactNode {
-    return (
-      <ErrorBoundary panelName="Validation" onReset={() => p.navigateTo('ship', 'publish')}>
-        <AnalyticsPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          tokenUsageCounts={tokenUsageCounts}
-          onNavigateToToken={(path, set) => {
-            setActiveSet(set);
-            p.navigateTo('define', 'tokens');
-            p.setPendingHighlight(path);
-            p.setShowValidationReturn(true);
-          }}
-          onValidationComplete={p.setAnalyticsIssueCount}
-          validateResults={p.validationIssues}
-          validateLoading={p.validationLoading}
-          validateError={p.validationError}
-          validatedAt={p.validationLastRefreshed}
-          resultsStale={p.validationIsStale}
-          onRefreshValidation={p.refreshValidation}
-        />
-      </ErrorBoundary>
-    );
-  }
-
   function renderShipHistory(): ReactNode {
     return (
       <ErrorBoundary panelName="History" onReset={() => p.navigateTo('ship', 'publish')}>
@@ -813,15 +761,22 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           generators={generators}
           lintViolations={p.lintViolations}
           allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
           onNavigateTo={(topTab, subTab) => p.navigateTo(topTab as TopTab, subTab as SubTab | undefined)}
+          onNavigateToToken={(path, set) => {
+            setActiveSet(set);
+            p.navigateTo('define', 'tokens');
+            p.setPendingHighlight(path);
+          }}
           onTriggerHeatmap={triggerHeatmapScan}
           validationIssues={p.validationIssues}
           validationSummary={p.validationSummary}
           validationLoading={p.validationLoading}
           validationError={p.validationError}
           validationLastRefreshed={p.validationLastRefreshed}
+          validationIsStale={p.validationIsStale}
           onRefreshValidation={p.refreshValidation}
         />
       </ErrorBoundary>
