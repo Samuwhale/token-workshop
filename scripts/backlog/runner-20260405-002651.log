@@ -125,3 +125,26 @@ Already up to date.
 
   Merging to main: Add Cmd+A select-all shortcut in token list
 Already up to date.
+[main d005d34c] chore(backlog): done – Add Cmd+A select-all shortcut in token list
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Add Cmd+A select-all shortcut in token list
+- Already implemented: `TokenList.tsx` ~L1224-1230 handles `Cmd/Ctrl+A` — auto-enters select mode if off, then sets `selectedPaths` to all `displayedLeafNodesRef.current` paths (respects active search/filter). No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  27 queued · 0
+0 in-progress · last took 1m26s
+═══════════════════════════════════════════════════════════════
+  → Add "create another" action in CreatePanel — CreatePanel.tsx Single tab clears the form after creating a token but doesn't auto-focus back to the path input; TokenEditor has "Save & Create Another" (Cmd+Shift+Enter) but CreatePanel doesn't; after creating a token, the path field should auto-focus with the parent group path pre-filled so the user can immediately type the next sibling token name
+  Worktree: /tmp/backlog-54964-ORVjAW
+  Running agent… (started 01:02:06)
+
+  ✓ done: Add "create another" action in CreatePanel
+    Added nameInputRef with auto-focus after creation and Cmd+Shift+Enter shortcut on the name input; group path was already preserved
+    14 turns · 106s · $0.38
+
+  Merging to main: Add "create another" action in CreatePanel
+Already up to date.

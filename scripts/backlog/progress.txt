@@ -768,3 +768,13 @@
 - **Learnings for future iterations:**
   - Check `handleListKeyDown` in `TokenList.tsx` for the full list of existing keyboard shortcuts before implementing a new one — several shortcuts were added as part of the multi-select feature (M, E, Escape, Cmd+A, Shift+click) that may not be reflected in backlog descriptions
 ---
+
+## 2026-04-05 - Add "create another" action in CreatePanel
+- Added `nameInputRef` to the name input in `SingleCreateTab`; after successful token creation, `setTimeout(() => nameInputRef.current?.focus(), 0)` refocuses the name field with the group path pre-filled (group was already preserved — only name/value/description were reset)
+- Added `onKeyDown` on the name input for `Cmd+Shift+Enter` (or `Ctrl+Shift+Enter`) to trigger `handleCreate`, matching the TokenEditor pattern
+- Added a `title` attribute to the Create Token button hinting at the keyboard shortcut (⌘⇧↵)
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L224 (new ref), ~L267 (auto-focus after create), ~L334 (ref+keydown on name input), ~L514 (button title)
+- **Learnings for future iterations:**
+  - The group field was already preserved after creation — only name/value/description/refMode were cleared. So "pre-fill parent group" was already working; only the auto-focus was missing.
+  - `setTimeout(() => ref.current?.focus(), 0)` is needed because React state updates are batched and the DOM must settle before focus works reliably.
+---

@@ -221,6 +221,7 @@ function SingleCreateTab({
   const [refMode, setRefMode] = useState(false);
   const [refQuery, setRefQuery] = useState('');
   const refInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [groupOpen, setGroupOpen] = useState(false);
 
   const fullPath = useMemo(() => {
@@ -262,12 +263,13 @@ function SingleCreateTab({
       });
       onRefresh();
       onTokenCreated?.(fullPath);
-      // Reset for next creation
+      // Reset for next creation — keep group pre-filled so user can type next sibling name
       setName('');
       setValue(getDefaultValue(tokenType));
       setDescription('');
       setRefMode(false);
       setRefQuery('');
+      setTimeout(() => nameInputRef.current?.focus(), 0);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -332,10 +334,17 @@ function SingleCreateTab({
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Name</label>
         <input
+          ref={nameInputRef}
           type="text"
           placeholder="e.g. 500, base, primary"
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
+          onKeyDown={e => {
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Enter') {
+              e.preventDefault();
+              handleCreate();
+            }
+          }}
           className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
             pathError ? 'border-[var(--color-figma-error)]' : pathExists ? 'border-amber-400' : 'border-[var(--color-figma-border)]'
           }`}
@@ -510,6 +519,7 @@ function SingleCreateTab({
         <button
           onClick={handleCreate}
           disabled={!name.trim() || !!pathError || !connected || saving}
+          title="Create token and focus name field for next entry (⌘⇧↵)"
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
         >
           {saving ? 'Creating...' : 'Create Token'}
