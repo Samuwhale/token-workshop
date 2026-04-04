@@ -758,3 +758,18 @@ Already up to date.
 
   Merging to main: Quick-create token form only offers 13 of 26 supported token types
 Already up to date.
+[main 4347f4f1] chore(backlog): done – Quick-create token form only offers 13 of 26 supported token types
+ 6 files changed, 93 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Quick-create token form only offers 13 of 26 supported token types
+- Replaced hardcoded 13-type flat list in quick-create dropdown with all 25 types from TOKEN_TYPE_BADGE_CLASS, organized into optgroups: Color, Size & Layout, Typography, Animation, Border & Effects, Composite, Other
+- Added missing types: composition, asset, cubicBezier, transition, fontStyle, lineHeight, letterSpacing, percentage, link, textDecoration, textTransform, custom
+- Added value placeholder strings for all new types in VALUE_PLACEHOLDERS (tokenListHelpers.tsx)
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  10 queued · 3 in-progress · last took 3m58s
+═══════════════════════════════════════════════════════════════
+  → No cancellation for long-running plugin scans — operations like `scan-canvas-heatmap`, `scan-component-coverage`, `scan-consistency`, and `scan-token-usage` can run for many seconds on large Figma files but have no cancel button or timeout; the user must wait for completion or close and reopen the plugin (controller.ts scan handlers)
+  Worktree: /tmp/backlog-91634-RtUX1a
+  Running agent… (started 04:09:51)

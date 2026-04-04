@@ -105,6 +105,9 @@ export interface ImportPanelContextValue {
 
   // Variables conflict preview
   varConflictPreview: { newCount: number; overwriteCount: number } | null;
+  varConflictDetails: { path: string; setName: string; existing: { $type: string; $value: unknown }; incoming: ImportToken }[] | null;
+  varConflictDetailsExpanded: boolean;
+  setVarConflictDetailsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   checkingVarConflicts: boolean;
 
   // Derived values
@@ -223,6 +226,8 @@ export function ImportPanelProvider({
 
   // Variables conflict preview state
   const [varConflictPreview, setVarConflictPreview] = useState<{ newCount: number; overwriteCount: number } | null>(null);
+  const [varConflictDetails, setVarConflictDetails] = useState<{ path: string; setName: string; existing: { $type: string; $value: unknown }; incoming: ImportToken }[] | null>(null);
+  const [varConflictDetailsExpanded, setVarConflictDetailsExpanded] = useState(false);
   const [checkingVarConflicts, setCheckingVarConflicts] = useState(false);
   const varConflictFetchIdRef = useRef(0);
 
@@ -270,8 +275,16 @@ export function ImportPanelProvider({
         setExistingTokenMap(toks);
       })
       .catch(err => {
-        setExistingTokenMap(null);
-        setExistingTokenMapError(err instanceof Error ? err.message : 'Failed to load existing tokens');
+        if (err instanceof ApiError && err.status === 404) {
+          // New/non-existent set — treat as empty, not an error
+          const empty = new Map<string, { $type: string; $value: unknown }>();
+          existingPathsCacheRef.current = { set: setName, tokens: empty };
+          setExistingTokenMap(empty);
+          setExistingTokenMapError(null);
+        } else {
+          setExistingTokenMap(null);
+          setExistingTokenMapError(err instanceof Error ? err.message : 'Failed to load existing tokens');
+        }
       })
       .finally(() => setExistingTokenMapFetching(false));
   }, [serverUrl]);
@@ -314,10 +327,12 @@ export function ImportPanelProvider({
     }
   }, [targetSet, tokens.length, prefetchExistingPaths, clearConflictState]);
 
-  // Pre-fetch conflict counts for Variables import preview
+  // Pre-fetch conflict counts and per-token details for Variables import preview
   useEffect(() => {
     if (collectionData.length === 0) {
       setVarConflictPreview(null);
+      setVarConflictDetails(null);
+      setVarConflictDetailsExpanded(false);
       return;
     }
     const allModes = collectionData.flatMap(col =>
@@ -330,12 +345,14 @@ export function ImportPanelProvider({
     );
     if (allModes.length === 0) {
       setVarConflictPreview({ newCount: 0, overwriteCount: 0 });
+      setVarConflictDetails([]);
       return;
     }
     const setsToCheck = allModes.filter(({ setName }) => sets.includes(setName));
     if (setsToCheck.length === 0) {
       const totalTokens = allModes.reduce((acc, { mode }) => acc + mode.tokens.length, 0);
       setVarConflictPreview({ newCount: totalTokens, overwriteCount: 0 });
+      setVarConflictDetails([]);
       return;
     }
     const fetchId = ++varConflictFetchIdRef.current;
@@ -343,19 +360,34 @@ export function ImportPanelProvider({
     (async () => {
       try {
         let overwriteCount = 0;
+        const details: { path: string; setName: string; existing: { $type: string; $value: unknown }; incoming: ImportToken }[] = [];
         for (const { mode, setName } of setsToCheck) {
           if (fetchId !== varConflictFetchIdRef.current) return;
           const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`);
           if (fetchId !== varConflictFetchIdRef.current) return;
           const flat = flattenTokenGroup(data.tokens ?? {});
-          const existingKeys = new Set(flat.keys());
-          overwriteCount += mode.tokens.filter(t => existingKeys.has(t.path)).length;
+          for (const t of mode.tokens) {
+            if (flat.has(t.path)) {
+              const ex = flat.get(t.path);
+              details.push({
+                path: t.path,
+                setName,
+                existing: { $type: (ex as any)?.$type ?? 'unknown', $value: (ex as any)?.$value },
+                incoming: t,
+              });
+              overwriteCount++;
+            }
+          }
         }
         if (fetchId !== varConflictFetchIdRef.current) return;
         const totalTokens = allModes.reduce((acc, { mode }) => acc + mode.tokens.length, 0);
         setVarConflictPreview({ newCount: totalTokens - overwriteCount, overwriteCount });
+        setVarConflictDetails(details);
       } catch {
-        if (fetchId === varConflictFetchIdRef.current) setVarConflictPreview(null);
+        if (fetchId === varConflictFetchIdRef.current) {
+          setVarConflictPreview(null);
+          setVarConflictDetails(null);
+        }
       } finally {
         if (fetchId === varConflictFetchIdRef.current) setCheckingVarConflicts(false);
       }
@@ -1051,8 +1083,16 @@ export function ImportPanelProvider({
     const checkingForSet = targetSet;
 
     try {
-      const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
-      const flat = flattenTokenGroup(data.tokens || {});
+      let flat = new Map<string, unknown>();
+      try {
+        const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
+        flat = flattenTokenGroup(data.tokens || {});
+      } catch (fetchErr) {
+        if (!(fetchErr instanceof ApiError && fetchErr.status === 404)) {
+          throw fetchErr;
+        }
+        // 404 = new/non-existent set — treat as empty, no conflicts
+      }
       const existingKeys = new Set(flat.keys());
       const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
       const conflicts = tokensToImport.filter(t => existingKeys.has(t.path)).map(t => t.path);
@@ -1154,6 +1194,9 @@ export function ImportPanelProvider({
     existingPathsFetching,
     existingTokenMapError,
     varConflictPreview,
+    varConflictDetails,
+    varConflictDetailsExpanded,
+    setVarConflictDetailsExpanded,
     checkingVarConflicts,
     totalEnabledSets,
     totalEnabledTokens,
@@ -1202,6 +1245,7 @@ export function ImportPanelProvider({
     conflictStatusFilter, conflictTypeFilter, checkingConflicts, importProgress,
     skippedEntries, skippedExpanded, isDragging, existingTokenMap,
     existingPathsFetching, existingTokenMapError, varConflictPreview,
+    varConflictDetails, varConflictDetailsExpanded,
     checkingVarConflicts, totalEnabledSets, totalEnabledTokens,
     previewNewCount, previewOverwriteCount,
     clearConflictState, handleReadVariables, handleReadStyles, handleReadJson,

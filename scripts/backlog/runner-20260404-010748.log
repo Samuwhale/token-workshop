@@ -763,3 +763,10 @@ Already up to date.
   → Import flow has no merge/conflict preview — importing into an existing token set silently overwrites matching paths with no diff preview or skip/overwrite/rename choice per token; users can accidentally lose manual edits when re-importing from Figma Variables or a JSON file (ImportPanel.tsx)
   Worktree: /tmp/backlog-91949-Ud6Duk
   Running agent… (started 04:02:24)
+
+  ✓ done: Import flow has no merge/conflict preview
+    Added per-token diff preview for Variables import (collapsible expand panel showing old/new values), fixed 404 handling so new sets don't block conflict checks or imports
+    35 turns · 537s · $1.47
+
+  Merging to main: Import flow has no merge/conflict preview
+Already up to date.

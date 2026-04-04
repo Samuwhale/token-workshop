@@ -536,3 +536,16 @@
   - TOKEN_TYPE_BADGE_CLASS in shared/types.ts is the canonical list of all supported token types — any new UI picker should derive from it rather than maintain a separate hardcoded list
   - `<optgroup>` is a clean HTML-native way to group long <select> lists; no JS needed
 ---
+
+## 2026-04-04 - Import flow has no merge/conflict preview
+- Added per-token diff preview for Figma Variables import: extended `varConflictPreview` computation in the useEffect to also collect `varConflictDetails` (path, setName, existing value, incoming token) for all conflicting tokens across all enabled modes/sets
+- Added `varConflictDetailsExpanded`/`setVarConflictDetailsExpanded` state to drive a collapsible "Show N conflicting tokens" panel in `ImportVariablesFooter` that renders old (−) and new (+) values side-by-side using the existing `renderConflictValue` helper; capped at 60 visible rows with "and N more…" overflow
+- Fixed `prefetchExistingPaths` to treat 404 as "empty set" instead of an error — users can now pre-fetch conflict counts for a brand-new set name without seeing "Conflict detection unavailable"
+- Fixed `handleImportStyles` (JSON/CSS/Tailwind/Styles path) to treat 404 during the conflict-check fetch as "no existing tokens" and proceed with import — previously, importing into a new set name would fail with a visible error
+- Added `varConflictDetails`, `varConflictDetailsExpanded`, `setVarConflictDetailsExpanded` to `ImportPanelContextValue` type and `useMemo` deps
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L107, ~L228, ~L275, ~L320, ~L1068, ~L1197; `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` (rewritten)
+- **Learnings for future iterations:**
+  - The Variables conflict preview useEffect already fetches all set data to compute counts — collecting the per-token details in the same loop is zero extra network cost; just capture the entries while iterating
+  - 404 handling is a recurring omission in "check-before-mutate" patterns: whenever a fetch-then-create flow checks for existing state, the not-found case should be treated as "empty" not "error"
+  - `renderConflictValue` from `importPanelHelpers.tsx` is the shared formatter for old/new token values — reuse it across all diff UIs
+---
