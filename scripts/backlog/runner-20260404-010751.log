@@ -871,3 +871,18 @@ Already up to date.
 
   Merging to main: Generator auto-run fires outside the token lock causing race conditions with route handlers
 Already up to date.
+[main 2dbf1dec] chore(backlog): done – Generator auto-run fires outside the token lock causing race conditions with route handlers
+ 6 files changed, 47 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator auto-run fires outside the token lock causing race conditions with route handlers
+- Wrapped `generatorService.runForSourceToken()` in `tokenLock.withLock()` in the `tokenStore.onChange` listener in `index.ts`
+- The listener previously called `runForSourceToken()` as a floating async — no lock, so generator writes (via `executeGenerator` → `tokenStore.beginBatch/updateToken/endBatch`) raced against concurrent route-handler mutations that all hold `tokenLock.withLock()`
+- Fix is safe despite being called from inside a synchronous `emit()` which itself fires inside an active lock holder: the promise-chain mutex (`TokenLock`) simply queues the generator run after the current holder finishes — no re-entrancy, no deadlock
+
+═══════════════════════════════════════════════════════════════
+  #36  ·  4 queued · 3 in-progress · last took 3m50s
+═══════════════════════════════════════════════════════════════
+  → Plugin MESSAGE_SCHEMA is missing `resolvedValue` validation for 3 message types (`apply-to-selection`, `batch-bind-heatmap-nodes`, `apply-to-nodes`) — the schema at `controller.ts:70,87,94` doesn't check for `resolvedValue`, but the handlers at lines 224, 332, 381 pass `msg.resolvedValue` to `applyTokenValue()` which has no null guard and will crash on the typography branch (line 102+) when `resolvedValue` is undefined
+  Worktree: /tmp/backlog-92209-pDEStU
+  Running agent… (started 03:55:44)

@@ -382,6 +382,41 @@ export function SelectionInspector({
     }
   };
 
+  const handleUnbindAllInGroup = (groupProps: BindableProperty[]) => {
+    const boundProps: Array<{ prop: BindableProperty; tokenPath: string; tokenType: string; resolvedValue: any }> = [];
+    for (const prop of groupProps) {
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (binding && binding !== 'mixed') {
+        const entry = tokenMap[binding];
+        const tokenType = entry?.$type ?? getTokenTypeForProperty(prop);
+        const resolved = entry ? resolveTokenValue(entry.$value, entry.$type, tokenMap) : { value: null };
+        boundProps.push({ prop, tokenPath: binding, tokenType, resolvedValue: resolved.value });
+      }
+    }
+    if (boundProps.length === 0) return;
+    for (const { prop } of boundProps) {
+      parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
+    }
+    if (onPushUndo) {
+      onPushUndo({
+        description: `Unbound ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`,
+        restore: async () => {
+          for (const { prop, tokenPath, tokenType, resolvedValue } of boundProps) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'apply-to-selection',
+                tokenPath,
+                tokenType,
+                targetProperty: prop,
+                resolvedValue,
+              },
+            }, '*');
+          }
+        },
+      });
+    }
+  };
+
   const handleClearAllBindings = () => {
     const boundProps: Array<{ prop: BindableProperty; tokenPath: string; tokenType: string; resolvedValue: any }> = [];
     for (const prop of ALL_BINDABLE_PROPERTIES) {
@@ -1114,10 +1149,26 @@ export function SelectionInspector({
 
             if (visibleProps.length === 0) return null;
 
+            const boundPropsInGroup = visibleProps.filter(prop => {
+              const binding = getBindingForProperty(rootNodes, prop);
+              return binding && binding !== 'mixed';
+            });
+
             return (
               <div key={group.label} className={groupIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--color-figma-border)]/50' : ''}>
-                <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide">
-                  {group.label}
+                <div className="relative group/groupheader px-2 py-1 flex items-center">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex-1">
+                    {group.label}
+                  </span>
+                  {boundPropsInGroup.length > 0 && (
+                    <button
+                      onClick={() => handleUnbindAllInGroup(boundPropsInGroup)}
+                      className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                      title={`Unbind all ${group.label.toLowerCase()} properties`}
+                    >
+                      Unbind all
+                    </button>
+                  )}
                 </div>
                 {visibleProps.map(prop => (
                   <PropertyRow

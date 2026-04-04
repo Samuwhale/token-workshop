@@ -685,3 +685,10 @@ Already up to date.
   → No "unbind all properties" quick action in SelectionInspector — users can unbind one property at a time via hover X button, and there's a "clear all bindings" action, but there's no middle ground like "unbind all color properties" or "unbind all layout properties" for targeted cleanup; add per-category "unbind all" buttons in the property group headers (SelectionInspector.tsx property group rendering)
   Worktree: /tmp/backlog-91634-qk34Pu
   Running agent… (started 03:54:56)
+
+  ✓ done: No "unbind all properties" quick action in SelectionInspector
+    Added per-group "Unbind all" hover button in property group headers that unbinds all bound properties in the group with a single undoable action
+    17 turns · 92s · $0.34
+
+  Merging to main: No "unbind all properties" quick action in SelectionInspector
+Already up to date.
