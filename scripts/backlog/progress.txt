@@ -892,3 +892,19 @@
   - `useRef(someCallback)` as an initial value is a TDZ trap when `someCallback` is a `useCallback` declared later in the component body — even though TypeScript doesn't catch it. Always place the function definition BEFORE any `useRef` that references it.
   - Two-effect pattern for auto-recheck: (1) mount-only effect with localStorage comparison handles "navigate back" case; (2) `[tokenChangeKey]`-reactive effect with `checksRunAtKey !== null` guard handles "already viewing the tab" case. The guard on `checksRunAtKey` prevents auto-running before the user has ever triggered a check.
 ---
+
+## 2026-04-05 - Settings changes are immediate with no per-section reset or undo
+- Added "Reset" / "Reset to default" links to each setting that lacked one, appearing only when the value differs from its default:
+  - **Density** row: inline "Reset" link when not 'default'
+  - **Color format** row: inline "Reset" link when not 'hex'
+  - **Preferred copy format** row: inline "Reset" link when not 'css-var'
+  - **Default platforms** (Export Defaults): "Reset to default" link when not the single 'css' platform
+  - **Max undo steps** (Undo History): "Reset to 20" link when not 20
+  - CSS selector and Contrast background already had reset/clear buttons; server URL already had "Reset to default"
+- All reset buttons use the existing accent-color text link style matching the CSS selector pattern
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L469, ~L487, ~L511, ~L672, ~L722
+- **Learnings for future iterations:**
+  - For segmented control rows (label on left, control on right), the cleanest "Reset" placement is inline with the label in a flex row, not below or beside the control
+  - For number inputs with a label+description block, the "Reset" link fits naturally below the label text in the same column
+  - The pattern of showing a reset link only when value !== default keeps the UI clean — no visual clutter when already at defaults
+---

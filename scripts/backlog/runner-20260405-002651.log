@@ -355,3 +355,26 @@ Already up to date.
 
   Merging to main: Publish readiness checks require manual re-triggering after fixing issues
 Already up to date.
+[main 6f58385d] chore(backlog): done – Publish readiness checks require manual re-triggering after fixing issues
+ 5 files changed, 127 insertions(+), 84 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Publish readiness checks require manual re-triggering after fixing issues
+- Fixed a TDZ bug in `PublishPanel.tsx` where `runReadinessChecks` was referenced before its `useCallback` declaration (line 259 used `runReadinessChecks` defined at line 342 — crashing on first render). Fixed by moving the `runReadinessChecks` useCallback and its `READINESS_TIMEOUT_MS` constant to BEFORE the auto-run effects section.
+- Added a second `useEffect` (deps `[tokenChangeKey]`) that auto-rechecks while the Publish tab is already mounted: fires whenever `tokenChangeKey` increments AND a prior check has been run (`checksRunAtKey !== null`). This handles the case where the user edits tokens while on the Publish tab.
+- The existing mount-only effect was kept intact to handle the "navigated back to Publish after editing tokens on another tab" case using localStorage comparison.
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  17 queued · 0
+0 in-progress · last took 5m18s
+═══════════════════════════════════════════════════════════════
+  → Settings changes are immediate with no per-section reset or undo — SettingsPanel.tsx auto-saves every setting to localStorage on change (e.g., line 398 `lsSet(STORAGE_KEYS.DENSITY, d)`) with no confirmation and no way to revert individual changes; if a user accidentally changes the contrast background color or export CSS selector, there is no "Reset to default" button per setting and no undo; the only recovery is the nuclear "Clear All Data" in the danger zone (line 843) or manually re-entering the previous value; the import/export backup feature exists but is designed for full-profile transfer, not quick undo of accidental changes (violates: user control and freedom, error recovery)
+  Worktree: /tmp/backlog-54964-s4eA0Z
+  Running agent… (started 01:49:00)
+
+  ✓ done: Settings changes are immediate with no per-section reset or undo
+    Added per-setting "Reset" links for density, color format, preferred copy format, export platforms, and undo history — visible only when value differs from default, matching existing CSS selector/contrast bg patterns
+    14 turns · 130s · $0.45
+
+  Merging to main: Settings changes are immediate with no per-section reset or undo
+Already up to date.

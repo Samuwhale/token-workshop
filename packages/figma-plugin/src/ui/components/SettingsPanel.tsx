@@ -467,9 +467,19 @@ export function SettingsPanel({
           {/* ---- UI Preferences ---- */}
           <Section title="UI Preferences">
             {/* Density */}
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] text-[var(--color-figma-text)] block">Density</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Density</span>
+                  {density !== 'default' && (
+                    <button
+                      onClick={() => handleDensityChange('default')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Row height in token lists</span>
               </div>
               <SegmentedControl
@@ -484,9 +494,19 @@ export function SettingsPanel({
             </div>
 
             {/* Color format */}
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] text-[var(--color-figma-text)] block">Color format</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Color format</span>
+                  {colorFormat !== 'hex' && (
+                    <button
+                      onClick={() => handleColorFormatChange('hex')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Default display format for color values</span>
               </div>
               <SegmentedControl
@@ -509,9 +529,19 @@ export function SettingsPanel({
             </div>
 
             {/* Preferred copy format */}
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] text-[var(--color-figma-text)] block">Preferred copy format</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Preferred copy format</span>
+                  {preferredCopyFormat !== 'css-var' && (
+                    <button
+                      onClick={() => handlePreferredCopyFormatChange('css-var')}
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Format used by ⌘⇧C shortcut</span>
               </div>
               <SegmentedControl
@@ -655,7 +685,21 @@ export function SettingsPanel({
           {/* ---- Export Defaults ---- */}
           <Section title="Export Defaults" defaultOpen={false}>
             <div>
-              <span className="text-[11px] text-[var(--color-figma-text)] block mb-1">Default platforms</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] text-[var(--color-figma-text)]">Default platforms</span>
+                {!(exportPlatforms.size === 1 && exportPlatforms.has('css')) && (
+                  <button
+                    onClick={() => {
+                      const defaultPlatforms = new Set(['css']);
+                      setExportPlatforms(defaultPlatforms);
+                      lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, ['css']);
+                    }}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    Reset to default
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1">
                 {PLATFORMS.map(platform => (
                   <button
@@ -700,8 +744,18 @@ export function SettingsPanel({
 
           {/* ---- Undo History ---- */}
           <Section title="Undo History" defaultOpen={false}>
-            <label className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Max undo steps</span>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] block">Max undo steps</span>
+                {undoMaxHistory !== 20 && (
+                  <button
+                    onClick={() => { setUndoMaxHistory(20); lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, 20); }}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    Reset to 20
+                  </button>
+                )}
+              </div>
               <input
                 type="number"
                 min={1}
@@ -714,7 +768,7 @@ export function SettingsPanel({
                 }}
                 className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right focus-visible:border-[var(--color-figma-accent)]"
               />
-            </label>
+            </div>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Number of undo actions to keep in history (1–200). Default is 20.
             </p>
