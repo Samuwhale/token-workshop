@@ -79,3 +79,26 @@ Already up to date.
 
   Merging to main: Unify the three undo/redo systems into a single timeline
 Already up to date.
+[main b093cb9a] chore(backlog): done – Unify the three undo/redo systems into a single timeline
+ 8 files changed, 139 insertions(+), 66 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Unify the three undo/redo systems into a single timeline
+- Merged local undo, server operation log, and git commits/snapshots into a single chronological "Activity" timeline in `HistoryPanel.tsx`. The separate "This session" collapsible section was removed; local undo entries are now inline in the timeline sorted by synthetic timestamps (Date.now() - index * 100ms, most recent first).
+- Added `TypePill kind='local'` (gray pill) to distinguish local entries from Action/Commit/Snapshot entries.
+- Added one-click "Undo" button for the topmost local entry; "Undo N" button for deeper entries (calls `executeUndo()` N times in sequence). Button text shows count to set expectations (e.g., "Undo 3").
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  29 queued · 0
+0 in-progress · last took 8m41s
+═══════════════════════════════════════════════════════════════
+  → Add a "Publish All" fast path that skips per-target confirmation — PublishPanel.tsx (2,070 lines) requires users to separately compare and confirm Figma Variables, Figma Styles, and Git in sequence; for the common case of "push everything local to Figma", add a single "Publish All" button that shows one combined diff summary and applies all three targets in one confirmation step
+  Worktree: /tmp/backlog-54964-CHFwLO
+  Running agent… (started 00:49:49)
+
+  ✓ done: Add "Publish All" fast path that skips per-target confirmation
+    Lowered threshold from 2→1 targets, added auto-compare in handleOpenPublishAll (compares unchecked targets before opening modal), compareAllLoading state in banner, useFocusTrap + confirmError + aria-labelledby in modal, "all in sync" message when nothing to publish.
+    33 turns · 644s · $2.06
+
+  Merging to main: Add "Publish All" fast path that skips per-target confirmation
+Already up to date.

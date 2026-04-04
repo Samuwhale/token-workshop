@@ -5,6 +5,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useGitSync } from '../hooks/useGitSync';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { apiFetch } from '../shared/apiFetch';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
@@ -235,6 +236,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
   const [publishAllGitSkipped, setPublishAllGitSkipped] = useState(false);
+  const [compareAllLoading, setCompareAllLoading] = useState(false);
 
   // ── Orphan deletion message handler ──
   useEffect(() => {
@@ -279,8 +281,31 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   // When merge conflicts exist, exclude git from publish-all so Variables + Styles can still proceed
   const effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts;
   const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (effectiveHasGitDiffChanges ? 1 : 0);
-  const publishAllAvailable = publishAllSections >= 2;
+  // Show the Publish All banner when any single compared target has pending changes.
+  // Auto-compare is enabled for variables, so this typically appears right after connecting.
+  const publishAllAvailable = publishAllSections >= 1;
   const publishAllBusy = publishAllStep !== null;
+
+  // "Publish All" fast path: auto-compare any unchecked targets, then open the combined modal.
+  // This lets users click one button to compare everything and confirm in a single step.
+  const handleOpenPublishAll = useCallback(async () => {
+    const toCompare: Promise<void>[] = [];
+    if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
+    if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
+    if (git.diffView === null && !git.diffLoading) toCompare.push(git.computeDiff());
+
+    if (toCompare.length > 0) {
+      setCompareAllLoading(true);
+      try {
+        await Promise.all(toCompare);
+      } catch {
+        // Each entity surfaces its own error in its section; we still open the modal.
+      } finally {
+        setCompareAllLoading(false);
+      }
+    }
+    setConfirmAction('publish-all');
+  }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff]);
 
   const runPublishAll = useCallback(async () => {
     setPublishAllError(null);
@@ -586,13 +611,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       </div>
 
       {/* ── Publish all banner ──────────────────────────────────────────── */}
-      {(publishAllAvailable || publishAllBusy) && (
+      {(publishAllAvailable || publishAllBusy || compareAllLoading) && (
         <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 p-2.5">
-            {publishAllBusy ? (
+            {(publishAllBusy || compareAllLoading) ? (
               <div className="flex items-center gap-2">
                 <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
+                  {compareAllLoading && 'Comparing all targets\u2026'}
                   {publishAllStep === 'variables' && 'Applying variable changes\u2026'}
                   {publishAllStep === 'styles' && 'Applying style changes\u2026'}
                   {publishAllStep === 'git' && 'Applying git diff changes\u2026'}
@@ -613,7 +639,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   </span>
                 </div>
                 <button
-                  onClick={() => setConfirmAction('publish-all')}
+                  onClick={handleOpenPublishAll}
                   className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
                 >
                   {hasMergeConflicts ? 'Publish without Git' : 'Publish all'}
@@ -1662,6 +1688,9 @@ function PublishAllPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -1671,10 +1700,12 @@ function PublishAllPreviewModal({
 
   const gitPushCount = Object.values(gitDiffChoices).filter(c => c === 'push').length;
   const gitPullCount = Object.values(gitDiffChoices).filter(c => c === 'pull').length;
+  const hasAnyChanges = hasVarChanges || hasStyleChanges || hasGitDiffChanges;
 
   const handleConfirm = async () => {
     setBusy(true);
-    try { await onConfirm(); } finally { setBusy(false); }
+    setConfirmError(null);
+    try { await onConfirm(); } catch (err) { setConfirmError(describeError(err)); setBusy(false); }
   };
 
   return (
@@ -1682,9 +1713,9 @@ function PublishAllPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={dialogRef} className="w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="publish-all-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <h3 id="publish-all-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             {mergeConflictCount > 0 ? 'Publish Variables + Styles' : 'Publish all changes'}
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1701,6 +1732,13 @@ function PublishAllPreviewModal({
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Git excluded — <span className="font-medium text-[var(--color-figma-text)]">{mergeConflictCount} merge conflict{mergeConflictCount !== 1 ? 's' : ''}</span> must be resolved in the Git tab first.
               </div>
+            </div>
+          )}
+
+          {/* All in sync — shown when auto-compare found no pending changes */}
+          {!hasAnyChanges && (
+            <div className="py-3 text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+              All targets are in sync — nothing to publish.
             </div>
           )}
 
@@ -1773,6 +1811,9 @@ function PublishAllPreviewModal({
           )}
         </div>
 
+        {confirmError && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words" role="alert">{confirmError}</p>
+        )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           <button
             onClick={onCancel}
@@ -1781,14 +1822,23 @@ function PublishAllPreviewModal({
           >
             Cancel
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={busy}
-            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-          >
-            {busy && <Spinner size="sm" className="text-white" />}
-            {busy ? 'Publishing\u2026' : mergeConflictCount > 0 ? 'Publish without Git' : 'Publish all'}
-          </button>
+          {hasAnyChanges ? (
+            <button
+              onClick={handleConfirm}
+              disabled={busy}
+              className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {busy && <Spinner size="sm" className="text-white" />}
+              {busy ? 'Publishing\u2026' : mergeConflictCount > 0 ? 'Publish without Git' : 'Publish all'}
+            </button>
+          ) : (
+            <button
+              onClick={onCancel}
+              className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>

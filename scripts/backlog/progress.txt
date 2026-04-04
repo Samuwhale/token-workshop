@@ -745,3 +745,19 @@
   - `executeUndo()` is async and serialised via `executingRef`, so sequentially awaiting it in a loop is safe.
   - The type filter Set size for `isFiltering` must match the number of filter kinds (was `< 3`, now `< 4` after adding 'local').
 ---
+
+## 2026-04-05 - Add "Publish All" fast path that skips per-target confirmation
+- The core feature was ~90% already implemented (banner, modal, runPublishAll). The gaps filled:
+  1. **Threshold `>= 2` → `>= 1`**: `publishAllAvailable` now shows the banner when any single compared target has changes. With `autoComputeOnConnect: true` for variables, the banner appears immediately after connecting when variable changes exist.
+  2. **Auto-compare fast path**: `handleOpenPublishAll` replaces direct `setConfirmAction('publish-all')`. When clicked, it runs `computeDiff()` in parallel for any unchecked targets (variables, styles, git) before opening the modal — one button does everything.
+  3. **`compareAllLoading` state**: Banner shows "Comparing all targets…" spinner while auto-compare runs, using the same spinner pattern as `publishAllBusy`.
+  4. **`useFocusTrap` + `dialogRef`**: Added to `PublishAllPreviewModal` for keyboard accessibility, consistent with `SyncPreviewModal` and `GitPreviewModal`.
+  5. **`confirmError` state**: `handleConfirm` now catches errors and shows them inline in the modal footer (via `role="alert"` paragraph) instead of silently losing them when the modal closed.
+  6. **`aria-labelledby`**: Added `id="publish-all-modal-title"` on the `<h3>` and `aria-labelledby` on the dialog div.
+  7. **"All in sync" message**: Modal body shows "All targets are in sync — nothing to publish." when `!hasAnyChanges` (e.g., after auto-compare finds nothing). Footer shows "Close" instead of "Publish all" in this case.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1 (import), ~L235 (state), ~L282 (threshold), ~L285 (handleOpenPublishAll), ~L610 (banner condition + button), ~L1660 (modal useFocusTrap), ~L1735 (all-in-sync message), ~L1812 (confirmError + footer)
+- **Learnings for future iterations:**
+  - A "fast path" button that wraps multiple async operations should show a loading state that's distinct from the apply-phase loading (`compareAllLoading` vs `publishAllBusy`), so users can distinguish "comparing" from "applying".
+  - When an action may require prerequisite work (compare before apply), encode that directly in the click handler via `Promise.all([...unchecked.computeDiff()])` rather than requiring the user to manually trigger each prerequisite first.
+  - Always add `aria-labelledby` + `useFocusTrap` to new modal dialogs — omitting them is consistently an accessibility gap.
+---
