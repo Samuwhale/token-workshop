@@ -263,3 +263,26 @@ Already up to date.
 
   Merging to main: Token tree context menus have no visible affordance
 Already up to date.
+[main f7fd52f1] chore(backlog): done – Token tree context menus have no visible affordance
+ 5 files changed, 54 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Token tree context menus have no visible affordance
+- Added a "⋮" (more actions) hover button to token rows that opens the full context menu at the button's position — matches the existing group row pattern (which already had a ⋮ button at line 410).
+- The button uses `getBoundingClientRect()` to position the context menu below the button, with viewport boundary clamping.
+- Group rows already had a ⋮ button (hidden/flex on hover), so no change was needed there.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  21 queued · 0
+0 in-progress · last took 2m23s
+═══════════════════════════════════════════════════════════════
+  → Clipboard copy from context menu gives no visual feedback — TokenTreeNode.tsx inline hover buttons (handleCopyPath line 947, handleCopyValue line 953) show a brief checkmark via `copiedWhat` state with a 1500ms timeout, but clipboard copies triggered from the context menu (lines 1906, 1941, 1960) call `navigator.clipboard.writeText()` then immediately close the menu with no "Copied!" indicator, no toast, and failures are silently logged to console; the user clicks a copy button, the menu vanishes, and there is no confirmation the copy succeeded — this is inconsistent even within the same component (violates: visibility of system status, consistency)
+  Worktree: /tmp/backlog-54964-LpyENi
+  Running agent… (started 01:32:05)
+
+  ✓ done: Clipboard copy from context menu gives no visual feedback
+    Context menu copy actions now set copiedWhat state before closing, so row hover buttons show "Copied!" for 1.5s after menu dismissal — consistent with inline hover button behavior
+    19 turns · 128s · $0.42
+
+  Merging to main: Clipboard copy from context menu gives no visual feedback
+Already up to date.

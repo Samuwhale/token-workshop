@@ -1933,7 +1933,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              navigator.clipboard.writeText(node.path).catch(e => console.warn('[clipboard] write failed:', e));
+              handleCopyPath();
               setContextMenuPos(null);
             }}
           >
@@ -1969,6 +1969,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => {
                         navigator.clipboard.writeText(value).catch(e => console.warn('[clipboard] write failed:', e));
+                        setCopiedWhat('value');
+                        setTimeout(() => setCopiedWhat(null), 1500);
                         setContextMenuPos(null);
                       }}
                     >
@@ -1988,6 +1990,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
                           onMouseDown={e => e.preventDefault()}
                           onClick={() => {
                             navigator.clipboard.writeText(colorVal).catch(e => console.warn('[clipboard] write failed:', e));
+                            setCopiedWhat('value');
+                            setTimeout(() => setCopiedWhat(null), 1500);
                             setContextMenuPos(null);
                           }}
                         >

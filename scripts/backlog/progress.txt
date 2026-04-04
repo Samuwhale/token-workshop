@@ -846,3 +846,14 @@
   - Group rows had this affordance already — the item description was partially stale for groups. Token rows were the real gap.
   - The ⋮ button pattern: `getBoundingClientRect()` on `e.currentTarget`, then `setContextMenuPos({ x: Math.min(rect.left, window.innerWidth - menuWidth), y: Math.min(rect.bottom + 2, window.innerHeight - menuHeight) })` — identical to how the group row's ⋮ button works.
 ---
+
+## 2026-04-05 - Clipboard copy from context menu gives no visual feedback
+- Context menu copy actions now reuse the existing `copiedWhat` state mechanism so that after the menu closes, the row hover buttons briefly show "Copied!" for 1.5s — consistent with the existing inline hover button behavior
+- "Copy path" context menu button now calls `handleCopyPath()` (which already sets `copiedWhat('path')` + 1500ms timeout) before closing the menu
+- "Copy as…" format buttons (CSS var, DTCG ref, SCSS, raw, JSON) now set `copiedWhat('value')` + timeout before closing
+- Color format buttons (hex, rgb, hsl, oklch, p3) now set `copiedWhat('value')` + timeout before closing
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1935, ~L1970, ~L1989
+- **Learnings for future iterations:**
+  - Reusing existing `copiedWhat` state (driven by hover button handlers) is the zero-friction approach — the state drives visual feedback on the row's copy buttons, which are still visible after the menu closes
+  - For "Copy path", simply delegating to `handleCopyPath()` keeps the logic DRY; for format buttons without a dedicated handler, inline `setCopiedWhat + setTimeout` is appropriate
+---
