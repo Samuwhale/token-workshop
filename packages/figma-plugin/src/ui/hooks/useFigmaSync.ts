@@ -36,7 +36,9 @@ export function useFigmaSync(
 
   // Listen for incremental progress messages from the plugin sandbox
   useEffect(() => {
+    const signal = abortRef.current.signal;
     const handler = (ev: MessageEvent) => {
+      if (signal.aborted) return;
       const msg = ev.data?.pluginMessage;
       if (msg?.type === 'variable-sync-progress') {
         setSyncGroupProgress({ current: msg.current as number, total: msg.total as number });

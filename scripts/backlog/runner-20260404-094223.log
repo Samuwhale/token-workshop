@@ -28,3 +28,20 @@ NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
 
   Merging to main: Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
 Already up to date.
+[main db3655d2] chore(backlog): done – Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
+ 7 files changed, 325 insertions(+), 1 deletion(-)
+ create mode 100644 scripts/backlog/runner-20260404-094202.log
+ create mode 100644 scripts/backlog/runner-20260404-094223.log
+  ✓ Merged and marked done
+
+## 2026-04-04 - Settings backup/restore excludes per-set view mode, export presets, export path prefix, and analytics suppressions
+- Added missing keys to both the export (`preferenceKeys`) and import whitelist (`IMPORTABLE_EXACT_KEYS`) in `SettingsPanel.tsx`: `EXPORT_PATH_PREFIX`, `EXPORT_TYPES`, `EXPORT_CHANGES_ONLY`, `ANALYTICS_SUPPRESSIONS`
+- Added `tm_view-mode:` to the dynamic prefix loop in `handleExportSettings` so per-set view modes are included in the backup
+- Added `tm_view-mode:` prefix check in `isAllowedImportKey` so those keys can be restored from a backup
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  4 queued · 2 in-progress · last took 2m16s
+═══════════════════════════════════════════════════════════════
+  → Consolidate duplicated Variable/Style sync code — `useVariableSync` (171 lines) and `useStyleSync` (171 lines) are structurally identical hooks with different property names; `VariableSyncSubPanel` (180 lines) and `StyleSyncSubPanel` (180 lines) are 95%+ identical components; `useFigmaSync` duplicates the token-fetch-filter-resolve pattern between `handleSyncGroup` and `handleSyncGroupStyles` (L65-98 vs L100-134); all six files (~915 lines total) should be consolidated into a parameterized `useSyncEntity` hook and a generic `SyncSubPanel` component, cutting ~450 lines of pure duplication
+  Worktree: /tmp/backlog-60297-GNhLuZ
+  Running agent… (started 09:44:39)

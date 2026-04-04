@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { UndoSlot } from './useUndo';
 import { nodeParentPath } from '../components/tokenListUtils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -25,6 +25,12 @@ export function useDragDrop({
   onError,
   onRenamePath,
 }: UseDragDropParams) {
+  const abortRef = useRef(new AbortController());
+  useEffect(() => {
+    const controller = abortRef.current;
+    return () => { controller.abort(); };
+  }, []);
+
   const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [dragOverGroupIsInvalid, setDragOverGroupIsInvalid] = useState(false);
@@ -79,21 +85,27 @@ export function useDragDrop({
 
     const capturedSet = setName;
     const capturedUrl = serverUrl;
+    const signal = abortRef.current.signal;
     try {
       await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ renames: planned, updateAliases: true }),
+        signal,
       });
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       const msg = err instanceof ApiError
         ? (err.message || `Move failed (${err.status})`)
         : 'Move failed: network error';
-      setDragSource(null);
-      onError?.(msg);
-      onRefresh();
+      if (!signal.aborted) {
+        setDragSource(null);
+        onError?.(msg);
+        onRefresh();
+      }
       return;
     }
+    if (signal.aborted) return;
     setDragSource(null);
 
     if (onPushUndo) {
@@ -171,19 +183,25 @@ export function useDragDrop({
     const newOrder = [...withoutDragged.slice(0, insertIdx), ...source.names, ...withoutDragged.slice(insertIdx)];
 
     const prevOrder = [...siblings];
+    const signal = abortRef.current.signal;
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
+        signal,
       });
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       const msg = err instanceof ApiError ? (err.message || `Reorder failed (${err.status})`) : 'Reorder tokens failed: network error';
-      setDragSource(null);
-      onError?.(msg);
-      onRefresh();
+      if (!signal.aborted) {
+        setDragSource(null);
+        onError?.(msg);
+        onRefresh();
+      }
       return;
     }
+    if (signal.aborted) return;
     setDragSource(null);
     if (onPushUndo) {
       const capturedSet = setName;

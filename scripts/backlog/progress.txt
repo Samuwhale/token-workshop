@@ -369,3 +369,12 @@
   - The export `preferenceKeys` list and `IMPORTABLE_EXACT_KEYS` set must be kept in sync — they're separate and easy to diverge. A single source of truth (one array used for both) would be safer.
   - Per-set dynamic key prefixes appear in three places: export loop, `isAllowedImportKey`, and diff label builder — all three must be updated together when adding a new dynamic key family.
 ---
+
+## 2026-04-04 - useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
+- `useFigmaSync`: Added `signal.aborted` check at the top of the message event handler (before any setState calls) — the `abortRef` and unmount cleanup already existed, but the progress message handler was missing the guard.
+- `useDragDrop`: Added `useRef` and `useEffect` imports; added `abortRef = useRef(new AbortController())` + unmount cleanup effect; passed `signal` to the main `apiFetch` calls in `handleDropOnGroup` and `handleDropReorder`; added `AbortError` name check in catch blocks and `signal.aborted` guards before all post-await setState/callback calls.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L38, `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L1,28-33,89-101,183-196
+- **Learnings for future iterations:**
+  - When a hook already has an `abortRef` + unmount cleanup, scan ALL effects in the hook for missing abort guards — not just the async callbacks. Message event handlers are easy to miss since they look synchronous but update state asynchronously.
+  - For undo/redo callback closures that live beyond the component (stored in a parent's undo stack), avoid passing the component's abort signal to them — those fetches should complete even if the component unmounts. Only the immediate async operation needs the signal.
+---

@@ -1,0 +1,33 @@
+NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    75658
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Pass model: claude-opus-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260404-095203.log
+  Passes: enabled (every 12 items)
+
+  Queue:    3 ready · 3 in-progress · 4 failed
+  Done:     1314 total (next code pass in 6, product pass in 12)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  3 queued · 3 in-progress
+═══════════════════════════════════════════════════════════════
+  → `useFigmaSync` and `useDragDrop` hooks lack abort signals and unmount guards — `useFigmaSync` progress message handler (L38-49) doesn't check abort signal before calling setState, and `useDragDrop` has no AbortController for its 6+ `apiFetch` calls (L83, L108, L124, L175, L197, L205); both can trigger React state-update-on-unmounted-component warnings; should follow the per-fetch AbortController pattern already applied to `useGitConflicts`, `useGitDiff`, `useLintConfig`, and `useRecentOperations` (packages/figma-plugin/src/ui/hooks/useFigmaSync.ts, packages/figma-plugin/src/ui/hooks/useDragDrop.ts)
+  Worktree: /tmp/backlog-75658-SzFMwl
+  Running agent… (started 09:52:04)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  ✓ done: useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
+    Added signal.aborted guard to useFigmaSync message handler; added full AbortController lifecycle to useDragDrop with signal passed to both main apiFetch calls and abort checks before all post-await state updates
+    11 turns · 93s · $0.29
+
+  Merging to main: useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
+Already up to date.

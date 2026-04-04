@@ -1,0 +1,1 @@
+- [bug][Theme Management] ThemeManager crashes with React error #310 — `filteredDimensions` useMemo at line 844 is called after early returns for `!connected` (line 826) and `loading` (line 834), violating Rules of Hooks ("Rendered more hooks than during the previous render"). Fix: move the `filteredDimensions` useMemo above those two early returns.
