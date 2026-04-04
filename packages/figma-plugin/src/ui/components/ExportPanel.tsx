@@ -1,4 +1,4 @@
-import { getErrorMessage, isAbortError } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
+import { useTokenDataContext } from '../contexts/TokenDataContext';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -126,6 +127,7 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
 }
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
+  const { sets, addSetToState } = useTokenDataContext();
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [selected, setSelected] = useState<Set<string>>(() => {
     const parsed = lsGetJson<string[]>(STORAGE_KEYS.EXPORT_PLATFORMS, []);
@@ -151,7 +153,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   });
 
   // Set filter state
-  const [availableSets, setAvailableSets] = useState<string[]>([]);
   const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
 
   // Type filter state — null means all types
@@ -253,25 +254,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     };
   }, []);
 
-  // Fetch available sets when connected
-  useEffect(() => {
-    if (!connected) return;
-    const controller = new AbortController();
-    apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`, { signal: controller.signal })
-      .then((data) => {
-        setAvailableSets(data.sets || []);
-      })
-      .catch((err) => {
-        if (isAbortError(err)) return;
-        console.warn('[ExportPanel] failed to fetch sets:', err);
-      });
-    return () => controller.abort();
-  }, [connected, serverUrl]);
-
   const toggleSet = (name: string) => {
     setSelectedSets(prev => {
       // If currently "all", transition to all-except-toggled
-      const base = prev ?? new Set(availableSets);
+      const base = prev ?? new Set(sets);
       const next = new Set(base);
       if (next.has(name)) {
         next.delete(name);
@@ -279,7 +265,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         next.add(name);
       }
       // If all sets are selected again, reset to null (= all)
-      return next.size === availableSets.length ? null : next;
+      return next.size === sets.length ? null : next;
     });
   };
 
@@ -533,8 +519,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setSlugRenames({});
 
     try {
-      const data = await apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`);
-      const existingSlugs = new Set(data.sets || []);
+      const existingSlugs = new Set(sets);
 
       const items: SavePreviewItem[] = [];
       for (const collection of figmaCollections) {
@@ -608,12 +593,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         for (const { modeName, setName } of savePairs) {
           // Ensure set exists — 409 means it already exists, which is fine.
           // Any other error propagates and aborts the whole operation (fail-fast).
+          let isNewSet = true;
           await apiFetch(`${serverUrl}/api/sets`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: setName }),
           }).catch((err) => {
-            if (err instanceof ApiError && err.status === 409) return;
+            if (err instanceof ApiError && err.status === 409) { isNewSet = false; return; }
             throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : String(err)}`);
           });
 
@@ -665,6 +651,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
           });
 
+          if (isNewSet) addSetToState(setName, batchTokens.length);
           totalVarsSaved += batchTokens.length;
         }
       }
@@ -1106,7 +1093,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               </div>
             )}
 
-            {availableSets.length > 0 && (
+            {sets.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <button
@@ -1129,7 +1116,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       }}
                       className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                     >
-                      {selectedSets === null ? `Deselect all` : `Select all (${availableSets.length})`}
+                      {selectedSets === null ? `Deselect all` : `Select all (${sets.length})`}
                     </button>
                   ) : (
                     <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -1137,13 +1124,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                         ? 'All sets'
                         : selectedSets.size === 0
                           ? <span className="text-[var(--color-figma-warning)]">None selected</span>
-                          : `${selectedSets.size} of ${availableSets.length}`}
+                          : `${selectedSets.size} of ${sets.length}`}
                     </span>
                   )}
                 </div>
                 {setsOpen && (
                   <div className="flex flex-col gap-1">
-                    {availableSets.map(setName => {
+                    {sets.map(setName => {
                       const isSelected = selectedSets === null || selectedSets.has(setName);
                       return (
                         <label

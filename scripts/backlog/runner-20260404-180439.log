@@ -1105,3 +1105,26 @@ Already up to date.
 
   Merging to main: Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
 Already up to date.
+[main 2d9efb6b] chore(backlog): done – Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
+ 5 files changed, 171 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
+- Added `validateVarSnapshot` and `validateStyleSnapshot` functions in `controller.ts` that perform deep structural validation before passing data to `revertVariables`/`revertStyles`
+- `validateVarSnapshot` checks: top-level object shape, `records` is an object, each record entry has `valuesByMode` (object), `name`/`description` (strings), `hiddenFromPublishing` (boolean), `scopes` (array), `pluginData.tokenPath`/`pluginData.tokenSet` (strings), plus `createdIds` is a string array
+- `validateStyleSnapshot` checks: top-level object shape, `snapshots` is an array of objects each with `id` (string), `type` ("paint"|"text"|"effect"), `data` (present), plus `createdIds` is a string array
+
+═══════════════════════════════════════════════════════════════
+  #42  ·  23 queued · 0
+0 in-progress · last took 2m17s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel.tsx independently fetches /api/sets in 3 separate locations (lines 260, 536, 611) instead of receiving set data from TokenDataContext which already maintains the set list — the component also has its own stale set-list state that can diverge from the canonical list after set creation/deletion/rename operations performed in other panels
+  Worktree: /tmp/backlog-3108-FUbReJ
+  Running agent… (started 00:11:07)
+
+  ✓ done: ExportPanel.tsx independently fetches /api/sets in 3 separate locations instead of receiving set data from TokenDataContext
+    Removed 2 GET fetches and the stale availableSets state; component now reads sets from useTokenDataContext() and calls addSetToState() after new set creation
+    27 turns · 203s · $0.7
+
+  Merging to main: ExportPanel.tsx independently fetches /api/sets in 3 separate locations instead of receiving set data from TokenDataContext
+Already up to date.

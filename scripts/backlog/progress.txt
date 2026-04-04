@@ -661,3 +661,16 @@
   - `Parameters<typeof importedFn>[N]` is a clean way to reuse an imported function's parameter type without re-exporting or duplicating the type definition
   - For switch-case handlers that use `const`, always add `{ }` block scoping to avoid eslint/TS errors about variable declarations in case clauses
 ---
+
+## 2026-04-05 - ExportPanel.tsx independently fetches /api/sets in 3 separate locations
+- Replaced 3 independent `/api/sets` fetches with `useTokenDataContext()`:
+  1. Removed `availableSets` state and the `useEffect` GET fetch (was ~L260) — replaced with `sets` from context
+  2. Removed the GET fetch inside `handlePreviewSave` (~L536) — now uses `const existingSlugs = new Set(sets)` directly
+  3. Kept the POST fetch in `handleConfirmSave` (~L611) (creates sets, not reads) — added `addSetToState(setName, batchTokens.length)` call after success so new sets are reflected in context without a round-trip
+- Added `import { useTokenDataContext } from '../contexts/TokenDataContext'` and `const { sets, addSetToState } = useTokenDataContext()` in component body
+- Removed unused `isAbortError` import
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1, ~L129, ~L154, ~L257, ~L272, ~L536, ~L611
+- **Learnings for future iterations:**
+  - Components deep in the render tree can call `useTokenDataContext()` directly — no need to thread props through PanelRouter
+  - When replacing a stale-state GET fetch with context data, also update the POST/mutation path to call context mutation helpers (`addSetToState`) so the canonical list stays current after creates
+---
