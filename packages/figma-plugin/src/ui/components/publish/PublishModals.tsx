@@ -277,9 +277,9 @@ export function GitPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div ref={gitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={gitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="git-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
 
@@ -485,9 +485,9 @@ export function CommitPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="commit-preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
+          <h3 id="commit-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Review what will be committed before proceeding.
           </p>

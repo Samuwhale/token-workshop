@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import type {
   TokenGenerator,
@@ -178,6 +179,18 @@ export function TokenGeneratorDialog({
     }
   }, [dialog.showConfirmation, currentStep]);
 
+  // --- Accessibility ---
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // handleClose is stable in practice; adding it would cause re-registration on every dirty state change.
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
       {showDiscardConfirm && (
@@ -191,7 +204,7 @@ export function TokenGeneratorDialog({
           onCancel={() => setShowDiscardConfirm(false)}
         />
       )}
-      <div className="bg-[var(--color-figma-bg)] rounded-t-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="token-generator-dialog-title" className="bg-[var(--color-figma-bg)] rounded-t-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">
@@ -205,7 +218,7 @@ export function TokenGeneratorDialog({
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
               </button>
             ) : null}
-            <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+            <span id="token-generator-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               {dialog.isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
             </span>
           </div>

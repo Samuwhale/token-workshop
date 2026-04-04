@@ -506,3 +506,19 @@
   - setSubTab needs current activeTopTab but should be stable. Use the stable-callback-ref pattern: `activeTopTabRef.current = activeTopTab` on every render, then `setSubTab = useCallback(() => { use activeTopTabRef.current }, [])` with empty deps.
   - NavigationProvider can live in main.tsx with no props (fully self-contained). EditorProvider also lives in main.tsx because it calls useTokenDataContext() internally — as long as it's nested inside TokenDataProvider.
 ---
+
+## 2026-04-04 - Inconsistent modal accessibility across dialogs
+- Standardized accessibility across all dialogs in the plugin:
+  1. **`TokenGeneratorDialog.tsx`**: Added `useRef`/`useFocusTrap` import, `dialogRef`, `useFocusTrap(dialogRef)`, Escape handler `useEffect`, `role="dialog"` + `aria-modal="true"` + `aria-labelledby="token-generator-dialog-title"` to the inner panel div, and `id="token-generator-dialog-title"` on the title span. This was the most critical gap — the 3-step generator dialog had no dialog role, no focus trap, and no Escape handler.
+  2. **`TokenEditor.tsx`**: Extracted inline "Save changes?" dialog to a proper `SaveChangesDialog` component with `useFocusTrap` and Escape handler. Imported `useFocusTrap` from `../hooks/useFocusTrap`. The component takes `canSave`, `isCreateMode`, `editPath`, `saving`, `onSave`, `onDiscard`, `onCancel` as props — keeping all logic in the parent.
+  3. **`TokenListModals.tsx`**: 
+     - `RenameConfirmModal`: Added `useRef`/`useFocusTrap` (replacing `React.useEffect` with direct `useEffect` from import), `useFocusTrap(dialogRef)`, `aria-labelledby="rename-confirm-dialog-title"`, title id.
+     - "Link to token" extract modal: Extracted from inline IIFE to `ExtractToAliasModal` component that calls `useTokenListModals()` directly — gained `role="dialog"`, `aria-modal`, `aria-labelledby`, `useFocusTrap`, Escape handler, and backdrop close. Removed now-redundant destructure vars from parent `TokenListModals`.
+     - "New group dialog": Added `role="dialog"`, `aria-modal`, `aria-labelledby="new-group-dialog-title"`, title id, and backdrop `onMouseDown` close handler.
+  4. **`publish/PublishModals.tsx`**: Added `aria-labelledby` + matching title id to `GitPreviewModal` and `CommitPreviewModal` (both already had `useFocusTrap`, Escape, backdrop). `SyncPreviewModal` was already complete; `ApplyDiffConfirmModal` delegates to ConfirmModal.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1,184, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L37,543, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L1,155,225,402, `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L280,488
+- **Learnings for future iterations:**
+  - Inline IIFEs in JSX (`{cond && (() => { ... })()}`) cannot use React hooks — must be extracted to a named component. Prefer extraction to a component that calls the context hook directly rather than prop-drilling 10+ values.
+  - `useFocusTrap` is designed to be called at component mount (empty deps), so it only works properly when the dialog is its own component (either a separate file or a local function). For inline conditional modals, always extract to a separate component.
+  - When extracting an IIFE modal to a component that uses `useTokenListModals()`, remove the now-redundant destructured vars from the parent's `useTokenListModals()` call to avoid unused-variable warnings.
+---

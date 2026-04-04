@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { QuickStartDialog } from './QuickStartDialog';
@@ -157,8 +158,10 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
 }) {
   const label = oldPath.split('.').pop() ?? oldPath;
   const noun = depCount !== 1 ? 'aliases' : 'alias';
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -169,9 +172,9 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={dialogRef} className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="rename-confirm-dialog-title">
         <div className="px-4 pt-4 pb-3">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <h3 id="rename-confirm-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             Rename {kind} &ldquo;{label}&rdquo;?
           </h3>
           <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
@@ -219,6 +222,153 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
   );
 }
 
+function ExtractToAliasModal() {
+  const {
+    allTokensFlat,
+    sets,
+    extractToken,
+    extractMode,
+    onSetExtractMode,
+    newPrimitivePath,
+    onSetNewPrimitivePath,
+    newPrimitiveSet,
+    onSetNewPrimitiveSet,
+    existingAlias,
+    onSetExistingAlias,
+    existingAliasSearch,
+    onSetExistingAliasSearch,
+    extractError,
+    onSetExtractError,
+    handleConfirmExtractToAlias,
+    onSetExtractToken,
+  } = useTokenListModals();
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onSetExtractToken(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onSetExtractToken]);
+
+  if (!extractToken) return null;
+
+  const candidateTokens = Object.entries(allTokensFlat)
+    .filter(([path, t]) => path !== extractToken.path && t.$type === extractToken.$type && !isAlias(t.$value))
+    .filter(([path]) => !existingAliasSearch || path.toLowerCase().includes(existingAliasSearch.toLowerCase()))
+    .slice(0, 40);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onSetExtractToken(null); }}
+    >
+      <div ref={dialogRef} className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }} role="dialog" aria-modal="true" aria-labelledby="extract-to-alias-dialog-title">
+        <div className="p-4 border-b border-[var(--color-figma-border)]">
+          <div id="extract-to-alias-dialog-title" className="text-[12px] font-medium text-[var(--color-figma-text)]">Link to token</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
+            <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
+          </div>
+        </div>
+
+        {/* Mode tabs */}
+        <div className="flex border-b border-[var(--color-figma-border)]">
+          <button
+            onClick={() => onSetExtractMode('new')}
+            className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'new' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+          >
+            Create new primitive
+          </button>
+          <button
+            onClick={() => onSetExtractMode('existing')}
+            className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'existing' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+          >
+            Use existing token
+          </button>
+        </div>
+
+        <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
+          {extractMode === 'new' ? (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New primitive path</label>
+                <input
+                  type="text"
+                  value={newPrimitivePath}
+                  onChange={e => { onSetNewPrimitivePath(e.target.value); onSetExtractError(''); }}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
+                  autoFocus
+                  placeholder="e.g. primitives.color.blue-500"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in set</label>
+                <select
+                  value={newPrimitiveSet}
+                  onChange={e => onSetNewPrimitiveSet(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                >
+                  {sets.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                type="text"
+                value={existingAliasSearch}
+                onChange={e => onSetExistingAliasSearch(e.target.value)}
+                placeholder="Search tokens…"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                aria-label="Search tokens"
+                autoFocus
+              />
+              <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: '160px' }}>
+                {candidateTokens.length === 0 ? (
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-2 text-center">
+                    No matching {extractToken.$type} tokens found
+                  </div>
+                ) : candidateTokens.map(([path, t]) => (
+                  <button
+                    key={path}
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { onSetExistingAlias(path); onSetExtractError(''); }}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'}`}
+                  >
+                    <ValuePreview type={t.$type} value={t.$value} />
+                    <span className="text-[10px] font-mono flex-1 truncate">{path}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {extractError && (
+            <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
+          )}
+        </div>
+
+        <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
+          <button
+            onClick={() => onSetExtractToken(null)}
+            className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmExtractToAlias}
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            disabled={extractMode === 'existing' && !existingAlias}
+          >
+            Extract
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TokenListModals() {
   const {
     showScaffold,
@@ -250,20 +400,6 @@ export function TokenListModals() {
     doApplyVariables,
     onSetVarDiffPending,
     extractToken,
-    extractMode,
-    onSetExtractMode,
-    newPrimitivePath,
-    onSetNewPrimitivePath,
-    newPrimitiveSet,
-    onSetNewPrimitiveSet,
-    existingAlias,
-    onSetExistingAlias,
-    existingAliasSearch,
-    onSetExistingAliasSearch,
-    extractError,
-    onSetExtractError,
-    handleConfirmExtractToAlias,
-    onSetExtractToken,
     showFindReplace,
     frFind,
     frReplace,
@@ -393,9 +529,9 @@ export function TokenListModals() {
 
       {/* New group dialog */}
       {newGroupDialogParent !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">New group</div>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); } }}>
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3" role="dialog" aria-modal="true" aria-labelledby="new-group-dialog-title">
+            <div id="new-group-dialog-title" className="text-[12px] font-medium text-[var(--color-figma-text)]">New group</div>
             {newGroupDialogParent && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Inside <span className="font-mono text-[var(--color-figma-text)]">{newGroupDialogParent}</span>
@@ -499,117 +635,9 @@ export function TokenListModals() {
       )}
 
       {/* Extract to reference modal */}
-      {extractToken && (() => {
-        const candidateTokens = Object.entries(allTokensFlat)
-          .filter(([path, t]) => path !== extractToken.path && t.$type === extractToken.$type && !isAlias(t.$value))
-          .filter(([path]) => !existingAliasSearch || path.toLowerCase().includes(existingAliasSearch.toLowerCase()))
-          .slice(0, 40);
-        return (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }}>
-              <div className="p-4 border-b border-[var(--color-figma-border)]">
-                <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Link to token</div>
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
-                  <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
-                </div>
-              </div>
-
-              {/* Mode tabs */}
-              <div className="flex border-b border-[var(--color-figma-border)]">
-                <button
-                  onClick={() => onSetExtractMode('new')}
-                  className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'new' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                >
-                  Create new primitive
-                </button>
-                <button
-                  onClick={() => onSetExtractMode('existing')}
-                  className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'existing' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                >
-                  Use existing token
-                </button>
-              </div>
-
-              <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
-                {extractMode === 'new' ? (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New primitive path</label>
-                      <input
-                        type="text"
-                        value={newPrimitivePath}
-                        onChange={e => { onSetNewPrimitivePath(e.target.value); onSetExtractError(''); }}
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] font-mono"
-                        autoFocus
-                        placeholder="e.g. primitives.color.blue-500"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in set</label>
-                      <select
-                        value={newPrimitiveSet}
-                        onChange={e => onSetNewPrimitiveSet(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                      >
-                        {sets.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <input
-                      type="text"
-                      value={existingAliasSearch}
-                      onChange={e => onSetExistingAliasSearch(e.target.value)}
-                      placeholder="Search tokens…"
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
-                      aria-label="Search tokens"
-                      autoFocus
-                    />
-                    <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: '160px' }}>
-                      {candidateTokens.length === 0 ? (
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-2 text-center">
-                          No matching {extractToken.$type} tokens found
-                        </div>
-                      ) : candidateTokens.map(([path, t]) => (
-                        <button
-                          key={path}
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => { onSetExistingAlias(path); onSetExtractError(''); }}
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'}`}
-                        >
-                          <ValuePreview type={t.$type} value={t.$value} />
-                          <span className="text-[10px] font-mono flex-1 truncate">{path}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {extractError && (
-                  <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
-                )}
-              </div>
-
-              <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
-                <button
-                  onClick={() => onSetExtractToken(null)}
-                  className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmExtractToAlias}
-                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-                  disabled={extractMode === 'existing' && !existingAlias}
-                >
-                  Extract
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {extractToken && (
+        <ExtractToAliasModal />
+      )}
 
       {/* Find & Replace modal */}
       {showFindReplace && (

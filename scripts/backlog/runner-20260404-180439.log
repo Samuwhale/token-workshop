@@ -814,3 +814,29 @@ Already up to date.
 
   Merging to main: PanelRouter.tsx props interface has 80+ props
 Already up to date.
+[main a3b9887b] chore(backlog): done – PanelRouter.tsx props interface has 80+ props
+ 11 files changed, 428 insertions(+), 194 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/contexts/EditorContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/contexts/NavigationContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/shared/navigationTypes.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - PanelRouter.tsx props interface has 80+ props
+- Extracted NavigationContext and EditorContext from App.tsx/PanelRouter.tsx, removing 16 props from PanelRouterProps (5 navigation + 11 editor/nav-history)
+- New files:
+  - `packages/figma-plugin/src/ui/shared/navigationTypes.ts` — shared TopTab, SubTab, OverflowPanel types + TOP_TABS, DEFAULT_SUB_TABS, SUB_TAB_STORAGE constants (extracted to avoid circular imports between App.tsx and contexts)
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  23 queued · 0
+0 in-progress · last took 17m31s
+═══════════════════════════════════════════════════════════════
+  → Inconsistent modal accessibility across dialogs — ConfirmModal, KeyboardShortcutsModal, CommandPalette, and PublishModals all use useFocusTrap, Escape-to-close, and full ARIA attributes (role="dialog", aria-modal, aria-labelledby), but TokenGeneratorDialog (the 3-step generator stepper) has none of these: no Escape handler, no backdrop click-to-close, no focus trap, no role="dialog"; PublishPanel's 4 inline preview/confirm modals have Escape and backdrop handlers but no focus trap; TokenEditor's internal "Save changes?" confirm dialog has role="dialog" but no Escape handler or focus trap; TokenListModals rename/delete/extract modals have role="dialog" but no useFocusTrap — the accessibility level a user gets depends entirely on which dialog they happen to open (violates: consistency, accessibility)
+  Worktree: /tmp/backlog-3108-6iPf4r
+  Running agent… (started 22:55:49)
+
+  ✓ done: Inconsistent modal accessibility across dialogs
+    Standardized all dialogs to full accessibility: TokenGeneratorDialog got role/aria-modal/aria-labelledby/useFocusTrap/Escape; TokenEditor inline save-dialog extracted to SaveChangesDialog component with focus trap; TokenListModals RenameConfirmModal got useFocusTrap+aria-labelledby, extract IIFE extracted to ExtractToAliasModal component with full ARIA, new-group dialog got role/aria-modal; PublishModals GitPreviewModal and CommitPreviewModal got aria-labelledby
+    58 turns · 580s · $2.17
+
+  Merging to main: Inconsistent modal accessibility across dialogs
+Already up to date.
