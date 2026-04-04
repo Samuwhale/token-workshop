@@ -451,3 +451,16 @@
 - **Learnings for future iterations:**
   - No new patterns; backlog item was already complete
 ---
+
+## 2026-04-04 - Generator auto-run fires outside the token lock causing race conditions with route handlers
+- Wrapped `generatorService.runForSourceToken()` in `tokenLock.withLock()` in the `tokenStore.onChange` listener in `index.ts`
+- The listener previously called `runForSourceToken()` as a floating async — no lock, so generator writes (via `executeGenerator` → `tokenStore.beginBatch/updateToken/endBatch`) raced against concurrent route-handler mutations that all hold `tokenLock.withLock()`
+- Fix is safe despite being called from inside a synchronous `emit()` which itself fires inside an active lock holder: the promise-chain mutex (`TokenLock`) simply queues the generator run after the current holder finishes — no re-entrancy, no deadlock
+- `executeGenerator` calls tokenStore methods directly (no lock acquisition), so there is no nested withLock that could deadlock
+- Error handling (emitEvent + operationLog.record) remains outside the lock since those don't mutate token state
+- Files changed: `packages/server/src/index.ts` ~L95-L123
+- **Learnings for future iterations:**
+  - Promise-chain mutexes (like TokenLock) are safe to call from within a running lock holder: the new call queues behind the current chain, not behind the caller's stack frame — no deadlock even when `emit()` fires synchronously from inside a `withLock` callback
+  - When auditing race conditions, trace every tokenStore mutation path (not just route handlers) — generator auto-runs bypass HTTP routes and can write without the lock unless explicitly wrapped
+  - The key question for "do I need the lock?" is: does this function call any tokenStore mutating methods? If yes, it needs the same lock that route handlers use
+---

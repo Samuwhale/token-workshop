@@ -91,12 +91,18 @@ export async function startServer(config: ServerConfig) {
     tokenStore.emitEvent({ type: 'file-load-error', setName: `resolver:${name}`, message });
   });
 
-  // Auto-run generators when a source token is updated
+  // Auto-run generators when a source token is updated.
+  // Wrapped in tokenLock.withLock() so generator writes are serialized against
+  // route-handler mutations — without it, concurrent route writes and generator
+  // writes race on tokenStore state and operation-log snapshots.
+  // Safe to call withLock() from inside a synchronous emit that itself fires
+  // inside an active lock: the promise-chain mutex simply queues this run after
+  // the current holder finishes (no re-entrancy / deadlock risk).
   tokenStore.onChange((event) => {
     if (event.type === 'token-updated' && event.tokenPath) {
       const tokenPath = event.tokenPath;
-      generatorService
-        .runForSourceToken(tokenPath, tokenStore)
+      tokenLock
+        .withLock(() => generatorService.runForSourceToken(tokenPath, tokenStore))
         .catch(err => {
           const message = err instanceof Error ? err.message : String(err);
           console.warn('[Generator] Auto-run failed:', err);
