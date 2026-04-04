@@ -464,3 +464,13 @@
   - File tabs were single `<button>` elements; to add a nested click target, convert to a `div.group` wrapper + two sibling buttons. Avoid nesting buttons.
   - The `copiedFile` state tracks the last-copied file path, so the checkmark correctly targets whichever tab was clicked even if it wasn't the active preview tab.
 ---
+
+## 2026-04-04 - Set-level diff before git pull
+- Rewrote `GitPreviewModal` in `packages/figma-plugin/src/ui/components/PublishPanel.tsx` to group token changes by set name instead of flat per-status lists. New layout: commits section → totals bar ("+N added ~N modified −N removed, N sets") → per-set collapsible rows each showing set name + count badges, expandable to individual token detail (path, before/after values, color swatches). Works for both pull and push previews since both share `GitPreviewModal`.
+- Also fixed two collateral bugs: (1) removed `GitPreviewModal` and `CommitPreviewModal` from the import statement at line 12 since they were locally redefined in the same file (duplicate identifier); (2) added missing `truncateValue` helper to Display helpers section — it was used in `SyncPreviewModal`, `TokenChangeRow`, etc. but never defined locally or imported, causing silent runtime errors in conflict/value display paths.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L12 (imports), ~L1155 (GitPreviewModal), ~L1734 (Display helpers / truncateValue)
+- **Learnings for future iterations:**
+  - PublishPanel.tsx has local redefinitions of components that are also imported from PublishModals.tsx (`GitPreviewModal`, `CommitPreviewModal`). The local versions shadow the imports. These are the ones actually used in the JSX.
+  - `truncateValue` was missing from PublishPanel.tsx but used in many render paths — esbuild silently swallows undefined-function references when they're not in hot paths hit by the headless UI test.
+  - The set-level grouping pattern: `Map<setName, {added, modified, removed}>` built from `TokenChange[]` via a single pass, then spread to an array for rendering.
+---

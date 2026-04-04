@@ -9,11 +9,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
-import {
-  GitPreviewModal,
-  CommitPreviewModal,
-  ApplyDiffConfirmModal,
-} from './publish/PublishModals';
+import { ApplyDiffConfirmModal } from './publish/PublishModals';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
 
@@ -1174,6 +1170,7 @@ function GitPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchPreview();
@@ -1188,15 +1185,40 @@ function GitPreviewModal({
     return () => document.removeEventListener('keydown', handler);
   }, [onCancel]);
 
-  const added = preview?.changes.filter(c => c.status === 'added') ?? [];
-  const modified = preview?.changes.filter(c => c.status === 'modified') ?? [];
-  const removed = preview?.changes.filter(c => c.status === 'removed') ?? [];
+  // Group changes by set name, preserving order of first appearance
+  const bySet = useMemo(() => {
+    if (!preview?.changes) return [] as Array<{
+      set: string;
+      added: import('../hooks/useGitDiff').TokenChange[];
+      modified: import('../hooks/useGitDiff').TokenChange[];
+      removed: import('../hooks/useGitDiff').TokenChange[];
+    }>;
+    const map = new Map<string, {
+      added: import('../hooks/useGitDiff').TokenChange[];
+      modified: import('../hooks/useGitDiff').TokenChange[];
+      removed: import('../hooks/useGitDiff').TokenChange[];
+    }>();
+    for (const c of preview.changes) {
+      if (!map.has(c.set)) map.set(c.set, { added: [], modified: [], removed: [] });
+      const entry = map.get(c.set)!;
+      if (c.status === 'added') entry.added.push(c);
+      else if (c.status === 'modified') entry.modified.push(c);
+      else entry.removed.push(c);
+    }
+    return [...map.entries()].map(([set, v]) => ({ set, ...v }));
+  }, [preview?.changes]);
 
-  const sections: { label: string; badge: string; items: typeof added; color: string }[] = [
-    { label: 'Added', badge: '+', items: added, color: 'var(--color-figma-success)' },
-    { label: 'Modified', badge: '~', items: modified, color: 'var(--color-figma-warning, #e5a000)' },
-    { label: 'Removed', badge: '\u2212', items: removed, color: 'var(--color-figma-error)' },
-  ].filter(s => s.items.length > 0);
+  const totalAdded = bySet.reduce((n, s) => n + s.added.length, 0);
+  const totalModified = bySet.reduce((n, s) => n + s.modified.length, 0);
+  const totalRemoved = bySet.reduce((n, s) => n + s.removed.length, 0);
+
+  const toggleSet = (set: string) => {
+    setExpandedSets(prev => {
+      const next = new Set(prev);
+      if (next.has(set)) next.delete(set); else next.add(set);
+      return next;
+    });
+  };
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -1226,7 +1248,7 @@ function GitPreviewModal({
             <>
               {/* Commits */}
               {preview.commits.length > 0 && (
-                <div className="mb-2">
+                <div className="mb-3">
                   <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
                     {preview.commits.length} commit{preview.commits.length !== 1 ? 's' : ''}
                   </div>
@@ -1241,67 +1263,97 @@ function GitPreviewModal({
                 </div>
               )}
 
-              {/* Token changes */}
-              {sections.length === 0 && preview.commits.length === 0 ? (
+              {/* Token changes — set-level summary with expandable per-token detail */}
+              {bySet.length === 0 && preview.commits.length === 0 ? (
                 <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">No changes to {confirmLabel.toLowerCase()}.</p>
-              ) : sections.length === 0 ? (
+              ) : bySet.length === 0 ? (
                 <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">No token-level changes (non-token files only).</p>
               ) : (
-                sections.map(section => (
-                  <div key={section.label} className="mb-2">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded" style={{ color: section.color }}>
-                        {section.badge}
-                      </span>
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                        {section.label} ({section.items.length})
-                      </span>
-                    </div>
-                    <div className="ml-5 space-y-0">
-                      {section.items.map(change => {
-                        const isColor = change.type === 'color';
-                        const beforeStr = change.before != null ? (typeof change.before === 'string' ? change.before : JSON.stringify(change.before)) : undefined;
-                        const afterStr = change.after != null ? (typeof change.after === 'string' ? change.after : JSON.stringify(change.after)) : undefined;
-                        return (
-                          <div key={`${change.set}.${change.path}`} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={`${change.set} / ${change.path}`}>
-                                {change.path}
-                              </span>
-                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.set}</span>
-                            </div>
-                            {change.status === 'modified' && (
-                              <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                                  {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
-                                  <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr ?? '', 40)}</span>
-                                </div>
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                                  {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
-                                  <span className="text-[var(--color-figma-text)] truncate" title={afterStr}>{truncateValue(afterStr ?? '', 40)}</span>
-                                </div>
-                              </div>
-                            )}
-                            {change.status === 'added' && afterStr !== undefined && (
-                              <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
-                                {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
-                                <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterStr}>{truncateValue(afterStr, 40)}</span>
-                              </div>
-                            )}
-                            {change.status === 'removed' && beforeStr !== undefined && (
-                              <div className="ml-2 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
-                                {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
-                                <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                <>
+                  {/* Totals bar */}
+                  <div className="flex items-center gap-3 mb-2 text-[10px]">
+                    {totalAdded > 0 && <span style={{ color: 'var(--color-figma-success)' }}>+{totalAdded} added</span>}
+                    {totalModified > 0 && <span style={{ color: 'var(--color-figma-warning, #e5a000)' }}>~{totalModified} modified</span>}
+                    {totalRemoved > 0 && <span style={{ color: 'var(--color-figma-error)' }}>&minus;{totalRemoved} removed</span>}
+                    <span className="text-[var(--color-figma-text-secondary)] ml-auto">{bySet.length} set{bySet.length !== 1 ? 's' : ''}</span>
                   </div>
-                ))
+
+                  {/* Per-set rows */}
+                  <div className="space-y-px">
+                    {bySet.map(({ set, added, modified, removed }) => {
+                      const isExpanded = expandedSets.has(set);
+                      const allChanges = [...added, ...modified, ...removed];
+                      return (
+                        <div key={set} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                          <button
+                            className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                            onClick={() => toggleSet(set)}
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[var(--color-figma-text-tertiary)] shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                              <path d="M2 1l4 3-4 3V1z" />
+                            </svg>
+                            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">{set}</span>
+                            <span className="flex items-center gap-2 text-[10px] font-mono shrink-0">
+                              {added.length > 0 && <span style={{ color: 'var(--color-figma-success)' }}>+{added.length}</span>}
+                              {modified.length > 0 && <span style={{ color: 'var(--color-figma-warning, #e5a000)' }}>~{modified.length}</span>}
+                              {removed.length > 0 && <span style={{ color: 'var(--color-figma-error)' }}>&minus;{removed.length}</span>}
+                            </span>
+                          </button>
+                          {isExpanded && (
+                            <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] divide-y divide-[var(--color-figma-border)]">
+                              {allChanges.map(change => {
+                                const isColor = change.type === 'color';
+                                const valStr = (v: any): string => typeof v === 'string' ? v : JSON.stringify(v);
+                                const beforeStr = change.before != null ? valStr(change.before) : undefined;
+                                const afterStr = change.after != null ? valStr(change.after) : undefined;
+                                const statusColor = change.status === 'added'
+                                  ? 'var(--color-figma-success)'
+                                  : change.status === 'removed'
+                                  ? 'var(--color-figma-error)'
+                                  : 'var(--color-figma-warning, #e5a000)';
+                                const statusBadge = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
+                                return (
+                                  <div key={change.path} className="px-3 py-1">
+                                    <div className="flex items-center gap-1 min-w-0">
+                                      <span className="text-[9px] font-bold w-3 shrink-0" style={{ color: statusColor }}>{statusBadge}</span>
+                                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+                                    </div>
+                                    {change.status === 'modified' && (
+                                      <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                                        <div className="flex items-center gap-1 min-w-0">
+                                          <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                                          {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
+                                          <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr ?? '', 40)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 min-w-0">
+                                          <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                                          {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
+                                          <span className="text-[var(--color-figma-text)] truncate" title={afterStr}>{truncateValue(afterStr ?? '', 40)}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {change.status === 'added' && afterStr !== undefined && (
+                                      <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                                        {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
+                                        <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterStr}>{truncateValue(afterStr, 40)}</span>
+                                      </div>
+                                    )}
+                                    {change.status === 'removed' && beforeStr !== undefined && (
+                                      <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+                                        {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
+                                        <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </>
           )}
@@ -1732,6 +1784,10 @@ function Section({ title, open, onToggle, badge, children }: {
 }
 
 /* ── Display helpers ─────────────────────────────────────────────────────── */
+
+function truncateValue(v: string, max = 24): string {
+  return v.length > max ? v.slice(0, max) + '\u2026' : v;
+}
 
 function isHexColor(v: string | undefined): v is string {
   return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v);
