@@ -474,3 +474,16 @@
   - Tailwind's arbitrary group variant `group/groupheader` scopes hover to the specific container, avoiding conflicts with nested group elements in the same tree
   - For "unbind all in group", reuse the individual `remove-binding` postMessage per property rather than a new batch message type — the plugin already handles them individually and in quick succession
 ---
+
+## 2026-04-04 - ExportPanel "changes only" mode is hidden behind a small checkbox
+- Added a prominent "Changes only" toggle pill to the sticky action footer in ExportPanel, visible at all times when `mode === 'platforms'`
+- The pill shows: git branch icon, "Changes only" label, and when active: a count badge with the number of changed tokens (accent-colored badge for >0, muted badge for 0)
+- Inline status text next to the pill: off state shows "Export tokens changed since last commit" as a hint; on state shows diff result ("N tokens added or modified"), loading state, or error (requires git)
+- Refresh button appears inline when changes are loaded (instead of only in the buried settings section)
+- Tooltip explains the feature: "Export only tokens added or modified since your last git commit — skips unchanged tokens."
+- Updated settings section description to note "(also shown in footer)" so users discover the footer control
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1678, ~L1169
+- **Learnings for future iterations:**
+  - For "power features" hidden in settings, the best surfacing approach is a toggle pill in the action footer — always visible, low footprint, and doesn't disrupt the settings panel layout
+  - Keep both the footer pill and settings checkbox; they share state, so they stay in sync automatically, and the settings version serves as documentation for the feature
+---

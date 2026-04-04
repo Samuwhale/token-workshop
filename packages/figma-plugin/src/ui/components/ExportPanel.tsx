@@ -1167,7 +1167,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-[11px] text-[var(--color-figma-text)]">Changes only</span>
-                  <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Export tokens changed since last git commit</span>
+                  <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Tokens added or modified since last commit (also shown in footer)</span>
                 </div>
               </label>
 
@@ -1677,6 +1677,76 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
       {/* Sticky action footer */}
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
+        {/* Changes-only toggle pill — surfaces the most powerful scope filter prominently */}
+        {mode === 'platforms' && (
+          <div className="flex items-center gap-2 pb-0.5">
+            <button
+              onClick={() => {
+                const next = !changesOnly;
+                setChangesOnly(next);
+                if (next && connected && diffPaths === null) {
+                  fetchDiff();
+                }
+              }}
+              title={changesOnly
+                ? 'Currently exporting only tokens with uncommitted git changes. Click to export all tokens.'
+                : 'Export only tokens added or modified since your last git commit — skips unchanged tokens.'}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-medium transition-colors shrink-0 ${
+                changesOnly
+                  ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/15'
+                  : 'bg-transparent text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              {/* git branch icon */}
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="6" y1="3" x2="6" y2="15" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 0 1-9 9" />
+              </svg>
+              Changes only
+              {changesOnly && diffPaths !== null && !diffLoading && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold leading-none ${
+                  diffPaths.length === 0
+                    ? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'
+                    : 'bg-[var(--color-figma-accent)] text-white'
+                }`}>
+                  {diffPaths.length}
+                </span>
+              )}
+              {changesOnly && diffLoading && (
+                <Spinner size="sm" />
+              )}
+            </button>
+            {!changesOnly && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                Export tokens changed since last commit
+              </span>
+            )}
+            {changesOnly && isGitRepo === false && (
+              <span className="text-[10px] text-[var(--color-figma-warning,#e67e22)] leading-tight">
+                Requires a git repository
+              </span>
+            )}
+            {changesOnly && isGitRepo !== false && diffPaths !== null && !diffLoading && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                {diffPaths.length === 0
+                  ? 'No uncommitted changes'
+                  : `${diffPaths.length} token${diffPaths.length !== 1 ? 's' : ''} added or modified`}
+                {diffPaths.length > 0 && (
+                  <button
+                    onClick={fetchDiff}
+                    title="Re-check for changes"
+                    className="ml-1.5 text-[var(--color-figma-accent)] hover:underline"
+                  >Refresh</button>
+                )}
+              </span>
+            )}
+            {changesOnly && isGitRepo !== false && diffLoading && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Checking for changes…</span>
+            )}
+          </div>
+        )}
         {mode === 'platforms' && results.length > 0 && (
           <>
             <div className="flex gap-1.5">

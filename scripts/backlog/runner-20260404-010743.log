@@ -692,3 +692,18 @@ Already up to date.
 
   Merging to main: No "unbind all properties" quick action in SelectionInspector
 Already up to date.
+[main c9bf6781] chore(backlog): done – No "unbind all properties" quick action in SelectionInspector
+ 6 files changed, 88 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No "unbind all properties" quick action in SelectionInspector
+- Added `handleUnbindAllInGroup(groupProps)` function that sends individual `remove-binding` messages for each bound property in the group and pushes a single undo entry covering all of them
+- Updated group header `div` to use `relative group/groupheader` and added an "Unbind all" button that appears on hover (opacity-0 → opacity-100) only when the group has at least one bound property (non-mixed)
+- Button tooltip reads "Unbind all <group> properties" (e.g. "Unbind all appearance properties")
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  3 queued · 3 in-progress · last took 1m39s
+═══════════════════════════════════════════════════════════════
+  → `isNetworkError()` in `apiFetch.ts:24` classifies ALL TypeErrors as network errors, triggering false `markDisconnected()` calls across 10+ hooks — if a `.then()` callback throws a TypeError from an unexpected response shape (e.g., property access on null), the UI shows "server disconnected" and enters reconnect mode even though the server is healthy; should narrow to only TypeErrors from `fetch()` itself
+  Worktree: /tmp/backlog-91634-Wv2S0S
+  Running agent… (started 03:56:35)

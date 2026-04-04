@@ -726,3 +726,10 @@ Already up to date.
   → ExportPanel "changes only" mode is hidden behind a small checkbox with no discoverability — this powerful feature (export only git-tracked modified/added tokens) is easy to miss; surface it as a toggle pill next to the export button or as a prominent option in the export flow, and add a brief explanation of what "changes" means (since last commit vs uncommitted) (ExportPanel.tsx changes-only UI)
   Worktree: /tmp/backlog-91949-EsiyQz
   Running agent… (started 03:54:34)
+
+  ✓ done: ExportPanel "changes only" mode is hidden behind a small checkbox with no discoverability
+    Added a prominent toggle pill with git icon, count badge, and inline status text to the sticky action footer — always visible when in platforms mode, with tooltips explaining "tokens added or modified since last commit"
+    17 turns · 154s · $0.44
+
+  Merging to main: ExportPanel "changes only" mode is hidden behind a small checkbox with no discoverability
+Already up to date.
