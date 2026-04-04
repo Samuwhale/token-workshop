@@ -509,3 +509,25 @@ Already up to date.
 
   Merging to main: Semantic mapping only previewable after generator save
 Already up to date.
+[main 2ebb5ce8] chore(backlog): done – Semantic mapping only previewable after generator save
+ 6 files changed, 94 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Semantic mapping only previewable after generator save
+- Added expandable "Preview N semantic aliases" section to each `TemplateCard` in `TemplatePicker.tsx`
+- Each template card now shows a toggle button (using the SVG chevron pattern) that expands to display all semantic mappings inline before the user commits to a generator
+- Preview shows each mapping as `{layer.prefix}.{mapping.semantic} → {defaultPrefix.step}` using the template's `defaultPrefix` as placeholder (with a note that it updates based on user-entered prefix)
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  16 queued · 3 in-progress · last took 3m28s
+═══════════════════════════════════════════════════════════════
+  → App.tsx is a 3378-line monolith with 46 useState calls — state for compare panels, graph navigation, analytics, history, token flow, settings, and validation all lives in one component function; every state change (e.g., toggling a compare mode) re-renders the entire plugin UI; extract domain-specific state groups into context providers or composite hooks (e.g., useCompareState for the 6 compare-related useState calls, useAnalyticsState for the 4 analytics-related calls, useGraphState for the 3 graph-related calls) to reduce re-render scope and make the component navigable (App.tsx ~L282-658)
+  Worktree: /tmp/backlog-92209-3Exps9
+  Running agent… (started 02:37:04)
+
+  ✓ done: App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
+    Extracted 13 useState calls into 3 hooks: useCompareState (6), useAnalyticsState (4), useGraphState (3); all 4 validation gates pass
+    35 turns · 184s · $0.84
+
+  Merging to main: App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
+Already up to date.

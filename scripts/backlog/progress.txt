@@ -540,3 +540,18 @@
   - The `defaultPrefix` in a template is only the default; users change it in TokenGeneratorDialog, so the preview uses it as an example with a footer note to set expectations correctly
   - A local `useState` in each card is fine here — no need to lift expand state to the parent since cards are independent
 ---
+
+## 2026-04-04 - App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
+- Created three composite hooks to extract state from App.tsx:
+  - `useCompareState` (6 useState): `compareMode`, `compareTokenPaths`, `compareTokenPath`, `compareThemeKey`, `compareThemeDefaultA`, `compareThemeDefaultB`
+  - `useAnalyticsState` (4 useState): `validateKey`, `analyticsIssueCount`, `showIssuesOnly`, `showValidationReturn`
+  - `useGraphState` (3 useState): `pendingGraphTemplate`, `pendingGraphFromGroup`, `focusGeneratorId`
+- Removed `import type { CompareMode }` from App.tsx (now only imported in the hook)
+- Added imports for the three new hooks in App.tsx
+- Replaced 13 individual `useState` calls in App.tsx with 3 hook invocations
+- Files changed: `packages/figma-plugin/src/ui/hooks/useCompareState.ts` (new), `packages/figma-plugin/src/ui/hooks/useAnalyticsState.ts` (new), `packages/figma-plugin/src/ui/hooks/useGraphState.ts` (new), `packages/figma-plugin/src/ui/App.tsx` ~L9, ~L63-65, ~L359-360, ~L506
+- **Learnings for future iterations:**
+  - `useModalVisibility` is the canonical pattern for composite state hooks — group by domain, return all state + setters, no side effects needed
+  - `useState` setters are stable references, so existing `useCallback` dependency arrays work unchanged after extraction
+  - The `CompareMode` type import can be dropped from App.tsx because App.tsx never references the type directly in annotations — the state variable's type is inferred from the hook's return type
+---
