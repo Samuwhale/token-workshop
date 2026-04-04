@@ -706,3 +706,26 @@ Already up to date.
 
   Merging to main: No way to duplicate a theme dimension with all its options
 Already up to date.
+[main 1a9a0721] chore(backlog): done – No way to duplicate a theme dimension with all its options
+ 6 files changed, 115 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No way to duplicate a theme dimension with all its options
+- Added `handleDuplicateDimension(id)` to `useThemeDimensions.ts`: generates a unique name (`"Name Copy"`, `"Name Copy 2"`, etc.) and unique ID (slugified), POSTs the new dimension, then POSTs each option with identical set assignments, optimistically updates local state, and fires a success toast
+- Added a duplicate (copy-icon) button in the dimension header in `ThemeManager.tsx`, placed to the left of the existing delete button — same hover-only opacity pattern, disabled while `isDuplicatingDim` is true
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts` ~L69,108,420, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L94,932
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  15 queued · 0
+0 in-progress · last took 4m6s
+═══════════════════════════════════════════════════════════════
+  → Generator editor has no "preview diff" before regenerating — TokenGeneratorDialog.tsx applies generator changes immediately on save; for generators that produce dozens of tokens (e.g. an 11-step color ramp), there's no way to see what will change before committing; adding a "Preview changes" step that shows a diff of current vs. proposed token values would prevent accidental overwrites and give users confidence to experiment with generator settings
+  Worktree: /tmp/backlog-3108-OMV8NE
+  Running agent… (started 22:13:57)
+
+  ✓ done: Generator editor has no "preview diff" before regenerating
+    stale — already done: live diff is shown in StepWhat right column (overwrittenEntries, ValueDiff) and in StepReview before confirmation; "Save Changes" navigates to review step rather than committing immediately
+    19 turns · 597s · $1.32
+
+  Merging to main: Generator editor has no "preview diff" before regenerating
+Already up to date.

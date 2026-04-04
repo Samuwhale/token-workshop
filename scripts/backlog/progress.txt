@@ -443,3 +443,15 @@
   - The delete dimension undo handler already shows the pattern for re-creating a dimension with options (POST dimension then POST each option) — the duplicate handler follows the same sequential API call pattern
   - Unique name suffix logic: start with `"Name Copy"`, increment counter ("Name Copy 2", "Name Copy 3") while there's a case-insensitive collision; separately deduplicate the slugified ID in case multiple copies collide at the slug level
 ---
+
+## 2026-04-04 - Generator editor has no "preview diff" before regenerating
+- Stale — feature is already fully implemented. Thorough code review confirmed:
+  1. `StepWhat.tsx` ~L600-620: shows a live "Overwrites diff" section in the right column that updates in real-time (300ms debounce via `useGeneratorPreview`) as the user changes generator settings. Uses `ValueDiff` to display old→new for every token whose value will change.
+  2. `useGeneratorPreview.ts` ~L220-244: computes `overwrittenEntries` by comparing each proposed preview token's value against the current token value in the target set (`JSON.stringify` equality check). Works for both new generators (overwriting existing paths) and edit generators (re-running with new config).
+  3. `TokenGeneratorDialog.tsx` ~L149-158: clicking "Save Changes" on Step 2 does NOT immediately save — it calls `dialog.handleSave()` which sets `showConfirmation=true`, and the `useEffect` at ~L175 navigates to Step 3 (Review). The actual commit only happens when "Confirm & Update" is clicked.
+  4. `StepReview.tsx` ~L191-207: the Review step shows the same diff again plus a `check-overwrites` query for manually-edited token warnings.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item says "no way to see X before committing", check both the live-preview column (StepWhat right column) and the dedicated review step (StepReview) — the feature may already exist in one or both places
+  - `overwrittenEntries` in `useGeneratorPreview` is a client-side diff computed from `previewTokens` vs `existingSetTokens` (fetched from `/api/tokens/:set`). It correctly shows before→after for both edit and new-generator flows
+---
