@@ -68,9 +68,10 @@ export function useGitDiff({
   const [pullPreview, setPullPreview] = useState<GitPreview | null>(null);
   const [pullPreviewLoading, setPullPreviewLoading] = useState(false);
 
-  const unmountRef = useRef(new AbortController());
-  // Abort any in-flight fetches on unmount
+  const unmountRef = useRef<AbortController>(new AbortController());
+  // Create a fresh controller on each mount so remounts don't inherit a permanently-aborted signal.
   useEffect(() => {
+    unmountRef.current = new AbortController();
     const controller = unmountRef.current;
     return () => controller.abort();
   }, []);

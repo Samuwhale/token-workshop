@@ -11,7 +11,7 @@
  * state. Call `inspect.triggerUsageScan()` from that effect.
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useSelection } from '../hooks/useSelection';
 import { useHeatmap } from '../hooks/useHeatmap';
@@ -73,7 +73,11 @@ export function InspectProvider({ children }: { children: ReactNode }) {
   // Token usage counts — updated by the plugin sandbox after each scan
   const [tokenUsageCounts, setTokenUsageCounts] = useState<Record<string, number>>({});
 
-  // Listen for token-usage-map results; re-scan after apply/sync/remap changes
+  const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Listen for token-usage-map results; re-scan after apply/sync/remap changes.
+  // Debounce the re-scan trigger to avoid flooding the plugin during rapid
+  // operations (e.g. batch token applies that fire multiple sync-complete events).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const msg = e.data?.pluginMessage;
@@ -84,11 +88,17 @@ export function InspectProvider({ children }: { children: ReactNode }) {
         msg?.type === 'sync-complete' ||
         msg?.type === 'remap-complete'
       ) {
-        parent.postMessage({ pluginMessage: { type: 'scan-token-usage' } }, '*');
+        if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
+        scanDebounceRef.current = setTimeout(() => {
+          parent.postMessage({ pluginMessage: { type: 'scan-token-usage' } }, '*');
+        }, 300);
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+      if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
+    };
   }, []);
 
   const triggerUsageScan = useCallback(() => {

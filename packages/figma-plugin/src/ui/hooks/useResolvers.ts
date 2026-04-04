@@ -46,6 +46,13 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   const [loading, setLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+  // Aborted on component unmount to prevent state updates on stale instances.
+  const unmountAbortRef = useRef<AbortController>(new AbortController());
+
+  useEffect(() => {
+    unmountAbortRef.current = new AbortController();
+    return () => unmountAbortRef.current.abort();
+  }, []);
 
   // -----------------------------------------------------------------------
   // Persist active resolver + input to localStorage
@@ -67,12 +74,15 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   const fetchResolvers = useCallback(() => {
     if (!connected) return;
-    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`, { signal: createFetchSignal() })
+    const signal = createFetchSignal(unmountAbortRef.current.signal);
+    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`, { signal })
       .then(data => {
+        if (unmountAbortRef.current.signal.aborted) return;
         setResolvers(data.resolvers ?? []);
       })
       .catch(err => {
         if (err instanceof Error && err.name === 'AbortError') return;
+        if (unmountAbortRef.current.signal.aborted) return;
         setResolverError(getErrorMessage(err, 'Failed to load resolvers'));
       });
   }, [connected, serverUrl]);

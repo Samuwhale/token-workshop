@@ -177,3 +177,20 @@
   - All scan functions that check `signal.aborted` must post a `*-cancelled` message before returning — silent early returns leave the UI waiting indefinitely
   - `figma.on('close')` is the standard place to clean up plugin-side resources; it fires when the plugin window is dismissed without a `figma.closePlugin()` call
 ---
+
+## 2026-04-04 - Missing AbortController cleanup and stale-closure bugs in UI hooks
+- Fixed 4 async safety issues:
+  1. `useResolvers.ts` `fetchResolvers`: added `unmountAbortRef` (reset on mount, aborted on unmount); passed `unmountAbortRef.current.signal` to `createFetchSignal` and guarded `.then()`/`.catch()` callbacks with `signal.aborted` checks so state never fires after unmount.
+  2. `useThemeSwitcher.ts`: wrapped `setActiveThemes` in `useCallback([])` to make it stable, then added it to `fetchThemesInner`'s dependency array, eliminating the stale closure risk.
+  3. `useGitDiff.ts`: moved `unmountRef.current = new AbortController()` into the `useEffect` body (before the `return` cleanup captures it), so remounts get a fresh, non-aborted controller instead of reusing the already-aborted one from the first unmount.
+  4. `InspectContext.tsx`: added `scanDebounceRef` with 300 ms debounce around the `scan-token-usage` postMessage triggered by `applied-to-selection`/`sync-complete`/`remap-complete` messages; cleanup cancels any pending timer.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L48-82
+  - `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L23-75
+  - `packages/figma-plugin/src/ui/hooks/useGitDiff.ts` ~L71-76
+  - `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` ~L14,77-97
+- **Learnings for future iterations:**
+  - `useRef(new AbortController())` at module level is NOT reset on component remounts. Always reset inside `useEffect(() => { ref.current = new AbortController(); ... }, [])` to get a fresh controller per mount lifecycle.
+  - When a function inside `useCallback` calls another non-stable function (not from deps), ESLint exhaustive-deps will warn. Wrapping the callee in `useCallback([])` when it only calls stable primitives (setState, globals) is the clean fix.
+  - Debounce for plugin message-triggered side effects: 300 ms is sufficient — plugin scans are expensive so consolidating rapid bursts matters more than latency.
+---

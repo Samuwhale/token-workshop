@@ -20,11 +20,11 @@ export function useThemeSwitcher(
   );
   const activeThemesRef = useRef(activeThemes);
   activeThemesRef.current = activeThemes;
-  const setActiveThemes = (map: Record<string, string>) => {
+  const setActiveThemes = useCallback((map: Record<string, string>) => {
     lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, map);
     parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: map } }, '*');
     setActiveThemesState(map);
-  };
+  }, []);
 
   // Preview state: hover over an option to see its values without committing
   const [previewThemes, setPreviewThemes] = useState<Record<string, string>>({});
@@ -72,7 +72,7 @@ export function useThemeSwitcher(
         if (signal.aborted) return;
         setThemesError(getErrorMessage(err, 'Failed to load themes'));
       });
-  }, [connected, serverUrl]);
+  }, [connected, serverUrl, setActiveThemes]);
 
   useEffect(() => {
     abortRef.current?.abort();
