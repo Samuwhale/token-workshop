@@ -354,3 +354,12 @@ Already up to date.
 
   Merging to main: Theme dimension set-status legend missing — the source/enabled/disabled status uses colored dots (blue/green/gray) with no in-UI explanation; new users must guess the meaning; add a small inline legend or tooltip on the dot headers explaining the three states and their resolution priority (ThemeManager.tsx set assignment grid)
 Already up to date.
+[main 910e3181] chore(backlog): done – Theme dimension set-status legend missing — the source/enabled/disabled status uses colored dots (blue/green/gray) with no in-UI explanation; new users must guess the meaning; add a small inline legend or tooltip on the dot headers explaining the three states and their resolution priority (ThemeManager.tsx set assignment grid)
+ 6 files changed, 57 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1253 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

@@ -127,6 +127,9 @@ export function GraphPanel({
   const [runningAll, setRunningAll] = useState(false);
   const [runAllResult, setRunAllResult] = useState<{ count: number; tokenCount: number } | null>(null);
   const [runAllError, setRunAllError] = useState<string | null>(null);
+  const [runningStale, setRunningStale] = useState(false);
+  const [runStaleResult, setRunStaleResult] = useState<{ count: number; tokenCount: number } | null>(null);
+  const [runStaleError, setRunStaleError] = useState<string | null>(null);
 
   // Scroll to and highlight a focused generator (from token badge click)
   useEffect(() => {
@@ -186,6 +189,33 @@ export function GraphPanel({
       setRunAllResult({ count: successCount, tokenCount: totalTokens });
     } else {
       setRunAllError(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`);
+    }
+    onRefresh();
+  };
+
+  const staleGenerators = setGenerators.filter(g => g.isStale);
+
+  const handleRunStale = async () => {
+    setRunningStale(true);
+    setRunStaleResult(null);
+    setRunStaleError(null);
+    let successCount = 0;
+    let totalTokens = 0;
+    const errors: string[] = [];
+    for (const gen of staleGenerators) {
+      try {
+        const res = await apiFetch<{ count: number }>(`${serverUrl}/api/generators/${gen.id}/run`, { method: 'POST' });
+        successCount++;
+        totalTokens += res.count ?? 0;
+      } catch {
+        errors.push(gen.name);
+      }
+    }
+    setRunningStale(false);
+    if (errors.length === 0) {
+      setRunStaleResult({ count: successCount, tokenCount: totalTokens });
+    } else {
+      setRunStaleError(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`);
     }
     onRefresh();
   };
@@ -332,9 +362,37 @@ export function GraphPanel({
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </button>
+            {staleGenerators.length > 0 && (
+              <button
+                onClick={handleRunStale}
+                disabled={!connected || runningStale || runningAll}
+                className="text-[10px] px-2 py-1 rounded border border-yellow-400/60 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                title={`Re-run ${staleGenerators.length} stale generator${staleGenerators.length !== 1 ? 's' : ''} (source token changed since last run)`}
+              >
+                {runningStale
+                  ? (
+                    <>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                        <path d="M21 12a9 9 0 11-6.219-8.56" />
+                      </svg>
+                      Running…
+                    </>
+                  )
+                  : (
+                    <>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 9v4M12 17h.01" />
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                      Re-run stale ({staleGenerators.length})
+                    </>
+                  )
+                }
+              </button>
+            )}
             <button
               onClick={handleRunAll}
-              disabled={!connected || runningAll}
+              disabled={!connected || runningAll || runningStale}
               className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
               title={`Re-run all ${setGenerators.length} generator${setGenerators.length !== 1 ? 's' : ''} in this set`}
             >
@@ -412,6 +470,41 @@ export function GraphPanel({
               <span>{runAllError}</span>
             </div>
             <button onClick={() => setRunAllError(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {runStaleResult && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-center justify-between gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span>
+                Re-ran {runStaleResult.count} stale generator{runStaleResult.count !== 1 ? 's' : ''}
+                {runStaleResult.tokenCount > 0 && <> — {runStaleResult.tokenCount} token{runStaleResult.tokenCount !== 1 ? 's' : ''} updated</>}
+              </span>
+            </div>
+            <button onClick={() => setRunStaleResult(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {runStaleError && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-600 dark:text-red-400 flex items-center justify-between gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+              <span>{runStaleError}</span>
+            </div>
+            <button onClick={() => setRunStaleError(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>

@@ -468,3 +468,17 @@
   - The legend is placed inside `{sets.length > 0 && ...}` so it only renders when there are actual sets to assign; no extra guard needed.
   - Native `title` attributes reuse the existing `STATE_DESCRIPTIONS` constant, keeping descriptions DRY.
 ---
+
+## 2026-04-04 - Generator stale indicators not surfaced
+- The per-card stale badge was already implemented in `GeneratorPipelineCard.tsx` (yellow border + "Needs re-run" badge with tooltip)
+- Added "Re-run stale (N)" bulk action button to the GraphPanel toolbar:
+  - Button appears only when stale generators exist, styled in yellow accent to match stale card border
+  - Runs only stale generators (filtered via `g.isStale`), sequential like "Run all"
+  - Shows yellow success banner ("Re-ran N stale generators — M tokens updated") and red error banner on failure
+  - Both "Run all" and "Re-run stale" disable each other while the other is running
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L127 (state), ~L194 (handleRunStale), ~L365 (button), ~L478 (result/error banners)
+- **Learnings for future iterations:**
+  - When the backlog says "UI never displays" a field, always verify first — partial implementations may exist; only the bulk action was truly missing here
+  - The "Re-run stale" button uses yellow accent styling (`border-yellow-400/60 text-yellow-700`) to visually echo the stale card border, creating a consistent color language
+  - Disabling both bulk-run buttons while either is running prevents race conditions without needing a shared mutex
+---
