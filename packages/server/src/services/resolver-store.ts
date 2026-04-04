@@ -243,6 +243,7 @@ export class ResolverStore {
       await fs.rename(tmpPath, filePath);
     } catch (err) {
       this._clearWriteGuard(filePath);
+      await fs.unlink(tmpPath).catch(() => {});
       throw err;
     }
   }

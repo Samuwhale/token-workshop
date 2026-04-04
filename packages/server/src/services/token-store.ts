@@ -1888,7 +1888,12 @@ export class TokenStore {
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(tmpPath, JSON.stringify(set.tokens, null, 2));
       this._startWriteGuard(filePath);
-      await fs.rename(tmpPath, filePath);
+      try {
+        await fs.rename(tmpPath, filePath);
+      } catch (err) {
+        await fs.unlink(tmpPath).catch(() => {});
+        throw err;
+      }
     });
     // Advance the chain regardless of success/failure (mirrors TokenLock behaviour).
     this._saveChains.set(name, next.catch(() => {}));

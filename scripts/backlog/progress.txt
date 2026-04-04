@@ -518,3 +518,11 @@
   - Cross-cutting effects (onDirtyChange, auto-save draft) that span multiple hooks stay in the main component
   - The 2 sub-components (ExtendsTokenPicker, ThemeValuesSection) kept their local state — they're already well-bounded
 ---
+
+## 2026-04-04 - Atomic write helpers leak .tmp files on rename failure
+- Added try/catch around `fs.rename` in `token-store.ts` `saveSet()` to call `await fs.unlink(tmpPath).catch(() => {})` on failure; same fix in `resolver-store.ts` `writeToDisk()` alongside the existing `_clearWriteGuard` call.
+- Files changed: `packages/server/src/services/token-store.ts` ~L1891, `packages/server/src/services/resolver-store.ts` ~L243
+- **Learnings for future iterations:**
+  - `token-store.ts` `saveSet()` had no try/catch at all around the rename — the fix adds a try/catch wrapping just the rename (after `_startWriteGuard`). The outer `next.catch(() => {})` on the chain still swallows the error to keep the mutex alive.
+  - `resolver-store.ts` already had a try/catch that called `_clearWriteGuard` but forgot the unlink — a one-liner addition.
+---
