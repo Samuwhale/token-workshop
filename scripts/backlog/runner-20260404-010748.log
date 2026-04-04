@@ -393,3 +393,10 @@ Already up to date.
   → Core resolver `collectReferences` silently adds undefined to reference set on malformed formula — resolver.ts L237 uses regex match group `m[1]` from `makeReferenceGlobalRegex()` without null-checking the capture group; if a formula contains a malformed reference like `{.}` or `{}`, the regex matches but `m[1]` is undefined, adding `undefined` to the references Set which propagates through dependency graph construction and can cause "Cannot read properties of undefined" errors during resolution; additionally dtcg-resolver.ts L203-204 casts `dtcgToken.$value as Token['$value']` and `dtcgToken.$type as TokenType | undefined` without validation, losing type safety at the DTCG-to-internal boundary (packages/core/src/resolver.ts, packages/core/src/dtcg-resolver.ts)
   Worktree: /tmp/backlog-91949-GBxB4g
   Running agent… (started 02:22:10)
+
+  ✓ done: Core resolver `collectReferences` silently adds undefined to reference set on malformed formula
+    Added `if (m[1])` guards in collectReferences and extractFormulaUnit; replaced blind $type cast in dtcg-resolver.ts with TOKEN_TYPE_VALUES.has() validation
+    22 turns · 159s · $0.49
+
+  Merging to main: Core resolver `collectReferences` silently adds undefined to reference set on malformed formula
+Already up to date.

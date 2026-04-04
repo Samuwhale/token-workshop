@@ -20,6 +20,7 @@ import type {
 } from './types.js';
 import type { DTCGGroup, DTCGToken } from './dtcg-types.js';
 import { isDTCGToken, flattenTokenGroup } from './dtcg-types.js';
+import { TOKEN_TYPE_VALUES } from './constants.js';
 import { TokenResolver } from './resolver.js';
 
 // ---------------------------------------------------------------------------
@@ -201,7 +202,9 @@ export async function resolveTokens(
   for (const [path, dtcgToken] of merged) {
     tokens[path] = {
       $value: dtcgToken.$value as Token['$value'],
-      $type: dtcgToken.$type as TokenType | undefined,
+      $type: (typeof dtcgToken.$type === 'string' && TOKEN_TYPE_VALUES.has(dtcgToken.$type))
+        ? (dtcgToken.$type as TokenType)
+        : undefined,
       ...(dtcgToken.$description ? { $description: dtcgToken.$description } : {}),
       ...(dtcgToken.$extensions ? { $extensions: dtcgToken.$extensions } : {}),
     };

@@ -438,3 +438,13 @@
   - Group-label + indented section with left-border is a clean pattern for collapsible sub-groups without needing a full accordion component.
   - The "More options" toggle fits naturally at the bottom of the actions section; label toggles between "More options" / "Fewer options" so state is always obvious.
 ---
+
+## 2026-04-04 - Core resolver `collectReferences` silently adds undefined to reference set on malformed formula
+- Added `if (m[1])` guard in `collectReferences` before `refs.add(m[1])` to skip empty/undefined capture groups from malformed formulas like `{.}` or `{}`
+- Added `if (!m[1]) continue;` guard in `extractFormulaUnit` for the same regex loop
+- In `dtcg-resolver.ts` Step 3 conversion, replaced blind `dtcgToken.$type as TokenType | undefined` cast with a validated cast: checks `TOKEN_TYPE_VALUES.has(dtcgToken.$type)` before casting, falls back to `undefined` for unrecognised type strings; added `TOKEN_TYPE_VALUES` import from `./constants.js`
+- Files changed: `packages/core/src/resolver.ts` ~L237, ~L478, `packages/core/src/dtcg-resolver.ts` ~L22, ~L204
+- **Learnings for future iterations:**
+  - `makeReferenceGlobalRegex()` uses `[^}]+` (1+ chars) so `m[1]` can't currently be `undefined` or `""`, but the guard is still the right defensive move — the regex could change, and malformed paths like `{.}` still produce a string that poisons the dependency graph
+  - `TOKEN_TYPE_VALUES` (a `Set<string>`) is the canonical membership check for valid token types; use `.has()` rather than casting `as TokenType` at any external/untrusted data boundary
+---

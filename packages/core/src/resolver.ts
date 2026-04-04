@@ -234,7 +234,10 @@ export class TokenResolver {
     if (typeof value === 'string' && isFormula(value)) {
       const matches = value.matchAll(makeReferenceGlobalRegex());
       for (const m of matches) {
-        refs.add(m[1]);
+        // Guard against empty/undefined capture groups (e.g. malformed `{.}` or `{}`)
+        if (m[1]) {
+          refs.add(m[1]);
+        }
       }
       return refs;
     }
@@ -475,6 +478,7 @@ export class TokenResolver {
   private extractFormulaUnit(formula: string): string | null {
     const matches = formula.matchAll(makeReferenceGlobalRegex());
     for (const m of matches) {
+      if (!m[1]) continue;
       const resolved = this.resolved.get(m[1]);
       if (!resolved) continue;
       const val = resolved.$value;
