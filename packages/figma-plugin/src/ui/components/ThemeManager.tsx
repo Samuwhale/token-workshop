@@ -57,6 +57,8 @@ interface ThemeManagerProps {
   onGoToTokens?: () => void;
   /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
+  /** Called with a success message after a mutation completes (dimension/option create, rename). */
+  onSuccess?: (msg: string) => void;
 }
 
 
@@ -69,7 +71,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
@@ -479,6 +481,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setNewlyCreatedDim(id);
       setDimensions(prev => [...prev, { id, name, options: [] }]);
       debouncedFetchDimensions();
+      onSuccess?.(`Created dimension "${name}"`);
     } catch (err) {
       setCreateDimError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to create dimension'));
     }
@@ -518,6 +521,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
       debouncedFetchDimensions();
+      onSuccess?.(`Renamed dimension to "${name}"`);
     } catch (err) {
       setRenameError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
     }
@@ -575,6 +579,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       });
       cancelRenameOption();
       debouncedFetchDimensions();
+      onSuccess?.(`Renamed option to "${name}"`);
     } catch (err) {
       setRenameOptionError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
     }
@@ -664,6 +669,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setSelectedOptions(prev => ({ ...prev, [dimId]: name }));
       debouncedFetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
+      onSuccess?.(`Added option "${name}"`);
     } catch (err) {
       setAddOptionErrors(prev => ({ ...prev, [dimId]: err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to add option') }));
     }
@@ -974,7 +980,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">DTCG Resolvers</span>
         </div>
         <div className="flex-1 overflow-hidden">
-          <ResolverContent {...resolverState} />
+          <ResolverContent {...resolverState} onSuccess={onSuccess} />
         </div>
       </div>
     );

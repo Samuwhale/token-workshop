@@ -599,6 +599,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               onTokensCreated={p.refreshAll}
               onGoToTokens={() => p.navigateTo('define', 'tokens')}
               themeManagerHandle={p.themeManagerHandleRef}
+              onSuccess={p.setSuccessToast}
               resolverState={{
                 serverUrl,
                 connected,
@@ -648,6 +649,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           deleteResolver={resolverState.deleteResolver}
           getResolverFile={resolverState.getResolverFile}
           updateResolver={resolverState.updateResolver}
+          onSuccess={p.setSuccessToast}
         />
       </ErrorBoundary>
     );

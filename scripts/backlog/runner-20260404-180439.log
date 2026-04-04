@@ -297,3 +297,26 @@ Already up to date.
 
   Merging to main: Token-store batchUpsertTokens creates new sets outside the snapshot boundary
 Already up to date.
+[main 423defed] chore(backlog): done – Token-store batchUpsertTokens creates new sets outside the snapshot boundary
+ 6 files changed, 57 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Token-store batchUpsertTokens creates new sets outside the snapshot boundary
+- Fixed two related issues:
+  1. **Internal rollback in `batchUpsertTokens`** (`token-store.ts` ~L874): tracked `wasNewSet = !this.sets.has(setName)` before calling `_createSetNoRebuild`. In the catch block (after `restoreSnapshots`), if `wasNewSet`, the newly created set entry is removed from `this.sets` and its file is deleted from disk via `fs.unlink`. This ensures a failed batch upsert leaves no ghost empty set.
+  2. **Operation log rollback for batch-upsert that creates a new set** (`routes/tokens.ts` ~L582): added `setExistedBefore = !!(await fastify.tokenStore.getSet(set))` before calling `batchUpsertTokens`. If the set was newly created by the upsert, the operation log entry now includes `rollbackSteps: [{ action: 'delete-set', name: set }]`. This means the operation-log-level undo properly deletes the set rather than leaving an empty ghost.
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  6 queued · 0
+0 in-progress · last took 6m50s
+═══════════════════════════════════════════════════════════════
+  → No success feedback after ThemeManager and ResolverPanel mutations — creating a theme dimension, adding an option, renaming, or saving a resolver edit all complete silently with only the list refreshing as implicit feedback (ThemeManager create dimension ~L2217, add option ~L1551; ResolverPanel save edit ~L281); contrast with set management operations (useSetRename, useSetDelete, useSetDuplicate) which all show explicit success toasts; a user performing multiple quick edits in ThemeManager can't tell which ones succeeded vs. were silently dropped (violates: visibility of system status, consistency)
+  Worktree: /tmp/backlog-3108-q0CeKp
+  Running agent… (started 19:26:24)
+
+  ✓ done: No success feedback after ThemeManager and ResolverPanel mutations
+    Added onSuccess prop to ThemeManager and ResolverPanel; wired to setSuccessToast in PanelRouter; toasts fire after create dimension, rename dimension, rename option, add option, and resolver save
+    43 turns · 223s · $1.05
+
+  Merging to main: No success feedback after ThemeManager and ResolverPanel mutations
+Already up to date.

@@ -36,6 +36,8 @@ export interface ResolverContentProps {
   deleteResolver: (name: string) => Promise<void>;
   getResolverFile?: (name: string) => Promise<ResolverFile>;
   updateResolver?: (name: string, file: ResolverFile) => Promise<void>;
+  /** Called with a success message after a mutation completes (e.g. resolver save). */
+  onSuccess?: (msg: string) => void;
 }
 
 /**
@@ -77,6 +79,7 @@ function ResolverInner({
   deleteResolver,
   getResolverFile,
   updateResolver,
+  onSuccess,
   showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
   const help = usePanelHelp('resolvers');
@@ -278,6 +281,7 @@ function ResolverInner({
         modifiers: updatedModifiers,
       };
       await updateResolver(editingResolver, updatedFile);
+      onSuccess?.(`Saved resolver "${editingResolver}"`);
       setEditingResolver(null);
       setEditFile(null);
       setEditForm(null);
@@ -286,7 +290,7 @@ function ResolverInner({
     } finally {
       setEditSaving(false);
     }
-  }, [editingResolver, editFile, editForm, updateResolver]);
+  }, [editingResolver, editFile, editForm, updateResolver, onSuccess]);
 
   const handleEditCancel = useCallback(() => {
     setEditingResolver(null);

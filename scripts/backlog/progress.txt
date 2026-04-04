@@ -702,3 +702,19 @@
   - The internal snapshot (token-store) and the operation-log snapshot (route) are two separate layers: both need fixes when a new set is created mid-operation.
   - For `deleteTokens`: the snapshot IS taken before mutations and the operation-log rollback works correctly (set exists after token deletion since `saveSet` doesn't auto-delete empty sets). No bug exists in the current implementation.
 ---
+
+## 2026-04-04 - No success feedback after ThemeManager and ResolverPanel mutations
+- Added `onSuccess?: (msg: string) => void` prop to `ThemeManagerProps` and `ResolverContentProps`
+- Called `onSuccess?.(...)` after each successful mutation:
+  - ThemeManager: create dimension ("Created dimension \"${name}\""), rename dimension ("Renamed dimension to \"${name}\""), rename option ("Renamed option to \"${name}\""), add option ("Added option \"${name}\"")
+  - ResolverPanel: save edit ("Saved resolver \"${name}\"")
+- Passed `p.setSuccessToast` as `onSuccess` to both `<ThemeManager>` and `<ResolverPanel>` in `PanelRouter.tsx`
+- Also threaded `onSuccess` through to the embedded `<ResolverContent>` inside ThemeManager's advanced mode
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L59, ~L74, ~L481, ~L520, ~L577, ~L665, ~L983
+  - `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L38, ~L80, ~L281, ~L289
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L601, ~L651
+- **Learnings for future iterations:**
+  - `resolverState` in ThemeManagerProps is typed as `ResolverContentProps` — when adding new props to `ResolverContentProps`, they must also be forwarded at the `<ResolverContent {...resolverState} />` call site inside ThemeManager if they should be active in the embedded advanced mode view
+  - The `useCallback` dep array must include `onSuccess` (or any prop-derived callback) to avoid stale closures
+---
