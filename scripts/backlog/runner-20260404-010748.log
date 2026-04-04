@@ -577,3 +577,18 @@ Already up to date.
 
   Merging to main: ThemeManager "Auto-fill" feature is buried and unnamed
 Already up to date.
+[main 47a2ea97] chore(backlog): done – ThemeManager "Auto-fill" feature is buried and unnamed
+ 7 files changed, 149 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ThemeManager "Auto-fill" feature is buried and unnamed
+- Added command palette entry "Auto-fill theme gaps" in App.tsx baseCommands (category: 'Themes') that navigates to Themes and triggers auto-fill for the first dimension with fillable gaps, showing the confirmation modal.
+- Added `ThemeManagerHandle` exported interface and two new props (`onGapsDetected`, `themeManagerHandle`) to ThemeManager.tsx, wired via ref + callback to App.tsx.
+- Added `totalFillableGaps` useMemo across all dimensions/options in ThemeManager.
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  7 queued · 3 in-progress · last took 6m34s
+═══════════════════════════════════════════════════════════════
+  → Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files (useTokenCrud 7x, AnalyticsPanel 5x, TokenList 3x, TokenEditor 3x, PropertyRow 2x, and 11 more) — extract a shared `tokenPathToUrlSegment(path)` utility into `shared/utils.ts` to eliminate the duplication and ensure any future encoding changes (e.g., handling segments with dots) apply everywhere (grep for the pattern to find all sites)
+  Worktree: /tmp/backlog-91949-BrJd6Z
+  Running agent… (started 03:19:48)

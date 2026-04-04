@@ -35,6 +35,7 @@ import { GRAPH_TEMPLATES } from './components/graph-templates';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { HistoryPanel } from './components/HistoryPanel';
+import { HealthPanel, computeHealthIssueCount } from './components/HealthPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
@@ -179,7 +180,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'compare' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
-type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
+type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'health';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
 type FolderTreeNode = {
@@ -235,6 +236,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'export', label: 'Export' },
     { id: 'validation', label: 'Validation' },
     { id: 'history', label: 'History' },
+    { id: 'health', label: 'Health' },
   ]},
 ];
 
@@ -1058,6 +1060,13 @@ export function App() {
         handler: () => { navigateTo('ship', 'validation'); setValidateKey(k => k + 1); },
       },
       {
+        id: 'health-dashboard',
+        label: 'Token Health Dashboard',
+        description: 'Single-view summary: lint, validation, generators, canvas coverage, and unused tokens',
+        category: 'Navigation',
+        handler: () => navigateTo('ship', 'health'),
+      },
+      {
         id: 'generate-color-scale',
         label: 'Generate Color Scale',
         description: 'Create a perceptually uniform color ramp',
@@ -1354,8 +1363,8 @@ export function App() {
             {tab.id === 'apply' && selectedNodes.length > 0 && !(activeTopTab === 'apply' && overflowPanel === null) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
             )}
-            {tab.id === 'ship' && gitHasChanges && !(activeTopTab === 'ship' && overflowPanel === null) && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-[var(--color-figma-bg)]" aria-label="Uncommitted changes" />
+            {tab.id === 'ship' && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && !(activeTopTab === 'ship' && overflowPanel === null) && (
+              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-figma-bg)] ${gitHasChanges ? 'bg-amber-400' : 'bg-[var(--color-figma-error)]'}`} aria-label={gitHasChanges ? 'Uncommitted changes' : 'Health issues detected'} />
             )}
           </button>
         ))}
@@ -2724,6 +2733,23 @@ export function App() {
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
               <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} filterTokenPath={historyFilterPath} onClearFilter={() => setHistoryFilterPath(null)} recentOperations={recentOperations} totalOperations={totalOperations} hasMoreOperations={hasMoreOperations} onLoadMoreOperations={loadMoreOperations} onRollback={handleRollback} undoDescriptions={undoDescriptions} redoableOpIds={redoableOpIds} onServerRedo={handleServerRedo} />
+              </ErrorBoundary>
+          )}
+
+          {/* Health sub-tab (Ship > Health) — aggregated token health summary */}
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'health' && (
+              <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'publish')}>
+              <HealthPanel
+                serverUrl={serverUrl}
+                connected={connected}
+                generators={generators}
+                lintViolations={lintViolations}
+                allTokensFlat={allTokensFlat}
+                tokenUsageCounts={tokenUsageCounts}
+                heatmapResult={heatmapResult}
+                onNavigateTo={(topTab, subTab) => navigateTo(topTab, subTab as SubTab | undefined)}
+                onTriggerHeatmap={triggerHeatmapScan}
+              />
               </ErrorBoundary>
           )}
 

@@ -504,3 +504,17 @@
   - The `useRef` + `useEffect` imperative handle pattern works cleanly for exposing internal component actions (like showing a modal) to the command palette without lifting state — declare `handleXxxRef = useRef(fn)`, assign `.current = fn` on every render (callback ref), and populate the handle's method using `handleXxxRef.current()` inside the effect closure to avoid stale captures.
   - For conditional command descriptions (showing gap count), add the state to the `useMemo` dependency array of `baseCommands` — the TypeScript linter does not warn about missing deps in `useMemo`, so this is easy to miss.
 ---
+
+## 2026-04-04 - No unified "token health" dashboard
+- Created `HealthPanel.tsx` — a unified health dashboard that aggregates: lint violations (per-set), cross-set validation issues (broken aliases, circular refs, missing types), generator staleness and errors, canvas coverage from heatmap, and unused token counts. Each section shows an expandable list of affected paths with a deep-link CTA button to the relevant panel.
+- Added `computeHealthIssueCount()` export for use in status badges outside the panel.
+- Added `'health'` sub-tab to `ship` TOP_TABS in App.tsx; updated `ShipSubTab` union type.
+- Added "Token Health Dashboard" command palette entry (category: Navigation).
+- Updated the ship tab badge to show a red dot when health issues are detected (error/warning lint violations or stale/failed generators), in addition to the existing amber git-changes dot.
+- Added HealthPanel render block in App.tsx (`overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'health'`).
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` (new, ~320 lines), `packages/figma-plugin/src/ui/App.tsx` ~L36 (import), ~L182 (type), ~L237 (tab def), ~L1042 (command palette), ~L1349 (badge), ~L2714 (render block)
+- **Learnings for future iterations:**
+  - Health sections that expand on click use a local `useState(false)` inside the section component, keeping the parent panel stateless for these toggles.
+  - The `computeHealthIssueCount` helper is a pure function that takes already-loaded props, making it usable anywhere without extra API calls (e.g., for badges).
+  - When passing `navigateTo(topTab, subTab)` to a child that types `subTab` as `string`, use an inline arrow wrapper with `as SubTab | undefined` cast — cleaner than propagating internal types through component props.
+---
