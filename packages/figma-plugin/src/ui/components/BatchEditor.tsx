@@ -171,6 +171,8 @@ export function BatchEditor({
   const [showScopes, setShowScopes] = useState(false);
   const [batchExtensions, setBatchExtensions] = useState<Array<{ key: string; value: string }>>([]);
   const [showExtensions, setShowExtensions] = useState(false);
+  const [setValueInput, setSetValueInput] = useState('');
+  const [setValueMode, setSetValueMode] = useState<'literal' | 'json'>('literal');
   const [expandedPreviews, setExpandedPreviews] = useState<Record<string, boolean>>({});
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
@@ -323,6 +325,8 @@ export function BatchEditor({
 
   const aliasActive = aliasRef !== '' && isAlias(aliasRef);
 
+  const setValueActive = setValueInput.trim() !== '';
+
   const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
 
   // For multiply/divide the operand must be non-zero; for add/subtract any number is valid.
@@ -348,7 +352,8 @@ export function BatchEditor({
     aliasActive ||
     opacityActive ||
     numericTransformActive ||
-    colorAdjustActive
+    colorAdjustActive ||
+    setValueActive
   );
 
   const canMove = targetSet !== '' && !moving && !copying;
@@ -516,6 +521,20 @@ export function BatchEditor({
         }
       }
 
+      // Direct $value overwrite — only when no other value-setting operations are active
+      if (setValueActive && !aliasActive && !opacityActive && !numericTransformActive && !colorAdjustActive) {
+        const raw = setValueInput.trim();
+        let parsed: unknown = raw;
+        if (setValueMode === 'json') {
+          try { parsed = JSON.parse(raw); } catch { /* keep as string */ }
+        } else {
+          if (raw === 'true') parsed = true;
+          else if (raw === 'false') parsed = false;
+          else if (raw !== '' && !isNaN(Number(raw))) parsed = Number(raw);
+        }
+        patch.$value = parsed;
+      }
+
       if (Object.keys(patch).length > 0) {
         ops.push({ path, patch, oldEntry: entry });
       }
@@ -582,6 +601,7 @@ export function BatchEditor({
       setAliasRef('');
       setNewType('');
       setBatchExtensions([]);
+      setSetValueInput('');
       setTimeout(() => descriptionRef.current?.focus(), 0);
     } catch (err) {
       console.warn('[BatchEditor] batch apply failed:', err);
@@ -1066,6 +1086,48 @@ export function BatchEditor({
         </>
       )}
 
+      {/* Set value — direct $value overwrite for all selected tokens */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Set value</span>
+        <input
+          type="text"
+          aria-label="Set value on all selected tokens"
+          value={setValueInput}
+          onChange={e => setSetValueInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleApplyRef.current(); }}
+          placeholder={setValueMode === 'json' ? 'JSON value…' : 'e.g. 16px, #ff0000, true…'}
+          className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+        />
+        <button
+          type="button"
+          onClick={() => setSetValueMode(v => v === 'literal' ? 'json' : 'literal')}
+          title={setValueMode === 'json' ? 'JSON parse mode — click to switch to auto-coerce' : 'Auto-coerce mode (numbers/booleans detected) — click to switch to JSON parse'}
+          className={`shrink-0 px-1.5 h-6 rounded border text-[10px] font-mono transition-colors ${
+            setValueMode === 'json'
+              ? 'bg-[var(--color-figma-accent)] text-white border-transparent'
+              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
+          }`}
+        >
+          {'{}'}
+        </button>
+      </div>
+      {setValueActive && (aliasActive || opacityActive || numericTransformActive || colorAdjustActive) && (
+        <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)]">
+          Conflicts with other value operations — clear the conflicting field to apply
+        </div>
+      )}
+      {setValueActive && !aliasActive && !opacityActive && !numericTransformActive && !colorAdjustActive && (
+        <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
+          Will set $value on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
+          {setValueMode === 'literal' && setValueInput.trim() !== '' && (() => {
+            const raw = setValueInput.trim();
+            if (raw === 'true' || raw === 'false') return ' as boolean';
+            if (raw !== '' && !isNaN(Number(raw))) return ' as number';
+            return ' as string';
+          })()}
+        </div>
+      )}
+
       {/* Set alias — batch-convert all selected tokens to a reference value */}
       <div className="relative">
         <div className="flex items-center gap-2">
@@ -1225,7 +1287,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity or color adjust' : ''}${hasScalable ? ', transform' : ''}, or alias to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity or color adjust' : ''}${hasScalable ? ', transform' : ''}, value, or alias to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">

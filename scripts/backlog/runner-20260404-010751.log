@@ -820,3 +820,10 @@ Already up to date.
   → No batch value editing for multi-selected tokens — users can multi-select tokens (M key) and bulk delete or move them, but cannot edit a shared field (value, description, $type) across the selection; this is the single biggest productivity gap for power users managing large token systems; add a "Edit N selected" action that opens a batch editor for common fields like $type, $description, or a value formula (e.g., "multiply all by 1.5" for dimension tokens) (TokenList.tsx, tokenListTypes.ts, useTokenCrud.ts)
   Worktree: /tmp/backlog-92209-jv98e6
   Running agent… (started 03:40:06)
+
+  ✓ done: No batch value editing for multi-selected tokens
+    Added "Edit N selected" dynamic button label, `e` keyboard shortcut to toggle batch editor in select mode, and a new "Set value" field in BatchEditor for direct $value overwrites with auto-coerce and JSON parse modes
+    22 turns · 370s · $1.5
+
+  Merging to main: No batch value editing for multi-selected tokens
+Already up to date.

@@ -659,3 +659,14 @@
   - When splitting a shared error state in SnapshotsSource, each operation (load, compare, pair-compare, revert, delete) must explicitly write to its own error variable. The Back button handler should also clear the relevant error variable on navigation to avoid stale errors leaking to the destination view.
   - AbortController cleanup in mount-only effects (with empty dep array): the cleanup function (`return () => controller.abort()`) fires on unmount, which is correct — it aborts any in-flight request when the component is removed from the tree.
 ---
+
+## 2026-04-04 - No batch value editing for multi-selected tokens
+- Implemented "Edit N selected" batch editor improvements across three files:
+- **TokenList.tsx**: Renamed "Batch edit" button to "Edit {N} selected" (dynamic count). Added `e` keyboard shortcut to toggle the batch editor when in select mode with tokens selected.
+- **BatchEditor.tsx**: Added "Set value" field — a direct `$value` overwrite supporting all token types. Features auto-coerce mode (detects numbers/booleans from plain text) and JSON parse mode (toggle via `{}` button). Shows type annotation preview ("as number", "as boolean", "as string") when active. Conflict detection prevents it from firing alongside alias/opacity/transform/colorAdjust operations.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1222 (keyboard shortcut), ~L2045 (button label); `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L172 (state), ~L326 (setValueActive), ~L343 (hasOp), ~L518 (patch logic), ~L591 (reset), ~L1069 (UI row), ~L1228 (hint text)
+- **Learnings for future iterations:**
+  - BatchEditor.tsx already had nearly all the infrastructure (numeric transform, color adjust, alias, descriptions, types) — the gap was a literal value overwrite for color/string/boolean/composite types.
+  - The `handleApplyRef` pattern (mutable ref pointing to `handleApply`) is used so the Enter key handler in the new input calls the latest closure without stale state.
+  - Auto-coerce mode (default) covers the common case (users type `16`, `true`, `#ff0000`) without forcing JSON syntax knowledge.
+---

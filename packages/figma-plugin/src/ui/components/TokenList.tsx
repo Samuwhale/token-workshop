@@ -1220,6 +1220,15 @@ export function TokenList({
       return;
     }
 
+    // e: open/toggle batch editor when in select mode with tokens selected
+    if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (selectMode && selectedPaths.size > 0) {
+        e.preventDefault();
+        setShowBatchEditor(v => !v);
+        return;
+      }
+    }
+
     // n: open create form / drawer, pre-filling path from focused group or token's parent group
     if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
@@ -2042,7 +2051,7 @@ export function TokenList({
                   onClick={() => setShowBatchEditor(v => !v)}
                   className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                 >
-                  Batch edit
+                  Edit {selectedPaths.size} selected
                 </button>
                 {selectedPaths.size >= 2 && onOpenCompare && (
                   <button

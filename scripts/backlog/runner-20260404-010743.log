@@ -599,3 +599,23 @@ Already up to date.
 
   Merging to main: HistoryPanel.tsx is a 2358-line monolith with 69 useState calls across 4 independent source views (timeline, git commits, commit compare, snapshots) that share a single error state — SnapshotsSource single-compare and pair-compare both write to the same `error` state causing cross-contamination; snapshot API calls have no AbortController so rapid comparisons race; the change-list-grouped-by-set rendering pattern is copy-pasted across 3 locations (~L1318, ~L1688, ~L1996); decompose into separate source components with isolated state and extract a shared ChangesBySetList component
 Already up to date.
+[main 60610e48] chore(backlog): done – HistoryPanel.tsx is a 2358-line monolith with 69 useState calls across 4 independent source views (timeline, git commits, commit compare, snapshots) that share a single error state — SnapshotsSource single-compare and pair-compare both write to the same `error` state causing cross-contamination; snapshot API calls have no AbortController so rapid comparisons race; the change-list-grouped-by-set rendering pattern is copy-pasted across 3 locations (~L1318, ~L1688, ~L1996); decompose into separate source components with isolated state and extract a shared ChangesBySetList component
+ 11 files changed, 1618 insertions(+), 1590 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/history/ChangesBySetList.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/history/CommitCompareView.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/history/GitCommitsSource.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/history/SnapshotsSource.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/history/types.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - HistoryPanel.tsx 2358-line monolith decomposition
+- Decomposed HistoryPanel.tsx (2358 lines, 69 useState calls) into 5 focused files plus a slim navigation shell.
+- Created `history/types.ts` — shared interfaces (CommitEntry, CommitDetail, SnapshotSummary, SnapshotDiff, UndoSlot, OperationEntry, HistoryPanelProps) and utility functions (snapshotDiffToChange, defaultSnapshotLabel).
+- Created `history/ChangesBySetList.tsx` — extracted shared component replacing 3 copy-pasted grouped-by-set rendering blocks. Exports StatusBadge, ChangeRow, ChangesBySetList. Props: `changes`, `openSections`, `onToggleSection`, optional `renderRowActions` (for restore buttons in GitCommitsSource), optional `showSummaryBar` (for CommitCompareView's N-across-M-sets bar).
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  6 queued · 3 in-progress · last took 17m4s
+═══════════════════════════════════════════════════════════════
+  → Move/Copy token to set dialogs do not check for name conflicts in the target set — the dialog lets you pick a target set and confirms immediately, but if the target already has a token at the same path, it silently overwrites; add a conflict preview (showing existing vs incoming value) and let users choose overwrite/skip/rename before proceeding (TokenList.tsx move/copy dialog handlers, useTokenCrud.ts)
+  Worktree: /tmp/backlog-91634-bpQ9vT
+  Running agent… (started 03:44:26)
