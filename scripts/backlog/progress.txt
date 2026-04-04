@@ -393,3 +393,16 @@
   - Capturing `currentBindings` before the inner loop serves double duty: snapshot for rollback AND avoids double-reading plugin data during normal execution
   - When the snapshot only contains props with non-empty values, restoring with `bindings[prop] ?? ''` correctly clears any prop that was remapped (since the original was empty if it wasn't captured)
 ---
+
+## 2026-04-04 - Server GET routes missing try/catch error boundaries
+- Wrapped 4 routes in try/catch with `handleRouteError`:
+  1. `GET /api/snapshots` (snapshots.ts:28) — was returning unstructured 500s on list failure
+  2. `DELETE /api/snapshots/:id` (snapshots.ts:34) — collateral fix, same file, same pattern
+  3. `GET /api/operations` (operations.ts:8) — added `reply` param to handler signature
+  4. `GET /api/operations/token-history` (operations.ts:17) — also lacked error boundary
+- `GET /api/tokens/:set` (tokens.ts:103) was already wrapped — item's line number referred to an earlier code state
+- Files changed: `packages/server/src/routes/snapshots.ts` ~L28-38, `packages/server/src/routes/operations.ts` ~L8-29
+- **Learnings for future iterations:**
+  - When adding try/catch to a GET handler that previously had no `reply` parameter, the signature must be updated from `async (request)` to `async (request, reply)` to pass `reply` to `handleRouteError`
+  - The tokens.ts resolved-token route referenced in the backlog item (line 46) had already been fixed by the time this ran — always verify current file state before assuming a route is unguarded
+---

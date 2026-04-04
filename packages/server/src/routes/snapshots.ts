@@ -25,16 +25,24 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/snapshots — list saved snapshots
-  fastify.get('/snapshots', async () => {
-    const list = await fastify.manualSnapshots.list();
-    return { snapshots: list };
+  fastify.get('/snapshots', async (_request, reply) => {
+    try {
+      const list = await fastify.manualSnapshots.list();
+      return { snapshots: list };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to list snapshots');
+    }
   });
 
   // DELETE /api/snapshots/:id
   fastify.delete<{ Params: { id: string } }>('/snapshots/:id', async (request, reply) => {
-    const deleted = await fastify.manualSnapshots.delete(request.params.id);
-    if (!deleted) return reply.status(404).send({ error: 'Snapshot not found' });
-    return { ok: true };
+    try {
+      const deleted = await fastify.manualSnapshots.delete(request.params.id);
+      if (!deleted) return reply.status(404).send({ error: 'Snapshot not found' });
+      return { ok: true };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to delete snapshot');
+    }
   });
 
   // GET /api/snapshots/:idA/compare/:idB — compare two snapshots against each other
