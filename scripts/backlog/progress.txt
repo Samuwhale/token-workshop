@@ -121,3 +121,11 @@
   - Writing the updated `failedSets` count back to the journal immediately after each failure ensures the counter survives another crash mid-recovery.
   - `allResolved` starts `true` and flips `false` only on an actual failure (not on quarantine) — quarantined sets are intentionally "resolved" so they don't block journal cleanup indefinitely.
 ---
+
+## 2026-04-04 - Style Dictionary export leaks temp directories on build failure
+- Wrapped entire `exportTokens` function body (after `mkdir`) in a `try/finally` block so `tmpDir` is always removed when `isTemp` is true — even when errors are thrown before the old explicit cleanup (e.g., `fs.mkdir(buildPath)` fails, or any other unexpected throw in the setup path).
+- Files changed: `packages/server/src/services/style-dict.ts` ~L321
+- **Learnings for future iterations:**
+  - The per-platform try-catch at line 392 caught most errors from StyleDictionary, but setup code *between* the outer loop and the inner try (e.g., `fs.mkdir(buildPath)`) was unguarded. A single `try/finally` around the whole body is simpler and covers all cases.
+  - Moving `return { results, warnings }` inside the `try` block and keeping only the cleanup in `finally` is the idiomatic pattern — the `finally` cleanup runs regardless of whether the function returns normally or throws.
+---

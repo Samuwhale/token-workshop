@@ -321,110 +321,112 @@ export async function exportTokens(
   const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
   await fs.mkdir(tmpDir, { recursive: true });
 
-  // Write tokens as a single JSON for Style Dictionary
-  const tokenFile = path.join(tmpDir, 'tokens.json');
-  // Deep-merge all sets into one object so that shared top-level group keys
-  // (e.g. two sets both have a `color` group) have their contents combined
-  // rather than the second set silently overwriting the first.
-  const merged: Record<string, any> = {};
-  const warnings: string[] = [];
-  for (const [setName, tokenGroup] of Object.entries(tokens)) {
-    const setConflicts: string[] = [];
-    deepMergeInto(merged, tokenGroup as Record<string, any>, setConflicts);
-    for (const tokenPath of setConflicts) {
-      const msg = `Token "${tokenPath}" is defined in multiple sets; value from set "${setName}" will be used`;
-      console.warn(`[export] ${msg}`);
-      warnings.push(msg);
+  try {
+    // Write tokens as a single JSON for Style Dictionary
+    const tokenFile = path.join(tmpDir, 'tokens.json');
+    // Deep-merge all sets into one object so that shared top-level group keys
+    // (e.g. two sets both have a `color` group) have their contents combined
+    // rather than the second set silently overwriting the first.
+    const merged: Record<string, any> = {};
+    const warnings: string[] = [];
+    for (const [setName, tokenGroup] of Object.entries(tokens)) {
+      const setConflicts: string[] = [];
+      deepMergeInto(merged, tokenGroup as Record<string, any>, setConflicts);
+      for (const tokenPath of setConflicts) {
+        const msg = `Token "${tokenPath}" is defined in multiple sets; value from set "${setName}" will be used`;
+        console.warn(`[export] ${msg}`);
+        warnings.push(msg);
+      }
     }
-  }
-  // Pre-resolve alias references inside gradient stop color fields so that
-  // Style Dictionary receives concrete color values rather than {path} refs.
-  const resolvedMerged = resolveGradientStopAliases(merged);
-  const tokenFileTmp = `${tokenFile}.tmp`;
-  await fs.writeFile(tokenFileTmp, JSON.stringify(resolvedMerged, null, 2));
-  await fs.rename(tokenFileTmp, tokenFile);
+    // Pre-resolve alias references inside gradient stop color fields so that
+    // Style Dictionary receives concrete color values rather than {path} refs.
+    const resolvedMerged = resolveGradientStopAliases(merged);
+    const tokenFileTmp = `${tokenFile}.tmp`;
+    await fs.writeFile(tokenFileTmp, JSON.stringify(resolvedMerged, null, 2));
+    await fs.rename(tokenFileTmp, tokenFile);
 
-  // For CSS exports: create a separate token file where formula tokens have
-  // their $value replaced with a calc() expression.
-  const cssTokenFile = path.join(tmpDir, 'tokens-css.json');
-  const cssOptimized = injectFormulaCalc(resolvedMerged);
-  const cssTokenFileTmp = `${cssTokenFile}.tmp`;
-  await fs.writeFile(cssTokenFileTmp, JSON.stringify(cssOptimized, null, 2));
-  await fs.rename(cssTokenFileTmp, cssTokenFile);
+    // For CSS exports: create a separate token file where formula tokens have
+    // their $value replaced with a calc() expression.
+    const cssTokenFile = path.join(tmpDir, 'tokens-css.json');
+    const cssOptimized = injectFormulaCalc(resolvedMerged);
+    const cssTokenFileTmp = `${cssTokenFile}.tmp`;
+    await fs.writeFile(cssTokenFileTmp, JSON.stringify(cssOptimized, null, 2));
+    await fs.rename(cssTokenFileTmp, cssTokenFile);
 
-  const results: ExportResult[] = [];
+    const results: ExportResult[] = [];
 
-  // Handle custom platforms that bypass Style Dictionary
-  const flatMapForCustom = buildFlatValueMap(resolvedMerged);
-  const flatTokenList = buildFlatTokenList(resolvedMerged, flatMapForCustom);
-  for (const platform of platforms) {
-    if (platform === 'tailwind') {
-      const content = generateTailwindConfig(flatTokenList);
-      results.push({ platform, files: [{ path: 'tailwind.config.js', content }] });
-    } else if (platform === 'css-in-js') {
-      const content = generateCssInJs(flatTokenList);
-      results.push({ platform, files: [{ path: 'theme.ts', content }] });
-    }
-  }
-
-  for (const platform of platforms) {
-    const config = PLATFORM_CONFIGS[platform];
-    if (!config) continue;
-
-    const buildPath = path.join(tmpDir, config.buildPath);
-    await fs.mkdir(buildPath, { recursive: true });
-
-    // Use the CSS-optimized file (formula → calc()) for CSS-family platforms
-    const sourceFile = (platform === 'css' || platform === 'scss' || platform === 'less') ? cssTokenFile : tokenFile;
-
-    // Build effective platform config, applying CSS selector override if provided
-    let effectiveConfig = config;
-    if (platform === 'css' && cssOptions?.selector && cssOptions.selector !== ':root') {
-      effectiveConfig = {
-        ...config,
-        files: config.files.map((f: any) => ({
-          ...f,
-          options: { ...(f.options ?? {}), selector: cssOptions!.selector },
-        })),
-      };
+    // Handle custom platforms that bypass Style Dictionary
+    const flatMapForCustom = buildFlatValueMap(resolvedMerged);
+    const flatTokenList = buildFlatTokenList(resolvedMerged, flatMapForCustom);
+    for (const platform of platforms) {
+      if (platform === 'tailwind') {
+        const content = generateTailwindConfig(flatTokenList);
+        results.push({ platform, files: [{ path: 'tailwind.config.js', content }] });
+      } else if (platform === 'css-in-js') {
+        const content = generateCssInJs(flatTokenList);
+        results.push({ platform, files: [{ path: 'theme.ts', content }] });
+      }
     }
 
-    try {
-      const sd = new StyleDictionary({
-        source: [sourceFile],
-        platforms: {
-          [platform]: {
-            ...effectiveConfig,
-            buildPath: buildPath + '/',
-          },
-        },
-      });
+    for (const platform of platforms) {
+      const config = PLATFORM_CONFIGS[platform];
+      if (!config) continue;
 
-      await sd.buildAllPlatforms();
+      const buildPath = path.join(tmpDir, config.buildPath);
+      await fs.mkdir(buildPath, { recursive: true });
 
-      // Read generated files
-      const files: { path: string; content: string }[] = [];
-      for (const fileConfig of config.files) {
-        const filePath = path.join(buildPath, fileConfig.destination);
-        try {
-          const content = await fs.readFile(filePath, 'utf-8');
-          files.push({ path: fileConfig.destination, content });
-        } catch {
-          // File may not have been generated
-        }
+      // Use the CSS-optimized file (formula → calc()) for CSS-family platforms
+      const sourceFile = (platform === 'css' || platform === 'scss' || platform === 'less') ? cssTokenFile : tokenFile;
+
+      // Build effective platform config, applying CSS selector override if provided
+      let effectiveConfig = config;
+      if (platform === 'css' && cssOptions?.selector && cssOptions.selector !== ':root') {
+        effectiveConfig = {
+          ...config,
+          files: config.files.map((f: any) => ({
+            ...f,
+            options: { ...(f.options ?? {}), selector: cssOptions!.selector },
+          })),
+        };
       }
 
-      results.push({ platform, files });
-    } catch (err) {
-      results.push({ platform, files: [], error: String(err) });
+      try {
+        const sd = new StyleDictionary({
+          source: [sourceFile],
+          platforms: {
+            [platform]: {
+              ...effectiveConfig,
+              buildPath: buildPath + '/',
+            },
+          },
+        });
+
+        await sd.buildAllPlatforms();
+
+        // Read generated files
+        const files: { path: string; content: string }[] = [];
+        for (const fileConfig of config.files) {
+          const filePath = path.join(buildPath, fileConfig.destination);
+          try {
+            const content = await fs.readFile(filePath, 'utf-8');
+            files.push({ path: fileConfig.destination, content });
+          } catch {
+            // File may not have been generated
+          }
+        }
+
+        results.push({ platform, files });
+      } catch (err) {
+        results.push({ platform, files: [], error: String(err) });
+      }
+    }
+
+    return { results, warnings };
+  } finally {
+    if (isTemp) {
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {
+        // Non-fatal — temp cleanup failure should not break the export result
+      });
     }
   }
-
-  if (isTemp) {
-    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {
-      // Non-fatal — temp cleanup failure should not break the export result
-    });
-  }
-
-  return { results, warnings };
 }
