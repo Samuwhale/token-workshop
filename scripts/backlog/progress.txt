@@ -424,3 +424,11 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: App.tsx has a 2100-line render block with 15+31 repeated condition checks forming a combinatorial matrix; generator-service executeSingleBrand has no rollback on partial failure while multi-brand does
 ---
+
+## 2026-04-04 - Generator service `executeSingleBrand` commits partial batch on mid-loop failure
+- Added snapshot-before / restore-on-error rollback to `executeSingleBrand`, mirroring the pattern already used in `executeGeneratorMultiBrand`. Captures `preSnapshot` via `getFlatTokensForSet` before the batch loop, sets `succeeded = false`, and in the `finally` block restores the snapshot if `!succeeded` by computing restoreItems (existing tokens to restore + newly created tokens to null-delete).
+- Files changed: `packages/server/src/services/generator-service.ts` ~L700-748
+- **Learnings for future iterations:**
+  - The rollback logic in `finally` must call `endBatch()` before `restoreSnapshot` — batch must be flushed so the snapshot read gets current state.
+  - `structuredClone` is needed on the snapshot because `getFlatTokensForSet` may return live references.
+---

@@ -697,12 +697,18 @@ export class GeneratorService {
 
     await this.clearNonLockedOverrides(generator);
 
+    // Capture pre-run state so a mid-loop failure can be fully rolled back.
+    const preSnapshot = structuredClone(
+      await tokenStore.getFlatTokensForSet(effectiveTargetSet).catch(() => ({})),
+    ) as Record<string, Token>;
+
     const extensions = {
       'com.tokenmanager.generator': {
         generatorId: generator.id,
         sourceToken: generator.sourceToken,
       },
     };
+    let succeeded = false;
     tokenStore.beginBatch();
     try {
       for (const result of results) {
@@ -718,8 +724,27 @@ export class GeneratorService {
           await tokenStore.createToken(effectiveTargetSet, result.path, token);
         }
       }
+      succeeded = true;
     } finally {
       tokenStore.endBatch();
+      if (!succeeded) {
+        // Roll back: restore tokens that existed before + delete tokens created during the run.
+        const currentTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet).catch(() => ({}));
+        const restoreItems: Array<{ path: string; token: Token | null }> = [];
+        for (const [p, t] of Object.entries(preSnapshot)) {
+          restoreItems.push({ path: p, token: t });
+        }
+        for (const p of Object.keys(currentTokens)) {
+          if (!(p in preSnapshot)) {
+            restoreItems.push({ path: p, token: null });
+          }
+        }
+        if (restoreItems.length > 0) {
+          await tokenStore.restoreSnapshot(effectiveTargetSet, restoreItems).catch((rollbackErr) => {
+            console.error(`[GeneratorService] Rollback failed for set "${effectiveTargetSet}":`, rollbackErr);
+          });
+        }
+      }
     }
     return results;
   }
