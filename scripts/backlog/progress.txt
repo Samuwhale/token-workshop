@@ -207,3 +207,13 @@
 - **Learnings for future iterations:**
   - The write guard is cleared by the chokidar watcher callback on success; the finally/catch is only needed for the failure path. Using catch+rethrow (vs finally) is fine here since the watcher handles success.
 ---
+
+## 2026-04-04 - Plugin sandbox rollback broken for fill and stroke properties
+- Fixed two bugs in `selectionHandling.ts`:
+  1. `captureNodeProps`: binding keys like `'fill'`/`'stroke'`/`'shadow'`/`'typography'` don't map 1-to-1 to Figma node property names (`fills`, `strokes`, `effects`, `fontName`/`fontSize`/etc). Added `BINDING_TO_FIGMA_PROPS` lookup table; snapshot now keyed by Figma property names so `restoreNodeProps` can assign them back directly.
+  2. `collectNodesForScope`: the `'selection'` branch ignored the `filter` parameter entirely — it always walked all descendants. Fixed to pass `filter` to `findAll` and gate root nodes through `filter` before pushing.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L641, ~L660
+- **Learnings for future iterations:**
+  - Figma uses plural property names for arrays: `fills` (not `fill`), `strokes` (not `stroke`), `effects` (not `shadow`). The plugin uses singular names as binding/plugin-data keys for UX reasons, creating a 1-to-many mapping that must be resolved at snapshot/restore boundaries.
+  - `findAll(predicate)` on a Figma FrameNode applies the predicate to descendants but NOT the root — root must be checked separately at the call site.
+---

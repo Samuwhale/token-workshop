@@ -646,9 +646,9 @@ function collectNodesForScope(
     const roots = [...figma.currentPage.selection];
     const all: SceneNode[] = [];
     for (const root of roots) {
-      all.push(root);
+      if (!filter || filter(root)) all.push(root);
       if ('findAll' in root) {
-        (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
+        (root as FrameNode).findAll(filter ?? (() => true)).forEach(n => all.push(n));
       }
     }
     return all;
@@ -656,21 +656,36 @@ function collectNodesForScope(
   return figma.currentPage.findAll(filter ?? (() => true));
 }
 
+// Maps binding key names (used as plugin data keys) to the actual Figma node
+// property names that must be read/written for snapshot and restore.
+// Keys not listed here map 1-to-1 (binding key === Figma property name).
+const BINDING_TO_FIGMA_PROPS: Record<string, string[]> = {
+  fill:       ['fills'],
+  stroke:     ['strokes'],
+  shadow:     ['effects'],
+  typography: ['fontName', 'fontSize', 'lineHeight', 'letterSpacing'],
+};
+
 // Snapshot readable properties of a node for the given binding keys.
+// Snapshots are keyed by Figma property name (not binding key) so that
+// restoreNodeProps can assign them back directly.
 function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<string, unknown> {
   const snap: Record<string, unknown> = {};
-  for (const prop of bindingProps) {
-    try {
-      const val = (node as Record<string, unknown>)[prop];
-      if (val === undefined) continue;
-      // figma.mixed is a Symbol — JSON.stringify silently drops Symbols, losing the value.
-      // Store the reference directly so restoreNodeProps can assign it back.
-      if (val === figma.mixed) {
-        snap[prop] = figma.mixed;
-        continue;
-      }
-      snap[prop] = JSON.parse(JSON.stringify(val));
-    } catch (e) { console.debug('[selectionHandling] skip unreadable or unserializable property:', prop, e); }
+  for (const bindingProp of bindingProps) {
+    const figmaProps = BINDING_TO_FIGMA_PROPS[bindingProp] ?? [bindingProp];
+    for (const prop of figmaProps) {
+      try {
+        const val = (node as Record<string, unknown>)[prop];
+        if (val === undefined) continue;
+        // figma.mixed is a Symbol — JSON.stringify silently drops Symbols, losing the value.
+        // Store the reference directly so restoreNodeProps can assign it back.
+        if (val === figma.mixed) {
+          snap[prop] = figma.mixed;
+          continue;
+        }
+        snap[prop] = JSON.parse(JSON.stringify(val));
+      } catch (e) { console.debug('[selectionHandling] skip unreadable or unserializable property:', prop, e); }
+    }
   }
   return snap;
 }
