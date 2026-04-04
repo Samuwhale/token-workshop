@@ -137,3 +137,11 @@
   - For boolean guards inside `useCallback` that must be read synchronously (before any re-render), always use a `useRef` instead of reading state; state reads inside callbacks capture the value at creation time, not at call time.
   - Both mutation sites (the guard check and the reset) must use the ref, not the state setter alone, to remain in sync.
 ---
+
+## 2026-04-04 - Non-network token fetch errors are silently logged with no UI feedback
+- Added `fetchError` state to `useTokens` hook. Both `refreshTokens` and `fetchTokensForSet` now set it for non-network, non-abort errors and clear it on success. `fetchError` is threaded through `TokenDataContext` (interface + provider) and surfaced in App.tsx alongside `tokensError` in the existing red error banner with retry button.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L51, ~L100, ~L108, ~L178, ~L187; `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` ~L37, ~L84, ~L116; `packages/figma-plugin/src/ui/App.tsx` ~L241, ~L2228
+- **Learnings for future iterations:**
+  - Network errors go through `onNetworkError` (triggers disconnect); non-network errors need a separate error state — these are distinct failure modes that should not be conflated.
+  - The `setFetchError(null)` clear should happen at the first successful point in the try block (after sets load) rather than inside the `allSets.length > 0` branch, so that a previously-errored state clears even when there are no sets.
+---

@@ -238,7 +238,7 @@ export function App() {
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
   const [previewingToken, setPreviewingToken] = useState<{ path: string; name?: string; set: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection, gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useConnectionContext();
-  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet, allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError, generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useTokenDataContext();
+  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet, allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError, generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useTokenDataContext();
   const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, resolverState, themedAllTokensFlat, setThemeStatusMap } = useThemeContext();
   const { selectedNodes, heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan, tokenUsageCounts, triggerUsageScan } = useInspectContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
@@ -2225,10 +2225,10 @@ export function App() {
               </button>
             </div>
           )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && tokensError && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (fetchError || tokensError) && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">Failed to load tokens: {tokensError}</span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">Failed to load tokens: {fetchError || tokensError}</span>
               <button
                 onClick={refreshTokens}
                 className="text-[10px] px-2 py-0.5 rounded border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors shrink-0"

@@ -35,6 +35,7 @@ export interface TokenDataContextValue {
   setCollectionNames: Record<string, string>;
   setModeNames: Record<string, string>;
   refreshTokens: () => void;
+  fetchError: string | null;
   addSetToState: (name: string, count: number) => void;
   removeSetFromState: (name: string) => void;
   renameSetInState: (oldName: string, newName: string) => void;
@@ -80,6 +81,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
     setActiveSet,
     tokens,
     tokenRevision,
+    fetchError,
     setTokenCounts,
     setDescriptions,
     setCollectionNames,
@@ -112,6 +114,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
     () => ({
       sets, setSets, activeSet, setActiveSet,
       tokens, tokenRevision,
+      fetchError,
       setTokenCounts, setDescriptions, setCollectionNames, setModeNames,
       refreshTokens, addSetToState, removeSetFromState, renameSetInState,
       updateSetMetadataInState, fetchTokensForSet,
@@ -123,6 +126,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
     [
       sets, setSets, activeSet, setActiveSet,
       tokens, tokenRevision,
+      fetchError,
       setTokenCounts, setDescriptions, setCollectionNames, setModeNames,
       refreshTokens, addSetToState, removeSetFromState, renameSetInState,
       updateSetMetadataInState, fetchTokensForSet,

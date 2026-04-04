@@ -50,6 +50,7 @@ export function useTokens(
   };
   const [tokens, setTokens] = useState<TokenNode[]>([]);
   const [tokenRevision, setTokenRevision] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
   const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
@@ -84,6 +85,8 @@ export function useTokens(
       setSetCollectionNames(setsData.collectionNames || {});
       setSetModeNames(setsData.modeNames || {});
 
+      setFetchError(null);
+
       if (allSets.length > 0) {
         const current = activeSetRef.current || allSets[0];
         if (!activeSetRef.current) {
@@ -101,6 +104,7 @@ export function useTokens(
       if (err instanceof Error && err.name === 'AbortError') return;
       const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
+      else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');
       console.error('Failed to fetch tokens:', err);
     }
   }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
@@ -173,15 +177,17 @@ export function useTokens(
       if (gen !== fetchGenRef.current || signal.aborted) return;
       setTokens(buildTree(tokensData.tokens || {}));
       setTokenRevision(r => r + 1);
+      setFetchError(null);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
       const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
+      else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');
       console.error('Failed to fetch tokens for set:', setName, err);
     }
   }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
+  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
 }
 
 async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{
