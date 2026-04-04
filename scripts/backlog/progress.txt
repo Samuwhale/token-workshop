@@ -676,3 +676,11 @@
   - When a single SavePreviewItem per collection becomes multiple (per-mode), the rename key must also become unique per item — use a compound key like `"collectionName::modeName"` rather than just `collectionName`
   - The DTCG JSON export and the save-to-server flow share the same underlying `buildDTCGJson` logic but need different mode selections; keeping `buildDTCGJson` stateless (accepting a mode parameter) and having the callers pass the right value avoids state coupling
 ---
+
+## 2026-04-04 - ThemeManager dimension card gap count badge
+- Added a gap count badge to the dimension card header (layer header) showing `totalDimGaps` when > 0; always visible (not opacity-0), using warning color styling matching existing option-tab gap badges
+- `totalDimGaps` was already computed at each dimension render scope (cross-option total), so no new state was needed — just wired the existing value into a badge element after the dimension name span
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1238
+- **Learnings for future iterations:**
+  - When adding "at-a-glance" indicators to collapsed headers, check if the count is already computed in the render scope — often it is (e.g., `totalDimGaps` was already there for the fill banner below); the badge is just an extra render use of that variable
+---

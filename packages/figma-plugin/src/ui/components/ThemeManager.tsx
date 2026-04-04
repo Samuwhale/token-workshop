@@ -1237,6 +1237,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         <>
                           <div className="flex items-center gap-1 flex-1 min-w-0">
                             <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate" title={dim.name}>{dim.name}</span>
+                            {totalDimGaps > 0 && (
+                              <span
+                                className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] flex-shrink-0"
+                                title={`${totalDimGaps} coverage gap${totalDimGaps !== 1 ? 's' : ''} across ${optionsWithGaps.length} option${optionsWithGaps.length !== 1 ? 's' : ''}`}
+                              >
+                                {totalDimGaps}
+                              </span>
+                            )}
                             <button
                               onClick={() => startRenameDim(dim.id, dim.name)}
                               className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"

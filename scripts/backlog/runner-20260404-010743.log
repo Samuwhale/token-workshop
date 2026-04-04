@@ -802,3 +802,25 @@ Already up to date.
 
   Merging to main: Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
 Already up to date.
+[main 45f54488] chore(backlog): done – Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
+ 6 files changed, 256 insertions(+), 107 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Multi-mode Figma Variable export to non-DTCG platforms loses mode variants
+- Added `selectedExportMode` state (string | null) to ExportPanel: mode selector dropdown shown when any collection has multiple modes; when a specific mode is selected, `buildDTCGJson` emits flat tokens for that mode instead of default+$extensions
+- Added `savePerMode` boolean state (default true): when enabled and a collection has >1 modes, `handlePreviewSave` generates one SavePreviewItem per mode; `handleConfirmSave` saves one token set per mode, each with that mode's values as `$value` (no $extensions.com.figma.modes needed since the set is mode-specific)
+- Extended `SavePreviewItem` with `modeName?: string` and `itemKey: string` (unique per item, keyed as `"collectionName::modeName"` for per-mode or `"collectionName"` for merged); all slug-rename lookups updated from `item.collectionName` to `item.itemKey`
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  5 queued · 3 in-progress · last took 6m48s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager coverage gaps are only visible after manually expanding each dimension's coverage section — users with 5+ dimensions must click into each one to discover missing token coverage; the global "X gaps can be auto-filled" banner exists but only after gaps are computed on expansion; show a per-dimension gap count badge on the collapsed card header so problems are visible at a glance (ThemeManager.tsx dimension cards)
+  Worktree: /tmp/backlog-91634-1tlE4F
+  Running agent… (started 04:28:48)
+
+  ✓ done: ThemeManager dimension card gap count badge
+    Added always-visible warning badge showing total gap count on each dimension card header; reused existing `totalDimGaps` variable already computed in render scope
+    12 turns · 71s · $0.28
+
+  Merging to main: ThemeManager dimension card gap count badge
+Already up to date.
