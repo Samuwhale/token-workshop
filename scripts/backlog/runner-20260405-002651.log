@@ -309,3 +309,26 @@ Already up to date.
 
   Merging to main: CreatePanel Single tab has no keyboard shortcut to submit
 Already up to date.
+[main ba9aaa08] chore(backlog): done – CreatePanel Single tab has no keyboard shortcut to submit
+ 5 files changed, 58 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - CreatePanel Single tab has no keyboard shortcut to submit
+- Added panel-wide `useEffect` keyboard handler in `SingleTokenTab` with `Cmd+Enter` and `Cmd+S` to submit the form — mirrors `useTokenEditorSave.ts` keyboard shortcuts (lines 176–191) for consistency
+- Used stable-ref pattern (`handleCreateRef`) so the effect registers once with empty deps but always calls the latest `handleCreate` closure
+- Removed the partial `onKeyDown` on the Name input that only handled `Cmd+Shift+Enter` (superseded by the panel-wide handler)
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  19 queued · 0
+0 in-progress · last took 1m57s
+═══════════════════════════════════════════════════════════════
+  → CreatePanel and TokenEditor diverge significantly for the same task — both surfaces create tokens but offer different capability levels: TokenEditor has draft auto-save to sessionStorage (line 843), conflict detection against server state (useTokenEditorSave.ts lines 92-104), circular alias detection, a `saveBlockReason` system with contextual disabled-button text, and a rich "Extends" picker for composite types; CreatePanel has none of these — it shows a simple amber "Token already exists — will overwrite" warning (line 350) with no conflict detection, no draft recovery if the user accidentally closes, no block reason feedback on the button, and no extends support; a user who learns to rely on draft recovery in the editor will lose work when the CreatePanel is closed accidentally (violates: consistency, error prevention)
+  Worktree: /tmp/backlog-54964-Any5Z4
+  Running agent… (started 01:36:17)
+
+  ✓ done: CreatePanel and TokenEditor diverge significantly for the same task
+    Added draft auto-save (sessionStorage + restore banner), saveBlockReason system (circular alias detection, typography validation, pathExists now blocks instead of warns), and ExtendsTokenPicker for composite types to CreatePanel's SingleCreateTab
+    32 turns · 438s · $1.35
+
+  Merging to main: CreatePanel and TokenEditor diverge significantly for the same task
+Already up to date.

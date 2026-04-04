@@ -868,3 +868,17 @@
   - The stable-callback-ref + empty-dep effect pattern is the canonical way to add one-time global keydown listeners in React when the handler depends on component state
   - Always remove partial inline `onKeyDown` handlers when adding a panel-wide equivalent — partial handlers create inconsistency (only firing when that input is focused)
 ---
+
+## 2026-04-05 - CreatePanel and TokenEditor diverge significantly for the same task
+- Brought CreatePanel's SingleCreateTab to parity with TokenEditor on four fronts:
+  1. **Draft auto-save**: `saveCreateDraft`/`loadCreateDraft`/`clearCreateDraft` helpers using `sessionStorage` key `tm_create_single_draft`. Saves on every form change when name is non-empty. On mount checks for a draft matching the active set and shows a restore banner ("Unsaved draft from X ago — Restore") with dismiss. Clears on successful creation.
+  2. **`saveBlockReason` system**: `useMemo` that computes a string reason blocking creation — covers missing name, path validation error, token-already-exists (now red error + blocks button, not amber warning), circular alias reference, and typography required fields. Reason shown in button `title` attribute; typography-specific reason shown as inline text below the button.
+  3. **Circular alias detection**: `detectAliasCycle` function (same logic as TokenEditor) detects cycles in the reference graph when the user picks an alias value. Shown as red inline error below the reference pill and included in `saveBlockReason`.
+  4. **Extends picker for composite types**: `ExtendsTokenPicker` component (same design as TokenEditor) shown below Description when `tokenType` ∈ `COMPOSITE_TOKEN_TYPES` and not in reference mode. Selected path stored in `extendsPath` state and included in POST payload as `$extensions.tokenmanager.extends`.
+  - Also: `handleTypeChange` resets `extendsPath` on type switch; `handleCreate` guard now uses `saveBlockReason` instead of ad-hoc `!name.trim() || !!pathError` checks.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1 (imports), ~L30 (draft helpers + detectAliasCycle + ExtendsTokenPicker added before Types section), ~L360 (state additions), ~L380 (draft effects), ~L460 (saveBlockReason + aliasHasCycle), ~L490 (handleCreate updated), ~L523 (JSX: draft banner, name border logic, alias cycle inline error, extends picker section, button disabled/title)
+- **Learnings for future iterations:**
+  - Draft storage for a create form needs a different key structure than edit drafts (no fixed token path) — use a per-set single-slot key with group+name bundled inside the payload JSON rather than in the key itself.
+  - The `detectAliasCycle` function in TokenEditor is module-level but unexported. Either export it from a shared util or copy it — copying is simpler when only one other component needs it.
+  - For `pathExists` in create mode: treat as a hard block (red error + disabled button), not an amber warning-with-overwrite. The token editor is the right place to edit existing tokens; the create form should keep users from accidentally overwriting.
+---

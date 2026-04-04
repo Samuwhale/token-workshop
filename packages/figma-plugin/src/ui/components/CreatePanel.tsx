@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { parseInlineValue, valuePlaceholderForType } from './tokenListHelpers';
 import { getDefaultValue } from './tokenListUtils';
@@ -8,6 +8,7 @@ import { validateTokenPath } from '../shared/tokenParsers';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import {
   ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor,
   BorderEditor, GradientEditor, NumberEditor, DurationEditor,
@@ -21,6 +22,162 @@ import type { GeneratorType } from '../hooks/useGenerators';
 import { TYPE_LABELS, TYPE_DESCRIPTIONS, PRIMARY_TYPES } from './generators/generatorUtils';
 import { TypeThumbnail } from './generators/TypeThumbnail';
 import { Collapsible } from './Collapsible';
+
+// ---------------------------------------------------------------------------
+// Draft storage for create form
+// ---------------------------------------------------------------------------
+
+const CREATE_DRAFT_KEY = 'tm_create_single_draft';
+
+interface CreateSingleDraftData {
+  targetSet: string;
+  group: string;
+  name: string;
+  tokenType: string;
+  value: any;
+  description: string;
+  extendsPath: string;
+  refMode: boolean;
+  refQuery: string;
+  savedAt: number;
+}
+
+function saveCreateDraft(data: Omit<CreateSingleDraftData, 'savedAt'>): void {
+  try { sessionStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify({ ...data, savedAt: Date.now() })); } catch { /* quota */ }
+}
+
+function loadCreateDraft(): CreateSingleDraftData | null {
+  try { const raw = sessionStorage.getItem(CREATE_DRAFT_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+
+function clearCreateDraft(): void {
+  try { sessionStorage.removeItem(CREATE_DRAFT_KEY); } catch { /* ignore */ }
+}
+
+function formatDraftAge(savedAt: number): string {
+  const seconds = Math.floor((Date.now() - savedAt) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+}
+
+// ---------------------------------------------------------------------------
+// Alias cycle detection
+// ---------------------------------------------------------------------------
+
+function detectAliasCycle(
+  ref: string,
+  currentTokenPath: string,
+  allTokensFlat: Record<string, TokenMapEntry>,
+): string[] | null {
+  const visited = new Set<string>([currentTokenPath]);
+  const chain: string[] = [currentTokenPath];
+  let current = isAlias(ref) ? extractAliasPath(ref)! : ref;
+  while (true) {
+    if (visited.has(current)) {
+      const cycleStart = chain.indexOf(current);
+      return [...chain.slice(cycleStart), current];
+    }
+    visited.add(current);
+    chain.push(current);
+    const entry = allTokensFlat[current];
+    if (!entry) return null;
+    const v = entry.$value;
+    if (isAlias(v)) { current = extractAliasPath(v)!; } else { return null; }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ExtendsTokenPicker — compact picker for selecting a base composite token
+// ---------------------------------------------------------------------------
+
+function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, onSelect, onClear, extendsPath }: {
+  tokenType: string;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  currentPath: string;
+  onSelect: (path: string) => void;
+  onClear: () => void;
+  extendsPath: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const candidates = useMemo(() => {
+    return Object.entries(allTokensFlat)
+      .filter(([p, e]) => e.$type === tokenType && p !== currentPath)
+      .map(([p]) => p);
+  }, [allTokensFlat, tokenType, currentPath]);
+
+  const filtered = useMemo(() => {
+    if (!search) return candidates.slice(0, 50);
+    const q = search.toLowerCase();
+    return candidates.filter(p => p.toLowerCase().includes(q)).slice(0, 50);
+  }, [candidates, search]);
+
+  if (extendsPath) {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg)]">
+        <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Extends</span>
+        <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-accent)] truncate">{extendsPath}</span>
+        <button type="button" onClick={onClear} className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]" title="Remove base token">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 0); }}
+        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
+      >
+        + Set base token to inherit from…
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={`Search ${tokenType} tokens…`}
+          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setSearch(''); } }}
+        />
+        <button type="button" onClick={() => { setOpen(false); setSearch(''); }} className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+      </div>
+      {candidates.length > 50 && !search && (
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-0.5">Showing 50 of {candidates.length} — refine search to narrow results</p>
+      )}
+      <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+        {filtered.length === 0
+          ? <p className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">No matching {tokenType} tokens</p>
+          : filtered.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => { onSelect(p); setOpen(false); setSearch(''); }}
+              className="w-full text-left px-2 py-1 text-[11px] font-mono text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] truncate"
+              title={`${p} (${pathToSet[p] || ''})`}
+            >
+              {p}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -220,9 +377,38 @@ function SingleCreateTab({
   const [error, setError] = useState('');
   const [refMode, setRefMode] = useState(false);
   const [refQuery, setRefQuery] = useState('');
+  const [extendsPath, setExtendsPath] = useState('');
+  const [pendingDraft, setPendingDraft] = useState<CreateSingleDraftData | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [groupOpen, setGroupOpen] = useState(false);
+
+  // Load draft on mount (only when no pre-filled initial values)
+  useEffect(() => {
+    if (initialPath || initialType || initialValue) return;
+    const d = loadCreateDraft();
+    if (d && d.targetSet === activeSet && d.name) setPendingDraft(d);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save draft whenever form has a name
+  useEffect(() => {
+    if (!name.trim()) { clearCreateDraft(); return; }
+    saveCreateDraft({ targetSet, group, name, tokenType, value, description, extendsPath, refMode, refQuery });
+  }, [targetSet, group, name, tokenType, value, description, extendsPath, refMode, refQuery]);
+
+  const handleRestoreDraft = useCallback(() => {
+    if (!pendingDraft) return;
+    setGroup(pendingDraft.group);
+    setName(pendingDraft.name);
+    setTokenType(pendingDraft.tokenType);
+    setValue(pendingDraft.value);
+    setDescription(pendingDraft.description);
+    setExtendsPath(pendingDraft.extendsPath);
+    setRefMode(pendingDraft.refMode);
+    setRefQuery(pendingDraft.refQuery);
+    if (pendingDraft.targetSet !== targetSet) setTargetSet(pendingDraft.targetSet);
+    setPendingDraft(null);
+  }, [pendingDraft, targetSet]);
 
   const fullPath = useMemo(() => {
     const g = group.trim();
@@ -249,18 +435,47 @@ function SingleCreateTab({
       .map(x => x.path);
   }, [group, allGroupPaths]);
 
+  // Detect circular alias reference
+  const aliasHasCycle = useMemo((): string[] | null => {
+    if (!refMode) return null;
+    const v = typeof value === 'string' && value.startsWith('{') && value.endsWith('}') ? value : null;
+    if (!v || !isAlias(v) || !fullPath) return null;
+    return detectAliasCycle(v, fullPath, allTokensFlat);
+  }, [refMode, value, fullPath, allTokensFlat]);
+
+  // Consolidated block reason — shown on the button and as an inline error
+  const saveBlockReason = useMemo((): string | null => {
+    if (!name.trim()) return 'Enter a token name';
+    if (pathError) return pathError;
+    if (pathExists) return 'Token already exists — edit it instead or choose a different name';
+    if (aliasHasCycle) return `Circular reference: ${aliasHasCycle.join(' → ')}`;
+    if (tokenType === 'typography' && !refMode) {
+      const v = typeof value === 'object' && value !== null ? value : {};
+      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+      const missingFamily = !family || String(family).trim() === '';
+      const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
+      if (missingFamily && missingSize) return 'Font family and size required';
+      if (missingFamily) return 'Font family required';
+      if (missingSize) return 'Font size required';
+    }
+    return null;
+  }, [name, pathError, pathExists, aliasHasCycle, tokenType, refMode, value]);
+
   const handleCreate = useCallback(async () => {
-    if (!fullPath || !connected || pathError) return;
+    if (saveBlockReason || !connected || saving) return;
     setSaving(true);
     setError('');
     try {
       const body: Record<string, any> = { $type: tokenType, $value: value };
       if (description.trim()) body.$description = description.trim();
+      if (extendsPath) body.$extensions = { tokenmanager: { extends: extendsPath } };
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPathToUrlSegment(fullPath)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      clearCreateDraft();
       onRefresh();
       onTokenCreated?.(fullPath);
       // Reset for next creation — keep group pre-filled so user can type next sibling name
@@ -269,19 +484,21 @@ function SingleCreateTab({
       setDescription('');
       setRefMode(false);
       setRefQuery('');
+      setExtendsPath('');
       setTimeout(() => nameInputRef.current?.focus(), 0);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setSaving(false);
     }
-  }, [fullPath, connected, pathError, tokenType, value, description, targetSet, serverUrl, onRefresh, onTokenCreated]);
+  }, [saveBlockReason, connected, saving, tokenType, value, description, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated]);
 
   const handleTypeChange = (type: string) => {
     setTokenType(type);
     setValue(getDefaultValue(type));
     setRefMode(false);
     setRefQuery('');
+    setExtendsPath('');
   };
 
   // Stable ref so the keydown handler never goes stale without re-registering
@@ -305,6 +522,31 @@ function SingleCreateTab({
 
   return (
     <div className="p-4 flex flex-col gap-3">
+
+      {/* Draft restore banner */}
+      {pendingDraft && (
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+          </svg>
+          <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Unsaved draft from {formatDraftAge(pendingDraft.savedAt)} — <strong className="text-[var(--color-figma-text)]">{pendingDraft.group ? `${pendingDraft.group}.${pendingDraft.name}` : pendingDraft.name}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={handleRestoreDraft}
+            className="px-2 py-0.5 rounded text-[10px] bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+          >Restore</button>
+          <button
+            type="button"
+            onClick={() => { clearCreateDraft(); setPendingDraft(null); }}
+            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]"
+            title="Dismiss draft"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex-1">
@@ -359,7 +601,7 @@ function SingleCreateTab({
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
           className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
-            pathError ? 'border-[var(--color-figma-error)]' : pathExists ? 'border-amber-400' : 'border-[var(--color-figma-border)]'
+            pathError || pathExists ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'
           }`}
           autoFocus
         />
@@ -369,7 +611,7 @@ function SingleCreateTab({
           </div>
         )}
         {pathError && <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]">{pathError}</p>}
-        {pathExists && !pathError && <p className="mt-0.5 text-[10px] text-amber-400">Token already exists — will overwrite</p>}
+        {pathExists && !pathError && <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]">Token already exists — edit it instead or choose a different name</p>}
       </div>
 
 
@@ -448,19 +690,26 @@ function SingleCreateTab({
         {refMode ? (
           <div className="relative">
             {typeof value === 'string' && value.startsWith('{') && value.endsWith('}') ? (
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/40">
-                <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
-                  {value.slice(1, -1)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setValue(getDefaultValue(tokenType)); setRefQuery(''); }}
-                  className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]"
-                  title="Clear reference"
-                >
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
-              </div>
+              <>
+                <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border ${aliasHasCycle ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]/40'}`}>
+                  <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
+                    {value.slice(1, -1)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setValue(getDefaultValue(tokenType)); setRefQuery(''); }}
+                    className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]"
+                    title="Clear reference"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                {aliasHasCycle && (
+                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]">
+                    Circular reference: {aliasHasCycle.join(' → ')}
+                  </p>
+                )}
+              </>
             ) : (
               <>
                 <input
@@ -525,18 +774,36 @@ function SingleCreateTab({
         />
       </div>
 
+      {/* Extends — only for composite token types */}
+      {COMPOSITE_TOKEN_TYPES.has(tokenType) && !refMode && (
+        <div>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Extends (optional)</label>
+          <ExtendsTokenPicker
+            tokenType={tokenType}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            currentPath={fullPath}
+            extendsPath={extendsPath}
+            onSelect={setExtendsPath}
+            onClear={() => setExtendsPath('')}
+          />
+        </div>
+      )}
+
       {error && <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>}
 
-
-      <div className="flex gap-2 pt-1">
+      <div className="flex flex-col gap-1.5 pt-1">
         <button
           onClick={handleCreate}
-          disabled={!name.trim() || !!pathError || !connected || saving}
-          title="Create token (⌘↵ or ⌘S)"
+          disabled={!!saveBlockReason || !connected || saving}
+          title={saveBlockReason ?? 'Create token (⌘↵ or ⌘S)'}
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
         >
           {saving ? 'Creating...' : 'Create Token'}
         </button>
+        {saveBlockReason && !pathError && !pathExists && !aliasHasCycle && (
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">{saveBlockReason}</p>
+        )}
       </div>
     </div>
   );
