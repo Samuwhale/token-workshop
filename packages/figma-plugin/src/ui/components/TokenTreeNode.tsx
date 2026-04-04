@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
+import { lsGet, STORAGE_KEYS } from '../shared/storage';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
@@ -1917,23 +1918,24 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             const jsonEntry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
             if (node.$description) jsonEntry.$description = node.$description;
             const jsonText = JSON.stringify(jsonEntry, null, 2);
-            const formats: Array<{ label: string; value: string; title: string; accel?: string }> = [
-              { label: 'CSS var', value: cssVar, title: cssVar },
-              { label: '{ref}', value: dtcgRef, title: dtcgRef },
-              { label: '$scss', value: scssVar, title: scssVar },
-              { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v' },
-              { label: 'JSON', value: jsonText, title: 'Copy as JSON snippet', accel: 'j' },
+            const preferredFmt = lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ?? 'css-var';
+            const formats: Array<{ label: string; value: string; title: string; accel?: string; fmtKey: string }> = [
+              { label: 'CSS var', value: cssVar, title: cssVar, fmtKey: 'css-var' },
+              { label: '{ref}', value: dtcgRef, title: dtcgRef, fmtKey: 'dtcg-ref' },
+              { label: '$scss', value: scssVar, title: scssVar, fmtKey: 'scss' },
+              { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v', fmtKey: 'raw' },
+              { label: 'JSON', value: jsonText, title: 'Copy as JSON snippet', accel: 'j', fmtKey: 'json' },
             ];
             return (
               <div className="px-3 py-1.5">
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1 uppercase tracking-wide">Copy as…</div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1 uppercase tracking-wide">Copy as… <span title="Set preferred format in Settings (⌘⇧C uses it)" className="normal-case opacity-60">⌘⇧C uses preferred</span></div>
                 <div className="flex flex-wrap gap-1">
-                  {formats.map(({ label, value, title, accel }) => (
+                  {formats.map(({ label, value, title, accel, fmtKey }) => (
                     <button
                       key={label}
                       data-accel={accel}
-                      title={title}
-                      className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] rounded border border-[var(--color-figma-border)] transition-colors"
+                      title={fmtKey === preferredFmt ? `${title} · preferred format (⌘⇧C)` : title}
+                      className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition-colors ${fmtKey === preferredFmt ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)] text-white hover:opacity-90' : 'bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] border-[var(--color-figma-border)]'}`}
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => {
                         navigator.clipboard.writeText(value).catch(e => console.warn('[clipboard] write failed:', e));

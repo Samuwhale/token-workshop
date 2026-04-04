@@ -542,3 +542,31 @@ Already up to date.
 
   Merging to main: Consolidate the four comparison components into a single parameterized compare view
 Already up to date.
+[main 2c7bd37a] chore(backlog): done – Consolidate the four comparison components into a single parameterized compare view
+ 10 files changed, 1272 insertions(+), 1283 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/ComparePanel.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/CompareView.tsx
+ delete mode 100644 packages/figma-plugin/src/ui/components/CrossThemeComparePanel.tsx
+ delete mode 100644 packages/figma-plugin/src/ui/components/ThemeCompare.tsx
+ delete mode 100644 packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-04 - Consolidate four comparison components into single CompareView
+- Merged `ComparePanel.tsx` (380 lines), `CrossThemeComparePanel.tsx` (285 lines), `ThemeCompare.tsx` (452 lines), and `UnifiedComparePanel.tsx` (162 lines) into a single `CompareView.tsx` (1227 lines)
+- Shared primitives extracted: `ColorSwatch({ value })` using `swatchBgColor()` throughout; `useCopyFeedback(onError?)` hook replacing 3 inline `useState(false) + setTimeout` copy-feedback patterns
+- Module-level helpers lifted out: `getPropertyKeys`, `fmtProp`, `buildFlatOptions`, `FlatOption` type, `ResolvedToken` interface, `OptionResult` interface
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  15 queued · 0
+0 in-progress · last took 12m33s
+═══════════════════════════════════════════════════════════════
+  → Add "Copy token value" to the Figma Edit menu and plugin shortcuts — the context menu offers 5+ copy formats (CSS var, DTCG ref, SCSS, raw value, JSON) but all require right-clicking a specific token; power users managing hundreds of tokens need a keyboard-driven "copy focused token value" shortcut (e.g. Cmd+Shift+C) that copies the currently highlighted/selected token's value in the user's preferred format from Settings without opening a context menu
+  Worktree: /tmp/backlog-3108-2ORwQt
+  Running agent… (started 21:31:22)
+
+  ✓ done: Add "Copy token value" to the Figma Edit menu and plugin shortcuts
+    ⌘⇧C now copies focused/selected token(s) in a user-configurable preferred format (CSS var, {ref}, $scss, raw value, or JSON) set via Settings → UI Preferences; preferred format is highlighted in the context menu Copy as… section
+    53 turns · 496s · $1.79
+
+  Merging to main: Add "Copy token value" to the Figma Edit menu and plugin shortcuts
+Already up to date.

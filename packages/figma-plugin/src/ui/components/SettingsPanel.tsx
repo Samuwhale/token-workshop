@@ -12,6 +12,7 @@ import { formatHexAs } from '../shared/colorUtils';
 
 type Density = 'compact' | 'default' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
+export type PreferredCopyFormat = 'css-var' | 'dtcg-ref' | 'scss' | 'raw' | 'json';
 
 // ---------------------------------------------------------------------------
 // Custom event for cross-component settings sync
@@ -151,6 +152,7 @@ type ImportDiffEntry = { key: string; label: string; oldValue: string | null; ne
 const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.DENSITY,
   STORAGE_KEYS.COLOR_FORMAT,
+  STORAGE_KEYS.PREFERRED_COPY_FORMAT,
   STORAGE_KEYS.ADVANCED_MODE,
   STORAGE_KEYS.CONTRAST_BG,
   STORAGE_KEYS.HIDE_DEPRECATED,
@@ -179,6 +181,7 @@ function isAllowedImportKey(key: string): boolean {
 const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.DENSITY]:              'UI density',
   [STORAGE_KEYS.COLOR_FORMAT]:         'Color format',
+  [STORAGE_KEYS.PREFERRED_COPY_FORMAT]: 'Preferred copy format',
   [STORAGE_KEYS.ADVANCED_MODE]:        'Advanced mode',
   [STORAGE_KEYS.CONTRAST_BG]:          'Contrast background',
   [STORAGE_KEYS.HIDE_DEPRECATED]:      'Hide deprecated tokens',
@@ -232,6 +235,11 @@ export function SettingsPanel({
     if (saved === 'rgb' || saved === 'hsl' || saved === 'oklch' || saved === 'p3') return saved;
     return 'hex';
   });
+  const [preferredCopyFormat, setPreferredCopyFormat] = useState<PreferredCopyFormat>(() => {
+    const saved = lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT);
+    if (saved === 'dtcg-ref' || saved === 'scss' || saved === 'raw' || saved === 'json') return saved as PreferredCopyFormat;
+    return 'css-var';
+  });
   const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
   const [hideDeprecated, setHideDeprecated] = useState<boolean>(() => lsGet(STORAGE_KEYS.HIDE_DEPRECATED) === 'true');
 
@@ -248,6 +256,7 @@ export function SettingsPanel({
     const preferenceKeys: string[] = [
       STORAGE_KEYS.DENSITY,
       STORAGE_KEYS.COLOR_FORMAT,
+      STORAGE_KEYS.PREFERRED_COPY_FORMAT,
       STORAGE_KEYS.ADVANCED_MODE,
       STORAGE_KEYS.CONTRAST_BG,
       STORAGE_KEYS.HIDE_DEPRECATED,
@@ -396,6 +405,12 @@ export function SettingsPanel({
     dispatchSettingsChanged(STORAGE_KEYS.COLOR_FORMAT);
   };
 
+  const handlePreferredCopyFormatChange = (f: PreferredCopyFormat) => {
+    setPreferredCopyFormat(f);
+    lsSet(STORAGE_KEYS.PREFERRED_COPY_FORMAT, f);
+    dispatchSettingsChanged(STORAGE_KEYS.PREFERRED_COPY_FORMAT);
+  };
+
   const handleContrastBgChange = (v: string) => {
     setContrastBg(v);
     lsSet(STORAGE_KEYS.CONTRAST_BG, v);
@@ -491,6 +506,25 @@ export function SettingsPanel({
               <div className="w-3 h-3 rounded-sm flex-shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: '#3B82F6' }} />
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-shrink-0">Sample:</span>
               <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate select-all">{formatHexAs('#3B82F6', colorFormat)}</span>
+            </div>
+
+            {/* Preferred copy format */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-[var(--color-figma-text)] block">Preferred copy format</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Format used by ⌘⇧C shortcut</span>
+              </div>
+              <SegmentedControl
+                options={[
+                  { value: 'css-var' as PreferredCopyFormat, label: 'CSS' },
+                  { value: 'dtcg-ref' as PreferredCopyFormat, label: '{ref}' },
+                  { value: 'scss' as PreferredCopyFormat, label: '$scss' },
+                  { value: 'raw' as PreferredCopyFormat, label: 'Value' },
+                  { value: 'json' as PreferredCopyFormat, label: 'JSON' },
+                ]}
+                value={preferredCopyFormat}
+                onChange={handlePreferredCopyFormatChange}
+              />
             </div>
 
             {/* Advanced mode */}

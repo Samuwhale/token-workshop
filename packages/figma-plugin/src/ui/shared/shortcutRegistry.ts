@@ -141,7 +141,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_EXPAND_GROUP',    group: 'Token List',      description: 'Collapse / expand group',        mac: '←→',    displayOnly: true },
   { id: 'TOKEN_ESC',             group: 'Token List',      description: 'Exit multi-select / close form', mac: 'Esc',   displayOnly: true },
   { id: 'TOKEN_COPY',            group: 'Token List',      description: 'Copy selected tokens as JSON',   mac: SHORTCUT_KEYS.TOKEN_COPY },
-  { id: 'TOKEN_COPY_CSS_VAR',   group: 'Token List',      description: 'Copy token path as CSS var',     mac: SHORTCUT_KEYS.TOKEN_COPY_CSS_VAR },
+  { id: 'TOKEN_COPY_CSS_VAR',   group: 'Token List',      description: 'Copy token value (preferred format — set in Settings)', mac: SHORTCUT_KEYS.TOKEN_COPY_CSS_VAR },
   { id: 'TOKEN_EXPAND_ALL',      group: 'Token List',      description: 'Expand all groups',              mac: SHORTCUT_KEYS.TOKEN_EXPAND_ALL },
   { id: 'TOKEN_COLLAPSE_ALL',    group: 'Token List',      description: 'Collapse all groups',            mac: SHORTCUT_KEYS.TOKEN_COLLAPSE_ALL },
   { id: 'TOKEN_RENAME',          group: 'Token List',      description: 'Rename token',                   mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },

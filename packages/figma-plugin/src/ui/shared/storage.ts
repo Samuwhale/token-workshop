@@ -43,6 +43,7 @@ export const STORAGE_KEYS = {
   FIRST_RUN_DONE:        'tm_first_run_done',
   DEEP_INSPECT:          'tm_deep_inspect',
   RECENT_TOKENS:         'tm_recent_tokens',
+  PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
 } as const;
 
 /** Per-set dynamic key builders */

@@ -8,7 +8,7 @@ import { BatchEditor } from './BatchEditor';
 import { stableStringify, getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { useSettingsListener } from './SettingsPanel';
+import { useSettingsListener, type PreferredCopyFormat } from './SettingsPanel';
 import type { SortOrder } from './tokenListUtils';
 import {
   formatDisplayPath, nodeParentPath, flattenVisible,
@@ -90,6 +90,7 @@ export function TokenList({
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [copyCssFeedback, setCopyCssFeedback] = useState(false);
+  const [copyPreferredFeedback, setCopyPreferredFeedback] = useState(false);
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
   const [moveToGroupError, setMoveToGroupError] = useState('');
@@ -144,6 +145,7 @@ export function TokenList({
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsCssVarRef = useRef<(nodes: TokenNode[]) => void>(() => {});
+  const copyTokensAsPreferredRef = useRef<(nodes: TokenNode[]) => void>(() => {});
 
   // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
   const virtualScrollTopRef = useRef(0);
@@ -1182,12 +1184,12 @@ export function TokenList({
       }
     }
 
-    // Cmd/Ctrl+Shift+C: copy selected tokens as CSS custom properties
+    // Cmd/Ctrl+Shift+C: copy selected tokens in preferred format (configured in Settings)
     if (e.key === 'c' && (e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
       if (selectMode && selectedPaths.size > 0) {
         e.preventDefault();
         const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
-        copyTokensAsCssVarRef.current(nodes);
+        copyTokensAsPreferredRef.current(nodes);
         return;
       }
       // Single focused token row — copy that token
@@ -1197,7 +1199,7 @@ export function TokenList({
           const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
           if (node) {
             e.preventDefault();
-            copyTokensAsCssVarRef.current([node]);
+            copyTokensAsPreferredRef.current([node]);
             return;
           }
         }
@@ -1664,6 +1666,46 @@ export function TokenList({
     }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
   }, []);
   copyTokensAsCssVarRef.current = copyTokensAsCssVar;
+
+  /** Copy the focused/selected token(s) in the user's preferred format (⌘⇧C). */
+  const copyTokensAsPreferred = useCallback((nodes: TokenNode[]) => {
+    const leafNodes = nodes.filter(n => !n.isGroup);
+    if (leafNodes.length === 0) return;
+
+    const fmt = (lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ?? 'css-var') as PreferredCopyFormat;
+
+    let text: string;
+    if (fmt === 'json') {
+      const root: Record<string, any> = {};
+      for (const node of leafNodes) {
+        const segments = node.path.split('.');
+        let cursor = root;
+        for (let i = 0; i < segments.length - 1; i++) {
+          if (!(segments[i] in cursor)) cursor[segments[i]] = {};
+          cursor = cursor[segments[i]];
+        }
+        const leaf: Record<string, unknown> = { $value: node.$value, $type: node.$type };
+        if (node.$description) leaf.$description = node.$description;
+        cursor[segments[segments.length - 1]] = leaf;
+      }
+      text = JSON.stringify(root, null, 2);
+    } else if (fmt === 'raw') {
+      text = leafNodes.map(n => typeof n.$value === 'string' ? n.$value : JSON.stringify(n.$value)).join('\n');
+    } else if (fmt === 'dtcg-ref') {
+      text = leafNodes.map(n => `{${n.path}}`).join('\n');
+    } else if (fmt === 'scss') {
+      text = leafNodes.map(n => `$${n.path.replace(/\./g, '-')}`).join('\n');
+    } else {
+      // css-var (default)
+      text = leafNodes.map(n => `var(--${n.path.replace(/\./g, '-')})`).join('\n');
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyPreferredFeedback(true);
+      setTimeout(() => setCopyPreferredFeedback(false), 1500);
+    }).catch(err => console.warn('[TokenList] clipboard write failed:', err));
+  }, []);
+  copyTokensAsPreferredRef.current = copyTokensAsPreferred;
 
   const resolveFlat = (flat: any[]) =>
     flat.map(t => {
@@ -2157,7 +2199,13 @@ export function TokenList({
   ]);
 
   return (
-    <div className="flex flex-col h-full" onKeyDown={handleListKeyDown}>
+    <div className="flex flex-col h-full relative" onKeyDown={handleListKeyDown}>
+      {/* ⌘⇧C preferred-format copy feedback toast */}
+      {copyPreferredFeedback && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md" aria-live="polite">
+          Copied!
+        </div>
+      )}
       {/* Toolbars — fixed above the scrollable token list */}
       <div className="flex-shrink-0">
         {/* Select mode toolbar */}

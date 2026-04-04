@@ -861,3 +861,26 @@
   - `useCopyFeedback(onError?)` pattern: keep optional `onError` so consumers that need side-effects (like `postMessage` on clipboard deny) can pass it without adding extra state
   - ThemeOptionsMode `handleCopyError` must be declared with `useCallback` before `useCopyFeedback` call to avoid TDZ — but since it only calls `parent.postMessage` (stable global), wrapping in `useCallback([])` is fine and prevents ESLint exhaustive-deps warnings
 ---
+
+## 2026-04-04 - Add "Copy token value" to the Figma Edit menu and plugin shortcuts
+- Added `⌘⇧C` keyboard shortcut that copies the focused/selected token(s) in the user's preferred format, configurable in Settings
+- Added `PREFERRED_COPY_FORMAT` storage key (`tm_preferred_copy_format`) with default `'css-var'`
+- Added "Preferred copy format" segmented control in SettingsPanel → UI Preferences section (CSS, {ref}, $scss, Value, JSON) with `dispatchSettingsChanged` event
+- Added `copyTokensAsPreferred` function in TokenList.tsx that reads preferred format from localStorage and generates appropriate text per node
+- Added `copyPreferredFeedback` state + floating "Copied!" toast overlay when `⌘⇧C` fires
+- Updated `⌘⇧C` handler in TokenList.tsx to call `copyTokensAsPreferredRef` instead of `copyTokensAsCssVarRef`
+- Updated shortcut registry description for `TOKEN_COPY_CSS_VAR` to "Copy token value (preferred format — set in Settings)"
+- Highlighted preferred format in context menu "Copy as…" section with accent-colored button; tooltip says "preferred format (⌘⇧C)"
+- Added `PREFERRED_COPY_FORMAT` to `IMPORTABLE_EXACT_KEYS`, `IMPORT_KEY_LABELS`, and `handleExportSettings` preferenceKeys so it round-trips through settings export/import
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L45
+  - `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L14, L153, L182, L254, L237, L413, L511
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L11, L93, L146, L1185, L1667
+  - `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L144
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2, L1912
+- **Learnings for future iterations:**
+  - `⌘⇧C` was already wired to CSS var copy — repurposing it to "preferred format" (defaulting to css-var) is backward-compatible for existing users
+  - Reading from localStorage inside `useCallback([], [])` is fine for format preferences since the format changes via settings and the ref pattern ensures the latest value is read on each invocation
+  - For floating feedback toasts within a positioned container, add `relative` to the outermost wrapper div and use `absolute top-2 left-1/2 -translate-x-1/2` on the toast
+  - `PreferredCopyFormat` type exported from SettingsPanel can be imported into TokenList — avoids defining the same union type in two places
+---
