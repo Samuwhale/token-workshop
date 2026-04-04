@@ -137,6 +137,7 @@ export function App() {
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
+  const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
   const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const paletteRecentlyTouched = useRecentlyTouched();
@@ -146,6 +147,8 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
+  // Close the inline banner URL editor when connection is (re-)established
+  useEffect(() => { if (connected) setShowBannerUrlEditor(false); }, [connected]);
   // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
@@ -1194,25 +1197,66 @@ export function App() {
     <div className="relative flex flex-col h-screen">
       {/* Connection status — only shown when not connected */}
       {!connected && (
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
-          <span className="flex-1">{checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
-          {!checking && (
-            <>
-              <button
-                onClick={retryConnection}
-                className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-              >
-                Retry
-              </button>
-              <span className="opacity-40">·</span>
-              <button
-                onClick={() => { setOverflowPanel('settings'); setConnectResult(null); }}
-                className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-              >
-                Change URL
-              </button>
-            </>
+        <div className={`flex flex-col text-[10px] ${checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
+          {/* Status row */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
+            <span className="flex-1">{checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
+            {!checking && (
+              <>
+                <button
+                  onClick={retryConnection}
+                  className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+                >
+                  Retry
+                </button>
+                <span className="opacity-40">·</span>
+                <button
+                  onClick={() => { setShowBannerUrlEditor(v => !v); setServerUrlInput(serverUrl); setConnectResult(null); }}
+                  className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+                >
+                  {showBannerUrlEditor ? 'Cancel' : 'Change URL'}
+                </button>
+              </>
+            )}
+          </div>
+          {/* Inline URL editor — expands when "Change URL" is clicked */}
+          {showBannerUrlEditor && !checking && (
+            <div className="flex flex-col gap-1.5 px-3 pb-2.5 pt-0.5">
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={serverUrlInput}
+                  onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter') {
+                      setConnectResult(null);
+                      const ok = await updateServerUrlAndConnect(serverUrlInput.trim());
+                      setConnectResult(ok ? 'ok' : 'fail');
+                      if (ok) setShowBannerUrlEditor(false);
+                    }
+                  }}
+                  placeholder="http://localhost:9400"
+                  autoFocus
+                  className="flex-1 min-w-0 px-2 py-1 rounded border border-current/30 bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[11px] placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] outline-none"
+                />
+                <button
+                  onClick={async () => {
+                    setConnectResult(null);
+                    const ok = await updateServerUrlAndConnect(serverUrlInput.trim());
+                    setConnectResult(ok ? 'ok' : 'fail');
+                    if (ok) setShowBannerUrlEditor(false);
+                  }}
+                  disabled={checking || !serverUrlInput.trim()}
+                  className="px-2.5 py-1 text-[11px] font-medium rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  Connect
+                </button>
+              </div>
+              {connectResult === 'fail' && (
+                <span className="text-[10px] text-[var(--color-figma-error)]">Cannot reach server — check the URL and try again</span>
+              )}
+            </div>
           )}
         </div>
       )}

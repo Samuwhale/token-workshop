@@ -217,3 +217,26 @@ Already up to date.
 
   Merging to main: Stale generator indicators are not prominent enough — generators have an `isStale` flag when source tokens change but the UI only shows this in the generator list as a subtle indicator; add a persistent banner or badge on the Generators sub-tab itself (e.g., "3 generators stale") and an optional notification when tokens that feed a generator are edited, with a one-click "Regenerate stale" action
 Already up to date.
+[main 5c7092f5] chore(backlog): done – Stale generator indicators are not prominent enough — generators have an `isStale` flag when source tokens change but the UI only shows this in the generator list as a subtle indicator; add a persistent banner or badge on the Generators sub-tab itself (e.g., "3 generators stale") and an optional notification when tokens that feed a generator are edited, with a one-click "Regenerate stale" action
+ 5 files changed, 61 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Stale generator indicators are not prominent enough
+- Added two visibility improvements for stale generators:
+  1. **Sub-tab badge**: Yellow pill badge showing stale generator count appears on the "Generators" sub-tab label whenever any generators are stale. Uses `staleGeneratorCount` memoized from `generators.filter(g => g.isStale).length`. Badge styling: `bg-yellow-400 text-yellow-900` rounded-full, 14px tall.
+  2. **Toast notification on source token edit**: `handleEditorSave` now checks `generatorsBySource.get(savedPath)` to detect if the saved token is a source for any generators. If so, fires an action toast "Source token for N generator(s) changed" with a "Regenerate" button that directly calls `POST /api/generators/:id/run` for each affected generator, then refreshes the generator list. Action toasts persist until explicitly dismissed.
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  23 queued · 0
+0 in-progress · last took 6m32s
+═══════════════════════════════════════════════════════════════
+  → Server connection setup is buried in Settings — new users must navigate to Settings (gear icon in overflow panel) to enter the server URL and connect; the Welcome/QuickStart modal exists but is only shown once; if the plugin loads without a server connection, show a prominent inline connection prompt on the main Tokens tab instead of requiring users to find Settings
+  Worktree: /tmp/backlog-54964-ekOpvy
+  Running agent… (started 01:22:10)
+
+  ✓ done: Server connection setup is buried in Settings — new users must navigate to Settings (gear icon in overflow panel) to enter the server URL and connect; the Welcome/QuickStart modal exists but is only shown once; if the plugin loads without a server connection, show a prominent inline connection prompt on the main Tokens tab instead of requiring users to find Settings
+    Added inline connection setup card in EmptyState (URL input + Connect button + server start instructions) and expandable URL editor in the global disconnect banner; both eliminate the need to navigate to Settings to configure the server URL
+    40 turns · 444s · $1.53
+
+  Merging to main: Server connection setup is buried in Settings — new users must navigate to Settings (gear icon in overflow panel) to enter the server URL and connect; the Welcome/QuickStart modal exists but is only shown once; if the plugin loads without a server connection, show a prominent inline connection prompt on the main Tokens tab instead of requiring users to find Settings
+Already up to date.

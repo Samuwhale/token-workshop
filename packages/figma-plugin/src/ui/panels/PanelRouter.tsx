@@ -393,6 +393,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         {p.effectiveTokens.length === 0 && !createFromEmpty && !editingToken && (
           <EmptyState
             connected={connected}
+            serverUrl={serverUrl}
+            checking={checking}
+            onConnect={updateServerUrlAndConnect}
             onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
             onPasteJSON={p.onShowPasteModal}
             onImportFigma={() => setOverflowPanel('import')}

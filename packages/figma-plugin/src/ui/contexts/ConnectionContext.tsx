@@ -25,7 +25,7 @@ export interface ConnectionContextValue {
   serverUrl: string;
   getDisconnectSignal: () => AbortSignal;
   markDisconnected: () => void;
-  updateServerUrlAndConnect: (url: string) => Promise<void>;
+  updateServerUrlAndConnect: (url: string) => Promise<boolean>;
   retryConnection: () => void;
   gitHasChanges: boolean;
   syncing: boolean;

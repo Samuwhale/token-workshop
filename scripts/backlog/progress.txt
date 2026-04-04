@@ -819,3 +819,20 @@
   - Action toasts (`pushActionToast`) persist until dismissed and the action callback can be async (API calls work fine inside onClick)
   - Sub-tab badges using `inline-flex` inside a button work well; the button itself doesn't need `flex` — the browser renders inline-flex spans inline naturally
 ---
+
+## 2026-04-05 - Server connection setup is buried in Settings
+- Added prominent inline connection prompt on the Tokens tab (EmptyState) and an expandable inline URL editor in the disconnect banner, eliminating the need to navigate to Settings to configure the server URL:
+  1. **`EmptyState.tsx`**: Replaced the minimal "server offline" banner with a full connection setup card when disconnected. The card shows: server icon + status, editable URL input (pre-populated from current serverUrl), "Connect" button with loading state, success/failure feedback, and a how-to-start code snippet (`npx @tokenmanager/server`). New props: `serverUrl?`, `checking?`, `onConnect?: (url: string) => Promise<boolean>`.
+  2. **`PanelRouter.tsx`**: Passes `serverUrl`, `checking`, and `onConnect={updateServerUrlAndConnect}` to `EmptyState` (all already available from `useConnectionContext()`).
+  3. **`App.tsx`**: Updated the global disconnect banner to expand an inline URL editor when "Change URL" is clicked instead of opening Settings. The editor shows the URL input + Connect button; on success it auto-closes. Added `showBannerUrlEditor` state and a `useEffect` to auto-close when `connected` becomes true.
+  4. **`ConnectionContext.tsx`**: Fixed a pre-existing type mismatch — `updateServerUrlAndConnect` was typed as `Promise<void>` in the context interface but the underlying hook returns `Promise<boolean>`. Updated to `Promise<boolean>` so callers can check the result.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L1 (full rewrite with connection card)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L394 (pass new props to EmptyState)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L140 (showBannerUrlEditor state), ~L150 (auto-close effect), ~L1196 (banner with inline URL editor)
+  - `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx` ~L28 (fix Promise<void> → Promise<boolean>)
+- **Learnings for future iterations:**
+  - `updateServerUrlAndConnect` was typed as `Promise<void>` in ConnectionContext but the hook returns `Promise<boolean>`. When consumers need to react to the connection result, this mismatch causes silent bugs. Always match the context interface type to the hook's actual return type.
+  - For "inline expandable" patterns in compact banners (like a connection status bar), toggle state + `autoFocus` on the input + `if (ok) setExpanded(false)` on success is a clean pattern that doesn't require a separate component.
+  - The EmptyState's `onConnect` wrapper approach (passing `updateServerUrlAndConnect` directly from PanelRouter after type is fixed) is cleaner than wrapping in an arrow function that discards the return value.
+---

@@ -3,6 +3,9 @@ import { adaptShortcut } from '../shared/utils';
 
 interface EmptyStateProps {
   connected: boolean;
+  serverUrl?: string;
+  checking?: boolean;
+  onConnect?: (url: string) => Promise<boolean>;
   onCreateToken: () => void;
   onPasteJSON: () => void;
   onImportFigma?: () => void;
@@ -14,14 +17,26 @@ interface EmptyStateProps {
   onGuidedSetup?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigma, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
+export function EmptyState({ connected, serverUrl, checking, onConnect, onCreateToken, onPasteJSON, onImportFigma, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
   const [showMore, setShowMore] = useState(false);
+  const [urlInput, setUrlInput] = useState(serverUrl ?? 'http://localhost:9400');
+  const [connecting, setConnecting] = useState(false);
+  const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
 
   const hasMoreOptions = !!(onGenerateSemanticTokens || onGenerateDarkTheme);
   const disabledProps = (label: string) => ({
     disabled: !connected,
     title: connected ? undefined : `Server offline — ${label}`,
   });
+
+  const handleConnect = async () => {
+    if (!onConnect) return;
+    setConnecting(true);
+    setConnectResult(null);
+    const ok = await onConnect(urlInput.trim());
+    setConnectResult(ok ? 'ok' : 'fail');
+    setConnecting(false);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-5 overflow-y-auto">
@@ -41,8 +56,76 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
         </div>
       </div>
 
-      {/* Server offline banner */}
-      {!connected && (
+      {/* Inline connection setup — shown prominently when not connected */}
+      {!connected && onConnect && (
+        <div className="w-full max-w-[260px] flex flex-col gap-3 p-4 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {/* Header */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] flex items-center justify-center shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+                <path d="M7 8h4M7 11h2" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">Connect to local server</p>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
+                {checking ? 'Checking connection…' : 'Server not reachable'}
+              </p>
+            </div>
+          </div>
+
+          {/* URL input + connect */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-[var(--color-figma-text-tertiary)] text-left font-medium uppercase tracking-wide">Server URL</label>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={urlInput}
+                onChange={e => { setUrlInput(e.target.value); setConnectResult(null); }}
+                onKeyDown={e => { if (e.key === 'Enter') handleConnect(); }}
+                placeholder="http://localhost:9400"
+                className="flex-1 min-w-0 px-2 py-1.5 text-[11px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] outline-none"
+              />
+              <button
+                onClick={handleConnect}
+                disabled={connecting || checking || !urlInput.trim()}
+                className="px-2.5 py-1.5 text-[11px] font-medium rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              >
+                {connecting || checking ? 'Connecting…' : 'Connect'}
+              </button>
+            </div>
+
+            {/* Result feedback */}
+            {connectResult === 'ok' && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Connected successfully
+              </div>
+            )}
+            {connectResult === 'fail' && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Cannot reach server — is it running?
+              </div>
+            )}
+          </div>
+
+          {/* How to start */}
+          <div className="text-left border-t border-[var(--color-figma-border)] pt-2.5">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug">
+              Start the server in your terminal:
+            </p>
+            <code className="block mt-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] font-mono text-left select-all">
+              npx @tokenmanager/server
+            </code>
+          </div>
+        </div>
+      )}
+
+      {/* Fallback: minimal offline note when onConnect not provided */}
+      {!connected && !onConnect && (
         <div className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] w-full max-w-[260px]">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]">
             <circle cx="12" cy="12" r="10" />
