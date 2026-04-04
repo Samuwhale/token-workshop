@@ -29,8 +29,9 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
   useEffect(() => {
     if (connected) {
       const gen = ++flatFetchGenRef.current;
+      const controller = new AbortController();
       setTokensLoading(true);
-      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
+      fetchAllTokensFlatWithSets(serverUrl, controller.signal).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
         if (gen !== flatFetchGenRef.current) return; // stale response
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
@@ -39,11 +40,13 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
         setTokensLoading(false);
       }).catch(err => {
         if (gen !== flatFetchGenRef.current) return;
+        if (err instanceof Error && err.name === 'AbortError') return;
         if (isNetworkError(err)) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
         setTokensError(err instanceof Error ? err.message : 'Failed to load tokens');
         setTokensLoading(false);
       });
+      return () => controller.abort();
     } else {
       setTokensLoading(false);
     }

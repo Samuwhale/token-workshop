@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
 
@@ -47,11 +47,12 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   const fetchResolvers = useCallback(() => {
     if (!connected) return;
-    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`)
+    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`, { signal: createFetchSignal() })
       .then(data => {
         setResolvers(data.resolvers ?? []);
       })
       .catch(err => {
+        if (err instanceof Error && err.name === 'AbortError') return;
         setResolverError(getErrorMessage(err, 'Failed to load resolvers'));
       });
   }, [connected, serverUrl]);
@@ -100,7 +101,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: resolverInput }),
-        signal: controller.signal,
+        signal: createFetchSignal(controller.signal),
       })
       .then(data => {
         if (controller.signal.aborted) return;

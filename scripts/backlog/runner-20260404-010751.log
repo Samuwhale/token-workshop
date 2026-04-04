@@ -746,3 +746,12 @@ Already up to date.
 
   Merging to main: Server-side validation gaps allow invalid state to persist until runtime failure
 Already up to date.
+[main 18a6394f] chore(backlog): done – Server-side validation gaps allow invalid state to persist until runtime failure
+ 7 files changed, 129 insertions(+), 61 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1283 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

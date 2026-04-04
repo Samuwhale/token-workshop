@@ -577,3 +577,19 @@
   - For in-memory state mutations with async validation, the pattern is: apply mutation → validate → revert on failure → save. This makes the validation path clean with no intermediate writes.
   - Partial-resolution validation (checking all indices are covered) belongs alongside range validation in the same step, before any file I/O.
 ---
+
+## 2026-04-04 - UI fetch hooks have inconsistent abort/timeout patterns
+- Extracted `createFetchSignal(disconnectSignal?, timeoutMs?)` factory to `apiFetch.ts`. Combines `AbortSignal.timeout(timeoutMs)` with an optional disconnect/controller signal via `AbortSignal.any`. Default timeout 5 s; callers can override (e.g. 10 s for batch writes).
+- `useGeneratorPreview.ts`: wrapped both the preview POST and the existing-tokens GET with `createFetchSignal(controller.signal)` — previously had no timeout (could hang indefinitely).
+- `useResolvers.ts`: added `createFetchSignal()` to `fetchResolvers` (previously no signal at all); added `createFetchSignal(controller.signal)` to the resolve-tokens POST.
+- `useTokenSyncBase.ts`: added `createFetchSignal()` to the `computeDiff` GET; added `createFetchSignal(undefined, 10000)` to each pull PATCH inside `Promise.all` (10 s for writes).
+- `useTokenDataLoading.ts`: replaced generation-counter-only pattern with a real `AbortController` — signal passed through the new `fetchAllTokensFlatWithSets(serverUrl, signal)` overload; effect cleanup calls `controller.abort()`.
+- `useTokens.ts`: added `signal?` param to `fetchAllSets` / `fetchAllTokensFlat` / `fetchAllTokensFlatWithSets`; simplified the dual `AbortSignal.any([timeout, ...])` block in `refreshTokens` and `fetchTokensForSet` to `createFetchSignal(disconnectCombined)`.
+- `useGitStatus.ts`, `useLintConfig.ts`, `useThemeSwitcher.ts`, `useRecentOperations.ts`: each had a controller signal but no timeout — wrapped with `createFetchSignal(controller.signal)`.
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` ~L19; `hooks/useGeneratorPreview.ts` ~L3, L107, L139; `hooks/useResolvers.ts` ~L11, L50, L103; `hooks/useTokenSyncBase.ts` ~L4, L152, L216; `hooks/useTokenDataLoading.ts` ~L30-49; `hooks/useTokens.ts` ~L6, L77-78, L170-171, L193-207, L237-243; `hooks/useGitStatus.ts` ~L3, L67, L75; `hooks/useLintConfig.ts` ~L2, L48; `hooks/useThemeSwitcher.ts` ~L3, L56; `hooks/useRecentOperations.ts` ~L2, L63.
+- **Learnings for future iterations:**
+  - `createFetchSignal(disconnectSignal?, timeoutMs?)` covers all common cases — single disconnect signal + timeout. For hooks needing multiple extra signals (like useTokens with disconnect + unmount), pre-combine them with `AbortSignal.any([s1, s2])` before passing.
+  - `AbortSignal.timeout()` alone is sufficient for fire-and-forget fetches (e.g. fetchResolvers after mutations). No controller needed.
+  - For batch write operations in `Promise.all`, a per-request timeout (not a shared one) is the right pattern — use a longer value (10 s) since writes are slower than reads.
+  - When adding abort to an effect that previously had no cleanup, add both a `controller.abort()` cleanup AND an AbortError guard in the `.catch()` handler to avoid setState-on-unmount warnings.
+---

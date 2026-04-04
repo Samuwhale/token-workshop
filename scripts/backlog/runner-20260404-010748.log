@@ -614,3 +614,10 @@ Already up to date.
   → UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks — useGeneratorPreview has no timeout on its fetch (can hang indefinitely), useResolvers has no abort signal at all, useTokenSyncBase pull operations use Promise.all with no signal, while useTokens and useLint properly use AbortSignal.any with 5s timeout and disconnect signal; additionally useTokenDataLoading's fetchAllTokensFlatWithSets has no abort signal and relies solely on a generation counter to discard stale responses; standardize by extracting a createFetchSignal(disconnectSignal?, timeoutMs?) factory and using it in all ~15 data-fetching hooks (hooks/useGeneratorPreview.ts L137, useResolvers.ts L50, useTokenSyncBase.ts L213, useTokenDataLoading.ts L32)
   Worktree: /tmp/backlog-91949-oEOZXe
   Running agent… (started 03:26:18)
+
+  ✓ done: UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks
+    Added createFetchSignal(disconnectSignal?, timeoutMs=5000) factory to apiFetch.ts; applied it across 10 hooks — fixes missing timeouts in useGeneratorPreview/useResolvers/useGitStatus/useLintConfig/useThemeSwitcher/useRecentOperations, missing signal on fetchResolvers and computeDiff, missing signals on Promise.all pull PATCHes in useTokenSyncBase, and propagates a real AbortController through fetchAllTokensFlatWithSets in useTokenDataLoading (replacing generation-counter-only stale detection)
+    60 turns · 430s · $1.71
+
+  Merging to main: UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks
+Already up to date.

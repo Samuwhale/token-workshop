@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { describeError } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 export interface GitStatus {
   isRepo: boolean;
@@ -64,7 +64,7 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
     if (!connected) { setGitLoading(false); return; }
     try {
       try {
-        const data = await apiFetch<GitStatus>(`${serverUrl}/api/sync/status`, { signal });
+        const data = await apiFetch<GitStatus>(`${serverUrl}/api/sync/status`, { signal: createFetchSignal(signal) });
         setGitStatus(data);
         if (data.remote) setRemoteUrl(data.remote);
       } catch (err) {
@@ -72,7 +72,7 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
         setGitStatus({ isRepo: false, branch: null, remote: null, status: null });
       }
       try {
-        const branchData = await apiFetch<{ branches: string[] }>(`${serverUrl}/api/sync/branches`, { signal });
+        const branchData = await apiFetch<{ branches: string[] }>(`${serverUrl}/api/sync/branches`, { signal: createFetchSignal(signal) });
         setBranches(branchData.branches || []);
       } catch (err) {
         console.warn('[useGitStatus] branch fetch failed (non-fatal):', err);

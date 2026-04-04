@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
 
@@ -104,7 +104,7 @@ export function useGeneratorPreview({
         }
         const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
           `${serverUrl}/api/generators/preview`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal },
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: createFetchSignal(controller.signal) },
         );
         if (!controller.signal.aborted) setPreviewTokens(data.tokens ?? []);
       } catch (err) {
@@ -136,7 +136,7 @@ export function useGeneratorPreview({
     if (!targetSet) return;
     const controller = new AbortController();
     setExistingTokensError('');
-    apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
+    apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: createFetchSignal(controller.signal) })
       .then(data => {
         if (controller.signal.aborted) return;
         const map = flattenTokenGroup(data.tokens || {});

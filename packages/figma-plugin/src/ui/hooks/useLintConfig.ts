@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -45,7 +45,7 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
     fetchAbortRef.current = controller;
     setLoading(true);
     try {
-      const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, { signal: controller.signal });
+      const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, { signal: createFetchSignal(controller.signal) });
       setConfig(data);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;

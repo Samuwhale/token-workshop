@@ -30,6 +30,23 @@ export function isNetworkError(err: unknown): boolean {
   return false;
 }
 
+/**
+ * Create an AbortSignal that fires after `timeoutMs` ms (default 5 s) OR when `disconnectSignal`
+ * fires — whichever comes first.  Pass this to every background data-fetch so that hung
+ * requests don't accumulate indefinitely.
+ *
+ * For hooks that need to combine more than one extra signal (e.g. disconnect + unmount),
+ * pre-combine them with `AbortSignal.any([s1, s2])` before passing here.
+ *
+ * @example
+ *   const signal = createFetchSignal(controller.signal);
+ *   await apiFetch(url, { signal });
+ */
+export function createFetchSignal(disconnectSignal?: AbortSignal, timeoutMs = 5000): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return disconnectSignal ? AbortSignal.any([timeout, disconnectSignal]) : timeout;
+}
+
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
   if (!res.ok) {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 
 interface OperationEntry {
@@ -61,7 +61,7 @@ export function useRecentOperations({
     try {
       const data = await apiFetch<{ operations: OperationEntry[]; total: number }>(
         `${serverUrl}/api/operations?limit=${effectiveLimit}`,
-        { signal: unmountRef.current.signal },
+        { signal: createFetchSignal(unmountRef.current.signal) },
       );
       setRecentOperations(data.operations);
       setTotal(data.total);

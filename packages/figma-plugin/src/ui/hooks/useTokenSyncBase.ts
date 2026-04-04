@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
 import { describeError, tokenPathToUrlSegment } from '../shared/utils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
 
 // ── Shared helpers ──
 
@@ -151,6 +151,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
 
       const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`,
+        { signal: createFetchSignal() },
       );
       const localTokens = flattenTokenGroup(data.tokens || {});
 
@@ -216,6 +217,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
+                signal: createFetchSignal(undefined, 10000),
               },
             );
             return null;

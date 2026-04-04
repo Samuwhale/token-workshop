@@ -3,7 +3,7 @@ import { isDTCGToken } from '@tokenmanager/core';
 import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { apiFetch, isNetworkError } from '../shared/apiFetch';
+import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
 
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
 function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
@@ -73,9 +73,8 @@ export function useTokens(
     const gen = ++fetchGenRef.current;
     const unmountSig = unmountControllerRef.current.signal;
     const disconnectSig = getDisconnectSignal?.();
-    const signal = (disconnectSig != null)
-      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig, unmountSig])
-      : AbortSignal.any([AbortSignal.timeout(5000), unmountSig]);
+    const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
+    const signal = createFetchSignal(disconnectCombined);
     try {
       const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; collectionNames?: Record<string, string>; modeNames?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
       const allSets: string[] = setsData.sets || [];
@@ -167,9 +166,8 @@ export function useTokens(
     const gen = ++fetchGenRef.current;
     const unmountSig = unmountControllerRef.current.signal;
     const disconnectSig = getDisconnectSignal?.();
-    const signal = (disconnectSig != null)
-      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig, unmountSig])
-      : AbortSignal.any([AbortSignal.timeout(5000), unmountSig]);
+    const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
+    const signal = createFetchSignal(disconnectCombined);
     try {
       const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal });
       if (gen !== fetchGenRef.current || signal.aborted) return;
@@ -186,17 +184,23 @@ export function useTokens(
   return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
 }
 
-async function fetchAllSets(serverUrl: string): Promise<{
+async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   perSetFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
-  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
+  const baseSignal = signal
+    ? AbortSignal.any([AbortSignal.timeout(5000), signal])
+    : AbortSignal.timeout(5000);
+  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: baseSignal });
   const setNames: string[] = setsData.sets || [];
 
   const results = await Promise.allSettled(
     setNames.map(async (setName) => {
-      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
+      const perSetSignal = signal
+        ? AbortSignal.any([AbortSignal.timeout(5000), signal])
+        : AbortSignal.timeout(5000);
+      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: perSetSignal });
       return { setName, tokens: data.tokens || {} };
     })
   );
@@ -230,16 +234,16 @@ async function fetchAllSets(serverUrl: string): Promise<{
   return { flat, pathToSet, perSetFlat };
 }
 
-export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
-  return (await fetchAllSets(serverUrl)).flat;
+export async function fetchAllTokensFlat(serverUrl: string, signal?: AbortSignal): Promise<Record<string, TokenMapEntry>> {
+  return (await fetchAllSets(serverUrl, signal)).flat;
 }
 
-export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
+export async function fetchAllTokensFlatWithSets(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   perSetFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
-  return fetchAllSets(serverUrl);
+  return fetchAllSets(serverUrl, signal);
 }
 
 
