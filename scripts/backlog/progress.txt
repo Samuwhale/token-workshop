@@ -304,3 +304,9 @@
   - The `type: 'error'` generic message in plugin sandbox never resolves correlationId-based promises — always use a typed, domain-specific message with the correlationId when resolving tracked async calls.
   - `deleteOrphanVariables` used to fail open: a mid-loop JS error would leave some variables deleted and others not. Collecting the full list first then iterating with per-item try/catch ensures consistent reporting.
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (tab structure, command palette, keyboard shortcuts), TokenEditor.tsx (editing UX, alias mode, composite editors, inline editing), TokenTreeNode.tsx (context menus, inline edit, tree interactions), ComparePanel.tsx (cross-token/theme comparison), HealthPanel.tsx (health checks, issue display), HistoryPanel.tsx (timeline, undo/redo, snapshots), AnalyticsPanel.tsx (lint rules, validation results), PublishPanel.tsx (variable/style/git sync flow), GraphPanel.tsx (generator pipeline, templates), TokenFlowPanel.tsx (dependency graph), ExportPanel.tsx (platform export, ZIP), ImportPanel.tsx (Figma variables, file import), BatchEditor.tsx (multi-select operations), EmptyState.tsx (onboarding), SettingsPanel.tsx (preferences), server routes (tokens, sets, themes, generators, resolvers, git, operations, export), plugin sandbox (variableSync, styleSync, selectionHandling, heatmapScanning, consistencyScanner)
+- Found 12 items — written to backlog-inbox.md
+- Notable: The product has strong keyboard-first UX and comprehensive batch operations, but several panels (Compare, Health, Analytics) are read-only with no quick-fix actions — users must navigate away to resolve issues they've just identified, breaking flow. The publish step also lacks a dry-run preview, which is a significant gap for a sync operation that mutates Figma state.
+---
