@@ -634,3 +634,11 @@
   - When a recovery path has "retry on next restart" semantics, the marker cleanup must be inside the try block (after the operation succeeds), not after a `.catch()` that swallows the error. `.catch()` converts rejections to resolutions, so the outer `await` always succeeds regardless of what the catch handler does.
   - To force `applyThemesRename` to throw in tests without mocking: create `$themes.json` as a directory — `fs.readFile` will fail with EISDIR (not ENOENT), which `applyThemesRename` correctly re-throws.
 ---
+
+## 2026-04-05 - useGitStatus nested try-catch structure makes the outer error handler unreachable
+- Fixed by adding `if (isAbortError(err)) throw err;` at the top of both inner catch blocks so AbortErrors propagate to the outer catch (which handles the early return). Status fetch non-abort failures now correctly call `setGitError` (was silently calling `setGitStatus({isRepo:false,...})` with only a console.warn). Branch fetch non-abort failures remain non-fatal with console.warn, but AbortErrors are now properly propagated. The outer catch is no longer dead code.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitStatus.ts` ~L66-82
+- **Learnings for future iterations:**
+  - When nesting try-catch blocks to make some errors non-fatal, always re-throw AbortErrors from inner catches — otherwise the outer abort-return guard becomes dead code and in-flight requests accumulate
+  - A simple `if (isAbortError(err)) throw err;` at the start of inner catch blocks is all that's needed to restore correct abort propagation without disrupting the non-fatal fallback logic
+---

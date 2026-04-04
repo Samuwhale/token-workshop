@@ -1044,3 +1044,26 @@ Already up to date.
 
   Merging to main: Token rename recovery in token-store.ts deletes the pending-rename marker even when applyThemesRename fails
 Already up to date.
+[main 05cf3d10] chore(backlog): done – Token rename recovery in token-store.ts deletes the pending-rename marker even when applyThemesRename fails
+ 6 files changed, 68 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Token rename recovery deletes marker even when applyThemesRename fails
+- Fixed `recoverPendingRename` in `token-store.ts`: wrapped `applyThemesRename` + `fs.unlink` in a try/catch so the marker file is only deleted on success. On failure, the marker is preserved and the error is logged, allowing the next server restart to retry the themes update.
+- Added a new test case (`preserves the rename marker when applyThemesRename throws`) that simulates the failure by creating `$themes.json` as a directory (causing EISDIR), then verifying the marker file still exists and the token data is still accessible.
+- Files changed: `packages/server/src/services/token-store.ts` ~L127, `packages/server/src/__tests__/token-store.test.ts` ~L1298
+
+═══════════════════════════════════════════════════════════════
+  #40  ·  20 queued · 0
+0 in-progress · last took 1m44s
+═══════════════════════════════════════════════════════════════
+  → useGitStatus nested try-catch structure makes the outer error handler unreachable — in useGitStatus.ts lines 66-83, both the status fetch (line 70) and branch fetch (line 77) have inner catch blocks that swallow all errors including non-AbortError network failures; the outer catch at line 80-82 that would call setGitError is dead code; branch fetch failures silently produce an empty branch list with no UI feedback, and a total network failure silently sets isRepo:false instead of showing an error state
+  Worktree: /tmp/backlog-3108-Esazoy
+  Running agent… (started 00:03:00)
+
+  ✓ done: useGitStatus nested try-catch structure makes the outer error handler unreachable
+    Added `if (isAbortError(err)) throw err` to both inner catch blocks; status fetch failures now call setGitError instead of silently setting isRepo:false; outer catch is no longer dead code
+    8 turns · 72s · $0.24
+
+  Merging to main: useGitStatus nested try-catch structure makes the outer error handler unreachable
+Already up to date.
