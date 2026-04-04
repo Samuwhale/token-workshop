@@ -157,3 +157,31 @@ select:focus-visible,
 .animate-toast-in {
   animation: toast-in 150ms ease-out;
 }
+
+/* Generator dialog responsive two-column layout */
+.gen-dialog-grid {
+  display: flex;
+  flex-direction: column;
+}
+.gen-dialog-config {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.gen-dialog-preview {
+  margin-top: 0;
+}
+
+@media (min-width: 600px) {
+  .gen-dialog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .gen-dialog-preview {
+    position: sticky;
+    top: 0;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+  }
+}

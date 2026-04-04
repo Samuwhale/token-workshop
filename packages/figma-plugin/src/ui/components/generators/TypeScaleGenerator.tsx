@@ -3,7 +3,7 @@ import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../..
 import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 import { TypeScaleStaircaseEditor } from './TypeScaleStaircaseEditor';
-import { TokenRefInput } from './TokenRefInput';
+import { TokenRefInput } from '../TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -45,7 +46,13 @@ export function AliasAutocomplete({
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const { entries, totalCount } = useMemo(() => {
+  // Track selections for recent tokens
+  const handleSelect = useCallback((path: string) => {
+    addRecentToken(path);
+    onSelect(path);
+  }, [onSelect]);
+
+  const { entries, totalCount, hasRecent } = useMemo(() => {
     const q = query.trim();
     type Entry = [string, TokenMapEntry, TokenMapEntry];
     const resolve = (entry: TokenMapEntry): TokenMapEntry => {
@@ -57,11 +64,24 @@ export function AliasAutocomplete({
       return entry;
     };
     if (!q) {
+      // Show recent tokens first, then all tokens
+      const recent = getRecentTokens();
+      const recentEntries: Entry[] = [];
+      for (const p of recent) {
+        const entry = allTokensFlat[p];
+        if (!entry) continue;
+        if (filterType && entry.$type !== filterType) continue;
+        recentEntries.push([p, entry, resolve(entry)]);
+        if (recentEntries.length >= 6) break;
+      }
+      const recentSet = new Set(recentEntries.map(e => e[0]));
       const all = Object.entries(allTokensFlat)
-        .filter(([, entry]) => !filterType || entry.$type === filterType);
+        .filter(([p, entry]) => (!filterType || entry.$type === filterType) && !recentSet.has(p));
+      const remaining = all.slice(0, MAX_RESULTS - recentEntries.length).map(([p, e]) => [p, e, resolve(e)] as Entry);
       return {
-        entries: all.slice(0, MAX_RESULTS).map(([p, e]) => [p, e, resolve(e)] as Entry),
-        totalCount: all.length,
+        entries: [...recentEntries, ...remaining],
+        totalCount: all.length + recentEntries.length,
+        hasRecent: recentEntries.length > 0,
       };
     }
     const scored: [string, TokenMapEntry, number][] = [];
@@ -74,6 +94,7 @@ export function AliasAutocomplete({
     return {
       entries: scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e, resolve(e)] as Entry),
       totalCount: scored.length,
+      hasRecent: false,
     };
   }, [allTokensFlat, query, filterType]);
 
@@ -91,14 +112,14 @@ export function AliasAutocomplete({
         setActiveIdx(i => Math.max(i - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (entries[activeIdx]) onSelect(entries[activeIdx][0]);
+        if (entries[activeIdx]) handleSelect(entries[activeIdx][0]);
       } else if (e.key === 'Escape') {
         onClose();
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [entries, activeIdx, onSelect, onClose]);
+  }, [entries, activeIdx, handleSelect, onClose]);
 
   // Scroll active item into view
   useEffect(() => {
@@ -119,6 +140,11 @@ export function AliasAutocomplete({
       ref={listRef}
       className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
     >
+      {hasRecent && !query.trim() && (
+        <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+          Recent
+        </div>
+      )}
       {entries.map(([path, entry, resolved], idx) => {
         const isAliasToken = isAlias(entry.$value);
         const previewValue = formatValuePreview(resolved.$value);
@@ -127,7 +153,7 @@ export function AliasAutocomplete({
         <button
           key={path}
           data-idx={idx}
-          onMouseDown={e => { e.preventDefault(); onSelect(path); }}
+          onMouseDown={e => { e.preventDefault(); handleSelect(path); }}
           onMouseEnter={() => setActiveIdx(idx)}
           className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
         >

@@ -739,16 +739,22 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-# Pass schedule:
-#   code pass    — every 10 completed items, or when the backlog is empty
-#   product pass — every 10 completed items (offset by 5), or when the backlog is empty
+# Pass schedule (three passes evenly distributed across the cycle):
+#   product pass — offset 3 (fires at items 3, 13, 23…)
+#   ux pass      — offset 7 (fires at items 7, 17, 27…)
+#   code pass    — offset 0 (fires at items 10, 20, 30…)
+#   All three also run when the backlog is empty.
 
 CURRENT_COUNT=$(get_completed_count)
-PASS_HALF=$(( PASS_FREQUENCY / 2 ))
+PRODUCT_OFFSET=3
+UX_OFFSET=7
+# Countdown to next pass of each type
 NEXT_CODE_PASS_IN=$(( PASS_FREQUENCY - (CURRENT_COUNT % PASS_FREQUENCY) ))
-[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=$PASS_FREQUENCY
-NEXT_PRODUCT_PASS_IN=$(( PASS_FREQUENCY - ((CURRENT_COUNT + PASS_HALF) % PASS_FREQUENCY) ))
+[ "$NEXT_CODE_PASS_IN" -eq "$PASS_FREQUENCY" ] && NEXT_CODE_PASS_IN=$PASS_FREQUENCY
+NEXT_PRODUCT_PASS_IN=$(( (PRODUCT_OFFSET - (CURRENT_COUNT % PASS_FREQUENCY) + PASS_FREQUENCY) % PASS_FREQUENCY ))
 [ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=$PASS_FREQUENCY
+NEXT_UX_PASS_IN=$(( (UX_OFFSET - (CURRENT_COUNT % PASS_FREQUENCY) + PASS_FREQUENCY) % PASS_FREQUENCY ))
+[ "$NEXT_UX_PASS_IN" -eq 0 ] && NEXT_UX_PASS_IN=$PASS_FREQUENCY
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
@@ -775,7 +781,7 @@ FAILED=$(grep -cE '^\- \[!\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
 echo ""
 echo "  Queue:    $(remaining) ready · ${IN_PROGRESS} in-progress · ${FAILED} failed"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
-  echo "  Done:     $CURRENT_COUNT total (next code pass in $NEXT_CODE_PASS_IN, product pass in $NEXT_PRODUCT_PASS_IN)"
+  echo "  Done:     $CURRENT_COUNT total (next passes: product in $NEXT_PRODUCT_PASS_IN, ux in $NEXT_UX_PASS_IN, code in $NEXT_CODE_PASS_IN)"
 else
   echo "  Done:     $CURRENT_COUNT total"
 fi
@@ -823,6 +829,8 @@ while true; do
         drain_inbox
         REMAINING=$(remaining)
         run_special_pass "code"
+        drain_inbox
+        run_special_pass "ux"
         rm -rf "$PASS_LOCKDIR"
         drain_inbox
         REMAINING=$(remaining)
@@ -982,20 +990,23 @@ while true; do
       # Milestone maintenance passes (skip if stop was requested or passes disabled)
       TOTAL_DONE=$(increment_completed_count)
       if [ "$PASSES_ENABLED" -eq 1 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
-        RUN_CODE=0; RUN_PRODUCT=0
+        RUN_CODE=0; RUN_PRODUCT=0; RUN_UX=0
         [ $((TOTAL_DONE % PASS_FREQUENCY)) -eq 0 ] && RUN_CODE=1
-        [ $(((TOTAL_DONE + PASS_HALF) % PASS_FREQUENCY)) -eq 0 ] && RUN_PRODUCT=1
-        if [ $((RUN_CODE + RUN_PRODUCT)) -gt 0 ]; then
+        [ $((TOTAL_DONE % PASS_FREQUENCY)) -eq "$PRODUCT_OFFSET" ] && RUN_PRODUCT=1
+        [ $((TOTAL_DONE % PASS_FREQUENCY)) -eq "$UX_OFFSET" ] && RUN_UX=1
+        if [ $((RUN_CODE + RUN_PRODUCT + RUN_UX)) -gt 0 ]; then
           cleanup_if_needed
           # Non-blocking pass lock: if another runner is already running a pass, skip
           if try_pass_lock; then
             echo $$ > "$PASS_LOCKDIR/pid"
             PASS_NAMES=""
             [ "$RUN_PRODUCT" -eq 1 ] && PASS_NAMES="product"
+            [ "$RUN_UX" -eq 1 ] && PASS_NAMES="${PASS_NAMES:+$PASS_NAMES + }ux"
             [ "$RUN_CODE" -eq 1 ] && PASS_NAMES="${PASS_NAMES:+$PASS_NAMES + }code"
             echo ""
             echo "  Milestone: $TOTAL_DONE items done — running $PASS_NAMES discovery pass"
             [ "$RUN_PRODUCT" -eq 1 ] && run_special_pass "product"
+            [ "$RUN_UX" -eq 1 ] && run_special_pass "ux"
             [ "$RUN_CODE" -eq 1 ] && run_special_pass "code"
             rm -rf "$PASS_LOCKDIR"
           else

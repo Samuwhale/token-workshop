@@ -1,6 +1,6 @@
 import type { DarkModeInversionConfig } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import { TokenRefInput } from './TokenRefInput';
+import { TokenRefInput } from '../TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config

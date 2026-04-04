@@ -3,7 +3,7 @@ import type { ContrastCheckConfig, ContrastCheckStep, GeneratedTokenResult } fro
 import type { TokenMapEntry } from '../../../shared/types';
 import { wcagContrast } from '../../shared/colorUtils';
 import { OverrideRow } from './generatorShared';
-import { TokenRefInput } from './TokenRefInput';
+import { TokenRefInput } from '../TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config

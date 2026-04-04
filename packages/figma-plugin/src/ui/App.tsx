@@ -14,6 +14,7 @@ import { QuickStartDialog } from './components/QuickStartDialog';
 import { QuickStartWizard } from './components/QuickStartWizard';
 import { WelcomePrompt } from './components/WelcomePrompt';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
+import { CreatePanel } from './components/CreatePanel';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
 import { SetSwitcher } from './components/SetSwitcher';
@@ -58,7 +59,7 @@ import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
-import { buildTreeByType, findLeafByPath } from './components/tokenListUtils';
+import { buildTreeByType, findLeafByPath, collectAllGroupPaths } from './components/tokenListUtils';
 import { inferTypeFromValue } from './components/tokenListHelpers';
 
 /** Format a timestamp as a human-readable relative time string. */
@@ -184,6 +185,7 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
   const [previewingToken, setPreviewingToken] = useState<{ path: string; name?: string; set: string } | null>(null);
+  const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection, gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useConnectionContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet, allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError, generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useTokenDataContext();
   const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, resolverState, themedAllTokensFlat, setThemeStatusMap } = useThemeContext();
@@ -226,6 +228,7 @@ export function App() {
   useEffect(() => { lintIssueIndexRef.current = -1; }, [activeSet]);
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
+  const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -384,7 +387,7 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const useSidePanel = windowWidth > 480
+  const useSidePanel = windowWidth > 400
     && !!(editingToken || previewingToken)
     && overflowPanel === null
     && activeTopTab === 'define' && activeSubTab === 'tokens'
@@ -540,6 +543,10 @@ export function App() {
       navigateTo('apply', 'inspect');
       setTriggerCreateToken(n => n + 1);
     }
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'n') {
+      e.preventDefault();
+      setShowCreatePanel(prev => prev ? null : { tab: 'single' });
+    }
     const tabIndex = ['1', '2', '3'].indexOf(e.key);
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TOP_TABS.length) {
       e.preventDefault();
@@ -685,10 +692,24 @@ export function App() {
       {
         id: 'new-token',
         label: 'Create new token',
-        description: `In set: ${activeSet}`,
+        description: `Open the unified creation panel`,
         category: 'Tokens',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.CREATE_FROM_SELECTION),
-        handler: () => { goToTokens(); },
+        shortcut: adaptShortcut('⌘N'),
+        handler: () => { setShowCreatePanel({ tab: 'single' }); },
+      },
+      {
+        id: 'generate-scale',
+        label: 'Generate a scale',
+        description: 'Create a scale of tokens from a template',
+        category: 'Tokens',
+        handler: () => { setShowCreatePanel({ tab: 'scale' }); },
+      },
+      {
+        id: 'bulk-create',
+        label: 'Bulk create tokens',
+        description: 'Create multiple tokens at once in a table',
+        category: 'Tokens',
+        handler: () => { setShowCreatePanel({ tab: 'bulk' }); },
       },
       {
         id: 'switch-set',
@@ -2252,6 +2273,50 @@ export function App() {
                 onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
                 onNavigateToToken={handleNavigateToAlias}
                 onNavigateToGenerator={handleNavigateToGenerator}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create panel drawer */}
+      {showCreatePanel && overflowPanel === null && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+          <div
+            className="absolute inset-0 bg-black/30 drawer-fade-in"
+            onClick={() => setShowCreatePanel(null)}
+          />
+          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '75%' }}>
+            <div className="flex justify-center pt-2 pb-1 shrink-0">
+              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <CreatePanel
+                serverUrl={serverUrl}
+                activeSet={activeSet}
+                allSets={sets}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                allGroupPaths={allGroupPaths}
+                connected={connected}
+                initialTab={showCreatePanel.tab}
+                initialPath={showCreatePanel.initialPath}
+                initialType={showCreatePanel.initialType}
+                initialValue={showCreatePanel.initialValue}
+                graphTemplates={GRAPH_TEMPLATES}
+                onOpenGenerator={(template) => {
+                  setShowCreatePanel(null);
+                  setPendingGraphTemplate(template.id);
+                  navigateTo('define', 'generators');
+                }}
+                onTokenCreated={(path) => {
+                  setHighlightedToken(path);
+                  setSuccessToast(`Created ${path}`);
+                }}
+                onRefresh={refreshAll}
+                onClose={() => setShowCreatePanel(null)}
+                availableFonts={availableFonts}
+                fontWeightsByFamily={fontWeightsByFamily}
               />
             </div>
           </div>

@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
-const MAX_WIDTH = 900;
-const MAX_HEIGHT = 900;
+const MAX_WIDTH = 1200;
+const MAX_HEIGHT = 1000;
 
 export function useWindowExpand() {
   const [isExpanded, setIsExpanded] = useState(() => lsGet(STORAGE_KEYS.EXPANDED) === '1');

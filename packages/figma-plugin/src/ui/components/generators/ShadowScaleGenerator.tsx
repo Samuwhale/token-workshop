@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ShadowScaleConfig, ShadowScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow, CompactColorInput } from './generatorShared';
-import { TokenRefInput } from './TokenRefInput';
+import { TokenRefInput } from '../TokenRefInput';
 import { Collapsible } from '../Collapsible';
 
 // ---------------------------------------------------------------------------

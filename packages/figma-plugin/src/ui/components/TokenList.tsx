@@ -24,6 +24,7 @@ import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
+import { AliasAutocomplete } from './AliasAutocomplete';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
 import type { TokenTreeContextType } from './tokenListTypes';
@@ -930,6 +931,16 @@ export function TokenList({
     resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
 
+  // Reference mode toggle for inline create form
+  const [createRefMode, setCreateRefMode] = useState(false);
+  const [createRefQuery, setCreateRefQuery] = useState('');
+  const createRefInputRef = useRef<HTMLInputElement>(null);
+  const resetCreateFormFull = useCallback(() => {
+    resetCreateForm();
+    setCreateRefMode(false);
+    setCreateRefQuery('');
+  }, [resetCreateForm]);
+
   const tableCreate = useTableCreate({
     connected,
     serverUrl,
@@ -1129,7 +1140,7 @@ export function TokenList({
     if (e.key === 'Escape') {
       if (showCreateForm) {
         e.preventDefault();
-        resetCreateForm();
+        resetCreateFormFull();
         return;
       }
       if (selectMode) {
@@ -3652,36 +3663,116 @@ export function TokenList({
                 })}
               </div>
             )}
-            <div className="flex items-center gap-1.5">
-              {newTokenValue.trim() && (
-                <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
-              )}
-              <input
-                type="text"
-                placeholder={valuePlaceholderForType(newTokenType)}
-                value={newTokenValue}
-                onChange={e => {
-                  const val = e.target.value;
-                  setNewTokenValue(val);
-                  const inferred = inferTypeFromValue(val);
-                  if (inferred) {
-                    setNewTokenType(inferred);
-                    setTypeAutoInferred(true);
-                  } else if (typeAutoInferred && !val.trim()) {
-                    setTypeAutoInferred(false);
-                  }
-                }}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-                onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-              />
+            {/* Value input with reference mode toggle */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                {/* Toggle between direct value and reference mode */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !createRefMode;
+                    setCreateRefMode(next);
+                    if (next) {
+                      setCreateRefQuery('');
+                      setTimeout(() => createRefInputRef.current?.focus(), 0);
+                    }
+                  }}
+                  title={createRefMode ? 'Switch to direct value' : 'Reference an existing token'}
+                  className={`p-1 rounded transition-colors shrink-0 ${
+                    createRefMode
+                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                  </svg>
+                </button>
+                {!createRefMode ? (
+                  <>
+                    {newTokenValue.trim() && (
+                      <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
+                    )}
+                    <input
+                      type="text"
+                      placeholder={valuePlaceholderForType(newTokenType)}
+                      value={newTokenValue}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setNewTokenValue(val);
+                        const inferred = inferTypeFromValue(val);
+                        if (inferred) {
+                          setNewTokenType(inferred);
+                          setTypeAutoInferred(true);
+                        } else if (typeAutoInferred && !val.trim()) {
+                          setTypeAutoInferred(false);
+                        }
+                      }}
+                      className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                      onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
+                    />
+                  </>
+                ) : (
+                  <div className="flex-1 min-w-0 relative">
+                    {/* Show linked token badge if already referencing */}
+                    {newTokenValue.startsWith('{') && newTokenValue.endsWith('}') ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/40">
+                        <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
+                          {newTokenValue.slice(1, -1)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setNewTokenValue(''); setCreateRefQuery(''); }}
+                          className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]"
+                          title="Clear reference"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          ref={createRefInputRef}
+                          type="text"
+                          placeholder="Search tokens to reference…"
+                          value={createRefQuery}
+                          onChange={e => setCreateRefQuery(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Escape') { setCreateRefMode(false); } }}
+                          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none"
+                        />
+                        {createRefQuery && (
+                          <AliasAutocomplete
+                            query={createRefQuery}
+                            allTokensFlat={allTokensFlat}
+                            pathToSet={pathToSet}
+                            filterType={newTokenType !== 'custom' ? newTokenType : undefined}
+                            onSelect={path => {
+                              setNewTokenValue(`{${path}}`);
+                              setCreateRefQuery('');
+                              // Auto-infer type from referenced token
+                              const entry = allTokensFlat[path];
+                              if (entry?.$type) {
+                                setNewTokenType(entry.$type);
+                                setTypeAutoInferred(true);
+                              }
+                            }}
+                            onClose={() => setCreateRefQuery('')}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            {!newTokenValue.trim() && valueFormatHint(newTokenType) && (
+            {!createRefMode && !newTokenValue.trim() && valueFormatHint(newTokenType) && (
               <p className="text-[9px] leading-snug text-[var(--color-figma-text-tertiary)] -mt-0.5 px-0.5">{valueFormatHint(newTokenType)}</p>
             )}
-            {aliasSuggestion && (
+            {!createRefMode && aliasSuggestion && (
               <button
                 type="button"
-                onClick={() => setNewTokenValue(`{${aliasSuggestion.path}}`)}
+                onClick={() => { setNewTokenValue(`{${aliasSuggestion.path}}`); setCreateRefMode(true); }}
                 className="w-full flex items-center gap-1.5 px-2 py-1 rounded border border-dashed border-[var(--color-figma-accent)] bg-[var(--color-figma-accent-bg,transparent)] text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors cursor-pointer text-left"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -3731,7 +3822,7 @@ export function TokenList({
                   onClick={() => {
                     const path = newTokenPath.trim();
                     onCreateNew(path || undefined, newTokenType, newTokenValue.trim() || undefined);
-                    resetCreateForm();
+                    resetCreateFormFull();
                   }}
                   title="Open full editor with more fields (references, scopes, extensions, modes)"
                   className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
@@ -3740,7 +3831,7 @@ export function TokenList({
                 </button>
               )}
               <button
-                onClick={resetCreateForm}
+                onClick={resetCreateFormFull}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel

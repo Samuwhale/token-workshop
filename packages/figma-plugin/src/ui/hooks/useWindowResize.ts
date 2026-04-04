@@ -2,8 +2,8 @@ import { useRef, useCallback } from 'react';
 
 const RESIZE_MIN_W = 320;
 const RESIZE_MIN_H = 400;
-const RESIZE_MAX_W = 900;
-const RESIZE_MAX_H = 900;
+const RESIZE_MAX_W = 1200;
+const RESIZE_MAX_H = 1000;
 
 export function useWindowResize() {
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);

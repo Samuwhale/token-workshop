@@ -402,11 +402,29 @@ function SubPropInput({
   const isAlias = typeof value === 'string' && value.startsWith('{');
   const displayValue = isAlias ? value : String(value ?? '');
   const [showAC, setShowAC] = useState(false);
+  const localRef = useRef<HTMLInputElement>(null);
+  const effectiveRef = inputRef || localRef;
+
+  // Open reference picker directly
+  const openRefPicker = () => {
+    if (isAlias) {
+      // Already a reference — clear it to go back to direct value
+      onChange(inputType === 'number' ? 0 : '');
+    } else {
+      // Start typing a reference
+      onChange('{');
+      setShowAC(true);
+      setTimeout(() => {
+        const el = typeof effectiveRef === 'object' && effectiveRef?.current;
+        if (el) { el.focus(); el.setSelectionRange(1, 1); }
+      }, 0);
+    }
+  };
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-1">
       <input
-        ref={inputRef}
+        ref={effectiveRef as any}
         type="text"
         value={displayValue}
         onChange={e => {
@@ -426,8 +444,23 @@ function SubPropInput({
         }}
         onBlur={() => setTimeout(() => setShowAC(false), 150)}
         placeholder={placeholder}
-        className={`${inputClass}${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+        className={`${inputClass} flex-1${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
+      <button
+        type="button"
+        onClick={openRefPicker}
+        title={isAlias ? 'Clear reference — use direct value' : 'Reference a token'}
+        className={`p-0.5 rounded shrink-0 transition-colors ${
+          isAlias
+            ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'
+            : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+        }`}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+        </svg>
+      </button>
       {showAC && (
         <AliasAutocomplete
           query={displayValue.includes('{') ? displayValue.slice(displayValue.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
@@ -470,7 +503,7 @@ function FontFamilySubProp({
   if (isAlias || showAC) {
     // Show alias autocomplete input
     return (
-      <div className="relative">
+      <div className="relative flex items-center gap-1">
         <input
           ref={inputRef}
           type="text"
@@ -486,8 +519,22 @@ function FontFamilySubProp({
           }}
           onBlur={() => setTimeout(() => setShowAC(false), 150)}
           placeholder="Inter"
-          className={`${inputClass}${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}`}
+          className={`${inputClass} flex-1${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
+        {isAlias && (
+          <button
+            type="button"
+            onClick={() => { onChange(''); setShowAC(false); }}
+            title="Clear reference — use direct value"
+            className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+              <line x1="4" y1="4" x2="20" y2="20"/>
+            </svg>
+          </button>
+        )}
         {showAC && (
           <AliasAutocomplete
             query={String(value ?? '').includes('{') ? String(value ?? '').slice(String(value ?? '').lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
@@ -507,17 +554,32 @@ function FontFamilySubProp({
 
   // Literal mode — use font picker with a way to switch to alias
   return (
-    <FontFamilyPicker
-      value={typeof value === 'string' ? value : ''}
-      onChange={v => {
-        if (v.startsWith('{')) {
-          setShowAC(true);
-        }
-        onChange(v);
-      }}
-      availableFonts={availableFonts}
-      placeholder="Inter"
-    />
+    <div className="flex items-center gap-1">
+      <div className="flex-1">
+        <FontFamilyPicker
+          value={typeof value === 'string' ? value : ''}
+          onChange={v => {
+            if (v.startsWith('{')) {
+              setShowAC(true);
+            }
+            onChange(v);
+          }}
+          availableFonts={availableFonts}
+          placeholder="Inter"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => { onChange('{'); setShowAC(true); }}
+        title="Reference a token"
+        className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+        </svg>
+      </button>
+    </div>
   );
 }
 

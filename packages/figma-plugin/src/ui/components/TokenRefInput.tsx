@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import type { TokenMapEntry } from '../../../shared/types';
-import { AliasAutocomplete } from '../AliasAutocomplete';
-import { isAlias, resolveTokenValue } from '../../../shared/resolveAlias';
+import type { TokenMapEntry } from '../../shared/types';
+import { AliasAutocomplete } from './AliasAutocomplete';
+import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
 interface TokenRefInputProps {
   /** Label shown above the field */

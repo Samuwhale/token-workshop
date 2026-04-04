@@ -265,7 +265,7 @@ export function TokenGeneratorDialog({
 
     return (
       <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-        <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
+        <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(42rem,95vw)] flex flex-col max-h-[90vh]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
             <div className="flex items-center gap-2">
@@ -648,7 +648,7 @@ export function TokenGeneratorDialog({
           onCancel={() => setShowDiscardConfirm(false)}
         />
       )}
-      <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
+      <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
@@ -697,8 +697,12 @@ export function TokenGeneratorDialog({
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        {/* Scrollable content — two-column at wide viewports */}
+        <div className="flex-1 overflow-y-auto p-4">
+        <div className="gen-dialog-grid gap-4">
+
+          {/* ---- left / config column ---- */}
+          <div className="gen-dialog-config">
 
           {/* Type selector — primary types */}
           <div>
@@ -892,6 +896,12 @@ export function TokenGeneratorDialog({
             {selectedType === 'darkModeInversion' && <DarkModeInversionConfigEditor config={currentConfig as DarkModeInversionConfig} onChange={cfg => handleConfigChange('darkModeInversion', cfg)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
           </div>
 
+          {/* ---- end left / config column ---- */}
+          </div>
+
+          {/* ---- right / preview column (sticky at wide viewports) ---- */}
+          <div className="gen-dialog-preview flex flex-col gap-4">
+
           {/* Preview */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -987,7 +997,14 @@ export function TokenGeneratorDialog({
             </div>
           )}
 
-          {/* Target + Name (compact) */}
+          {/* ---- end right / preview column ---- */}
+          </div>
+
+          {/* ---- end grid ---- */}
+          </div>
+
+          {/* Target + Name (compact) — full width below grid */}
+          <div className="mt-4">
           <div className="flex flex-col gap-2.5">
             {/* Multi-brand toggle — always visible */}
             <div className="flex items-center justify-between">
@@ -1063,6 +1080,8 @@ export function TokenGeneratorDialog({
 
           {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
           {existingTokensError && <div className="text-[10px] text-[var(--color-figma-error)]">{existingTokensError}</div>}
+        {/* end Target+Name wrapper */}
+        </div>
         </div>
 
         {/* Footer */}

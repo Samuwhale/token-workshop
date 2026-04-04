@@ -4,7 +4,7 @@ import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow, OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
 import { wcagContrast } from '../../shared/colorUtils';
-import { TokenRefInput } from './TokenRefInput';
+import { TokenRefInput } from '../TokenRefInput';
 
 /** Convert a Lab L* value to a neutral-gray hex swatch color. */
 function lstarToSwatchHex(Lstar: number): string {
