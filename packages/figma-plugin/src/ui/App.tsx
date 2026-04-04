@@ -36,21 +36,18 @@ import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { HistoryPanel } from './components/HistoryPanel';
 import { HealthPanel, computeHealthIssueCount } from './components/HealthPanel';
-import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
-import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
 import type { TokenNode } from './hooks/useTokens';
-import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
-import { useGenerators } from './hooks/useGenerators';
 import { usePreviewSplit } from './hooks/usePreviewSplit';
 import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
-import { useHeatmap } from './hooks/useHeatmap';
 import { useTokenNavigation } from './hooks/useTokenNavigation';
-import { useThemeSwitcher } from './hooks/useThemeSwitcher';
-import { useResolvers } from './hooks/useResolvers';
+import { useConnectionContext } from './contexts/ConnectionContext';
+import { useTokenDataContext } from './contexts/TokenDataContext';
+import { useThemeContext } from './contexts/ThemeContext';
+import { useInspectContext } from './contexts/InspectContext';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import { useSetRename } from './hooks/useSetRename';
 import { useSetDelete } from './hooks/useSetDelete';
@@ -58,7 +55,6 @@ import { useSetDuplicate } from './hooks/useSetDuplicate';
 import { useSetMergeSplit } from './hooks/useSetMergeSplit';
 import { useSetMetadata } from './hooks/useSetMetadata';
 import { useModalVisibility } from './hooks/useModalVisibility';
-import { useTokenDataLoading } from './hooks/useTokenDataLoading';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
 import { useLintConfig } from './hooks/useLintConfig';
@@ -68,12 +64,12 @@ import { useCompareState } from './hooks/useCompareState';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
-import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
+import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
-import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
+import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
-import { apiFetch, isNetworkError } from './shared/apiFetch';
+import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType, findLeafByPath } from './components/tokenListUtils';
 import { inferTypeFromValue } from './components/tokenListHelpers';
@@ -126,56 +122,6 @@ class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string;
   }
 }
 
-function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?: () => void) {
-  const [syncing, setSyncing] = useState(false);
-  const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null);
-  const [result, setResult] = useState<SyncCompleteMessage | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const clearTimer = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
-      if (!msg) return;
-      if (msg.type === 'sync-progress') {
-        setProgress({ processed: msg.processed, total: msg.total });
-      } else if (msg.type === 'sync-complete') {
-        setSyncing(false);
-        setProgress(null);
-        setResult(msg as SyncCompleteMessage);
-        clearTimer.current = setTimeout(() => setResult(null), 3000);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => {
-      window.removeEventListener('message', handler);
-      if (clearTimer.current) clearTimeout(clearTimer.current);
-    };
-  }, []);
-
-  const sync = useCallback(async (scope: 'page' | 'selection') => {
-    if (!connected || syncing) return;
-    setSyncing(true);
-    setSyncError(null);
-    setResult(null);
-    try {
-      const rawMap = await fetchAllTokensFlat(serverUrl);
-      const tokenMap = resolveAllAliases(rawMap);
-      parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap, scope } }, '*');
-    } catch (err) {
-      console.error('Failed to fetch tokens for sync:', err);
-      const isNetworkErr = isNetworkError(err);
-      if (isNetworkErr) onNetworkError?.();
-      const friendly = isNetworkErr
-        ? 'Could not reach the token server. Check that it is running.'
-        : 'Could not load tokens. Restart the server and try again.';
-      setSyncError(friendly);
-      setSyncing(false);
-    }
-  }, [serverUrl, connected, syncing, onNetworkError]);
-
-  return { syncing, syncProgress: progress, syncResult: result, syncError, sync };
-}
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
@@ -327,12 +273,11 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
   const [previewingToken, setPreviewingToken] = useState<{ path: string; name?: string; set: string } | null>(null);
-  const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
-  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
-  const { selectedNodes } = useSelection();
+  const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection, gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useConnectionContext();
+  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet, allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError, generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useTokenDataContext();
+  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, resolverState, themedAllTokensFlat, setThemeStatusMap } = useThemeContext();
+  const { selectedNodes, heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan, tokenUsageCounts, triggerUsageScan } = useInspectContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
-  const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
     setErrorToast(`Alias target not found: ${aliasPath}`);
   }, []);
@@ -369,7 +314,6 @@ export function App() {
   // Tracks the current position for "next issue" cycling — reset when set changes
   const lintIssueIndexRef = useRef(-1);
   useEffect(() => { lintIssueIndexRef.current = -1; }, [activeSet]);
-  const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
 
@@ -522,7 +466,6 @@ export function App() {
   } = useValidationCache({ serverUrl, connected, tokenChangeKey, validateKey });
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
-  const [tokenUsageCounts, setTokenUsageCounts] = useState<Record<string, number>>({});
   // Command palette bulk-delete state
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const [paletteDeleteConfirm, setPaletteDeleteConfirm] = useState<{ paths: string[]; label: string } | null>(null);
@@ -533,63 +476,12 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const [gitHasChanges, setGitHasChanges] = useState(false);
-  useEffect(() => {
-    if (!connected) { setGitHasChanges(false); return; }
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const data = await apiFetch<{ status?: { isClean?: boolean } }>(`${serverUrl}/api/sync/status`, {
-          signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
-        });
-        if (!cancelled) {
-          setGitHasChanges(data.status != null && !data.status.isClean);
-        }
-      } catch (err) { console.warn('[App] git status check failed:', err); }
-    };
-    check();
-    const interval = setInterval(check, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, serverUrl]);
   const useSidePanel = windowWidth > 480
     && !!(editingToken || previewingToken)
     && overflowPanel === null
     && activeTopTab === 'define' && activeSubTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
   const isNarrow = windowWidth <= 360;
-
-  // Theme switcher state (multi-dimensional)
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat: themeOnlyTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat, pathToSet);
-
-  // DTCG Resolver (v2025.10) — contextual token resolution
-  const resolverState = useResolvers(serverUrl, connected);
-
-  // When a resolver is active and has resolved tokens, use those; otherwise fall back to themed tokens
-  const themedAllTokensFlat = useMemo(() => {
-    if (resolverState.activeResolver && resolverState.resolvedTokens && Object.keys(resolverState.resolvedTokens).length > 0) {
-      return resolverState.resolvedTokens;
-    }
-    return themeOnlyTokensFlat;
-  }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
-
-  // Compute per-set theme status from active dimension options (enabled > source > disabled)
-  const setThemeStatusMap = useMemo((): Record<string, 'enabled' | 'source' | 'disabled'> => {
-    const result: Record<string, 'enabled' | 'source' | 'disabled'> = {};
-    if (dimensions.length === 0) return result;
-    for (const dim of dimensions) {
-      const activeOptionName = activeThemes[dim.id];
-      if (!activeOptionName) continue;
-      const option = dim.options.find(o => o.name === activeOptionName);
-      if (!option) continue;
-      for (const [setName, status] of Object.entries(option.sets)) {
-        const existing = result[setName];
-        if (!existing || status === 'enabled' || (status === 'source' && existing === 'disabled')) {
-          result[setName] = status as 'enabled' | 'source' | 'disabled';
-        }
-      }
-    }
-    return result;
-  }, [dimensions, activeThemes]);
 
   // Set tab management (drag, context menu, overflow, new-set form)
   const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
@@ -677,9 +569,6 @@ export function App() {
   }, []);
 
 
-  const { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
-
-
   // Catch-all: warn in the console when the plugin sandbox sends a message type that
   // is not in the ControllerMessage union. This fires during development and helps
   // catch missing type definitions or misspelled message types before they become
@@ -696,25 +585,11 @@ export function App() {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Listen for token-usage-map results; re-scan after apply/sync/remap changes
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
-      if (msg?.type === 'token-usage-map') {
-        setTokenUsageCounts(msg.usageMap ?? {});
-      } else if (msg?.type === 'applied-to-selection' || msg?.type === 'sync-complete' || msg?.type === 'remap-complete') {
-        parent.postMessage({ pluginMessage: { type: 'scan-token-usage' } }, '*');
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
   useEffect(() => {
     if (activeTopTab === 'define' && activeSubTab === 'tokens' && tokens.length > 0) {
-      parent.postMessage({ pluginMessage: { type: 'scan-token-usage' } }, '*');
+      triggerUsageScan();
     }
-  }, [activeTopTab, activeSubTab, tokens.length]);
+  }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
 
   // Close overflow menu on Escape key (not on outside click — accidental mis-clicks dismiss it)
   useEffect(() => {

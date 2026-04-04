@@ -908,3 +908,10 @@ Already up to date.
   → App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
   Worktree: /tmp/backlog-92209-LZaZi3
   Running agent… (started 03:58:29)
+
+  ✓ done: App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
+    Created 4 context providers (ConnectionContext, TokenDataContext, ThemeContext, InspectContext) in new contexts/ directory; moved 9 hook calls + 2 derived memos + 3 effects out of App.tsx into providers; updated main.tsx to stack providers around App. All 4 validation gates pass.
+    72 turns · 1251s · $4.67
+
+  Merging to main: App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
+Already up to date.

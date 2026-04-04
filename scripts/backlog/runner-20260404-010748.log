@@ -814,3 +814,12 @@ Already up to date.
 
   Merging to main: Export presets are localStorage-only and not included in settings backup/restore
 Already up to date.
+[main 0e4e7ceb] chore(backlog): done – Export presets are localStorage-only and not included in settings backup/restore
+ 5 files changed, 50 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1305 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

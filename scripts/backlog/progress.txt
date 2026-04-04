@@ -568,3 +568,20 @@
   - When a localStorage value is a JSON-serialized array/object, it's still a string at the `localStorage.getItem` level, so it flows through existing string-based export/import logic unchanged — no special handling needed for the round-trip itself
   - Showing raw JSON in diff previews is technically correct but poor UX; for structured values, add a key-specific summarizer at the `diff.push` call site to show a human-readable description instead
 ---
+
+## 2026-04-04 - App.tsx decomposed into feature-area context providers
+- Created `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx`: wraps `useServerConnection`, `useSyncBindings` (moved from App.tsx inline), and the git-status polling effect. Provides `connected`, `checking`, `serverUrl`, `getDisconnectSignal`, `markDisconnected`, `updateServerUrlAndConnect`, `retryConnection`, `gitHasChanges`, `syncing`, `syncProgress`, `syncResult`, `syncError`, `sync`.
+- Created `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx`: wraps `useTokens`, `useTokenDataLoading`, `useGenerators`. Calls `useConnectionContext()` internally for `serverUrl`/`connected`/`markDisconnected`/`getDisconnectSignal`. Provides all token set state, flat maps, and generator data.
+- Created `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx`: wraps `useThemeSwitcher` and `useResolvers`, owns the `themedAllTokensFlat` and `setThemeStatusMap` memos. Calls `useConnectionContext()` and `useTokenDataContext()` internally. Provides all theme state and resolver state.
+- Created `packages/figma-plugin/src/ui/contexts/InspectContext.tsx`: wraps `useSelection`, `useHeatmap`, and `tokenUsageCounts` state + message listener effect. Exposes `triggerUsageScan()` so App.tsx can trigger scans based on navigation state.
+- Updated `packages/figma-plugin/src/ui/App.tsx`: removed 9 direct hook calls and 2 derived `useMemo` blocks; added 4 context consumer calls at the top of `App()`; removed the inline `useSyncBindings` function, git-status effect, and token-usage-map listener effect. App.tsx reduced from ~3461 to ~3200 lines.
+- Updated `packages/figma-plugin/src/ui/main.tsx`: wraps `<App />` in `ConnectionProvider > TokenDataProvider > ThemeProvider > InspectProvider`.
+- Files changed: `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx` (new), `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` (new), `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx` (new), `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L1-700, `packages/figma-plugin/src/ui/main.tsx`
+- **Learnings for future iterations:**
+  - Context providers that call `useCallback` and `useMemo` for context values must include all returned values in the dep array; React's useState setters (like `setSets`) are stable and safe in dep arrays.
+  - The `useMemo` for context values is critical: without it, every provider render creates a new object reference, causing all consumers to re-render even when values haven't changed.
+  - When a provider consumes another context (e.g., ThemeProvider calls useTokenDataContext()), the provider component must be rendered INSIDE the other provider — hence the ConnectionProvider > TokenDataProvider > ThemeProvider nesting in main.tsx.
+  - The inline `useSyncBindings` function in App.tsx could be moved to ConnectionContext.tsx cleanly because its only external deps (`serverUrl`, `connected`, `markDisconnected`) all come from `useServerConnection` which is already in that context.
+  - Splitting `themedAllTokensFlat` (resolver-override-or-theme) and `setThemeStatusMap` memos into ThemeContext is correct because both depend on `dimensions`, `activeThemes`, and the resolver state — all owned by that context.
+  - The `tokenUsageCounts` message listener effect moves cleanly to InspectContext because it has zero external deps. The scan-trigger effect (depends on nav state + tokens.length) stays in App.tsx and calls `inspect.triggerUsageScan()`.
+---
