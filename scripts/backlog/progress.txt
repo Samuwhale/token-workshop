@@ -492,3 +492,17 @@
   - For batch-upsert, intra-batch alias references are valid (token A references token B, both in the same batch) — check target against `flatTokens.has(path) || batchPaths.has(path)` rather than flatTokens alone
   - The `parseReference(ref)` helper from `@tokenmanager/core` cleanly extracts the path from `{path.to.token}` format
 ---
+
+## 2026-04-04 - PanelRouter.tsx props interface has 80+ props
+- Extracted NavigationContext and EditorContext from App.tsx/PanelRouter.tsx, removing 16 props from PanelRouterProps (5 navigation + 11 editor/nav-history)
+- New files:
+  - `packages/figma-plugin/src/ui/shared/navigationTypes.ts` — shared TopTab, SubTab, OverflowPanel types + TOP_TABS, DEFAULT_SUB_TABS, SUB_TAB_STORAGE constants (extracted to avoid circular imports between App.tsx and contexts)
+  - `packages/figma-plugin/src/ui/contexts/NavigationContext.tsx` — owns activeTopTab, activeSubTab, overflowPanel state + navigateTo, setSubTab, setOverflowPanel
+  - `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` — owns editingToken, previewingToken (useState) + calls useTokenNavigation internally for highlightedToken, setHighlightedToken, createFromEmpty, handleNavigateToAlias, handleNavigateBack, navHistoryLength, setPendingHighlight, setPendingHighlightForSet; exposes setAliasNotFoundHandler for late-binding toast callback
+- Files changed: `packages/figma-plugin/src/ui/main.tsx` ~L1 (add providers), `packages/figma-plugin/src/ui/App.tsx` ~L35 (new imports, remove state declarations, wire alias handler via useEffect, update handleClearAll), `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L40 (new imports, remove 16 props from interface, add context calls, replace p.xxx references)
+- **Learnings for future iterations:**
+  - Types exported from App.tsx that are needed by context files MUST be extracted to a shared file first to avoid circular imports (App imports context → context imports App type = circular). Create `shared/navigationTypes.ts` as the canonical location for navigation types.
+  - EditorProvider depends on TokenDataContext (for useTokenNavigation args) so it must be nested inside TokenDataProvider. But it also needs setErrorToast from useToastStack (which lives in App.tsx). Solution: use a late-bound ref pattern — EditorProvider exposes `setAliasNotFoundHandler(fn)` and App.tsx calls it in a useEffect after useToastStack is ready. setErrorToast is stable (useCallback with stable deps) so an empty-dep effect is safe.
+  - setSubTab needs current activeTopTab but should be stable. Use the stable-callback-ref pattern: `activeTopTabRef.current = activeTopTab` on every render, then `setSubTab = useCallback(() => { use activeTopTabRef.current }, [])` with empty deps.
+  - NavigationProvider can live in main.tsx with no props (fully self-contained). EditorProvider also lives in main.tsx because it calls useTokenDataContext() internally — as long as it's nested inside TokenDataProvider.
+---

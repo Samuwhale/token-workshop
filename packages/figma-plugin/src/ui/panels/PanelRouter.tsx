@@ -41,40 +41,21 @@ import { useConnectionContext } from '../contexts/ConnectionContext';
 import { useTokenDataContext } from '../contexts/TokenDataContext';
 import { useThemeContext } from '../contexts/ThemeContext';
 import { useInspectContext } from '../contexts/InspectContext';
+import { useNavigationContext } from '../contexts/NavigationContext';
+import { useEditorContext } from '../contexts/EditorContext';
 import type { TokenNode } from '../hooks/useTokens';
 import type { LintViolation } from '../hooks/useLint';
 import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationCache';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
-import type { TopTab, SubTab, OverflowPanel } from '../App';
+import type { TopTab, SubTab, OverflowPanel } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
 // Props interface
 // ---------------------------------------------------------------------------
 
 export interface PanelRouterProps {
-  // Navigation
-  activeTopTab: TopTab;
-  activeSubTab: SubTab;
-  overflowPanel: OverflowPanel;
-  navigateTo: (top: TopTab, sub?: SubTab) => void;
-  setOverflowPanel: Dispatch<SetStateAction<OverflowPanel>>;
-
-  // Token navigation (from useTokenNavigation)
-  setPendingHighlight: Dispatch<SetStateAction<string | null>>;
-  handleNavigateToAlias: (path: string) => void;
-  handleNavigateBack: () => void;
-  navHistoryLength: number;
-
-  // Token editing
-  editingToken: { path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null;
-  setEditingToken: Dispatch<SetStateAction<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>>;
-  previewingToken: { path: string; name?: string; set: string } | null;
-  setPreviewingToken: Dispatch<SetStateAction<{ path: string; name?: string; set: string } | null>>;
-  highlightedToken: string | null;
-  setHighlightedToken: (path: string | null) => void;
-  createFromEmpty: boolean;
   useSidePanel: boolean;
   showPreviewSplit: boolean;
   setShowPreviewSplit: Dispatch<SetStateAction<boolean>>;
@@ -189,6 +170,14 @@ export interface PanelRouterProps {
 // ---------------------------------------------------------------------------
 
 export function PanelRouter(p: PanelRouterProps): ReactNode {
+  // Navigation and editor state from contexts (previously passed as props)
+  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel } = useNavigationContext();
+  const {
+    editingToken, setEditingToken, previewingToken, setPreviewingToken,
+    highlightedToken, setHighlightedToken, createFromEmpty,
+    setPendingHighlight, handleNavigateToAlias, handleNavigateBack, navHistoryLength,
+  } = useEditorContext();
+
   // Read all four contexts — these cover ~40% of the data that panels need.
   const {
     serverUrl, connected, checking, sync, syncing, syncProgress, syncResult, syncError,
@@ -212,23 +201,23 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) => p.guardEditorAction(() => {
-      p.setEditingToken({ path, name, set: activeSet });
-      p.setPreviewingToken(null);
-      p.setHighlightedToken(path);
+      setEditingToken({ path, name, set: activeSet });
+      setPreviewingToken(null);
+      setHighlightedToken(path);
     }),
     onPreview: (path: string, name?: string) => {
-      p.setPreviewingToken({ path, name, set: activeSet });
-      p.setHighlightedToken(path);
+      setPreviewingToken({ path, name, set: activeSet });
+      setHighlightedToken(path);
     },
     onCreateNew: (initialPath: string | undefined, initialType: string | undefined, initialValue: string | undefined) =>
-      p.setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }),
+      setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }),
     onRefresh: p.refreshAll,
     onPushUndo: p.pushUndo,
-    onTokenCreated: (path: string) => p.setHighlightedToken(path),
-    onNavigateToAlias: p.handleNavigateToAlias,
-    onNavigateBack: p.handleNavigateBack,
-    navHistoryLength: p.navHistoryLength,
-    onClearHighlight: () => p.setHighlightedToken(null),
+    onTokenCreated: (path: string) => setHighlightedToken(path),
+    onNavigateToAlias: handleNavigateToAlias,
+    onNavigateBack: handleNavigateBack,
+    navHistoryLength: navHistoryLength,
+    onClearHighlight: () => setHighlightedToken(null),
     onSyncGroup: (groupPath: string, tokenCount: number) => p.setSyncGroupPending({ groupPath, tokenCount }),
     onSyncGroupStyles: (groupPath: string, tokenCount: number) => p.setSyncGroupStylesPending({ groupPath, tokenCount }),
     onSetGroupScopes: (groupPath: string) => {
@@ -238,7 +227,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType?: string) => {
       p.setPendingGraphFromGroup({ groupPath, tokenType });
-      p.navigateTo('define', 'generators');
+      navigateTo('define', 'generators');
     },
     onRefreshGenerators: p.refreshAll,
     onToggleIssuesOnly: () => p.setShowIssuesOnly(v => !v),
@@ -246,12 +235,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onNavigateToSet: p.handleNavigateToSet,
     onViewTokenHistory: (path: string) => {
       p.setHistoryFilterPath(path);
-      p.navigateTo('ship', 'history');
+      navigateTo('ship', 'history');
     },
     onNavigateToGenerator: p.handleNavigateToGenerator,
     onShowReferences: (path: string) => {
       p.setFlowPanelInitialPath(path);
-      p.navigateTo('apply', 'dependencies');
+      navigateTo('apply', 'dependencies');
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => { p.displayedLeafNodesRef.current = nodes; },
     onTokenTouched: p.paletteRecentlyTouched.recordTouch,
@@ -261,20 +250,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants
-  const tokenEditorProps = p.editingToken ? {
-    tokenPath: p.editingToken.path,
-    tokenName: p.editingToken.name,
-    setName: p.editingToken.set,
+  const tokenEditorProps = editingToken ? {
+    tokenPath: editingToken.path,
+    tokenName: editingToken.name,
+    setName: editingToken.set,
     serverUrl,
-    onBack: () => { p.setEditingToken(null); p.refreshAll(); },
+    onBack: () => { setEditingToken(null); p.refreshAll(); },
     allTokensFlat,
     pathToSet,
     generators,
     allSets: sets,
     onRefreshGenerators: p.refreshAll,
-    isCreateMode: p.editingToken.isCreate,
-    initialType: p.editingToken.initialType,
-    initialValue: p.editingToken.initialValue,
+    isCreateMode: editingToken.isCreate,
+    initialType: editingToken.initialType,
+    initialValue: editingToken.initialValue,
     onDirtyChange: (dirty: boolean) => { p.editorIsDirtyRef.current = dirty; },
     closeRef: p.editorCloseRef,
     onSaved: p.handleEditorSave,
@@ -285,8 +274,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     availableFonts: p.availableFonts,
     fontWeightsByFamily: p.fontWeightsByFamily,
     derivedTokenPaths,
-    onShowReferences: (path: string) => { p.setFlowPanelInitialPath(path); p.navigateTo('apply', 'dependencies'); },
-    onNavigateToToken: p.handleNavigateToAlias,
+    onShowReferences: (path: string) => { p.setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); },
+    onNavigateToToken: handleNavigateToAlias,
     onNavigateToGenerator: p.handleNavigateToGenerator,
   } : null;
 
@@ -294,12 +283,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // Overflow panels
   // ---------------------------------------------------------------------------
 
-  if (p.overflowPanel === 'import') {
+  if (overflowPanel === 'import') {
     return (
       <>
         <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <button
-            onClick={() => p.setOverflowPanel(null)}
+            onClick={() => setOverflowPanel(null)}
             className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
             aria-label="Back"
           >
@@ -310,13 +299,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </button>
           <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Import</span>
         </div>
-        <ErrorBoundary panelName="Import" onReset={() => p.setOverflowPanel(null)}>
+        <ErrorBoundary panelName="Import" onReset={() => setOverflowPanel(null)}>
           <ImportPanel
             serverUrl={serverUrl}
             connected={connected}
             onImported={refreshTokens}
             onImportComplete={(importedSet) => {
-              p.navigateTo('define', 'tokens');
+              navigateTo('define', 'tokens');
               setActiveSet(importedSet);
             }}
           />
@@ -325,7 +314,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  if (p.overflowPanel === 'settings') {
+  if (overflowPanel === 'settings') {
     return (
       <SettingsPanel
         serverUrl={serverUrl}
@@ -346,7 +335,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         setClearConfirmText={p.setClearConfirmText}
         onClearAll={p.handleClearAll}
         clearing={p.clearing}
-        onClose={() => p.setOverflowPanel(null)}
+        onClose={() => setOverflowPanel(null)}
       />
     );
   }
@@ -377,7 +366,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     },
   };
 
-  const renderer = PANEL_MAP[p.activeTopTab]?.[p.activeSubTab];
+  const renderer = PANEL_MAP[activeTopTab]?.[activeSubTab];
   return renderer ? renderer() : null;
 
   // ---------------------------------------------------------------------------
@@ -401,20 +390,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </div>
         )}
         {/* Empty state */}
-        {p.effectiveTokens.length === 0 && !p.createFromEmpty && !p.editingToken && (
+        {p.effectiveTokens.length === 0 && !createFromEmpty && !editingToken && (
           <EmptyState
             connected={connected}
-            onCreateToken={() => p.setEditingToken({ path: '', set: activeSet, isCreate: true })}
+            onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
             onPasteJSON={p.onShowPasteModal}
-            onImportFigma={() => p.setOverflowPanel('import')}
+            onImportFigma={() => setOverflowPanel('import')}
             onUsePreset={p.onShowScaffoldWizard}
             onGenerateColorScale={p.onShowColorScaleGen}
-            onGoToGraph={() => { p.navigateTo('define', 'generators'); p.onShowScaffoldWizard(); }}
+            onGoToGraph={() => { navigateTo('define', 'generators'); p.onShowScaffoldWizard(); }}
             onGuidedSetup={p.onShowGuidedSetup}
           />
         )}
         {/* Main content: TokenList variants */}
-        {(p.effectiveTokens.length > 0 || p.createFromEmpty) && !p.showPreviewSplit && (
+        {(p.effectiveTokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
           p.useSidePanel ? (
             <div className="flex h-full overflow-hidden">
               <div className="flex-1 min-w-0 overflow-hidden">
@@ -422,10 +411,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                   actions={tokenListActions}
-                  defaultCreateOpen={p.createFromEmpty}
-                  highlightedToken={p.editingToken?.path ?? p.previewingToken?.path ?? p.highlightedToken}
+                  defaultCreateOpen={createFromEmpty}
+                  highlightedToken={editingToken?.path ?? previewingToken?.path ?? highlightedToken}
                   showIssuesOnly={p.showIssuesOnly}
-                  editingTokenPath={p.editingToken?.path}
+                  editingTokenPath={editingToken?.path}
                   compareHandle={p.tokenListCompareRef}
                 />
               </div>
@@ -438,13 +427,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   }
                 }}
               >
-                {p.editingToken && tokenEditorProps ? (
+                {editingToken && tokenEditorProps ? (
                   <TokenEditor {...tokenEditorProps} />
-                ) : p.previewingToken ? (
+                ) : previewingToken ? (
                   <TokenDetailPreview
-                    tokenPath={p.previewingToken.path}
-                    tokenName={p.previewingToken.name}
-                    setName={p.previewingToken.set}
+                    tokenPath={previewingToken.path}
+                    tokenName={previewingToken.name}
+                    setName={previewingToken.set}
                     allTokensFlat={allTokensFlat}
                     pathToSet={pathToSet}
                     dimensions={dimensions}
@@ -452,7 +441,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                     serverUrl={serverUrl}
                     onEdit={p.handlePreviewEdit}
                     onClose={p.handlePreviewClose}
-                    onNavigateToAlias={p.handleNavigateToAlias}
+                    onNavigateToAlias={handleNavigateToAlias}
                   />
                 ) : null}
               </div>
@@ -462,26 +451,26 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
               data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
               actions={tokenListActions}
-              defaultCreateOpen={p.createFromEmpty}
-              highlightedToken={p.highlightedToken}
+              defaultCreateOpen={createFromEmpty}
+              highlightedToken={highlightedToken}
               showIssuesOnly={p.showIssuesOnly}
-              editingTokenPath={p.editingToken?.path}
+              editingTokenPath={editingToken?.path}
               compareHandle={p.tokenListCompareRef}
             />
           )
         )}
         {/* Preview split view */}
-        {(p.effectiveTokens.length > 0 || p.createFromEmpty) && p.showPreviewSplit && (
+        {(p.effectiveTokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
           <div ref={p.splitContainerRef} className="flex flex-col h-full overflow-hidden">
             <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                 data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations: p.lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, tokenUsageCounts, cascadeDiff: p.cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, dimensions, unthemedAllTokensFlat: allTokensFlat, pathToSet, activeThemes }}
                 actions={tokenListActions}
-                defaultCreateOpen={p.createFromEmpty}
-                highlightedToken={p.previewingToken?.path ?? p.highlightedToken}
+                defaultCreateOpen={createFromEmpty}
+                highlightedToken={previewingToken?.path ?? highlightedToken}
                 showIssuesOnly={p.showIssuesOnly}
-                editingTokenPath={p.editingToken?.path}
+                editingTokenPath={editingToken?.path}
                 compareHandle={p.tokenListCompareRef}
               />
             </div>
@@ -498,26 +487,26 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               onKeyDown={p.handleSplitKeyDown}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
-              <ErrorBoundary panelName="Preview" onReset={() => p.navigateTo('define', 'tokens')}>
+              <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
                 <PreviewPanel
                   allTokensFlat={themedAllTokensFlat}
                   dimensions={dimensions}
                   activeThemes={activeThemes}
                   onActiveThemesChange={setActiveThemes}
-                  onGoToTokens={() => p.navigateTo('define', 'tokens')}
+                  onGoToTokens={() => navigateTo('define', 'tokens')}
                   onNavigateToToken={(path) => {
                     const name = path.split('.').pop();
                     const set = pathToSet[path] ?? activeSet;
-                    p.setPreviewingToken({ path, name, set });
-                    p.setHighlightedToken(path);
+                    setPreviewingToken({ path, name, set });
+                    setHighlightedToken(path);
                   }}
-                  focusedToken={p.previewingToken}
+                  focusedToken={previewingToken}
                   pathToSet={pathToSet}
-                  onClearFocus={() => p.setPreviewingToken(null)}
+                  onClearFocus={() => setPreviewingToken(null)}
                   onEditToken={(path, name, set) => {
                     p.setShowPreviewSplit(false);
-                    p.setEditingToken({ path, name, set: set ?? activeSet });
-                    p.setPreviewingToken(null);
+                    setEditingToken({ path, name, set: set ?? activeSet });
+                    setPreviewingToken(null);
                   }}
                   serverUrl={serverUrl}
                 />
@@ -531,7 +520,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderDefineGenerators(): ReactNode {
     return (
-      <ErrorBoundary panelName="Generators" onReset={() => p.navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Generators" onReset={() => navigateTo('define', 'tokens')}>
         <GraphPanel
           serverUrl={serverUrl}
           activeSet={activeSet}
@@ -557,20 +546,20 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-hidden">
-          <ErrorBoundary panelName="Themes" onReset={() => p.navigateTo('define', 'tokens')}>
+          <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
             <ThemeManager
               serverUrl={serverUrl}
               connected={connected}
               sets={sets}
               onDimensionsChange={setDimensions}
-              onNavigateToToken={(path, set) => { p.navigateTo('define', 'tokens'); p.handleNavigateToSet(set, path); }}
-              onCreateToken={(tokenPath, set) => { p.navigateTo('define', 'tokens'); p.setEditingToken({ path: tokenPath, set, isCreate: true }); }}
+              onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); p.handleNavigateToSet(set, path); }}
+              onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }}
               onPushUndo={p.pushUndo}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
               onGapsDetected={p.setThemeGapCount}
               onTokensCreated={p.refreshAll}
-              onGoToTokens={() => p.navigateTo('define', 'tokens')}
+              onGoToTokens={() => navigateTo('define', 'tokens')}
               themeManagerHandle={p.themeManagerHandleRef}
               onSuccess={p.setSuccessToast}
               resolverState={{
@@ -602,7 +591,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderDefineResolver(): ReactNode {
     return (
-      <ErrorBoundary panelName="Resolver" onReset={() => p.navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Resolver" onReset={() => navigateTo('define', 'tokens')}>
         <ResolverPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -630,7 +619,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderApplyInspect(): ReactNode {
     return (
-      <ErrorBoundary panelName="Inspector" onReset={() => p.navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Inspector" onReset={() => navigateTo('define', 'tokens')}>
         <SelectionInspector
           selectedNodes={selectedNodes}
           tokenMap={allTokensFlat}
@@ -644,12 +633,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           serverUrl={serverUrl}
           onTokenCreated={refreshTokens}
           onNavigateToToken={(path) => {
-            p.setHighlightedToken(path);
-            p.navigateTo('define', 'tokens');
+            setHighlightedToken(path);
+            navigateTo('define', 'tokens');
           }}
           onPushUndo={p.pushUndo}
           onToast={p.setSuccessToast}
-          onGoToTokens={() => p.navigateTo('define', 'tokens')}
+          onGoToTokens={() => navigateTo('define', 'tokens')}
           triggerCreateToken={p.triggerCreateToken}
         />
       </ErrorBoundary>
@@ -658,7 +647,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderApplyCanvasAudit(): ReactNode {
     return (
-      <ErrorBoundary panelName="Canvas Audit" onReset={() => p.navigateTo('apply', 'inspect')}>
+      <ErrorBoundary panelName="Canvas Audit" onReset={() => navigateTo('apply', 'inspect')}>
         <CanvasAuditPanel
           result={heatmapResult}
           loading={heatmapLoading}
@@ -683,7 +672,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderApplyDependencies(): ReactNode {
     return (
-      <ErrorBoundary panelName="Dependencies" onReset={() => p.navigateTo('apply', 'inspect')}>
+      <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('apply', 'inspect')}>
         <TokenFlowPanel
           allTokensFlat={themedAllTokensFlat}
           pathToSet={pathToSet}
@@ -691,13 +680,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           initialPath={p.flowPanelInitialPath}
           onNavigateToToken={(path) => {
             const targetSet = pathToSet[path];
-            p.navigateTo('define', 'tokens');
-            p.setEditingToken(null);
+            navigateTo('define', 'tokens');
+            setEditingToken(null);
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);
-              p.setPendingHighlight(path);
+              setPendingHighlight(path);
             } else {
-              p.setHighlightedToken(path);
+              setHighlightedToken(path);
             }
           }}
         />
@@ -707,7 +696,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderShipPublish(): ReactNode {
     return (
-      <ErrorBoundary panelName="Publish" onReset={() => p.navigateTo('define', 'tokens')}>
+      <ErrorBoundary panelName="Publish" onReset={() => navigateTo('define', 'tokens')}>
         <PublishPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -722,7 +711,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderShipExport(): ReactNode {
     return (
-      <ErrorBoundary panelName="Export" onReset={() => p.navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="Export" onReset={() => navigateTo('ship', 'publish')}>
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
@@ -730,7 +719,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderShipHistory(): ReactNode {
     return (
-      <ErrorBoundary panelName="History" onReset={() => p.navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
         <HistoryPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -753,7 +742,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderShipValidation(): ReactNode {
     return (
-      <ErrorBoundary panelName="Validation" onReset={() => p.navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="Validation" onReset={() => navigateTo('ship', 'publish')}>
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}
@@ -764,11 +753,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           pathToSet={pathToSet}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
-          onNavigateTo={(topTab, subTab) => p.navigateTo(topTab as TopTab, subTab as SubTab | undefined)}
+          onNavigateTo={(topTab, subTab) => navigateTo(topTab as TopTab, subTab as SubTab | undefined)}
           onNavigateToToken={(path, set) => {
             setActiveSet(set);
-            p.navigateTo('define', 'tokens');
-            p.setPendingHighlight(path);
+            navigateTo('define', 'tokens');
+            setPendingHighlight(path);
           }}
           onTriggerHeatmap={triggerHeatmapScan}
           validationIssues={p.validationIssues}

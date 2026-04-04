@@ -791,3 +791,26 @@ Already up to date.
 
   Merging to main: Server does not validate token $value on create or update
 Already up to date.
+[main 3d9af883] chore(backlog): done – Server does not validate token $value on create or update
+ 6 files changed, 138 insertions(+), 13 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Server does not validate token $value on create or update
+- Added type-aware validation on all token write routes using the existing `TokenValidator` class from `@tokenmanager/core`
+- Added `tokenPathExists(path: string): boolean` to `TokenStore` for checking alias target existence in O(1) via the flatTokens Map
+- POST `/tokens/:set/*`: validates `$value` against `$type` before acquiring lock; checks alias target existence inside lock after duplicate check
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  24 queued · 0
+0 in-progress · last took 6m10s
+═══════════════════════════════════════════════════════════════
+  → PanelRouter.tsx props interface has 80+ props — PanelRouterProps (lines 57-191) is a 135-line interface passing 80+ individual props from App.tsx; despite the context providers (Connection, TokenData, Theme, Inspect), the remaining App-local state still creates a massive prop surface; extracting NavigationContext (activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel) and EditorContext (editingToken, previewingToken, highlightedToken, and their setters) would cut the prop count roughly in half
+  Worktree: /tmp/backlog-3108-56twXP
+  Running agent… (started 22:38:18)
+
+  ✓ done: PanelRouter.tsx props interface has 80+ props
+    Extracted NavigationContext (5 props) and EditorContext (11 props) from PanelRouterProps, removing 16 of ~80 props; added 3 new files and updated App.tsx, PanelRouter.tsx, main.tsx; all 4 validation gates pass
+    69 turns · 1041s · $3.97
+
+  Merging to main: PanelRouter.tsx props interface has 80+ props
+Already up to date.

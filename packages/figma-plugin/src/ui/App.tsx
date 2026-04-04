@@ -32,11 +32,14 @@ import { usePreviewSplit } from './hooks/usePreviewSplit';
 import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
-import { useTokenNavigation } from './hooks/useTokenNavigation';
+import type { TopTab, SubTab, OverflowPanel } from './shared/navigationTypes';
+import { TOP_TABS } from './shared/navigationTypes';
 import { useConnectionContext } from './contexts/ConnectionContext';
 import { useTokenDataContext } from './contexts/TokenDataContext';
 import { useThemeContext } from './contexts/ThemeContext';
 import { useInspectContext } from './contexts/InspectContext';
+import { useNavigationContext } from './contexts/NavigationContext';
+import { useEditorContext } from './contexts/EditorContext';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import { useSetRename } from './hooks/useSetRename';
 import { useSetDelete } from './hooks/useSetDelete';
@@ -75,12 +78,6 @@ function timeAgo(iso: string): string {
 
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
-export type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
-type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
-type ShipSubTab = 'publish' | 'export' | 'history' | 'validation';
-export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
-export type OverflowPanel = 'import' | 'settings' | null;
 
 type FolderTreeNode = {
   name: string;   // display name (first path segment, e.g. 'brands')
@@ -117,29 +114,6 @@ const TABS: { id: Tab; label: string; shortcutNum: number }[] = [
   { id: 'publish', label: 'Publish', shortcutNum: 4 },
 ];
 
-const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: string }[] }[] = [
-  { id: 'define', label: 'Define', subTabs: [
-    { id: 'tokens', label: 'Tokens' },
-    { id: 'themes', label: 'Themes' },
-    { id: 'generators', label: 'Generators' },
-    { id: 'resolver', label: 'Resolver' },
-  ]},
-  { id: 'apply', label: 'Apply', subTabs: [
-    { id: 'inspect', label: 'Inspect' },
-    { id: 'canvas-audit', label: 'Canvas Audit' },
-    { id: 'dependencies', label: 'Dependencies' },
-  ]},
-  { id: 'ship', label: 'Ship', subTabs: [
-    { id: 'publish', label: 'Publish' },
-    { id: 'export', label: 'Export' },
-    { id: 'history', label: 'History' },
-    { id: 'validation', label: 'Validation' },
-  ]},
-];
-
-const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = { define: 'tokens', apply: 'inspect', ship: 'publish' };
-const SUB_TAB_STORAGE: Record<TopTab, string> = { define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP };
-
 
 export function App() {
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
@@ -150,50 +124,17 @@ export function App() {
     lsSet(STORAGE_KEYS.ACTIVE_TAB, tab);
     setActiveTabState(tab);
   };
-  const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
-
-  // Two-tier navigation state
-  const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
-    const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
-    return (stored && TOP_TABS.some(t => t.id === stored) ? stored : 'define') as TopTab;
-  });
-  const [activeSubTab, setActiveSubTabState] = useState<SubTab>(() => {
-    const topTab = (lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB) || 'define') as TopTab;
-    const storageKey = SUB_TAB_STORAGE[topTab] || SUB_TAB_STORAGE.define;
-    const stored = lsGet(storageKey);
-    const topDef = TOP_TABS.find(t => t.id === topTab);
-    return (stored && topDef?.subTabs.some(s => s.id === stored) ? stored : DEFAULT_SUB_TABS[topTab]) as SubTab;
-  });
-  const navigateTo = useCallback((topTab: TopTab, subTab?: SubTab) => {
-    const topDef = TOP_TABS.find(t => t.id === topTab)!;
-    const resolvedSub = subTab && topDef.subTabs.some(s => s.id === subTab)
-      ? subTab
-      : (lsGet(SUB_TAB_STORAGE[topTab]) as SubTab | null) ?? DEFAULT_SUB_TABS[topTab];
-    lsSet(STORAGE_KEYS.ACTIVE_TOP_TAB, topTab);
-    lsSet(SUB_TAB_STORAGE[topTab], resolvedSub);
-    setActiveTopTabState(topTab);
-    setActiveSubTabState(resolvedSub);
-    setOverflowPanel(null);
-  }, []);
-  const setSubTab = useCallback((subTab: SubTab) => {
-    lsSet(SUB_TAB_STORAGE[activeTopTab], subTab);
-    setActiveSubTabState(subTab);
-    setOverflowPanel(null);
-  }, [activeTopTab]);
+  // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
+  const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel, setSubTab } = useNavigationContext();
+  const { editingToken, setEditingToken, previewingToken, setPreviewingToken, highlightedToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, handleNavigateBack, navHistoryLength, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
-  const [previewingToken, setPreviewingToken] = useState<{ path: string; name?: string; set: string } | null>(null);
   const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection, gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useConnectionContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet, allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError, generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useTokenDataContext();
   const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, resolverState, themedAllTokensFlat, setThemeStatusMap } = useThemeContext();
   const { selectedNodes, heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan, tokenUsageCounts, triggerUsageScan } = useInspectContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
-  const handleAliasNotFound = useCallback((aliasPath: string) => {
-    setErrorToast(`Alias target not found: ${aliasPath}`);
-  }, []);
-  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias, handleNavigateBack, navHistory } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
@@ -205,6 +146,9 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
+  // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount, undoDescriptions } = useUndo(undoMaxHistory, setErrorToast);
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
@@ -601,10 +545,8 @@ export function App() {
     setClearing(false);
     setShowClearConfirm(false);
     setClearConfirmText('');
-    setOverflowPanel(null);
     setActiveTabState('tokens');
-    setActiveTopTabState('define');
-    setActiveSubTabState('tokens');
+    navigateTo('define', 'tokens');
     refreshTokens();
   };
 
@@ -2114,22 +2056,6 @@ export function App() {
           <div className="flex-1 overflow-y-auto">
             {/* Panels — routed by (activeTopTab, activeSubTab) and overflowPanel */}
             <PanelRouter
-              activeTopTab={activeTopTab}
-              activeSubTab={activeSubTab}
-              overflowPanel={overflowPanel}
-              navigateTo={navigateTo}
-              setOverflowPanel={setOverflowPanel}
-              setPendingHighlight={setPendingHighlight}
-              handleNavigateToAlias={handleNavigateToAlias}
-              handleNavigateBack={handleNavigateBack}
-              navHistoryLength={navHistory.length}
-              editingToken={editingToken}
-              setEditingToken={setEditingToken}
-              previewingToken={previewingToken}
-              setPreviewingToken={setPreviewingToken}
-              highlightedToken={highlightedToken}
-              setHighlightedToken={setHighlightedToken}
-              createFromEmpty={createFromEmpty}
               useSidePanel={useSidePanel}
               showPreviewSplit={showPreviewSplit}
               setShowPreviewSplit={setShowPreviewSplit}
