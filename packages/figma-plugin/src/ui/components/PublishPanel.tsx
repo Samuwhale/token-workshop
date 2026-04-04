@@ -84,6 +84,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   // ── Publish-all state ──
   const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
+  const [publishAllGitSkipped, setPublishAllGitSkipped] = useState(false);
 
   // ── Orphan deletion message handler ──
   useEffect(() => {
@@ -133,6 +134,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   const runPublishAll = useCallback(async () => {
     setPublishAllError(null);
+    setPublishAllGitSkipped(false);
 
     try {
       if (hasVarChanges) {
@@ -147,6 +149,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       if (hasGitDiffChanges && !hasMergeConflicts) {
         setPublishAllStep('git');
         await git.applyDiff();
+      } else if (hasMergeConflicts && hasGitDiffChanges) {
+        setPublishAllGitSkipped(true);
       }
       setChecksStale(true);
     } catch (err) {
@@ -479,6 +483,44 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         </div>
       )}
 
+      {/* ── Git-skipped notification ────────────────────────────────────── */}
+      {publishAllGitSkipped && (
+        <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
+          <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/8 p-2.5">
+            <div className="flex items-start gap-2">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-0.5 text-yellow-600">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Git sync was skipped</p>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                  Variables and styles were published, but Git was not synced because {git.mergeConflicts.length} merge conflict{git.mergeConflicts.length !== 1 ? 's' : ''} must be resolved first.
+                </p>
+                <button
+                  onClick={() => {
+                    setPublishAllGitSkipped(false);
+                    setOpenSections(prev => { const next = new Set(prev); next.add('git'); return next; });
+                    document.getElementById('publish-section-git')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline font-medium"
+                >
+                  Go to Git section \u2192
+                </button>
+              </div>
+              <button
+                onClick={() => setPublishAllGitSkipped(false)}
+                aria-label="Dismiss"
+                className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Sections ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
       {/* ── Section: Figma Variables ─────────────────────────────────────── */}
@@ -685,6 +727,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         </Section>
 
         {/* ── Section: Git ─────────────────────────────────────────────── */}
+        <div id="publish-section-git">
         <Section
           title="Git"
           open={openSections.has('git')}
@@ -743,6 +786,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             />
           )}
         </Section>
+        </div>
       </div>
     </div>
 

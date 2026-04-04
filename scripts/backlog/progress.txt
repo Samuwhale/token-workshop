@@ -387,3 +387,13 @@
   - The `handleApplyRef` pattern (mutable ref pointing to `handleApply`) is used so the Enter key handler in the new input calls the latest closure without stale state.
   - Auto-coerce mode (default) covers the common case (users type `16`, `true`, `#ff0000`) without forcing JSON syntax knowledge.
 ---
+
+## 2026-04-04 - PublishPanel "Publish All" silently downgrades to "Publish without Git" when merge conflicts exist
+- Added `publishAllGitSkipped` state that is set to true when `runPublishAll` completes but skips Git due to merge conflicts.
+- Added a dismissible warning banner below the Publish All banner that explains "Git sync was skipped" with conflict count, and provides a "Go to Git section →" button that expands and scrolls to the Git accordion.
+- Wrapped the Git Section element in a `<div id="publish-section-git">` to enable smooth-scroll targeting.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L85 (state), ~L135 (runPublishAll), ~L485 (notification banner), ~L730 (Git section wrapper)
+- **Learnings for future iterations:**
+  - Post-action notifications that may appear after the triggering banner disappears must be separate state/DOM elements — don't nest inside a conditional that may also become false on success.
+  - When adding scroll targets to accordion sections, wrapping with a plain `<div id="...">` is simpler than adding an id prop to the Section component.
+---
