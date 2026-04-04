@@ -143,6 +143,13 @@ export async function scanConsistency(
   scope: 'selection' | 'page' | 'all-pages',
   signal?: { aborted: boolean },
 ) {
+  // Abort if the user navigates to a different page mid-scan (only relevant for
+  // page/selection scopes where figma.currentPage is captured at scan start).
+  let pageChangeHandler: (() => void) | null = null;
+  if (scope !== 'all-pages' && signal) {
+    pageChangeHandler = () => { signal.aborted = true; };
+    figma.on('currentpagechange', pageChangeHandler);
+  }
   try {
     // Collect nodes
     const nodes: SceneNode[] = [];
@@ -406,5 +413,7 @@ export async function scanConsistency(
     });
   } catch (error) {
     figma.ui.postMessage({ type: 'consistency-scan-error', error: String(error) });
+  } finally {
+    if (pageChangeHandler) figma.off('currentpagechange', pageChangeHandler);
   }
 }

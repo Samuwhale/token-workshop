@@ -217,3 +217,12 @@
   - Figma uses plural property names for arrays: `fills` (not `fill`), `strokes` (not `stroke`), `effects` (not `shadow`). The plugin uses singular names as binding/plugin-data keys for UX reasons, creating a 1-to-many mapping that must be resolved at snapshot/restore boundaries.
   - `findAll(predicate)` on a Figma FrameNode applies the predicate to descendants but NOT the root — root must be checked separately at the call site.
 ---
+
+## 2026-04-04 - Plugin sandbox heatmap/consistency scans do not abort on page change
+- Registered a `figma.on('currentpagechange', ...)` listener at the start of both `scanCanvasHeatmap` and `scanConsistency` that immediately sets `signal.aborted = true` when the user navigates to a different page mid-scan. The listener is only registered for `page` and `selection` scopes (not `all-pages`, which iterates `figma.root.children` directly). Cleaned up via `figma.off(...)` in a `finally` block added around the existing `try/catch` in both functions.
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L95, `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L141
+- **Learnings for future iterations:**
+  - The signal abort mechanism was already in place; adding the page-change listener was a minimal, non-invasive hook into the existing pattern.
+  - `figma.off()` requires the exact same function reference as `figma.on()` — store the handler in a variable before registering.
+  - The `all-pages` scope iterates `figma.root.children` (stable, page-independent), so a `currentpagechange` event there is expected and should not abort.
+---

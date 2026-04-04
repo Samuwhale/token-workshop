@@ -93,6 +93,13 @@ export function selectNextSibling() {
 
 // Scan visual nodes for token/variable binding coverage
 export async function scanCanvasHeatmap(scope: HeatmapScope = 'page', signal?: { aborted: boolean }) {
+  // Abort if the user navigates to a different page mid-scan (only relevant for
+  // page/selection scopes where figma.currentPage is captured at scan start).
+  let pageChangeHandler: (() => void) | null = null;
+  if (scope !== 'all-pages' && signal) {
+    pageChangeHandler = () => { signal.aborted = true; };
+    figma.on('currentpagechange', pageChangeHandler);
+  }
   try {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
 
@@ -203,6 +210,8 @@ export async function scanCanvasHeatmap(scope: HeatmapScope = 'page', signal?: {
     });
   } catch (error) {
     figma.ui.postMessage({ type: 'canvas-heatmap-error', error: String(error) });
+  } finally {
+    if (pageChangeHandler) figma.off('currentpagechange', pageChangeHandler);
   }
 }
 
