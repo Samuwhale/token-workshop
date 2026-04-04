@@ -915,3 +915,22 @@ Already up to date.
 
   Merging to main: App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
 Already up to date.
+[main b0e3429b] chore(backlog): done – App.tsx is a 3461-line orchestrator with 44 custom hooks and 104 hook call sites all in one component — every state change from any hook re-renders App and triggers re-evaluation of all 44 hooks' memoizations; should be decomposed into feature-area context providers (TokensProvider, SyncProvider, InspectProvider, etc.) so state changes in one domain don't cascade through unrelated domains
+ 12 files changed, 670 insertions(+), 141 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/contexts/InspectContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/contexts/ThemeContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx
+  ✓ Merged and marked done
+
+## 2026-04-04 - App.tsx decomposed into feature-area context providers
+- Created `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx`: wraps `useServerConnection`, `useSyncBindings` (moved from App.tsx inline), and the git-status polling effect. Provides `connected`, `checking`, `serverUrl`, `getDisconnectSignal`, `markDisconnected`, `updateServerUrlAndConnect`, `retryConnection`, `gitHasChanges`, `syncing`, `syncProgress`, `syncResult`, `syncError`, `sync`.
+- Created `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx`: wraps `useTokens`, `useTokenDataLoading`, `useGenerators`. Calls `useConnectionContext()` internally for `serverUrl`/`connected`/`markDisconnected`/`getDisconnectSignal`. Provides all token set state, flat maps, and generator data.
+- Created `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx`: wraps `useThemeSwitcher` and `useResolvers`, owns the `themedAllTokensFlat` and `setThemeStatusMap` memos. Calls `useConnectionContext()` and `useTokenDataContext()` internally. Provides all theme state and resolver state.
+
+═══════════════════════════════════════════════════════════════
+  #38  ·  7 queued · 2 in-progress · last took 20m58s
+═══════════════════════════════════════════════════════════════
+  → No progress reporting for `search-layers`, `syncBindings`, `remapBindings`, or `applyToNodes` plugin operations — these can process hundreds of nodes silently with no progress bar or count; on large pages this looks like the plugin has frozen (controller.ts, selectionHandling.ts)
+  Worktree: /tmp/backlog-92209-I55W1Q
+  Running agent… (started 04:19:27)

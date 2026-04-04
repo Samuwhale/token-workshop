@@ -585,3 +585,9 @@
   - Splitting `themedAllTokensFlat` (resolver-override-or-theme) and `setThemeStatusMap` memos into ThemeContext is correct because both depend on `dimensions`, `activeThemes`, and the resolver state — all owned by that context.
   - The `tokenUsageCounts` message listener effect moves cleanly to InspectContext because it has zero external deps. The scan-trigger effect (depends on nav state + tokens.length) stays in App.tsx and calls `inspect.triggerUsageScan()`.
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/core/src/ (color-modifier, color-math, color-parse, resolver, validator, generator-engine, eval-expr, dtcg-types), packages/server/src/services/ (git-sync, resolver-store, event-bus, manual-snapshot), packages/server/src/routes/ (themes, export, sync, snapshots), packages/figma-plugin/src/plugin/ (controller, variableSync, styleSync, fontLoading, selectionHandling, colorUtils), packages/figma-plugin/src/ui/hooks/ (useVariableSync, useStyleSync, useFigmaSync, useDragDrop, useThemeSwitcher, useAnalyticsState, useTokenCrud), packages/figma-plugin/src/ui/components/publish/ (VariableSyncSubPanel, StyleSyncSubPanel, PublishShared, PublishModals), packages/figma-plugin/src/ui/components/ (ThemeManager, GraphPanel, SelectionInspector, PreviewPanel, SettingsPanel, ImportPanel)
+- Found 5 items — written to backlog-inbox.md
+- Notable: applyColorModifiers silently drops alpha channel on lighten/darken/mix because hexToLab strips alpha and labToHex never restores it — affects both resolver and UI preview
+---
