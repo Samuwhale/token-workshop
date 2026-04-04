@@ -1,6 +1,15 @@
 import { useMemo, useState, useEffect } from 'react';
 import { swatchBgColor } from '../../shared/colorUtils';
-import type { VarDiffRow } from '../../hooks/useVariableSync';
+
+// Display row shape used by VarDiffRowItem — compatible with both VarDiffRow and StyleDiffRow.
+interface VarDiffRow {
+  path: string;
+  cat: 'local-only' | 'figma-only' | 'conflict';
+  localValue?: string;
+  figmaValue?: string;
+  localType?: string;
+  figmaType?: string;
+}
 
 /* ── Shared types ───────────────────────────────────────────────────────── */
 

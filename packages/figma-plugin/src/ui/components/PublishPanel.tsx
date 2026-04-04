@@ -3,18 +3,99 @@ import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
-import { useVariableSync } from '../hooks/useVariableSync';
-import { useStyleSync } from '../hooks/useStyleSync';
+import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useGitSync } from '../hooks/useGitSync';
 import { apiFetch } from '../shared/apiFetch';
-import { VariableSyncSubPanel } from './publish/VariableSyncSubPanel';
+import { swatchBgColor } from '../shared/colorUtils';
+import { SyncSubPanel } from './publish/SyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
 import {
-  SyncPreviewModal,
   GitPreviewModal,
   CommitPreviewModal,
   ApplyDiffConfirmModal,
 } from './publish/PublishModals';
+
+/* ── Sync entity types ───────────────────────────────────────────────────── */
+
+type VarSyncSnapshot = { records: Record<string, any>; createdIds: string[] };
+type StyleSyncSnapshot = { snapshots: Array<{ id: string; type: 'paint' | 'text' | 'effect'; data: any }>; createdIds: string[] };
+
+interface VarDiffRow { path: string; cat: 'local-only' | 'figma-only' | 'conflict'; localValue?: string; figmaValue?: string; localType?: string; figmaType?: string; }
+interface StyleDiffRow { path: string; cat: 'local-only' | 'figma-only' | 'conflict'; localValue?: string; figmaValue?: string; localRaw?: any; figmaRaw?: any; localType?: string; figmaType?: string; }
+
+// ── Static message configs (stable module-level refs required by useFigmaMessage) ──
+
+const VAR_MESSAGES: SyncMessages<VarSyncSnapshot> = {
+  readSendType: 'read-variables', readResponseType: 'variables-read', readTimeout: 10000,
+  extractReadResponse: (msg: any) => msg.collections ?? [],
+  applySendType: 'apply-variables', applyResponseType: 'variables-applied', applyErrorType: 'apply-variables-error', applyTimeout: 30000,
+  extractApplySnapshot: (msg: any) => msg.varSnapshot ?? undefined,
+  revertSendType: 'revert-variables', revertResponseType: 'variables-reverted', revertTimeout: 30000,
+};
+
+const STYLE_MESSAGES: SyncMessages<StyleSyncSnapshot> = {
+  readSendType: 'read-styles', readResponseType: 'styles-read', readErrorType: 'styles-read-error', readTimeout: 10000,
+  extractReadResponse: (msg: any) => msg.tokens ?? [],
+  applySendType: 'apply-styles', applyResponseType: 'styles-applied', applyErrorType: 'styles-apply-error', applyTimeout: 15000,
+  extractApplySnapshot: (msg: any) => msg.styleSnapshot ?? undefined,
+  revertSendType: 'revert-styles', revertResponseType: 'styles-reverted', revertTimeout: 30000,
+};
+
+// ── Variable sync pure helpers ────────────────────────────────────────────
+
+function buildVarFigmaMap(tokens: any[]) {
+  return new Map(tokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }]));
+}
+function buildVarLocalMap(tokens: Map<string, any>) {
+  const m = new Map<string, { value: string; type: string }>();
+  for (const [path, token] of tokens) m.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
+  return m;
+}
+const buildVarLocalOnlyRow = (path: string, local: { value: string; type: string }): VarDiffRow =>
+  ({ path, cat: 'local-only', localValue: local.value, localType: local.type });
+const buildVarFigmaOnlyRow = (path: string, figma: { value: string; type: string }): VarDiffRow =>
+  ({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type });
+const buildVarConflictRow = (path: string, local: { value: string; type: string }, figma: { value: string; type: string }): VarDiffRow =>
+  ({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type });
+const varIsConflict = (local: { value: string }, figma: { value: string }) => figma.value !== local.value;
+const buildVarPullPayload = (row: VarDiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaValue ?? '' });
+
+// ── Style sync pure helpers ───────────────────────────────────────────────
+
+const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
+
+function summarizeStyleValue(value: any, type: string): string {
+  if (type === 'color') return String(value);
+  if (type === 'typography' && value && typeof value === 'object') {
+    const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily;
+    const size = typeof value.fontSize === 'object' ? `${value.fontSize.value}${value.fontSize.unit}` : String(value.fontSize ?? '');
+    return `${family ?? ''}${size ? ' ' + size : ''}`.trim() || JSON.stringify(value).slice(0, 28);
+  }
+  if (type === 'shadow') {
+    const arr = Array.isArray(value) ? value : [value];
+    return arr.map((s: any) => s?.color ?? '').join(', ').slice(0, 28);
+  }
+  return JSON.stringify(value).slice(0, 28);
+}
+function buildStyleFigmaMap(tokens: any[]) {
+  return new Map(tokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }]));
+}
+function buildStyleLocalMap(tokens: Map<string, any>) {
+  const m = new Map<string, { raw: any; type: string }>();
+  for (const [path, token] of tokens) {
+    const type = String(token.$type ?? 'string');
+    if (STYLE_TYPES.has(type)) m.set(path, { raw: token.$value, type });
+  }
+  return m;
+}
+const buildStyleLocalOnlyRow = (path: string, local: { raw: any; type: string }): StyleDiffRow =>
+  ({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type });
+const buildStyleFigmaOnlyRow = (path: string, figma: { raw: any; type: string }): StyleDiffRow =>
+  ({ path, cat: 'figma-only', figmaRaw: figma.raw, figmaValue: summarizeStyleValue(figma.raw, figma.type), figmaType: figma.type });
+const buildStyleConflictRow = (path: string, local: { raw: any; type: string }, figma: { raw: any; type: string }): StyleDiffRow =>
+  ({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figma.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figma.raw, figma.type), localType: local.type, figmaType: figma.type });
+const styleIsConflict = (local: { raw: any }, figma: { raw: any }) => JSON.stringify(figma.raw) !== JSON.stringify(local.raw);
+const buildStylePullPayload = (row: StyleDiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaRaw });
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 
@@ -58,8 +139,39 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   });
 
   // ── Extracted hooks ──
-  const varSync = useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap });
-  const styleSync = useStyleSync({ serverUrl, activeSet });
+  const varSync = useSyncEntity<VarDiffRow, VarSyncSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
+    progressEventType: 'variable-sync-progress',
+    buildFigmaMap: buildVarFigmaMap, buildLocalMap: buildVarLocalMap,
+    buildLocalOnlyRow: buildVarLocalOnlyRow, buildFigmaOnlyRow: buildVarFigmaOnlyRow, buildConflictRow: buildVarConflictRow,
+    isConflict: varIsConflict,
+    buildApplyPayload: (rows) => ({
+      tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localValue ?? '', setName: activeSet })),
+      collectionMap, modeMap,
+    }),
+    buildPullPayload: buildVarPullPayload,
+    buildRevertPayload: (snapshot) => ({ varSnapshot: snapshot }),
+    onApplySuccess: (result) => {
+      if ((result.overwritten ?? 0) > 0) {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated` } }, '*');
+      }
+    },
+    successMessage: 'Variable sync applied', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Apply variable sync',
+    revertSuccessMessage: 'Variable sync reverted', revertErrorMessage: 'Failed to revert variable sync',
+    autoComputeOnConnect: true,
+  });
+
+  const styleSync = useSyncEntity<StyleDiffRow, StyleSyncSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
+    progressEventType: 'style-sync-progress',
+    buildFigmaMap: buildStyleFigmaMap, buildLocalMap: buildStyleLocalMap,
+    buildLocalOnlyRow: buildStyleLocalOnlyRow, buildFigmaOnlyRow: buildStyleFigmaOnlyRow, buildConflictRow: buildStyleConflictRow,
+    isConflict: styleIsConflict,
+    buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),
+    buildPullPayload: buildStylePullPayload,
+    buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
+    successMessage: 'Style sync applied', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Apply style sync',
+    revertSuccessMessage: 'Style sync reverted', revertErrorMessage: 'Failed to revert style sync',
+  });
+
   const git = useGitSync({ serverUrl, connected });
 
   // ── Shared diff filter ──
@@ -118,8 +230,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   /* ── Publish-all pending counts ─────────────────────────────────────── */
 
-  const hasVarChanges = varSync.varChecked && varSync.varSyncCount > 0;
-  const hasStyleChanges = styleSync.styleChecked && styleSync.styleSyncCount > 0;
+  const hasVarChanges = varSync.checked && varSync.syncCount > 0;
+  const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
   const gitDiffPendingCount = useMemo(
     () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
     [git.diffChoices],
@@ -139,11 +251,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     try {
       if (hasVarChanges) {
         setPublishAllStep('variables');
-        await varSync.applyVarDiff();
+        await varSync.applyDiff();
       }
       if (hasStyleChanges) {
         setPublishAllStep('styles');
-        await styleSync.applyStyleDiff();
+        await styleSync.applyDiff();
       }
       // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
       if (hasGitDiffChanges && !hasMergeConflicts) {
@@ -158,7 +270,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     } finally {
       setPublishAllStep(null);
     }
-  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync, styleSync, git]);
+  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git]);
 
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
@@ -172,7 +284,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('No response from Figma after 15 s — make sure the plugin is open and try again.')), READINESS_TIMEOUT_MS)
       );
-      const figmaTokens = await Promise.race([varSync.readFigmaVariables(), timeoutPromise]);
+      const figmaTokens = await Promise.race([varSync.readFigmaTokens(), timeoutPromise]);
 
       const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
@@ -243,7 +355,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     } finally {
       setReadinessLoading(false);
     }
-  }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap, tokenChangeKey]);
+  }, [serverUrl, activeSet, varSync.readFigmaTokens, collectionMap, modeMap, tokenChangeKey]);
 
   const executeOrphanDeletion = useCallback(async () => {
     if (!orphanConfirm) return;
@@ -452,8 +564,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   </span>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {[
-                      hasVarChanges ? `${varSync.varSyncCount} variable${varSync.varSyncCount !== 1 ? 's' : ''}` : null,
-                      hasStyleChanges ? `${styleSync.styleSyncCount} style${styleSync.styleSyncCount !== 1 ? 's' : ''}` : null,
+                      hasVarChanges ? `${varSync.syncCount} variable${varSync.syncCount !== 1 ? 's' : ''}` : null,
+                      hasStyleChanges ? `${styleSync.syncCount} style${styleSync.syncCount !== 1 ? 's' : ''}` : null,
                       effectiveHasGitDiffChanges ? `${gitDiffPendingCount} file${gitDiffPendingCount !== 1 ? 's' : ''}` : null,
                     ].filter(Boolean).join(', ')}
                   </span>
@@ -529,24 +641,27 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         open={openSections.has('figma-variables')}
         onToggle={() => toggleSection('figma-variables')}
         badge={
-          varSync.varLoading ? null :
-          varSync.varChecked && varSync.varRows.length === 0
+          varSync.loading ? null :
+          varSync.checked && varSync.rows.length === 0
             ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-            : varSync.varRows.length > 0
-              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.varRows.length} differ</span>
+            : varSync.rows.length > 0
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.rows.length} differ</span>
               : null
         }
       >
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-3 py-2">
-          Sync token values between local files and Figma variables.
-        </div>
-
-        <VariableSyncSubPanel
-          varSync={varSync}
+        <SyncSubPanel
+          sync={varSync}
           activeSet={activeSet}
           diffFilter={diffFilter}
           onRequestConfirm={setConfirmAction}
-          onRevertVars={varSync.revertVarSync}
+          onRevert={varSync.revert}
+          description="Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back."
+          sectionLabel="Token differences"
+          previewAction="preview-vars"
+          applyAction="apply-vars"
+          inSyncMessage="Local tokens match Figma variables."
+          notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
+          revertDescription="Restore Figma variables to their pre-sync state"
         />
       </Section>
 
@@ -556,174 +671,27 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           open={openSections.has('figma-styles')}
           onToggle={() => toggleSection('figma-styles')}
           badge={
-            styleSync.styleChecked && styleSync.styleRows.length === 0
+            styleSync.checked && styleSync.rows.length === 0
               ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-              : styleSync.styleRows.length > 0
-                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.styleRows.length} differ</span>
+              : styleSync.rows.length > 0
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.rows.length} differ</span>
                 : null
           }
         >
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-3 py-2">
-            Sync color, text, and effect styles between local tokens and Figma styles.
-          </div>
-
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Style differences</span>
-            <button
-              onClick={styleSync.computeStyleDiff}
-              disabled={styleSync.styleLoading || !activeSet}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-            >
-              {styleSync.styleLoading ? 'Checking\u2026' : styleSync.styleChecked ? 'Re-check' : 'Compare'}
-            </button>
-          </div>
-
-          {styleSync.styleError && (
-            <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleSync.styleError}</div>
-          )}
-
-          {styleSync.styleRows.length > 0 && (() => {
-            const filterLower = diffFilter.toLowerCase();
-            const filteredStyleRows = filterLower
-              ? styleSync.styleRows.filter(r => r.path.toLowerCase().includes(filterLower))
-              : styleSync.styleRows;
-            const localOnly = filteredStyleRows.filter(r => r.cat === 'local-only');
-            const figmaOnly = filteredStyleRows.filter(r => r.cat === 'figma-only');
-            const conflicts = filteredStyleRows.filter(r => r.cat === 'conflict');
-
-            return (
-              <>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
-                  {(['push', 'pull', 'skip'] as const).map(action => (
-                    <button
-                      key={action}
-                      onClick={() => styleSync.setStyleDirs(Object.fromEntries(styleSync.styleRows.map(r => [r.path, action])))}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
-                    >
-                      {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
-                    </button>
-                  ))}
-                </div>
-
-                {filterLower && filteredStyleRows.length !== styleSync.styleRows.length && (
-                  <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                    {filteredStyleRows.length} of {styleSync.styleRows.length} token{styleSync.styleRows.length !== 1 ? 's' : ''} match filter
-                  </div>
-                )}
-
-                <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
-                  {localOnly.length > 0 && (
-                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
-                    </div>
-                  )}
-                  {localOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
-                  ))}
-                  {figmaOnly.length > 0 && (
-                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
-                    </div>
-                  )}
-                  {figmaOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'pull'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
-                  ))}
-                  {conflicts.length > 0 && (
-                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
-                      {conflicts.length > 1 && (
-                        <span className="flex items-center gap-1">
-                          {(['push', 'pull', 'skip'] as const).map(action => (
-                            <button
-                              key={action}
-                              onClick={() => styleSync.setStyleDirs(prev => {
-                                const next = { ...prev };
-                                for (const r of conflicts) next[r.path] = action;
-                                return next;
-                              })}
-                              className="text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                            >
-                              {action === 'push' ? '\u2191 Push' : action === 'pull' ? '\u2193 Pull' : 'Skip'} all
-                            </button>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {conflicts.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
-                  ))}
-                </div>
-
-                <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {styleSync.styleSyncCount === 0
-                      ? 'Nothing to apply \u2014 all skipped'
-                      : [
-                          styleSync.stylePushCount > 0 ? `\u2191 ${styleSync.stylePushCount} to Figma` : null,
-                          styleSync.stylePullCount > 0 ? `\u2193 ${styleSync.stylePullCount} to local` : null,
-                        ].filter(Boolean).join(' \u00b7 ')
-                    }
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setConfirmAction('preview-styles')}
-                      disabled={styleSync.styleSyncCount === 0}
-                      className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                    >
-                      Preview
-                    </button>
-                    <button
-                      onClick={() => setConfirmAction('apply-styles')}
-                      disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
-                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                    >
-                      {styleSync.styleSyncing
-                        ? (styleSync.styleProgress
-                          ? `Syncing ${styleSync.styleProgress.current} / ${styleSync.styleProgress.total}\u2026`
-                          : 'Syncing\u2026')
-                        : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
-                    </button>
-                  </span>
-                </div>
-              </>
-            );
-          })()}
-
-          {!styleSync.styleLoading && !styleSync.styleError && (
-            styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
-              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                <div className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Local tokens match Figma styles.
-                </div>
-                {styleSync.styleSnapshot && (
-                  <div className="mt-2 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={styleSync.revertStyleSync}
-                        disabled={styleSync.styleReverting}
-                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                      >
-                        {styleSync.styleReverting ? 'Reverting\u2026' : 'Revert last sync'}
-                      </button>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Restore Figma styles to their pre-sync state</span>
-                    </div>
-                    {styleSync.styleRevertError && (
-                      <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{styleSync.styleRevertError}</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : !styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
-              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.
-              </div>
-            ) : null
-          )}
+          <SyncSubPanel
+            sync={styleSync}
+            activeSet={activeSet}
+            diffFilter={diffFilter}
+            onRequestConfirm={setConfirmAction}
+            onRevert={styleSync.revert}
+            description="Sync color, text, and effect styles between local tokens and Figma styles."
+            sectionLabel="Style differences"
+            previewAction="preview-styles"
+            applyAction="apply-styles"
+            inSyncMessage="Local tokens match Figma styles."
+            notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.</>}
+            revertDescription="Restore Figma styles to their pre-sync state"
+          />
         </Section>
 
         {/* ── Section: Git ─────────────────────────────────────────────── */}
@@ -794,8 +762,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     {confirmAction === 'preview-vars' && (
       <SyncPreviewModal
         title="Variable sync preview"
-        rows={varSync.varRows}
-        dirs={varSync.varDirs}
+        rows={varSync.rows}
+        dirs={varSync.dirs}
         onClose={() => setConfirmAction(null)}
       />
     )}
@@ -803,8 +771,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     {confirmAction === 'preview-styles' && (
       <SyncPreviewModal
         title="Style sync preview"
-        rows={styleSync.styleRows}
-        dirs={styleSync.styleDirs}
+        rows={styleSync.rows}
+        dirs={styleSync.dirs}
         onClose={() => setConfirmAction(null)}
       />
     )}
@@ -812,30 +780,30 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     {confirmAction === 'apply-vars' && (
       <SyncPreviewModal
         title="Apply variable sync"
-        rows={varSync.varRows}
-        dirs={varSync.varDirs}
+        rows={varSync.rows}
+        dirs={varSync.dirs}
         onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
-          await varSync.applyVarDiff();
+          await varSync.applyDiff();
           setChecksStale(true);
         }}
-        confirmLabel={`Apply ${varSync.varSyncCount} change${varSync.varSyncCount !== 1 ? 's' : ''}`}
+        confirmLabel={`Apply ${varSync.syncCount} change${varSync.syncCount !== 1 ? 's' : ''}`}
       />
     )}
 
     {confirmAction === 'apply-styles' && (
       <SyncPreviewModal
         title="Apply style sync"
-        rows={styleSync.styleRows}
-        dirs={styleSync.styleDirs}
+        rows={styleSync.rows}
+        dirs={styleSync.dirs}
         onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
-          await styleSync.applyStyleDiff();
+          await styleSync.applyDiff();
           setChecksStale(true);
         }}
-        confirmLabel={`Apply ${styleSync.styleSyncCount} change${styleSync.styleSyncCount !== 1 ? 's' : ''}`}
+        confirmLabel={`Apply ${styleSync.syncCount} change${styleSync.syncCount !== 1 ? 's' : ''}`}
       />
     )}
 
@@ -907,14 +875,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         hasVarChanges={hasVarChanges}
         hasStyleChanges={hasStyleChanges}
         hasGitDiffChanges={effectiveHasGitDiffChanges}
-        varRows={varSync.varRows}
-        varDirs={varSync.varDirs}
-        varPushCount={varSync.varPushCount}
-        varPullCount={varSync.varPullCount}
-        styleRows={styleSync.styleRows}
-        styleDirs={styleSync.styleDirs}
-        stylePushCount={styleSync.stylePushCount}
-        stylePullCount={styleSync.stylePullCount}
+        varRows={varSync.rows}
+        varDirs={varSync.dirs}
+        varPushCount={varSync.pushCount}
+        varPullCount={varSync.pullCount}
+        styleRows={styleSync.rows}
+        styleDirs={styleSync.dirs}
+        stylePushCount={styleSync.pushCount}
+        stylePullCount={styleSync.pullCount}
         gitDiffChoices={git.diffChoices}
         mergeConflictCount={git.mergeConflicts.length}
         onCancel={() => setConfirmAction(null)}
@@ -1757,7 +1725,7 @@ function Section({ title, open, onToggle, badge, children }: {
   );
 }
 
-/* ── VarDiffRowItem ──────────────────────────────────────────────────────── */
+/* ── Display helpers ─────────────────────────────────────────────────────── */
 
 function isHexColor(v: string | undefined): v is string {
   return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v);
@@ -1998,58 +1966,3 @@ function FileTokenDiffList({
   );
 }
 
-function ValueCell({ label, value, type }: { label: string; value: string | undefined; type: string | undefined }) {
-  const v = value ?? '';
-  const showSwatch = (type === 'color' || isHexColor(v)) && isHexColor(v);
-  return (
-    <div className="flex items-center gap-1 min-w-0 flex-1">
-      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
-      {showSwatch && <DiffSwatch hex={v} />}
-      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
-    </div>
-  );
-}
-
-function VarDiffRowItem({ row, dir, onChange }: {
-  row: VarDiffRow;
-  dir: 'push' | 'pull' | 'skip';
-  onChange: (dir: 'push' | 'pull' | 'skip') => void;
-}) {
-  return (
-    <div className="px-3 py-1.5 flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
-        <select
-          value={dir}
-          onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
-          className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
-        >
-          <option value="push">{'\u2191'} Push to Figma</option>
-          <option value="pull">{'\u2193'} Pull to local</option>
-          <option value="skip">Skip</option>
-        </select>
-      </div>
-      {row.cat === 'conflict' && (
-        <div className="flex items-center gap-1.5 pl-0.5">
-          <ValueCell label="Local" value={row.localValue} type={row.localType} />
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-            <path d="M1 4h6M5 2l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <ValueCell label="Figma" value={row.figmaValue} type={row.figmaType} />
-        </div>
-      )}
-      {row.cat === 'local-only' && row.localValue !== undefined && (
-        <div className="flex items-center gap-1 pl-0.5">
-          {(row.localType === 'color' || isHexColor(row.localValue)) && isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
-        </div>
-      )}
-      {row.cat === 'figma-only' && row.figmaValue !== undefined && (
-        <div className="flex items-center gap-1 pl-0.5">
-          {(row.figmaType === 'color' || isHexColor(row.figmaValue)) && isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
-        </div>
-      )}
-    </div>
-  );
-}

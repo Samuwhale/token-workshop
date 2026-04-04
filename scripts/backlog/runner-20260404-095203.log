@@ -31,3 +31,17 @@ NOTE: 3 [~] item(s) found — skipping reset (10 other runner(s) active)
 
   Merging to main: useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
 Already up to date.
+[main bd9222f1] chore(backlog): done – useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
+ 8 files changed, 91 insertions(+), 11 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260404-095203.log
+  ✓ Merged and marked done
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-04-04 - useFigmaSync and useDragDrop hooks lack abort signals and unmount guards
+- `useFigmaSync`: Added `signal.aborted` check at the top of the message event handler (before any setState calls) — the `abortRef` and unmount cleanup already existed, but the progress message handler was missing the guard.
+- `useDragDrop`: Added `useRef` and `useEffect` imports; added `abortRef = useRef(new AbortController())` + unmount cleanup effect; passed `signal` to the main `apiFetch` calls in `handleDropOnGroup` and `handleDropReorder`; added `AbortError` name check in catch blocks and `signal.aborted` guards before all post-await setState/callback calls.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L38, `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L1,28-33,89-101,183-196
+
+  Stopped after 1 iterations (1315 total items completed).

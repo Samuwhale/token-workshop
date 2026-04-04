@@ -1,46 +1,68 @@
-import type { useStyleSync } from '../../hooks/useStyleSync';
+import type { useSyncEntity } from '../../hooks/useSyncEntity';
 import { VarDiffRowItem } from './PublishShared';
 
-type StyleSync = ReturnType<typeof useStyleSync>;
+type SyncState = ReturnType<typeof useSyncEntity>;
 
-interface StyleSyncSubPanelProps {
-  styleSync: StyleSync;
+interface SyncSubPanelProps {
+  sync: SyncState;
   activeSet: string;
   diffFilter: string;
-  onRequestConfirm: (action: 'preview-styles' | 'apply-styles') => void;
-  onRevertStyles?: () => void;
+  onRequestConfirm: (action: string) => void;
+  onRevert?: () => void;
+
+  // Entity-specific text
+  description: string;
+  sectionLabel: string;
+  previewAction: string;
+  applyAction: string;
+  inSyncMessage: string;
+  notCheckedMessage: React.ReactNode;
+  revertDescription: string;
 }
 
-export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestConfirm, onRevertStyles }: StyleSyncSubPanelProps) {
+export function SyncSubPanel({
+  sync,
+  activeSet,
+  diffFilter,
+  onRequestConfirm,
+  onRevert,
+  description,
+  sectionLabel,
+  previewAction,
+  applyAction,
+  inSyncMessage,
+  notCheckedMessage,
+  revertDescription,
+}: SyncSubPanelProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="p-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-        Sync color, text, and effect styles between local tokens and Figma styles.
+        {description}
       </div>
 
       <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Style differences</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">{sectionLabel}</span>
         <button
-          onClick={styleSync.computeStyleDiff}
-          disabled={styleSync.styleLoading || !activeSet}
+          onClick={sync.computeDiff}
+          disabled={sync.loading || !activeSet}
           className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
         >
-          {styleSync.styleLoading ? 'Checking\u2026' : styleSync.styleChecked ? 'Re-check' : 'Compare'}
+          {sync.loading ? 'Checking\u2026' : sync.checked ? 'Re-check' : 'Compare'}
         </button>
       </div>
 
-      {styleSync.styleError && (
-        <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleSync.styleError}</div>
+      {sync.error && (
+        <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{sync.error}</div>
       )}
 
-      {styleSync.styleRows.length > 0 && (() => {
+      {sync.rows.length > 0 && (() => {
         const filterLower = diffFilter.toLowerCase();
-        const filteredStyleRows = filterLower
-          ? styleSync.styleRows.filter(r => r.path.toLowerCase().includes(filterLower))
-          : styleSync.styleRows;
-        const localOnly = filteredStyleRows.filter(r => r.cat === 'local-only');
-        const figmaOnly = filteredStyleRows.filter(r => r.cat === 'figma-only');
-        const conflicts = filteredStyleRows.filter(r => r.cat === 'conflict');
+        const filteredRows = filterLower
+          ? sync.rows.filter(r => r.path.toLowerCase().includes(filterLower))
+          : sync.rows;
+        const localOnly = filteredRows.filter(r => r.cat === 'local-only');
+        const figmaOnly = filteredRows.filter(r => r.cat === 'figma-only');
+        const conflicts = filteredRows.filter(r => r.cat === 'conflict');
 
         return (
           <>
@@ -49,7 +71,7 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
               {(['push', 'pull', 'skip'] as const).map(action => (
                 <button
                   key={action}
-                  onClick={() => styleSync.setStyleDirs(Object.fromEntries(styleSync.styleRows.map(r => [r.path, action])))}
+                  onClick={() => sync.setDirs(Object.fromEntries(sync.rows.map(r => [r.path, action])))}
                   className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                 >
                   {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
@@ -57,9 +79,9 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
               ))}
             </div>
 
-            {filterLower && filteredStyleRows.length !== styleSync.styleRows.length && (
+            {filterLower && filteredRows.length !== sync.rows.length && (
               <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                {filteredStyleRows.length} of {styleSync.styleRows.length} token{styleSync.styleRows.length !== 1 ? 's' : ''} match filter
+                {filteredRows.length} of {sync.rows.length} token{sync.rows.length !== 1 ? 's' : ''} match filter
               </div>
             )}
 
@@ -70,7 +92,7 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
                 </div>
               )}
               {localOnly.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'push'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
               ))}
               {figmaOnly.length > 0 && (
                 <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -78,7 +100,7 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
                 </div>
               )}
               {figmaOnly.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'pull'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'pull'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
               ))}
               {conflicts.length > 0 && (
                 <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
@@ -88,7 +110,7 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
                       {(['push', 'pull', 'skip'] as const).map(action => (
                         <button
                           key={action}
-                          onClick={() => styleSync.setStyleDirs(prev => {
+                          onClick={() => sync.setDirs(prev => {
                             const next = { ...prev };
                             for (const r of conflicts) next[r.path] = action;
                             return next;
@@ -103,38 +125,38 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
                 </div>
               )}
               {conflicts.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'push'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
               ))}
             </div>
 
             <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
               <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                {styleSync.styleSyncCount === 0
+                {sync.syncCount === 0
                   ? 'Nothing to apply \u2014 all skipped'
                   : [
-                      styleSync.stylePushCount > 0 ? `\u2191 ${styleSync.stylePushCount} to Figma` : null,
-                      styleSync.stylePullCount > 0 ? `\u2193 ${styleSync.stylePullCount} to local` : null,
+                      sync.pushCount > 0 ? `\u2191 ${sync.pushCount} to Figma` : null,
+                      sync.pullCount > 0 ? `\u2193 ${sync.pullCount} to local` : null,
                     ].filter(Boolean).join(' \u00b7 ')
                 }
               </span>
               <span className="flex items-center gap-1.5">
                 <button
-                  onClick={() => onRequestConfirm('preview-styles')}
-                  disabled={styleSync.styleSyncCount === 0}
+                  onClick={() => onRequestConfirm(previewAction)}
+                  disabled={sync.syncCount === 0}
                   className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                 >
                   Preview
                 </button>
                 <button
-                  onClick={() => onRequestConfirm('apply-styles')}
-                  disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
+                  onClick={() => onRequestConfirm(applyAction)}
+                  disabled={sync.syncing || sync.syncCount === 0}
                   className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
-                  {styleSync.styleSyncing
-                    ? (styleSync.styleProgress
-                      ? `Syncing ${styleSync.styleProgress.current} / ${styleSync.styleProgress.total}\u2026`
+                  {sync.syncing
+                    ? (sync.progress
+                      ? `Syncing ${sync.progress.current} / ${sync.progress.total}\u2026`
                       : 'Syncing\u2026')
-                    : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
+                    : `Apply ${sync.syncCount > 0 ? sync.syncCount + ' change' + (sync.syncCount !== 1 ? 's' : '') : ''}`}
                 </button>
               </span>
             </div>
@@ -142,36 +164,36 @@ export function StyleSyncSubPanel({ styleSync, activeSet, diffFilter, onRequestC
         );
       })()}
 
-      {!styleSync.styleLoading && !styleSync.styleError && (
-        styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
+      {!sync.loading && !sync.error && (
+        sync.checked && sync.rows.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             <div className="flex items-center gap-1.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              Local tokens match Figma styles.
+              {inSyncMessage}
             </div>
-            {styleSync.styleSnapshot && (
+            {sync.snapshot && (
               <div className="mt-2 flex flex-col gap-1">
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={onRevertStyles}
-                    disabled={styleSync.styleReverting}
+                    onClick={onRevert}
+                    disabled={sync.reverting}
                     className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                   >
-                    {styleSync.styleReverting ? 'Reverting\u2026' : 'Revert last sync'}
+                    {sync.reverting ? 'Reverting\u2026' : 'Revert last sync'}
                   </button>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Restore Figma styles to their pre-sync state</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
                 </div>
-                {styleSync.styleRevertError && (
-                  <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{styleSync.styleRevertError}</div>
+                {sync.revertError && (
+                  <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{sync.revertError}</div>
                 )}
               </div>
             )}
           </div>
-        ) : !styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
+        ) : !sync.checked && sync.rows.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.
+            {notCheckedMessage}
           </div>
         ) : null
       )}

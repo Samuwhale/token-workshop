@@ -64,76 +64,92 @@ export function useFigmaSync(
     extractResponse: extractSyncApplyResult,
   });
 
-  const handleSyncGroup = useCallback(async () => {
-    if (!syncGroupPending || !connected) return;
-    const saved = syncGroupPending;
-    setSyncGroupPending(null);
-    setSyncGroupApplying(true);
-    setSyncGroupProgress(null);
+  // ── Shared group-sync helper ──────────────────────────────────────────────
+  // Fetches all resolved tokens, filters to the given group, and sends them.
+
+  const syncGroupBase = useCallback(async ({
+    pending,
+    setPending,
+    setApplying,
+    setProgress,
+    setError,
+    sendApply,
+    buildPayload,
+    successMsg,
+    entityName,
+  }: {
+    pending: { groupPath: string; tokenCount: number } | null;
+    setPending: (v: null) => void;
+    setApplying: (v: boolean) => void;
+    setProgress: (v: { current: number; total: number } | null) => void;
+    setError: (v: string | null) => void;
+    sendApply: (type: string, payload: Record<string, any>) => Promise<{ count: number; total: number; failures: { path: string; error: string }[] }>;
+    buildPayload: (tokens: { path: string; $type: string; $value: any; setName?: string }[]) => Record<string, any>;
+    successMsg: (count: number) => string;
+    entityName: string;
+  }) => {
+    if (!pending || !connected) return;
+    const saved = pending;
+    setPending(null);
+    setApplying(true);
+    setProgress(null);
+    setError(null);
+    const prefix = saved.groupPath + '.';
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
-      const prefix = saved.groupPath + '.';
       const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (path === saved.groupPath || path.startsWith(prefix)) {
           tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
         }
       }
-      const result = await sendVarApply('apply-variables', { tokens, collectionMap: setCollectionNames, modeMap: setModeNames });
+      const result = await sendApply('', buildPayload(tokens));
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map(f => f.path).join(', ');
-        setSyncGroupError(`${result.count}/${result.total} variables synced. Failed: ${failedPaths}`);
+        setError(`${result.count}/${result.total} ${entityName} synced. Failed: ${failedPaths}`);
       } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} variable${result.count !== 1 ? 's' : ''} synced` } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'notify', message: successMsg(result.count) } }, '*');
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;
-      console.error('Failed to sync group to Figma:', err);
-      setSyncGroupError(getErrorMessage(err, 'Failed to sync group to Figma'));
+      console.error(`Failed to sync group (${entityName}):`, err);
+      setError(getErrorMessage(err, `Failed to sync group to Figma`));
     } finally {
       if (!abortRef.current.signal.aborted) {
-        setSyncGroupApplying(false);
-        setSyncGroupProgress(null);
+        setApplying(false);
+        setProgress(null);
       }
     }
-  }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames, sendVarApply]);
+  }, [connected, serverUrl, pathToSet]);
+
+  const handleSyncGroup = useCallback(async () => {
+    await syncGroupBase({
+      pending: syncGroupPending,
+      setPending: setSyncGroupPending,
+      setApplying: setSyncGroupApplying,
+      setProgress: setSyncGroupProgress,
+      setError: setSyncGroupError,
+      sendApply: (_, payload) => sendVarApply('apply-variables', payload),
+      buildPayload: (tokens) => ({ tokens, collectionMap: setCollectionNames, modeMap: setModeNames }),
+      successMsg: (count) => `${count} variable${count !== 1 ? 's' : ''} synced`,
+      entityName: 'variables',
+    });
+  }, [syncGroupPending, syncGroupBase, sendVarApply, setCollectionNames, setModeNames]);
 
   const handleSyncGroupStyles = useCallback(async () => {
-    if (!syncGroupStylesPending || !connected) return;
-    const saved = syncGroupStylesPending;
-    setSyncGroupStylesPending(null);
-    setSyncGroupStylesError(null);
-    setSyncGroupStylesApplying(true);
-    setSyncGroupStylesProgress(null);
-    try {
-      const rawMap = await fetchAllTokensFlat(serverUrl);
-      const resolved = resolveAllAliases(rawMap);
-      const prefix = saved.groupPath + '.';
-      const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
-      for (const [path, entry] of Object.entries(resolved)) {
-        if (path === saved.groupPath || path.startsWith(prefix)) {
-          tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
-        }
-      }
-      const result = await sendStyleApply('apply-styles', { tokens });
-      if (result.failures.length > 0) {
-        const failedPaths = result.failures.map(f => f.path).join(', ');
-        setSyncGroupStylesError(`${result.count}/${result.total} styles created. Failed: ${failedPaths}`);
-      } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} style${result.count !== 1 ? 's' : ''} created` } }, '*');
-      }
-    } catch (err) {
-      if (abortRef.current.signal.aborted) return;
-      console.error('Failed to create styles from group:', err);
-      setSyncGroupStylesError(getErrorMessage(err, 'Failed to create styles from group'));
-    } finally {
-      if (!abortRef.current.signal.aborted) {
-        setSyncGroupStylesApplying(false);
-        setSyncGroupStylesProgress(null);
-      }
-    }
-  }, [syncGroupStylesPending, connected, serverUrl, pathToSet, sendStyleApply]);
+    await syncGroupBase({
+      pending: syncGroupStylesPending,
+      setPending: setSyncGroupStylesPending,
+      setApplying: setSyncGroupStylesApplying,
+      setProgress: setSyncGroupStylesProgress,
+      setError: setSyncGroupStylesError,
+      sendApply: (_, payload) => sendStyleApply('apply-styles', payload),
+      buildPayload: (tokens) => ({ tokens }),
+      successMsg: (count) => `${count} style${count !== 1 ? 's' : ''} created`,
+      entityName: 'styles',
+    });
+  }, [syncGroupStylesPending, syncGroupBase, sendStyleApply]);
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;

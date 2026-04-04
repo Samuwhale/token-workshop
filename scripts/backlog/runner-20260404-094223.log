@@ -45,3 +45,10 @@ Already up to date.
   → Consolidate duplicated Variable/Style sync code — `useVariableSync` (171 lines) and `useStyleSync` (171 lines) are structurally identical hooks with different property names; `VariableSyncSubPanel` (180 lines) and `StyleSyncSubPanel` (180 lines) are 95%+ identical components; `useFigmaSync` duplicates the token-fetch-filter-resolve pattern between `handleSyncGroup` and `handleSyncGroupStyles` (L65-98 vs L100-134); all six files (~915 lines total) should be consolidated into a parameterized `useSyncEntity` hook and a generic `SyncSubPanel` component, cutting ~450 lines of pure duplication
   Worktree: /tmp/backlog-60297-GNhLuZ
   Running agent… (started 09:44:39)
+
+  ✓ done: Consolidate duplicated Variable/Style sync code
+    Created useSyncEntity generic hook + SyncSubPanel generic component, deleted 4 redundant files (~700 lines), consolidated useFigmaSync group-sync duplication — all gates pass (lint improved from baseline 5 to 4 errors)
+    94 turns · 1577s · $5.47
+
+  Merging to main: Consolidate duplicated Variable/Style sync code
+Already up to date.

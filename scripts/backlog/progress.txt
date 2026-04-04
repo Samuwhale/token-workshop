@@ -378,3 +378,18 @@
   - When a hook already has an `abortRef` + unmount cleanup, scan ALL effects in the hook for missing abort guards — not just the async callbacks. Message event handlers are easy to miss since they look synchronous but update state asynchronously.
   - For undo/redo callback closures that live beyond the component (stored in a parent's undo stack), avoid passing the component's abort signal to them — those fetches should complete even if the component unmounts. Only the immediate async operation needs the signal.
 ---
+
+## 2026-04-04 - Consolidate duplicated Variable/Style sync code
+- Created `useSyncEntity<TRow, TSnapshot>` generic hook that replaces both `useVariableSync` and `useStyleSync`. Takes two configs: static `SyncMessages` (message types + stable extractors) and a dynamic config (entity-specific build functions, stored in a ref). Returns neutral property names (`rows`, `dirs`, `loading`, `syncing`, `progress`, `error`, `checked`, `syncCount`, `pushCount`, `pullCount`, `snapshot`, `reverting`, `revertError`, `revert`, `readFigmaTokens`).
+- Created `SyncSubPanel` generic component that replaces both `VariableSyncSubPanel` and `StyleSyncSubPanel`. Parameterized by text props (`description`, `sectionLabel`, `previewAction`, `applyAction`, `inSyncMessage`, `notCheckedMessage`, `revertDescription`).
+- Rewrote `PublishPanel.tsx` to use `useSyncEntity` directly twice (for variables and styles) with module-level static configs (`VAR_MESSAGES`, `STYLE_MESSAGES`) and pure helper functions. Replaced both `VariableSyncSubPanel` usage and the inline style sync code (150+ lines) with `SyncSubPanel`. Removed local duplicate `VarDiffRowItem` and `ValueCell` components.
+- Deleted `useVariableSync.ts`, `useStyleSync.ts`, `VariableSyncSubPanel.tsx`, `StyleSyncSubPanel.tsx` (4 files, ~700 lines).
+- Consolidated `useFigmaSync.ts`: extracted `syncGroupBase` helper that handles token-fetch-filter-resolve-apply for both variable and style group sync, eliminating 70 lines of duplication between `handleSyncGroup` and `handleSyncGroupStyles`.
+- Fixed pre-existing bug: added `swatchBgColor` import to `PublishPanel.tsx` (was used without being imported).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSyncEntity.ts` (new), `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` (new), `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` (rewritten), `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (import + hook + section changes), `packages/figma-plugin/src/ui/components/publish/PublishShared.tsx` ~L3
+- **Learnings for future iterations:**
+  - Split generic hook config into "static messages" (stable refs, required by useFigmaMessage dep array) and "dynamic config" (stored in a ref via configRef pattern). Callers define static configs as module-level constants.
+  - `useFigmaMessage` puts `extractResponse` in its dep array — if it's a new function each render, the event listener re-registers on every render. Always use stable (module-level or useCallback-with-stable-deps) functions for `extractResponse`.
+  - For `syncGroupBase`, use a callback ref pattern (via `useCallback`) rather than duplicating the fetch-filter-resolve-apply loop. Pass the entity-specific sender via a lambda `(_, payload) => sendVarApply('apply-variables', payload)` to avoid exposing the message type through the shared helper.
+  - When replacing inline JSX with a generic component, pass `React.ReactNode` for mixed HTML/text message props (like the "click Compare" message with a bold element).
+---
