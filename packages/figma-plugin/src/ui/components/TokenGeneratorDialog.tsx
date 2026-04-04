@@ -1,11 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
-import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
+import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import { swatchBgColor } from '../shared/colorUtils';
 import { AliasAutocomplete } from './AliasAutocomplete';
-import type { TokenMapEntry } from '../../shared/types';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -37,10 +36,8 @@ import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/Co
 import { AccessiblePairConfigEditor } from './generators/AccessiblePairGenerator';
 import { DarkModeInversionConfigEditor } from './generators/DarkModeInversionGenerator';
 import { GenericPreview } from './generators/generatorShared';
-import { PRIMARY_TYPES, ADVANCED_TYPES, VALUE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
+import { PRIMARY_TYPES, ADVANCED_TYPES } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
-import { AliasAutocomplete } from './AliasAutocomplete';
-import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Main dialog
@@ -194,11 +191,14 @@ export function TokenGeneratorDialog({
     existingTokensError,
     saving,
     saveError,
-    showSemanticMapping,
-    savedTokens,
-    savedTargetGroup,
     showConfirmation,
     overwritePendingPaths,
+    overwriteCheckLoading,
+    overwriteCheckError,
+    semanticEnabled,
+    semanticPrefix,
+    semanticMappings,
+    selectedSemanticPatternId,
     handleTypeChange,
     handleNameChange,
     setTargetSet,
@@ -215,9 +215,10 @@ export function TokenGeneratorDialog({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
-    handleSemanticMappingClose,
-    handleOverwriteConfirm,
-    handleOverwriteCancel,
+    setSemanticEnabled,
+    setSemanticPrefix,
+    setSemanticMappings,
+    setSelectedSemanticPatternId,
     isDirtyRef,
   } = useGeneratorDialog({
     serverUrl,
@@ -251,50 +252,29 @@ export function TokenGeneratorDialog({
     onClose();
   };
 
-  if (showSemanticMapping) {
-    return (
-      <SemanticMappingDialog
-        serverUrl={serverUrl}
-        generatedTokens={savedTokens}
-        generatorType={selectedType}
-        targetGroup={savedTargetGroup}
-        targetSet={targetSet}
-        onClose={handleSemanticMappingClose}
-        onCreated={handleSemanticMappingClose}
-      />
-    );
-  }
-
   if (showConfirmation) {
     // Tokens truly new (don't exist in target set at all)
     const newTokens = previewTokens.filter(pt => !existingOverwritePathSet.has(pt.path));
     // Tokens that exist with the same value (will be silently overwritten, no value change)
     const unchangedOverwriteTokens = previewTokens.filter(pt => existingOverwritePathSet.has(pt.path) && !overwritePaths.has(pt.path));
-    // For multi-brand, we don't have previewTokens — show a summary instead
     const hasPreview = previewTokens.length > 0;
 
+    // Semantic mapping — only for new generators with eligible types and token output
+    const suggestedPatterns = SEMANTIC_PATTERNS.filter(p => p.applicableTo.includes(selectedType));
+    const showSemanticSection = !isEditing && (previewTokens.length > 0 || isMultiBrand) && !onInterceptSemanticMapping;
+    const availableSteps = previewTokens.map(t => String(t.stepName));
+
+    const handleSemanticPatternSelect = (patternId: string) => {
+      const pattern = SEMANTIC_PATTERNS.find(p => p.id === patternId);
+      if (!pattern) return;
+      setSelectedSemanticPatternId(patternId);
+      setSemanticMappings(pattern.mappings.map(m => ({
+        semantic: m.semantic,
+        step: availableSteps.includes(m.step) ? m.step : (availableSteps[Math.floor(availableSteps.length / 2)] ?? ''),
+      })));
+    };
+
     return (
-      <>
-      {overwritePendingPaths.length > 0 && (
-        <ConfirmModal
-          title={`${overwritePendingPaths.length} manually edited token${overwritePendingPaths.length !== 1 ? 's' : ''} will be overwritten`}
-          description="The following tokens have been manually edited since the last generator run and will be replaced:"
-          confirmLabel="Overwrite"
-          cancelLabel="Cancel"
-          danger
-          wide
-          onConfirm={handleOverwriteConfirm}
-          onCancel={handleOverwriteCancel}
-        >
-          <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            {overwritePendingPaths.map((p: string) => (
-              <div key={p} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] py-0.5 truncate" title={p}>
-                {p}
-              </div>
-            ))}
-          </div>
-        </ConfirmModal>
-      )}
       <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
         <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
           {/* Header */}
@@ -305,7 +285,7 @@ export function TokenGeneratorDialog({
               </button>
               <div className="flex flex-col gap-0.5">
                 <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  Review Changes
+                  {isEditing ? 'Review & Update' : 'Review & Create'}
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {name} → {targetGroup}.* in {isMultiBrand ? 'multi-brand' : targetSet}
@@ -316,7 +296,8 @@ export function TokenGeneratorDialog({
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            {/* Overwrite warning — shown for new generators when existing tokens would be replaced */}
+
+            {/* Overwrite warning — new generator overwriting existing tokens */}
             {!isEditing && !isMultiBrand && existingOverwritePathSet.size > 0 && (
               <div className="flex items-start gap-2 px-2.5 py-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -325,6 +306,31 @@ export function TokenGeneratorDialog({
                   {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length === 0 && ' (no value changes)'}
                   {unchangedOverwriteTokens.length > 0 && overwrittenEntries.length > 0 && ` (${overwrittenEntries.length} with value changes, ${unchangedOverwriteTokens.length} unchanged)`}
                 </span>
+              </div>
+            )}
+
+            {/* Manually-edited overwrite warning — for updates, loaded async */}
+            {isEditing && overwriteCheckLoading && (
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
+                <Spinner size="sm" />
+                <span className="text-[10px]">Checking for manually edited tokens…</span>
+              </div>
+            )}
+            {isEditing && !overwriteCheckLoading && overwriteCheckError && (
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {overwriteCheckError}
+              </div>
+            )}
+            {isEditing && !overwriteCheckLoading && overwritePendingPaths.length > 0 && (
+              <div className="flex flex-col gap-1.5 px-2.5 py-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10">
+                <span className="text-[10px] font-medium text-[var(--color-figma-warning)]">
+                  {overwritePendingPaths.length} manually edited token{overwritePendingPaths.length !== 1 ? 's' : ''} will be overwritten
+                </span>
+                <div className="max-h-[100px] overflow-y-auto flex flex-col gap-0.5">
+                  {overwritePendingPaths.map((p: string) => (
+                    <div key={p} className="text-[10px] font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -422,6 +428,127 @@ export function TokenGeneratorDialog({
               </div>
             )}
 
+            {/* Semantic aliases — inline opt-in section for new generators */}
+            {showSemanticSection && (
+              <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Semantic aliases</span>
+                    {!semanticEnabled && (
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                        Optionally create alias tokens pointing to {targetGroup}.*
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSemanticEnabled(!semanticEnabled)}
+                    className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                      semanticEnabled
+                        ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                  >
+                    {semanticEnabled ? 'Enabled' : 'Enable'}
+                  </button>
+                </div>
+
+                {semanticEnabled && (
+                  <div className="mt-3 flex flex-col gap-3">
+                    {/* Pattern picker */}
+                    {suggestedPatterns.length > 0 && (
+                      <div>
+                        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">Suggested patterns</label>
+                        <div className="flex flex-wrap gap-1">
+                          {suggestedPatterns.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => handleSemanticPatternSelect(p.id)}
+                              className={`px-2 py-1 rounded text-[10px] border transition-colors ${
+                                selectedSemanticPatternId === p.id
+                                  ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                                  : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Semantic prefix */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Prefix</label>
+                      <input
+                        type="text"
+                        value={semanticPrefix}
+                        onChange={e => setSemanticPrefix(e.target.value)}
+                        placeholder="semantic"
+                        className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                      />
+                    </div>
+
+                    {/* Mapping rows */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Mappings</label>
+                        <button
+                          onClick={() => setSemanticMappings([...semanticMappings, { semantic: '', step: availableSteps[0] ?? '' }])}
+                          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {semanticMappings.map((mapping, i) => (
+                          <div key={i} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={mapping.semantic}
+                              onChange={e => setSemanticMappings(semanticMappings.map((m, idx) => idx === i ? { ...m, semantic: e.target.value } : m))}
+                              placeholder="action.default"
+                              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] min-w-0"
+                            />
+                            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)]"><path d="M2 6h8M7 3l3 3-3 3" /></svg>
+                            <select
+                              value={mapping.step}
+                              onChange={e => setSemanticMappings(semanticMappings.map((m, idx) => idx === i ? { ...m, step: e.target.value } : m))}
+                              className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                            >
+                              {availableSteps.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <button
+                              onClick={() => setSemanticMappings(semanticMappings.filter((_, idx) => idx !== i))}
+                              aria-label="Remove mapping"
+                              className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 3l6 6M9 3l-6 6" /></svg>
+                            </button>
+                          </div>
+                        ))}
+                        {semanticMappings.length === 0 && (
+                          <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1.5 text-center">No mappings — click "+ Add" to start</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Preview of what will be created */}
+                    {semanticMappings.filter(m => m.semantic.trim()).length > 0 && (
+                      <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg)] flex flex-col gap-0.5">
+                        {semanticMappings.filter(m => m.semantic.trim()).map((m, i) => (
+                          <div key={i} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+                            <span className="text-[var(--color-figma-text)]">{semanticPrefix}.{m.semantic}</span>
+                            {' → '}
+                            <span className="text-[var(--color-figma-accent)]">{'{' + targetGroup + '.' + m.step + '}'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
           </div>
 
@@ -430,19 +557,22 @@ export function TokenGeneratorDialog({
             <button onClick={handleCancelConfirmation} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">
               Back
             </button>
-            <button onClick={handleConfirmSave} disabled={saving}
+            <button onClick={handleConfirmSave} disabled={saving || overwriteCheckLoading}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
               {saving
                 ? (isEditing ? 'Saving…' : 'Creating…')
-                : isEditing
-                  ? 'Confirm & Update'
-                  : 'Confirm & Create'
+                : overwriteCheckLoading
+                  ? 'Checking…'
+                  : isEditing
+                    ? 'Confirm & Update'
+                    : semanticEnabled && semanticMappings.filter(m => m.semantic.trim()).length > 0
+                      ? `Confirm & Create (+${semanticMappings.filter(m => m.semantic.trim()).length} aliases)`
+                      : 'Confirm & Create'
               }
             </button>
           </div>
         </div>
       </div>
-      </>
     );
   }
 

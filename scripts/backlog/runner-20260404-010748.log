@@ -301,3 +301,10 @@ Already up to date.
   → Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step that shows overwrites and semantic mapping options together, reducing back-and-forth for the most common generator workflow (useGeneratorSave.ts, TokenGeneratorDialog.tsx)
   Worktree: /tmp/backlog-91949-13RuF9
   Running agent… (started 01:49:54)
+
+  ✓ done: Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step
+    Consolidated 3 dialogs into one: overwrite check now runs async while the review screen is open (inline spinner/warning), semantic aliases are an opt-in section within the same review panel. All 4 validation gates pass.
+    50 turns · 706s · $2.42
+
+  Merging to main: Generator save flow requires up to 3 sequential confirmation dialogs (preview confirmation → overwrite warning → semantic mapping interception) — consolidate into a single unified preview-and-confirm step
+Already up to date.

@@ -557,3 +557,21 @@
   - ThemeCompare's bulk create uses the filtered diff list (not all diffs), so type/search filters correctly scope what gets created
   - The `onTokensCreated` callback pattern (rather than internal refresh) keeps components free of refresh logic and lets App.tsx decide what to refresh (refreshAll vs refreshTokens)
 ---
+
+## 2026-04-04 - Generator save flow requires up to 3 sequential confirmation dialogs
+- Consolidated three sequential dialogs (preview confirmation → overwrite warning modal → semantic mapping screen) into a single unified "Review & Create/Update" view.
+- Created `packages/figma-plugin/src/ui/shared/semanticPatterns.ts` — moved `SEMANTIC_PATTERNS` array and `SemanticPattern` interface from `SemanticMappingDialog.tsx` so both the hook and the dialog can import them without circular deps.
+- Rewrote `useGeneratorSave.ts`: `handleSave()` now triggers the overwrite check async in the background (while the review screen is already visible, showing a spinner), initializes semantic mapping state based on generator type + preview tokens. `handleConfirmSave()` calls `commitSave()` directly (no intermediate step). `commitSave()` creates semantic alias tokens inline if the user opted in. Removed `handleOverwriteConfirm`, `handleOverwriteCancel`, `handleSemanticMappingClose`, `showSemanticMapping`, `savedTokens`, `savedTargetGroup`.
+- Updated `useGeneratorDialog.ts` interface to expose new state: `overwriteCheckLoading`, `overwriteCheckError`, `semanticEnabled`, `semanticPrefix`, `semanticMappings`, `selectedSemanticPatternId` and their setters. Removed old dialog-step handlers.
+- Rewrote confirmation branch in `TokenGeneratorDialog.tsx`: removed the full-screen `SemanticMappingDialog` branch, removed the `ConfirmModal` overwrite warning. Added inline overwrite check loading/error/paths section (visible within the review panel). Added inline "Semantic aliases" opt-in section with pattern picker, prefix input, mapping rows, and preview. Button label reflects alias count when enabled. Button disabled while `overwriteCheckLoading`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/semanticPatterns.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` (rewritten)
+  - `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L38-94, L209-243, L296-352
+  - `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1-8 (imports), L258-610 (confirmation view)
+  - `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L1-94 (moved patterns to shared)
+- **Learnings for future iterations:**
+  - When the overwrite check is an API call that happens AFTER the user clicks "Confirm", moving it to fire when the preview opens (in `handleSave`) lets the review screen show the result immediately without a blocking intermediate step. The user can see all relevant info at once and make a single informed decision.
+  - For semantic mapping consolidation: the hook owns the state; the dialog renders the UI. Avoid having the hook import from a React component — extract shared data to a plain `.ts` file.
+  - The `onInterceptSemanticMapping` callback path is preserved unchanged for external consumers (QuickStartWizard) — the `showSemanticSection` guard (`!onInterceptSemanticMapping`) ensures the inline section doesn't appear when the parent will handle it externally.
+---

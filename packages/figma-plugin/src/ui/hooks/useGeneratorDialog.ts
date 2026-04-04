@@ -66,11 +66,14 @@ interface UseGeneratorDialogReturn {
   existingTokensError: string;
   saving: boolean;
   saveError: string;
-  showSemanticMapping: boolean;
-  savedTokens: GeneratedTokenResult[];
-  savedTargetGroup: string;
   showConfirmation: boolean;
   overwritePendingPaths: string[];
+  overwriteCheckLoading: boolean;
+  overwriteCheckError: string;
+  semanticEnabled: boolean;
+  semanticPrefix: string;
+  semanticMappings: Array<{ semantic: string; step: string }>;
+  selectedSemanticPatternId: string | null;
   // Handlers
   handleTypeChange: (type: GeneratorType) => void;
   handleNameChange: (value: string) => void;
@@ -88,9 +91,10 @@ interface UseGeneratorDialogReturn {
   handleSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
-  handleSemanticMappingClose: () => void;
-  handleOverwriteConfirm: () => void;
-  handleOverwriteCancel: () => void;
+  setSemanticEnabled: (v: boolean) => void;
+  setSemanticPrefix: (v: string) => void;
+  setSemanticMappings: (v: Array<{ semantic: string; step: string }>) => void;
+  setSelectedSemanticPatternId: (v: string | null) => void;
 }
 
 export function useGeneratorDialog({
@@ -209,17 +213,21 @@ export function useGeneratorDialog({
   const {
     saving,
     saveError,
-    showSemanticMapping,
-    savedTokens,
-    savedTargetGroup,
     showConfirmation,
     overwritePendingPaths,
+    overwriteCheckLoading,
+    overwriteCheckError,
+    semanticEnabled,
+    semanticPrefix,
+    semanticMappings,
+    selectedSemanticPatternId,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
-    handleSemanticMappingClose,
-    handleOverwriteConfirm,
-    handleOverwriteCancel,
+    setSemanticEnabled,
+    setSemanticPrefix,
+    setSemanticMappings,
+    setSelectedSemanticPatternId,
   } = useGeneratorSave({
     serverUrl,
     isEditing,
@@ -324,11 +332,14 @@ export function useGeneratorDialog({
     existingTokensError,
     saving,
     saveError,
-    showSemanticMapping,
-    savedTokens,
-    savedTargetGroup,
     showConfirmation,
     overwritePendingPaths,
+    overwriteCheckLoading,
+    overwriteCheckError,
+    semanticEnabled,
+    semanticPrefix,
+    semanticMappings,
+    selectedSemanticPatternId,
     // Handlers
     handleTypeChange,
     handleNameChange,
@@ -346,8 +357,9 @@ export function useGeneratorDialog({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
-    handleSemanticMappingClose,
-    handleOverwriteConfirm,
-    handleOverwriteCancel,
+    setSemanticEnabled,
+    setSemanticPrefix,
+    setSemanticMappings,
+    setSelectedSemanticPatternId,
   };
 }

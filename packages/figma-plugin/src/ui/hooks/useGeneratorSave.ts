@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
+import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -34,17 +35,21 @@ interface UseGeneratorSaveParams {
 export interface UseGeneratorSaveReturn {
   saving: boolean;
   saveError: string;
-  showSemanticMapping: boolean;
-  savedTokens: GeneratedTokenResult[];
-  savedTargetGroup: string;
   showConfirmation: boolean;
   overwritePendingPaths: string[];
+  overwriteCheckLoading: boolean;
+  overwriteCheckError: string;
+  semanticEnabled: boolean;
+  semanticPrefix: string;
+  semanticMappings: Array<{ semantic: string; step: string }>;
+  selectedSemanticPatternId: string | null;
   handleSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
-  handleSemanticMappingClose: () => void;
-  handleOverwriteConfirm: () => void;
-  handleOverwriteCancel: () => void;
+  setSemanticEnabled: (v: boolean) => void;
+  setSemanticPrefix: (v: string) => void;
+  setSemanticMappings: (v: Array<{ semantic: string; step: string }>) => void;
+  setSelectedSemanticPatternId: (v: string | null) => void;
 }
 
 export function useGeneratorSave({
@@ -70,30 +75,17 @@ export function useGeneratorSave({
 }: UseGeneratorSaveParams): UseGeneratorSaveReturn {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [showSemanticMapping, setShowSemanticMapping] = useState(false);
-  const [savedTokens, setSavedTokens] = useState<GeneratedTokenResult[]>([]);
-  const [savedTargetGroup, setSavedTargetGroup] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [overwritePendingPaths, setOverwritePendingPaths] = useState<string[]>([]);
-
-  /** Step 1: Validate inputs, then show the confirmation preview. */
-  const handleSave = useCallback(async () => {
-    if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
-    if (!name.trim()) { setSaveError('Generator name is required.'); return; }
-    if (!isMultiBrand && typeNeedsValue && !hasValue) { setSaveError('This generator type requires a source token or base value.'); return; }
-    if (isMultiBrand && inputTable) {
-      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
-      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
-      const brandNames = inputTable.rows.map(r => r.brand.trim().toLowerCase());
-      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
-      if (duplicate) { setSaveError(`Duplicate brand name "${inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)!.brand.trim()}" — each brand name must be unique.`); return; }
-    }
-    setSaveError('');
-    setShowConfirmation(true);
-  }, [targetGroup, name, isMultiBrand, typeNeedsValue, hasValue, inputTable, targetSetTemplate]);
+  const [overwriteCheckLoading, setOverwriteCheckLoading] = useState(false);
+  const [overwriteCheckError, setOverwriteCheckError] = useState('');
+  const [semanticEnabled, setSemanticEnabled] = useState(false);
+  const [semanticPrefix, setSemanticPrefix] = useState('semantic');
+  const [semanticMappings, setSemanticMappings] = useState<Array<{ semantic: string; step: string }>>([]);
+  const [selectedSemanticPatternId, setSelectedSemanticPatternId] = useState<string | null>(null);
 
   /** Inner save logic — commits the generator to the server. */
-  const commitSave = useCallback(async () => {
+  const commitSave = useCallback(async (semanticEnabledAtSave: boolean, semanticPrefixAtSave: string, semanticMappingsAtSave: Array<{ semantic: string; step: string }>, targetGroupAtSave: string, targetSetAtSave: string) => {
     setSaving(true);
     setSaveError('');
     try {
@@ -102,8 +94,8 @@ export function useGeneratorSave({
         name: name.trim(),
         sourceToken: isMultiBrand ? undefined : (sourceTokenPath || undefined),
         inlineValue: (!sourceTokenPath && inlineValue !== undefined && inlineValue !== '') ? inlineValue : undefined,
-        targetSet,
-        targetGroup: targetGroup.trim(),
+        targetSet: targetSetAtSave,
+        targetGroup: targetGroupAtSave,
         config,
         overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
@@ -117,6 +109,7 @@ export function useGeneratorSave({
         body: JSON.stringify(body),
       });
       setShowConfirmation(false);
+
       if (!isEditing) {
         let tokensForMapping = previewTokens;
         if (tokensForMapping.length === 0 && isMultiBrand) {
@@ -127,86 +120,144 @@ export function useGeneratorSave({
             console.warn('[useGeneratorSave] failed to fetch generator tokens for semantic mapping:', err);
           }
         }
-        if (tokensForMapping.length > 0) {
-          if (onInterceptSemanticMapping) {
-            onInterceptSemanticMapping({ tokens: tokensForMapping, targetGroup: targetGroup.trim(), targetSet, generatorType: selectedType });
-            setSaving(false);
-            onSaved({ targetGroup: targetGroup.trim() });
-            return;
-          }
-          setSavedTokens(tokensForMapping);
-          setSavedTargetGroup(targetGroup.trim());
-          setShowSemanticMapping(true);
+
+        if (tokensForMapping.length > 0 && onInterceptSemanticMapping) {
+          onInterceptSemanticMapping({ tokens: tokensForMapping, targetGroup: targetGroupAtSave, targetSet: targetSetAtSave, generatorType: selectedType });
           setSaving(false);
+          onSaved({ targetGroup: targetGroupAtSave });
           return;
         }
+
+        // Create semantic alias tokens inline if the user opted in
+        if (tokensForMapping.length > 0 && semanticEnabledAtSave) {
+          const validMappings = semanticMappingsAtSave.filter(m => m.semantic.trim() && m.step);
+          for (const mapping of validMappings) {
+            const fullPath = `${semanticPrefixAtSave.trim()}.${mapping.semantic}`;
+            const encodedFullPath = fullPath.split('.').map(encodeURIComponent).join('/');
+            const tokenType = tokensForMapping.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
+            const body = {
+              $type: tokenType,
+              $value: `{${targetGroupAtSave}.${mapping.step}}`,
+              $description: `Semantic reference for ${targetGroupAtSave}.${mapping.step}`,
+            };
+            try {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/${encodedFullPath}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+            } catch (postErr: any) {
+              if (postErr?.status === 409) {
+                await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/${encodedFullPath}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body),
+                });
+              } else {
+                console.warn('[useGeneratorSave] failed to create semantic token:', postErr);
+              }
+            }
+          }
+        }
       }
+
       setSaving(false);
-      onSaved({ targetGroup: targetGroup.trim() });
+      onSaved({ targetGroup: targetGroupAtSave });
     } catch (err) {
       setSaveError(getErrorMessage(err));
       setSaving(false);
     }
-  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, targetSet, targetGroup, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
+  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
 
-  /** Step 2: Check for overwrites, then commit (called from confirmation view). */
-  const handleConfirmSave = useCallback(async () => {
-    // When updating an existing generator, check for manually-edited tokens
+  /** Step 1: Validate inputs, show the confirmation preview.
+   *  For editing: kicks off the overwrite check in the background so the preview
+   *  shows the result without a blocking modal.
+   *  For new generators: pre-populates semantic mapping state based on generator type.
+   */
+  const handleSave = useCallback(async () => {
+    if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
+    if (!name.trim()) { setSaveError('Generator name is required.'); return; }
+    if (!isMultiBrand && typeNeedsValue && !hasValue) { setSaveError('This generator type requires a source token or base value.'); return; }
+    if (isMultiBrand && inputTable) {
+      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
+      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
+      const brandNames = inputTable.rows.map(r => r.brand.trim().toLowerCase());
+      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
+      if (duplicate) { setSaveError(`Duplicate brand name "${inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)!.brand.trim()}" — each brand name must be unique.`); return; }
+    }
+    setSaveError('');
+
+    // Initialize semantic mapping state for new generators with eligible types
+    if (!isEditing && (previewTokens.length > 0 || isMultiBrand)) {
+      const suggestedPatterns = SEMANTIC_PATTERNS.filter(p => p.applicableTo.includes(selectedType));
+      if (suggestedPatterns.length > 0 && suggestedPatterns[0]) {
+        const firstPattern = suggestedPatterns[0];
+        const availableSteps = previewTokens.map(t => String(t.stepName));
+        setSelectedSemanticPatternId(firstPattern.id);
+        setSemanticMappings(firstPattern.mappings.map(m => ({
+          semantic: m.semantic,
+          step: availableSteps.includes(m.step) ? m.step : (availableSteps[Math.floor(availableSteps.length / 2)] ?? ''),
+        })));
+      } else {
+        setSelectedSemanticPatternId(null);
+        setSemanticMappings([]);
+      }
+      setSemanticEnabled(false); // user must opt in
+    }
+
+    setShowConfirmation(true);
+
+    // For editing: check for manually-edited tokens in the background so the review
+    // screen shows the info immediately rather than gating on it.
     if (isEditing && existingGenerator) {
-      setSaving(true);
+      setOverwriteCheckLoading(true);
+      setOverwritePendingPaths([]);
+      setOverwriteCheckError('');
       try {
         const { modified } = await apiFetch<{ modified: { path: string }[] }>(
           `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
           { method: 'POST' },
         );
-        if (modified.length > 0) {
-          setOverwritePendingPaths(modified.map(m => m.path));
-          setSaving(false);
-          return;
-        }
+        setOverwritePendingPaths(modified.map(m => m.path));
       } catch (err) {
-        setSaveError(`Could not verify manually-edited tokens: ${getErrorMessage(err)}. Please retry.`);
-        setSaving(false);
-        return;
+        setOverwriteCheckError(`Could not check for manually-edited tokens: ${getErrorMessage(err)}`);
+      } finally {
+        setOverwriteCheckLoading(false);
       }
-      setSaving(false);
     }
-    await commitSave();
-  }, [isEditing, existingGenerator, serverUrl, commitSave]);
+  }, [targetGroup, name, isMultiBrand, typeNeedsValue, hasValue, inputTable, targetSetTemplate, isEditing, existingGenerator, serverUrl, selectedType, previewTokens]);
 
-  /** User confirmed overwriting manually-edited tokens. */
-  const handleOverwriteConfirm = useCallback(() => {
-    setOverwritePendingPaths([]);
-    commitSave();
-  }, [commitSave]);
-
-  /** User cancelled the overwrite warning. */
-  const handleOverwriteCancel = useCallback(() => {
-    setOverwritePendingPaths([]);
-  }, []);
+  /** Step 2: Commit the save. Overwrites are already known (shown in review view).
+   *  Semantic tokens are created inline if the user opted in.
+   */
+  const handleConfirmSave = useCallback(async () => {
+    await commitSave(semanticEnabled, semanticPrefix, semanticMappings, targetGroup.trim(), targetSet);
+  }, [commitSave, semanticEnabled, semanticPrefix, semanticMappings, targetGroup, targetSet]);
 
   const handleCancelConfirmation = useCallback(() => {
     setShowConfirmation(false);
+    setOverwritePendingPaths([]);
+    setOverwriteCheckLoading(false);
+    setOverwriteCheckError('');
   }, []);
-
-  const handleSemanticMappingClose = useCallback(() => {
-    setShowSemanticMapping(false);
-    onSaved({ targetGroup: savedTargetGroup });
-  }, [onSaved, savedTargetGroup]);
 
   return {
     saving,
     saveError,
-    showSemanticMapping,
-    savedTokens,
-    savedTargetGroup,
     showConfirmation,
     overwritePendingPaths,
+    overwriteCheckLoading,
+    overwriteCheckError,
+    semanticEnabled,
+    semanticPrefix,
+    semanticMappings,
+    selectedSemanticPatternId,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
-    handleSemanticMappingClose,
-    handleOverwriteConfirm,
-    handleOverwriteCancel,
+    setSemanticEnabled,
+    setSemanticPrefix,
+    setSemanticMappings,
+    setSelectedSemanticPatternId,
   };
 }
