@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { ConfirmModal } from '../ConfirmModal';
 import { isHexColor, DiffSwatch, truncateValue, TokenChangeRow } from './PublishShared';
 import { getErrorMessage } from '../../shared/utils';
@@ -25,6 +26,8 @@ export function SyncPreviewModal({
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
   const pushAdds = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'local-only');
   const pushUpdates = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'conflict');
   const pullAdds = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'figma-only');
@@ -77,7 +80,7 @@ export function SyncPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+      <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
         <div className="px-4 pt-4 pb-2">
           <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -237,6 +240,8 @@ export function GitPreviewModal({
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const gitDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(gitDialogRef);
 
   useEffect(() => {
     fetchPreview();
@@ -272,7 +277,7 @@ export function GitPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={gitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">{subtitle}</p>
@@ -417,6 +422,8 @@ export function CommitPreviewModal({
   const [busy, setBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const commitDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(commitDialogRef);
 
   useEffect(() => {
     if (tokenPreview === null && !tokenPreviewLoading) {
@@ -478,7 +485,7 @@ export function CommitPreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
+      <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true">
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">

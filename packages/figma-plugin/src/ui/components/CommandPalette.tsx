@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 import { swatchBgColor } from '../shared/colorUtils';
 import { parseStructuredQuery, QUERY_QUALIFIERS } from './tokenListUtils';
@@ -155,11 +156,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   const [searchAllSets, setSearchAllSets] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [recent] = useState<RecentEntry[]>(() => loadRecent());
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useFocusTrap(dialogRef, { initialFocusRef: inputRef });
 
   // Reset visible count when query changes
   useEffect(() => {
@@ -395,6 +394,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
         style={{ maxHeight: '60vh' }}
         onClick={e => e.stopPropagation()}

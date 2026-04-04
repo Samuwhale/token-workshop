@@ -406,3 +406,25 @@
   - When adding try/catch to a GET handler that previously had no `reply` parameter, the signature must be updated from `async (request)` to `async (request, reply)` to pass `reply` to `handleRouteError`
   - The tokens.ts resolved-token route referenced in the backlog item (line 46) had already been fixed by the time this ran — always verify current file state before assuming a route is unguarded
 ---
+
+## 2026-04-04 - Focus trapping missing in all modals
+- Implemented a `useFocusTrap(containerRef, options?)` hook in `packages/figma-plugin/src/ui/hooks/useFocusTrap.ts` that: (1) auto-focuses the first focusable element (or `options.initialFocusRef` if provided) on mount, (2) traps Tab/Shift+Tab cycling within the container, (3) restores focus to the previously-focused element on unmount.
+- Applied the hook to all modal components rendering `role="dialog"`:
+  - `ConfirmModal.tsx`: added `dialogRef` + `useFocusTrap(dialogRef)`
+  - `CommandPalette.tsx`: removed manual `inputRef.current?.focus()` effect, replaced with `useFocusTrap(dialogRef, { initialFocusRef: inputRef })`
+  - `PasteTokensModal.tsx`: added `role="dialog" aria-modal="true"` (was missing), added `dialogRef`, used `useFocusTrap(dialogRef, { initialFocusRef: textareaRef })` so textarea gets focus instead of close button; removed `autoFocus` attribute
+  - `KeyboardShortcutsModal.tsx`: added `useEffect`+`useRef` imports, `useFocusTrap(dialogRef)`, and an Escape key handler (was missing entirely)
+  - `publish/PublishModals.tsx`: applied to `SyncPreviewModal`, `GitPreviewModal`, `CommitPreviewModal` (each got its own named ref); `ApplyDiffConfirmModal` wraps `ConfirmModal` so it gets the trap transitively
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useFocusTrap.ts` (new)
+  - `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L3-5, ~L32-33, ~L67
+  - `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L2, ~L156-162, ~L401
+  - `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L2, ~L67-69, ~L161-165, ~L204
+  - `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L1-4, ~L9-19, ~L18
+  - `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L2, ~L27-30, ~L83, ~L241-244, ~L282, ~L424-426, ~L490
+- **Learnings for future iterations:**
+  - `publish/` subdirectory components need `../../hooks/...` not `../hooks/...` for hook imports — easy to miss
+  - When multiple modals in one file share the same `dialogRef` name, use distinct names (`gitDialogRef`, `commitDialogRef`) to avoid TDZ conflicts
+  - Components that already use `autoFocus` attribute can have it removed when `useFocusTrap` + `initialFocusRef` is used — cleaner and more predictable
+  - The `useFocusTrap` eslint comment `// eslint-disable-next-line react-hooks/exhaustive-deps` is needed because refs are intentionally omitted from deps (they're stable objects)
+---

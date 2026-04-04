@@ -1,17 +1,29 @@
+import { useEffect, useRef } from 'react';
 import { adaptShortcut } from '../shared/utils';
 import { SHORTCUT_SECTIONS } from '../shared/shortcutRegistry';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface KeyboardShortcutsModalProps {
   onClose: () => void;
 }
 
 export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 pt-16"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
         style={{ maxHeight: '60vh' }}
         onClick={e => e.stopPropagation()}

@@ -1,6 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
@@ -29,6 +30,8 @@ export function ConfirmModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const mountedRef = useRef(true);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     return () => { mountedRef.current = false; };
@@ -61,7 +64,7 @@ export function ConfirmModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <div className="px-4 pt-4 pb-3">
           <h3 id="confirm-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (

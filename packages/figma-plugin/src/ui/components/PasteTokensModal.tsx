@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { adaptShortcut, getErrorMessage } from '../shared/utils';
 import { parseInput, validateTokenPath, type ParsedToken } from '../shared/tokenParsers';
 import { apiFetch } from '../shared/apiFetch';
@@ -62,6 +63,8 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   const [rowOverwrites, setRowOverwrites] = useState<Record<string, boolean>>({});
   const [overwriteAll, setOverwriteAll] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, { initialFocusRef: textareaRef });
 
   const { tokens: parsedTokens, errors, format } = useMemo(() => parseInput(input), [input]);
 
@@ -157,8 +160,12 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onKeyDown={handleKeyDown}>
       <div
+        ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl flex flex-col"
         style={{ width: 420, maxHeight: '88vh' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Paste tokens"
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-start justify-between gap-2">
@@ -201,7 +208,6 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
               placeholder={'name: value   |  CSV / TSV   |  CSS vars\ncolors.red: #ff0000  name,type,value  --color-red: #f00\nspacing.sm: 8px      sm,dimension,8px  --spacing-sm: 8px\n\n— or DTCG JSON / Tailwind config objects —\n{ colors: { red: \'#ff0000\', blue: \'#0000ff\' } }'}
               value={input}
               onChange={e => { setInput(e.target.value); setSubmitError(''); }}
-              autoFocus
             />
             {format !== 'empty' && format !== 'error' && (
               <span className="absolute bottom-2 right-2 text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/30 rounded px-1.5 py-0.5 pointer-events-none">
