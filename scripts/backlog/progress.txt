@@ -390,3 +390,15 @@
   - The inline pattern always returned 500; `handleRouteError` correctly passes typed errors (NotFoundError→404, ConflictError→409, BadRequestError→400) through to the client.
   - The `detail: String(err)` field in the inline pattern is reproduced by `handleRouteError`'s fallback branch when a `fallbackMessage` is provided.
 ---
+
+## 2026-04-04 - TokenStore.saveSet has no per-set write serialization
+- Added `private _saveChains = new Map<string, Promise<void>>()` field to `TokenStore` class
+- Rewrote `saveSet` from `private async saveSet(name)` to a non-async method that chains the actual I/O (mkdir + writeFile + rename) behind any in-flight write for the same set name, using the same promise-chain mutex pattern as `TokenLock`
+- The chain advances regardless of success/failure (`.catch(() => {})`) to prevent deadlock — identical to `TokenLock.withLock`
+- Files changed: `packages/server/src/services/token-store.ts` ~L52, ~L1823
+- **Learnings for future iterations:**
+  - The race is triggered by the auto-run generator path in `index.ts` (L95-103): `onChange('token-updated')` fires `generatorService.runForSourceToken` WITHOUT the global `withLock`, so generator writes are not serialized against concurrent route-handler writes to the same set
+  - The concrete failure mode: two concurrent `saveSet` calls share the same `.tmp` path (`filePath + '.tmp'`); if call A's `rename(tmpX, setX)` happens after B's, tmpX no longer exists for A (ENOENT), OR A's rename overwrites B's already-correct disk state with A's stale serialization
+  - Per-set chains are the right granularity — independent sets can still write in parallel, only same-set writes are serialized
+  - `JSON.stringify` runs inside the chain so it always captures the most up-to-date in-memory state when the chain slot executes — correct behavior since later callers inherit all earlier mutations
+---

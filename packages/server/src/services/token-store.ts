@@ -50,6 +50,8 @@ export class TokenStore {
   private _pendingWatcherEvents: ChangeEvent[] = [];
   private _batchDepth = 0;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  /** Per-set promise chains that serialize concurrent saveSet calls for the same file. */
+  private _saveChains = new Map<string, Promise<void>>();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -1818,15 +1820,23 @@ export class TokenStore {
     }
   }
 
-  private async saveSet(name: string): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) return;
-    const filePath = path.join(this.dir, `${name}.tokens.json`);
-    const tmpPath = filePath + '.tmp';
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(tmpPath, JSON.stringify(set.tokens, null, 2));
-    this._startWriteGuard(filePath);
-    await fs.rename(tmpPath, filePath);
+  private saveSet(name: string): Promise<void> {
+    // Serialize writes for each set name: chain the actual I/O behind any in-flight
+    // write for the same set so concurrent callers never race on the same .tmp file.
+    const prev = this._saveChains.get(name) ?? Promise.resolve();
+    const next = prev.then(async () => {
+      const set = this.sets.get(name);
+      if (!set) return;
+      const filePath = path.join(this.dir, `${name}.tokens.json`);
+      const tmpPath = filePath + '.tmp';
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(tmpPath, JSON.stringify(set.tokens, null, 2));
+      this._startWriteGuard(filePath);
+      await fs.rename(tmpPath, filePath);
+    });
+    // Advance the chain regardless of success/failure (mirrors TokenLock behaviour).
+    this._saveChains.set(name, next.catch(() => {}));
+    return next;
   }
 
   // ----- SSE support -----
