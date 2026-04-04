@@ -593,3 +593,9 @@
   - For batch write operations in `Promise.all`, a per-request timeout (not a shared one) is the right pattern — use a longer value (10 s) since writes are slower than reads.
   - When adding abort to an effect that previously had no cleanup, add both a `controller.abort()` cleanup AND an AbortError guard in the `.catch()` handler to avoid setState-on-unmount warnings.
 ---
+  - `packages/server/src/services/git-sync.ts` ~L384-399 (complete-resolution check)
+- **Learnings for future iterations:**
+  - When a mutex (`withLock`) is used, the check and the guarded mutation must both happen inside the same lock scope. Checking a condition before acquiring the lock and setting it after is a TOCTOU race even in single-threaded async code, because `await` yields between the check and the set.
+  - For in-memory state mutations with async validation, the pattern is: apply mutation → validate → revert on failure → save. This makes the validation path clean with no intermediate writes.
+  - Partial-resolution validation (checking all indices are covered) belongs alongside range validation in the same step, before any file I/O.
+---

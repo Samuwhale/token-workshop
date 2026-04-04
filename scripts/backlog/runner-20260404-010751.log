@@ -755,3 +755,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox — resolver persistence gap, missing recent tokens in bind picker, likely-dead useFigmaSync hook, no batch value editing, silent publish-all git skip, move/copy conflict blindness, duplicate validation between Health and Analytics panels, undersized git conflict UI, dead propFilter state in inspector, hidden export changes-only mode, missing per-category unbind action
+Already up to date.

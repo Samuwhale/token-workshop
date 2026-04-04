@@ -621,3 +621,18 @@ Already up to date.
 
   Merging to main: UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks
 Already up to date.
+[main 0ba2f98b] chore(backlog): done – UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks
+ 15 files changed, 92 insertions(+), 33 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - UI fetch hooks have inconsistent abort/timeout patterns
+- Extracted `createFetchSignal(disconnectSignal?, timeoutMs?)` factory to `apiFetch.ts`. Combines `AbortSignal.timeout(timeoutMs)` with an optional disconnect/controller signal via `AbortSignal.any`. Default timeout 5 s; callers can override (e.g. 10 s for batch writes).
+- `useGeneratorPreview.ts`: wrapped both the preview POST and the existing-tokens GET with `createFetchSignal(controller.signal)` — previously had no timeout (could hang indefinitely).
+- `useResolvers.ts`: added `createFetchSignal()` to `fetchResolvers` (previously no signal at all); added `createFetchSignal(controller.signal)` to the resolve-tokens POST.
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  1 queued · 2 in-progress · last took 7m19s
+═══════════════════════════════════════════════════════════════
+  → Core package has scattered type safety issues that undermine the resolver pipeline — dtcg-resolver.ts L230 uses an unsafe `as` cast that narrows ResolvedToken to a 4-field object, silently dropping $description and $extensions from the resolved map; types.ts L256 defines ResolverSource as `ResolverRef | Record<string, unknown>` which accepts any object instead of the correct `DTCGGroup`; validator.ts uses 7+ redundant `as Record<string, unknown>` casts after type guard checks that already narrow the type; color-parse.ts exports cssColorString (L596) which is a no-op identity function not re-exported from index.ts (dead code); consolidate by tightening the ResolverSource type, removing the resolver cast, cleaning up validator casts, and removing dead exports
+  Worktree: /tmp/backlog-91949-zrrzkl
+  Running agent… (started 03:33:36)
