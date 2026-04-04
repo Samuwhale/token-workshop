@@ -254,87 +254,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  /* ── Auto-run checks when tab activates after token edits ───────────── */
-
-  const runReadinessChecksRef = useRef(runReadinessChecks);
-  useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
-
-  useEffect(() => {
-    if (!connected || !activeSet || tokenChangeKey === undefined) return;
-    const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
-    if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
-      runReadinessChecksRef.current();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally runs only on mount
-
-  /* ── Publish-all pending counts ─────────────────────────────────────── */
-
-  const hasVarChanges = varSync.checked && varSync.syncCount > 0;
-  const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
-  const gitDiffPendingCount = useMemo(
-    () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
-    [git.diffChoices],
-  );
-  const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
-  const hasMergeConflicts = git.mergeConflicts.length > 0;
-  // When merge conflicts exist, exclude git from publish-all so Variables + Styles can still proceed
-  const effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts;
-  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (effectiveHasGitDiffChanges ? 1 : 0);
-  // Show the Publish All banner when any single compared target has pending changes.
-  // Auto-compare is enabled for variables, so this typically appears right after connecting.
-  const publishAllAvailable = publishAllSections >= 1;
-  const publishAllBusy = publishAllStep !== null;
-
-  // "Publish All" fast path: auto-compare any unchecked targets, then open the combined modal.
-  // This lets users click one button to compare everything and confirm in a single step.
-  const handleOpenPublishAll = useCallback(async () => {
-    const toCompare: Promise<void>[] = [];
-    if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
-    if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
-    if (git.diffView === null && !git.diffLoading) toCompare.push(git.computeDiff());
-
-    if (toCompare.length > 0) {
-      setCompareAllLoading(true);
-      try {
-        await Promise.all(toCompare);
-      } catch {
-        // Each entity surfaces its own error in its section; we still open the modal.
-      } finally {
-        setCompareAllLoading(false);
-      }
-    }
-    setConfirmAction('publish-all');
-  }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff]);
-
-  const runPublishAll = useCallback(async () => {
-    setPublishAllError(null);
-    setPublishAllGitSkipped(false);
-
-    try {
-      if (hasVarChanges) {
-        setPublishAllStep('variables');
-        await varSync.applyDiff();
-      }
-      if (hasStyleChanges) {
-        setPublishAllStep('styles');
-        await styleSync.applyDiff();
-      }
-      // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
-      if (hasGitDiffChanges && !hasMergeConflicts) {
-        setPublishAllStep('git');
-        await git.applyDiff();
-      } else if (hasMergeConflicts && hasGitDiffChanges) {
-        setPublishAllGitSkipped(true);
-      }
-      setChecksStale(true);
-    } catch (err) {
-      setPublishAllError(describeError(err));
-    } finally {
-      setPublishAllStep(null);
-    }
-  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git]);
-
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
   const READINESS_TIMEOUT_MS = 15_000;
@@ -419,6 +338,97 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       setReadinessLoading(false);
     }
   }, [serverUrl, activeSet, varSync.readFigmaTokens, collectionMap, modeMap, tokenChangeKey]);
+
+  /* ── Auto-run checks when tab activates after token edits ───────────── */
+
+  const runReadinessChecksRef = useRef(runReadinessChecks);
+  useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
+
+  // On mount: auto-run if tokens changed since the last check (user edited then navigated here)
+  useEffect(() => {
+    if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
+    if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
+      runReadinessChecksRef.current();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs only on mount
+
+  // While mounted: auto-recheck whenever tokenChangeKey increments (after at least one prior check)
+  useEffect(() => {
+    if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    if (checksRunAtKey === null) return; // skip until the user has triggered at least one check
+    if (tokenChangeKey === checksRunAtKey) return; // already current
+    runReadinessChecksRef.current();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenChangeKey]); // re-run when token data changes
+
+  /* ── Publish-all pending counts ─────────────────────────────────────── */
+
+  const hasVarChanges = varSync.checked && varSync.syncCount > 0;
+  const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
+  const gitDiffPendingCount = useMemo(
+    () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
+    [git.diffChoices],
+  );
+  const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
+  const hasMergeConflicts = git.mergeConflicts.length > 0;
+  // When merge conflicts exist, exclude git from publish-all so Variables + Styles can still proceed
+  const effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts;
+  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (effectiveHasGitDiffChanges ? 1 : 0);
+  // Show the Publish All banner when any single compared target has pending changes.
+  // Auto-compare is enabled for variables, so this typically appears right after connecting.
+  const publishAllAvailable = publishAllSections >= 1;
+  const publishAllBusy = publishAllStep !== null;
+
+  // "Publish All" fast path: auto-compare any unchecked targets, then open the combined modal.
+  // This lets users click one button to compare everything and confirm in a single step.
+  const handleOpenPublishAll = useCallback(async () => {
+    const toCompare: Promise<void>[] = [];
+    if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
+    if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
+    if (git.diffView === null && !git.diffLoading) toCompare.push(git.computeDiff());
+
+    if (toCompare.length > 0) {
+      setCompareAllLoading(true);
+      try {
+        await Promise.all(toCompare);
+      } catch {
+        // Each entity surfaces its own error in its section; we still open the modal.
+      } finally {
+        setCompareAllLoading(false);
+      }
+    }
+    setConfirmAction('publish-all');
+  }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff]);
+
+  const runPublishAll = useCallback(async () => {
+    setPublishAllError(null);
+    setPublishAllGitSkipped(false);
+
+    try {
+      if (hasVarChanges) {
+        setPublishAllStep('variables');
+        await varSync.applyDiff();
+      }
+      if (hasStyleChanges) {
+        setPublishAllStep('styles');
+        await styleSync.applyDiff();
+      }
+      // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
+      if (hasGitDiffChanges && !hasMergeConflicts) {
+        setPublishAllStep('git');
+        await git.applyDiff();
+      } else if (hasMergeConflicts && hasGitDiffChanges) {
+        setPublishAllGitSkipped(true);
+      }
+      setChecksStale(true);
+    } catch (err) {
+      setPublishAllError(describeError(err));
+    } finally {
+      setPublishAllStep(null);
+    }
+  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git]);
 
   const executeOrphanDeletion = useCallback(async () => {
     if (!orphanConfirm) return;

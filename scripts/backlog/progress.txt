@@ -882,3 +882,13 @@
   - The `detectAliasCycle` function in TokenEditor is module-level but unexported. Either export it from a shared util or copy it — copying is simpler when only one other component needs it.
   - For `pathExists` in create mode: treat as a hard block (red error + disabled button), not an amber warning-with-overwrite. The token editor is the right place to edit existing tokens; the create form should keep users from accidentally overwriting.
 ---
+
+## 2026-04-05 - Publish readiness checks require manual re-triggering after fixing issues
+- Fixed a TDZ bug in `PublishPanel.tsx` where `runReadinessChecks` was referenced before its `useCallback` declaration (line 259 used `runReadinessChecks` defined at line 342 — crashing on first render). Fixed by moving the `runReadinessChecks` useCallback and its `READINESS_TIMEOUT_MS` constant to BEFORE the auto-run effects section.
+- Added a second `useEffect` (deps `[tokenChangeKey]`) that auto-rechecks while the Publish tab is already mounted: fires whenever `tokenChangeKey` increments AND a prior check has been run (`checksRunAtKey !== null`). This handles the case where the user edits tokens while on the Publish tab.
+- The existing mount-only effect was kept intact to handle the "navigated back to Publish after editing tokens on another tab" case using localStorage comparison.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L257 (moved readiness section, added second auto-run effect)
+- **Learnings for future iterations:**
+  - `useRef(someCallback)` as an initial value is a TDZ trap when `someCallback` is a `useCallback` declared later in the component body — even though TypeScript doesn't catch it. Always place the function definition BEFORE any `useRef` that references it.
+  - Two-effect pattern for auto-recheck: (1) mount-only effect with localStorage comparison handles "navigate back" case; (2) `[tokenChangeKey]`-reactive effect with `checksRunAtKey !== null` guard handles "already viewing the tab" case. The guard on `checksRunAtKey` prevents auto-running before the user has ever triggered a check.
+---

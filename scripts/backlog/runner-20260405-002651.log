@@ -332,3 +332,26 @@ Already up to date.
 
   Merging to main: CreatePanel and TokenEditor diverge significantly for the same task
 Already up to date.
+[main 4122e82f] chore(backlog): done – CreatePanel and TokenEditor diverge significantly for the same task
+ 5 files changed, 329 insertions(+), 25 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - CreatePanel and TokenEditor diverge significantly for the same task
+- Brought CreatePanel's SingleCreateTab to parity with TokenEditor on four fronts:
+  1. **Draft auto-save**: `saveCreateDraft`/`loadCreateDraft`/`clearCreateDraft` helpers using `sessionStorage` key `tm_create_single_draft`. Saves on every form change when name is non-empty. On mount checks for a draft matching the active set and shows a restore banner ("Unsaved draft from X ago — Restore") with dismiss. Clears on successful creation.
+  2. **`saveBlockReason` system**: `useMemo` that computes a string reason blocking creation — covers missing name, path validation error, token-already-exists (now red error + blocks button, not amber warning), circular alias reference, and typography required fields. Reason shown in button `title` attribute; typography-specific reason shown as inline text below the button.
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  18 queued · 0
+0 in-progress · last took 7m25s
+═══════════════════════════════════════════════════════════════
+  → Publish readiness checks require manual re-triggering after fixing issues — PublishPanel.tsx readiness gate (lines 466-586) shows blocking and warning checks but the "Check readiness" button must be clicked again after the user fixes an issue to verify the fix; there is no auto-recheck when the user returns to the Publish tab or when token data changes; a user who fixes an alias issue in the token editor, switches back to Publish, and sees the stale "1 required issue" banner must remember to click "Re-check" — the stale state creates false anxiety about whether the fix worked (violates: visibility of system status, recognition over recall)
+  Worktree: /tmp/backlog-54964-abykGx
+  Running agent… (started 01:43:42)
+
+  ✓ done: Publish readiness checks require manual re-triggering after fixing issues
+    Fixed TDZ bug (runReadinessChecks used before declaration) and added tokenChangeKey-reactive auto-recheck effect so checks refresh automatically when tokens change
+    24 turns · 311s · $0.9
+
+  Merging to main: Publish readiness checks require manual re-triggering after fixing issues
+Already up to date.
