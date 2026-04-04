@@ -460,3 +460,12 @@
 - **Learnings for future iterations:**
   - Backlog items describing missing empty states may already be implemented — always verify before starting work
 ---
+
+## 2026-04-04 - Multi-select mode disables Tab navigation with no visual hint
+- Fixed `tabIndex={selectMode ? -1 : 0}` → `tabIndex={0}` in `TokenTreeNode.tsx` to keep rows tabbable in select mode; Space already toggled selection so no further key-binding change was needed.
+- Added keyboard hint `· Tab to navigate · Space to toggle` inline in the select mode toolbar count span in `TokenList.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1130, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2143
+- **Learnings for future iterations:**
+  - When toggling `tabIndex` between 0 and -1 based on a mode flag, always verify that the relevant keyboard handler already covers the new interaction (here, Space-to-toggle was already wired up — removing the tabIndex guard was sufficient).
+  - A short inline keyboard hint in the mode toolbar (not a separate banner) is the least-intrusive way to communicate key bindings for keyboard-only users without adding visual weight.
+---

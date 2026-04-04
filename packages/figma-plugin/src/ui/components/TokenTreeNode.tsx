@@ -1127,7 +1127,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     <div
       className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${node.$extensions?.tokenmanager?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
-      tabIndex={selectMode ? -1 : 0}
+      tabIndex={0}
       data-token-path={node.path}
       data-node-name={node.name}
       draggable={!selectMode || isSelected}

@@ -2142,6 +2142,7 @@ export function TokenList({
           <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
               {selectedPaths.size} of {displayedLeafPaths.size} selected
+              <span className="ml-2 opacity-60">· Tab to navigate · Space to toggle</span>
             </span>
             <button
               onClick={handleSelectAll}
