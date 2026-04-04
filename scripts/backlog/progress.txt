@@ -642,3 +642,9 @@
   - When nesting try-catch blocks to make some errors non-fatal, always re-throw AbortErrors from inner catches — otherwise the outer abort-return guard becomes dead code and in-flight requests accumulate
   - A simple `if (isAbortError(err)) throw err;` at the start of inner catch blocks is all that's needed to restore correct abort propagation without disrupting the non-fatal fallback logic
 ---
+
+## 2026-04-05 - code-pass
+- Areas explored: packages/server/src/services/generator-service.ts (save lock pattern, runForSourceToken), packages/server/src/routes/generators.ts (all 12 route handlers, 404 guards, error fallback messages), packages/server/src/services/resolver-store.ts (save pattern comparison), packages/server/src/services/operation-log.ts (save pattern comparison), packages/server/src/routes/themes.ts (save pattern comparison), packages/figma-plugin/src/plugin/controller.ts (revert handlers, as-any casts, sync lock coverage), packages/figma-plugin/src/plugin/variableSync.ts (revert error paths), packages/figma-plugin/src/plugin/styleSync.ts (revert error paths), packages/figma-plugin/src/ui/hooks/useTokenCrud.ts (657 lines, move/copy duplication), packages/figma-plugin/src/ui/hooks/useFindReplace.ts (591 lines, structure), packages/figma-plugin/src/ui/components/TokenList.tsx (filter setter duplication), packages/figma-plugin/src/ui/hooks/ (Record<string,any> usage audit across 30+ sites), packages/figma-plugin/src/ui/components/history/types.ts (unnecessary as-any casts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: The most impactful finding is the pervasive `Record<string, any>` usage across 30+ UI hook call sites — the codebase has proper DTCG types in @tokenmanager/core but API response typing in the UI layer defaults to `any`, causing cascading `as any` casts in downstream consumers. The useTokenCrud move/copy duplication is the most mechanically straightforward to fix.
+---

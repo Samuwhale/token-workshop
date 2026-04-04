@@ -1067,3 +1067,15 @@ Already up to date.
 
   Merging to main: useGitStatus nested try-catch structure makes the outer error handler unreachable
 Already up to date.
+[main 028e5485] chore(backlog): done – useGitStatus nested try-catch structure makes the outer error handler unreachable
+ 5 files changed, 37 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1410 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: useTokenCrud move/copy duplication (657-line hook), Record<string,any> pervasive weak typing (30+ sites), generator route missing 404 guards (3 endpoints), TokenList filter setter duplication (3x identical blocks), plugin revert handler type safety bypass (as any + no validation)
+Already up to date.
