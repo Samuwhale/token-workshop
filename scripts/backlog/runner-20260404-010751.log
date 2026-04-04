@@ -600,3 +600,25 @@ Already up to date.
 
   Merging to main: Consolidate AnalyticsPanel's "Stats" tab into the token list toolbar
 Already up to date.
+[main 4c641058] chore(backlog): done – Consolidate AnalyticsPanel's "Stats" tab into the token list toolbar
+ 7 files changed, 151 insertions(+), 149 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Consolidate AnalyticsPanel Stats tab into token list toolbar
+- Removed the Summary, By Type, and By Set sections from `AnalyticsPanel.tsx` — they were passive read-only stats that cluttered the Validation sub-tab alongside lint violations and contrast checks
+- Removed unused `TYPE_COLORS`/`TYPE_COLOR_FALLBACK` constants and the `allByType`/`sortedTypes` intermediate computations that only fed the removed sections; kept `stats`/`totalTokens` for the existing empty state guard and `colorTokens` loading
+- Added `TOKEN_TYPE_COLORS`/`TOKEN_TYPE_COLOR_FALLBACK` module-level constants to `TokenList.tsx`
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  13 queued · 3 in-progress · last took 7m38s
+═══════════════════════════════════════════════════════════════
+  → No token value clipboard paste into editor — the token editor requires manually typing or picking values; users should be able to paste a hex color, dimension string, or JSON object directly into the value field and have it auto-parsed into the correct DTCG structure; the PasteTokensModal handles bulk paste but there's no quick single-value paste flow for editing an existing token (TokenEditor.tsx value input, ValueEditors.tsx)
+  Worktree: /tmp/backlog-92209-jPQNlX
+  Running agent… (started 02:57:43)
+
+  ✓ done: No token value clipboard paste into editor
+    Added container-level onPaste handler with parsePastedValue() that auto-parses hex colors, dimension strings (16px), duration strings (200ms), JSON objects (typography/shadow/border), and DTCG $value format into the correct token value structure; shows brief "Pasted" flash indicator
+    21 turns · 317s · $0.93
+
+  Merging to main: No token value clipboard paste into editor
+Already up to date.

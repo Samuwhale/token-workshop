@@ -671,3 +671,14 @@
   - The `stats` state in AnalyticsPanel (fetched separately via `/api/tokens/:set`) is still needed for the empty state guard (`totalTokens === 0`) and for populating `colorTokens` used by the contrast matrix; do not remove it even though the Stats display sections are gone
   - TYPE_COLORS can simply be duplicated as a module constant in TokenList — it's 12 entries and shared utility would be overkill for a static display map
 ---
+
+## 2026-04-04 - No token value clipboard paste into editor
+- Added `parsePastedValue(type, text)` function to `TokenEditor.tsx` that intelligently parses clipboard content based on the current token type: hex/rgb/oklch color strings → color values; "16px"/"1.5rem" → `{value, unit}` dimension objects; "200ms"/"1s" → duration objects; JSON objects → complex type values (typography, shadow, border, gradient, transition, composition); DTCG export format `{$value, $type}` → extracts `$value`; numeric strings → number/fontWeight/lineHeight/percentage; etc.
+- Added `pasteFlash` state (brief "Pasted" indicator near the Value label) to give feedback when a paste is handled
+- Added `handlePasteInValueEditor` callback that attaches to the value editor container div via `onPaste`. Plain-text inputs (type="text", "url", textarea) handle their own paste unless clipboard is JSON. Non-text inputs (number steppers, selects) and JSON payloads are always intercepted and dispatched to `parsePastedValue`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L163 (parsePastedValue fn), ~L659 (pasteFlash state), ~L987 (handlePasteInValueEditor callback), ~L1496 (onPaste handler on container div + Pasted flash indicator)
+- **Learnings for future iterations:**
+  - Container-level `onPaste` event delegation is clean: check `e.target.tagName`/`type` to decide whether to intercept or let the native input handle it. Plain text inputs handle their own plain-text pastes; number inputs/selects don't, so those always get intercepted.
+  - `e.preventDefault()` called in a bubbling handler DOES prevent text insertion in child inputs (default action runs after propagation completes), so it's safe to call from the container.
+  - The existing `parseInitialValueForType` function was a useful reference but needed a richer version that returns null (can't parse) vs a fallback, handles JSON DTCG format, and covers more types.
+---
