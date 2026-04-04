@@ -262,12 +262,13 @@ function buildTree(group: Record<string, any>, prefix = ''): TokenNode[] {
         $extensions: value.$extensions,
         isGroup: false,
       });
-    } else if (value && typeof value === 'object') {
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       nodes.push({
         path,
         name: key,
         $type: value.$type,
         $description: value.$description,
+        $extensions: value.$extensions,
         isGroup: true,
         children: buildTree(value, path),
       });

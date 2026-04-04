@@ -103,3 +103,12 @@
   - `UnitToggle` can be typed generically as `<T extends string>` with `readonly T[]` to preserve literal union inference at call sites
   - When moving a constant from one module to another (TYPE_LABELS: TokenGeneratorDialog → generatorUtils), check ALL usages first with grep — there were 3 separate duplicates, not just one
 ---
+
+## 2026-04-04 - buildTree() in useTokens.ts recurses into arrays, diverging from flattenWithNames()
+- Added `!Array.isArray(value)` to the group branch condition in `buildTree` (line 265) so array-valued DTCG tokens (gradients, shadows with array `$value`) are no longer treated as groups with numeric index children.
+- Added `$extensions: value.$extensions,` to the group node (alongside the existing `$type`/`$description`) so group-level `$extensions` are preserved consistently with leaf token nodes.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L265-274
+- **Learnings for future iterations:**
+  - Array-valued DTCG tokens (shadow arrays, gradient stops) have `$value` set to an array — `isDTCGToken` returns true for them because `'$value' in value`. The bug only affected the case where a *non-token* object happened to be an array (which shouldn't exist in valid DTCG, but defensive coding is still correct).
+  - Group nodes and token nodes should carry the same optional metadata fields ($type, $description, $extensions) — omitting $extensions on groups was the subtle inconsistency.
+---
