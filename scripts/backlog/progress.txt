@@ -518,3 +518,16 @@
   - The `computeHealthIssueCount` helper is a pure function that takes already-loaded props, making it usable anywhere without extra API calls (e.g., for badges).
   - When passing `navigateTo(topTab, subTab)` to a child that types `subTab` as `string`, use an inline arrow wrapper with `as SubTab | undefined` cast — cleaner than propagating internal types through component props.
 ---
+
+## 2026-04-04 - bulkRename circular-reference check uses stale flatTokens inside batch
+- Fixed the circular-reference check in `bulkRename` which was effectively a no-op: inside `withBatch`, `rebuildFlatTokens()` is deferred, so `this.flatTokens` holds pre-rename state; the old code read new token values from stale flatTokens (always `undefined`) and passed them as overrides, which masked the actual alias-updated dependencies in other sets.
+- Extracted DFS logic from `checkCircularReferences` into a new private `runCycleDFS(deps, startPaths)` helper to eliminate duplication.
+- Added `buildLiveFlatTokens()` private helper that does a fresh flatten of `this.sets` without the batch depth guard — reflects post-mutation state even inside a batch.
+- Modified `buildDependencyMap` to accept an optional `liveFlatTokens` parameter (overrides `this.flatTokens` when provided).
+- In `bulkRename`, replaced the old stale check with `buildDependencyMap(undefined, buildLiveFlatTokens())` (no overrides needed — token objects already hold post-mutation values) followed by `runCycleDFS` from the renamed new paths.
+- An existing integration test (`rejects rename that would create a circular alias reference`) was already present and failing before the fix; it passes after.
+- Files changed: `packages/server/src/services/token-store.ts` ~L266-295 (buildLiveFlatTokens, refactored rebuildFlatTokens), ~L397-403 (buildDependencyMap signature), ~L431-490 (runCycleDFS extracted, checkCircularReferences simplified), ~L1724-1732 (bulkRename check fixed)
+- **Learnings for future iterations:**
+  - When `checkCircularReferences` is called with overrides for a path that exists in multiple sets (multi-set flat map), the override applies to ALL sets' versions of that path, masking dependencies that differ per-set. The override mechanism is only safe for pre-mutation "what-if" checks (single set, single value per path). Post-mutation checks should build the dep map from live set state with no overrides.
+  - The pattern "build dep map with no overrides from live sets" vs "build dep map with overrides from stale flatTokens" captures the pre- vs post-mutation check distinction. Pre-mutation: use overrides + stale flatTokens. Post-mutation: use no overrides + live flatTokens.
+---

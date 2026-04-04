@@ -679,3 +679,26 @@ Already up to date.
 
   Merging to main: No unified "token health" dashboard — lint violations, canvas coverage gaps, stale generators, broken aliases, and unused tokens are each discoverable through separate panels
 Already up to date.
+[main 1f9461dc] chore(backlog): done – No unified "token health" dashboard — lint violations, canvas coverage gaps, stale generators, broken aliases, and unused tokens are each discoverable through separate panels
+ 7 files changed, 571 insertions(+), 6 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/HealthPanel.tsx
+  ✓ Merged and marked done
+
+## 2026-04-04 - No unified "token health" dashboard
+- Created `HealthPanel.tsx` — a unified health dashboard that aggregates: lint violations (per-set), cross-set validation issues (broken aliases, circular refs, missing types), generator staleness and errors, canvas coverage from heatmap, and unused token counts. Each section shows an expandable list of affected paths with a deep-link CTA button to the relevant panel.
+- Added `computeHealthIssueCount()` export for use in status badges outside the panel.
+- Added `'health'` sub-tab to `ship` TOP_TABS in App.tsx; updated `ShipSubTab` union type.
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  6 queued · 3 in-progress · last took 7m1s
+═══════════════════════════════════════════════════════════════
+  → bulkRename's circular-reference check runs against stale flatTokens during a batch — inside withBatch, rebuildFlatTokens is deferred until endBatch(), so checkCircularReferences at L1708-1712 queries pre-rename token values from the Map; a rename that creates a circular alias chain (A→B renamed such that B→A) passes the check because it sees old paths; move the circular check to after endBatch or build a temporary merged view for validation (packages/server/src/services/token-store.ts L1705-1712)
+  Worktree: /tmp/backlog-92209-wyG22w
+  Running agent… (started 03:20:43)
+
+  ✓ done: bulkRename's circular-reference check runs against stale flatTokens during a batch
+    Fixed by extracting DFS into runCycleDFS, adding buildLiveFlatTokens() helper, and using no-override live dep map in bulkRename — existing integration test now passes
+    24 turns · 306s · $0.83
+
+  Merging to main: bulkRename's circular-reference check runs against stale flatTokens during a batch
+Already up to date.

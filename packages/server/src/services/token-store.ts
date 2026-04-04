@@ -265,6 +265,17 @@ export class TokenStore {
 
   private rebuildFlatTokens(): void {
     if (this._batchDepth > 0) return; // deferred — endBatch() always rebuilds
+    this.flatTokens = this.buildLiveFlatTokens(); // atomic swap — no reader sees a partial/empty map
+    this.rebuildResolver();
+    this.rebuildCrossSetDependents();
+  }
+
+  /**
+   * Build a fresh flat token map by iterating this.sets directly.
+   * Unlike rebuildFlatTokens(), this is not guarded by _batchDepth, so it
+   * reflects the current (post-mutation) state of this.sets even inside a batch.
+   */
+  private buildLiveFlatTokens(): Map<string, Array<{ token: Token; setName: string }>> {
     const newMap = new Map<string, Array<{ token: Token; setName: string }>>();
     for (const [setName, set] of this.sets) {
       for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
@@ -276,9 +287,7 @@ export class TokenStore {
         entries.push({ token: token as Token, setName });
       }
     }
-    this.flatTokens = newMap; // atomic swap — no reader sees a partial/empty map
-    this.rebuildResolver();
-    this.rebuildCrossSetDependents();
+    return newMap;
   }
 
   /** Begin a batch operation — defers flat-token rebuilds until endBatch(). */
@@ -383,10 +392,15 @@ export class TokenStore {
   /**
    * Build a dependency adjacency map from the current flatTokens,
    * optionally overriding specific token values (for proposed changes).
+   * Pass liveFlatTokens to use a freshly-computed flat view instead of
+   * this.flatTokens (needed when called inside a batch where flatTokens is stale).
    */
-  private buildDependencyMap(overrides?: Map<string, unknown>): Map<string, Set<string>> {
+  private buildDependencyMap(
+    overrides?: Map<string, unknown>,
+    liveFlatTokens?: Map<string, Array<{ token: Token; setName: string }>>,
+  ): Map<string, Set<string>> {
     const deps = new Map<string, Set<string>>();
-    for (const [tokenPath, entries] of this.flatTokens) {
+    for (const [tokenPath, entries] of (liveFlatTokens ?? this.flatTokens)) {
       // Merge references from ALL sets' versions of this token
       const merged = new Set<string>();
       for (const { token } of entries) {
@@ -414,14 +428,12 @@ export class TokenStore {
    * token path(s) to the given value(s). Throws with a descriptive cycle
    * path if a cycle is detected.
    */
-  checkCircularReferences(changes: Array<{ path: string; value: unknown }>): void {
-    const overrides = new Map<string, unknown>();
-    for (const { path, value } of changes) {
-      overrides.set(path, value);
-    }
-    const deps = this.buildDependencyMap(overrides);
-
-    // DFS with 3-color marking to detect cycles
+  /**
+   * Run a DFS cycle-detection pass on the given dependency map, starting from
+   * the specified paths. Throws ConflictError with a descriptive cycle path if
+   * a cycle is reachable from any start path.
+   */
+  private runCycleDFS(deps: Map<string, Set<string>>, startPaths: Iterable<string>): void {
     const WHITE = 0, GRAY = 1, BLACK = 2;
     const color = new Map<string, number>();
     const parent = new Map<string, string>();
@@ -453,12 +465,20 @@ export class TokenStore {
       color.set(node, BLACK);
     };
 
-    // Only need to check nodes reachable from the changed paths
-    for (const { path } of changes) {
+    for (const path of startPaths) {
       if ((color.get(path) ?? WHITE) === WHITE) {
         dfs(path);
       }
     }
+  }
+
+  checkCircularReferences(changes: Array<{ path: string; value: unknown }>): void {
+    const overrides = new Map<string, unknown>();
+    for (const { path, value } of changes) {
+      overrides.set(path, value);
+    }
+    const deps = this.buildDependencyMap(overrides);
+    this.runCycleDFS(deps, changes.map(c => c.path));
   }
 
   // ----- CRUD operations -----
@@ -1705,13 +1725,12 @@ export class TokenStore {
         }
 
         // Detect circular alias references created by the rename.
-        // Note: flatTokens still reflects pre-rename state here (inside a batch,
-        // rebuildFlatTokens() is deferred). The check uses pre-rename alias values.
-        const circularCheckChanges = filteredRenames.map(({ newPath }) => {
-          const entries = this.flatTokens.get(newPath);
-          return { path: newPath, value: entries?.[0]?.token.$value };
-        });
-        this.checkCircularReferences(circularCheckChanges);
+        // flatTokens is stale inside a batch (rebuildFlatTokens is deferred), so
+        // build a fresh dependency map from this.sets directly — all mutations
+        // (path renames + alias ref updates) have already been applied to the
+        // token objects, so no overrides are needed.
+        const liveDeps = this.buildDependencyMap(undefined, this.buildLiveFlatTokens());
+        this.runCycleDFS(liveDeps, filteredRenames.map(r => r.newPath));
 
         // All checks passed — persist to disk
         await this.saveSet(setName);
