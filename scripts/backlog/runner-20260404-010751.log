@@ -827,3 +827,10 @@ Already up to date.
 
   Merging to main: No batch value editing for multi-selected tokens
 Already up to date.
+[main 447411a1] chore(backlog): done – No batch value editing for multi-selected tokens
+ 7 files changed, 115 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥22) ---
+  → Archived 22 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 53)
