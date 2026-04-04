@@ -239,7 +239,6 @@ export function TokenGeneratorDialog({
   );
 
   const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(() => isMultiBrand);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showSourceAutocomplete, setShowSourceAutocomplete] = useState(false);
   const sourcePathInputRef = useRef<HTMLInputElement>(null);
@@ -742,8 +741,8 @@ export function TokenGeneratorDialog({
             )}
           </div>
 
-          {/* Source token binding — shown when type needs a value and not in multi-brand mode */}
-          {typeNeedsValue && !isMultiBrand && (
+          {/* Source token binding — shown when type needs a value */}
+          {typeNeedsValue && (
             <div className="border border-[var(--color-figma-accent)]/40 rounded p-3 bg-[var(--color-figma-bg-secondary)]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Source token</span>
@@ -811,8 +810,12 @@ export function TokenGeneratorDialog({
               )}
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1 block">
                 {editableSourcePath
-                  ? 'Bound to a token — changes to the source token automatically update the generator.'
-                  : 'Bind to a token so the generator stays connected to your token graph.'}
+                  ? isMultiBrand
+                    ? 'Bound — used as a preview reference. Each brand\'s value comes from the table below.'
+                    : 'Bound to a token — changes to the source token automatically update the generator.'
+                  : isMultiBrand
+                    ? 'Optional in multi-brand mode — bind to a token for preview sampling.'
+                    : 'Bind to a token so the generator stays connected to your token graph.'}
               </span>
             </div>
           )}
@@ -1029,6 +1032,48 @@ export function TokenGeneratorDialog({
 
           {/* Target + Name (compact) */}
           <div className="flex flex-col gap-2.5">
+            {/* Multi-brand toggle — always visible */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand</span>
+                {!isMultiBrand && (
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    Generate across multiple brands, each writing to its own token set
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleToggleMultiBrand}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                  isMultiBrand
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {isMultiBrand ? 'Enabled' : 'Off'}
+              </button>
+            </div>
+
+            {/* Multi-brand input table — shown when enabled */}
+            {isMultiBrand && inputTable && (
+              <div className="border border-[var(--color-figma-accent)]/30 rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+                <InputTableEditor table={inputTable} onChange={setInputTable} />
+                <div className="mt-3">
+                  <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
+                  <input
+                    type="text"
+                    value={targetSetTemplate}
+                    onChange={e => setTargetSetTemplate(e.target.value)}
+                    placeholder="brands/{brand}"
+                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                  />
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                    {'{brand}'} is replaced per row — e.g. <span className="font-mono">brands/berry</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group</label>
@@ -1057,58 +1102,6 @@ export function TokenGeneratorDialog({
                 placeholder="My generator"
                 className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
             </div>
-          </div>
-
-          {/* Advanced options (multi-brand) — collapsible */}
-          <div>
-            <button
-              onClick={() => setShowAdvancedOptions(v => !v)}
-              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}>
-                <path d="M2 1l4 3-4 3" />
-              </svg>
-              Advanced options
-              {isMultiBrand && !showAdvancedOptions && (
-                <span className="text-[var(--color-figma-accent)] ml-1">(multi-brand active)</span>
-              )}
-            </button>
-            {showAdvancedOptions && (
-              <div className="mt-2 border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-theme mode</span>
-                  <button
-                    onClick={handleToggleMultiBrand}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                  >
-                    {inputTable ? 'Disable' : 'Enable'}
-                  </button>
-                </div>
-                {!inputTable && (
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Run this generator across multiple themes, each writing to its own token set.
-                  </p>
-                )}
-                {inputTable && (
-                  <>
-                    <InputTableEditor table={inputTable} onChange={setInputTable} />
-                    <div className="mt-2">
-                      <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
-                      <input
-                        type="text"
-                        value={targetSetTemplate}
-                        onChange={e => setTargetSetTemplate(e.target.value)}
-                        placeholder="brands/{brand}"
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
-                      />
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-                        {'{brand}'} is replaced per row — e.g. <span className="font-mono">brands/berry</span>
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}

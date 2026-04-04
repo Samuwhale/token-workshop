@@ -494,3 +494,17 @@
   - Pre-populating + select-all-on-focus is the right pattern for "quick save" forms — users either confirm the default (Enter) or immediately type to replace it.
   - `onFocus={e => e.target.select()}` works reliably with `autoFocus` in React.
 ---
+
+## 2026-04-04 - Multi-brand generator mode is hidden and mode-switching loses state
+- Removed `showAdvancedOptions` state — no longer needed
+- Moved multi-brand toggle out of "Advanced options" collapsible into a visible toggle row (pill-style button) within the "Target + Name" section; shows description text when disabled
+- When multi-brand is enabled, shows `InputTableEditor` and "Target set template" inline directly below the toggle (inside an accent-bordered card)
+- Removed the entire "Advanced options" collapsible section
+- Changed source token section condition from `{typeNeedsValue && !isMultiBrand && (...)}` to `{typeNeedsValue && (...)}` so the source binding remains visible when switching modes — state was already preserved in the hook (`editableSourcePath` is never cleared by `handleToggleMultiBrand`), but the UI was hiding it which made it appear lost
+- Updated source token description text to adapt per mode: when multi-brand active, says "Bound — used as a preview reference. Each brand's value comes from the table below."
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L241, ~L745, ~L812, ~L1030
+- **Learnings for future iterations:**
+  - State preserved in a hook does NOT mean state appears preserved to users — if a UI section unmounts on mode toggle, users experience it as "lost state" even though the hook value is unchanged
+  - `handleToggleMultiBrand` only sets/unsets `inputTable` state; `editableSourcePath` was never touched — the bug was purely UI visibility
+  - Multi-brand toggle placement near the "Set" selector is logical since multi-brand replaces the single-set target with multi-set routing
+---

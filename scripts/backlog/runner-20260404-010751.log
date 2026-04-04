@@ -465,3 +465,25 @@ Already up to date.
 
   Merging to main: Snapshot save input has no default name — creating a manual snapshot requires typing a name from scratch every time; pre-populate with a contextual default like "Snapshot YYYY-MM-DD HH:mm" or "Before [last operation]" to reduce friction for quick save-points (HistoryPanel.tsx snapshot save form)
 Already up to date.
+[main 6288d300] chore(backlog): done – Snapshot save input has no default name — creating a manual snapshot requires typing a name from scratch every time; pre-populate with a contextual default like "Snapshot YYYY-MM-DD HH:mm" or "Before [last operation]" to reduce friction for quick save-points (HistoryPanel.tsx snapshot save form)
+ 6 files changed, 60 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Snapshot save input has no default name
+- Added `defaultSnapshotLabel(lastOpDescription?)` helper function that returns "Before [operation]" when a recent operation exists, or "Snapshot YYYY-MM-DD HH:mm" as fallback.
+- Timeline toolbar ("Save state" button): pre-populates `saveLabel` with the last operation's description before showing the input; falls back to date/time format when no operations are available.
+- SnapshotsSource ("Save current state" button): pre-populates `labelInput` with date/time format.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  8 queued · 2 in-progress · last took 2m18s
+═══════════════════════════════════════════════════════════════
+  → Multi-brand generator mode is hidden and mode-switching loses state — the multi-brand toggle is buried in "Advanced options" and switching between single/multi-brand mode clears the source token binding, forcing re-selection; make multi-brand a visible toggle that preserves the source binding when switching modes (TokenGeneratorDialog.tsx)
+  Worktree: /tmp/backlog-92209-9nrPhf
+  Running agent… (started 02:29:50)
+
+  ✓ done: Multi-brand generator mode is hidden and mode-switching loses state
+    Moved multi-brand from hidden "Advanced options" to a visible pill toggle; source token section now stays visible in both modes so the binding is never visually "lost"
+    22 turns · 218s · $0.77
+
+  Merging to main: Multi-brand generator mode is hidden and mode-switching loses state
+Already up to date.
