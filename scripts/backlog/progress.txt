@@ -725,3 +725,23 @@
   - When adding contextual commands for a focused entity, include the full set of CRUD operations (rename, duplicate, move, delete, extract) in one go — users expect symmetry with the context menu.
   - The "Ren/Dup/Mov/Del" abbreviations match the existing "Dup" pattern already in the palette — short labels are intentional to avoid row overflow.
 ---
+
+## 2026-04-05 - Unify the three undo/redo systems into a single timeline
+- Merged local undo, server operation log, and git commits/snapshots into a single chronological "Activity" timeline in `HistoryPanel.tsx`. The separate "This session" collapsible section was removed; local undo entries are now inline in the timeline sorted by synthetic timestamps (Date.now() - index * 100ms, most recent first).
+- Added `TypePill kind='local'` (gray pill) to distinguish local entries from Action/Commit/Snapshot entries.
+- Added one-click "Undo" button for the topmost local entry; "Undo N" button for deeper entries (calls `executeUndo()` N times in sequence). Button text shows count to set expectations (e.g., "Undo 3").
+- Added 'local' to the type filter bar so users can toggle local entries independently.
+- Added `handleUndoToEntry(stepsToUndo)` callback in HistoryPanel that loops `executeUndo()` N times with loading state (`undoingToEntry`).
+- Updated the legend to include the Local entry type and explain the "Undo N" multi-step behaviour.
+- Propagated `executeUndo: () => Promise<void>` and `canUndo: boolean` from `useUndo` in App.tsx through PanelRouter to HistoryPanel.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/history/types.ts` ~L71 (new props)
+  - `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L20,34,46,80,152,228,270,454,540,629 (timeline integration)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L107,706 (props thread-through)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2200 (pass executeUndo/canUndo)
+- **Learnings for future iterations:**
+  - Local undo is stack-based so only the topmost entry can be undone atomically; to undo a deeper entry requires undoing everything above it. Exposing this as "Undo N" in the UI is more honest and useful than hiding older entries.
+  - When local entries lack real timestamps, synthetic timestamps (Date.now() - index * Nms) work well for placing them at the top of the merged timeline — they're always from the current session and conceptually more recent.
+  - `executeUndo()` is async and serialised via `executingRef`, so sequentially awaiting it in a loop is safe.
+  - The type filter Set size for `isFiltering` must match the number of filter kinds (was `< 3`, now `< 4` after adding 'local').
+---

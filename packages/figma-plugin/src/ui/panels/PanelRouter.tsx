@@ -107,6 +107,8 @@ export interface PanelRouterProps {
   handleServerRedo: (opId?: string) => void;
   undoDescriptions: string[];
   redoableOpIds: Set<string>;
+  executeUndo: () => Promise<void>;
+  canUndo: boolean;
 
   // Sync confirmation state (not the actual sync, which is in ConnectionContext)
   setSyncGroupPending: (v: { groupPath: string; tokenCount: number } | null) => void;
@@ -705,6 +707,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           undoDescriptions={p.undoDescriptions}
           redoableOpIds={p.redoableOpIds}
           onServerRedo={p.handleServerRedo}
+          executeUndo={p.executeUndo}
+          canUndo={p.canUndo}
         />
       </ErrorBoundary>
     );

@@ -2201,6 +2201,8 @@ export function App() {
               handleServerRedo={handleServerRedo}
               undoDescriptions={undoDescriptions}
               redoableOpIds={redoableOpIds}
+              executeUndo={executeUndo}
+              canUndo={canUndo}
               setSyncGroupPending={setSyncGroupPending}
               setSyncGroupStylesPending={setSyncGroupStylesPending}
               setGroupScopesPath={setGroupScopesPath}

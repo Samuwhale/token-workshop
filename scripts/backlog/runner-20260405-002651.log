@@ -56,3 +56,26 @@ Already up to date.
 
   Merging to main: Expose token operations in the command palette
 Already up to date.
+[main 0a6d1098] chore(backlog): done – Expose token operations in the command palette
+ 8 files changed, 202 insertions(+), 38 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Expose token operations in the command palette
+- Added rename, duplicate, move-to-set, extract-to-alias, and delete operations to the command palette via two surfaces:
+  1. **Contextual commands** (command mode): When a token is hovered/highlighted in the tree, the palette shows "Rename: {path}", "Duplicate: {path}", "Move to set: {path}", "Extract to alias: {path}", and "Delete token: {path}" commands. These update on every hover change via `contextualCommands` useMemo.
+  2. **Token search row buttons** (token mode `>`): Each token result row now has "Dup", "Ren", "Mov", "Del" inline action buttons alongside the existing copy buttons.
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  30 queued · 0
+0 in-progress · last took 8m44s
+═══════════════════════════════════════════════════════════════
+  → Unify the three undo/redo systems into a single timeline — users must understand local undo (Cmd+Z, client-side), server operation log (History panel > Recent Operations), and Git commits (History panel > Git) as three separate undo mechanisms with different scopes and behaviors; merge these into a single chronological "Activity" timeline where each entry shows what changed, and one-click rollback works regardless of whether the change was local, server-side, or committed to Git
+  Worktree: /tmp/backlog-54964-OoKNub
+  Running agent… (started 00:41:09)
+
+  ✓ done: Unify the three undo/redo systems into a single timeline
+    Merged local undo, server actions, git commits, and snapshots into one chronological Activity timeline with one-click Undo/Undo-N buttons for local entries; removed the separate "This session" section; added Local type filter pill.
+    59 turns · 513s · $2.24
+
+  Merging to main: Unify the three undo/redo systems into a single timeline
+Already up to date.

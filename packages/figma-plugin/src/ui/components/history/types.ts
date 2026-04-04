@@ -70,6 +70,10 @@ export interface HistoryPanelProps {
   redoableOpIds?: Set<string>;
   /** Redo a previously rolled-back server operation by its original op ID */
   onServerRedo?: (opId: string) => void;
+  /** Execute the topmost local undo (Cmd+Z equivalent) */
+  executeUndo?: () => Promise<void>;
+  /** Whether there is at least one local undo available */
+  canUndo?: boolean;
 }
 
 /** Convert snapshot diff entry to unified TokenChange */
