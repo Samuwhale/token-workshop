@@ -662,3 +662,10 @@ Already up to date.
 
   Merging to main: SetSwitcher dropdown should show which sets are themed
 Already up to date.
+[main 835606ec] chore(backlog): done – SetSwitcher dropdown should show which sets are themed
+ 6 files changed, 97 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥25) ---
+  → Archived 25 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 71)
