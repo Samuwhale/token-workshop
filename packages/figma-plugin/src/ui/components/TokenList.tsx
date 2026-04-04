@@ -2644,6 +2644,9 @@ export function TokenList({
                     onFocus={() => { setShowQualifierHints(true); setSearchFocused(true); }}
                     onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); setSearchFocused(false); }}
                     onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        if (searchQuery) { e.preventDefault(); setSearchQuery(''); setHintIndex(0); return; }
+                      }
                       if (!showQualifierHints || qualifierHints.length === 0) return;
                       if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
                       else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
@@ -2659,8 +2662,20 @@ export function TokenList({
                       }
                     }}
                     placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : `Search (/) — try ${PLACEHOLDER_EXAMPLES[placeholderIdx]}`}
-                    className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                    className={`w-full pl-6 ${searchQuery ? 'pr-6' : 'pr-2'} py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => { setSearchQuery(''); setHintIndex(0); searchRef.current?.focus(); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                      title="Clear search"
+                      aria-label="Clear search"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                   {/* Qualifier autocomplete hints */}
                   {showQualifierHints && qualifierHints.length > 0 && (
                     <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden max-h-48 overflow-y-auto">

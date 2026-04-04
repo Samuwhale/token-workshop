@@ -840,3 +840,26 @@ Already up to date.
 
   Merging to main: Inconsistent modal accessibility across dialogs
 Already up to date.
+[main 440c95f7] chore(backlog): done – Inconsistent modal accessibility across dialogs
+ 8 files changed, 291 insertions(+), 178 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Inconsistent modal accessibility across dialogs
+- Standardized accessibility across all dialogs in the plugin:
+  1. **`TokenGeneratorDialog.tsx`**: Added `useRef`/`useFocusTrap` import, `dialogRef`, `useFocusTrap(dialogRef)`, Escape handler `useEffect`, `role="dialog"` + `aria-modal="true"` + `aria-labelledby="token-generator-dialog-title"` to the inner panel div, and `id="token-generator-dialog-title"` on the title span. This was the most critical gap — the 3-step generator dialog had no dialog role, no focus trap, and no Escape handler.
+  2. **`TokenEditor.tsx`**: Extracted inline "Save changes?" dialog to a proper `SaveChangesDialog` component with `useFocusTrap` and Escape handler. Imported `useFocusTrap` from `../hooks/useFocusTrap`. The component takes `canSave`, `isCreateMode`, `editPath`, `saving`, `onSave`, `onDiscard`, `onCancel` as props — keeping all logic in the parent.
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  22 queued · 0
+0 in-progress · last took 9m47s
+═══════════════════════════════════════════════════════════════
+  → TokenList search input has no clear button and no Escape-to-clear — the search input (TokenList.tsx:2588-2615) has no "✕" clear affordance despite ThemeManager's dimension search having one (ThemeManager.tsx:698-710); the onKeyDown handler only navigates autocomplete hints (ArrowDown/ArrowUp/Tab/Enter) and does not handle Escape; users must manually select-all and delete to clear a query, or find the "Clear filters" button in the no-results empty state, which is invisible when results exist; this contrasts with every other search input in the plugin that either has a clear button or Escape support (violates: consistency, user control and freedom)
+  Worktree: /tmp/backlog-3108-nin6PD
+  Running agent… (started 23:05:37)
+
+  ✓ done: TokenList search input has no clear button and no Escape-to-clear
+    Added Escape-to-clear handler and × clear button to TokenList search input, matching ThemeManager's pattern
+    9 turns · 70s · $0.23
+
+  Merging to main: TokenList search input has no clear button and no Escape-to-clear
+Already up to date.
