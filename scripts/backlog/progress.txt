@@ -598,3 +598,23 @@
   - `onPointerDown` on `<input type="range">` fires before `onChange`, making it the right hook for range slider "start of drag". The snapshot captures the pre-drag state via the first onChange's `pushConfigSnapshotDebounced` call.
   - For preset buttons (discrete one-shot changes), calling `onInteractionStart` before `onChange` ensures the previous session's snapshot is flushed first, then the preset change gets its own debounce window.
 ---
+
+## 2026-04-04 - ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls
+- Decomposed `ImportPanelContext.tsx` (1,265 lines) into 4 domain-specific hooks following the same pattern as useTokenCrud/useSetTabs:
+  1. **`useImportSets.ts`** (~85 lines) — target set selection, available sets list, new-set creation, localStorage persistence
+  2. **`useImportSource.ts`** (~475 lines) — reading tokens from all sources (Figma variables/styles, JSON, CSS, Tailwind, Tokens Studio), drag-and-drop, file input refs, toggle selection, Figma message listener
+  3. **`useImportConflicts.ts`** (~224 lines) — conflict detection + resolution state, existing token map pre-fetch, variables conflict preview computation
+  4. **`useImportApply.ts`** (~395 lines) — import execution, undo, retry, copy-failed-paths, success/failure state
+- `ImportPanelContext.tsx` reduced to a thin orchestrator (~403 lines including the full interface declaration); all consumers unchanged via identical context shape
+- Cross-domain circular dependency (source/sets need clearConflictState; conflicts needs tokens/sets state) resolved with the "late-bound callback ref" pattern: `clearConflictRef` and `resetCacheRef` are assigned after all 4 hooks run, passed as stable `useCallback` wrappers
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` (rewritten)
+  - `packages/figma-plugin/src/ui/hooks/useImportSets.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useImportSource.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useImportConflicts.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useImportApply.ts` (new)
+- **Learnings for future iterations:**
+  - The "late-bound callback ref" pattern from the codebase patterns is the right tool when two hook domains need each other's callbacks — create `useRef(() => {})` + stable `useCallback(() => ref.current())` wrappers, pass wrappers to all hooks, assign real impls after all hooks run
+  - Cross-cutting async error propagation (apply hooks returning `{ error }` instead of throwing) keeps the provider in control of which state gets the error message without exposing `setError` setters everywhere
+  - When a hook's `useCallback` needs to call a sibling hook's state setter (e.g. `handleImportStyles` setting conflict state), pass the setters as params rather than exporting the setter directly — this keeps the calling hook pure and testable
+---

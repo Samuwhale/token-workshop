@@ -971,3 +971,26 @@ Already up to date.
 
   Merging to main: Generator config editors have no undo affordance for individual field changes
 Already up to date.
+[main dc2845a1] chore(backlog): done – Generator config editors have no undo affordance for individual field changes
+ 11 files changed, 89 insertions(+), 20 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generator config editors have no undo affordance for individual field changes
+- Added `handleConfigInteractionStart` to `useGeneratorDialog.ts`: flushes the pending debounced snapshot when a new discrete user interaction begins (drag start, input focus, preset click). This ensures each distinct interaction lands in its own undo slot instead of being coalesced with the previous one by the 500ms debounce.
+- Threaded `onConfigInteractionStart` from `useGeneratorDialog` → `TokenGeneratorDialog` → `StepWhat` → each config editor.
+- `BezierCurveEditor.tsx`: added `onDragStart?: () => void` prop; called on `handlePointerDown` (each new drag = separate undo entry) and on all preset button clicks.
+
+═══════════════════════════════════════════════════════════════
+  #37  ·  23 queued · 0
+0 in-progress · last took 9m55s
+═══════════════════════════════════════════════════════════════
+  → ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls — extract into domain-specific hooks (useImportFileRead, useImportPreview, useImportApply, useImportDTCG) following the same pattern used to decompose TokenList's state into useTokenCrud/useSetTabs/etc.; every state change in any import sub-feature currently re-renders the entire import panel and all its children
+  Worktree: /tmp/backlog-3108-iKF5Yj
+  Running agent… (started 23:48:22)
+
+  ✓ done: ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls — extract into domain-specific hooks
+    Split into 4 hooks (useImportSets, useImportSource, useImportConflicts, useImportApply); context orchestrator reduced from 1,265 to 403 lines; all consumers unchanged; circular deps resolved via late-bound callback refs
+    32 turns · 686s · $1.84
+
+  Merging to main: ImportPanelContext is a 1,265-line monolith with 44 useState hooks, 36 useCallbacks, and 12 direct apiFetch calls — extract into domain-specific hooks
+Already up to date.
