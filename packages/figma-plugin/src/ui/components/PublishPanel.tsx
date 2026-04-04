@@ -152,7 +152,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     buildRevertPayload: (snapshot) => ({ varSnapshot: snapshot }),
     onApplySuccess: (result) => {
       if ((result.overwritten ?? 0) > 0) {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated` } }, '*');
+        const skippedCount = result.skipped?.length ?? 0;
+        const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}` } }, '*');
       }
     },
     successMessage: 'Variable sync applied', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Apply variable sync',
@@ -186,7 +188,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   /** True when a sync/apply happened after checks ran, making results outdated */
   const [checksStale, setChecksStale] = useState(false);
   const [orphansDeleting, setOrphansDeleting] = useState(false);
-  const orphansPendingRef = useRef<Map<string, (count: number) => void>>(new Map());
+  const orphansPendingRef = useRef<Map<string, (result: { count: number; failures?: string[] }) => void>>(new Map());
   // orphanConfirm holds the data needed to render the confirmation modal and execute deletion
   const [orphanConfirm, setOrphanConfirm] = useState<{ orphanPaths: string[]; localPaths: Set<string> } | null>(null);
 
@@ -206,7 +208,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         const resolve = orphansPendingRef.current.get(msg.correlationId);
         if (resolve) {
           orphansPendingRef.current.delete(msg.correlationId);
-          resolve(msg.count ?? 0);
+          resolve({ count: msg.count ?? 0, failures: msg.failures });
         }
       }
     };
@@ -368,16 +370,15 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     orphansPendingRef.current.clear();
     const MAX_RETRIES = 2;
     const TIMEOUTS = [10000, 20000, 30000];
-    let succeeded = false;
+    let deleteResult: { count: number; failures?: string[] } | null = null;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        await new Promise<number>((resolve, reject) => {
+        deleteResult = await new Promise<{ count: number; failures?: string[] }>((resolve, reject) => {
           const cid = `orphans-${Date.now()}-${Math.random()}`;
           const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
-          orphansPendingRef.current.set(cid, (count) => { clearTimeout(timeout); resolve(count); });
+          orphansPendingRef.current.set(cid, (result) => { clearTimeout(timeout); resolve(result); });
           parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
         });
-        succeeded = true;
         break;
       } catch (err) {
         const isTimeout = err instanceof Error && err.message === 'Timeout';
@@ -389,7 +390,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       }
     }
     setOrphansDeleting(false);
-    if (succeeded) {
+    if (deleteResult !== null) {
+      if (deleteResult.failures && deleteResult.failures.length > 0) {
+        const failList = deleteResult.failures.slice(0, 3).join('; ');
+        const extra = deleteResult.failures.length > 3 ? ` (+${deleteResult.failures.length - 3} more)` : '';
+        setReadinessError(`Orphan deletion partially failed — ${deleteResult.failures.length} variable(s) could not be removed: ${failList}${extra}`);
+      }
       runReadinessChecks();
     } else {
       setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');

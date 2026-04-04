@@ -16,6 +16,8 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
   const variableSnapshots = new Map<string, VariableSnapshot>();
   const createdVariableIds: string[] = [];
   const createdCollectionIds: string[] = [];
+  // Tokens whose Figma variable type is unsupported, or whose value could not be converted
+  const skipped: Array<{ path: string; $type: string }> = [];
 
   try {
     // Get or create collection by name, with caching
@@ -51,13 +53,21 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         figma.ui.postMessage({ type: 'variable-sync-progress', current: i + 1, total: tokens.length, correlationId });
       }
       const variableType = mapTokenTypeToVariableType(token.$type);
-      if (!variableType) continue;
+      if (!variableType) {
+        // Type has no Figma variable equivalent (e.g. shadow, gradient, typography)
+        skipped.push({ path: token.path, $type: token.$type });
+        continue;
+      }
 
       // Resolve which collection this token belongs to
       const colName = (token.setName && collectionMap[token.setName])
         ? collectionMap[token.setName]
         : VARIABLE_COLLECTION_NAME;
       const collection = getOrCreateCollection(colName);
+
+      // Pre-compute the Figma value before deciding whether to create a new variable.
+      // If the value cannot be converted, we should not create a valueless variable.
+      const figmaValue = convertToFigmaValue(token.$value, token.$type);
 
       // Find existing or create new
       const figmaName = token.path.replace(/\./g, '/');
@@ -80,7 +90,16 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
           });
         }
         variable = existing;
+        if (figmaValue === null) {
+          // Value not convertible — skip setting it but still update scopes and pluginData
+          skipped.push({ path: token.path, $type: token.$type });
+        }
       } else {
+        if (figmaValue === null) {
+          // Cannot create a meaningful new variable without a value — skip entirely
+          skipped.push({ path: token.path, $type: token.$type });
+          continue;
+        }
         variable = figma.variables.createVariable(figmaName, collection, variableType);
         createdVariableIds.push(variable.id);
         // Keep the local cache fresh so subsequent findVariableInList calls see just-created variables
@@ -92,7 +111,6 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       const modeId = desiredModeName
         ? getOrCreateMode(collection, desiredModeName)
         : collection.modes[0].modeId;
-      const figmaValue = convertToFigmaValue(token.$value, token.$type);
       if (figmaValue !== null) {
         variable.setValueForMode(modeId, figmaValue);
       }
@@ -132,6 +150,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       count: tokens.length,
       created: createdVariableIds.length,
       overwritten: variableSnapshots.size,
+      skipped,
       correlationId,
       varSnapshot: { records: snapshotRecords, createdIds: [...createdVariableIds] },
     });
@@ -326,21 +345,38 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
     }
     // Build a lookup map so each varId resolves in O(1) instead of a sequential async call
     const variableById = new Map<string, Variable>(allVariables.map(v => [v.id, v]));
-    let deleted = 0;
+
+    // Collect all orphan variables before any mutations — avoids partial state if an
+    // error occurs mid-iteration, and enables accurate failure reporting.
+    const toDelete: Variable[] = [];
     for (const collection of managedCollections) {
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
         const path = variable.name.replace(/\//g, '.');
         if (!knownSet.has(path)) {
-          variable.remove();
-          deleted++;
+          toDelete.push(variable);
         }
       }
     }
-    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted, correlationId });
+
+    // Delete each orphan individually so one failure does not abort the rest
+    const failures: string[] = [];
+    let deleted = 0;
+    for (const variable of toDelete) {
+      try {
+        variable.remove();
+        deleted++;
+      } catch (e) {
+        failures.push(`${variable.name}: ${getErrorMessage(e)}`);
+      }
+    }
+
+    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted, failures, correlationId });
   } catch (error) {
-    figma.ui.postMessage({ type: 'error', message: String(error) });
+    // Use orphans-deleted (not the generic 'error' type) so the correlationId-based
+    // promise in the UI resolves rather than timing out on an unexpected throw.
+    figma.ui.postMessage({ type: 'orphans-deleted', count: 0, failures: [getErrorMessage(error)], correlationId });
   }
 }
 

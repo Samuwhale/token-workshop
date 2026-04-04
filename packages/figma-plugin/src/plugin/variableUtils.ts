@@ -48,7 +48,9 @@ export function convertToFigmaValue(value: ResolvedTokenValue, tokenType: string
     }
     case 'number':
     case 'fontWeight':
-    case 'percentage': {
+    case 'percentage':
+    case 'lineHeight':
+    case 'letterSpacing': {
       if (typeof value === 'number') return value;
       const parsed = parseFloat(String(value));
       return isNaN(parsed) ? null : parsed;

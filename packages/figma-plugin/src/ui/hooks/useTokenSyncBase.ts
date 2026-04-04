@@ -6,13 +6,19 @@ import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
 // ── Shared helpers ──
 
 /**
- * Extract the standard `{ count, total, failures }` shape from a Figma apply response message.
+ * Extract the standard `{ count, total, failures, skipped }` shape from a Figma apply response message.
  * All three sync hooks (style, variable, figma-group) share this response shape.
  */
-export const extractSyncApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
+export const extractSyncApplyResult = (msg: any): {
+  count: number;
+  total: number;
+  failures: { path: string; error: string }[];
+  skipped: Array<{ path: string; $type: string }>;
+} => ({
   count: msg.count ?? 0,
   total: msg.total ?? msg.count ?? 0,
   failures: msg.failures ?? [],
+  skipped: msg.skipped ?? [],
 });
 
 // ── Shared types ──

@@ -272,3 +272,35 @@
   - When two async sources (HTTP fetch and postMessage) race to initialise the same state, use a ready-flag ref (`figmaThemesReadyRef`) and a deferred-action ref (`pendingDimensionsForPruneRef`) to sequence them without timers or artificial delays.
   - `setActiveThemesState` (state-only) vs `setActiveThemes` (write-through): the `active-themes-loaded` handler must use the write-through version so localStorage and the plugin stay consistent with the Figma-loaded value.
 ---
+
+## 2026-04-04 - variableSync creates variables for unsupported token types with no value and deleteOrphanVariables has no rollback
+- **applyVariables fixes:**
+  - Added `lineHeight` and `letterSpacing` cases to `convertToFigmaValue` (both map to FLOAT in `mapTokenTypeToVariableType` but fell through to `default: return null`, creating valueless variables)
+  - Added `skipped: Array<{path, $type}>` tracking for both (a) types with no Figma variable equivalent (`mapTokenTypeToVariableType` returns null) and (b) new variables where value conversion returned null (skips creation entirely to avoid valueless orphans)
+  - For existing variables with null value: still updates scopes+pluginData, just skips `setValueForMode`, and adds to skipped list
+  - Included `skipped` array in `variables-applied` message
+- **deleteOrphanVariables fixes:**
+  - Collects orphan variables in a list before any mutations (avoids partial-iteration state on mid-throw)
+  - Deletes each variable individually in a try/catch, tracking per-variable failures
+  - Changed error path from generic `type: 'error'` (which never resolved the correlationId-based promise, causing timeouts) to `type: 'orphans-deleted'` with `count: 0` and `failures` — promise now resolves immediately on error
+  - Included `failures` array in success response too
+- **UI propagation:**
+  - `VariablesAppliedMessage` type: added `skipped?` field
+  - `OrphansDeletedMessage` type: added `failures?` field
+  - `extractSyncApplyResult`: added `skipped` to returned shape
+  - `useFigmaSync.ts`: surfaces skipped count in group-sync Figma notification and error messages
+  - `useSyncEntity.ts`: passes `skipped` through `onApplySuccess` callback
+  - `PublishPanel.tsx`: appends skipped note to variable sync notification; resolves orphan promise with full `{count, failures}` result; shows failure detail in `readinessError` on partial orphan deletion
+- Files changed:
+  - `packages/figma-plugin/src/plugin/variableUtils.ts` ~L49
+  - `packages/figma-plugin/src/plugin/variableSync.ts` ~L6, ~L95, ~L130, ~L313
+  - `packages/figma-plugin/src/shared/types.ts` ~L637, ~L817
+  - `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L12
+  - `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L53, ~L86, ~L107, ~L137
+  - `packages/figma-plugin/src/ui/hooks/useSyncEntity.ts` ~L47, ~L95
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L153, ~L189, ~L205, ~L360
+- **Learnings for future iterations:**
+  - `mapTokenTypeToVariableType` and `convertToFigmaValue` can diverge: a type can be mapped to a Figma type but have no corresponding conversion case, silently producing null. Pre-computing figmaValue before variable creation prevents creating empty variables.
+  - The `type: 'error'` generic message in plugin sandbox never resolves correlationId-based promises — always use a typed, domain-specific message with the correlationId when resolving tracked async calls.
+  - `deleteOrphanVariables` used to fail open: a mid-loop JS error would leave some variables deleted and others not. Collecting the full list first then iterating with per-item try/catch ensures consistent reporting.
+---

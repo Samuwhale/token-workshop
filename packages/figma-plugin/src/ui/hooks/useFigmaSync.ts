@@ -50,14 +50,14 @@ export function useFigmaSync(
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
 
-  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
@@ -83,9 +83,9 @@ export function useFigmaSync(
     setApplying: (v: boolean) => void;
     setProgress: (v: { current: number; total: number } | null) => void;
     setError: (v: string | null) => void;
-    sendApply: (type: string, payload: Record<string, any>) => Promise<{ count: number; total: number; failures: { path: string; error: string }[] }>;
+    sendApply: (type: string, payload: Record<string, any>) => Promise<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>;
     buildPayload: (tokens: { path: string; $type: string; $value: any; setName?: string }[]) => Record<string, any>;
-    successMsg: (count: number) => string;
+    successMsg: (count: number, skippedCount: number) => string;
     entityName: string;
   }) => {
     if (!pending || !connected) return;
@@ -105,11 +105,13 @@ export function useFigmaSync(
         }
       }
       const result = await sendApply('', buildPayload(tokens));
+      const skippedCount = result.skipped?.length ?? 0;
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map(f => f.path).join(', ');
-        setError(`${result.count}/${result.total} ${entityName} synced. Failed: ${failedPaths}`);
+        const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
+        setError(`${result.count}/${result.total} ${entityName} synced. Failed: ${failedPaths}${skippedNote}`);
       } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: successMsg(result.count) } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'notify', message: successMsg(result.count, skippedCount) } }, '*');
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;
@@ -132,7 +134,7 @@ export function useFigmaSync(
       setError: setSyncGroupError,
       sendApply: (_, payload) => sendVarApply('apply-variables', payload),
       buildPayload: (tokens) => ({ tokens, collectionMap: setCollectionNames, modeMap: setModeNames }),
-      successMsg: (count) => `${count} variable${count !== 1 ? 's' : ''} synced`,
+      successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} synced${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'variables',
     });
   }, [syncGroupPending, syncGroupBase, sendVarApply, setCollectionNames, setModeNames]);
@@ -146,7 +148,7 @@ export function useFigmaSync(
       setError: setSyncGroupStylesError,
       sendApply: (_, payload) => sendStyleApply('apply-styles', payload),
       buildPayload: (tokens) => ({ tokens }),
-      successMsg: (count) => `${count} style${count !== 1 ? 's' : ''} created`,
+      successMsg: (count, skipped) => `${count} style${count !== 1 ? 's' : ''} created${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'styles',
     });
   }, [syncGroupStylesPending, syncGroupBase, sendStyleApply]);

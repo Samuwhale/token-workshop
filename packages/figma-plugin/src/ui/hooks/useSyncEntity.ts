@@ -44,7 +44,7 @@ export interface SyncEntityConfig<TRow extends DiffRowBase, TSnapshot> {
   buildApplyPayload: (rows: TRow[]) => Record<string, any>;
   buildPullPayload: (row: TRow) => { $type: string; $value: any };
   buildRevertPayload: (snapshot: TSnapshot) => Record<string, any>;
-  onApplySuccess?: (result: { count: number; total: number; snapshot?: TSnapshot; created?: number; overwritten?: number }) => void;
+  onApplySuccess?: (result: { count: number; total: number; snapshot?: TSnapshot; created?: number; overwritten?: number; skipped?: Array<{ path: string; $type: string }> }) => void;
   successMessage: string;
   compareErrorLabel: string;
   applyErrorLabel: string;
@@ -96,6 +96,7 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
     count: number;
     total: number;
     failures: { path: string; error: string }[];
+    skipped: Array<{ path: string; $type: string }>;
     snapshot?: TSnapshot;
     created?: number;
     overwritten?: number;

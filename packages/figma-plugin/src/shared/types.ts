@@ -641,6 +641,8 @@ export interface VariablesAppliedMessage {
   created?: number;
   overwritten?: number;
   failures?: { path: string; error: string }[];
+  /** Tokens that had no Figma variable equivalent or whose value could not be converted. */
+  skipped?: Array<{ path: string; $type: string }>;
   correlationId?: string;
 }
 
@@ -817,6 +819,8 @@ export interface AppliedToSelectionMessage {
 export interface OrphansDeletedMessage {
   type: 'orphans-deleted';
   count: number;
+  /** Deletion failures: one entry per variable that could not be removed. */
+  failures?: string[];
   correlationId?: string;
 }
 
