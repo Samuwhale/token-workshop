@@ -66,6 +66,7 @@ import { useRecentlyTouched } from './hooks/useRecentlyTouched';
 import { usePinnedTokens } from './hooks/usePinnedTokens';
 import { useCompareState } from './hooks/useCompareState';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
+import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
@@ -510,6 +511,15 @@ export function App() {
     setFocusGeneratorId(generatorId);
   }, [navigateTo]);
   const { validateKey, setValidateKey, analyticsIssueCount, setAnalyticsIssueCount, showIssuesOnly, setShowIssuesOnly, showValidationReturn, setShowValidationReturn } = useAnalyticsState();
+  const {
+    validationIssues,
+    validationSummary,
+    validationLoading,
+    validationError,
+    validationLastRefreshed,
+    validationIsStale,
+    refreshValidation,
+  } = useValidationCache({ serverUrl, connected, tokenChangeKey, validateKey });
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
   const [tokenUsageCounts, setTokenUsageCounts] = useState<Record<string, number>>({});
@@ -2612,8 +2622,6 @@ export function App() {
               <AnalyticsPanel
                 serverUrl={serverUrl}
                 connected={connected}
-                validateKey={validateKey}
-                tokenChangeKey={tokenChangeKey}
                 tokenUsageCounts={tokenUsageCounts}
                 onNavigateToToken={(path, set) => {
                   setActiveSet(set);
@@ -2622,6 +2630,12 @@ export function App() {
                   setShowValidationReturn(true);
                 }}
                 onValidationComplete={setAnalyticsIssueCount}
+                validateResults={validationIssues}
+                validateLoading={validationLoading}
+                validateError={validationError}
+                validatedAt={validationLastRefreshed}
+                resultsStale={validationIsStale}
+                onRefreshValidation={refreshValidation}
               />
               </ErrorBoundary>
           )}
@@ -2749,6 +2763,12 @@ export function App() {
                 heatmapResult={heatmapResult}
                 onNavigateTo={(topTab, subTab) => navigateTo(topTab, subTab as SubTab | undefined)}
                 onTriggerHeatmap={triggerHeatmapScan}
+                validationIssues={validationIssues}
+                validationSummary={validationSummary}
+                validationLoading={validationLoading}
+                validationError={validationError}
+                validationLastRefreshed={validationLastRefreshed}
+                onRefreshValidation={refreshValidation}
               />
               </ErrorBoundary>
           )}

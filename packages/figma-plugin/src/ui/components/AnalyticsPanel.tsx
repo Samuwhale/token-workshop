@@ -7,19 +7,7 @@ import { countLeafNodes, tokenPathToUrlSegment } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 import { LINT_RULE_BY_ID } from '../shared/lintRules';
 import { apiFetch } from '../shared/apiFetch';
-
-interface ValidationIssue {
-  rule: string;
-  path: string;
-  setName: string;
-  severity: 'error' | 'warning' | 'info';
-  message: string;
-  suggestedFix?: string;
-  /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
-  suggestion?: string;
-  /** For no-duplicate-values: canonical token path shared by all tokens in this duplicate group. */
-  group?: string;
-}
+import type { ValidationIssue } from '../hooks/useValidationCache';
 
 interface SetStats {
   name: string;
@@ -31,11 +19,16 @@ interface SetStats {
 interface AnalyticsPanelProps {
   serverUrl: string;
   connected: boolean;
-  validateKey?: number;
-  tokenChangeKey?: number;
   tokenUsageCounts?: Record<string, number>;
   onNavigateToToken?: (path: string, set: string) => void;
   onValidationComplete?: (count: number) => void;
+  /** Shared validation cache — avoids re-fetching when switching from Health tab */
+  validateResults: ValidationIssue[] | null;
+  validateLoading: boolean;
+  validateError: string | null;
+  validatedAt: Date | null;
+  resultsStale: boolean;
+  onRefreshValidation: () => void;
 }
 
 
@@ -61,13 +54,10 @@ interface DuplicateGroup {
   colorHex?: string;
 }
 
-export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeKey, tokenUsageCounts, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
+export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavigateToToken, onValidationComplete, validateResults, validateLoading, validateError, validatedAt: validatedAtProp, resultsStale: resultsStaleFromCache, onRefreshValidation }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
-  const [validateLoading, setValidateLoading] = useState(false);
-  const [validateError, setValidateError] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const [validationCopied, setValidationCopied] = useState(false);
   const [validationExported, setValidationExported] = useState<'json' | 'csv' | null>(null);
@@ -86,8 +76,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [confirmBulkDedup, setConfirmBulkDedup] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
-  const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
-  const [validatedAt, setValidatedAt] = useState<Date | null>(null);
+  // resultsStale and validatedAt come from the shared validation cache via props
+  const resultsStale = resultsStaleFromCache;
+  const validatedAt = validatedAtProp;
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(
     () => new Set(lsGetJson<string[]>(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, []))
@@ -98,11 +89,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
   const [confirmDeleteAllUnused, setConfirmDeleteAllUnused] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set()); // 'all' or 'set:path'
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set()); // issue keys currently being fixed
-  const hasAutoValidated = useRef(false);
-  const lastValidatedKey = useRef(0);
-  const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const validateResultsRef = useRef<ValidationIssue[] | null>(null);
-  validateResultsRef.current = validateResults;
 
   // Component coverage state
   const [coverageResult, setCoverageResult] = useState<{
@@ -120,59 +106,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     lsSetJson(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, [...suppressedKeys]);
   }, [suppressedKeys]);
 
-  const runValidate = useCallback(async () => {
-    if (!connected) return;
-    setValidateLoading(true);
-    setValidateError(null);
-    try {
-      const data = await apiFetch<{ issues: ValidationIssue[] }>(`${serverUrl}/api/tokens/validate`, { method: 'POST' });
-      const issues = data.issues ?? [];
-      setValidateResults(issues);
-      setResultsStale(false);
-      setValidatedAt(new Date());
-      onValidationComplete?.(issues.length);
-    } catch (err) {
-      console.warn('[AnalyticsPanel] validation request failed:', err);
-      setValidateError('Validation failed — check server connection');
-    } finally {
-      setValidateLoading(false);
-    }
-  }, [serverUrl, connected]);
-
+  // Notify parent of validation issue count whenever results change
   useEffect(() => {
-    if (validateKey > 0 && validateKey !== lastValidatedKey.current) {
-      lastValidatedKey.current = validateKey;
-      runValidate();
+    if (validateResults !== null) {
+      onValidationComplete?.(validateResults.length);
     }
-  }, [validateKey, runValidate]);
+  }, [validateResults, onValidationComplete]);
 
-  // Auto-validate on first visit when connected and no results yet
-  useEffect(() => {
-    if (connected && !hasAutoValidated.current && validateResults === null && !validateLoading) {
-      hasAutoValidated.current = true;
-      runValidate();
-    }
-  }, [connected, validateResults, validateLoading, runValidate]);
-
-  // Auto-revalidate after token changes (external SSE refresh or internal mutations)
-  // when validation has already run — marks results stale immediately then re-runs
-  // after a 2s debounce to batch rapid changes.
-  useEffect(() => {
-    if (!tokenChangeKey) return;
-    if (validateResultsRef.current === null) return; // haven't run yet, skip
-    setResultsStale(true);
-    if (autoRevalidateTimer.current !== null) clearTimeout(autoRevalidateTimer.current);
-    autoRevalidateTimer.current = setTimeout(() => {
-      autoRevalidateTimer.current = null;
-      runValidate();
-    }, 2000);
-    return () => {
-      if (autoRevalidateTimer.current !== null) {
-        clearTimeout(autoRevalidateTimer.current);
-        autoRevalidateTimer.current = null;
-      }
-    };
-  }, [tokenChangeKey, runValidate]);
+  const runValidate = onRefreshValidation;
 
   // Listen for component-coverage-result / component-coverage-error from controller
   useEffect(() => {
@@ -851,7 +792,6 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
                         {onNavigateToToken && (
                           <button
                             onClick={() => {
-                              setResultsStale(true);
                               onNavigateToToken(issue.path, issue.setName);
                             }}
                             className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"

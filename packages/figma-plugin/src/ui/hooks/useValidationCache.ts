@@ -1,0 +1,139 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiFetch } from '../shared/apiFetch';
+
+export interface ValidationIssue {
+  rule: string;
+  path: string;
+  setName: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  suggestedFix?: string;
+  /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
+  suggestion?: string;
+  /** For no-duplicate-values: canonical token path shared by all tokens in this duplicate group. */
+  group?: string;
+}
+
+export interface ValidationSummary {
+  total: number;
+  errors: number;
+  warnings: number;
+}
+
+export interface ValidationCacheResult {
+  /** null = validation has never run; [] = ran with no issues */
+  validationIssues: ValidationIssue[] | null;
+  validationSummary: ValidationSummary | null;
+  validationLoading: boolean;
+  validationError: string | null;
+  validationLastRefreshed: Date | null;
+  validationIsStale: boolean;
+  refreshValidation: () => void;
+}
+
+interface UseValidationCacheOptions {
+  serverUrl: string;
+  connected: boolean;
+  /** Incrementing this triggers a debounced re-validation (2s) if results already exist. */
+  tokenChangeKey?: number;
+  /** Incrementing this triggers an immediate manual re-validation. */
+  validateKey?: number;
+}
+
+/**
+ * Shared validation cache for HealthPanel and AnalyticsPanel.
+ *
+ * Both panels POST to /api/tokens/validate independently, causing redundant
+ * server round-trips when the user switches between them. This hook centralises
+ * that fetch so a single in-flight request serves both consumers.
+ *
+ * Behaviour:
+ * - Auto-validates once when `connected` first becomes true.
+ * - Re-validates immediately when `validateKey` increments.
+ * - Marks results stale + debounces 2 s re-validation when `tokenChangeKey` increments.
+ */
+export function useValidationCache({
+  serverUrl,
+  connected,
+  tokenChangeKey,
+  validateKey,
+}: UseValidationCacheOptions): ValidationCacheResult {
+  const [issues, setIssues] = useState<ValidationIssue[] | null>(null);
+  const [summary, setSummary] = useState<ValidationSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [isStale, setIsStale] = useState(false);
+
+  const hasAutoValidated = useRef(false);
+  const lastValidateKey = useRef(0);
+  const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasResultsRef = useRef(false);
+
+  const runValidation = useCallback(async () => {
+    if (!connected) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<{ issues: ValidationIssue[]; summary: ValidationSummary }>(
+        `${serverUrl}/api/tokens/validate`,
+        { method: 'POST', signal: AbortSignal.timeout(15000) },
+      );
+      const fetched = data.issues ?? [];
+      setIssues(fetched);
+      setSummary(data.summary ?? null);
+      setLastRefreshed(new Date());
+      setIsStale(false);
+      hasResultsRef.current = true;
+    } catch (err) {
+      console.warn('[useValidationCache] validation fetch failed:', err);
+      setError('Validation failed — check server connection');
+    } finally {
+      setLoading(false);
+    }
+  }, [serverUrl, connected]);
+
+  // Auto-validate on first connection
+  useEffect(() => {
+    if (connected && !hasAutoValidated.current) {
+      hasAutoValidated.current = true;
+      runValidation();
+    }
+  }, [connected, runValidation]);
+
+  // Manual validation trigger via validateKey
+  useEffect(() => {
+    if (validateKey != null && validateKey > 0 && validateKey !== lastValidateKey.current) {
+      lastValidateKey.current = validateKey;
+      runValidation();
+    }
+  }, [validateKey, runValidation]);
+
+  // Debounced auto-revalidation after token changes (only when results already exist)
+  useEffect(() => {
+    if (!tokenChangeKey) return;
+    if (!hasResultsRef.current) return;
+    setIsStale(true);
+    if (autoRevalidateTimer.current !== null) clearTimeout(autoRevalidateTimer.current);
+    autoRevalidateTimer.current = setTimeout(() => {
+      autoRevalidateTimer.current = null;
+      runValidation();
+    }, 2000);
+    return () => {
+      if (autoRevalidateTimer.current !== null) {
+        clearTimeout(autoRevalidateTimer.current);
+        autoRevalidateTimer.current = null;
+      }
+    };
+  }, [tokenChangeKey, runValidation]);
+
+  return {
+    validationIssues: issues,
+    validationSummary: summary,
+    validationLoading: loading,
+    validationError: error,
+    validationLastRefreshed: lastRefreshed,
+    validationIsStale: isStale,
+    refreshValidation: runValidation,
+  };
+}

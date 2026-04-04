@@ -1,23 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { useState } from 'react';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { HeatmapResult } from './HeatmapPanel';
 import type { TokenMapEntry } from '../../shared/types';
-
-interface ValidationIssue {
-  rule: string;
-  path: string;
-  setName: string;
-  severity: 'error' | 'warning' | 'info';
-  message: string;
-}
-
-interface ValidationSummary {
-  total: number;
-  errors: number;
-  warnings: number;
-}
+import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationCache';
 
 type HealthStatus = 'healthy' | 'warning' | 'critical';
 
@@ -134,10 +120,16 @@ export interface HealthPanelProps {
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: 'define' | 'apply' | 'ship', subTab?: string) => void;
   onTriggerHeatmap: () => void;
+  /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
+  validationIssues: ValidationIssue[] | null;
+  validationSummary: ValidationSummary | null;
+  validationLoading: boolean;
+  validationError: string | null;
+  validationLastRefreshed: Date | null;
+  onRefreshValidation: () => void;
 }
 
 export function HealthPanel({
-  serverUrl,
   connected,
   generators,
   lintViolations,
@@ -146,36 +138,17 @@ export function HealthPanel({
   heatmapResult,
   onNavigateTo,
   onTriggerHeatmap,
+  validationIssues: validationIssuesProp,
+  validationSummary,
+  validationLoading,
+  validationError,
+  validationLastRefreshed,
+  onRefreshValidation,
 }: HealthPanelProps) {
-  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
-  const [validationSummary, setValidationSummary] = useState<ValidationSummary | null>(null);
-  const [validating, setValidating] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-
-  const runValidation = useCallback(async () => {
-    if (!connected) return;
-    setValidating(true);
-    setValidationError(null);
-    try {
-      const data = await apiFetch<{ issues: ValidationIssue[]; summary: ValidationSummary }>(
-        `${serverUrl}/api/tokens/validate`,
-        { method: 'POST', signal: AbortSignal.timeout(15000) },
-      );
-      setValidationIssues(data.issues ?? []);
-      setValidationSummary(data.summary ?? null);
-      setLastRefreshed(new Date());
-    } catch (err) {
-      console.warn('[HealthPanel] validation fetch failed:', err);
-      setValidationError('Could not reach the token server');
-    } finally {
-      setValidating(false);
-    }
-  }, [serverUrl, connected]);
-
-  useEffect(() => {
-    runValidation();
-  }, [runValidation]);
+  const validationIssues = validationIssuesProp ?? [];
+  const validating = validationLoading;
+  const lastRefreshed = validationLastRefreshed;
+  const runValidation = onRefreshValidation;
 
   // ── Derived metrics ──────────────────────────────────────────────────────
   const lintErrors = lintViolations.filter(v => v.severity === 'error').length;

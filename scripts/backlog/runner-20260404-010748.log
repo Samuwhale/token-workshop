@@ -703,3 +703,10 @@ Already up to date.
   → Analytics panel and Health panel both run token validation independently with no shared cache — HealthPanel fetches lint violations and cross-set validation on mount/refresh, and AnalyticsPanel runs its own auto-revalidation 2s after token changes; neither shares results with the other, so switching between them triggers redundant server round-trips; consider a shared validation cache (e.g., in a context or hook) that both panels read from, with a single invalidation trigger (HealthPanel.tsx, AnalyticsPanel.tsx)
   Worktree: /tmp/backlog-91949-68Tf38
   Running agent… (started 03:46:40)
+
+  ✓ done: Analytics panel and Health panel both run token validation independently with no shared cache
+    Created useValidationCache hook; HealthPanel and AnalyticsPanel now receive shared validation data as props, eliminating redundant POST /api/tokens/validate round-trips when switching between tabs
+    52 turns · 465s · $1.67
+
+  Merging to main: Analytics panel and Health panel both run token validation independently with no shared cache
+Already up to date.
