@@ -688,3 +688,18 @@ Already up to date.
 
   Merging to main: PublishPanel "Publish All" silently downgrades to "Publish without Git" when merge conflicts exist
 Already up to date.
+[main 08e4aff1] chore(backlog): done – PublishPanel "Publish All" silently downgrades to "Publish without Git" when merge conflicts exist
+ 4 files changed, 69 insertions(+)
+  ✓ Merged and marked done
+
+## 2026-04-04 - PublishPanel "Publish All" silently downgrades to "Publish without Git" when merge conflicts exist
+- Added `publishAllGitSkipped` state that is set to true when `runPublishAll` completes but skips Git due to merge conflicts.
+- Added a dismissible warning banner below the Publish All banner that explains "Git sync was skipped" with conflict count, and provides a "Go to Git section →" button that expands and scrolls to the Git accordion.
+- Wrapped the Git Section element in a `<div id="publish-section-git">` to enable smooth-scroll targeting.
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  5 queued · 2 in-progress · last took 2m42s
+═══════════════════════════════════════════════════════════════
+  → Analytics panel and Health panel both run token validation independently with no shared cache — HealthPanel fetches lint violations and cross-set validation on mount/refresh, and AnalyticsPanel runs its own auto-revalidation 2s after token changes; neither shares results with the other, so switching between them triggers redundant server round-trips; consider a shared validation cache (e.g., in a context or hook) that both panels read from, with a single invalidation trigger (HealthPanel.tsx, AnalyticsPanel.tsx)
+  Worktree: /tmp/backlog-91949-68Tf38
+  Running agent… (started 03:46:40)

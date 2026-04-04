@@ -109,6 +109,13 @@ export interface TokenListModalsProps {
   onSetMovingGroup: (v: string | null) => void;
   handleConfirmMoveToken: () => void;
   handleConfirmMoveGroup: () => void;
+  moveConflict?: TokenMapEntry | null;
+  moveConflictAction?: 'overwrite' | 'skip' | 'rename';
+  onSetMoveConflictAction?: (v: 'overwrite' | 'skip' | 'rename') => void;
+  moveConflictNewPath?: string;
+  onSetMoveConflictNewPath?: (v: string) => void;
+  // Source token value for conflict diff (incoming value)
+  moveSourceToken?: TokenMapEntry | null;
 
   // Copy token to set modal
   copyingToken: string | null;
@@ -119,6 +126,13 @@ export interface TokenListModalsProps {
   onSetCopyingGroup: (v: string | null) => void;
   handleConfirmCopyToken: () => void;
   handleConfirmCopyGroup: () => void;
+  copyConflict?: TokenMapEntry | null;
+  copyConflictAction?: 'overwrite' | 'skip' | 'rename';
+  onSetCopyConflictAction?: (v: 'overwrite' | 'skip' | 'rename') => void;
+  copyConflictNewPath?: string;
+  onSetCopyConflictNewPath?: (v: string) => void;
+  // Source token value for conflict diff (incoming value)
+  copySourceToken?: TokenMapEntry | null;
 
   // Move selected tokens to group modal
   showMoveToGroup: boolean;
@@ -288,6 +302,12 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetMovingGroup,
     handleConfirmMoveToken,
     handleConfirmMoveGroup,
+    moveConflict,
+    moveConflictAction = 'overwrite',
+    onSetMoveConflictAction,
+    moveConflictNewPath = '',
+    onSetMoveConflictNewPath,
+    moveSourceToken,
     copyingToken,
     copyingGroup,
     copyTargetSet,
@@ -296,6 +316,12 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetCopyingGroup,
     handleConfirmCopyToken,
     handleConfirmCopyGroup,
+    copyConflict,
+    copyConflictAction = 'overwrite',
+    onSetCopyConflictAction,
+    copyConflictNewPath = '',
+    onSetCopyConflictNewPath,
+    copySourceToken,
     showMoveToGroup,
     moveToGroupTarget,
     moveToGroupError,
@@ -977,7 +1003,7 @@ export function TokenListModals(props: TokenListModalsProps) {
       {/* Move token to set modal */}
       {movingToken && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move token to set</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{movingToken}</span>
@@ -994,6 +1020,58 @@ export function TokenListModals(props: TokenListModalsProps) {
                 ))}
               </select>
             </div>
+            {moveConflict && (
+              <div className="flex flex-col gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary,var(--color-figma-bg))] p-2">
+                <div className="flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-text-warning,#f59e0b)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Conflict: token exists in target set
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[var(--color-figma-text-secondary)]">Existing</span>
+                    <span className="font-mono text-[var(--color-figma-text)] truncate">
+                      <ValuePreview value={moveConflict.$value} type={moveConflict.$type} />
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[var(--color-figma-text-secondary)]">Incoming</span>
+                    <span className="font-mono text-[var(--color-figma-text)] truncate">
+                      {moveSourceToken
+                        ? <ValuePreview value={moveSourceToken.$value} type={moveSourceToken.$type} />
+                        : <span className="text-[var(--color-figma-text-secondary)]">—</span>}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {(['overwrite', 'skip', 'rename'] as const).map(action => (
+                    <button
+                      key={action}
+                      onClick={() => onSetMoveConflictAction?.(action)}
+                      className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                        moveConflictAction === action
+                          ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]'
+                          : 'bg-transparent text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      {action.charAt(0).toUpperCase() + action.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                {moveConflictAction === 'rename' && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New path in target set</label>
+                    <input
+                      type="text"
+                      value={moveConflictNewPath}
+                      onChange={e => onSetMoveConflictNewPath?.(e.target.value)}
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                      placeholder="e.g. color.primary.new"
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => onSetMovingToken(null)}
@@ -1003,10 +1081,10 @@ export function TokenListModals(props: TokenListModalsProps) {
               </button>
               <button
                 onClick={handleConfirmMoveToken}
-                disabled={!moveTargetSet}
+                disabled={!moveTargetSet || (moveConflictAction === 'rename' && !moveConflictNewPath.trim())}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
-                Move
+                {moveConflict && moveConflictAction === 'skip' ? 'Skip' : 'Move'}
               </button>
             </div>
           </div>
@@ -1016,7 +1094,7 @@ export function TokenListModals(props: TokenListModalsProps) {
       {/* Copy token to set modal */}
       {copyingToken && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy token to set</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{copyingToken}</span>
@@ -1033,6 +1111,58 @@ export function TokenListModals(props: TokenListModalsProps) {
                 ))}
               </select>
             </div>
+            {copyConflict && (
+              <div className="flex flex-col gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary,var(--color-figma-bg))] p-2">
+                <div className="flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-text-warning,#f59e0b)]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Conflict: token exists in target set
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[var(--color-figma-text-secondary)]">Existing</span>
+                    <span className="font-mono text-[var(--color-figma-text)] truncate">
+                      <ValuePreview value={copyConflict.$value} type={copyConflict.$type} />
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[var(--color-figma-text-secondary)]">Incoming</span>
+                    <span className="font-mono text-[var(--color-figma-text)] truncate">
+                      {copySourceToken
+                        ? <ValuePreview value={copySourceToken.$value} type={copySourceToken.$type} />
+                        : <span className="text-[var(--color-figma-text-secondary)]">—</span>}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {(['overwrite', 'skip', 'rename'] as const).map(action => (
+                    <button
+                      key={action}
+                      onClick={() => onSetCopyConflictAction?.(action)}
+                      className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                        copyConflictAction === action
+                          ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]'
+                          : 'bg-transparent text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      {action.charAt(0).toUpperCase() + action.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                {copyConflictAction === 'rename' && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New path in target set</label>
+                    <input
+                      type="text"
+                      value={copyConflictNewPath}
+                      onChange={e => onSetCopyConflictNewPath?.(e.target.value)}
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                      placeholder="e.g. color.primary.new"
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => onSetCopyingToken(null)}
@@ -1042,10 +1172,10 @@ export function TokenListModals(props: TokenListModalsProps) {
               </button>
               <button
                 onClick={handleConfirmCopyToken}
-                disabled={!copyTargetSet}
+                disabled={!copyTargetSet || (copyConflictAction === 'rename' && !copyConflictNewPath.trim())}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
-                Copy
+                {copyConflict && copyConflictAction === 'skip' ? 'Skip' : 'Copy'}
               </button>
             </div>
           </div>

@@ -397,3 +397,15 @@
   - Post-action notifications that may appear after the triggering banner disappears must be separate state/DOM elements — don't nest inside a conditional that may also become false on success.
   - When adding scroll targets to accordion sections, wrapping with a plain `<div id="...">` is simpler than adding an id prop to the Section component.
 ---
+
+## 2026-04-04 - Move/Copy token to set dialogs conflict detection
+- Added conflict detection, preview, and resolution (overwrite/skip/rename) to both Move and Copy token dialogs
+- `useTokenCrud.ts`: Added `moveConflict`/`copyConflict` as `useMemo` derived values from `perSetFlat[targetSet][tokenPath]`; added `moveConflictAction`/`copyConflictAction` state (`'overwrite'|'skip'|'rename'`); added `moveConflictNewPath`/`copyConflictNewPath` state; wrapped set-change handlers (`handleChangeMoveTokenTargetSet`, `handleChangeCopyTokenTargetSet`) that reset action to 'overwrite' on target set change; updated confirm handlers to handle skip (bail out) and rename (move+rename two-step API call)
+- `TokenListModals.tsx`: Added conflict props to interface; updated move and copy dialogs to show conflict section when `moveConflict`/`copyConflict` is non-null — includes existing vs incoming value diff (via `ValuePreview`), overwrite/skip/rename segmented control, and rename path input field; widened dialog from `w-64` to `w-72`
+- `TokenList.tsx`: Destructured new state/handlers from `useTokenCrud`; passed conflict props to `<TokenListModals>`; switched `onSetMoveTargetSet`/`onSetCopyTargetSet` to wrapped handlers so target-set changes reset the conflict action
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L64-L90, ~L515-L610; `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L103-L135, ~L295-L340, ~L990-L1130; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1046-L1080, ~L3960-L3990
+- **Learnings for future iterations:**
+  - Conflict detection for set operations is best done as a `useMemo` from `perSetFlat[targetSet][tokenPath]` — no extra fetch needed since perSetFlat is already loaded
+  - For "rename" in a move/copy scenario, use a two-step API: move/copy at original path, then rename in the target set — avoids modifying the server endpoints
+  - Wrapping the target-set setter to reset conflict action prevents stale UI state when user switches destination (without wrapping, action choice from set A would persist when switching to set B which has no conflict)
+---

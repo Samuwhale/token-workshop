@@ -619,3 +619,10 @@ Already up to date.
   → Move/Copy token to set dialogs do not check for name conflicts in the target set — the dialog lets you pick a target set and confirms immediately, but if the target already has a token at the same path, it silently overwrites; add a conflict preview (showing existing vs incoming value) and let users choose overwrite/skip/rename before proceeding (TokenList.tsx move/copy dialog handlers, useTokenCrud.ts)
   Worktree: /tmp/backlog-91634-bpQ9vT
   Running agent… (started 03:44:26)
+
+  ✓ done: Move/Copy token to set dialogs do not check for name conflicts in the target set
+    Added conflict detection (existing vs incoming value diff), overwrite/skip/rename action choice, and rename path input to both Move and Copy token dialogs; all 4 validation gates pass
+    46 turns · 416s · $1.59
+
+  Merging to main: Move/Copy token to set dialogs do not check for name conflicts in the target set
+Already up to date.

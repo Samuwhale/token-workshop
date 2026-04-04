@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
@@ -62,6 +62,11 @@ export function useTokenCrud({
   // a set-switch between "open dialog" and "confirm" doesn't silently target the wrong set.
   const [moveFromSet, setMoveFromSet] = useState('');
   const [copyFromSet, setCopyFromSet] = useState('');
+  // Conflict resolution state for move/copy dialogs
+  const [moveConflictAction, setMoveConflictAction] = useState<'overwrite' | 'skip' | 'rename'>('overwrite');
+  const [copyConflictAction, setCopyConflictAction] = useState<'overwrite' | 'skip' | 'rename'>('overwrite');
+  const [moveConflictNewPath, setMoveConflictNewPath] = useState('');
+  const [copyConflictNewPath, setCopyConflictNewPath] = useState('');
 
   // Refs that always reflect the current setName/serverUrl so that undo/redo callbacks
   // can validate they are still operating in the correct set context.
@@ -69,6 +74,17 @@ export function useTokenCrud({
   setNameRef.current = setName;
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
+
+  // Derived: token already exists in the target set at the same path
+  const moveConflict = useMemo<TokenMapEntry | null>(() => {
+    if (!movingToken || !moveTokenTargetSet) return null;
+    return perSetFlat?.[moveTokenTargetSet]?.[movingToken] ?? null;
+  }, [movingToken, moveTokenTargetSet, perSetFlat]);
+
+  const copyConflict = useMemo<TokenMapEntry | null>(() => {
+    if (!copyingToken || !copyTokenTargetSet) return null;
+    return perSetFlat?.[copyTokenTargetSet]?.[copyingToken] ?? null;
+  }, [copyingToken, copyTokenTargetSet, perSetFlat]);
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
@@ -502,10 +518,21 @@ export function useTokenCrud({
     // Capture the source set at dialog-open time so a set-switch before confirmation
     // cannot silently move a token from the wrong set.
     setMoveFromSet(setName);
+    // Reset conflict resolution state for the new dialog
+    setMoveConflictAction('overwrite');
+    setMoveConflictNewPath(tokenPath);
   }, [sets, setName]);
+
+  // Wrapped set-change handler that also resets conflict resolution when target changes
+  const handleChangeMoveTokenTargetSet = useCallback((s: string) => {
+    setMoveTokenTargetSet(s);
+    setMoveConflictAction('overwrite');
+  }, []);
 
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTokenTargetSet || !connected) { setMovingToken(null); return; }
+    // Skip: user chose not to overwrite
+    if (moveConflictAction === 'skip') { setMovingToken(null); return; }
     // Use moveFromSet (captured when the dialog opened) rather than the current setName so
     // that a set-switch between dialog-open and confirm doesn't move from the wrong set.
     onSetOperationLoading('Moving token…');
@@ -515,6 +542,14 @@ export function useTokenCrud({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTokenTargetSet }),
       });
+      // Rename: after moving at original path, rename to the desired path in the target set
+      if (moveConflictAction === 'rename' && moveConflictNewPath && moveConflictNewPath !== movingToken) {
+        await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(moveTokenTargetSet)}/tokens/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldPath: movingToken, newPath: moveConflictNewPath, updateAliases: false }),
+        });
+      }
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Move failed: network error');
       onSetOperationLoading(null);
@@ -523,7 +558,7 @@ export function useTokenCrud({
     setMovingToken(null);
     onRefresh();
     onSetOperationLoading(null);
-  }, [movingToken, moveTokenTargetSet, moveFromSet, connected, onRefresh, onSetOperationLoading, onError]);
+  }, [movingToken, moveTokenTargetSet, moveFromSet, moveConflictAction, moveConflictNewPath, connected, onRefresh, onSetOperationLoading, onError]);
 
   const handleRequestCopyToken = useCallback((tokenPath: string) => {
     const otherSets = sets.filter(s => s !== setName);
@@ -532,10 +567,21 @@ export function useTokenCrud({
     // Capture the source set at dialog-open time so a set-switch before confirmation
     // cannot silently copy a token from the wrong set.
     setCopyFromSet(setName);
+    // Reset conflict resolution state for the new dialog
+    setCopyConflictAction('overwrite');
+    setCopyConflictNewPath(tokenPath);
   }, [sets, setName]);
+
+  // Wrapped set-change handler that also resets conflict resolution when target changes
+  const handleChangeCopyTokenTargetSet = useCallback((s: string) => {
+    setCopyTokenTargetSet(s);
+    setCopyConflictAction('overwrite');
+  }, []);
 
   const handleConfirmCopyToken = useCallback(async () => {
     if (!copyingToken || !copyTokenTargetSet || !connected) { setCopyingToken(null); return; }
+    // Skip: user chose not to overwrite
+    if (copyConflictAction === 'skip') { setCopyingToken(null); return; }
     // Use copyFromSet (captured when the dialog opened) rather than the current setName.
     try {
       await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(copyFromSet)}/tokens/copy`, {
@@ -543,13 +589,21 @@ export function useTokenCrud({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenPath: copyingToken, targetSet: copyTokenTargetSet }),
       });
+      // Rename: after copying at original path, rename to the desired path in the target set
+      if (copyConflictAction === 'rename' && copyConflictNewPath && copyConflictNewPath !== copyingToken) {
+        await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(copyTokenTargetSet)}/tokens/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldPath: copyingToken, newPath: copyConflictNewPath, updateAliases: false }),
+        });
+      }
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Copy failed: network error');
       return;
     }
     setCopyingToken(null);
     onRefresh();
-  }, [copyingToken, copyTokenTargetSet, copyFromSet, connected, onRefresh, onError]);
+  }, [copyingToken, copyTokenTargetSet, copyFromSet, copyConflictAction, copyConflictNewPath, connected, onRefresh, onError]);
 
   return {
     // State
@@ -571,6 +625,16 @@ export function useTokenCrud({
     setCopyTokenTargetSet,
     moveFromSet,
     copyFromSet,
+    moveConflict,
+    copyConflict,
+    moveConflictAction,
+    setMoveConflictAction,
+    copyConflictAction,
+    setCopyConflictAction,
+    moveConflictNewPath,
+    setMoveConflictNewPath,
+    copyConflictNewPath,
+    setCopyConflictNewPath,
     // Callbacks
     executeTokenRename,
     handleRenameToken,
@@ -585,7 +649,9 @@ export function useTokenCrud({
     handleDetachFromGenerator,
     handleRequestMoveToken,
     handleConfirmMoveToken,
+    handleChangeMoveTokenTargetSet,
     handleRequestCopyToken,
     handleConfirmCopyToken,
+    handleChangeCopyTokenTargetSet,
   };
 }

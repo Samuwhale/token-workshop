@@ -1052,14 +1052,19 @@ export function TokenList({
     copyingToken, setCopyingToken,
     moveTokenTargetSet, setMoveTokenTargetSet,
     copyTokenTargetSet, setCopyTokenTargetSet,
+    moveConflict, copyConflict,
+    moveConflictAction, setMoveConflictAction,
+    copyConflictAction, setCopyConflictAction,
+    moveConflictNewPath, setMoveConflictNewPath,
+    copyConflictNewPath, setCopyConflictNewPath,
     executeTokenRename, handleRenameToken,
     requestDeleteToken, requestDeleteGroup,
     requestBulkDelete: requestBulkDeleteFromHook,
     executeDelete,
     handleDuplicateToken, handleInlineSave, handleDescriptionSave,
     handleMultiModeInlineSave, handleDetachFromGenerator,
-    handleRequestMoveToken, handleConfirmMoveToken,
-    handleRequestCopyToken, handleConfirmCopyToken,
+    handleRequestMoveToken, handleConfirmMoveToken, handleChangeMoveTokenTargetSet,
+    handleRequestCopyToken, handleConfirmCopyToken, handleChangeCopyTokenTargetSet,
   } = tokenCrud;
 
   const tokenPromotion = useTokenPromotion({
@@ -3964,19 +3969,31 @@ export function TokenList({
         movingToken={movingToken}
         movingGroup={movingGroup}
         moveTargetSet={movingGroup ? moveGroupTargetSet : moveTokenTargetSet}
-        onSetMoveTargetSet={movingGroup ? setMoveGroupTargetSet : setMoveTokenTargetSet}
+        onSetMoveTargetSet={movingGroup ? setMoveGroupTargetSet : handleChangeMoveTokenTargetSet}
         onSetMovingToken={setMovingToken}
         onSetMovingGroup={setMovingGroup}
         handleConfirmMoveToken={handleConfirmMoveToken}
         handleConfirmMoveGroup={handleConfirmMoveGroup}
+        moveConflict={movingToken ? moveConflict : null}
+        moveConflictAction={moveConflictAction}
+        onSetMoveConflictAction={setMoveConflictAction}
+        moveConflictNewPath={moveConflictNewPath}
+        onSetMoveConflictNewPath={setMoveConflictNewPath}
+        moveSourceToken={movingToken ? (allTokensFlat[movingToken] ?? null) : null}
         copyingToken={copyingToken}
         copyingGroup={copyingGroup}
         copyTargetSet={copyingGroup ? copyGroupTargetSet : copyTokenTargetSet}
-        onSetCopyTargetSet={copyingGroup ? setCopyGroupTargetSet : setCopyTokenTargetSet}
+        onSetCopyTargetSet={copyingGroup ? setCopyGroupTargetSet : handleChangeCopyTokenTargetSet}
         onSetCopyingToken={setCopyingToken}
         onSetCopyingGroup={setCopyingGroup}
         handleConfirmCopyToken={handleConfirmCopyToken}
         handleConfirmCopyGroup={handleConfirmCopyGroup}
+        copyConflict={copyingToken ? copyConflict : null}
+        copyConflictAction={copyConflictAction}
+        onSetCopyConflictAction={setCopyConflictAction}
+        copyConflictNewPath={copyConflictNewPath}
+        onSetCopyConflictNewPath={setCopyConflictNewPath}
+        copySourceToken={copyingToken ? (allTokensFlat[copyingToken] ?? null) : null}
         showMoveToGroup={showMoveToGroup}
         moveToGroupTarget={moveToGroupTarget}
         moveToGroupError={moveToGroupError}
