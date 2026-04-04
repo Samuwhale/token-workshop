@@ -1,4 +1,4 @@
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
@@ -210,7 +210,7 @@ export function useFigmaSync(
       setGroupScopesPath(null);
       setGroupScopesSelected([]);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.error('Failed to apply group scopes:', err);
       setGroupScopesError(getErrorMessage(err, 'Failed to apply scopes'));
     } finally {

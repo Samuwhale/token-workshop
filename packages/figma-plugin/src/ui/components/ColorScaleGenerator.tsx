@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '@tokenmanager/core';
@@ -159,7 +159,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
       setCreating(false);
       onConfirm(`${prefix}.${scale[0].label}`);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(getErrorMessage(err));
       setCreating(false);
     }

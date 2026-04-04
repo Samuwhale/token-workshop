@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from '../Spinner';
 import { apiFetch } from '../../shared/apiFetch';
+import { isAbortError } from '../../shared/utils';
 import { summarizeChanges, statusColor, formatRelativeTime } from '../../shared/changeHelpers';
 import { ChangesBySetList } from './ChangesBySetList';
 import type { CommitEntry, CommitDetail, UndoSlot, TokenChange } from './types';
@@ -63,7 +64,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       setCommits(data.commits || []);
       setHasMore(data.hasMore ?? false);
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(String((err as Error).message || err));
     } finally {
       if (!controller.signal.aborted) setLoading(false);

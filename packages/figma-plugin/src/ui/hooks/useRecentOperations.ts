@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 
 export interface OperationEntry {
   id: string;
@@ -66,7 +66,7 @@ export function useRecentOperations({
       setRecentOperations(data.operations);
       setTotal(data.total);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.warn('[useRecentOperations] fetch failed:', err);
     }
   }, [serverUrl, connected, loadedCount]);

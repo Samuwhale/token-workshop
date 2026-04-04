@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { validateColorModifiers } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
 import { isAlias } from '../../shared/resolveAlias';
 import type { FieldsSnapshot } from './useTokenEditorFields';
 import {
@@ -134,7 +134,7 @@ export function useTokenEditorLoad({
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         setError(getErrorMessage(err));
       } finally {
         setLoading(false);

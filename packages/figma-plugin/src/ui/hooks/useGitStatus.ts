@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { describeError } from '../shared/utils';
+import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 export interface GitStatus {
@@ -78,7 +78,7 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
         console.warn('[useGitStatus] branch fetch failed (non-fatal):', err);
       }
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setGitError(describeError(err, 'Fetch git status'));
     } finally {
       setGitLoading(false);

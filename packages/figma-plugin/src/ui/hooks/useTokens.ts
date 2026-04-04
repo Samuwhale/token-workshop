@@ -4,6 +4,7 @@ import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
 function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
@@ -101,7 +102,7 @@ export function useTokens(
         setSetTokenCounts(setsData.counts || {});
       }
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
       else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');
@@ -179,7 +180,7 @@ export function useTokens(
       setTokenRevision(r => r + 1);
       setFetchError(null);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
       else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');

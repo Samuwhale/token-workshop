@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Spinner } from '../Spinner';
 import { apiFetch } from '../../shared/apiFetch';
+import { isAbortError } from '../../shared/utils';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { ChangesBySetList } from './ChangesBySetList';
 import type { CommitEntry, TokenChange } from './types';
@@ -37,7 +38,7 @@ export function CommitCompareView({
       for (const s of sets) sections[s] = true;
       setOpenSections(sections);
     }).catch(err => {
-      if ((err as Error).name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(String((err as Error).message || err));
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false);

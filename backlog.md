@@ -104,8 +104,8 @@
 
 ### Redundancy & Duplication
 
-- [~] Generalize variable/style/scope sync into a parameterized abstraction — useFigmaSync.ts declares multiple useState hooks tripling the same (pending/applying/progress/error) pattern for variables, styles, and scopes; PublishPanel.tsx duplicates near-identical builder functions for var vs style diff rows (buildVarFigmaMap ↔ buildStyleFigmaMap, buildVarLocalOnlyRow ↔ buildStyleLocalOnlyRow, etc., differing only in field names); consolidating into parameterized factories and a single state-per-flow record type would halve the sync code
-- [ ] AbortError detection pattern duplicated ~70 times across hooks with inconsistent variants — `if (err instanceof Error && err.name === 'AbortError') return` appears across 33+ files; some use the unsafe `(err as Error).name === 'AbortError'` without instanceof check; extract a shared `isAbortError(err): boolean` utility and replace all call sites
+- [x] Generalize variable/style/scope sync into a parameterized abstraction — useFigmaSync.ts declares multiple useState hooks tripling the same (pending/applying/progress/error) pattern for variables, styles, and scopes; PublishPanel.tsx duplicates near-identical builder functions for var vs style diff rows (buildVarFigmaMap ↔ buildStyleFigmaMap, buildVarLocalOnlyRow ↔ buildStyleLocalOnlyRow, etc., differing only in field names); consolidating into parameterized factories and a single state-per-flow record type would halve the sync code
+- [~] AbortError detection pattern duplicated ~70 times across hooks with inconsistent variants — `if (err instanceof Error && err.name === 'AbortError') return` appears across 33+ files; some use the unsafe `(err as Error).name === 'AbortError'` without instanceof check; extract a shared `isAbortError(err): boolean` utility and replace all call sites
 
 ### Performance
 

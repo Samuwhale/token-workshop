@@ -563,3 +563,17 @@
   - Unified row type: `VarDiffRow` (string value) and `StyleDiffRow` (raw + string) collapse to one `DiffRow` with optional `localRaw`/`figmaRaw`. Both var and style builders populate `localRaw` (string for vars, raw object for styles), and apply payloads use `r.localRaw` uniformly.
   - Spreading `...varBuilders` into `useSyncEntity` config cleanly separates "what differs per entity" from "what the factory provides". The config site only needs entity-specific `buildApplyPayload`, `buildRevertPayload`, and text strings.
 ---
+
+## 2026-04-04 - Extract isAbortError utility to replace duplicated AbortError detection pattern
+- Added `isAbortError(err: unknown): boolean` to `packages/figma-plugin/src/ui/shared/utils.ts`
+- Replaced all 30 call sites across 22 files:
+  - Pattern `err instanceof Error && err.name === 'AbortError'` → `isAbortError(err)` (20 sites)
+  - Unsafe pattern `(err as Error).name === 'AbortError'` → `isAbortError(err)` (4 sites, now type-safe)
+  - Inverted pattern `err?.name !== 'AbortError'` → `!isAbortError(err)` (1 site in AnalyticsPanel)
+  - `else if (err instanceof Error && err.name === 'AbortError')` → `else if (isAbortError(err))` (1 site in useSetDelete)
+- Added import of `isAbortError` to all 22 affected files (14 with existing utils imports, 8 with new import statements)
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L19, plus 22 hook/component files
+- **Learnings for future iterations:**
+  - sed replacements on the source file that defines the new utility will corrupt the implementation — exclude utils.ts from the find|sed pipeline or restore it immediately after
+  - When adding to existing `import { ... } from` lines, sed works cleanly for literal import strings; just make sure each sed pattern is specific enough to target only the right file
+---

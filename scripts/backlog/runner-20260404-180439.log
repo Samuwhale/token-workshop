@@ -35,3 +35,27 @@
 
   Merging to main: Generalize variable/style/scope sync into a parameterized abstraction
 Already up to date.
+[main 52813a71] chore(backlog): done – Generalize variable/style/scope sync into a parameterized abstraction
+ 6 files changed, 188 insertions(+), 85 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260404-180439.log
+  ✓ Merged and marked done
+
+## 2026-04-04 - Generalize variable/style/scope sync into a parameterized abstraction
+- **`useFigmaSync.ts`**: Extracted `useSyncFlow<TPending>()` helper hook (pending + applying + progress + error) at module level. Replaced 8 tripled `useState` declarations (4 for variables, 4 for styles) with `const varFlow = useSyncFlow<GroupPending>()` and `const styleFlow = useSyncFlow<GroupPending>()`. Updated `handleSyncGroup` and `handleSyncGroupStyles` to pass `varFlow.*` / `styleFlow.*` fields to `syncGroupBase`. Return object maps flow fields back to original names, preserving the external API.
+- **`PublishPanel.tsx`**: Introduced `SyncBuildersSpec` interface + `createSyncBuilders(spec)` factory. Replaced 14 parallel builder functions (`buildVarFigmaMap` / `buildStyleFigmaMap`, `buildVarLocalOnlyRow` / `buildStyleLocalOnlyRow`, etc.) with two module-level calls: `varBuilders = createSyncBuilders(VAR_SYNC_SPEC)` and `styleBuilders = createSyncBuilders(STYLE_SYNC_SPEC)`. Unified `VarDiffRow` + `StyleDiffRow` into a single `DiffRow` type. The `useSyncEntity` calls now spread `...varBuilders` / `...styleBuilders` and only define entity-specific `buildApplyPayload` and `buildRevertPayload` inline. Updated var apply payload to use `r.localRaw` (string for vars, raw for styles — both consistent).
+- Files changed:
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  5 queued · 0
+0 in-progress · last took 17m33s
+═══════════════════════════════════════════════════════════════
+  → AbortError detection pattern duplicated ~70 times across hooks with inconsistent variants — `if (err instanceof Error && err.name === 'AbortError') return` appears across 33+ files; some use the unsafe `(err as Error).name === 'AbortError'` without instanceof check; extract a shared `isAbortError(err): boolean` utility and replace all call sites
+  Worktree: /tmp/backlog-3108-n9XqCc
+  Running agent… (started 18:22:13)
+
+  ✓ done: Extract isAbortError utility to replace duplicated AbortError detection pattern
+    Added isAbortError(err) to shared/utils.ts and replaced all 30 call sites across 22 files, fixing unsafe (err as Error).name casts and the inverted err?.name !== pattern along the way
+    25 turns · 205s · $0.83
+
+  Merging to main: Extract isAbortError utility to replace duplicated AbortError detection pattern
+Already up to date.

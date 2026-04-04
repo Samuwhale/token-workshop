@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../shared/apiFetch';
-import { tokenPathToUrlSegment } from '../shared/utils';
+import { tokenPathToUrlSegment, isAbortError } from '../shared/utils';
 
 interface UseTokenDependentsParams {
   serverUrl: string;
@@ -32,7 +32,7 @@ export function useTokenDependents({
         );
         setDependents(data.dependents ?? []);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         console.warn('[TokenEditor] failed to fetch dependents:', err);
       } finally {
         setDependentsLoading(false);

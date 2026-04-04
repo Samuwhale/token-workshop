@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { describeError } from '../shared/utils';
+import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
 export interface ConflictRegion {
@@ -62,7 +62,7 @@ export function useGitConflicts({
       }
       setConflictChoices(choices);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.warn('[useGitConflicts] fetch failed:', err);
     }
   }, [serverUrl]);

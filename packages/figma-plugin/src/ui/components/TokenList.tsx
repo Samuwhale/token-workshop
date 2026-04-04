@@ -5,7 +5,7 @@ import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from 
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
-import { stableStringify, getErrorMessage } from '../shared/utils';
+import { stableStringify, getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
@@ -828,7 +828,7 @@ export function TokenList({
           }
         })
         .catch(err => {
-          if (err instanceof Error && err.name === 'AbortError') return;
+          if (isAbortError(err)) return;
           console.error('Cross-set search failed:', err);
         });
     }, 150);

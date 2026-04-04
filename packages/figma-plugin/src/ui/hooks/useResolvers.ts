@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
@@ -83,7 +83,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
         setResolvers(data.resolvers ?? []);
       })
       .catch(err => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         if (unmountAbortRef.current.signal.aborted) return;
         setResolverError(getErrorMessage(err, 'Failed to load resolvers'));
       })

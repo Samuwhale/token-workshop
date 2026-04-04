@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../../shared/apiFetch';
+import { isAbortError } from '../../shared/utils';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
 import { ChangesBySetList } from './ChangesBySetList';
 import type { SnapshotSummary, SnapshotDiff, UndoSlot, TokenChange } from './types';
@@ -122,7 +123,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       for (const c of unified) sections[c.set] = true;
       setOpenSections(sections);
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.warn('[SnapshotsSource] failed to load comparison:', err);
       setSingleCompareError('Failed to load comparison');
       setComparing(null);
@@ -163,7 +164,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       for (const c of unified) sections[c.set] = true;
       setPairOpenSections(sections);
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.warn('[SnapshotsSource] failed to load pair comparison:', err);
       setPairCompareError('Failed to load comparison');
       setShowPairDiff(false);

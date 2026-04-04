@@ -3,7 +3,7 @@ import { Spinner } from './Spinner';
 import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
-import { countLeafNodes, tokenPathToUrlSegment } from '../shared/utils';
+import { countLeafNodes, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
 import { LINT_RULE_BY_ID } from '../shared/lintRules';
 import { apiFetch } from '../shared/apiFetch';
 import type { ValidationIssue } from '../hooks/useValidationCache';
@@ -298,7 +298,7 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
     };
 
     load().catch((err) => {
-      if (err?.name !== 'AbortError') {
+      if (!isAbortError(err)) {
         setLoading(false);
         setLoadError(err?.message || 'Failed to load analytics');
       }

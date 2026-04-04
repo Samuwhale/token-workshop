@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { UndoSlot } from './useUndo';
 import { nodeParentPath } from '../components/tokenListUtils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 export interface UseDragDropParams {
   connected: boolean;
@@ -94,7 +95,7 @@ export function useDragDrop({
         signal,
       });
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       const msg = err instanceof ApiError
         ? (err.message || `Move failed (${err.status})`)
         : 'Move failed: network error';
@@ -192,7 +193,7 @@ export function useDragDrop({
         signal,
       });
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       const msg = err instanceof ApiError ? (err.message || `Reorder failed (${err.status})`) : 'Reorder tokens failed: network error';
       if (!signal.aborted) {
         setDragSource(null);

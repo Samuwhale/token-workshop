@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
@@ -112,7 +112,7 @@ export function useGeneratorPreview({
         );
         if (!controller.signal.aborted) setPreviewTokens(data.tokens ?? []);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         if (!controller.signal.aborted) {
           setPreviewError(getErrorMessage(err, 'Preview failed'));
           setPreviewTokens([]);
@@ -165,7 +165,7 @@ export function useGeneratorPreview({
           );
           return { brand: row.brand, tokens: data.tokens ?? [] };
         } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') return null;
+          if (isAbortError(err)) return null;
           // Silently skip failed brand previews — the single-brand preview already shows errors
           return { brand: row.brand, tokens: [] as GeneratedTokenResult[] };
         }
@@ -210,7 +210,7 @@ export function useGeneratorPreview({
         setExistingSetTokens(obj);
       })
       .catch(err => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         if (!controller.signal.aborted) setExistingTokensError(getErrorMessage(err, 'Could not load existing tokens — save is blocked to prevent overwriting unknown values'));
       });
     return () => controller.abort();

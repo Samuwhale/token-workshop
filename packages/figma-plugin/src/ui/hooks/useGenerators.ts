@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 // ---------------------------------------------------------------------------
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
@@ -279,7 +280,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
       if (controller.signal.aborted) return;
       setGenerators(data);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.error('Failed to fetch generators:', err);
     } finally {
       if (!controller.signal.aborted) setLoading(false);

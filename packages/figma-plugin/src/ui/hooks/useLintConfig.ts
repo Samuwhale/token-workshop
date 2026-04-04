@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -48,7 +49,7 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
       const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, { signal: createFetchSignal(controller.signal) });
       setConfig(data);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       console.warn('[useLintConfig] fetch config failed:', err);
       setConfig(null);
     } finally {

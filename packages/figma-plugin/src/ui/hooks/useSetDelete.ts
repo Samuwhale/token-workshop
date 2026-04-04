@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { apiFetch, ApiError, isNetworkError } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 interface UseSetDeleteParams {
   serverUrl: string;
@@ -60,7 +61,7 @@ export function useSetDelete({
       } else if (isNetworkError(err)) {
         markDisconnected();
         setDeletingSet(null);
-      } else if (err instanceof Error && err.name === 'AbortError') {
+      } else if (isAbortError(err)) {
         setDeletingSet(null);
       } else {
         setErrorToast('Delete failed: unexpected error');

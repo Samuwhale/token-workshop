@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { describeError } from '../shared/utils';
+import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
 interface UseGitDiffOptions {
@@ -88,7 +88,7 @@ export function useGitDiff({
       for (const f of data.conflicts) choices[f] = 'skip';
       setDiffChoices(choices);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setGitError(describeError(err, 'Compute diff'));
     } finally {
       if (!unmountRef.current.signal.aborted) setDiffLoading(false);
@@ -120,7 +120,7 @@ export function useGitDiff({
       const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal: unmountRef.current.signal });
       setTokenPreview(data.changes ?? []);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setGitError(describeError(err, 'Token preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setTokenPreviewLoading(false);
@@ -138,7 +138,7 @@ export function useGitDiff({
       const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/push/preview`, { signal: unmountRef.current.signal });
       setPushPreview(data);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setGitError(describeError(err, 'Push preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setPushPreviewLoading(false);
@@ -156,7 +156,7 @@ export function useGitDiff({
       const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal: unmountRef.current.signal });
       setPullPreview(data);
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setGitError(describeError(err, 'Pull preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setPullPreviewLoading(false);

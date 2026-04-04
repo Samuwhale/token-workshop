@@ -16,6 +16,11 @@ export function adaptShortcut(shortcut: string): string {
   return shortcut.replace(/⌘/g, 'Ctrl+').replace(/⇧/g, 'Shift+');
 }
 
+/** Returns true if the caught value is an AbortError (from AbortController.signal). */
+export function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
 /** Extract a human-readable message from an unknown caught value. */
 export function getErrorMessage(err: unknown, fallback = 'An unexpected error occurred'): string {
   return err instanceof Error ? err.message : fallback;

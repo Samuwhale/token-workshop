@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchAllTokensFlatWithSets } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { isNetworkError } from '../shared/apiFetch';
-import { stableStringify } from '../shared/utils';
+import { stableStringify, isAbortError } from '../shared/utils';
 import type { TokenMapEntry } from '../../shared/types';
 
 interface UseTokenDataLoadingParams {
@@ -40,7 +40,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
         setTokensLoading(false);
       }).catch(err => {
         if (gen !== flatFetchGenRef.current) return;
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         if (isNetworkError(err)) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
         setTokensError(err instanceof Error ? err.message : 'Failed to load tokens');

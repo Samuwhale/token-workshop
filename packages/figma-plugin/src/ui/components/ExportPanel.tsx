@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, isAbortError } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
@@ -262,7 +262,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         setAvailableSets(data.sets || []);
       })
       .catch((err) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         console.warn('[ExportPanel] failed to fetch sets:', err);
       });
     return () => controller.abort();
