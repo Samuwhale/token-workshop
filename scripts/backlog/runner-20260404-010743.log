@@ -641,3 +641,10 @@ Already up to date.
   → GitSubPanel merge conflict UI shows only 4 lines per conflict region — for non-trivial conflicts (multi-token JSON changes), 4 lines is too little context to understand what's different; the "ours" vs "theirs" labels don't clarify which is local vs remote; expand default visible lines to 8-10, add "(local)" / "(remote)" labels next to "ours" / "theirs", and add a "Show full context" toggle per conflict region (GitSubPanel.tsx conflict rendering)
   Worktree: /tmp/backlog-91634-6r3h0a
   Running agent… (started 03:51:31)
+
+  ✓ done: GitSubPanel merge conflict UI shows only 4 lines per conflict region
+    Expanded max-h-16 to max-h-28 (~9 lines), added per-region "Show full context"/"Show less" toggle; local/remote labels were already present
+    10 turns · 104s · $0.31
+
+  Merging to main: GitSubPanel merge conflict UI shows only 4 lines per conflict region
+Already up to date.

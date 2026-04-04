@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import type { useGitSync } from '../../hooks/useGitSync';
 import { FileTokenDiffList } from './PublishShared';
@@ -11,6 +12,16 @@ interface GitSubPanelProps {
 }
 
 export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelProps) {
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+
+  const toggleRegionExpand = (key: string) => {
+    setExpandedRegions(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {git.gitError && (
@@ -163,6 +174,9 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     </div>
                     {conflict.regions.map((region) => {
                       const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
+                      const regionKey = `${conflict.file}:${region.index}`;
+                      const isExpanded = expandedRegions.has(regionKey);
+                      const preClass = `text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`;
                       return (
                         <div key={region.index} className="border-t border-[var(--color-figma-border)]">
                           <div className="flex">
@@ -183,7 +197,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
                               </div>
-                              <pre className="text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.ours || '(empty)'}</pre>
+                              <pre className={preClass}>{region.ours || '(empty)'}</pre>
                             </button>
                             <button
                               onClick={() => git.setConflictChoices(prev => ({
@@ -202,7 +216,15 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
                               </div>
-                              <pre className="text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.theirs || '(empty)'}</pre>
+                              <pre className={preClass}>{region.theirs || '(empty)'}</pre>
+                            </button>
+                          </div>
+                          <div className="border-t border-[var(--color-figma-border)] flex justify-center">
+                            <button
+                              onClick={() => toggleRegionExpand(regionKey)}
+                              className="w-full px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors text-center"
+                            >
+                              {isExpanded ? 'Show less' : 'Show full context'}
                             </button>
                           </div>
                         </div>

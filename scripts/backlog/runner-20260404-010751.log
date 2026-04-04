@@ -845,3 +845,22 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: generator auto-run race condition [HIGH], plugin MESSAGE_SCHEMA missing resolvedValue validation, isNetworkError over-broad TypeError classification, token route input validation gaps, App.tsx 3461-line monolith decomposition
 Already up to date.
+[main 353b3e4f] chore(backlog): code pass – code-pass
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store, generator-service, git-sync, operation-log, event-bus, manual-snapshot, token-lock), packages/server/src/routes/ (tokens, sets, generators, sync, snapshots, operations), packages/server/src/index.ts, packages/figma-plugin/src/ui/App.tsx (3461 lines, 44 hooks), packages/figma-plugin/src/ui/hooks/ (useTokens, useTokenDataLoading, useDragDrop, useTokenCrud, useFigmaSync, useFigmaMessage), packages/figma-plugin/src/ui/shared/ (apiFetch, storage), packages/figma-plugin/src/plugin/ (controller, selectionHandling, variableSync), packages/core/src/ (resolver, dtcg-resolver, color-modifier, generator-engine, validator)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Generator auto-run (index.ts:95) runs outside tokenLock while all route handlers hold it — confirmed race condition that can corrupt token state during concurrent edits
+
+═══════════════════════════════════════════════════════════════
+  #35  ·  8 queued · 3 in-progress · last took 11m48s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Generator auto-run fires outside the token lock causing race conditions with route handlers — `tokenStore.onChange` in `index.ts:95` calls `generatorService.runForSourceToken()` without acquiring `tokenLock.withLock()`, while all route handlers (tokens.ts, sets.ts, etc.) hold the lock during mutations; concurrent generator writes and route handler writes can corrupt token state and produce inconsistent operation-log snapshots
+  Worktree: /tmp/backlog-92209-n4K57i
+  Running agent… (started 03:51:54)

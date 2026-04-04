@@ -415,3 +415,16 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: Generator auto-run (index.ts:95) runs outside tokenLock while all route handlers hold it — confirmed race condition that can corrupt token state during concurrent edits
 ---
+
+## 2026-04-04 - GitSubPanel merge conflict UI shows only 4 lines per conflict region
+- Expanded default visible lines from `max-h-16` (~4 lines) to `max-h-28` (~9 lines at 10px/leading-tight) in conflict region `<pre>` elements
+- "(local)" / "(remote)" labels on "Ours"/"Theirs" were already present from a prior session
+- Added `useState` import and `expandedRegions: Set<string>` state to `GitSubPanel` component
+- Added `toggleRegionExpand(key)` helper keyed by `${file}:${region.index}`
+- Added per-region "Show full context" / "Show less" toggle button below each side-by-side diff pair; when expanded, `max-h-28` constraint is removed so the full content is visible
+- Files changed: `packages/figma-plugin/src/ui/components/publish/GitSubPanel.tsx` ~L1, ~L13, ~L175
+- **Learnings for future iterations:**
+  - `GitSubPanel` is a pure functional component (no local state originally) — adding `useState` requires the `import { useState } from 'react'` alongside existing imports
+  - For per-item expand state in a list rendered via `.map()`, a `Set<string>` keyed by a composite identifier (e.g., `file:regionIndex`) is the cleanest approach — no `{}` object initialization, no index collisions across files
+  - The `preClass` string interpolation approach (conditional `max-h-*` class) is cleaner than a ternary in JSX attributes for Tailwind classes
+---
