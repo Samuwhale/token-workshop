@@ -473,3 +473,25 @@ Already up to date.
 
   Merging to main: TokenTreeNode.tsx per-render allocation and expensive alias resolution on every render
 Already up to date.
+[main 933fb248] chore(backlog): done – TokenTreeNode.tsx per-render allocation and expensive alias resolution on every render
+ 6 files changed, 671 insertions(+), 565 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Optimize TokenTreeNode for virtualized list performance
+- Split monolithic TokenTreeNode (~2044 lines, 25 useState) into three components:
+  - `TokenGroupNode` (React.memo, custom comparator): ~9 useState, group-specific state only
+  - `TokenLeafNode` (React.memo, custom comparator): ~16 useState, leaf-specific state only
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  10 queued · 2 in-progress · last took 17m10s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel has no "export diff since last export" mode — every export generates the full token set; for CI/CD workflows and incremental handoff, users need to export only tokens that changed since a reference point (last commit, last export, or specific snapshot); add a "Changes only" toggle that filters the export to added/modified tokens using the git diff or operation log (ExportPanel.tsx, sync.ts diff endpoints)
+  Worktree: /tmp/backlog-91634-cjFmos
+  Running agent… (started 03:06:17)
+
+  ✓ done: ExportPanel has no "export diff since last export" mode
+    Added "Changes only" toggle that fetches git working-tree diff via /api/sync/diff/tokens and passes changedPaths to a new filter in POST /api/export; shows token count, Refresh button, and handles non-git repos gracefully
+    35 turns · 344s · $1.36
+
+  Merging to main: ExportPanel has no "export diff since last export" mode
+Already up to date.

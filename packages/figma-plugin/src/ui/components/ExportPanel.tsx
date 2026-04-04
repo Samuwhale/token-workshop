@@ -55,6 +55,7 @@ interface ExportPreset {
   pathPrefix: string;
   nestByPlatform: boolean;
   zipFilename: string;
+  changesOnly?: boolean;
 }
 
 function buildZipBlob(files: { path: string; content: string }[]): Blob {
@@ -295,11 +296,50 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setResults([]);
 
     try {
-      const body: { platforms: string[]; sets?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string } = { platforms: Array.from(selected) };
+      // If changesOnly mode, resolve the diff paths first (or re-use cached)
+      let resolvedDiffPaths: string[] | undefined;
+      if (changesOnly) {
+        let paths = diffPaths;
+        if (paths === null) {
+          // Fetch diff inline if not yet loaded
+          setDiffLoading(true);
+          try {
+            const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
+              `${serverUrl}/api/sync/diff/tokens`,
+            );
+            paths = data.changes
+              .filter(c => c.status === 'added' || c.status === 'modified')
+              .map(c => c.path);
+            setDiffPaths(paths);
+            setIsGitRepo(true);
+          } catch (diffErr) {
+            if (diffErr instanceof ApiError && diffErr.status === 400) {
+              setIsGitRepo(false);
+              setError('Changes only mode requires a git repository. The token directory is not tracked by git.');
+            } else {
+              setError(`Failed to fetch changed tokens: ${getErrorMessage(diffErr)}`);
+            }
+            setDiffLoading(false);
+            setExporting(false);
+            return;
+          } finally {
+            setDiffLoading(false);
+          }
+        }
+        if (paths.length === 0) {
+          setError('No changed tokens found. All tokens are up to date since the last commit.');
+          setExporting(false);
+          return;
+        }
+        resolvedDiffPaths = paths;
+      }
+
+      const body: { platforms: string[]; sets?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string; changedPaths?: string[] } = { platforms: Array.from(selected) };
       if (selectedSets !== null) body.sets = Array.from(selectedSets);
       if (selectedTypes !== null) body.types = Array.from(selectedTypes);
       if (pathPrefix.trim()) body.pathPrefix = pathPrefix.trim();
       if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;
+      if (resolvedDiffPaths) body.changedPaths = resolvedDiffPaths;
       const data = await apiFetch<{ results?: { platform: string; files: { path: string; content: string }[] }[] }>(
         `${serverUrl}/api/export`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
@@ -312,7 +352,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       }
       setResults(flatFiles);
       if (flatFiles.length > 0) setPreviewFileIndex(0);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
+      const changesLabel = changesOnly && resolvedDiffPaths ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})` : '';
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)${changesLabel}` } }, '*');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -603,6 +644,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       pathPrefix,
       nestByPlatform,
       zipFilename,
+      changesOnly,
     };
     setPresets(prev => [...prev, preset]);
     setPresetName('');
@@ -617,11 +659,73 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setPathPrefix(preset.pathPrefix);
     setNestByPlatform(preset.nestByPlatform);
     setZipFilename(preset.zipFilename);
+    setChangesOnly(preset.changesOnly ?? false);
+    // Reset diff state so it will be re-fetched if changesOnly is on
+    setDiffPaths(null);
+    setDiffError(null);
   };
 
   const handleDeletePreset = (id: string) => {
     setPresets(prev => prev.filter(p => p.id !== id));
   };
+
+  // Changes-only export mode
+  const [changesOnly, setChangesOnly] = useState<boolean>(() =>
+    lsGetJson<boolean>(STORAGE_KEYS.EXPORT_CHANGES_ONLY, false) === true
+  );
+  const [diffLoading, setDiffLoading] = useState(false);
+  const [diffError, setDiffError] = useState<string | null>(null);
+  // null = not yet fetched, string[] = fetched paths (added/modified only)
+  const [diffPaths, setDiffPaths] = useState<string[] | null>(null);
+  // undefined = not yet checked, false = not a git repo, true = is a git repo
+  const [isGitRepo, setIsGitRepo] = useState<boolean | undefined>(undefined);
+
+  // Persist changes-only setting
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.EXPORT_CHANGES_ONLY, changesOnly);
+  }, [changesOnly]);
+
+  interface TokenChange {
+    path: string;
+    set: string;
+    type: string;
+    status: 'added' | 'modified' | 'removed';
+  }
+
+  const fetchDiff = async () => {
+    if (!connected) return;
+    setDiffLoading(true);
+    setDiffError(null);
+    setDiffPaths(null);
+    try {
+      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(
+        `${serverUrl}/api/sync/diff/tokens`,
+      );
+      const paths = data.changes
+        .filter(c => c.status === 'added' || c.status === 'modified')
+        .map(c => c.path);
+      setDiffPaths(paths);
+      setIsGitRepo(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        // Not a git repo
+        setIsGitRepo(false);
+        setDiffError(null);
+        setDiffPaths(null);
+      } else {
+        setDiffError(getErrorMessage(err));
+      }
+    } finally {
+      setDiffLoading(false);
+    }
+  };
+
+  // Auto-fetch diff when changesOnly is enabled and connected
+  useEffect(() => {
+    if (changesOnly && connected && diffPaths === null && !diffLoading) {
+      fetchDiff();
+    }
+  }, [changesOnly, connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track when we auto-switch mode due to disconnection
   const [modeAutoSwitched, setModeAutoSwitched] = useState(false);
@@ -1028,6 +1132,102 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
                 Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
               </div>
+            </div>
+
+            {/* Changes only filter */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                  Scope
+                </div>
+              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={changesOnly}
+                  onChange={() => {
+                    const next = !changesOnly;
+                    setChangesOnly(next);
+                    if (next && connected && diffPaths === null) {
+                      fetchDiff();
+                    }
+                  }}
+                  className="sr-only"
+                />
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                  changesOnly
+                    ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                    : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                }`}>
+                  {changesOnly && (
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] text-[var(--color-figma-text)]">Changes only</span>
+                  <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Export tokens changed since last git commit</span>
+                </div>
+              </label>
+
+              {changesOnly && (
+                <div className="mt-2 pl-6">
+                  {isGitRepo === false && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-warning)] shrink-0">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      Token directory is not a git repository. Changes only mode requires git.
+                    </div>
+                  )}
+                  {isGitRepo !== false && (
+                    <div className="flex items-center gap-2">
+                      {diffLoading ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                          <Spinner size="sm" />
+                          Checking for changes…
+                        </div>
+                      ) : diffError ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                          </svg>
+                          {diffError}
+                        </div>
+                      ) : diffPaths !== null ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          {diffPaths.length === 0 ? (
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
+                          ) : (
+                            <span className="text-[10px] text-[var(--color-figma-text)]">
+                              <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
+                              {' '}token{diffPaths.length !== 1 ? 's' : ''} changed
+                            </span>
+                          )}
+                          <button
+                            onClick={fetchDiff}
+                            title="Re-check for changes"
+                            className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
+                          >
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="23 4 23 10 17 10" />
+                              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                            </svg>
+                            Refresh
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {results.length > 0 && (
@@ -1521,7 +1721,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {mode === 'platforms' && results.length === 0 && (
           <button
             onClick={handleExport}
-            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
+            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting || (changesOnly && isGitRepo === false)}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
           >
             {exporting ? (
@@ -1529,7 +1729,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <Spinner />
                 Exporting…
               </>
-            ) : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            ) : selected.size === 0
+              ? 'Select a platform to export'
+              : selectedSets !== null && selectedSets.size === 0
+              ? 'Select at least one set'
+              : changesOnly && isGitRepo === false
+              ? 'Changes only — requires git'
+              : changesOnly && diffPaths !== null && diffPaths.length > 0
+              ? `Export ${diffPaths.length} Changed Token${diffPaths.length !== 1 ? 's' : ''} · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
+              : selectedSets !== null
+              ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}`
+              : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length === 0 && (

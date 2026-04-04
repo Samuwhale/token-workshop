@@ -637,3 +637,16 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  · product pass: no result — skipped
+
+## 2026-04-04 - Optimize TokenTreeNode for virtualized list performance
+- Split monolithic TokenTreeNode (~2044 lines, 25 useState) into three components:
+  - `TokenGroupNode` (React.memo, custom comparator): ~9 useState, group-specific state only
+  - `TokenLeafNode` (React.memo, custom comparator): ~16 useState, leaf-specific state only
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  9 queued · 3 in-progress · last took 9m28s
+═══════════════════════════════════════════════════════════════
+  → LintConfigPanel has no per-set or per-group rule scoping — all lint rules apply globally across all sets with identical settings; power users managing brand-specific sets (e.g., "brand-a" strict, "internal" permissive) cannot configure different rule severity per set or exclude specific token path patterns from specific rules; add optional scope filters to each rule configuration (LintConfigPanel.tsx, lint.ts service)
+  Worktree: /tmp/backlog-92209-Yx0vVv
+  Running agent… (started 03:07:12)

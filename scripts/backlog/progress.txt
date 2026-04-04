@@ -429,3 +429,17 @@
   - `React.memo` with a custom comparator for virtualized rows is most impactful when the comparator checks only the props that actually affect rendering (not all 20 props)
   - `useMemo` for alias resolution (`resolveTokenValue`) is the single highest-impact optimization because it runs O(depth) traversal per render on every visible row
 ---
+
+## 2026-04-04 - ExportPanel has no "export diff since last export" mode
+- Added "Changes only" toggle to ExportPanel that filters exported tokens to those changed/added since the last git commit.
+- Server: added `changedPaths?: string[]` parameter to `POST /api/export` body. Added `filterTokensByPaths(group, paths, prefix?)` helper that recursively walks the TokenGroup and keeps only tokens whose full dot-separated path is in the set.
+- Client: added `changesOnly`, `diffLoading`, `diffError`, `diffPaths`, `isGitRepo` state. `fetchDiff()` calls `GET /api/sync/diff/tokens` and extracts `added`/`modified` paths. Auto-fetches when `changesOnly` is first enabled. Shows a summary (N tokens changed) with a Refresh button. Shows a warning when the token directory is not a git repo. Disables the export button when changesOnly + no git.
+- `handleExport` passes `changedPaths` in the POST body when `changesOnly` is on; if diff not yet loaded it fetches inline. Shows "no changes detected" error if diffPaths is empty.
+- Export button label updates to "Export N Changed Tokens · M Platforms" when changesOnly and diff is loaded.
+- `ExportPreset` extended with optional `changesOnly?: boolean`; `handleSavePreset` / `handleLoadPreset` updated accordingly. `EXPORT_CHANGES_ONLY` key added to `STORAGE_KEYS`.
+- Files changed: `packages/server/src/routes/export.ts` ~L8 (filterTokensByPaths), ~L105 (changedPaths body param), ~L195 (filter step); `packages/figma-plugin/src/ui/shared/storage.ts` ~L35; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L48 (interface), ~L627 (state), ~L700 (handleExport), ~L1145 (UI section)
+- **Learnings for future iterations:**
+  - The existing `/api/sync/diff/tokens` endpoint (status 400 when not a git repo) is the right primitive for "changes since last commit" — no new server route needed.
+  - `changedPaths` filter in the export route must walk the nested TokenGroup depth-first and track the prefix, building full dot-separated paths — segment names can contain dots so this must be done carefully (we use prefix accumulation, not string split).
+  - Auto-fetch on toggle (inside `useEffect([changesOnly, connected])`) is the right pattern; inline fetch as fallback in handleExport ensures correctness even if the effect hasn't fired yet.
+---

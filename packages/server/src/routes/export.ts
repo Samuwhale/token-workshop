@@ -46,6 +46,42 @@ function filterTokensByType(group: TokenGroup, types: string[], inheritedType?: 
 }
 
 /**
+ * Filter a token group to only include tokens whose full dot-separated paths are in the given set.
+ * Returns null if the filtered group is empty.
+ */
+function filterTokensByPaths(group: TokenGroup, paths: Set<string>, prefix?: string): TokenGroup | null {
+  const result: TokenGroup = {};
+  let hasContent = false;
+
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) {
+      result[key] = value;
+      continue;
+    }
+    if (value && typeof value === 'object') {
+      const currentPath = prefix ? `${prefix}.${key}` : key;
+      const obj = value as Record<string, unknown>;
+      if ('$value' in obj) {
+        // Leaf token — include only if path is in the set
+        if (paths.has(currentPath)) {
+          result[key] = value;
+          hasContent = true;
+        }
+      } else {
+        // Nested group — recurse
+        const filtered = filterTokensByPaths(value as TokenGroup, paths, currentPath);
+        if (filtered !== null) {
+          result[key] = filtered;
+          hasContent = true;
+        }
+      }
+    }
+  }
+
+  return hasContent ? result : null;
+}
+
+/**
  * Validate a CSS selector string to prevent injection.
  * Allows typical selectors: element names, classes, IDs, attributes, pseudo-classes,
  * combinators, and common punctuation — but rejects braces, semicolons, comments,
@@ -64,16 +100,17 @@ function isValidCssSelector(selector: string): boolean {
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
   // Optional body fields:
-  //   sets: string[]       — export only these token sets (default: all sets)
-  //   group: string[]      — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
-  //                          Using an array avoids ambiguity when segment names contain literal dots.
-  //   types: string[]      — keep only tokens whose $type is in this list (default: all types)
-  //   pathPrefix: string   — keep only tokens under this dot-separated path prefix (e.g. "color.brand")
-  //   cssSelector: string  — CSS selector to wrap CSS variables (default: :root)
-  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string } }>(
+  //   sets: string[]            — export only these token sets (default: all sets)
+  //   group: string[]           — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
+  //                               Using an array avoids ambiguity when segment names contain literal dots.
+  //   types: string[]           — keep only tokens whose $type is in this list (default: all types)
+  //   pathPrefix: string        — keep only tokens under this dot-separated path prefix (e.g. "color.brand")
+  //   cssSelector: string       — CSS selector to wrap CSS variables (default: :root)
+  //   changedPaths: string[]    — keep only tokens whose full dot-separated path is in this list (for "changes only" export)
+  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string; changedPaths?: string[] } }>(
     '/export',
     async (request, reply) => {
-      const { platforms, sets, group, types, pathPrefix, cssSelector } = request.body || {};
+      const { platforms, sets, group, types, pathPrefix, cssSelector, changedPaths } = request.body || {};
 
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
         return reply.status(400).send({
@@ -170,6 +207,24 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           if (Object.keys(tokenData).length === 0) {
             return reply.status(404).send({
               error: `No tokens with type(s) "${types.join(', ')}" found`,
+            });
+          }
+        }
+
+        // Filter by specific changed paths (for "changes only" export mode)
+        if (changedPaths && changedPaths.length > 0) {
+          const pathSet = new Set(changedPaths);
+          const filtered: Record<string, TokenGroup> = {};
+          for (const [setName, tokens] of Object.entries(tokenData)) {
+            const result = filterTokensByPaths(tokens, pathSet);
+            if (result !== null) {
+              filtered[setName] = result;
+            }
+          }
+          tokenData = filtered;
+          if (Object.keys(tokenData).length === 0) {
+            return reply.status(404).send({
+              error: 'None of the changed token paths were found in the current token data',
             });
           }
         }
