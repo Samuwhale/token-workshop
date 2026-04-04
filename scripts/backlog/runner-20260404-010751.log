@@ -941,3 +941,18 @@ Already up to date.
 
   Merging to main: No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
 Already up to date.
+[main da4887b7] chore(backlog): done – No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
+ 9 files changed, 127 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No progress reporting for search-layers, syncBindings, remapBindings, or applyToNodes plugin operations
+- **`syncBindings`**: Already had `sync-progress` messages; replaced plain "Syncing... X/Y layers" text with an inline progress bar (16px wide, accent color fill) + count for clearer non-frozen feedback.
+- **`remapBindings`** (plugin): Added `remap-progress: { processed, total }` postMessage every 100 nodes during the node loop. Total is computed once before the loop.
+- **`remapBindings`** (UI, `RemapBindingsPanel.tsx`): Added `remapProgress` state, listens for `remap-progress` events, shows "X/Y layers" count next to the "Remapping…" button label.
+
+═══════════════════════════════════════════════════════════════
+  #39  ·  8 queued · 3 in-progress · last took 6m45s
+═══════════════════════════════════════════════════════════════
+  → `useSyncBindings` and `useWindowResize` are defined inline in App.tsx instead of extracted to hooks/ — these 160+ lines of hook logic in the 3,481-line App.tsx contribute to its size and make the hooks undiscoverable for reuse; extract them to the hooks/ directory following the pattern of all other custom hooks (App.tsx inline hook definitions)
+  Worktree: /tmp/backlog-92209-xTxkt3
+  Running agent… (started 04:26:12)

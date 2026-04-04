@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { TokenDetailPreview } from './TokenDetailPreview';
+import { Spinner } from './Spinner';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
@@ -223,15 +224,20 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
     return localStorage.getItem(STORAGE_KEY_DARK_MODE) === 'true';
   });
 
+  // Defer heavy token computations so template switches and token reloads don't block the UI
+  const deferredTokensFlat = useDeferredValue(allTokensFlat);
+  const [isPending, startTransition] = useTransition();
+  const isStale = allTokensFlat !== deferredTokensFlat || isPending;
+
   // Build CSS vars object from all tokens
   const cssVars = useMemo(() => {
     const vars: Record<string, string> = {};
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    for (const [path, entry] of Object.entries(deferredTokensFlat)) {
       const name = toCssVar(path);
       vars[name] = resolveValue(entry.$value, entry.$type ?? '');
     }
     return vars;
-  }, [allTokensFlat]);
+  }, [deferredTokensFlat]);
 
   // Resolve alias chain to a concrete (non-alias) value, or null if unresolvable
   const resolveAlias = useMemo(() => {
@@ -240,16 +246,16 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       if (!aliasMatch) return value;
       const refPath = aliasMatch[1];
       if (visited.has(refPath)) return null; // circular
-      const target = allTokensFlat[refPath];
+      const target = deferredTokensFlat[refPath];
       if (!target) return null;
       return resolve(String(target.$value ?? ''), new Set([...visited, refPath]));
     };
-  }, [allTokensFlat]);
+  }, [deferredTokensFlat]);
 
   // Collect color tokens grouped by top-level prefix
   const colorGroups = useMemo(() => {
     const groups: Record<string, { path: string; value: string }[]> = {};
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    for (const [path, entry] of Object.entries(deferredTokensFlat)) {
       if (entry.$type !== 'color') continue;
       const raw = String(entry.$value ?? '');
       const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
@@ -259,12 +265,12 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       groups[prefix].push({ path, value: resolved });
     }
     return groups;
-  }, [allTokensFlat, resolveAlias]);
+  }, [deferredTokensFlat, resolveAlias]);
 
   // Collect gradient tokens
   const gradientTokens = useMemo(() => {
     const result: { path: string; value: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    for (const [path, entry] of Object.entries(deferredTokensFlat)) {
       if (entry.$type !== 'gradient') continue;
       const raw = String(entry.$value ?? '');
       const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
@@ -272,26 +278,26 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       result.push({ path, value: resolved });
     }
     return result;
-  }, [allTokensFlat, resolveAlias]);
+  }, [deferredTokensFlat, resolveAlias]);
 
   // Collect shadow tokens
   const shadowTokens = useMemo(() => {
     const SHADOW_TYPES = new Set(['shadow', 'boxShadow', 'innerShadow']);
     const result: { path: string; value: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    for (const [path, entry] of Object.entries(deferredTokensFlat)) {
       if (!SHADOW_TYPES.has(entry.$type ?? '')) continue;
       const resolved = resolveValue(entry.$value, entry.$type ?? '');
       if (!resolved) continue;
       result.push({ path, value: resolved });
     }
     return result;
-  }, [allTokensFlat]);
+  }, [deferredTokensFlat]);
 
   // Collect transition/animation/duration tokens
   const effectTimingTokens = useMemo(() => {
     const TIMING_TYPES = new Set(['transition', 'animation', 'duration', 'cubicBezier']);
     const result: { path: string; value: string; type: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    for (const [path, entry] of Object.entries(deferredTokensFlat)) {
       if (!TIMING_TYPES.has(entry.$type ?? '')) continue;
       const raw = String(entry.$value ?? '');
       const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
@@ -299,12 +305,12 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       result.push({ path, value: resolved, type: entry.$type ?? '' });
     }
     return result;
-  }, [allTokensFlat, resolveAlias]);
+  }, [deferredTokensFlat, resolveAlias]);
 
   // Collect typography tokens: fontSize entries + sibling fontWeight/lineHeight/letterSpacing/fontFamily
   const typeTokens = useMemo(() => {
     const FONT_SIZE_TYPES = new Set(['fontSizes', 'fontSize', 'fontsize']);
-    const entries = Object.entries(allTokensFlat);
+    const entries = Object.entries(deferredTokensFlat);
 
     // Build a lookup: parentPath → { propLeaf → [path, entry] }
     // e.g. "heading.lg" → { "fontSize": ["heading.lg.fontSize", entry], "fontWeight": ... }
@@ -356,16 +362,16 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           fontFamilyVar: findSibling(['fontFamilies', 'fontFamily', 'fontfamily'], ['fontFamily', 'fontFamilies', 'family']),
         };
       });
-  }, [allTokensFlat]);
+  }, [deferredTokensFlat]);
 
   // Resolve semantic slot mappings from the user's actual tokens
-  const previewSlots = useMemo(() => resolvePreviewSlots(allTokensFlat), [allTokensFlat]);
+  const previewSlots = useMemo(() => resolvePreviewSlots(deferredTokensFlat), [deferredTokensFlat]);
 
-  const isEmpty = Object.keys(allTokensFlat).length === 0;
+  const isEmpty = Object.keys(deferredTokensFlat).length === 0;
 
   // Determine which templates are relevant based on token types actually present
   const relevantTemplates = useMemo(() => {
-    const types = new Set(Object.values(allTokensFlat).map(e => e.$type ?? ''));
+    const types = new Set(Object.values(deferredTokensFlat).map(e => e.$type ?? ''));
     const hasColors = types.has('color');
     const hasGradients = types.has('gradient');
     const hasFontSize = types.has('fontSize') || types.has('fontSizes') || types.has('fontsize');
@@ -385,7 +391,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
     // Fall back to all templates when no tokens exist yet (empty state)
     if (available.size === 0) return new Set(TEMPLATES.map(t => t.id as Template));
     return available;
-  }, [allTokensFlat]);
+  }, [deferredTokensFlat]);
 
   const visibleTemplates = useMemo(
     () => TEMPLATES.filter(t => relevantTemplates.has(t.id)),
@@ -427,7 +433,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             {visibleTemplates.map(t => (
               <button
                 key={t.id}
-                onClick={() => { setTemplate(t.id); localStorage.setItem(STORAGE_KEY_TEMPLATE, t.id); }}
+                onClick={() => { startTransition(() => setTemplate(t.id)); localStorage.setItem(STORAGE_KEY_TEMPLATE, t.id); }}
                 className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
                   effectiveTemplate === t.id
                     ? 'bg-[var(--color-figma-accent)] text-white'
@@ -480,7 +486,15 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
       </div>
 
       {/* Preview surface */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 relative">
+        {isStale && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-figma-bg)]/60 pointer-events-none">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] shadow-sm">
+              <Spinner size="sm" className="text-[var(--color-figma-text-secondary)]" />
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Resolving…</span>
+            </div>
+          </div>
+        )}
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-[var(--color-figma-text-secondary)]">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

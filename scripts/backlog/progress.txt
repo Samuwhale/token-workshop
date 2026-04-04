@@ -642,3 +642,15 @@
   - Skip `apply-progress` for single-node applies (`total > 1`) to avoid pointless flash of the progress banner.
   - For search operations with early exit (MAX_RESULTS), tracking `totalSearched` and including it in the result message is the right approach — no intermediate messages needed since the operation completes in one shot.
 ---
+
+## 2026-04-04 - PreviewPanel has no loading indicator while resolving CSS custom property slots
+- Added `useDeferredValue(allTokensFlat)` to defer all heavy synchronous token computations (cssVars, colorGroups, gradientTokens, shadowTokens, effectTimingTokens, typeTokens, previewSlots, relevantTemplates) so they don't block the UI
+- Added `useTransition` to wrap template switches (`startTransition(() => setTemplate(t.id))`) so template changes yield to higher-priority renders
+- Derived `isStale = allTokensFlat !== deferredTokensFlat || isPending` flag
+- Added a pill-shaped spinner overlay (absolute-positioned, `pointer-events-none`, semi-transparent backdrop) in the preview surface that appears when `isStale`; shows `<Spinner size="sm">` + "Resolving…" text, consistent with ExportPanel/PublishPanel patterns
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L2, ~L228, ~L255-394, ~L436, ~L489
+- **Learnings for future iterations:**
+  - `useDeferredValue` + `useTransition` is the idiomatic React 18 approach for deferred-computation loading indicators without any async state
+  - `isStale = liveValue !== deferredValue || isPending` cleanly combines both signals into one boolean
+  - The overlay must be `pointer-events-none` so users can still interact with the (stale) content underneath while the new content resolves
+---

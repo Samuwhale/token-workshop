@@ -867,3 +867,10 @@ Already up to date.
   → PreviewPanel has no loading indicator while resolving CSS custom property slots — switching templates or changing tokens causes a visible stutter with no spinner or skeleton state; other panels (Export, Publish) use spinners consistently but PreviewPanel has none (PreviewPanel.tsx)
   Worktree: /tmp/backlog-91949-b1QEBD
   Running agent… (started 04:23:18)
+
+  ✓ done: PreviewPanel has no loading indicator while resolving CSS custom property slots
+    Added useDeferredValue + useTransition for deferred token computations; spinner overlay appears in preview surface during resolution
+    29 turns · 207s · $0.79
+
+  Merging to main: PreviewPanel has no loading indicator while resolving CSS custom property slots
+Already up to date.
