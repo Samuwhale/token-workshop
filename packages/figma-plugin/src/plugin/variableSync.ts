@@ -158,10 +158,16 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       if (errs.length > 0) throw new Error(`var ${varId}: ${errs.join('; ')}`);
     });
     const restoreResults = await Promise.allSettled(restoreTasks);
+    const restoresFailed = restoreResults.filter(r => r.status === 'rejected');
     for (const r of restoreResults) {
       if (r.status === 'rejected') rollbackFailures.push(`restore: ${r.reason}`);
     }
 
+    if (restoresFailed.length > 0) {
+      // Skip deletions — restores failed, so deleting created variables/collections now would
+      // cause unrecoverable data loss (the originals didn't restore cleanly).
+      console.error('[applyVariables] skipping deletion phase because restore(s) failed:', restoresFailed.map(r => (r as PromiseRejectedResult).reason));
+    } else {
     // Delete variables created during this operation (reverse order) — run in parallel
     const deleteTasks = [...createdVariableIds].reverse().map(async (varId) => {
       const v = await figma.variables.getVariableByIdAsync(varId);
@@ -190,6 +196,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     } catch (e) {
       rollbackFailures.push(`collection cleanup fetch failed: ${e}`);
     }
+    } // end else (restores succeeded)
 
     const rolledBack = rollbackFailures.length === 0;
     const rollbackError = rolledBack

@@ -482,3 +482,13 @@
 - **Learnings for future iterations:**
   - Before implementing, always read the relevant files — the backlog item may describe missing functionality that was added since the item was written.
 ---
+
+## 2026-04-04 - Plugin revert functions delete created variables/styles even when restores fail
+- Added a guard in `revertVariables` (variableSync.ts) to skip the deletion phase when any restore `Promise.allSettled` result is rejected. The `restoresFailed` check wraps the entire deletion block (variables + collections) in an `else` branch.
+- Added a guard in `revertStyles` (styleSync.ts) to skip the deletion phase when the `failures` array is non-empty after the restore loop. The delete loop is wrapped in an `else` branch.
+- Both cases log a console.error explaining that deletions were skipped, so the partial rollback is visible in Figma DevTools.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L166-200, `packages/figma-plugin/src/plugin/styleSync.ts` ~L172-187
+- **Learnings for future iterations:**
+  - `Promise.allSettled` returns results with `.status === 'rejected'` for failures; check these before proceeding to destructive follow-up steps.
+  - For sequential restore loops (styleSync.ts), a non-empty `failures` array after the loop is the equivalent guard.
+---

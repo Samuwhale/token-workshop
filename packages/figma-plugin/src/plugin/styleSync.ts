@@ -169,13 +169,19 @@ export async function revertStyles(
     }
   }
 
-  // Delete styles that were created during the sync
-  for (const id of [...data.createdIds].reverse()) {
-    try {
-      const style = await figma.getStyleByIdAsync(id);
-      if (style) style.remove();
-    } catch (e) {
-      failures.push(`delete(${id}): ${e}`);
+  if (failures.length > 0) {
+    // Skip deletions — one or more restores failed, so deleting created styles now would
+    // cause unrecoverable data loss (the originals didn't restore cleanly).
+    console.error('[revertStyles] skipping deletion phase because restore(s) failed:', failures);
+  } else {
+    // Delete styles that were created during the sync
+    for (const id of [...data.createdIds].reverse()) {
+      try {
+        const style = await figma.getStyleByIdAsync(id);
+        if (style) style.remove();
+      } catch (e) {
+        failures.push(`delete(${id}): ${e}`);
+      }
     }
   }
 

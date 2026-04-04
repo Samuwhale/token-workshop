@@ -529,3 +529,29 @@ Already up to date.
   ✓ code pass: code-pass
     4 items written to inbox: plugin revert data loss bug [HIGH], HistoryPanel 2358-line monolith decomposition, server-side validation gaps (TOCTOU race + missing cycle check + partial conflict resolution), core package type safety cleanup
 Already up to date.
+[main f735ed58] chore(backlog): code pass – code-pass
+ 5 files changed, 25 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 3 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - No keyboard navigation between token tree nodes
+- Stale — already fully implemented. TokenList.tsx lines 1277-1383 contain a complete keyboard navigation handler: ↑/↓ navigates between rows (with Shift for range selection), → expands groups or moves to first child if already expanded, ← collapses groups or moves to parent, Cmd/Ctrl+←/→ collapses/expands all. TokenTreeNode.tsx lines 1058-1101 handle Enter (inline edit or open full editor), Space (toggle select or open editor), Delete/Backspace (delete), Cmd+D (duplicate), and F2 (rename).
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  9 queued · 3 in-progress · last took 6m7s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Plugin revert functions delete created variables/styles even when restores fail — in variableSync.ts revertVariables (L160-173) and styleSync.ts revertStyles (L151-180), the deletion phase proceeds unconditionally after Promise.allSettled restores; if restores fail (API timeout, permission error, font loading failure), created variables/styles are still deleted, causing unrecoverable data loss; add a guard that skips deletions when any restore rejects
+  Worktree: /tmp/backlog-91634-8aLO27
+  Running agent… (started 03:18:15)
+
+  ✓ done: Plugin revert functions delete created variables/styles even when restores fail
+    Added guards in variableSync.ts and styleSync.ts to skip deletion phases when any restore step fails, preventing unrecoverable data loss
+    10 turns · 66s · $0.22
+
+  Merging to main: Plugin revert functions delete created variables/styles even when restores fail
+Already up to date.
