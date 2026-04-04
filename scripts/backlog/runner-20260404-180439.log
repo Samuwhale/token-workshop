@@ -764,3 +764,30 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — highlights: merge Resolver into ThemeManager, inline token editing, command palette token ops, unified undo timeline, server $value validation, Publish All fast path
 Already up to date.
+[main 7b0c2f3f] chore(backlog): product pass – product-pass
+ 5 files changed, 32 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (navigation architecture, 13 concepts across 3 top tabs + 10 sub-tabs + 2 overflow panels), SettingsPanel.tsx (892 lines, 8 sections), CreatePanel.tsx (1,034 lines, 3 creation modes), TokenEditor.tsx (1,708 lines, no inline editing), HistoryPanel.tsx (879 lines, 3 undo systems), ConsistencyPanel.tsx (338 lines, snap workflow), ResolverPanel.tsx (889 lines, overlap with ThemeManager), GraphPanel.tsx (700 lines, generator stale indicators), PublishPanel.tsx (2,070 lines, sequential publish flow), SetSwitcher.tsx (737 lines), CommandPalette.tsx (814 lines, 40+ commands), shortcutRegistry.ts (23 shortcuts), server routes (68 routes across 13 files), token-store.ts (file watcher, validation), operation-log.ts (50-entry ring buffer)
+- Found 12 items — written to backlog-inbox.md
+- Notable: ResolverPanel and ThemeManager are two separate panels managing the same conceptual feature (theme-like behavior) with a "convert from themes" migration button confirming they should be unified; server accepts any $value regardless of declared $type with no structural validation
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  25 queued · 0
+0 in-progress · last took 8m8s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Server does not validate token $value on create or update — tokens.ts POST/PATCH routes check that $value is not undefined but accept any value regardless of the declared $type; a color token can be saved with value `[1, 2, 3]`, a dimension token can be saved with value `true`, and alias references are not checked for circular dependencies until resolve time; add type-aware validation on write that rejects structurally invalid values and checks alias targets exist
+  Worktree: /tmp/backlog-3108-5mGklG
+  Running agent… (started 22:32:08)
+
+  ✓ done: Server does not validate token $value on create or update
+    Added type-aware value validation (using TokenValidator from core) and alias target existence checks to POST, PATCH, batch-update, and batch-upsert routes; added tokenPathExists() to TokenStore
+    41 turns · 363s · $1.27
+
+  Merging to main: Server does not validate token $value on create or update
+Already up to date.

@@ -477,3 +477,18 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: ResolverPanel and ThemeManager are two separate panels managing the same conceptual feature (theme-like behavior) with a "convert from themes" migration button confirming they should be unified; server accepts any $value regardless of declared $type with no structural validation
 ---
+
+## 2026-04-04 - Server does not validate token $value on create or update
+- Added type-aware validation on all token write routes using the existing `TokenValidator` class from `@tokenmanager/core`
+- Added `tokenPathExists(path: string): boolean` to `TokenStore` for checking alias target existence in O(1) via the flatTokens Map
+- POST `/tokens/:set/*`: validates `$value` against `$type` before acquiring lock; checks alias target existence inside lock after duplicate check
+- PATCH `/tokens/:set/*`: inside lock, looks up existing token to determine effective type (patch `$type` or inherited), validates `$value`, checks alias target
+- POST `/tokens/:set/batch-update`: inside lock, for each patch with `$value`, looks up existing token type, validates value, checks alias target
+- POST `/tokens/:set/batch` (upsert): validates `$value` against `$type` before lock (where type is explicit); inside lock checks alias targets, allowing intra-batch forward references
+- Files changed: `packages/server/src/services/token-store.ts` ~L1108, `packages/server/src/routes/tokens.ts` ~L2,14,879,940,426,609
+- **Learnings for future iterations:**
+  - `TokenValidator.validate()` already skips references and formulas (`isReference`/`isFormula`), so it's safe to call unconditionally — no need to pre-check
+  - For PATCH routes, type validation must happen inside the lock because you need the existing token's `$type` to determine the effective type
+  - For batch-upsert, intra-batch alias references are valid (token A references token B, both in the same batch) — check target against `flatTokens.has(path) || batchPaths.has(path)` rather than flatTokens alone
+  - The `parseReference(ref)` helper from `@tokenmanager/core` cleanly extracts the path from `{path.to.token}` format
+---

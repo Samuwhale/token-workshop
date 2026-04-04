@@ -1105,6 +1105,11 @@ export class TokenStore {
     return result;
   }
 
+  /** Returns true if a token with the given dotted path exists in any set. */
+  tokenPathExists(tokenPath: string): boolean {
+    return this.flatTokens.has(tokenPath);
+  }
+
   /** Get all flat tokens across all sets (includes all set versions per path). */
   getAllFlatTokens(): Array<{ path: string; token: Token; setName: string }> {
     const result: Array<{ path: string; token: Token; setName: string }> = [];

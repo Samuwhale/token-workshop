@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { TOKEN_TYPE_VALUES, type Token, type TokenGroup } from '@tokenmanager/core';
+import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
 
@@ -10,6 +10,18 @@ function validateTokenBody(body: unknown): body is Partial<Token> {
   if ('$description' in b && b.$description !== undefined && typeof b.$description !== 'string') return false;
   if ('$extensions' in b && b.$extensions !== undefined && (typeof b.$extensions !== 'object' || b.$extensions === null || Array.isArray(b.$extensions))) return false;
   return true;
+}
+
+const _tokenValidator = new TokenValidator();
+
+/**
+ * Validate a token $value against its declared $type.
+ * Returns null on success, or an error string on failure.
+ * Skips validation when type is absent or the value is a reference/formula.
+ */
+function validateTokenValue(value: unknown, type: string, path: string): string | null {
+  const result = _tokenValidator.validate({ $value: value, $type: type } as Token, path);
+  return result.valid ? null : result.errors.map(e => e.replace(`${path}: `, '')).join('; ');
 }
 
 const PATH_MAX_LEN = 500;
@@ -413,6 +425,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
+        // Type-aware validation for each patch (needs existing token for inherited type)
+        for (const p of patches) {
+          const patchVal = (p.patch as Record<string, unknown>).$value;
+          if (patchVal !== undefined) {
+            const patchType = (p.patch as Record<string, unknown>).$type as string | undefined;
+            const effectiveType = patchType ?? (await fastify.tokenStore.getToken(set, p.path))?.$type;
+            if (effectiveType) {
+              const valueErr = validateTokenValue(patchVal, effectiveType, p.path);
+              if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${p.path}" (type "${effectiveType}"): ${valueErr}` });
+            }
+            if (isReference(patchVal)) {
+              const targetPath = parseReference(patchVal as string);
+              if (!fastify.tokenStore.tokenPathExists(targetPath)) {
+                return reply.status(400).send({ error: `Alias target "${targetPath}" in "${p.path}" does not exist` });
+              }
+            }
+          }
+        }
+
         const paths = patches.map(p => p.path);
         const before = await snapshotPaths(fastify.tokenStore, set, paths);
         await fastify.tokenStore.batchUpdateTokens(set, patches);
@@ -578,9 +609,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(t)) {
         return reply.status(400).send({ error: `Invalid token body for "${t.path}": $type must be a valid DTCG token type` });
       }
+      // Type-aware value validation when $type is explicitly provided
+      if (t.$type) {
+        const valueErr = validateTokenValue(t.$value, t.$type, t.path);
+        if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${t.path}" (type "${t.$type}"): ${valueErr}` });
+      }
     }
     return withLock(async () => {
       try {
+        // Check alias targets exist (allow intra-batch references)
+        const batchPaths = new Set(tokens.map(t => t.path));
+        for (const t of tokens) {
+          if (isReference(t.$value)) {
+            const targetPath = parseReference(t.$value as string);
+            if (!fastify.tokenStore.tokenPathExists(targetPath) && !batchPaths.has(targetPath)) {
+              return reply.status(400).send({ error: `Alias target "${targetPath}" in "${t.path}" does not exist` });
+            }
+          }
+        }
+
         const paths = tokens.map(t => t.path);
         const setExistedBefore = !!(await fastify.tokenStore.getSet(set));
         const before = await snapshotPaths(fastify.tokenStore, set, paths);
@@ -867,12 +914,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
 
+      // Type-aware value validation (can be done before acquiring the lock)
+      if (body.$type) {
+        const valueErr = validateTokenValue(body.$value, body.$type, tokenPath);
+        if (valueErr) return reply.status(400).send({ error: `Invalid $value for type "${body.$type}": ${valueErr}` });
+      }
+
       return withLock(async () => {
         try {
           // Check if token already exists
           const existing = await fastify.tokenStore.getToken(set, tokenPath);
           if (existing) {
             return reply.status(409).send({ error: `Token "${tokenPath}" already exists in set "${set}"` });
+          }
+
+          // Check alias target existence
+          if (isReference(body.$value)) {
+            const targetPath = parseReference(body.$value as string);
+            if (!fastify.tokenStore.tokenPathExists(targetPath)) {
+              return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
+            }
           }
 
           const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
@@ -912,6 +973,23 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         try {
+          // Validate $value against effective type (own or inherited from existing token)
+          if (body.$value !== undefined) {
+            const existingForType = await fastify.tokenStore.getToken(set, tokenPath);
+            const effectiveType = body.$type ?? existingForType?.$type;
+            if (effectiveType) {
+              const valueErr = validateTokenValue(body.$value, effectiveType, tokenPath);
+              if (valueErr) return reply.status(400).send({ error: `Invalid $value for type "${effectiveType}": ${valueErr}` });
+            }
+            // Check alias target existence
+            if (isReference(body.$value)) {
+              const targetPath = parseReference(body.$value as string);
+              if (!fastify.tokenStore.tokenPathExists(targetPath)) {
+                return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
+              }
+            }
+          }
+
           const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
           await fastify.tokenStore.updateToken(set, tokenPath, body);
           const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
