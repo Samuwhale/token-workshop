@@ -625,3 +625,15 @@
   - JSX helper files must use `.tsx` extension (even utility functions that return JSX), or Vite/esbuild will fail on `<>` fragments.
   - File processors (processJsonFile, processCSSFile, etc.) should be wrapped in useCallback to avoid stale closures in the drag-drop handler, which transitively calls them.
 ---
+
+## 2026-04-04 - ResolverPanel template creation silently guesses set assignments
+- Added a two-step flow to the "Light / Dark preset" template creation. Step 1: enter resolver name. Step 2: review and edit the auto-detected set assignments (foundation/light/dark) before creating.
+- Split `handleCreateFromTemplate` into `handleTemplateNameNext` (detects sets, transitions to confirm step) and `handleCreateFromTemplate` (uses confirmed `templateAssignments`).
+- Added `templateStep: 'name' | 'confirm'` and `templateAssignments: { foundation, light, dark }` state variables.
+- Confirmation step shows one row per role with a `<select>` of all available sets, pre-populated with the detected set. Shows "detected" label when a set was auto-matched.
+- Cancel/Back buttons reset `templateStep` to 'name' so state is clean on re-open.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L86-98 (state), ~L139-207 (handlers), ~L353-430 (UI)
+- **Learnings for future iterations:**
+  - Two-step wizard pattern (name → confirm) is a clean way to surface auto-detected values without breaking the fast path.
+  - The "detected" label (shown only when the auto-detection rule matches) helps users understand which values came from guessing vs. explicit selection.
+---

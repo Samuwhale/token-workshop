@@ -370,3 +370,10 @@ Already up to date.
   → ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching (`toLowerCase().includes('light')`) that silently picks wrong sets if naming doesn't match expectations — should show the detected set assignments to the user for confirmation before creating the resolver, rather than silently guessing (ResolverPanel.tsx L143-147)
   Worktree: /tmp/backlog-92209-92b9gt
   Running agent… (started 02:09:57)
+
+  ✓ done: ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching
+    Added a two-step wizard: step 1 enters the resolver name, step 2 shows auto-detected set assignments (foundation/light/dark) with dropdowns to correct them before creating
+    12 turns · 123s · $0.37
+
+  Merging to main: ResolverPanel template creation auto-detects light/dark/foundation sets via fragile substring matching
+Already up to date.

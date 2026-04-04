@@ -257,3 +257,28 @@ Already up to date.
 
   Merging to main: ImportPanel is 2133 lines with 49 useState calls — the conflict resolution UI, source selection, progress tracking, and results display should be decomposed into focused sub-components with shared context, similar to the TokenList extraction pattern
 Already up to date.
+[main 4c2e05fd] chore(backlog): done – ImportPanel is 2133 lines with 49 useState calls — the conflict resolution UI, source selection, progress tracking, and results display should be decomposed into focused sub-components with shared context, similar to the TokenList extraction pattern
+ 16 files changed, 2612 insertions(+), 2086 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportPanelContext.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportSourceSelector.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportSuccessView.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportTokenListView.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ImportVariablesView.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/importPanelHelpers.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/importPanelTypes.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - ImportPanel decomposition into focused sub-components with shared context
+- Decomposed the 2133-line ImportPanel.tsx (49 useState calls) into 10 focused sub-components + context using the same pattern as the TokenList extraction.
+- Created `importPanelTypes.ts` — shared interfaces (ImportToken, ModeData, CollectionData) and pure utility functions (markDuplicatePaths, validateDTCGStructure, slugify, modeKey, defaultSetName, detectKnownNonTokenFile).
+- Created `importPanelHelpers.tsx` — JSX helpers: DiffSwatch component and renderConflictValue function.
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  16 queued · 3 in-progress · last took 14m23s
+═══════════════════════════════════════════════════════════════
+  → No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
+  Worktree: /tmp/backlog-91634-Wruhm6
+  Running agent… (started 02:11:49)
