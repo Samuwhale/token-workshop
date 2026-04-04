@@ -289,3 +289,10 @@ Already up to date.
 
   Merging to main: No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
 Already up to date.
+[main 96a255bc] chore(backlog): done – No manual snapshot-to-snapshot diff — users can only compare a snapshot against current state; comparing two arbitrary snapshots (e.g., "state before my refactor" vs "state after") requires restoring one then comparing, which is destructive; add a snapshot-to-snapshot comparison endpoint and UI (manual-snapshot.ts, HistoryPanel.tsx)
+ 8 files changed, 359 insertions(+), 46 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥22) ---
+  → Archived 22 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 54)
