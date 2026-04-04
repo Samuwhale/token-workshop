@@ -406,3 +406,13 @@
   - Coverage-based filtering (`showOnlyWithGaps`) reads from the already-computed `coverage` state — no additional API calls needed.
   - When adding a toggle that filters an already-filtered list, chain it before the text search in the useMemo (gaps filter first, then text filter) so both can be active simultaneously.
 ---
+
+## 2026-04-04 - Server token-store.ts has no unit tests
+- Created `packages/server/src/__tests__/token-store.test.ts` with 150 tests across 16 describe blocks, covering: set CRUD (create/delete/rename/clearAll/reorder), set metadata (description/collectionName/modeName), token CRUD (create/get/update/delete/deleteTokens), circular reference detection (self-ref, 2-step cycle, 3-step cycle, batch checks), token rename/move/copy with alias cascade updates, group operations (create/rename/move/copy/duplicate/reorder), batch operations (batchUpsertTokens with skip/overwrite/merge, batchUpdateTokens, batchRenameTokens, batchMoveTokens, batchCopyTokens), bulkRename (plain + regex), token resolution (resolveTokens/resolveToken), cross-set dependents (getDependents/getGroupDependents), searchTokens (q/type/has/value/desc/pagination qualifiers), generator ID helpers (findTokensByGeneratorId/deleteTokensByGeneratorId), restoreSnapshot, onChange events, disk persistence on initialize, pending-rename crash recovery, and beginBatch/endBatch deferred rebuild.
+- Fixed 2 test failures: `ResolvedToken` uses `.$value` not `.resolvedValue`.
+- Files changed: `packages/server/src/__tests__/token-store.test.ts` (new, 570 lines)
+- **Learnings for future iterations:**
+  - `ResolvedToken` interface (packages/core/src/types.ts:233) exposes `$value` for the resolved value and `rawValue` for the pre-resolution value — not `resolvedValue`.
+  - Initialize each test suite with its own temp dir + `makeStore(dir)` and call `store.shutdown()` in `afterEach` to stop chokidar watchers; without shutdown, vitest reports open handles.
+  - `batchCopyTokens` overwrites existing target tokens (no ConflictError), unlike `copyToken` which does throw — document this asymmetry in tests.
+---

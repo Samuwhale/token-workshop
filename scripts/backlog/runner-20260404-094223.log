@@ -84,3 +84,26 @@ Already up to date.
 
   Merging to main: ThemeManager dimension list has no search/filter UI despite the state existing
 Already up to date.
+[main dc99fc58] chore(backlog): done – ThemeManager dimension list has no search/filter UI despite the state existing
+ 6 files changed, 88 insertions(+), 13 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ThemeManager dimension list has no search/filter UI despite the state existing
+- The search input was already partially implemented (rendered at `dimensions.length > 2`), but the "show only dimensions with gaps" toggle was missing.
+- Added `showOnlyWithGaps` boolean state next to existing `dimSearch` state.
+- Updated `filteredDimensions` useMemo to filter by gap coverage when toggle is on (checks `coverage[dim.id]` for any option with `uncovered.length > 0`).
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  5 queued · 0
+0 in-progress · last took 2m29s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-60297-2nrBPR
+  Running agent… (started 10:13:33)
+
+  ✓ done: Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+    Added 150 tests in 16 describe blocks covering set/token CRUD, circular reference detection, rename/move/copy with alias cascades, group ops, all batch operations, bulkRename, resolution, search, generator ID helpers, events, disk persistence, and crash recovery
+    24 turns · 455s · $1.35
+
+  Merging to main: Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+Already up to date.
