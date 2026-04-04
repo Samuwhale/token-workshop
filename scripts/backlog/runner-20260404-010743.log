@@ -422,3 +422,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: TokenStore non-atomic rebuildFlatTokens (HIGH), OperationLog concurrent persist race (HIGH), 38x duplicated path encoding, bulkRename stale circular-ref check, GitSync/watcher race on pull, inconsistent abort/timeout patterns across 15 hooks
+Already up to date.

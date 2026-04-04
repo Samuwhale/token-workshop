@@ -587,3 +587,9 @@
   - For style revert, snapshot the existing style's paints/fontName/lineHeight/effects BEFORE calling the type-specific apply function, then track newly created IDs after. The pattern mirrors `variableSync.ts` but at the loop level since type handlers encapsulate the find-or-create logic.
   - `figma.getStyleByIdAsync(id)` returns `BaseStyle | null` — cast to PaintStyle/TextStyle/EffectStyle for type-specific restoration. Must `loadFontAsync` before changing TextStyle font properties.
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store.ts, operation-log.ts, git-sync.ts, event-bus.ts, generator-service.ts), packages/figma-plugin/src/plugin/ (controller.ts, variableSync.ts, selectionHandling.ts, heatmapScanning.ts), packages/figma-plugin/src/ui/hooks/ (useTokens.ts, useTokenDataLoading.ts, useGeneratorPreview.ts, useResolvers.ts, useTokenSyncBase.ts, useLint.ts), packages/figma-plugin/src/ui/shared/, all route files
+- Found 6 items — written to backlog-inbox.md
+- Notable: TokenStore.rebuildFlatTokens() clears the Map non-atomically — any concurrent reader sees empty/partial state during rebuild; also the saveSet error path never rebuilds flatTokens, leaving the cache permanently stale
+---

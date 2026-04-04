@@ -444,3 +444,18 @@ Already up to date.
 
   Merging to main: PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
 Already up to date.
+[main 52204f1b] chore(backlog): done – PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
+ 14 files changed, 411 insertions(+), 100 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - PublishPanel has no "undo last sync" affordance
+- Plugin side (`variableSync.ts`): after successful `applyVariables()`, serialize `variableSnapshots` (Map of varId→pre-sync state) and `createdVariableIds` into the `variables-applied` response as `varSnapshot: { records, createdIds }`. Added `revertVariables(data, correlationId)` exported function that restores modified vars from snapshot and deletes created vars.
+- Plugin side (`styleSync.ts`): added snapshot capture in `applyStyles()` loop — before applying each style, checks if a style with that name already exists and snapshots its `paints`/text fields/`effects`. Tracks newly created style IDs separately. Added `styleSnapshot: { snapshots, createdIds }` to `styles-applied` response. Added `revertStyles(data, correlationId)` function.
+- Plugin side (`controller.ts`): imported `revertVariables` and `revertStyles`; added `revert-variables` and `revert-styles` to `MESSAGE_SCHEMA`; added handlers for both in the `switch` statement.
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  14 queued · 2 in-progress · last took 15m9s
+═══════════════════════════════════════════════════════════════
+  → GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window — generatorErrors Map is never persisted to disk; a server restart loses all error tracking (including cascade-blocked status), so the UI shows generators as healthy when they last failed; separately, executeGenerator (generator-service.ts L589-626) re-reads this.generators.get(id) after awaiting token resolution and spreads it with lastRunAt, but this re-read+spread+save sequence is not atomic — a concurrent update() call (which writes to the same Map entry) between the re-read at L612 and the save at L619 will have its changes silently overwritten when saveGenerators persists the stale spread (packages/server/src/services/generator-service.ts)
+  Worktree: /tmp/backlog-91949-nHRLly
+  Running agent… (started 02:43:17)
