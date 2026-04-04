@@ -190,7 +190,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     onZoomIntoGroup, onDragStart: _onDragStart, onDragEnd: _onDragEnd,
     onDragOverGroup, onDropOnGroup,
     generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths,
-    themeCoverage,
+    themeCoverage, onSelectGroupChildren,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -511,6 +511,20 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           >
             <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
           </button>
+          {onSelectGroupChildren && (
+            <button
+              role="menuitem"
+              data-accel="a"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onSelectGroupChildren(node);
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>Select children</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">A</span>
+            </button>
+          )}
           {onZoomIntoGroup && (
             <button
               role="menuitem"

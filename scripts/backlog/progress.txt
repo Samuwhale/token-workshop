@@ -611,3 +611,14 @@
   - Dry-run / preview endpoints are easy to miss when adding validation since they don't mutate state, but they still pass user input to store methods that may throw on malformed paths
   - Resolver body validation must check both `version === '2025.10'` and `Array.isArray(resolutionOrder)` — these are the two required fields per the ResolverFile interface
 ---
+
+## 2026-04-04 - No "Select all in group" action on group context menu
+- Added "Select children" (accel: A) to the group context menu in `TokenTreeNode.tsx`
+- Handler `handleSelectGroupChildren` in `TokenList.tsx` collects all leaf paths under the group via `flattenLeafNodes(groupNode.children ?? [])`, activates `selectMode`, and adds them to `selectedPaths` (additive — doesn't deselect existing selections)
+- `onSelectGroupChildren` callback added to `TokenTreeContextType` in `tokenListTypes.ts` and wired through the context value
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L211, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1618, ~L1948, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L193, ~L514
+- **Learnings for future iterations:**
+  - `flattenLeafNodes` is already imported in TokenList.tsx — reuse it rather than a local recursive helper
+  - "Select children" is additive (adds to existing selection) rather than replacing, enabling multi-group selection workflows
+  - Accel key "A" was unused in the group context menu
+---

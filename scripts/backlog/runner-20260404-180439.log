@@ -143,3 +143,26 @@ Already up to date.
 
   Merging to main: Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
 Already up to date.
+[main 2641c922] chore(backlog): done – Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
+ 6 files changed, 66 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
+- Added `isValidResolverName()` and `isValidResolverBody()` helpers to `resolvers.ts`; applied them to POST /resolvers (name + body), PUT /resolvers/:name (body), and POST /resolvers/from-themes (optional name when provided)
+- Applied `isValidTokenPath()` to rename-preview endpoints in `tokens.ts` (was only checking truthiness, now uses the same validator as the actual rename endpoints)
+- Files changed: `packages/server/src/routes/resolvers.ts` ~L16-31 (helpers), ~L44-47 (POST /resolvers), ~L57-61 (from-themes), ~L116-118 (PUT); `packages/server/src/routes/tokens.ts` ~L650-652, ~L667-669 (rename-preview)
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  7 queued · 0
+0 in-progress · last took 2m18s
+═══════════════════════════════════════════════════════════════
+  → No "Select all in group" action on group context menu — in multi-select mode, selecting all tokens in a group requires clicking each one individually; the group context menu should offer "Select children" to select all leaf tokens under the group in one click (TokenTreeNode.tsx group context menu)
+  Worktree: /tmp/backlog-3108-UhgujI
+  Running agent… (started 18:43:32)
+
+  ✓ done: No "Select all in group" action on group context menu
+    Added "Select children" menu item (accel A) to group context menu; handler batch-adds all leaf token paths under the group to selectedPaths and activates selectMode
+    25 turns · 250s · $0.73
+
+  Merging to main: No "Select all in group" action on group context menu
+Already up to date.

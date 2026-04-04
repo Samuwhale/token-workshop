@@ -209,6 +209,7 @@ export interface TokenTreeContextType {
   onDelete: (path: string) => void;
   onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
+  onSelectGroupChildren?: (groupNode: TokenNode) => void;
   onToggleExpand: (path: string) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;

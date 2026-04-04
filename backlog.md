@@ -114,13 +114,13 @@
 ### Correctness & Safety
 
 - [x] Manual snapshot restore has no concurrency guard — `manual-snapshot.ts:restore()` writes a restore journal then iterates sets, but two concurrent restore calls can interleave journal writes and corrupt state; needs a mutex (same promise-chain pattern as TokenStore/GitSync)
-- [~] Server resolver routes accept unvalidated request bodies and token rename routes skip path validation — POST /resolvers, POST /resolvers/from-themes, and PUT /resolvers/:name cast request.body directly to ResolverFile without validating required fields; token rename-preview endpoints (tokens.ts) check query params for truthiness but skip isValidTokenPath() validation that all other path-accepting endpoints use
+- [x] Server resolver routes accept unvalidated request bodies and token rename routes skip path validation — POST /resolvers, POST /resolvers/from-themes, and PUT /resolvers/:name cast request.body directly to ResolverFile without validating required fields; token rename-preview endpoints (tokens.ts) check query params for truthiness but skip isValidTokenPath() validation that all other path-accepting endpoints use
 
 ### Accessibility
 
 ### Maintainability
 
-- [ ] No "Select all in group" action on group context menu — in multi-select mode, selecting all tokens in a group requires clicking each one individually; the group context menu should offer "Select children" to select all leaf tokens under the group in one click (TokenTreeNode.tsx group context menu)
+- [~] No "Select all in group" action on group context menu — in multi-select mode, selecting all tokens in a group requires clicking each one individually; the group context menu should offer "Select children" to select all leaf tokens under the group in one click (TokenTreeNode.tsx group context menu)
 
 - [ ] Inconsistent destructive-action safety across panels — ThemeManager confirms dimension delete (ConfirmModal at ThemeManager.tsx:2365) but silently deletes options (ThemeManager.tsx:1726→700); SnapshotsSource deletes snapshots with no confirmation at all (SnapshotsSource.tsx:213-226); AnalyticsPanel deletes individual unused tokens without confirmation (AnalyticsPanel.tsx:557-568) while bulk delete has inline confirm; the safety level a user gets depends on which panel they're in rather than the severity of the action (violates: consistency, error prevention)
 - [ ] SelectionInspector binding operations give no visible feedback — handleRemoveBinding (SelectionInspector.tsx:396), handleUnbindAllInGroup (:404), and handleClearAllBindings (:439) all fire postMessage to the plugin but show no toast, spinner, or inline confirmation to the user; the only signal is the undo slot pushed silently to the undo stack, so a user clearing all bindings on a complex component has no way to tell if the action succeeded without manually re-inspecting each property (violates: visibility of system status)

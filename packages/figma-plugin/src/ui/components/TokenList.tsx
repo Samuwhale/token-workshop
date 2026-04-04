@@ -1615,6 +1615,17 @@ export function TokenList({
     }
   };
 
+  const handleSelectGroupChildren = useCallback((groupNode: TokenNode) => {
+    const leafPaths = flattenLeafNodes(groupNode.children ?? []).map(n => n.path);
+    if (leafPaths.length === 0) return;
+    setSelectMode(true);
+    setSelectedPaths(prev => {
+      const next = new Set(prev);
+      leafPaths.forEach(p => next.add(p));
+      return next;
+    });
+  }, []);
+
   /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
   const copyTokensAsJson = useCallback((nodes: TokenNode[]) => {
     if (nodes.length === 0) return;
@@ -1934,6 +1945,7 @@ export function TokenList({
     onDelete: requestDeleteToken,
     onDeleteGroup: requestDeleteGroup,
     onToggleSelect: handleTokenSelect,
+    onSelectGroupChildren: handleSelectGroupChildren,
     onToggleExpand: handleToggleExpand,
     onNavigateToAlias,
     onCreateSibling: handleOpenCreateSibling,
@@ -1990,7 +2002,7 @@ export function TokenList({
     generatorsBySource, derivedTokenPaths, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
-    requestDeleteGroup, handleTokenSelect, handleToggleExpand, onNavigateToAlias,
+    requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
     handleOpenCreateSibling, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleRequestMoveToken, handleRequestCopyToken,
     setNewGroupDialogParent, onNavigateToGenerator, handleDuplicateGroup,
