@@ -532,3 +532,10 @@
   - The Escape handler must run BEFORE the `if (!showQualifierHints || qualifierHints.length === 0) return;` guard — otherwise Escape is a no-op when hints are closed (the common case when you just want to clear the query)
   - Dynamic `pr-*` class is necessary; a fixed `pr-6` would leave dead space when the clear button is absent
 ---
+- Added clear button: conditionally rendered `<button>` with the X SVG (same pattern as ThemeManager.tsx:706-717) positioned `absolute right-1.5 top-1/2 -translate-y-1/2`, visible only when `searchQuery` is truthy; clicking clears query, resets `hintIndex`, and restores focus to `searchRef`
+- Updated input `pr-2` → dynamic `${searchQuery ? 'pr-6' : 'pr-2'}` to avoid text overlapping the clear button
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2646-2664
+- **Learnings for future iterations:**
+  - The Escape handler must run BEFORE the `if (!showQualifierHints || qualifierHints.length === 0) return;` guard — otherwise Escape is a no-op when hints are closed (the common case when you just want to clear the query)
+  - Dynamic `pr-*` class is necessary; a fixed `pr-6` would leave dead space when the clear button is absent
+---

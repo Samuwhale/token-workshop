@@ -863,3 +863,15 @@ Already up to date.
 
   Merging to main: TokenList search input has no clear button and no Escape-to-clear
 Already up to date.
+[main d759cbba] chore(backlog): done – TokenList search input has no clear button and no Escape-to-clear
+ 5 files changed, 52 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1402 items done — running ux discovery pass
+
+================================================================
+  ★ Maintenance Pass: ux
+================================================================
+  ✓ ux pass: ux-pass
+    6 items written to inbox — context menu discoverability, clipboard copy feedback gap, CreatePanel keyboard shortcut gap, CreatePanel vs TokenEditor divergence, publish readiness staleness, settings auto-save with no undo
+Already up to date.
