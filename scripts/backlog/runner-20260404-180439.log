@@ -456,3 +456,15 @@ Already up to date.
 
   Merging to main: Plugin controller.ts scan signal management has a race condition (controller.ts:46-67, 336-345)
 Already up to date.
+[main bfab8a3d] chore(backlog): done – Plugin controller.ts scan signal management has a race condition (controller.ts:46-67, 336-345)
+ 4 files changed, 34 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1387 items done — running ux discovery pass
+
+================================================================
+  ★ Maintenance Pass: ux
+================================================================
+  ✓ ux pass: ux-pass
+    6 items written to inbox: inconsistent modal accessibility (focus trap/Escape/ARIA), TokenList search missing clear button and Escape-to-clear, form validation feedback inconsistency across token types, export panel cognitive overload from unprioritized filters, Escape key behavior inconsistency across search inputs, generator config editors lacking per-field undo
+Already up to date.
