@@ -1911,6 +1911,7 @@ export class TokenStore {
       clearTimeout(this._rebuildDebounceTimer);
       this._rebuildDebounceTimer = null;
     }
+    await Promise.all([...this._saveChains.values()]);
     await this.watcher?.close();
   }
 }

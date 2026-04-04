@@ -6,3 +6,10 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: TokenStore.shutdown() does not await in-flight save chains — can corrupt token files on server exit; buildTree() recurses into arrays while flattenWithNames() correctly excludes them, causing tree/flat representation divergence
 ---
+
+## 2026-04-04 - TokenStore.shutdown() does not await in-flight save chains
+- Added `await Promise.all([...this._saveChains.values()])` before closing the file watcher in `shutdown()`. This ensures all in-flight `saveSet()` promise-chain mutexes complete before the process exits, preventing `.tmp` file leaks and partial token file writes on server shutdown.
+- Files changed: `packages/server/src/services/token-store.ts` ~L1909
+- **Learnings for future iterations:**
+  - `_saveChains` values are already `.catch(() => {})` wrapped (set at L1885), so `Promise.all` on them will never reject — no try/catch needed in shutdown.
+---
