@@ -258,3 +258,15 @@ Already up to date.
 
   Merging to main: Import conflict resolution cycling behavior is opaque
 Already up to date.
+[main 0aae215a] chore(backlog): done – Import conflict resolution cycling behavior is opaque
+ 5 files changed, 69 insertions(+), 27 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1380 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: ThemeManager monolith extraction, variableSync per-token error isolation, batchUpsertTokens snapshot boundary bug, resolver formula unit fallback, scan signal race condition
+Already up to date.

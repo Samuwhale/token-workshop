@@ -682,3 +682,9 @@
   - 3-segment controls with `border-l` dividers inside a `rounded overflow-hidden border` wrapper give a compact pill-group look without extra styling complexity
   - Using `(['accept', 'merge', 'reject'] as const).map(...)` with a `title` tooltip on each button is the cleanest way to expose direct state selection in constrained spaces
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/figma-plugin/src/ui/components/ThemeManager.tsx (2439 lines, 44 useState, error handling, async guards), packages/server/src/services/token-store.ts (batchUpsertTokens snapshot boundary, withBatch/endBatch rebuild logic), packages/figma-plugin/src/plugin/variableSync.ts (main loop error isolation, rollback coverage), packages/figma-plugin/src/plugin/styleSync.ts (per-token try-catch pattern comparison), packages/figma-plugin/src/plugin/controller.ts (scan signal lifecycle), packages/core/src/resolver.ts (formula unit extraction, cycle detection), packages/figma-plugin/src/ui/hooks/ (useTokenEditorSave, useTokenEditorLoad, useLint, useTokenCrud ref-update patterns), packages/server/src/services/event-bus.ts, packages/server/src/services/manual-snapshot.ts, packages/server/src/services/operation-log.ts
+- Found 5 items — written to backlog-inbox.md
+- Notable: batchUpsertTokens creates sets outside the snapshot boundary so failed batches leave orphan empty sets; variableSync main loop has no per-token error isolation while styleSync already does it correctly
+---
