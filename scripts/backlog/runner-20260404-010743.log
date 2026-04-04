@@ -517,3 +517,15 @@ Already up to date.
 
   Merging to main: No keyboard navigation between token tree nodes
 Already up to date.
+[main 04174ce4] chore(backlog): done – No keyboard navigation between token tree nodes
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1275 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    4 items written to inbox: plugin revert data loss bug [HIGH], HistoryPanel 2358-line monolith decomposition, server-side validation gaps (TOCTOU race + missing cycle check + partial conflict resolution), core package type safety cleanup
+Already up to date.
