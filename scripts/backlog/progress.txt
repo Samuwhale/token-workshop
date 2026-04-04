@@ -381,3 +381,15 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: The most impactful gap is the complete absence of focus trapping in modals — every dialog (ConfirmModal, CommandPalette, PasteTokens, Shortcuts, PublishModals) allows Tab to escape into background content, which is both an accessibility failure and a usability problem for keyboard-first users. The remap-bindings operation lacking rollback is the highest data-safety risk found.
 ---
+
+## 2026-04-04 - Remap bindings operation has no rollback
+- Added pre-operation snapshot capture to `remapBindings()` matching the pattern used in `syncBindings()`:
+  - Before any mutation, captures current binding paths for each node via `getSharedPluginData` into `nodeSnapshots` Map keyed by node id
+  - If the operation throws, the `catch` block iterates `nodeSnapshots` and restores all original binding paths via `setSharedPluginData`; empty string clears any prop not present in the snapshot
+  - Minor optimization: inner mutation loop now reads from `currentBindings` (already captured) instead of calling `getSharedPluginData` a second time per prop
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L596-659
+- **Learnings for future iterations:**
+  - `remapBindings` only mutates plugin data (string paths), not visual Figma properties — rollback uses `setSharedPluginData` instead of `restoreNodeProps`
+  - Capturing `currentBindings` before the inner loop serves double duty: snapshot for rollback AND avoids double-reading plugin data during normal execution
+  - When the snapshot only contains props with non-empty values, restoring with `bindings[prop] ?? ''` correctly clears any prop that was remapped (since the original was empty if it wasn't captured)
+---

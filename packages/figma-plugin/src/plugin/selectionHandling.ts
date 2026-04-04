@@ -593,6 +593,10 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
     return;
   }
 
+  // Pre-operation snapshot: captures current binding paths for each node before any mutation.
+  // Keyed by node id; used to restore original paths if the operation fails mid-way through.
+  const nodeSnapshots = new Map<string, { node: SceneNode; bindings: Record<string, string> }>();
+
   try {
     const nodes = collectNodesForScope(scope);
     const total = nodes.length;
@@ -604,8 +608,17 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       let nodeUpdated = false;
+
+      // Capture current binding paths for this node before any mutation
+      const currentBindings: Record<string, string> = {};
       for (const prop of ALL_BINDABLE_PROPERTIES) {
-        const current = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+        if (val) currentBindings[prop] = val;
+      }
+      nodeSnapshots.set(node.id, { node, bindings: currentBindings });
+
+      for (const prop of ALL_BINDABLE_PROPERTIES) {
+        const current = currentBindings[prop];
         if (!current) continue;
         const next = remapMap[current];
         if (next) {
@@ -629,6 +642,17 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
     // Refresh selection so the inspector shows updated paths
     await getSelection(deepInspectEnabled);
   } catch (err) {
+    // Restore all binding paths to their pre-operation values
+    for (const { node, bindings } of nodeSnapshots.values()) {
+      for (const prop of ALL_BINDABLE_PROPERTIES) {
+        const original = bindings[prop] ?? '';
+        try {
+          node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, original);
+        } catch (re) {
+          console.error('[remapBindings] rollback failed for', node.name, prop, re);
+        }
+      }
+    }
     const message = getErrorMessage(err, 'Unknown error');
     figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0, error: message });
     figma.notify(`Remap failed: ${message}`, { error: true });
