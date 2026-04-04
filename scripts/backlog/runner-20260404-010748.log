@@ -845,3 +845,10 @@ Already up to date.
   → [HIGH] `applyColorModifiers` drops alpha channel when applying lighten/darken/mix — `hexToLab` strips the alpha from 8-char hex inputs and `labToHex` returns only `#RRGGBB`; a `#ff000080` (50% transparent red) lightened by 20 becomes fully opaque; the alpha modifier case works correctly via `setHexAlpha` but the other three modifier types silently lose transparency; must extract alpha before conversion, carry it through the pipeline, and re-append after the LAB round-trip (packages/core/src/color-modifier.ts L44-86, called from resolver.ts L361 and ColorModifiersEditor.tsx L24)
   Worktree: /tmp/backlog-91949-4Cojma
   Running agent… (started 04:21:35)
+
+  ✓ done: applyColorModifiers drops alpha channel when applying lighten/darken/mix
+    Added extractAlpha/reapplyAlpha helpers in color-modifier.ts; lighten/darken now carry alpha through LAB round-trip; mix interpolates alpha from both operands; all tests pass
+    12 turns · 96s · $0.31
+
+  Merging to main: applyColorModifiers drops alpha channel when applying lighten/darken/mix
+Already up to date.

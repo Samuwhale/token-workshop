@@ -780,3 +780,18 @@ Already up to date.
 
   Merging to main: No cancellation for long-running plugin scans
 Already up to date.
+[main 70493b86] chore(backlog): done – No cancellation for long-running plugin scans
+ 14 files changed, 281 insertions(+), 48 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No cancellation for long-running plugin scans
+- Added a shared `ScanSignal` (`{ aborted: boolean }`) pattern to all four long-running plugin scans
+- `walkNodes.ts`: Added optional `signal` field to `WalkOptions`; generator returns early when `signal.aborted` is true
+- `heatmapScanning.ts`: `scanCanvasHeatmap`, `scanComponentCoverage`, `scanTokenUsage` now accept `signal?`; each posts a `*-cancelled` message and returns early when aborted
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  10 queued · 3 in-progress · last took 12m8s
+═══════════════════════════════════════════════════════════════
+  → Multi-mode Figma Variable export to non-DTCG platforms loses mode variants — exporting to CSS, Tailwind, SCSS, or Swift only outputs the default mode; other modes (e.g., Dark, Dense) are silently dropped; at minimum, export one file per mode or offer a mode selector in the export UI (ExportPanel.tsx Figma Variables export flow)
+  Worktree: /tmp/backlog-91634-fVYHRZ
+  Running agent… (started 04:21:59)

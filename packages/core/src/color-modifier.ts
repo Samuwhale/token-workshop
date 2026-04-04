@@ -41,23 +41,38 @@ export function validateColorModifiers(raw: unknown[]): ColorModifierOp[] {
   return valid;
 }
 
+/** Extract the alpha byte (0–255) from an 8-char hex, or null if fully opaque / missing. */
+function extractAlpha(hex: string): number | null {
+  const h = hex.replace('#', '');
+  if (h.length === 8) return parseInt(h.slice(6, 8), 16);
+  return null;
+}
+
+/** Re-append alpha to a 6-char hex result if the source had one. */
+function reapplyAlpha(result: string, alpha: number | null): string {
+  if (alpha === null) return result;
+  return `${result.slice(0, 7)}${alpha.toString(16).padStart(2, '0')}`;
+}
+
 export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): string {
   let current = hex;
 
   for (const mod of modifiers) {
     switch (mod.type) {
       case 'lighten': {
+        const alpha = extractAlpha(current);
         const lab = hexToLab(current);
         if (!lab) throw new Error(`Color modifier 'lighten': invalid source color "${current}"`);
         const [L, a, b] = lab;
-        current = labToHex(Math.min(100, L + mod.amount), a, b);
+        current = reapplyAlpha(labToHex(Math.min(100, L + mod.amount), a, b), alpha);
         break;
       }
       case 'darken': {
+        const alpha = extractAlpha(current);
         const lab = hexToLab(current);
         if (!lab) throw new Error(`Color modifier 'darken': invalid source color "${current}"`);
         const [L, a, b] = lab;
-        current = labToHex(Math.max(0, L - mod.amount), a, b);
+        current = reapplyAlpha(labToHex(Math.max(0, L - mod.amount), a, b), alpha);
         break;
       }
       case 'alpha': {
@@ -68,6 +83,8 @@ export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): 
         break;
       }
       case 'mix': {
+        const alphaA = extractAlpha(current) ?? 255;
+        const alphaB = extractAlpha(mod.color) ?? 255;
         const labA = hexToLab(current);
         const labB = hexToLab(mod.color);
         if (!labA) throw new Error(`Color modifier 'mix': invalid source color "${current}"`);
@@ -76,7 +93,10 @@ export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): 
         const L = labA[0] * (1 - r) + labB[0] * r;
         const a = labA[1] * (1 - r) + labB[1] * r;
         const b = labA[2] * (1 - r) + labB[2] * r;
-        current = labToHex(L, a, b);
+        const mixedAlpha = Math.round(alphaA * (1 - r) + alphaB * r);
+        // Only append alpha if either source had transparency
+        const hasAlpha = extractAlpha(current) !== null || extractAlpha(mod.color) !== null;
+        current = reapplyAlpha(labToHex(L, a, b), hasAlpha ? mixedAlpha : null);
         break;
       }
     }

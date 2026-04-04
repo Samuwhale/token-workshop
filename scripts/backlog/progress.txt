@@ -611,3 +611,18 @@
   - For UI cancel: user-initiated cancel should be silent (no error state); timeout cancel should show an error message. Use a sentinel string (`'Cancelled'`) to distinguish in catch blocks
   - Synchronous `findAll` scans (like `scanTokenUsageMap`) must be converted to `walkNodes` loops to get signal support — `findAll` returns all nodes upfront with no interleave opportunity
 ---
+
+## 2026-04-04 - applyColorModifiers drops alpha channel when applying lighten/darken/mix
+- Fixed `applyColorModifiers` in `packages/core/src/color-modifier.ts` to preserve the alpha channel from 8-char hex inputs through LAB round-trips
+- Added `extractAlpha(hex)` helper that reads the alpha byte from an 8-char hex (returns `null` for 6-char/opaque inputs)
+- Added `reapplyAlpha(result, alpha)` helper that appends the alpha suffix back to a `#RRGGBB` result only when `alpha !== null`
+- `lighten` and `darken`: extract alpha before `hexToLab`, re-append after `labToHex`
+- `mix`: interpolate alpha from both sources (treating missing alpha as `0xff`); only emit 8-char result when at least one source had explicit alpha
+- `alpha` modifier unchanged — it already uses `setHexAlpha` which handles alpha correctly
+- Added regression tests covering: lighten/darken preserve alpha byte, 6-char opaque input stays 6-char, alpha modifier after lighten overrides correctly, mix with semi-transparent source interpolates alpha, two opaque sources produce no alpha channel
+- Files changed: `packages/core/src/color-modifier.ts` ~L44, `packages/core/src/__tests__/color-modifier.test.ts` ~L69
+- **Learnings for future iterations:**
+  - `hexToLab` discards the alpha channel (only reads R/G/B from `hexToRgb`); callers must extract alpha before calling and re-append after `labToHex` returns `#RRGGBB`
+  - Pattern: `const alpha = extractAlpha(current); … current = reapplyAlpha(labToHex(…), alpha)` — two tiny helpers keep all 3 LAB-path modifier cases consistent
+  - For `mix`, both operands may independently have alpha; interpolate them with the same linear ratio used for L/a/b, but only include the alpha channel in the output if either source explicitly specified one
+---

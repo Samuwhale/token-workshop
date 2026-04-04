@@ -84,6 +84,49 @@ describe('applyColorModifiers', () => {
       const result = applyColorModifiers('#ff0000', [{ type: 'mix', color: '#0000ff', ratio: 1 }]);
       expect(result.toLowerCase()).toBe('#0000ff');
     });
+
+    it('preserves alpha from source when mixing with opaque color', () => {
+      // Source has 50% alpha (0x80 = 128 ≈ 0.502)
+      const result = applyColorModifiers('#ff000080', [{ type: 'mix', color: '#ffffff', ratio: 0.5 }]);
+      expect(result).toHaveLength(9);
+      // alpha of source is 0x80=128, mix color is opaque (255), ratio=0.5 → mixed ~191 (0xbf)
+      const alphaByte = parseInt(result.slice(7), 16);
+      expect(alphaByte).toBeCloseTo(191, -1);
+    });
+
+    it('two opaque colors produce no alpha channel', () => {
+      const result = applyColorModifiers('#ff0000', [{ type: 'mix', color: '#0000ff', ratio: 0.5 }]);
+      expect(result).toHaveLength(7);
+    });
+  });
+
+  describe('alpha preservation through lighten/darken', () => {
+    it('lighten preserves alpha from 8-char hex input', () => {
+      const result = applyColorModifiers('#ff000080', [{ type: 'lighten', amount: 20 }]);
+      expect(result).toHaveLength(9);
+      expect(result.slice(7).toLowerCase()).toBe('80');
+    });
+
+    it('darken preserves alpha from 8-char hex input', () => {
+      const result = applyColorModifiers('#ff000080', [{ type: 'darken', amount: 20 }]);
+      expect(result).toHaveLength(9);
+      expect(result.slice(7).toLowerCase()).toBe('80');
+    });
+
+    it('lighten on fully-opaque 6-char hex returns 6-char hex', () => {
+      const result = applyColorModifiers('#ff0000', [{ type: 'lighten', amount: 20 }]);
+      expect(result).toHaveLength(7);
+    });
+
+    it('lighten followed by alpha sets new alpha correctly', () => {
+      const result = applyColorModifiers('#ff000080', [
+        { type: 'lighten', amount: 20 },
+        { type: 'alpha', amount: 0.25 },
+      ]);
+      expect(result).toHaveLength(9);
+      const alphaByte = parseInt(result.slice(7), 16);
+      expect(alphaByte).toBeCloseTo(64, -1); // 0.25 * 255 ≈ 64
+    });
   });
 
   describe('chaining', () => {
