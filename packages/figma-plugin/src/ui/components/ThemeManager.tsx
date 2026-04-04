@@ -11,7 +11,8 @@ import { ResolverContent } from './ResolverPanel';
 import type { CoverageMap, CoverageToken, AutoFillPreview } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
-import { ThemeCompare } from './ThemeCompare';
+import { UnifiedComparePanel } from './UnifiedComparePanel';
+import type { CompareMode } from './UnifiedComparePanel';
 import type { TokenMapEntry } from '../../shared/types';
 import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
 
@@ -30,6 +31,8 @@ const STATE_DESCRIPTIONS: Record<string, string> = {
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
   autoFillAllGaps: () => void;
+  /** Opens the Compare view inside ThemeManager for the given mode. */
+  navigateToCompare: (mode: CompareMode, path?: string, tokenPaths?: Set<string>, optionA?: string, optionB?: string) => void;
 }
 
 interface ThemeManagerProps {
@@ -48,6 +51,10 @@ interface ThemeManagerProps {
   pathToSet?: Record<string, string>;
   /** Called whenever the total count of auto-fillable token gaps changes. */
   onGapsDetected?: (count: number) => void;
+  /** Called after batch token creation so the app can refresh its token data. */
+  onTokensCreated?: () => void;
+  /** Navigate to the Tokens sub-tab (used in Compare empty states). */
+  onGoToTokens?: () => void;
   /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
 }
@@ -62,7 +69,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, themeManagerHandle }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
@@ -313,8 +320,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
 
   const [showCompare, setShowCompare] = useState(false);
-  const [initialCompareKeyA, setInitialCompareKeyA] = useState('');
-  const [initialCompareKeyB, setInitialCompareKeyB] = useState('');
+  const [compareMode, setCompareMode] = useState<CompareMode>('theme-options');
+  const [compareTokenPath, setCompareTokenPath] = useState('');
+  const [compareTokenPaths, setCompareTokenPaths] = useState<Set<string>>(new Set());
+  const [compareThemeKey, setCompareThemeKey] = useState(0);
+  const [compareThemeDefaultA, setCompareThemeDefaultA] = useState('');
+  const [compareThemeDefaultB, setCompareThemeDefaultB] = useState('');
 
   const {
     bulkMenu, setBulkMenu, bulkMenuRef, savingKeys,
@@ -356,6 +367,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           );
         });
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
+      },
+      navigateToCompare: (mode, path, tokenPaths, optionA, optionB) => {
+        setCompareMode(mode);
+        if (path !== undefined) setCompareTokenPath(path);
+        if (tokenPaths !== undefined) setCompareTokenPaths(tokenPaths);
+        if (optionA !== undefined) setCompareThemeDefaultA(optionA);
+        if (optionB !== undefined) setCompareThemeDefaultB(optionB);
+        setCompareThemeKey(k => k + 1);
+        setShowCompare(true);
       },
     };
     return () => { themeManagerHandle.current = null; };
@@ -932,6 +952,44 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         </div>
       )}
 
+      {showCompare && dimensions.length > 0 ? (
+        <>
+          {/* Back button bar */}
+          <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <button
+              onClick={() => setShowCompare(false)}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <svg width="6" height="10" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 1L2 6l4 5" />
+              </svg>
+              Back to themes
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <UnifiedComparePanel
+              mode={compareMode}
+              onModeChange={setCompareMode}
+              tokenPaths={compareTokenPaths}
+              onClearTokenPaths={() => setCompareTokenPaths(new Set())}
+              tokenPath={compareTokenPath}
+              onClearTokenPath={() => setCompareTokenPath('')}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+              dimensions={dimensions}
+              themeOptionsKey={compareThemeKey}
+              themeOptionsDefaultA={compareThemeDefaultA}
+              themeOptionsDefaultB={compareThemeDefaultB}
+              onEditToken={(set, path) => onNavigateToToken?.(path, set)}
+              onCreateToken={(path, set) => onCreateToken?.(path, set)}
+              onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
+              serverUrl={serverUrl}
+              onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
+            />
+          </div>
+        </>
+      ) : (
+        <>
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
           /* Empty state */
@@ -1056,15 +1114,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       const next = !prev;
                       if (next) {
                         setShowPreview(false);
+                        setCompareMode('theme-options');
                         // Auto-select defaults on open
                         const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
                         if (firstDimWithTwo) {
-                          setInitialCompareKeyA(`${firstDimWithTwo.id}:${firstDimWithTwo.options[0].name}`);
-                          setInitialCompareKeyB(`${firstDimWithTwo.id}:${firstDimWithTwo.options[1].name}`);
+                          setCompareThemeDefaultA(`${firstDimWithTwo.id}:${firstDimWithTwo.options[0].name}`);
+                          setCompareThemeDefaultB(`${firstDimWithTwo.id}:${firstDimWithTwo.options[1].name}`);
                         } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
-                          setInitialCompareKeyA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
-                          setInitialCompareKeyB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
+                          setCompareThemeDefaultA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
+                          setCompareThemeDefaultB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
                         }
+                        setCompareThemeKey(k => k + 1);
                       }
                       return next;
                     });
@@ -1948,22 +2008,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             )}
 
-            {/* Compare two options */}
-            {showCompare && dimensions.length > 0 && (
-              <div className="border-t-2 border-[var(--color-figma-accent)]/30 max-h-96 overflow-y-auto">
-                <ThemeCompare
-                  dimensions={dimensions}
-                  allTokensFlat={allTokensFlat}
-                  pathToSet={pathToSet}
-                  initialOptionKeyA={initialCompareKeyA}
-                  initialOptionKeyB={initialCompareKeyB}
-                  serverUrl={serverUrl}
-                  onTokensCreated={debouncedFetchDimensions}
-                  onEditToken={onNavigateToToken ? (set, path) => onNavigateToToken(path, set) : undefined}
-                  onCreateToken={onCreateToken}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -2011,6 +2055,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </button>
         )}
       </div>
+        </>
+      )}
 
       {/* Auto-fill confirmation modal */}
       {autoFillPreview && (() => {

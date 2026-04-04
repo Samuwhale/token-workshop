@@ -350,3 +350,20 @@
   - `presentTypes` is derived from `setGenerators` (not `filteredGenerators`) so pill labels stay stable while filtering.
   - `NodeGraphCanvas` already accepted a `generators` prop for the node list — switching it to `filteredGenerators` is all that was needed to apply both search and type filter to graph view.
 ---
+
+## 2026-04-04 - Merge ComparePanel's cross-theme comparison into the theme manager
+- Folded the entire compare feature (all 3 modes: Token values, Token × themes, Theme options) into ThemeManager as an in-place Compare view, eliminating the separate "Define > Compare" sub-tab
+- ThemeManager now has a "Back to themes" header bar + full UnifiedComparePanel when compare mode is active; toggled by the existing "Compare" button or the new `navigateToCompare` imperative handle method
+- `ThemeManagerHandle` extended with `navigateToCompare(mode, path?, tokenPaths?, optionA?, optionB?)` — callable from command palette, context menu, and App.tsx handlers
+- New ThemeManager props: `onTokensCreated?` (passed `refreshAll`) and `onGoToTokens?` (navigate to Tokens sub-tab from compare empty states)
+- All handlers in App.tsx (handleOpenTokenCompare, handleOpenCrossThemeCompare, themeCompareCommands, contextualCommands) updated to navigate to `'define/themes'` and call the imperative handle
+- Removed: `useCompareState` hook usage from App.tsx, `UnifiedComparePanel` direct import in App.tsx, the `'compare'` sub-tab from `DefineSubTab` type and `TOP_TABS`, the "Compare themes →" button from the Themes sub-tab header
+- Removed: inline `ThemeCompare` bottom-panel in ThemeManager (replaced by full UnifiedComparePanel view)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L14, L30, L35, L65, L315, L348, L955
+  - `packages/figma-plugin/src/ui/App.tsx` ~L10, L64, L129, L169, L272, L369, L994, L1067, L2483, L2530
+- **Learnings for future iterations:**
+  - Full-view toggle pattern: guard with `{condition ? (<>header + content</>) : (<>original-flex1 + footer</>)}`. Modals after the ternary are unaffected since they're portals/overlay divs.
+  - When an imperative handle method needs to set multiple state vars, capture all setters inside the handle's useEffect closure — setState functions are stable and don't need to be in the deps array.
+  - `useCompareState` was the only consumer; deleting it when folding state into a child component is safe here.
+---

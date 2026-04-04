@@ -7,7 +7,6 @@ import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import type { ThemeManagerHandle } from './components/ThemeManager';
 import { ResolverPanel } from './components/ResolverPanel';
-import { UnifiedComparePanel } from './components/UnifiedComparePanel';
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -61,7 +60,6 @@ import { useRecentOperations } from './hooks/useRecentOperations';
 import { useLintConfig } from './hooks/useLintConfig';
 import { useRecentlyTouched } from './hooks/useRecentlyTouched';
 import { usePinnedTokens } from './hooks/usePinnedTokens';
-import { useCompareState } from './hooks/useCompareState';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
@@ -126,7 +124,7 @@ class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string;
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'compare' | 'resolver';
+type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'resolver';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'health';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -171,7 +169,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
-    { id: 'compare', label: 'Compare' },
     { id: 'resolver', label: 'Resolver' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
@@ -269,7 +266,6 @@ export function App() {
   }, []);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const { compareMode, setCompareMode, compareTokenPaths, setCompareTokenPaths, compareTokenPath, setCompareTokenPath, compareThemeKey, setCompareThemeKey, compareThemeDefaultA, setCompareThemeDefaultA, compareThemeDefaultB, setCompareThemeDefaultB } = useCompareState();
   const { pendingGraphTemplate, setPendingGraphTemplate, pendingGraphFromGroup, setPendingGraphFromGroup, focusGeneratorId, setFocusGeneratorId } = useGraphState();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
@@ -369,17 +365,15 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const [themeGapCount, setThemeGapCount] = useState(0);
-  // Open unified compare tab in 'tokens' mode with the given paths pre-loaded
+  // Open compare view in ThemeManager in 'tokens' mode with the given paths pre-loaded
   const handleOpenTokenCompare = useCallback((paths: Set<string>) => {
-    setCompareTokenPaths(paths);
-    setCompareMode('tokens');
-    navigateTo('define', 'compare');
+    themeManagerHandleRef.current?.navigateToCompare('tokens', undefined, paths);
+    navigateTo('define', 'themes');
   }, [navigateTo]);
-  // Open unified compare tab in 'cross-theme' mode for a specific token
+  // Open compare view in ThemeManager in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback((path: string) => {
-    setCompareTokenPath(path);
-    setCompareMode('cross-theme');
-    navigateTo('define', 'compare');
+    themeManagerHandleRef.current?.navigateToCompare('cross-theme', path);
+    navigateTo('define', 'themes');
   }, [navigateTo]);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback((direction: 1 | -1) => {
@@ -1000,8 +994,8 @@ export function App() {
       description: 'Side-by-side token diff across theme options',
       category: 'Themes' as const,
       handler: () => {
-        setCompareMode('theme-options');
-        navigateTo('define', 'compare');
+        themeManagerHandleRef.current?.navigateToCompare('theme-options');
+        navigateTo('define', 'themes');
       },
     }] : []),
     // Per-dimension compare shortcuts when there are ≥2 options
@@ -1011,14 +1005,11 @@ export function App() {
       description: `See token differences across ${d.name} options`,
       category: 'Themes' as const,
       handler: () => {
-        setCompareThemeDefaultA(`${d.id}:${d.options[0].name}`);
-        setCompareThemeDefaultB(`${d.id}:${d.options[1].name}`);
-        setCompareThemeKey(k => k + 1);
-        setCompareMode('theme-options');
-        navigateTo('define', 'compare');
+        themeManagerHandleRef.current?.navigateToCompare('theme-options', undefined, undefined, `${d.id}:${d.options[0].name}`, `${d.id}:${d.options[1].name}`);
+        navigateTo('define', 'themes');
       },
     })),
-  ], [dimensions, navigateTo, setCompareMode, setCompareThemeDefaultA, setCompareThemeDefaultB, setCompareThemeKey]);
+  ], [dimensions, navigateTo]);
 
   // Contextual commands — rebuilds on hover/selection changes (most frequent).
   // Kept small (~5 entries) so the rebuild cost is negligible.
@@ -1064,9 +1055,9 @@ export function App() {
       label: 'Compare token across themes\u2026',
       description: 'Focus a token first, then run this command to compare its values across theme options',
       category: 'Tokens' as const,
-      handler: () => { setCompareMode('cross-theme'); navigateTo('define', 'compare'); },
+      handler: () => { themeManagerHandleRef.current?.navigateToCompare('cross-theme'); navigateTo('define', 'themes'); },
     }] : []),
-  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, setCompareMode, handleOpenCrossThemeCompare]);
+  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare]);
 
   // Undo/redo commands — rebuilds when the operation log or redo stack changes.
   const undoRedoCommands = useMemo<Command[]>(() => [
@@ -2483,19 +2474,9 @@ export function App() {
           {/* Themes sub-tab (Define > Themes) */}
           {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'themes' && (
             <div className="flex flex-col h-full overflow-hidden">
-              {dimensions.length > 0 && (
-                <div className="shrink-0 flex items-center justify-end px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                  <button
-                    onClick={() => { setCompareMode('theme-options'); navigateTo('define', 'compare'); }}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  >
-                    Compare themes →
-                  </button>
-                </div>
-              )}
               <div className="flex-1 overflow-hidden">
                 <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} onGapsDetected={setThemeGapCount} themeManagerHandle={themeManagerHandleRef} resolverState={{
+                  <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(path, set) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onCreateToken={(tokenPath, set) => { navigateTo('define', 'tokens'); setEditingToken({ path: tokenPath, set, isCreate: true }); }} onPushUndo={pushUndo} allTokensFlat={allTokensFlat} pathToSet={pathToSet} onGapsDetected={setThemeGapCount} onTokensCreated={refreshAll} onGoToTokens={() => navigateTo('define', 'tokens')} themeManagerHandle={themeManagerHandleRef} resolverState={{
                     serverUrl,
                     connected,
                     sets,
@@ -2545,34 +2526,6 @@ export function App() {
             </ErrorBoundary>
           )}
 
-          {/* Compare sub-tab (Define > Compare) */}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'compare' && (
-            <ErrorBoundary panelName="Compare" onReset={() => navigateTo('define', 'tokens')}>
-              <UnifiedComparePanel
-                mode={compareMode}
-                onModeChange={setCompareMode}
-                tokenPaths={compareTokenPaths}
-                onClearTokenPaths={() => setCompareTokenPaths(new Set())}
-                tokenPath={compareTokenPath}
-                onClearTokenPath={() => setCompareTokenPath('')}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                dimensions={dimensions}
-                themeOptionsKey={compareThemeKey}
-                themeOptionsDefaultA={compareThemeDefaultA}
-                themeOptionsDefaultB={compareThemeDefaultB}
-                onEditToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }}
-                onCreateToken={(path, set, type, value) => {
-                  navigateTo('define', 'tokens');
-                  if (set !== activeSet) setActiveSet(set);
-                  setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
-                }}
-                onGoToTokens={() => navigateTo('define', 'tokens')}
-                serverUrl={serverUrl}
-                onTokensCreated={refreshAll}
-              />
-            </ErrorBoundary>
-          )}
 
           {/* Export sub-tab (Ship > Export) */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (
