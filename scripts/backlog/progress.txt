@@ -169,3 +169,11 @@
   - State setter functions from `useState` are stable references — safe to include in `useMemo` deps without causing extra renders, but also safe to omit if ESLint is a concern
   - When extracting a custom hook that calls `useCallback` with captured state, make sure the hook's own `useState` calls come before any `useCallback` that references them (TDZ rule)
 ---
+
+## 2026-04-04 - scanTokenUsageMap silent cancel + missing close handler
+- Fixed two bugs: (1) `scanTokenUsageMap` now posts `token-usage-map-cancelled` message on both abort check points instead of silently returning; (2) added `figma.on('close', ...)` handler in `controller.ts` that calls `cancelActiveScan()` to abort in-flight scans when the plugin UI is closed
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L697-714, `packages/figma-plugin/src/plugin/controller.ts` ~L532-535
+- **Learnings for future iterations:**
+  - All scan functions that check `signal.aborted` must post a `*-cancelled` message before returning — silent early returns leave the UI waiting indefinitely
+  - `figma.on('close')` is the standard place to clean up plugin-side resources; it fires when the plugin window is dismissed without a `figma.closePlugin()` call
+---

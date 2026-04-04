@@ -529,6 +529,11 @@ function sampleSelectionColor() {
   figma.ui.postMessage({ type: 'eyedropper-result', hex });
 }
 
+// Cancel any in-flight scan when the plugin UI is closed
+figma.on('close', () => {
+  cancelActiveScan();
+});
+
 // Listen for selection changes
 figma.on('selectionchange', () => {
   getSelection(deepInspectEnabled);

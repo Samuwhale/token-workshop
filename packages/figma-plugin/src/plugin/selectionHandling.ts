@@ -694,7 +694,10 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
 export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
   const usageMap: Record<string, number> = {};
   for await (const node of walkNodes(figma.currentPage.children, { signal })) {
-    if (signal?.aborted) return; // cancelled — silently drop (no result posted)
+    if (signal?.aborted) {
+      figma.ui.postMessage({ type: 'token-usage-map-cancelled' });
+      return;
+    }
     const seen = new Set<string>();
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
@@ -711,7 +714,10 @@ export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
       }
     }
   }
-  if (signal?.aborted) return;
+  if (signal?.aborted) {
+    figma.ui.postMessage({ type: 'token-usage-map-cancelled' });
+    return;
+  }
   figma.ui.postMessage({ type: 'token-usage-map', usageMap });
 }
 
