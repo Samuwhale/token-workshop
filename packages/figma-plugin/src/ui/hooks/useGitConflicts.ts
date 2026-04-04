@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -40,9 +40,16 @@ export function useGitConflicts({
   const [conflictChoices, setConflictChoices] = useState<Record<string, Record<number, 'ours' | 'theirs'>>>({});
   const [resolvingConflicts, setResolvingConflicts] = useState(false);
 
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  // Abort any in-flight conflict fetch on unmount
+  useEffect(() => () => { fetchAbortRef.current?.abort(); }, []);
+
   const fetchConflicts = useCallback(async () => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     try {
-      const data = await apiFetch<{ conflicts: FileConflict[] }>(`${serverUrl}/api/sync/conflicts`);
+      const data = await apiFetch<{ conflicts: FileConflict[] }>(`${serverUrl}/api/sync/conflicts`, { signal: controller.signal });
       const conflicts: FileConflict[] = data.conflicts || [];
       setMergeConflicts(conflicts);
       // Initialize choices: default all regions to 'theirs' (accept incoming)
@@ -55,6 +62,7 @@ export function useGitConflicts({
       }
       setConflictChoices(choices);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.warn('[useGitConflicts] fetch failed:', err);
     }
   }, [serverUrl]);

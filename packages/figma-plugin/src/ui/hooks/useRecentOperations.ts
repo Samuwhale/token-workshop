@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 
@@ -48,14 +48,27 @@ export function useRecentOperations({
 
   const hasMore = total > recentOperations.length;
 
+  const unmountRef = useRef(new AbortController());
+  // Abort any in-flight fetch on unmount
+  useEffect(() => {
+    const controller = unmountRef.current;
+    return () => controller.abort();
+  }, []);
+
   const fetchRecentOps = useCallback(async (limit?: number) => {
     if (!connected) return;
     const effectiveLimit = limit ?? loadedCount;
     try {
-      const data = await apiFetch<{ operations: OperationEntry[]; total: number }>(`${serverUrl}/api/operations?limit=${effectiveLimit}`);
+      const data = await apiFetch<{ operations: OperationEntry[]; total: number }>(
+        `${serverUrl}/api/operations?limit=${effectiveLimit}`,
+        { signal: unmountRef.current.signal },
+      );
       setRecentOperations(data.operations);
       setTotal(data.total);
-    } catch (err) { console.warn('[useRecentOperations] fetch failed:', err); }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      console.warn('[useRecentOperations] fetch failed:', err);
+    }
   }, [serverUrl, connected, loadedCount]);
 
   // Refresh operations list whenever tokens refresh or loadedCount changes

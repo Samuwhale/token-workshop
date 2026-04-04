@@ -34,6 +34,10 @@ export function useThemeBulkOps({
   // interleave optimistic updates or capture stale rollback snapshots.
   const mutationChainRef = useRef<Promise<void>>(Promise.resolve());
 
+  // Prevents setState calls on unmounted component after in-flight mutations complete.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   // Close bulk menu on outside click or Escape
   useEffect(() => {
     if (!bulkMenu) return;
@@ -93,12 +97,13 @@ export function useThemeBulkOps({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: optionName, sets: updatedSets }),
         });
-        debouncedFetchDimensions();
+        if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
+        if (!mountedRef.current) return;
         setDimensions(previousDimensions);
         setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to save'));
       } finally {
-        setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
+        if (mountedRef.current) setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
       }
     };
     const next = mutationChainRef.current.then(task);
@@ -132,12 +137,13 @@ export function useThemeBulkOps({
             body: JSON.stringify({ name: opt.name, sets: updatedSets }),
           });
         }));
-        debouncedFetchDimensions();
+        if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
+        if (!mountedRef.current) return;
         setDimensions(previousDimensions);
         setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to bulk-update'));
       } finally {
-        setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
+        if (mountedRef.current) setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
       }
     };
     const next = mutationChainRef.current.then(task);
@@ -169,8 +175,9 @@ export function useThemeBulkOps({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: optionName, sets: updatedSets }),
         });
-        debouncedFetchDimensions();
+        if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
+        if (!mountedRef.current) return;
         setDimensions(previousDimensions);
         setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to bulk-assign sets'));
       }
@@ -203,8 +210,9 @@ export function useThemeBulkOps({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: targetOptionName, sets: { ...source.sets } }),
         });
-        debouncedFetchDimensions();
+        if (mountedRef.current) debouncedFetchDimensions();
       } catch (err) {
+        if (!mountedRef.current) return;
         setDimensions(previousDimensions);
         setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to copy assignments'));
       }

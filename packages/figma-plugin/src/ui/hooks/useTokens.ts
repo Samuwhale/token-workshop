@@ -186,39 +186,7 @@ export function useTokens(
   return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
 }
 
-export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
-  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
-  const setNames: string[] = setsData.sets || [];
-
-  const results = await Promise.allSettled(
-    setNames.map(async (setName) => {
-      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-      return data.tokens || {};
-    })
-  );
-
-  const failed: string[] = [];
-  const map: Record<string, TokenMapEntry> = {};
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result.status === 'rejected') {
-      failed.push(setNames[i]);
-      console.error(`Failed to fetch token set "${setNames[i]}":`, result.reason);
-    } else {
-      for (const [path, entry] of flattenWithNames(result.value)) {
-        map[path] = entry;
-      }
-    }
-  }
-
-  if (failed.length > 0) {
-    throw new Error(`Failed to fetch token set${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
-  }
-
-  return map;
-}
-
-export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
+async function fetchAllSets(serverUrl: string): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   perSetFlat: Record<string, Record<string, TokenMapEntry>>;
@@ -260,6 +228,18 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   }
 
   return { flat, pathToSet, perSetFlat };
+}
+
+export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
+  return (await fetchAllSets(serverUrl)).flat;
+}
+
+export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
+  flat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
+}> {
+  return fetchAllSets(serverUrl);
 }
 
 

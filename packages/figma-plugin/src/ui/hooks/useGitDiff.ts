@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { describeError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -68,11 +68,18 @@ export function useGitDiff({
   const [pullPreview, setPullPreview] = useState<GitPreview | null>(null);
   const [pullPreviewLoading, setPullPreviewLoading] = useState(false);
 
+  const unmountRef = useRef(new AbortController());
+  // Abort any in-flight fetches on unmount
+  useEffect(() => {
+    const controller = unmountRef.current;
+    return () => controller.abort();
+  }, []);
+
   const computeDiff = useCallback(async () => {
     setDiffLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] }>(`${serverUrl}/api/sync/diff`);
+      const data = await apiFetch<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] }>(`${serverUrl}/api/sync/diff`, { signal: unmountRef.current.signal });
       setDiffView(data);
       const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const f of data.localOnly) choices[f] = 'push';
@@ -80,9 +87,10 @@ export function useGitDiff({
       for (const f of data.conflicts) choices[f] = 'skip';
       setDiffChoices(choices);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setGitError(describeError(err, 'Compute diff'));
     } finally {
-      setDiffLoading(false);
+      if (!unmountRef.current.signal.aborted) setDiffLoading(false);
     }
   }, [serverUrl, setGitError]);
 
@@ -108,12 +116,13 @@ export function useGitDiff({
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`);
+      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal: unmountRef.current.signal });
       setTokenPreview(data.changes ?? []);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setGitError(describeError(err, 'Token preview'));
     } finally {
-      setTokenPreviewLoading(false);
+      if (!unmountRef.current.signal.aborted) setTokenPreviewLoading(false);
     }
   }, [serverUrl, setGitError]);
 
@@ -125,12 +134,13 @@ export function useGitDiff({
     setPushPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/push/preview`);
+      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/push/preview`, { signal: unmountRef.current.signal });
       setPushPreview(data);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setGitError(describeError(err, 'Push preview'));
     } finally {
-      setPushPreviewLoading(false);
+      if (!unmountRef.current.signal.aborted) setPushPreviewLoading(false);
     }
   }, [serverUrl, setGitError]);
 
@@ -142,12 +152,13 @@ export function useGitDiff({
     setPullPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/pull/preview`);
+      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal: unmountRef.current.signal });
       setPullPreview(data);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setGitError(describeError(err, 'Pull preview'));
     } finally {
-      setPullPreviewLoading(false);
+      if (!unmountRef.current.signal.aborted) setPullPreviewLoading(false);
     }
   }, [serverUrl, setGitError]);
 

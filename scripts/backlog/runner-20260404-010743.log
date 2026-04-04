@@ -425,3 +425,22 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: TokenStore non-atomic rebuildFlatTokens (HIGH), OperationLog concurrent persist race (HIGH), 38x duplicated path encoding, bulkRename stale circular-ref check, GitSync/watcher race on pull, inconsistent abort/timeout patterns across 15 hooks
 Already up to date.
+[main 8fc5e526] chore(backlog): code pass – code-pass
+ 6 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store.ts, operation-log.ts, git-sync.ts, event-bus.ts, generator-service.ts), packages/figma-plugin/src/plugin/ (controller.ts, variableSync.ts, selectionHandling.ts, heatmapScanning.ts), packages/figma-plugin/src/ui/hooks/ (useTokens.ts, useTokenDataLoading.ts, useGeneratorPreview.ts, useResolvers.ts, useTokenSyncBase.ts, useLint.ts), packages/figma-plugin/src/ui/shared/, all route files
+- Found 6 items — written to backlog-inbox.md
+- Notable: TokenStore.rebuildFlatTokens() clears the Map non-atomically — any concurrent reader sees empty/partial state during rebuild; also the saveSet error path never rebuilds flatTokens, leaving the cache permanently stale
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  19 queued · 3 in-progress · last took 9m45s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically — any concurrent reader (SSE snapshot, resolveTokens, getFlatTokensForSet) that runs between `.clear()` and completion sees an empty or partial token map; additionally, on saveSet failure the catch path calls restoreSnapshots but never calls rebuildFlatTokens, leaving flatTokens/resolver permanently stale until the next successful write; fix by building into a new Map and swapping atomically, and always rebuilding on the error path (packages/server/src/services/token-store.ts L266-280, L767-771, L800-806)
+  Worktree: /tmp/backlog-91634-YbOjq5
+  Running agent… (started 02:45:51)

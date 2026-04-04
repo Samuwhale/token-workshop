@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 
 export type Severity = 'error' | 'warning' | 'info';
@@ -18,17 +18,25 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  // Abort any in-flight config fetch on unmount
+  useEffect(() => () => { fetchAbortRef.current?.abort(); }, []);
+
   const fetchConfig = useCallback(async () => {
     if (!connected) return;
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
     try {
-      const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`);
+      const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, { signal: controller.signal });
       setConfig(data);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.warn('[useLintConfig] fetch config failed:', err);
       setConfig(null);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [serverUrl, connected]);
 

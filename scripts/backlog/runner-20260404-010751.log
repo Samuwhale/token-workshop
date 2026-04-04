@@ -549,3 +549,10 @@ Already up to date.
   → UI data-fetching hooks lack abort signals and error feedback — of ~15 hooks that call apiFetch, only 4 pass abort signals; useGitConflicts, useRecentOperations, useResolvers, useGitDiff, useLintConfig, and useThemeBulkOps all fire fetch calls that cannot be cancelled on component unmount or server disconnect, causing state-update-on-unmounted-component warnings; additionally useTokenDataLoading catches fetch errors but has no error state — it logs to console and sets loading=false so users see an empty token list with no failure indication; fetchAllTokensFlat and fetchAllTokensFlatWithSets in useTokens.ts are 80% duplicated code (both fetch /api/sets then Promise.allSettled over each set) differing only in per-set tracking — a single parameterized function would eliminate the duplication and ensure bug fixes apply to both paths (hooks/*.ts, useTokens.ts L136-210)
   Worktree: /tmp/backlog-92209-DNPBvY
   Running agent… (started 02:40:15)
+
+  ✓ done: UI data-fetching hooks lack abort signals and error feedback
+    Added abort signals to useGitConflicts, useRecentOperations, useGitDiff, useLintConfig; mounted-ref guard to useThemeBulkOps mutations; tokensError state to useTokenDataLoading with retry banner in App.tsx; deduplicated fetchAllTokensFlat/fetchAllTokensFlatWithSets into shared fetchAllSets helper
+    47 turns · 421s · $1.66
+
+  Merging to main: UI data-fetching hooks lack abort signals and error feedback
+Already up to date.

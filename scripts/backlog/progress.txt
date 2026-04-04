@@ -593,3 +593,20 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: TokenStore.rebuildFlatTokens() clears the Map non-atomically — any concurrent reader sees empty/partial state during rebuild; also the saveSet error path never rebuilds flatTokens, leaving the cache permanently stale
 ---
+
+## 2026-04-04 - UI data-fetching hooks lack abort signals and error feedback
+- Deduplicated `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` in `useTokens.ts` into a shared `fetchAllSets` internal helper; both exports are now thin wrappers that guarantee bug fixes propagate to both
+- Added `tokensError: string | null` state to `useTokenDataLoading.ts`; cleared on success, set on fetch failure; exposed in return value
+- Added dismissible error banner in `App.tsx` (define/tokens tab) showing `tokensError` with a Retry button that calls `refreshTokens`
+- Added abort signals to `useGitConflicts.ts`: per-fetch `AbortController` ref, aborts previous in-flight call on re-invoke, aborts on unmount; ignores `AbortError` in catch
+- Added abort signal to `useRecentOperations.ts`: unmount `AbortController` ref, signal passed to `fetchRecentOps`
+- Added abort signals to `useGitDiff.ts` for all 4 GET fetches (`computeDiff`, `fetchTokenPreview`, `fetchPushPreview`, `fetchPullPreview`): shared unmount controller, `AbortError` swallowed, `finally` guards against post-abort setState
+- Added abort signal to `useLintConfig.ts` `fetchConfig`: per-fetch `AbortController` ref, aborts previous on re-invoke and on unmount; `finally` checks `controller.signal.aborted` before calling `setLoading(false)`
+- Added `mountedRef` guard to `useThemeBulkOps.ts` for all 4 mutation handlers: checks `mountedRef.current` before calling setState in catch/finally blocks
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L136, `packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts` ~L22, `packages/figma-plugin/src/ui/App.tsx` ~L331, ~L2353, `packages/figma-plugin/src/ui/hooks/useGitConflicts.ts` ~L1, ~L39, `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` ~L1, ~L42, `packages/figma-plugin/src/ui/hooks/useGitDiff.ts` ~L1, ~L68, `packages/figma-plugin/src/ui/hooks/useLintConfig.ts` ~L1, ~L16, `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` ~L35
+- **Learnings for future iterations:**
+  - For auto-fetch callbacks (`useCallback` + `useEffect`): prefer a per-fetch `AbortController` ref that aborts the previous in-flight call on re-invoke, plus a cleanup `useEffect` for unmount. This prevents both unmount leaks AND race conditions when deps change.
+  - For unmount-only protection on user-triggered GET callbacks: a single unmount `AbortController` ref is sufficient; create it at hook init with `useRef(new AbortController())` and add a cleanup effect to abort it.
+  - For mutations (POST): don't abort the HTTP request (server may have already processed it); use a `mountedRef` to gate all setState calls in catch/finally instead.
+  - `finally { setLoading(false) }` must be guarded with `if (!controller.signal.aborted)` — `finally` runs even when `return` is in `catch`, so an early return on `AbortError` still hits the finally block and would trigger a state update on an unmounted component.
+---

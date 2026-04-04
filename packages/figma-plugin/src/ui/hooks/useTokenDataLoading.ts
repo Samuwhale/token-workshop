@@ -20,6 +20,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const [tokensLoading, setTokensLoading] = useState(false);
+  const [tokensError, setTokensError] = useState<string | null>(null);
   const flatFetchGenRef = useRef(0);
   const allTokensFlatRef = useRef(allTokensFlat);
   allTokensFlatRef.current = allTokensFlat;
@@ -34,11 +35,13 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
         setPerSetFlat(psf);
+        setTokensError(null);
         setTokensLoading(false);
       }).catch(err => {
         if (gen !== flatFetchGenRef.current) return;
         if (isNetworkError(err)) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
+        setTokensError(err instanceof Error ? err.message : 'Failed to load tokens');
         setTokensLoading(false);
       });
     } else {
@@ -69,5 +72,6 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
     filteredSetCount, setFilteredSetCount,
     syncSnapshot,
     tokensLoading,
+    tokensError,
   };
 }

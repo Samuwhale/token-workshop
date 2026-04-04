@@ -328,7 +328,7 @@ export function App() {
   const { selectedNodes } = useSelection();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
+  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
   const handleAliasNotFound = useCallback((aliasPath: string) => {
     setErrorToast(`Alias target not found: ${aliasPath}`);
   }, []);
@@ -2347,6 +2347,18 @@ export function App() {
                 aria-label="Dismiss"
               >
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          )}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && tokensError && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">Failed to load tokens: {tokensError}</span>
+              <button
+                onClick={refreshTokens}
+                className="text-[10px] px-2 py-0.5 rounded border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
+              >
+                Retry
               </button>
             </div>
           )}
