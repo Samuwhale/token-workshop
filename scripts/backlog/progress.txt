@@ -375,3 +375,9 @@
   - `token-store.ts` `saveSet()` had no try/catch at all around the rename — the fix adds a try/catch wrapping just the rename (after `_startWriteGuard`). The outer `next.catch(() => {})` on the chain still swallows the error to keep the mutex alive.
   - `resolver-store.ts` already had a try/catch that called `_clearWriteGuard` but forgot the unlink — a one-liner addition.
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (tab structure, navigation), PanelRouter.tsx (panel dispatch), CommandPalette.tsx (shortcuts, qualifiers), TokenList.tsx (multi-select, keyboard handlers), TokenTreeNode.tsx (context menus, tabIndex, focus), BatchEditor.tsx (bulk operations), GraphPanel.tsx (generator management), ResolverPanel.tsx (resolver CRUD), ThemeManager.tsx (dimension/option CRUD, coverage), HealthPanel.tsx (health summary), AnalyticsPanel.tsx (validation detail), TokenFlowPanel.tsx (dependency graph), PublishPanel.tsx (sync flow), ExportPanel.tsx (platform export), SettingsPanel.tsx (preferences), ImportPanel.tsx (import sources), ComparePanel.tsx + CrossThemeComparePanel.tsx + ThemeCompare.tsx + UnifiedComparePanel.tsx (comparison modes), SelectionInspector.tsx (binding UX), all server routes (tokens, sets, themes, generators, resolvers, git, operations, lint, export, SSE), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts), ErrorBoundary.tsx, EmptyState.tsx, ConfirmModal.tsx, ToastStack.tsx, shortcutRegistry.ts
+- Found 11 items — written to backlog-inbox.md
+- Notable: The most impactful gap is the complete absence of focus trapping in modals — every dialog (ConfirmModal, CommandPalette, PasteTokens, Shortcuts, PublishModals) allows Tab to escape into background content, which is both an accessibility failure and a usability problem for keyboard-first users. The remap-bindings operation lacking rollback is the highest data-safety risk found.
+---
