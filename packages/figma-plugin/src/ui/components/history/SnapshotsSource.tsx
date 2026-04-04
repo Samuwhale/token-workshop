@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../../shared/apiFetch';
 import { isAbortError } from '../../shared/utils';
+import { ConfirmModal } from '../ConfirmModal';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
 import { ChangesBySetList } from './ChangesBySetList';
 import type { SnapshotSummary, SnapshotDiff, UndoSlot, TokenChange } from './types';
@@ -43,6 +44,9 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
   const [pairDiffLoading, setPairDiffLoading] = useState(false);
   const [pairChanges, setPairChanges] = useState<TokenChange[] | null>(null);
   const [pairOpenSections, setPairOpenSections] = useState<Record<string, boolean>>({});
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Bug fix: AbortControllers to prevent races when the user rapidly switches comparisons.
   const singleCompareAbortRef = useRef<AbortController | null>(null);
@@ -606,7 +610,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                         </button>
                         <button
                           className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
-                          onClick={() => handleDelete(s.id)}
+                          onClick={() => setDeleteConfirm(s.id)}
                           title="Delete snapshot"
                           aria-label="Delete snapshot"
                         >
@@ -623,6 +627,24 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
           </ul>
         )}
       </div>
+
+      {deleteConfirm && (() => {
+        const snapshot = snapshots.find(s => s.id === deleteConfirm);
+        return (
+          <ConfirmModal
+            title="Delete snapshot?"
+            description={snapshot ? `"${snapshot.label}" will be permanently deleted and cannot be recovered.` : 'This snapshot will be permanently deleted and cannot be recovered.'}
+            confirmLabel="Delete"
+            danger
+            onConfirm={async () => {
+              const id = deleteConfirm;
+              setDeleteConfirm(null);
+              await handleDelete(id);
+            }}
+            onCancel={() => setDeleteConfirm(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

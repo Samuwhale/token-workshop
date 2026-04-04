@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Spinner } from './Spinner';
+import { ConfirmModal } from './ConfirmModal';
 import { normalizeHex, flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
@@ -85,6 +86,7 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   const [allTokensUnified, setAllTokensUnified] = useState<Record<string, { $value: unknown; $type: string; set: string }>>({});
   const [showUnused, setShowUnused] = useState(false);
   const [confirmDeleteAllUnused, setConfirmDeleteAllUnused] = useState(false);
+  const [confirmDeleteUnusedToken, setConfirmDeleteUnusedToken] = useState<{ path: string; set: string } | null>(null);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set()); // 'all' or 'set:path'
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set()); // issue keys currently being fixed
 
@@ -594,6 +596,7 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
   }
 
   return (
+    <>
     <div className="flex flex-col gap-3 p-3">
       {/* Validate header */}
       <div className="flex items-center justify-between">
@@ -1457,7 +1460,7 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
                           </span>
                         </button>
                         <button
-                          onClick={() => handleDeleteUnusedToken(path, set)}
+                          onClick={() => setConfirmDeleteUnusedToken({ path, set })}
                           disabled={isDeleting}
                           title="Delete token"
                           className="absolute right-1 top-0 bottom-0 flex items-center px-1.5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity disabled:opacity-40"
@@ -1573,5 +1576,21 @@ export function AnalyticsPanel({ serverUrl, connected, tokenUsageCounts, onNavig
         )}
       </div>
     </div>
+
+      {confirmDeleteUnusedToken && (
+        <ConfirmModal
+          title="Delete unused token?"
+          description={`"${confirmDeleteUnusedToken.path}" (${confirmDeleteUnusedToken.set}) will be permanently deleted.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={async () => {
+            const { path, set } = confirmDeleteUnusedToken;
+            setConfirmDeleteUnusedToken(null);
+            await handleDeleteUnusedToken(path, set);
+          }}
+          onCancel={() => setConfirmDeleteUnusedToken(null)}
+        />
+      )}
+    </>
   );
 }

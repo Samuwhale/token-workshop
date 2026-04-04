@@ -622,3 +622,18 @@
   - "Select children" is additive (adds to existing selection) rather than replacing, enabling multi-group selection workflows
   - Accel key "A" was unused in the group context menu
 ---
+
+## 2026-04-04 - Inconsistent destructive-action safety across panels
+- Added ConfirmModal to all three missing confirmation paths:
+  1. **ThemeManager.tsx**: Option delete now uses `optionDeleteConfirm` state + ConfirmModal (matching the existing dimension-delete pattern). Shows option name + parent layer name in description.
+  2. **SnapshotsSource.tsx**: Snapshot delete now uses `deleteConfirm` state + ConfirmModal imported from `../ConfirmModal`. Shows snapshot label in description.
+  3. **AnalyticsPanel.tsx**: Individual unused token delete now uses `confirmDeleteUnusedToken` state + ConfirmModal. Root return wrapped in `<>` fragment to accommodate the modal alongside the existing `<div>`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L98 (state), ~L1726 (button onClick), ~L2379 (modal JSX)
+  - `packages/figma-plugin/src/ui/components/history/SnapshotsSource.tsx` ~L3 (import), ~L46 (state), ~L613 (button onClick), ~L631 (modal JSX)
+  - `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2 (import), ~L88 (state), ~L1461 (button onClick), ~L1579 (modal JSX), ~L599 (fragment wrapper)
+- **Learnings for future iterations:**
+  - When adding a ConfirmModal alongside a single-root JSX return, wrap with `<>` fragment rather than restructuring the existing root element.
+  - SnapshotsSource lives under `history/` subdirectory — ConfirmModal import path is `../ConfirmModal` not `./ConfirmModal`.
+  - The ThemeManager pattern (storing id/name in state, looking up full object in the modal render) is the right model: keeps button onClick lightweight and decouples the confirm dialog from the list render.
+---

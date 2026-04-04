@@ -97,6 +97,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Delete dimension confirmation
   const [dimensionDeleteConfirm, setDimensionDeleteConfirm] = useState<string | null>(null);
 
+  // Delete option confirmation
+  const [optionDeleteConfirm, setOptionDeleteConfirm] = useState<{ dimId: string; optionName: string } | null>(null);
+
   // Add option per dimension
   const [newOptionNames, setNewOptionNames] = useState<Record<string, string>>({});
   const [showAddOption, setShowAddOption] = useState<Record<string, boolean>>({});
@@ -1723,7 +1726,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     )}
                                   </div>
                                 )}
-                                <button onClick={() => executeDeleteOption(dim.id, opt.name)} className="p-1.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
+                                <button onClick={() => setOptionDeleteConfirm({ dimId: dim.id, optionName: opt.name })} className="p-1.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                                   </svg>
@@ -2372,6 +2375,26 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               await executeDeleteDimension(dim.id);
             }}
             onCancel={() => setDimensionDeleteConfirm(null)}
+          />
+        );
+      })()}
+
+      {/* Delete option confirmation */}
+      {optionDeleteConfirm && (() => {
+        const dim = dimensions.find(d => d.id === optionDeleteConfirm.dimId);
+        if (!dim) return null;
+        return (
+          <ConfirmModal
+            title={`Delete option "${optionDeleteConfirm.optionName}"?`}
+            description={`This will permanently delete the option from layer "${dim.name}". Any token assignments specific to this option will be lost.`}
+            confirmLabel="Delete option"
+            danger
+            onConfirm={async () => {
+              const { dimId, optionName } = optionDeleteConfirm;
+              setOptionDeleteConfirm(null);
+              await executeDeleteOption(dimId, optionName);
+            }}
+            onCancel={() => setOptionDeleteConfirm(null)}
           />
         );
       })()}

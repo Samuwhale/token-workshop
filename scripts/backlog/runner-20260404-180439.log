@@ -166,3 +166,26 @@ Already up to date.
 
   Merging to main: No "Select all in group" action on group context menu
 Already up to date.
+[main 0243b2f9] chore(backlog): done – No "Select all in group" action on group context menu
+ 7 files changed, 66 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No "Select all in group" action on group context menu
+- Added "Select children" (accel: A) to the group context menu in `TokenTreeNode.tsx`
+- Handler `handleSelectGroupChildren` in `TokenList.tsx` collects all leaf paths under the group via `flattenLeafNodes(groupNode.children ?? [])`, activates `selectMode`, and adds them to `selectedPaths` (additive — doesn't deselect existing selections)
+- `onSelectGroupChildren` callback added to `TokenTreeContextType` in `tokenListTypes.ts` and wired through the context value
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  6 queued · 0
+0 in-progress · last took 4m17s
+═══════════════════════════════════════════════════════════════
+  → Inconsistent destructive-action safety across panels — ThemeManager confirms dimension delete (ConfirmModal at ThemeManager.tsx:2365) but silently deletes options (ThemeManager.tsx:1726→700); SnapshotsSource deletes snapshots with no confirmation at all (SnapshotsSource.tsx:213-226); AnalyticsPanel deletes individual unused tokens without confirmation (AnalyticsPanel.tsx:557-568) while bulk delete has inline confirm; the safety level a user gets depends on which panel they're in rather than the severity of the action (violates: consistency, error prevention)
+  Worktree: /tmp/backlog-3108-ZVv11t
+  Running agent… (started 18:47:49)
+
+  ✓ done: Inconsistent destructive-action safety across panels
+    Added ConfirmModal to ThemeManager option delete, SnapshotsSource snapshot delete, and AnalyticsPanel individual unused token delete — all three now match the existing dimension-delete safety level
+    48 turns · 282s · $0.97
+
+  Merging to main: Inconsistent destructive-action safety across panels
+Already up to date.
