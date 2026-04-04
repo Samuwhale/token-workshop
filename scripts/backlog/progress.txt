@@ -409,3 +409,9 @@
   - For "rename" in a move/copy scenario, use a two-step API: move/copy at original path, then rename in the target set — avoids modifying the server endpoints
   - Wrapping the target-set setter to reset conflict action prevents stale UI state when user switches destination (without wrapping, action choice from set A would persist when switching to set B which has no conflict)
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store, generator-service, git-sync, operation-log, event-bus, manual-snapshot, token-lock), packages/server/src/routes/ (tokens, sets, generators, sync, snapshots, operations), packages/server/src/index.ts, packages/figma-plugin/src/ui/App.tsx (3461 lines, 44 hooks), packages/figma-plugin/src/ui/hooks/ (useTokens, useTokenDataLoading, useDragDrop, useTokenCrud, useFigmaSync, useFigmaMessage), packages/figma-plugin/src/ui/shared/ (apiFetch, storage), packages/figma-plugin/src/plugin/ (controller, selectionHandling, variableSync), packages/core/src/ (resolver, dtcg-resolver, color-modifier, generator-engine, validator)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Generator auto-run (index.ts:95) runs outside tokenLock while all route handlers hold it — confirmed race condition that can corrupt token state during concurrent edits
+---

@@ -626,3 +626,18 @@ Already up to date.
 
   Merging to main: Move/Copy token to set dialogs do not check for name conflicts in the target set
 Already up to date.
+[main 35b22b0b] chore(backlog): done – Move/Copy token to set dialogs do not check for name conflicts in the target set
+ 8 files changed, 263 insertions(+), 16 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Move/Copy token to set dialogs conflict detection
+- Added conflict detection, preview, and resolution (overwrite/skip/rename) to both Move and Copy token dialogs
+- `useTokenCrud.ts`: Added `moveConflict`/`copyConflict` as `useMemo` derived values from `perSetFlat[targetSet][tokenPath]`; added `moveConflictAction`/`copyConflictAction` state (`'overwrite'|'skip'|'rename'`); added `moveConflictNewPath`/`copyConflictNewPath` state; wrapped set-change handlers (`handleChangeMoveTokenTargetSet`, `handleChangeCopyTokenTargetSet`) that reset action to 'overwrite' on target set change; updated confirm handlers to handle skip (bail out) and rename (move+rename two-step API call)
+- `TokenListModals.tsx`: Added conflict props to interface; updated move and copy dialogs to show conflict section when `moveConflict`/`copyConflict` is non-null — includes existing vs incoming value diff (via `ValuePreview`), overwrite/skip/rename segmented control, and rename path input field; widened dialog from `w-64` to `w-72`
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  4 queued · 2 in-progress · last took 7m4s
+═══════════════════════════════════════════════════════════════
+  → GitSubPanel merge conflict UI shows only 4 lines per conflict region — for non-trivial conflicts (multi-token JSON changes), 4 lines is too little context to understand what's different; the "ours" vs "theirs" labels don't clarify which is local vs remote; expand default visible lines to 8-10, add "(local)" / "(remote)" labels next to "ours" / "theirs", and add a "Show full context" toggle per conflict region (GitSubPanel.tsx conflict rendering)
+  Worktree: /tmp/backlog-91634-6r3h0a
+  Running agent… (started 03:51:31)
