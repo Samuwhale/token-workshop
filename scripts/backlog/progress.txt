@@ -920,3 +920,15 @@
   - The `triggerXxx` function pattern (accepts parameters from the caller) is cleaner than hoisting prop dependencies into the context itself. Context owns the state; caller provides the inputs.
   - `Dispatch<SetStateAction<T>>` is the correct type import for exposing a state setter through context — import from `'react'`, not as `React.Dispatch`.
 ---
+
+## 2026-04-04 - SetSwitcher dropdown should show which sets are themed
+- Added theme dimension badges to set rows in both switch and manage modes of SetSwitcher
+- `buildSetThemeLabels(dimensions)` computes `Record<setName, {option, status}[]>` from `ThemeDimension[]` — skips `disabled` status
+- `ThemeBadges` component renders compact pills: blue/accent for `enabled` (overrides), gray/bordered for `source` (base) — tooltip shows full label with status
+- Added `dimensions?: ThemeDimension[]` prop to `SetSwitcherProps`; App.tsx passes `dimensions` (already available via `useThemeContext()`)
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L1-90 (helpers + badges), ~L130 (prop), ~L150 (buildSetThemeLabels call), ~L310-360 (SwitchView renderSetButton), ~L450-540 (ManageView set row); `packages/figma-plugin/src/ui/App.tsx` ~L2744
+- **Learnings for future iterations:**
+  - `dimensions` from `useThemeContext()` is already destructured at the top of App.tsx — no extra plumbing needed beyond adding a prop
+  - `disabled` sets should not get badges — they're excluded from the theme but still appear in the set list
+  - Badge tooltip pattern: `title={status === 'enabled' ? 'Theme override: optionName' : 'Theme base: optionName'}` is enough UX without a full tooltip component
+---

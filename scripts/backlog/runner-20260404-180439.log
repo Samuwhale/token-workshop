@@ -639,3 +639,26 @@ Already up to date.
 
   Merging to main: ConsistencyPanel scan results are lost on tab switch
 Already up to date.
+[main ab6b287b] chore(backlog): done – ConsistencyPanel scan results are lost on tab switch
+ 6 files changed, 176 insertions(+), 83 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - ConsistencyPanel scan results are lost on tab switch
+- Lifted consistency scan state from local `useState` in `ConsistencyPanel.tsx` to `InspectContext.tsx`, following the existing heatmap pattern.
+- `InspectContext` now owns: `consistencyResult`, `consistencyLoading`, `consistencyError`, `consistencyProgress`, `consistencyTotalNodes`, `consistencySnappedKeys`, `setConsistencySnappedKeys`, `triggerConsistencyScan`, `cancelConsistencyScan`.
+- The scan timeout (60 s) and all `consistency-scan-*` message listeners moved to `InspectProvider`; `triggerConsistencyScan(tokenMap, scope)` accepts the pre-built token map and scope string so it can be called from `ConsistencyPanel` which holds the token-building logic.
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  11 queued · 0
+0 in-progress · last took 3m49s
+═══════════════════════════════════════════════════════════════
+  → SetSwitcher dropdown should show which sets are themed — SetSwitcher.tsx displays set names with folder grouping and token counts but gives no indication of which sets are assigned to theme dimensions; a user choosing which set to edit for a themed override has to switch to the Themes tab to check assignments; adding a small "dark", "light", etc. badge next to themed sets would save constant tab-switching
+  Worktree: /tmp/backlog-3108-nokhby
+  Running agent… (started 22:00:57)
+
+  ✓ done: SetSwitcher dropdown should show which sets are themed
+    Added theme option badges (blue for enabled/override, gray for source/base) next to set names in both switch and manage modes; dimensions prop wired from useThemeContext() in App.tsx
+    23 turns · 222s · $0.77
+
+  Merging to main: SetSwitcher dropdown should show which sets are themed
+Already up to date.

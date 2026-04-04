@@ -2742,6 +2742,7 @@ export function App() {
           onEditInfo={(set) => { setShowSetSwitcher(false); setShowManageSets(false); openSetMetadata(set); }}
           setTokenCounts={setTokenCounts}
           setDescriptions={setDescriptions}
+          dimensions={dimensions}
         />
       )}
 

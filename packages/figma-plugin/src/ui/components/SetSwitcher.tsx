@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { ThemeDimension, ThemeSetStatus } from '@tokenmanager/core';
 import { SET_NAME_RE } from '../shared/utils';
 
 interface FolderGroup {
@@ -35,6 +36,47 @@ function buildFolderGroups(sets: string[]): GroupItem[] {
   return result;
 }
 
+interface SetThemeLabel {
+  option: string;
+  status: ThemeSetStatus;
+}
+
+/** Build a map from set name → theme option labels (enabled/source only, not disabled). */
+function buildSetThemeLabels(dimensions: ThemeDimension[]): Record<string, SetThemeLabel[]> {
+  const map: Record<string, SetThemeLabel[]> = {};
+  for (const dim of dimensions) {
+    for (const opt of dim.options) {
+      for (const [setName, status] of Object.entries(opt.sets)) {
+        if (status === 'disabled') continue;
+        if (!map[setName]) map[setName] = [];
+        map[setName].push({ option: opt.name, status });
+      }
+    }
+  }
+  return map;
+}
+
+function ThemeBadges({ labels }: { labels: SetThemeLabel[] }) {
+  if (!labels.length) return null;
+  return (
+    <span className="flex items-center gap-0.5 flex-shrink-0 ml-1.5">
+      {labels.map((l, i) => (
+        <span
+          key={i}
+          className={`text-[9px] px-1 py-px rounded leading-tight ${
+            l.status === 'enabled'
+              ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]'
+          }`}
+          title={l.status === 'enabled' ? `Theme override: ${l.option}` : `Theme base: ${l.option}`}
+        >
+          {l.option}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 interface SetSwitcherProps {
   sets: string[];
   activeSet: string;
@@ -51,6 +93,7 @@ interface SetSwitcherProps {
   onEditInfo?: (setName: string) => void;
   setTokenCounts?: Record<string, number>;
   setDescriptions?: Record<string, string>;
+  dimensions?: ThemeDimension[];
 }
 
 function fuzzyMatch(query: string, target: string): boolean {
@@ -91,7 +134,9 @@ export function SetSwitcher({
   onEditInfo,
   setTokenCounts = {},
   setDescriptions = {},
+  dimensions = [],
 }: SetSwitcherProps) {
+  const setThemeLabels = buildSetThemeLabels(dimensions);
   const [mode, setMode] = useState<'switch' | 'manage'>(initialMode);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(() => {
@@ -242,6 +287,7 @@ export function SetSwitcher({
             activeIdx={activeIdx}
             query={query}
             onSelect={(set) => { onSelect(set); onClose(); }}
+            setThemeLabels={setThemeLabels}
           />
         ) : (
           <ManageView
@@ -252,6 +298,7 @@ export function SetSwitcher({
             query={query}
             setTokenCounts={setTokenCounts}
             setDescriptions={setDescriptions}
+            setThemeLabels={setThemeLabels}
             onSelect={(set) => { onSelect(set); onClose(); }}
             onRename={onRename}
             onDuplicate={onDuplicate}
@@ -298,9 +345,10 @@ interface SwitchViewProps {
   activeIdx: number;
   query: string;
   onSelect: (set: string) => void;
+  setThemeLabels: Record<string, SetThemeLabel[]>;
 }
 
-function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect }: SwitchViewProps) {
+function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect, setThemeLabels }: SwitchViewProps) {
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
 
   // Expand all folders when searching so results are always visible
@@ -336,6 +384,7 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect }
     const isCurrent = set === activeSet;
     const isHighlighted = filtered[activeIdx] === set;
     const label = indented ? set.slice(set.indexOf('/') + 1) : null;
+    const themeLabels = setThemeLabels[set] ?? [];
     return (
       <button
         key={set}
@@ -346,11 +395,12 @@ function SwitchView({ listRef, filtered, activeSet, activeIdx, query, onSelect }
         role="option"
         aria-selected={isCurrent}
       >
-        <span className={isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}>
+        <span className={`flex items-center min-w-0 flex-1 ${isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}`}>
           {label !== null ? <span>{label}</span> : <SetNameDisplay name={set} />}
+          <ThemeBadges labels={themeLabels} />
         </span>
         {isCurrent && (
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">active</span>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 ml-2">active</span>
         )}
       </button>
     );
@@ -407,6 +457,7 @@ interface ManageViewProps {
   query: string;
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
+  setThemeLabels: Record<string, SetThemeLabel[]>;
   onSelect: (set: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
@@ -428,7 +479,7 @@ interface ManageViewProps {
 
 function ManageView({
   listRef, filtered, sets, activeSet, query,
-  setTokenCounts, setDescriptions,
+  setTokenCounts, setDescriptions, setThemeLabels,
   onSelect, onRename, onDuplicate, onDelete, onReorder, onReorderFull, onEditInfo,
   creatingSet, setCreatingSet, newSetName, setNewSetName,
   newSetError, setNewSetError, createPending,
@@ -492,6 +543,7 @@ function ManageView({
 
             const isDragOver = dragOverSetName === set && dragSetName !== set;
             const isDragging = dragSetName === set;
+            const themeLabels = setThemeLabels[set] ?? [];
 
             return (
               <div
@@ -516,12 +568,13 @@ function ManageView({
                 {/* Set name — click to switch to this set */}
                 <button
                   onClick={() => onSelect(set)}
-                  className="flex-1 text-left min-w-0"
+                  className="flex-1 text-left min-w-0 flex items-center"
                   title={description || set}
                 >
                   <span className={isCurrent ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)]'}>
                     <SetNameDisplay name={set} />
                   </span>
+                  <ThemeBadges labels={themeLabels} />
                   {isCurrent && (
                     <span className="ml-2 text-[10px] text-[var(--color-figma-text-secondary)]">active</span>
                   )}
