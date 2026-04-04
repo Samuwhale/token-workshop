@@ -8,9 +8,10 @@ interface VariableSyncSubPanelProps {
   activeSet: string;
   diffFilter: string;
   onRequestConfirm: (action: 'preview-vars' | 'apply-vars') => void;
+  onRevertVars?: () => void;
 }
 
-export function VariableSyncSubPanel({ varSync, activeSet, diffFilter, onRequestConfirm }: VariableSyncSubPanelProps) {
+export function VariableSyncSubPanel({ varSync, activeSet, diffFilter, onRequestConfirm, onRevertVars }: VariableSyncSubPanelProps) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="p-3 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -143,11 +144,30 @@ export function VariableSyncSubPanel({ varSync, activeSet, diffFilter, onRequest
 
       {!varSync.varLoading && !varSync.varError && (
         varSync.varChecked && varSync.varRows.length === 0 ? (
-          <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            Local tokens match Figma variables.
+          <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              Local tokens match Figma variables.
+            </div>
+            {varSync.varSnapshot && (
+              <div className="mt-2 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={onRevertVars}
+                    disabled={varSync.varReverting}
+                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                  >
+                    {varSync.varReverting ? 'Reverting\u2026' : 'Revert last sync'}
+                  </button>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Restore Figma variables to their pre-sync state</span>
+                </div>
+                {varSync.varRevertError && (
+                  <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{varSync.varRevertError}</div>
+                )}
+              </div>
+            )}
           </div>
         ) : !varSync.varChecked && varSync.varRows.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">

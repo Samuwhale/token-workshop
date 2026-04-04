@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
 import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
 
@@ -19,18 +19,39 @@ interface UseVariableSyncOptions {
 
 const extractCollections = (msg: any): any[] => msg.collections ?? [];
 
+// Opaque snapshot type — round-tripped from plugin to UI and back for revert.
+export type VarSyncSnapshot = {
+  records: Record<string, any>;
+  createdIds: string[];
+};
+
+const extractVarApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number; varSnapshot?: VarSyncSnapshot } => ({
+  ...extractSyncApplyResult(msg),
+  varSnapshot: msg.varSnapshot ?? undefined,
+});
+
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
+  const [varSnapshot, setVarSnapshot] = useState<VarSyncSnapshot | null>(null);
+  const [varReverting, setVarReverting] = useState(false);
+  const [varRevertError, setVarRevertError] = useState<string | null>(null);
+
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
     timeout: 10000,
     extractResponse: extractCollections,
   });
 
-  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number }>({
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; created?: number; overwritten?: number; varSnapshot?: VarSyncSnapshot }>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
-    extractResponse: extractSyncApplyResult,
+    extractResponse: extractVarApplyResult,
+  });
+
+  const sendVarRevert = useFigmaMessage<{ failures: string[] }>({
+    responseType: 'variables-reverted',
+    timeout: 30000,
+    extractResponse: (msg: any) => ({ failures: msg.failures ?? [] }),
   });
 
   const readFigmaVariables = useCallback(
@@ -73,6 +94,11 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
         setName: activeSet,
       }));
       const result = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
+      // Store snapshot so the user can revert this sync
+      if (result.varSnapshot) {
+        setVarSnapshot(result.varSnapshot);
+        setVarRevertError(null);
+      }
       // Surface overwrite count so the caller can include it in success feedback
       if ((result.overwritten ?? 0) > 0) {
         parent.postMessage({
@@ -102,6 +128,25 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     if (connected && activeSet) base.computeDiff();
   }, [connected, activeSet, base.computeDiff]);
 
+  const revertVarSync = useCallback(async () => {
+    if (!varSnapshot) return;
+    setVarReverting(true);
+    setVarRevertError(null);
+    try {
+      const result = await sendVarRevert('revert-variables', { varSnapshot });
+      if (result.failures.length > 0) {
+        setVarRevertError(`Revert completed with ${result.failures.length} issue(s): ${result.failures.slice(0, 3).join('; ')}`);
+      } else {
+        setVarSnapshot(null);
+        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync reverted' } }, '*');
+      }
+    } catch (err) {
+      setVarRevertError(err instanceof Error ? err.message : 'Failed to revert variable sync');
+    } finally {
+      setVarReverting(false);
+    }
+  }, [varSnapshot, sendVarRevert]);
+
   // Re-export with the original property names for backward compat in PublishPanel
   return {
     varRows: base.rows,
@@ -118,5 +163,9 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     varPushCount: base.pushCount,
     varPullCount: base.pullCount,
     readFigmaVariables,
+    varSnapshot,
+    varReverting,
+    varRevertError,
+    revertVarSync,
   };
 }

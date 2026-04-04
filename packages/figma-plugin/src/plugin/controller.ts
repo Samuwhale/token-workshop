@@ -1,8 +1,8 @@
 // This runs in Figma's sandbox (no DOM access)
 
 import type { PluginMessage } from '../shared/types.js';
-import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables, scanTokenVariableBindings } from './variableSync.js';
-import { applyStyles, readFigmaStyles } from './styleSync.js';
+import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables, scanTokenVariableBindings, revertVariables } from './variableSync.js';
+import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
@@ -97,6 +97,8 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'eyedropper':                 [],
   'get-active-themes':          [],
   'set-active-themes':          [['themes', 'object']],
+  'revert-variables':           [['varSnapshot', 'object']],
+  'revert-styles':              [['styleSnapshot', 'object']],
 };
 
 /**
@@ -163,6 +165,28 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           type: 'styles-apply-error',
           error: describeError(e, 'Failed to apply styles'),
           correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'revert-variables':
+      try {
+        await withSyncLock(() => revertVariables(msg.varSnapshot as any, msg.correlationId));
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'variables-reverted',
+          correlationId: msg.correlationId,
+          failures: [describeError(e, 'Failed to revert variables')],
+        });
+      }
+      break;
+    case 'revert-styles':
+      try {
+        await withSyncLock(() => revertStyles(msg.styleSnapshot as any, msg.correlationId));
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'styles-reverted',
+          correlationId: msg.correlationId,
+          failures: [describeError(e, 'Failed to revert styles')],
         });
       }
       break;

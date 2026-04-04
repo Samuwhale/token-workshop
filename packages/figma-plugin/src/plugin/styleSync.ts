@@ -47,6 +47,13 @@ interface StyleCache {
 // Public entry point
 // ---------------------------------------------------------------------------
 
+// Serializable snapshot of a single Figma style's pre-sync state.
+interface StyleSnapshotEntry {
+  id: string;
+  type: 'paint' | 'text' | 'effect';
+  data: any; // serializable: Paint[], text style fields, or Effect[]
+}
+
 export async function applyStyles(tokens: StyleToken[], correlationId?: string) {
   // Fetch all local styles once upfront instead of per-token.
   const cache: StyleCache = {
@@ -54,6 +61,11 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
     textStyles: await figma.getLocalTextStylesAsync(),
     effectStyles: await figma.getLocalEffectStylesAsync(),
   };
+
+  // Capture pre-sync state for each style that already exists (for revert support).
+  const styleSnapshots: StyleSnapshotEntry[] = [];
+  // Track IDs of styles created during this sync (to delete on revert).
+  const createdStyleIds: string[] = [];
 
   let successCount = 0;
   const failures: { path: string; error: string }[] = [];
@@ -63,6 +75,35 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
     if (i % 5 === 0 || i === tokens.length - 1) {
       figma.ui.postMessage({ type: 'style-sync-progress', current: i + 1, total: tokens.length, correlationId });
     }
+
+    // Snapshot existing style before modifying it (for revert support)
+    const styleName = tokenPathToStyleName(token.path);
+    let existingStyleId: string | null = null;
+    if (token.$type === 'color' || token.$type === 'gradient') {
+      const existing = cache.paintStyles.find(s => s.name === styleName);
+      if (existing) {
+        existingStyleId = existing.id;
+        styleSnapshots.push({ id: existing.id, type: 'paint', data: structuredClone(existing.paints) });
+      }
+    } else if (token.$type === 'typography') {
+      const existing = cache.textStyles.find(s => s.name === styleName);
+      if (existing) {
+        existingStyleId = existing.id;
+        styleSnapshots.push({ id: existing.id, type: 'text', data: {
+          fontName: structuredClone(existing.fontName),
+          fontSize: existing.fontSize,
+          lineHeight: structuredClone(existing.lineHeight),
+          letterSpacing: structuredClone(existing.letterSpacing),
+        }});
+      }
+    } else if (token.$type === 'shadow') {
+      const existing = cache.effectStyles.find(s => s.name === styleName);
+      if (existing) {
+        existingStyleId = existing.id;
+        styleSnapshots.push({ id: existing.id, type: 'effect', data: structuredClone(existing.effects) });
+      }
+    }
+
     try {
       if (token.$type === 'color') {
         applyPaintStyle(token, cache);
@@ -74,6 +115,16 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
         applyEffectStyle(token, cache);
       }
       successCount++;
+
+      // Track newly created styles (no pre-existing ID → was just created)
+      if (!existingStyleId) {
+        const created =
+          (token.$type === 'color' || token.$type === 'gradient') ? cache.paintStyles.find(s => s.name === styleName) :
+          token.$type === 'typography' ? cache.textStyles.find(s => s.name === styleName) :
+          token.$type === 'shadow' ? cache.effectStyles.find(s => s.name === styleName) :
+          undefined;
+        if (created) createdStyleIds.push(created.id);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Failed to apply style for ${token.path}:`, error);
@@ -86,7 +137,49 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
     total: tokens.length,
     failures,
     correlationId,
+    styleSnapshot: { snapshots: styleSnapshots, createdIds: createdStyleIds },
   });
+}
+
+/** Restore Figma styles to the state captured in a prior applyStyles() call. */
+export async function revertStyles(
+  data: { snapshots: StyleSnapshotEntry[]; createdIds: string[] },
+  correlationId?: string,
+) {
+  const failures: string[] = [];
+
+  for (const snap of data.snapshots) {
+    try {
+      const style = await figma.getStyleByIdAsync(snap.id);
+      if (!style) { failures.push(`style ${snap.id} no longer exists`); continue; }
+      if (snap.type === 'paint') {
+        (style as PaintStyle).paints = snap.data;
+      } else if (snap.type === 'text') {
+        const ts = style as TextStyle;
+        await figma.loadFontAsync(snap.data.fontName);
+        ts.fontName = snap.data.fontName;
+        if (snap.data.fontSize !== undefined) ts.fontSize = snap.data.fontSize;
+        if (snap.data.lineHeight !== undefined) ts.lineHeight = snap.data.lineHeight;
+        if (snap.data.letterSpacing !== undefined) ts.letterSpacing = snap.data.letterSpacing;
+      } else if (snap.type === 'effect') {
+        (style as EffectStyle).effects = snap.data;
+      }
+    } catch (e) {
+      failures.push(`restore(${snap.id}): ${e}`);
+    }
+  }
+
+  // Delete styles that were created during the sync
+  for (const id of [...data.createdIds].reverse()) {
+    try {
+      const style = await figma.getStyleByIdAsync(id);
+      if (style) style.remove();
+    } catch (e) {
+      failures.push(`delete(${id}): ${e}`);
+    }
+  }
+
+  figma.ui.postMessage({ type: 'styles-reverted', correlationId, failures });
 }
 
 // ---------------------------------------------------------------------------

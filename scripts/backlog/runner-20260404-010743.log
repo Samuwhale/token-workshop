@@ -413,3 +413,12 @@ Already up to date.
 
   Merging to main: Full token refresh after every set operation — creating, deleting, renaming, or duplicating a set triggers refreshTokens() which re-fetches the entire token tree across all sets
 Already up to date.
+[main 089974ba] chore(backlog): done – Full token refresh after every set operation — creating, deleting, renaming, or duplicating a set triggers refreshTokens() which re-fetches the entire token tree across all sets
+ 12 files changed, 133 insertions(+), 31 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1260 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

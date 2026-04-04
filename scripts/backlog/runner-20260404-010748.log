@@ -437,3 +437,10 @@ Already up to date.
   → PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
   Worktree: /tmp/backlog-91949-oZkkLQ
   Running agent… (started 02:28:08)
+
+  ✓ done: PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
+    Added "Revert last sync" button for both variable and style syncs: plugin now serializes pre-sync snapshots in success responses, UI stores them and sends revert-variables/revert-styles messages to restore Figma state. Also fixed a pre-existing layout gap where VariableSyncSubPanel was imported but never rendered in PublishPanel.
+    95 turns · 901s · $4.42
+
+  Merging to main: PublishPanel has no "undo last sync" affordance — after applying a variable or style sync, there's no way to reverse it without manually toggling each token back; add a "Revert last sync" action that restores the pre-sync Figma state using the snapshot captured before sync (SyncPanel.tsx / useFigmaSync.ts)
+Already up to date.

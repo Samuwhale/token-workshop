@@ -112,12 +112,28 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       variable.setPluginData('tokenSet', token.setName || '');
     }
 
+    // Serialize snapshot so the UI can offer a "Revert last sync" action.
+    // Records map varId → pre-sync state (only existing vars that were modified).
+    // createdIds holds IDs of variables created fresh during this sync (to delete on revert).
+    const snapshotRecords: Record<string, {
+      valuesByMode: Record<string, VariableValue>;
+      name: string;
+      description: string;
+      hiddenFromPublishing: boolean;
+      scopes: string[];
+      pluginData: { tokenPath: string; tokenSet: string };
+    }> = {};
+    for (const [varId, snap] of variableSnapshots) {
+      snapshotRecords[varId] = snap;
+    }
+
     figma.ui.postMessage({
       type: 'variables-applied',
       count: tokens.length,
       created: createdVariableIds.length,
       overwritten: variableSnapshots.size,
       correlationId,
+      varSnapshot: { records: snapshotRecords, createdIds: [...createdVariableIds] },
     });
   } catch (error) {
     // Attempt to roll back all changes made before the failure
@@ -183,6 +199,57 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
     figma.ui.postMessage({ type: 'apply-variables-error', error: String(error), correlationId, rolledBack, rollbackError });
   }
+}
+
+/** Restore Figma variables to the state captured in a prior applyVariables() call. */
+export async function revertVariables(
+  data: {
+    records: Record<string, {
+      valuesByMode: Record<string, VariableValue>;
+      name: string;
+      description: string;
+      hiddenFromPublishing: boolean;
+      scopes: string[];
+      pluginData: { tokenPath: string; tokenSet: string };
+    }>;
+    createdIds: string[];
+  },
+  correlationId?: string,
+) {
+  const failures: string[] = [];
+
+  // Restore pre-sync state for every variable that was modified
+  const restoreTasks = Object.entries(data.records).map(async ([varId, snapshot]) => {
+    const v = await figma.variables.getVariableByIdAsync(varId);
+    if (!v) { failures.push(`var ${varId} no longer exists`); return; }
+    for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
+      try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { failures.push(`setValueForMode(${varId}, ${modeId}): ${e}`); }
+    }
+    try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${e}`); }
+    try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${e}`); }
+    try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${e}`); }
+    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${e}`); }
+    try {
+      v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
+      v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
+    } catch (e) { failures.push(`pluginData(${varId}): ${e}`); }
+  });
+  await Promise.allSettled(restoreTasks);
+
+  // Delete variables that were created during the sync
+  const deleteTasks = [...data.createdIds].reverse().map(async (varId) => {
+    const v = await figma.variables.getVariableByIdAsync(varId);
+    if (v) {
+      try { v.remove(); } catch (e) { failures.push(`delete(${varId}): ${e}`); }
+    }
+  });
+  await Promise.allSettled(deleteTasks);
+
+  figma.ui.postMessage({
+    type: 'variables-reverted',
+    correlationId,
+    failures,
+  });
 }
 
 export async function readFigmaVariables(correlationId?: string) {

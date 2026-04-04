@@ -8,7 +8,6 @@ import { useStyleSync } from '../hooks/useStyleSync';
 import { useGitSync } from '../hooks/useGitSync';
 import { apiFetch } from '../shared/apiFetch';
 import { VariableSyncSubPanel } from './publish/VariableSyncSubPanel';
-import { StyleSyncSubPanel } from './publish/StyleSyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
 import {
   SyncPreviewModal,
@@ -18,8 +17,6 @@ import {
 } from './publish/PublishModals';
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
-
-type PublishSubTab = 'variables' | 'styles' | 'git';
 
 type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | 'publish-all' | null;
 
@@ -47,29 +44,11 @@ interface ReadinessCheck {
   onFix?: () => void;
 }
 
-const SUB_TAB_KEY = 'tm_publish_subtab';
 const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
-
-const SUB_TABS: { id: PublishSubTab; label: string }[] = [
-  { id: 'variables', label: 'Variables' },
-  { id: 'styles', label: 'Styles' },
-  { id: 'git', label: 'Git' },
-];
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
 export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey }: PublishPanelProps) {
-  // ── Sub-tab navigation ──
-  const [activeSubTab, setActiveSubTab] = useState<PublishSubTab>(() => {
-    const stored = localStorage.getItem(SUB_TAB_KEY);
-    return (stored === 'variables' || stored === 'styles' || stored === 'git') ? stored : 'variables';
-  });
-
-  const setSubTab = (tab: PublishSubTab) => {
-    setActiveSubTab(tab);
-    localStorage.setItem(SUB_TAB_KEY, tab);
-  };
-
   // ── Section accordion state ──
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles', 'git']));
   const toggleSection = (id: string) => setOpenSections(prev => {
@@ -309,34 +288,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     (tokenChangeKey !== undefined && checksRunAtKey !== null && tokenChangeKey !== checksRunAtKey)
   );
 
-  /* ── Sub-tab status badges ─────────────────────────────────────────────── */
-
-  const varBadge: { label: string; className: string } | null = useMemo(() => {
-    if (varSync.varChecked && varSync.varRows.length === 0) return { label: 'In sync', className: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' };
-    if (varSync.varRows.length > 0) return { label: `${varSync.varRows.length}`, className: 'bg-[var(--color-figma-warning)]/15 text-yellow-600' };
-    return null;
-  }, [varSync.varChecked, varSync.varRows.length]);
-
-  const styleBadge: { label: string; className: string } | null = useMemo(() => {
-    if (styleSync.styleChecked && styleSync.styleRows.length === 0) return { label: 'In sync', className: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' };
-    if (styleSync.styleRows.length > 0) return { label: `${styleSync.styleRows.length}`, className: 'bg-[var(--color-figma-warning)]/15 text-yellow-600' };
-    return null;
-  }, [styleSync.styleChecked, styleSync.styleRows.length]);
-
-  const gitBadge: { label: string; className: string } | null = useMemo(() => {
-    if (git.gitLoading) return null;
-    if (!git.gitStatus?.isRepo) return { label: 'No repo', className: 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]' };
-    if (git.mergeConflicts.length > 0) return { label: `${git.mergeConflicts.length} conflict${git.mergeConflicts.length !== 1 ? 's' : ''}`, className: 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]' };
-    if (git.allChanges.length > 0) return { label: `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}`, className: 'bg-[var(--color-figma-warning)]/15 text-yellow-600' };
-    if (git.gitStatus?.isRepo) return { label: 'Clean', className: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' };
-    return null;
-  }, [git.gitLoading, git.gitStatus, git.mergeConflicts.length, git.allChanges.length]);
-
-  const badgeByTab: Record<PublishSubTab, { label: string; className: string } | null> = {
-    variables: varBadge,
-    styles: styleBadge,
-    git: gitBadge,
-  };
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -548,30 +499,13 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           Sync token values between local files and Figma variables.
         </div>
 
-        <div className="flex items-stretch shrink-0">
-          {SUB_TABS.map(tab => {
-            const badge = badgeByTab[tab.id];
-            const isActive = activeSubTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setSubTab(tab.id)}
-                className={`relative flex items-center gap-1 px-2.5 py-2 text-[10px] font-medium transition-colors whitespace-nowrap border-b-2 -mb-px ${
-                  isActive
-                    ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                    : 'text-[var(--color-figma-text-secondary)] border-transparent hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-border)]'
-                }`}
-              >
-                {tab.label}
-                {badge && (
-                  <span className={`text-[9px] px-1 py-0.5 rounded-full font-medium ${badge.className}`}>
-                    {badge.label}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <VariableSyncSubPanel
+          varSync={varSync}
+          activeSet={activeSet}
+          diffFilter={diffFilter}
+          onRequestConfirm={setConfirmAction}
+          onRevertVars={varSync.revertVarSync}
+        />
       </Section>
 
         {/* ── Section: Figma Styles ────────────────────────────────────── */}
@@ -717,11 +651,30 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
           {!styleSync.styleLoading && !styleSync.styleError && (
             styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
-              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Local tokens match Figma styles.
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Local tokens match Figma styles.
+                </div>
+                {styleSync.styleSnapshot && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={styleSync.revertStyleSync}
+                        disabled={styleSync.styleReverting}
+                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                      >
+                        {styleSync.styleReverting ? 'Reverting\u2026' : 'Revert last sync'}
+                      </button>
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Restore Figma styles to their pre-sync state</span>
+                    </div>
+                    {styleSync.styleRevertError && (
+                      <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{styleSync.styleRevertError}</div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : !styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">

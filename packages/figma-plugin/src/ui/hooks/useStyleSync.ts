@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useFigmaMessage } from './useFigmaMessage';
 import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress } from './useTokenSyncBase';
 import type { DiffRowBase } from './useTokenSyncBase';
@@ -37,7 +37,22 @@ interface UseStyleSyncOptions {
 
 const extractStyleReadTokens = (msg: any): any[] => msg.tokens ?? [];
 
+// Opaque snapshot type — round-tripped from plugin to UI and back for revert.
+export type StyleSyncSnapshot = {
+  snapshots: Array<{ id: string; type: 'paint' | 'text' | 'effect'; data: any }>;
+  createdIds: string[];
+};
+
+const extractStyleApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[]; styleSnapshot?: StyleSyncSnapshot } => ({
+  ...extractSyncApplyResult(msg),
+  styleSnapshot: msg.styleSnapshot ?? undefined,
+});
+
 export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
+  const [styleSnapshot, setStyleSnapshot] = useState<StyleSyncSnapshot | null>(null);
+  const [styleReverting, setStyleReverting] = useState(false);
+  const [styleRevertError, setStyleRevertError] = useState<string | null>(null);
+
   const sendStyleRead = useFigmaMessage<any[]>({
     responseType: 'styles-read',
     errorType: 'styles-read-error',
@@ -45,11 +60,17 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     extractResponse: extractStyleReadTokens,
   });
 
-  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; styleSnapshot?: StyleSyncSnapshot }>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
-    extractResponse: extractSyncApplyResult,
+    extractResponse: extractStyleApplyResult,
+  });
+
+  const sendStyleRevert = useFigmaMessage<{ failures: string[] }>({
+    responseType: 'styles-reverted',
+    timeout: 30000,
+    extractResponse: (msg: any) => ({ failures: msg.failures ?? [] }),
   });
 
   const config = useMemo(() => ({
@@ -89,6 +110,11 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
         $value: r.localRaw,
       }));
       const result = await sendStyleApply('apply-styles', { tokens });
+      // Store snapshot so the user can revert this sync
+      if (result.styleSnapshot) {
+        setStyleSnapshot(result.styleSnapshot);
+        setStyleRevertError(null);
+      }
       return { failures: result.failures };
     },
 
@@ -104,6 +130,25 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
 
   const base = useTokenSyncBase<StyleDiffRow>(serverUrl, activeSet, config);
 
+  const revertStyleSync = useCallback(async () => {
+    if (!styleSnapshot) return;
+    setStyleReverting(true);
+    setStyleRevertError(null);
+    try {
+      const result = await sendStyleRevert('revert-styles', { styleSnapshot });
+      if (result.failures.length > 0) {
+        setStyleRevertError(`Revert completed with ${result.failures.length} issue(s): ${result.failures.slice(0, 3).join('; ')}`);
+      } else {
+        setStyleSnapshot(null);
+        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync reverted' } }, '*');
+      }
+    } catch (err) {
+      setStyleRevertError(err instanceof Error ? err.message : 'Failed to revert style sync');
+    } finally {
+      setStyleReverting(false);
+    }
+  }, [styleSnapshot, sendStyleRevert]);
+
   return {
     styleRows: base.rows,
     styleDirs: base.dirs,
@@ -118,5 +163,9 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     styleSyncCount: base.syncCount,
     stylePushCount: base.pushCount,
     stylePullCount: base.pullCount,
+    styleSnapshot,
+    styleReverting,
+    styleRevertError,
+    revertStyleSync,
   };
 }
