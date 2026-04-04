@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { ShadowScaleConfig, ShadowScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow } from './generatorShared';
+import { TokenRefInput } from './TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -111,7 +113,12 @@ export function ShadowPreview({ tokens, config, overrides, onOverrideChange, onO
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ShadowScaleConfigEditor({ config, onChange }: { config: ShadowScaleConfig; onChange: (c: ShadowScaleConfig) => void }) {
+export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
+  config: ShadowScaleConfig;
+  onChange: (c: ShadowScaleConfig) => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}) {
   const [showSteps, setShowSteps] = useState(false);
 
   const activePresetIdx = SHADOW_PRESETS.findIndex(
@@ -133,6 +140,17 @@ export function ShadowScaleConfigEditor({ config, onChange }: { config: ShadowSc
   };
 
   const removeStep = (idx: number) => onChange({ ...config, steps: config.steps.filter((_, i) => i !== idx) });
+
+  const setColorTokenRef = (tokenPath: string, resolvedValue: unknown) => {
+    const colorVal = typeof resolvedValue === 'string' ? resolvedValue : config.color;
+    onChange({ ...config, color: colorVal, $tokenRefs: { ...config.$tokenRefs, color: tokenPath } });
+  };
+
+  const clearColorTokenRef = () => {
+    const refs = { ...config.$tokenRefs };
+    delete refs.color;
+    onChange({ ...config, $tokenRefs: Object.keys(refs).length > 0 ? refs : undefined });
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -156,8 +174,16 @@ export function ShadowScaleConfigEditor({ config, onChange }: { config: ShadowSc
       </div>
 
       {/* Base color */}
-      <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Shadow color</label>
+      <TokenRefInput
+        label="Shadow color"
+        tokenRef={config.$tokenRefs?.color}
+        valueLabel={config.color.slice(0, 7)}
+        filterType="color"
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        onLink={setColorTokenRef}
+        onUnlink={clearColorTokenRef}
+      >
         <div className="flex items-center gap-2">
           <input
             type="color"
@@ -177,7 +203,7 @@ export function ShadowScaleConfigEditor({ config, onChange }: { config: ShadowSc
           />
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">(opacity set per step)</span>
         </div>
-      </div>
+      </TokenRefInput>
 
       {/* Steps toggle */}
       <div>

@@ -52,6 +52,16 @@ export interface ColorRampConfig {
   includeSource: boolean;
   /** Step number to pin to the exact source color when `includeSource` is true. */
   sourceStep?: number;
+  /**
+   * Maps config field names to token paths for runtime resolution.
+   * When a field has a tokenRef, the server resolves the token value and uses it
+   * instead of the stored literal value when the generator runs.
+   */
+  $tokenRefs?: {
+    lightEnd?: string;
+    darkEnd?: string;
+    chromaBoost?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +90,12 @@ export interface TypeScaleConfig {
   baseStep: string;
   /** Number of decimal places to round each generated value to. Default: 1 */
   roundTo: number;
+  /**
+   * Maps config field names to token paths for runtime resolution.
+   */
+  $tokenRefs?: {
+    ratio?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +172,12 @@ export interface ShadowScaleConfig {
   steps: ShadowScaleStep[];
   /** Base shadow color as a 6-char hex (without alpha), e.g. "#000000". Default: "#000000" */
   color: string;
+  /**
+   * Maps config field names to token paths for runtime resolution.
+   */
+  $tokenRefs?: {
+    color?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +237,12 @@ export interface DarkModeInversionConfig {
    * 1.0 = preserve chroma exactly. Values > 1 boost saturation. Default: 1.0
    */
   chromaBoost: number;
+  /**
+   * Maps config field names to token paths for runtime resolution.
+   */
+  $tokenRefs?: {
+    chromaBoost?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +263,12 @@ export interface ContrastCheckConfig {
   steps: ContrastCheckStep[];
   /** Which WCAG levels to enforce (shown in preview and warnings). Default: ['AA', 'AAA'] */
   levels: ('AA' | 'AAA')[];
+  /**
+   * Maps config field names to token paths for runtime resolution.
+   */
+  $tokenRefs?: {
+    backgroundHex?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------

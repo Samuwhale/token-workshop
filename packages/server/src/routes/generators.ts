@@ -53,6 +53,26 @@ function isFiniteNum(v: unknown): v is number {
 }
 
 /**
+ * Validates and cleans a $tokenRefs object for a config type.
+ * Accepts only entries where the value is a non-empty string (a token path).
+ * Returns the cleaned object, or undefined if there are no valid entries.
+ */
+function validateTokenRefs<K extends string>(
+  raw: unknown,
+  allowedFields: K[],
+): Partial<Record<K, string>> | undefined {
+  if (!isObj(raw)) return undefined;
+  const result: Partial<Record<K, string>> = {};
+  for (const field of allowedFields) {
+    const val = (raw as Record<string, unknown>)[field];
+    if (typeof val === 'string' && val.trim() !== '') {
+      result[field] = val;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
  * Returns a duplicate name from the steps array, or undefined if all are unique.
  */
 function findDuplicateStepName(steps: Array<{ name: string }>): string | undefined {
@@ -143,6 +163,7 @@ function validateGeneratorConfig(
         if (!Array.isArray(c.lightnessCurve) || c.lightnessCurve.length !== 4 || !c.lightnessCurve.every((v: unknown) => isFiniteNum(v)))
           return { error: 'colorRamp config "lightnessCurve" must be [number, number, number, number]' };
       }
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['lightEnd', 'darkEnd', 'chromaBoost']);
       const validated: ColorRampConfig = {
         steps: c.steps as number[],
         lightEnd: c.lightEnd as number,
@@ -151,6 +172,7 @@ function validateGeneratorConfig(
         includeSource: c.includeSource as boolean,
         ...(c.lightnessCurve !== undefined && { lightnessCurve: c.lightnessCurve as [number, number, number, number] }),
         ...(isFiniteNum(c.sourceStep) && { sourceStep: c.sourceStep }),
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
       };
       return { validated };
     }
@@ -163,12 +185,14 @@ function validateGeneratorConfig(
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
       if (!isFiniteNum(c.roundTo)) return { error: 'typeScale config requires "roundTo" as finite number' };
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['ratio']);
       const validated: TypeScaleConfig = {
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, exponent: s.exponent as number })),
         ratio: c.ratio as number,
         unit: c.unit as DimensionUnit,
         baseStep: c.baseStep as string,
         roundTo: c.roundTo as number,
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
       };
       return { validated };
     }
@@ -235,6 +259,7 @@ function validateGeneratorConfig(
       }
       const dupShadow = findDuplicateStepName(c.steps as Array<{ name: string }>);
       if (dupShadow !== undefined) return { error: `shadowScale config has duplicate step name: "${dupShadow}"` };
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['color']);
       const validated: ShadowScaleConfig = {
         color: c.color as string,
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({
@@ -245,6 +270,7 @@ function validateGeneratorConfig(
           spread: s.spread as number,
           opacity: s.opacity as number,
         })),
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
       };
       return { validated };
     }
@@ -286,9 +312,11 @@ function validateGeneratorConfig(
     case 'darkModeInversion': {
       if (typeof c.stepName !== 'string') return { error: 'darkModeInversion config requires "stepName" as string' };
       if (!isFiniteNum(c.chromaBoost)) return { error: 'darkModeInversion config requires "chromaBoost" as finite number' };
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['chromaBoost']);
       const validated: DarkModeInversionConfig = {
         stepName: c.stepName as string,
         chromaBoost: c.chromaBoost as number,
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
       };
       return { validated };
     }
@@ -298,10 +326,12 @@ function validateGeneratorConfig(
         return { error: 'contrastCheck config requires "steps" as Array<{name: string, hex: string}>' };
       if (!Array.isArray(c.levels) || !c.levels.every((l: unknown) => l === 'AA' || l === 'AAA'))
         return { error: 'contrastCheck config requires "levels" as Array<"AA" | "AAA">' };
+      const tokenRefs = validateTokenRefs(c.$tokenRefs, ['backgroundHex']);
       const validated: ContrastCheckConfig = {
         backgroundHex: c.backgroundHex as string,
         steps: (c.steps as Array<Record<string, unknown>>).map((s) => ({ name: s.name as string, hex: s.hex as string })),
         levels: c.levels as ('AA' | 'AAA')[],
+        ...(tokenRefs && { $tokenRefs: tokenRefs }),
       };
       return { validated };
     }

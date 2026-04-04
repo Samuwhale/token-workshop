@@ -1,8 +1,10 @@
 import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
+import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow, OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
 import { wcagContrast } from '../../shared/colorUtils';
+import { TokenRefInput } from './TokenRefInput';
 
 /** Convert a Lab L* value to a neutral-gray hex swatch color. */
 function lstarToSwatchHex(Lstar: number): string {
@@ -152,10 +154,34 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ColorRampConfigEditor({ config, onChange, sourceHex }: { config: ColorRampConfig; onChange: (c: ColorRampConfig) => void; sourceHex?: string }) {
+export function ColorRampConfigEditor({ config, onChange, sourceHex, allTokensFlat, pathToSet }: {
+  config: ColorRampConfig;
+  onChange: (c: ColorRampConfig) => void;
+  sourceHex?: string;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}) {
   const activePresetIdx = COLOR_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s === config.steps[i])
   );
+
+  const setTokenRef = (field: 'lightEnd' | 'darkEnd' | 'chromaBoost', tokenPath: string, resolvedValue: unknown) => {
+    const numVal = typeof resolvedValue === 'number' ? resolvedValue : parseFloat(String(resolvedValue));
+    const safeVal = isFinite(numVal) ? numVal : config[field];
+    onChange({
+      ...config,
+      [field]: safeVal,
+      $tokenRefs: { ...config.$tokenRefs, [field]: tokenPath },
+    });
+  };
+
+  const clearTokenRef = (field: 'lightEnd' | 'darkEnd' | 'chromaBoost') => {
+    const refs = { ...config.$tokenRefs };
+    delete refs[field];
+    const hasRefs = Object.keys(refs).length > 0;
+    onChange({ ...config, $tokenRefs: hasRefs ? refs : undefined });
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -169,30 +195,46 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex }: { config:
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-            Light end L*
+        <TokenRefInput
+          label="Light end L*"
+          tokenRef={config.$tokenRefs?.lightEnd}
+          valueLabel={String(config.lightEnd)}
+          filterType="number"
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onLink={(path, val) => setTokenRef('lightEnd', path, val)}
+          onUnlink={() => clearTokenRef('lightEnd')}
+        >
+          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: lstarToSwatchHex(config.lightEnd) }}
               title={`L* ${config.lightEnd} neutral gray`}
             />
             <span className="text-[var(--color-figma-text)]">{config.lightEnd}</span>
-          </label>
+          </div>
           <input type="range" min={80} max={99} step={1} value={config.lightEnd} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
-        </div>
-        <div>
-          <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-            Dark end L*
+        </TokenRefInput>
+        <TokenRefInput
+          label="Dark end L*"
+          tokenRef={config.$tokenRefs?.darkEnd}
+          valueLabel={String(config.darkEnd)}
+          filterType="number"
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onLink={(path, val) => setTokenRef('darkEnd', path, val)}
+          onUnlink={() => clearTokenRef('darkEnd')}
+        >
+          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: lstarToSwatchHex(config.darkEnd) }}
               title={`L* ${config.darkEnd} neutral gray`}
             />
             <span className="text-[var(--color-figma-text)]">{config.darkEnd}</span>
-          </label>
+          </div>
           <input type="range" min={2} max={30} step={1} value={config.darkEnd} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
-        </div>
+        </TokenRefInput>
       </div>
       <BezierCurveEditor
         curve={config.lightnessCurve ?? [0.42, 0, 0.58, 1]}
@@ -203,22 +245,32 @@ export function ColorRampConfigEditor({ config, onChange, sourceHex }: { config:
         sourceHex={sourceHex}
         chromaBoost={config.chromaBoost}
       />
-      <div>
-        <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-          Chroma boost
-          <span
-            className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
-            style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
-            title={`Chroma boost ${config.chromaBoost.toFixed(1)}x (reference hue)`}
-          />
-          <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span>
-        </label>
-        <input type="range" min={0.3} max={2.0} step={0.1} value={config.chromaBoost} onChange={e => onChange({ ...config, chromaBoost: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
-        <div className="flex justify-between mt-0.5">
-          <span className="text-[8px] text-[var(--color-figma-text-secondary)]">0.3 muted</span>
-          <span className="text-[8px] text-[var(--color-figma-text-secondary)]">2.0 vivid</span>
+      <TokenRefInput
+        label="Chroma boost"
+        tokenRef={config.$tokenRefs?.chromaBoost}
+        valueLabel={`${config.chromaBoost.toFixed(1)}x`}
+        filterType="number"
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        onLink={(path, val) => setTokenRef('chromaBoost', path, val)}
+        onUnlink={() => clearTokenRef('chromaBoost')}
+      >
+        <div>
+          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+            <span
+              className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+              style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
+              title={`Chroma boost ${config.chromaBoost.toFixed(1)}x (reference hue)`}
+            />
+            <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span>
+          </div>
+          <input type="range" min={0.3} max={2.0} step={0.1} value={config.chromaBoost} onChange={e => onChange({ ...config, chromaBoost: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
+          <div className="flex justify-between mt-0.5">
+            <span className="text-[8px] text-[var(--color-figma-text-secondary)]">0.3 muted</span>
+            <span className="text-[8px] text-[var(--color-figma-text-secondary)]">2.0 vivid</span>
+          </div>
         </div>
-      </div>
+      </TokenRefInput>
       <div>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={config.includeSource} onChange={e => onChange({ ...config, includeSource: e.target.checked })} className="accent-[var(--color-figma-accent)] w-3 h-3" />

@@ -26,6 +26,11 @@ export interface ColorRampConfig {
   lightnessCurve?: [number, number, number, number];
   includeSource: boolean;
   sourceStep?: number;
+  $tokenRefs?: {
+    lightEnd?: string;
+    darkEnd?: string;
+    chromaBoost?: string;
+  };
 }
 
 export interface TypeScaleStep {
@@ -39,6 +44,9 @@ export interface TypeScaleConfig {
   unit: 'px' | 'rem';
   baseStep: string;
   roundTo: number;
+  $tokenRefs?: {
+    ratio?: string;
+  };
 }
 
 export interface SpacingStep {
@@ -82,6 +90,9 @@ export interface ShadowScaleStep {
 export interface ShadowScaleConfig {
   steps: ShadowScaleStep[];
   color: string;
+  $tokenRefs?: {
+    color?: string;
+  };
 }
 
 export interface CustomScaleStep {
@@ -107,6 +118,9 @@ export interface ContrastCheckConfig {
   backgroundHex: string;
   steps: ContrastCheckStep[];
   levels: ('AA' | 'AAA')[];
+  $tokenRefs?: {
+    backgroundHex?: string;
+  };
 }
 
 export interface AccessibleColorPairConfig {
@@ -118,6 +132,9 @@ export interface AccessibleColorPairConfig {
 export interface DarkModeInversionConfig {
   stepName: string;
   chromaBoost: number;
+  $tokenRefs?: {
+    chromaBoost?: string;
+  };
 }
 
 export type GeneratorConfig =

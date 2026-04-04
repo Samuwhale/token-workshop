@@ -1,7 +1,9 @@
 import { useRef } from 'react';
 import type { ContrastCheckConfig, ContrastCheckStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import type { TokenMapEntry } from '../../../shared/types';
 import { wcagContrast } from '../../shared/colorUtils';
 import { OverrideRow } from './generatorShared';
+import { TokenRefInput } from './TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -138,8 +140,24 @@ function ColorStepSwatch({ hex, onHexChange }: { hex: string; onHexChange: (hex:
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ContrastCheckConfigEditor({ config, onChange }: { config: ContrastCheckConfig; onChange: (c: ContrastCheckConfig) => void }) {
+export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
+  config: ContrastCheckConfig;
+  onChange: (c: ContrastCheckConfig) => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}) {
   const bgColorInputRef = useRef<HTMLInputElement>(null);
+
+  const setBgTokenRef = (tokenPath: string, resolvedValue: unknown) => {
+    const colorVal = typeof resolvedValue === 'string' ? resolvedValue : config.backgroundHex;
+    onChange({ ...config, backgroundHex: colorVal, $tokenRefs: { ...config.$tokenRefs, backgroundHex: tokenPath } });
+  };
+
+  const clearBgTokenRef = () => {
+    const refs = { ...config.$tokenRefs };
+    delete refs.backgroundHex;
+    onChange({ ...config, $tokenRefs: Object.keys(refs).length > 0 ? refs : undefined });
+  };
 
   const updateStep = (idx: number, patch: Partial<ContrastCheckStep>) => {
     const steps = config.steps.map((s, i) => i === idx ? { ...s, ...patch } : s);
@@ -166,45 +184,55 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
   return (
     <div className="flex flex-col gap-3">
       {/* Background color */}
-      <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Background color</label>
-        <div className="flex items-center gap-2">
-          <button
-            className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
-            style={{ background: bgHex6 }}
-            onClick={() => bgColorInputRef.current?.click()}
-            title="Pick background color"
-            aria-label="Pick background color"
-          />
-          <input
-            ref={bgColorInputRef}
-            type="color"
-            className="sr-only"
-            key={bgHex6}
-            defaultValue={bgHex6}
-            aria-label="Pick background color"
-            onBlur={e => onChange({ ...config, backgroundHex: e.target.value })}
-          />
-          <input
-            type="text"
-            value={config.backgroundHex}
-            onChange={e => onChange({ ...config, backgroundHex: e.target.value })}
-            aria-label="Background color hex value"
-            className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
-            placeholder="#ffffff"
-          />
+      <TokenRefInput
+        label="Background color"
+        tokenRef={config.$tokenRefs?.backgroundHex}
+        valueLabel={bgHex6}
+        filterType="color"
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        onLink={setBgTokenRef}
+        onUnlink={clearBgTokenRef}
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
+              style={{ background: bgHex6 }}
+              onClick={() => bgColorInputRef.current?.click()}
+              title="Pick background color"
+              aria-label="Pick background color"
+            />
+            <input
+              ref={bgColorInputRef}
+              type="color"
+              className="sr-only"
+              key={bgHex6}
+              defaultValue={bgHex6}
+              aria-label="Pick background color"
+              onBlur={e => onChange({ ...config, backgroundHex: e.target.value })}
+            />
+            <input
+              type="text"
+              value={config.backgroundHex}
+              onChange={e => onChange({ ...config, backgroundHex: e.target.value })}
+              aria-label="Background color hex value"
+              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+              placeholder="#ffffff"
+            />
+          </div>
+          <div className="flex gap-2 mt-1.5">
+            <button onClick={() => onChange({ ...config, backgroundHex: '#ffffff' })}
+              className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#ffffff' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+              White
+            </button>
+            <button onClick={() => onChange({ ...config, backgroundHex: '#000000' })}
+              className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#000000' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+              Black
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 mt-1.5">
-          <button onClick={() => onChange({ ...config, backgroundHex: '#ffffff' })}
-            className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#ffffff' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
-            White
-          </button>
-          <button onClick={() => onChange({ ...config, backgroundHex: '#000000' })}
-            className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#000000' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
-            Black
-          </button>
-        </div>
-      </div>
+      </TokenRefInput>
 
       {/* WCAG levels */}
       <div>

@@ -326,7 +326,10 @@ export class GeneratorService {
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     if (sourceValue !== undefined) {
-      return this.computeResultsWithValue(data, sourceValue);
+      // source value already resolved on the client; still resolve config tokenRefs on the server
+      const resolvedConfig = await this.resolveConfigTokenRefs(data.config, tokenStore);
+      const resolvedData = resolvedConfig !== data.config ? { ...data, config: resolvedConfig } : data;
+      return this.computeResultsWithValue(resolvedData, sourceValue);
     }
     return this.computeResults(data, tokenStore);
   }
@@ -893,6 +896,36 @@ export class GeneratorService {
     return applyOverrides(results, generator.overrides);
   }
 
+  /**
+   * Resolves any $tokenRefs in a generator config by looking up each referenced
+   * token in the token store and replacing the config field with the resolved value.
+   * Returns a copy of the config with tokenRef fields overridden, or the original
+   * config if there are no tokenRefs or all resolutions fail gracefully.
+   */
+  private async resolveConfigTokenRefs(
+    config: TokenGenerator['config'],
+    tokenStore: TokenStore,
+  ): Promise<TokenGenerator['config']> {
+    const c = config as Record<string, unknown>;
+    const refs = c.$tokenRefs;
+    if (!refs || typeof refs !== 'object' || Array.isArray(refs)) return config;
+
+    const overrides: Record<string, unknown> = {};
+    for (const [field, tokenPath] of Object.entries(refs as Record<string, string>)) {
+      if (!tokenPath) continue;
+      try {
+        const resolved = await tokenStore.resolveToken(tokenPath);
+        if (resolved) overrides[field] = resolved.$value;
+      } catch {
+        // Resolution failure: keep the stored literal value for this field
+      }
+    }
+
+    if (Object.keys(overrides).length === 0) return config;
+    // Merge overrides into a new config, preserving $tokenRefs so it's stored intact
+    return { ...config, ...overrides } as TokenGenerator['config'];
+  }
+
   private async computeResults(
     generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'inlineValue' | 'targetGroup' | 'config' | 'overrides'>,
     tokenStore: TokenStore,
@@ -924,6 +957,8 @@ export class GeneratorService {
       }
     }
 
-    return this.computeResultsWithValue(generator, resolvedValue);
+    // Resolve any $tokenRefs in the config before executing
+    const resolvedConfig = await this.resolveConfigTokenRefs(generator.config, tokenStore);
+    return this.computeResultsWithValue({ ...generator, config: resolvedConfig }, resolvedValue);
   }
 }

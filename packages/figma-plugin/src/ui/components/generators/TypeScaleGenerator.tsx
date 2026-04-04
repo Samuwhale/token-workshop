@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 import { TypeScaleStaircaseEditor } from './TypeScaleStaircaseEditor';
+import { TokenRefInput } from './TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -168,7 +170,13 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { config: TypeScaleConfig; onChange: (c: TypeScaleConfig) => void; sourceValue?: number }) {
+export function TypeScaleConfigEditor({ config, onChange, sourceValue, allTokensFlat, pathToSet }: {
+  config: TypeScaleConfig;
+  onChange: (c: TypeScaleConfig) => void;
+  sourceValue?: number;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}) {
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
@@ -232,11 +240,34 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
   const effectiveSourceValue = sourceValue !== undefined && sourceValue > 0 ? sourceValue : 1;
   const compareConfig: TypeScaleConfig = { ...config, ratio: compareRatio };
 
+  const setRatioTokenRef = (tokenPath: string, resolvedValue: unknown) => {
+    const numVal = typeof resolvedValue === 'number' ? resolvedValue : parseFloat(String(resolvedValue));
+    const safeVal = isFinite(numVal) && numVal > 1 ? numVal : config.ratio;
+    setIsCustomRatio(false);
+    onChange({ ...config, ratio: safeVal, $tokenRefs: { ...config.$tokenRefs, ratio: tokenPath } });
+  };
+
+  const clearRatioTokenRef = () => {
+    const refs = { ...config.$tokenRefs };
+    delete refs.ratio;
+    onChange({ ...config, $tokenRefs: Object.keys(refs).length > 0 ? refs : undefined });
+  };
+
   return (
     <div className="flex flex-col gap-3">
+      <TokenRefInput
+        label="Scale ratio"
+        tokenRef={config.$tokenRefs?.ratio}
+        valueLabel={String(config.ratio)}
+        filterType="number"
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        onLink={setRatioTokenRef}
+        onUnlink={clearRatioTokenRef}
+      >
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Scale ratio</label>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Current: {config.ratio}</span>
           <button
             onClick={() => setCompareMode(v => !v)}
             title="Compare two ratios side by side before committing"
@@ -365,6 +396,7 @@ export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { confi
           </div>
         )}
       </div>
+      </TokenRefInput>
       {!compareMode && (
         <TypeScaleStaircaseEditor
           config={config}

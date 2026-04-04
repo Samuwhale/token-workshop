@@ -13,3 +13,30 @@
 - **Learnings for future iterations:**
   - `_saveChains` values are already `.catch(() => {})` wrapped (set at L1885), so `Promise.all` on them will never reject — no try/catch needed in shutdown.
 ---
+
+## 2026-04-04 - Generator config fields cannot reference existing tokens
+- Implemented full tokenRef binding for generator config fields:
+  - **Type system**: Added `$tokenRefs` optional dict to `ColorRampConfig` (lightEnd, darkEnd, chromaBoost), `TypeScaleConfig` (ratio), `ShadowScaleConfig` (color), `DarkModeInversionConfig` (chromaBoost), `ContrastCheckConfig` (backgroundHex) — in both `packages/core/src/generator-types.ts` and the UI mirror in `packages/figma-plugin/src/ui/hooks/useGenerators.ts`
+  - **Server validator**: Added `validateTokenRefs()` helper in `packages/server/src/routes/generators.ts`; updated all 5 relevant `validateGeneratorConfig` cases to accept and pass through `$tokenRefs`
+  - **Server runtime resolution**: Added `resolveConfigTokenRefs()` private method in `packages/server/src/services/generator-service.ts`; called it in both `computeResults()` (main execution path) and `preview()` (preview path when sourceValue is provided)
+  - **UI component**: Created `packages/figma-plugin/src/ui/components/generators/TokenRefInput.tsx` — wraps any config field with a chain-link icon button that opens an inline AliasAutocomplete dropdown; shows linked token path + resolved value in an accent-bordered badge; broken-chain button to unlink
+  - **Config editors**: Updated `ColorRampGenerator.tsx`, `TypeScaleGenerator.tsx`, `ShadowScaleGenerator.tsx`, `DarkModeInversionGenerator.tsx`, `ContrastCheckGenerator.tsx` — added `allTokensFlat`/`pathToSet` props, wrapped supported fields in `TokenRefInput`
+  - **Dialog**: Added `allTokensFlat` to `TokenGeneratorDialogProps` interface (was already passed but undeclared); removed duplicate prop in `TokenEditor.tsx`; passed `allTokensFlat`/`pathToSet` to all 5 updated editors
+- Files changed:
+  - `packages/core/src/generator-types.ts`
+  - `packages/figma-plugin/src/ui/hooks/useGenerators.ts`
+  - `packages/server/src/routes/generators.ts`
+  - `packages/server/src/services/generator-service.ts`
+  - `packages/figma-plugin/src/ui/components/generators/TokenRefInput.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx`
+  - `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx`
+  - `packages/figma-plugin/src/ui/components/generators/ShadowScaleGenerator.tsx`
+  - `packages/figma-plugin/src/ui/components/generators/DarkModeInversionGenerator.tsx`
+  - `packages/figma-plugin/src/ui/components/generators/ContrastCheckGenerator.tsx`
+  - `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx`
+- **Learnings for future iterations:**
+  - `$tokenRefs` as an additive optional field on configs is non-breaking: existing code reads literal field values unchanged, refs only override at runtime
+  - Import depth: files in `src/ui/components/generators/` need 3 levels (`../../../shared/`) to reach `src/shared/`, not 2 (like `src/ui/components/` files)
+  - The TypeScale ratio section has an A/B compare mode state — wrapping the entire ratio block (including compare mode UI) in a single TokenRefInput keeps the feature coherent; the label is shown by TokenRefInput, not duplicated inside
+---

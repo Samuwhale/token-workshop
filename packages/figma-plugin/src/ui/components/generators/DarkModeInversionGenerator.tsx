@@ -1,4 +1,6 @@
 import type { DarkModeInversionConfig } from '../../hooks/useGenerators';
+import type { TokenMapEntry } from '../../../shared/types';
+import { TokenRefInput } from './TokenRefInput';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -13,13 +15,27 @@ export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function DarkModeInversionConfigEditor({ config, onChange }: {
+export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
   config: DarkModeInversionConfig;
   onChange: (c: DarkModeInversionConfig) => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
 }) {
   const handleChromaChange = (raw: string) => {
     const num = parseFloat(raw);
     if (!isNaN(num)) onChange({ ...config, chromaBoost: Math.max(0, Math.min(2, num)) });
+  };
+
+  const setChromaTokenRef = (tokenPath: string, resolvedValue: unknown) => {
+    const numVal = typeof resolvedValue === 'number' ? resolvedValue : parseFloat(String(resolvedValue));
+    const safeVal = isFinite(numVal) ? Math.max(0, Math.min(2, numVal)) : config.chromaBoost;
+    onChange({ ...config, chromaBoost: safeVal, $tokenRefs: { ...config.$tokenRefs, chromaBoost: tokenPath } });
+  };
+
+  const clearChromaTokenRef = () => {
+    const refs = { ...config.$tokenRefs };
+    delete refs.chromaBoost;
+    onChange({ ...config, $tokenRefs: Object.keys(refs).length > 0 ? refs : undefined });
   };
 
   return (
@@ -50,38 +66,46 @@ export function DarkModeInversionConfigEditor({ config, onChange }: {
       </div>
 
       {/* Chroma boost */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Chroma boost
-          </label>
+      <TokenRefInput
+        label="Chroma boost"
+        tokenRef={config.$tokenRefs?.chromaBoost}
+        valueLabel={String(config.chromaBoost)}
+        filterType="number"
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        onLink={setChromaTokenRef}
+        onUnlink={clearChromaTokenRef}
+      >
+        <div>
+          <div className="flex items-center justify-end mb-1">
+            <input
+              type="number"
+              value={config.chromaBoost}
+              min={0}
+              max={2}
+              step={0.05}
+              onChange={e => handleChromaChange(e.target.value)}
+              aria-label="Chroma boost value"
+              className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] text-right"
+            />
+          </div>
           <input
-            type="number"
-            value={config.chromaBoost}
+            type="range"
             min={0}
             max={2}
             step={0.05}
-            onChange={e => handleChromaChange(e.target.value)}
-            aria-label="Chroma boost value"
-            className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] text-right"
+            value={config.chromaBoost}
+            onChange={e => onChange({ ...config, chromaBoost: parseFloat(e.target.value) })}
+            aria-label="Chroma boost slider"
+            className="w-full accent-[var(--color-figma-accent)]"
           />
+          <div className="flex justify-between text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+            <span>0 — gray</span>
+            <span>1 — preserve</span>
+            <span>2 — boost</span>
+          </div>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={2}
-          step={0.05}
-          value={config.chromaBoost}
-          onChange={e => onChange({ ...config, chromaBoost: parseFloat(e.target.value) })}
-          aria-label="Chroma boost slider"
-          className="w-full accent-[var(--color-figma-accent)]"
-        />
-        <div className="flex justify-between text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
-          <span>0 — gray</span>
-          <span>1 — preserve</span>
-          <span>2 — boost</span>
-        </div>
-      </div>
+      </TokenRefInput>
     </div>
   );
 }
