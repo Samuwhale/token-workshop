@@ -648,3 +648,16 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: The most impactful finding is the pervasive `Record<string, any>` usage across 30+ UI hook call sites — the codebase has proper DTCG types in @tokenmanager/core but API response typing in the UI layer defaults to `any`, causing cascading `as any` casts in downstream consumers. The useTokenCrud move/copy duplication is the most mechanically straightforward to fix.
 ---
+
+## 2026-04-05 - Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
+- Added `validateVarSnapshot` and `validateStyleSnapshot` functions in `controller.ts` that perform deep structural validation before passing data to `revertVariables`/`revertStyles`
+- `validateVarSnapshot` checks: top-level object shape, `records` is an object, each record entry has `valuesByMode` (object), `name`/`description` (strings), `hiddenFromPublishing` (boolean), `scopes` (array), `pluginData.tokenPath`/`pluginData.tokenSet` (strings), plus `createdIds` is a string array
+- `validateStyleSnapshot` checks: top-level object shape, `snapshots` is an array of objects each with `id` (string), `type` ("paint"|"text"|"effect"), `data` (present), plus `createdIds` is a string array
+- On validation failure, sends a typed error message (`variables-reverted` or `styles-reverted`) with a failure string back to the UI — no uncaught TypeError can reach Figma API calls
+- Replaced `as any` casts with `as Parameters<typeof revertVariables>[0]` / `as Parameters<typeof revertStyles>[0]` after validation passes, keeping the call type-safe
+- Also added block scoping (`{ }`) around the two cases to avoid `const` hoisting conflicts in the switch
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L138 (validateVarSnapshot), ~L195 (validateStyleSnapshot), ~L311 (revert-variables handler), ~L333 (revert-styles handler)
+- **Learnings for future iterations:**
+  - `Parameters<typeof importedFn>[N]` is a clean way to reuse an imported function's parameter type without re-exporting or duplicating the type definition
+  - For switch-case handlers that use `const`, always add `{ }` block scoping to avoid eslint/TS errors about variable declarations in case clauses
+---

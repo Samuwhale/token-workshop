@@ -1079,3 +1079,29 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: useTokenCrud move/copy duplication (657-line hook), Record<string,any> pervasive weak typing (30+ sites), generator route missing 404 guards (3 endpoints), TokenList filter setter duplication (3x identical blocks), plugin revert handler type safety bypass (as any + no validation)
 Already up to date.
+[main 15cfd5cd] chore(backlog): code pass – code-pass
+ 5 files changed, 25 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-05 - code-pass
+- Areas explored: packages/server/src/services/generator-service.ts (save lock pattern, runForSourceToken), packages/server/src/routes/generators.ts (all 12 route handlers, 404 guards, error fallback messages), packages/server/src/services/resolver-store.ts (save pattern comparison), packages/server/src/services/operation-log.ts (save pattern comparison), packages/server/src/routes/themes.ts (save pattern comparison), packages/figma-plugin/src/plugin/controller.ts (revert handlers, as-any casts, sync lock coverage), packages/figma-plugin/src/plugin/variableSync.ts (revert error paths), packages/figma-plugin/src/plugin/styleSync.ts (revert error paths), packages/figma-plugin/src/ui/hooks/useTokenCrud.ts (657 lines, move/copy duplication), packages/figma-plugin/src/ui/hooks/useFindReplace.ts (591 lines, structure), packages/figma-plugin/src/ui/components/TokenList.tsx (filter setter duplication), packages/figma-plugin/src/ui/hooks/ (Record<string,any> usage audit across 30+ sites), packages/figma-plugin/src/ui/components/history/types.ts (unnecessary as-any casts)
+- Found 5 items — written to backlog-inbox.md
+- Notable: The most impactful finding is the pervasive `Record<string, any>` usage across 30+ UI hook call sites — the codebase has proper DTCG types in @tokenmanager/core but API response typing in the UI layer defaults to `any`, causing cascading `as any` casts in downstream consumers. The useTokenCrud move/copy duplication is the most mechanically straightforward to fix.
+
+═══════════════════════════════════════════════════════════════
+  #41  ·  24 queued · 0
+0 in-progress · last took 5m50s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation — controller.ts lines 213 and 224 pass msg.varSnapshot and msg.styleSnapshot directly to revertVariables/revertStyles without checking the shape of records, createdIds, or mode values; a malformed snapshot (from a stale UI version or corrupted postMessage) would crash the plugin sandbox with an uncaught TypeError deep in the Figma API calls, with no error message sent back to the UI
+  Worktree: /tmp/backlog-3108-ihvO0X
+  Running agent… (started 00:08:50)
+
+  ✓ done: Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
+    Added validateVarSnapshot and validateStyleSnapshot functions with deep structural checks; on failure sends typed error to UI instead of crashing deep in Figma API calls; replaced as any casts with Parameters<typeof fn>[0] after validation
+    22 turns · 130s · $0.47
+
+  Merging to main: Plugin sandbox revert-variables and revert-styles handlers accept snapshot data with `as any` casts and no runtime validation
+Already up to date.

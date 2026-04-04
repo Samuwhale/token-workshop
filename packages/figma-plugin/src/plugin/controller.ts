@@ -135,6 +135,105 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
 };
 
 /**
+ * Validate a varSnapshot object from a revert-variables message.
+ * Returns null if valid, or a human-readable error string.
+ */
+function validateVarSnapshot(v: unknown): string | null {
+  if (v == null || typeof v !== 'object' || Array.isArray(v)) {
+    return 'varSnapshot must be an object';
+  }
+  const snap = v as Record<string, unknown>;
+
+  if (snap.records == null || typeof snap.records !== 'object' || Array.isArray(snap.records)) {
+    return 'varSnapshot.records must be an object';
+  }
+  for (const [varId, entry] of Object.entries(snap.records as Record<string, unknown>)) {
+    if (entry == null || typeof entry !== 'object' || Array.isArray(entry)) {
+      return `varSnapshot.records["${varId}"] must be an object`;
+    }
+    const e = entry as Record<string, unknown>;
+    if (e.valuesByMode == null || typeof e.valuesByMode !== 'object' || Array.isArray(e.valuesByMode)) {
+      return `varSnapshot.records["${varId}"].valuesByMode must be an object`;
+    }
+    if (typeof e.name !== 'string') {
+      return `varSnapshot.records["${varId}"].name must be a string`;
+    }
+    if (typeof e.description !== 'string') {
+      return `varSnapshot.records["${varId}"].description must be a string`;
+    }
+    if (typeof e.hiddenFromPublishing !== 'boolean') {
+      return `varSnapshot.records["${varId}"].hiddenFromPublishing must be a boolean`;
+    }
+    if (!Array.isArray(e.scopes)) {
+      return `varSnapshot.records["${varId}"].scopes must be an array`;
+    }
+    if (e.pluginData == null || typeof e.pluginData !== 'object' || Array.isArray(e.pluginData)) {
+      return `varSnapshot.records["${varId}"].pluginData must be an object`;
+    }
+    const pd = e.pluginData as Record<string, unknown>;
+    if (typeof pd.tokenPath !== 'string') {
+      return `varSnapshot.records["${varId}"].pluginData.tokenPath must be a string`;
+    }
+    if (typeof pd.tokenSet !== 'string') {
+      return `varSnapshot.records["${varId}"].pluginData.tokenSet must be a string`;
+    }
+  }
+
+  if (!Array.isArray(snap.createdIds)) {
+    return 'varSnapshot.createdIds must be an array';
+  }
+  for (let i = 0; i < (snap.createdIds as unknown[]).length; i++) {
+    if (typeof (snap.createdIds as unknown[])[i] !== 'string') {
+      return `varSnapshot.createdIds[${i}] must be a string`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate a styleSnapshot object from a revert-styles message.
+ * Returns null if valid, or a human-readable error string.
+ */
+function validateStyleSnapshot(v: unknown): string | null {
+  if (v == null || typeof v !== 'object' || Array.isArray(v)) {
+    return 'styleSnapshot must be an object';
+  }
+  const snap = v as Record<string, unknown>;
+
+  if (!Array.isArray(snap.snapshots)) {
+    return 'styleSnapshot.snapshots must be an array';
+  }
+  for (let i = 0; i < (snap.snapshots as unknown[]).length; i++) {
+    const entry = (snap.snapshots as unknown[])[i];
+    if (entry == null || typeof entry !== 'object' || Array.isArray(entry)) {
+      return `styleSnapshot.snapshots[${i}] must be an object`;
+    }
+    const e = entry as Record<string, unknown>;
+    if (typeof e.id !== 'string') {
+      return `styleSnapshot.snapshots[${i}].id must be a string`;
+    }
+    if (e.type !== 'paint' && e.type !== 'text' && e.type !== 'effect') {
+      return `styleSnapshot.snapshots[${i}].type must be "paint", "text", or "effect"`;
+    }
+    if (e.data === undefined) {
+      return `styleSnapshot.snapshots[${i}].data is required`;
+    }
+  }
+
+  if (!Array.isArray(snap.createdIds)) {
+    return 'styleSnapshot.createdIds must be an array';
+  }
+  for (let i = 0; i < (snap.createdIds as unknown[]).length; i++) {
+    if (typeof (snap.createdIds as unknown[])[i] !== 'string') {
+      return `styleSnapshot.createdIds[${i}] must be a string`;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Validate a plugin message against its schema.
  * Returns null if valid, or a human-readable error string.
  */
@@ -208,9 +307,19 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         });
       }
       break;
-    case 'revert-variables':
+    case 'revert-variables': {
+      const varSnapError = validateVarSnapshot(msg.varSnapshot);
+      if (varSnapError) {
+        console.error('[controller] revert-variables: invalid varSnapshot:', varSnapError);
+        figma.ui.postMessage({
+          type: 'variables-reverted',
+          correlationId: msg.correlationId,
+          failures: [`Invalid snapshot data: ${varSnapError}`],
+        });
+        break;
+      }
       try {
-        await withSyncLock(() => revertVariables(msg.varSnapshot as any, msg.correlationId));
+        await withSyncLock(() => revertVariables(msg.varSnapshot as Parameters<typeof revertVariables>[0], msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'variables-reverted',
@@ -219,9 +328,20 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         });
       }
       break;
-    case 'revert-styles':
+    }
+    case 'revert-styles': {
+      const styleSnapError = validateStyleSnapshot(msg.styleSnapshot);
+      if (styleSnapError) {
+        console.error('[controller] revert-styles: invalid styleSnapshot:', styleSnapError);
+        figma.ui.postMessage({
+          type: 'styles-reverted',
+          correlationId: msg.correlationId,
+          failures: [`Invalid snapshot data: ${styleSnapError}`],
+        });
+        break;
+      }
       try {
-        await withSyncLock(() => revertStyles(msg.styleSnapshot as any, msg.correlationId));
+        await withSyncLock(() => revertStyles(msg.styleSnapshot as Parameters<typeof revertStyles>[0], msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-reverted',
@@ -230,6 +350,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         });
       }
       break;
+    }
     case 'read-variables':
       try {
         await readFigmaVariables(msg.correlationId);
