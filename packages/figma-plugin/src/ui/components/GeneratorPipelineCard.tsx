@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, BorderRadiusScaleConfig, CustomScaleConfig, ContrastCheckConfig } from '../hooks/useGenerators';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, BorderRadiusScaleConfig, CustomScaleConfig, ContrastCheckConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch } from '../shared/apiFetch';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { VALUE_REQUIRED_TYPES } from './generators/generatorUtils';
+import { OverrideRow, formatValue } from './generators/generatorShared';
+import { swatchBgColor } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -547,10 +549,15 @@ export function GeneratorPipelineCard({
   const [actionError, setActionError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewDiff, setPreviewDiff] = useState<DryRunDiff | null>(null);
+  const [showStepOverrides, setShowStepOverrides] = useState(false);
+  const [stepResults, setStepResults] = useState<GeneratedTokenResult[] | null>(null);
+  const [stepsLoading, setStepsLoading] = useState(false);
+  const [stepOverrideError, setStepOverrideError] = useState<string | null>(null);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
   const hasError = !!generator.lastRunError;
   const isStale = !!generator.isStale && !hasError;
+  const overrideCount = Object.keys(generator.overrides ?? {}).length;
 
   const handleRerun = async () => {
     setRunning(true);
@@ -618,6 +625,61 @@ export function GeneratorPipelineCard({
       setShowDeleteConfirm(false);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const fetchStepResults = async () => {
+    setStepsLoading(true);
+    setStepOverrideError(null);
+    try {
+      const data = await apiFetch<{ count: number; results: GeneratedTokenResult[] }>(
+        `${serverUrl}/api/generators/${generator.id}/steps`,
+      );
+      setStepResults(data.results);
+    } catch (err) {
+      setStepOverrideError(err instanceof Error ? err.message : 'Failed to load steps');
+    } finally {
+      setStepsLoading(false);
+    }
+  };
+
+  const handleToggleSteps = () => {
+    const next = !showStepOverrides;
+    setShowStepOverrides(next);
+    if (next && !stepResults) {
+      fetchStepResults();
+    }
+  };
+
+  const handleStepPinChange = async (stepName: string, value: string, locked: boolean) => {
+    setStepOverrideError(null);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/generators/${generator.id}/steps/${encodeURIComponent(stepName)}/override`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value, locked }),
+        },
+      );
+      onRefresh();
+      await fetchStepResults();
+    } catch (err) {
+      setStepOverrideError(err instanceof Error ? err.message : 'Override failed');
+    }
+  };
+
+  const handleStepPinClear = async (stepName: string) => {
+    setStepOverrideError(null);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/generators/${generator.id}/steps/${encodeURIComponent(stepName)}/override`,
+        { method: 'DELETE' },
+      );
+      onRefresh();
+      await fetchStepResults();
+    } catch (err) {
+      setStepOverrideError(err instanceof Error ? err.message : 'Clear override failed');
     }
   };
 
@@ -718,6 +780,13 @@ export function GeneratorPipelineCard({
           {previewLoading ? 'Loading…' : previewDiff ? 'Hide preview' : 'Preview output'}
         </button>
         <button
+          onClick={handleToggleSteps}
+          className={`text-[10px] transition-colors ${showStepOverrides ? 'text-[var(--color-figma-accent)]' : overrideCount > 0 ? 'text-[var(--color-figma-accent)] opacity-70 hover:opacity-100' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+          title="View and pin individual step values"
+        >
+          {showStepOverrides ? 'Hide steps' : overrideCount > 0 ? `Steps (${overrideCount} pinned)` : 'Steps'}
+        </button>
+        <button
           onClick={() => setShowQuickEdit(v => !v)}
           className={`text-[10px] transition-colors ${showQuickEdit ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
           title={showQuickEdit ? 'Close quick edit' : 'Quick-edit key parameters inline'}
@@ -756,6 +825,61 @@ export function GeneratorPipelineCard({
           onClose={() => setPreviewDiff(null)}
           running={running}
         />
+      )}
+
+      {showStepOverrides && (
+        <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Step values</span>
+            {overrideCount > 0 && (
+              <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/20">
+                {overrideCount} pinned
+              </span>
+            )}
+            <button
+              onClick={fetchStepResults}
+              disabled={stepsLoading}
+              className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
+              title="Refresh step values"
+              aria-label="Refresh step values"
+            >
+              {stepsLoading ? '…' : '↻'}
+            </button>
+          </div>
+          {stepOverrideError && (
+            <p className="text-[10px] text-[var(--color-figma-error)] mb-1">{stepOverrideError}</p>
+          )}
+          {stepsLoading && !stepResults && (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">Loading…</p>
+          )}
+          {stepResults && stepResults.length === 0 && (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">No steps generated yet. Run the generator first.</p>
+          )}
+          {stepResults && stepResults.length > 0 && (
+            <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+              {stepResults.map(token => (
+                <OverrideRow
+                  key={token.stepName}
+                  token={token}
+                  override={generator.overrides?.[token.stepName]}
+                  onOverrideChange={handleStepPinChange}
+                  onOverrideClear={handleStepPinClear}
+                >
+                  {token.type === 'color' && typeof token.value === 'string' && (
+                    <span
+                      className="shrink-0 w-4 h-3 rounded-sm border border-[var(--color-figma-border)]"
+                      style={{ backgroundColor: swatchBgColor(token.value) }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                    {formatValue(token.value)}
+                  </span>
+                </OverrideRow>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {showQuickEdit && (

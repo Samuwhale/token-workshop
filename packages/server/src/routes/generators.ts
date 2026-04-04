@@ -685,6 +685,18 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // GET /api/generators/:id/steps — compute current step values without persisting
+  fastify.get<{ Params: { id: string } }>('/generators/:id/steps', async (request, reply) => {
+    try {
+      const gen = await fastify.generatorService.getById(request.params.id);
+      if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+      const results = await fastify.generatorService.preview(gen, fastify.tokenStore);
+      return { count: results.length, results };
+    } catch (err) {
+      return handleRouteError(reply, err);
+    }
+  });
+
   // PUT /api/generators/:id/steps/:stepName/override — set/update a step override
   fastify.put<{
     Params: { id: string; stepName: string };

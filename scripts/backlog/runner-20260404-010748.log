@@ -599,3 +599,18 @@ Already up to date.
 
   Merging to main: Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files
 Already up to date.
+[main ab2cb32f] chore(backlog): done – Token-path-to-URL encoding expression `.split('.').map(encodeURIComponent).join('/')` is duplicated 38 times across 20 files
+ 23 files changed, 93 insertions(+), 50 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Extract tokenPathToUrlSegment utility to eliminate duplicated URL encoding pattern
+- Added `tokenPathToUrlSegment(path)` to `packages/figma-plugin/src/ui/shared/utils.ts`
+- Replaced 35 call-sites of `.split('.').map(encodeURIComponent).join('/')` across 17 files with the new utility
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L47 (new function), `hooks/useTokenCrud.ts`, `hooks/useTokenSyncBase.ts`, `hooks/useTableCreate.ts`, `hooks/useGeneratorSave.ts`, `hooks/useTokenPromotion.ts`, `hooks/useTokenCreate.ts`, `hooks/useFigmaSync.ts`, `hooks/useThemeAutoFill.ts`, `hooks/useSetMergeSplit.ts`, `App.tsx`, `components/ExtractTokensPanel.tsx`, `components/SemanticMappingDialog.tsx`, `components/SelectionInspector.tsx`, `components/TokenList.tsx`, `components/AnalyticsPanel.tsx`, `components/PropertyRow.tsx`, `components/TokenEditor.tsx`
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  4 queued · 3 in-progress · last took 6m29s
+═══════════════════════════════════════════════════════════════
+  → UI fetch hooks have inconsistent abort/timeout patterns creating hang and race risks — useGeneratorPreview has no timeout on its fetch (can hang indefinitely), useResolvers has no abort signal at all, useTokenSyncBase pull operations use Promise.all with no signal, while useTokens and useLint properly use AbortSignal.any with 5s timeout and disconnect signal; additionally useTokenDataLoading's fetchAllTokensFlatWithSets has no abort signal and relies solely on a generation counter to discard stale responses; standardize by extracting a createFetchSignal(disconnectSignal?, timeoutMs?) factory and using it in all ~15 data-fetching hooks (hooks/useGeneratorPreview.ts L137, useResolvers.ts L50, useTokenSyncBase.ts L213, useTokenDataLoading.ts L32)
+  Worktree: /tmp/backlog-91949-oEOZXe
+  Running agent… (started 03:26:18)

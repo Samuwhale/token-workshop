@@ -570,3 +570,10 @@ Already up to date.
   → Generator step override UX requires API knowledge — overriding individual steps in a generator (e.g., pinning a specific color in a ramp) requires knowing the step name and using the override API endpoints; the GeneratorPipelineCard shows steps but doesn't offer inline click-to-override on individual generated values; add click-to-pin on each step's preview swatch/value in the pipeline card (GeneratorPipelineCard.tsx step rendering, generators.ts override endpoints)
   Worktree: /tmp/backlog-91634-TnzwYu
   Running agent… (started 03:19:28)
+
+  ✓ done: Generator step override UX requires API knowledge
+    Added "Steps" toggle button on GeneratorPipelineCard that shows all computed step values with inline click-to-pin editing via OverrideRow; added GET /api/generators/:id/steps server endpoint using existing preview service method
+    36 turns · 468s · $1.42
+
+  Merging to main: Generator step override UX requires API knowledge
+Already up to date.

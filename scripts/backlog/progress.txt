@@ -540,3 +540,12 @@
   - The subagent approach for bulk replacements across many files is efficient — it reads each file, adds the import intelligently (merging with existing utils imports), and replaces all call sites without missing any
   - For files that already import from shared/utils, the agent correctly extends the named import list rather than adding a duplicate import
 ---
+
+## 2026-04-04 - Generator step override UX requires API knowledge
+- Added click-to-pin UX on each step in the GeneratorPipelineCard. Added a "Steps" toggle button in the actions row (shows "Steps (N pinned)" when overrides exist). When toggled, fetches computed step values via a new GET /api/generators/:id/steps endpoint and renders each step using the existing OverrideRow component (pencil icon to edit inline, × to clear). Color tokens show a swatch. The server re-runs the generator automatically after each pin/unpin, and the step list refreshes to reflect new values.
+- Files changed: `packages/server/src/routes/generators.ts` ~L688 (new GET /generators/:id/steps route), `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L1-10 (imports), ~L551 (state), ~L626 (handlers), ~L790 (Steps button), ~L826 (step overrides panel JSX)
+- **Learnings for future iterations:**
+  - The existing `generatorService.preview(gen, tokenStore)` method already returns `GeneratedTokenResult[]` with step names and values — no need to add new service methods, just expose it via a route.
+  - The `GET /api/generators/:id/tokens` route only returns `{setName, path, generatorId}` (no values) — not useful for UX that needs current values. The preview method is the right tool.
+  - `OverrideRow` in `generatorShared.tsx` is composable via children prop: pass a color swatch + value text as children to get consistent override UX matching the full generator dialog.
+---
