@@ -616,3 +616,26 @@ Already up to date.
 
   Merging to main: Resolver panel has no inline preview of resolved output
 Already up to date.
+[main 3b59067e] chore(backlog): done – Resolver panel has no inline preview of resolved output
+ 5 files changed, 113 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Resolver panel has no inline preview of resolved output
+- Added a "Resolved preview" section to `ResolverPanel.tsx` that shows up to 8 sample tokens with their resolved values when a resolver is active and loaded. Colors are shown first (sorted by type). Each row shows a color swatch (for color tokens) or a type badge, the token path split into parent/leaf, and the formatted resolved value. If the resolved value differs from the raw value in `allTokensFlat`, the raw value is shown with a strikethrough above it, giving a before/after comparison. A "N more tokens" count appears when there are more than 8. The preview updates live whenever modifier contexts change.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L12-15 (new imports), ~L303-328 (previewEntries useMemo), ~L803-851 (preview section JSX)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  12 queued · 0
+0 in-progress · last took 7m13s
+═══════════════════════════════════════════════════════════════
+  → ConsistencyPanel scan results are lost on tab switch — ConsistencyPanel.tsx stores scan results in local useState (line 154), so navigating away from the Canvas Audit tab and returning clears all results, forcing a re-scan that can take 30-60 seconds on large files; scan results should be lifted to InspectContext (which already holds heatmap results) so they persist across tab switches
+  Worktree: /tmp/backlog-3108-Be3dK2
+  Running agent… (started 21:57:08)
+
+  ✓ done: ConsistencyPanel scan results are lost on tab switch
+    Lifted scan state (result, loading, error, progress, totalNodes, snappedKeys) from ConsistencyPanel local useState into InspectContext, following the heatmap pattern; tab switches now preserve all scan results.
+    11 turns · 222s · $0.58
+
+  Merging to main: ConsistencyPanel scan results are lost on tab switch
+Already up to date.

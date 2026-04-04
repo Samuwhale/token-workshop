@@ -906,3 +906,17 @@
   - `formatTokenValueForDisplay` from `tokenFormatting.ts` handles all DTCG types and is the right tool for before/after string comparison; simple string equality on the formatted values is a practical "did it change?" check.
   - Sorting resolved tokens by type (color < other < unknown) gives the best first impression — color tokens are the most visually meaningful and worth showing first.
 ---
+
+## 2026-04-04 - ConsistencyPanel scan results are lost on tab switch
+- Lifted consistency scan state from local `useState` in `ConsistencyPanel.tsx` to `InspectContext.tsx`, following the existing heatmap pattern.
+- `InspectContext` now owns: `consistencyResult`, `consistencyLoading`, `consistencyError`, `consistencyProgress`, `consistencyTotalNodes`, `consistencySnappedKeys`, `setConsistencySnappedKeys`, `triggerConsistencyScan`, `cancelConsistencyScan`.
+- The scan timeout (60 s) and all `consistency-scan-*` message listeners moved to `InspectProvider`; `triggerConsistencyScan(tokenMap, scope)` accepts the pre-built token map and scope string so it can be called from `ConsistencyPanel` which holds the token-building logic.
+- `ConsistencyPanel.tsx` retains only local `scope` state (UI preference, doesn't need persistence). All scan state reads come from `useInspectContext()`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` (added consistency fields + listener + callbacks)
+  - `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` (removed local scan state + message listener; reads from context)
+- **Learnings for future iterations:**
+  - `Set<string>` works fine with React `useState` and `useMemo` dep arrays — as long as mutations always produce a new `Set` instance (`new Set([...prev, key])`), reference-equality checks catch the change correctly.
+  - The `triggerXxx` function pattern (accepts parameters from the caller) is cleaner than hoisting prop dependencies into the context itself. Context owns the state; caller provides the inputs.
+  - `Dispatch<SetStateAction<T>>` is the correct type import for exposing a state setter through context — import from `'react'`, not as `React.Dispatch`.
+---

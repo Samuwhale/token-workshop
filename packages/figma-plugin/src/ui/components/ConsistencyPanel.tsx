@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
+import { useInspectContext } from '../contexts/InspectContext';
 
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
@@ -112,7 +113,7 @@ function SuggestionCard({
       {/* Expanded instance list */}
       {expanded && (
         <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-          {uniqueMatches.map((match, idx) => (
+          {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
             <div key={idx} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">
                 {NODE_TYPE_LABELS[match.nodeType] ?? match.nodeType}
@@ -145,91 +146,38 @@ function SuggestionCard({
   );
 }
 
-const CONSISTENCY_SCAN_TIMEOUT_MS = 60_000;
-
 export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyPanelProps) {
+  // Scope is local UI preference — doesn't need to persist across tab switches
   const [scope, setScope] = useState<ScanScope>('page');
-  const [scanning, setScanning] = useState(false);
-  const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null);
-  const [suggestions, setSuggestions] = useState<ConsistencySuggestion[] | null>(null);
-  const [totalNodes, setTotalNodes] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [snappedKeys, setSnappedKeys] = useState<Set<string>>(new Set());
-  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearScanTimeout = useCallback(() => {
-    if (scanTimeoutRef.current !== null) {
-      clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = null;
-    }
-  }, []);
+  // Scan results and loading state are lifted to InspectContext so they survive
+  // tab switches without requiring a re-scan.
+  const {
+    consistencyResult: suggestions,
+    consistencyLoading: scanning,
+    consistencyError: error,
+    consistencyProgress: progress,
+    consistencyTotalNodes: totalNodes,
+    consistencySnappedKeys: snappedKeys,
+    setConsistencySnappedKeys: setSnappedKeys,
+    triggerConsistencyScan,
+    cancelConsistencyScan,
+  } = useInspectContext();
 
   const handleCancel = useCallback(() => {
-    clearScanTimeout();
-    parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
-    setScanning(false);
-    setProgress(null);
-  }, [clearScanTimeout]);
-
-  useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
-      if (!msg) return;
-      if (msg.type === 'consistency-scan-progress') {
-        setProgress({ processed: msg.processed, total: msg.total });
-      } else if (msg.type === 'consistency-scan-result') {
-        clearScanTimeout();
-        setScanning(false);
-        setProgress(null);
-        setSuggestions(msg.suggestions);
-        setTotalNodes(msg.totalNodes);
-        setError(null);
-      } else if (msg.type === 'consistency-scan-error') {
-        clearScanTimeout();
-        setScanning(false);
-        setProgress(null);
-        setError(msg.error);
-      } else if (msg.type === 'consistency-scan-cancelled') {
-        clearScanTimeout();
-        setScanning(false);
-        setProgress(null);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => {
-      window.removeEventListener('message', handler);
-      clearScanTimeout();
-    };
-  }, [clearScanTimeout]);
+    cancelConsistencyScan();
+  }, [cancelConsistencyScan]);
 
   const handleScan = useCallback(() => {
-    clearScanTimeout();
-    setScanning(true);
-    setProgress(null);
-    setSuggestions(null);
-    setError(null);
-    setSnappedKeys(new Set());
-
-    scanTimeoutRef.current = setTimeout(() => {
-      scanTimeoutRef.current = null;
-      parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
-      setScanning(false);
-      setProgress(null);
-      setError('Scan timed out. Try a smaller scope (Page instead of All pages).');
-    }, CONSISTENCY_SCAN_TIMEOUT_MS);
-
     // Build a flat resolved token map (color, dimension, number, and all typography types)
-    const tokenMap: Record<string, { $value: any; $type: string }> = {};
+    const tokenMap: Record<string, { $value: unknown; $type: string }> = {};
     for (const [path, entry] of Object.entries(availableTokens)) {
       if (['color', 'dimension', 'number', 'fontWeight', 'fontFamily', 'fontSize', 'lineHeight', 'letterSpacing'].includes(entry.$type)) {
         tokenMap[path] = { $value: entry.$value, $type: entry.$type };
       }
     }
-
-    parent.postMessage({
-      pluginMessage: { type: 'scan-consistency', tokenMap, scope },
-    }, '*');
-  }, [availableTokens, scope, clearScanTimeout]);
+    triggerConsistencyScan(tokenMap, scope);
+  }, [availableTokens, scope, triggerConsistencyScan]);
 
   const handleSnap = useCallback((suggestion: ConsistencySuggestion) => {
     const entry = availableTokens[suggestion.tokenPath];
@@ -248,7 +196,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     }, '*');
     const key = `${suggestion.tokenPath}::${suggestion.property}`;
     setSnappedKeys(prev => new Set([...prev, key]));
-  }, [availableTokens]);
+  }, [availableTokens, setSnappedKeys]);
 
   const visibleSuggestions = suggestions?.filter(
     s => !snappedKeys.has(`${s.tokenPath}::${s.property}`)
