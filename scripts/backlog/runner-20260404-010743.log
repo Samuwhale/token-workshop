@@ -391,3 +391,18 @@ Already up to date.
 
   Merging to main: No lint rule presets — LintConfigPanel requires toggling each rule individually with no way to apply a bundle; add preset configurations like "Strict" (all rules on, low thresholds), "Recommended" (common rules), and "Permissive" (structural rules only) as one-click starting points (LintConfigPanel.tsx)
 Already up to date.
+[main 4488e7b0] chore(backlog): done – No lint rule presets — LintConfigPanel requires toggling each rule individually with no way to apply a bundle; add preset configurations like "Strict" (all rules on, low thresholds), "Recommended" (common rules), and "Permissive" (structural rules only) as one-click starting points (LintConfigPanel.tsx)
+ 8 files changed, 171 insertions(+), 17 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No lint rule presets — LintConfigPanel requires toggling each rule individually
+- Added `LINT_PRESETS` array and `buildLintConfigFromPreset()` helper to `lintRules.ts`; three presets: Strict (all rules, error severity, tight thresholds), Recommended (color/alias/duplicate rules, warning severity), Permissive (alias depth only, info severity)
+- Exposed `applyConfig` (the full-config PUT) from `useLintConfig` hook in addition to the per-rule `updateRule`
+- Added preset buttons row to `LintConfigPanel.tsx` between the header and rule list; each button has a hover tooltip showing which rules are enabled with colored severity dots
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  17 queued · 3 in-progress · last took 2m24s
+═══════════════════════════════════════════════════════════════
+  → Full token refresh after every set operation — creating, deleting, renaming, or duplicating a set triggers `refreshTokens()` which re-fetches the entire token tree across all sets; for workspaces with many sets this causes visible latency; use incremental updates (add/remove/rename the affected set in local state) instead of full refetch (App.tsx set CRUD callbacks ~L607-650, useTokens.ts)
+  Worktree: /tmp/backlog-91634-WyrrXn
+  Running agent… (started 02:36:06)

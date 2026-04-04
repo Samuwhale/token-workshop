@@ -502,3 +502,10 @@ Already up to date.
   → Semantic mapping only previewable after generator save — template semantic layers (e.g., action.default→500) are defined but only shown in a post-save dialog; users can't preview or customize the semantic token mapping during template selection, before committing to a generator; show semantic mapping preview inline in the template card or as a step before save (GraphPanel.tsx templates, SemanticMappingDialog.tsx)
   Worktree: /tmp/backlog-92209-tot7BR
   Running agent… (started 02:33:36)
+
+  ✓ done: Semantic mapping only previewable after generator save
+    Added expandable "Preview N semantic aliases" toggle to each TemplateCard — shows all layer.prefix.semantic → {defaultPrefix.step} mappings inline before committing to a generator, with stopPropagation so card selection still works
+    23 turns · 200s · $0.66
+
+  Merging to main: Semantic mapping only previewable after generator save
+Already up to date.

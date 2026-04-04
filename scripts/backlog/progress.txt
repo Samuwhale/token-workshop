@@ -526,3 +526,17 @@
   - `buildLintConfigFromPreset` iterates LINT_RULE_REGISTRY to ensure all rule IDs are present in the output even if the preset only specifies a subset (missing rules default to disabled)
   - Adding a new full-config apply path (`applyConfig`) alongside the per-rule `updateRule` is the cleanest approach — avoids N sequential API calls when applying a preset
 ---
+
+## 2026-04-04 - Semantic mapping only previewable after generator save
+- Added expandable "Preview N semantic aliases" section to each `TemplateCard` in `TemplatePicker.tsx`
+- Each template card now shows a toggle button (using the SVG chevron pattern) that expands to display all semantic mappings inline before the user commits to a generator
+- Preview shows each mapping as `{layer.prefix}.{mapping.semantic} → {defaultPrefix.step}` using the template's `defaultPrefix` as placeholder (with a note that it updates based on user-entered prefix)
+- Templates with no semantic layers (`modular-type`) show no toggle — correct zero-case behavior
+- Multi-layer templates (e.g., `full-semantic-color` with surface/text/border/action) show a group header per layer when more than one layer exists
+- Clicking the toggle calls `e.stopPropagation()` so the card click (which opens TokenGeneratorDialog) is not triggered
+- Files changed: `packages/figma-plugin/src/ui/components/TemplatePicker.tsx` ~L1, ~L141
+- **Learnings for future iterations:**
+  - Template cards are `<button>` elements — inner toggle buttons need `type="button"` and `e.stopPropagation()` on both click and any inner container clicks to prevent the outer card from firing
+  - The `defaultPrefix` in a template is only the default; users change it in TokenGeneratorDialog, so the preview uses it as an example with a footer note to set expectations correctly
+  - A local `useState` in each card is fine here — no need to lift expand state to the parent since cards are independent
+---

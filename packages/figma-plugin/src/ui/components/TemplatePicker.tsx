@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { GeneratorType } from '../hooks/useGenerators';
 import type { GraphTemplate } from './graph-templates';
 import { getTemplateStepCount } from './graph-templates';
@@ -149,6 +150,7 @@ function TemplateCard({
 }) {
   const stepCount = getTemplateStepCount(template);
   const semanticCount = template.semanticLayers.reduce((n, l) => n + l.mappings.length, 0);
+  const [semanticExpanded, setSemanticExpanded] = useState(false);
 
   return (
     <button
@@ -184,6 +186,59 @@ function TemplateCard({
               <span className="text-[9.5px] text-[var(--color-figma-text-secondary)] opacity-80">
                 {getRequiresSourceLabel(template.generatorType)}
               </span>
+            </div>
+          )}
+          {semanticCount > 0 && (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setSemanticExpanded(v => !v); }}
+                className="flex items-center gap-1 text-[9.5px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                aria-expanded={semanticExpanded}
+              >
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`shrink-0 transition-transform ${semanticExpanded ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+                {semanticExpanded ? 'Hide' : 'Preview'} {semanticCount} semantic alias{semanticCount !== 1 ? 'es' : ''}
+              </button>
+              {semanticExpanded && (
+                <div
+                  className="mt-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] overflow-hidden"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {template.semanticLayers.map((layer, li) => (
+                    <div key={li}>
+                      {template.semanticLayers.length > 1 && (
+                        <div className="px-2 py-0.5 bg-[var(--color-figma-bg-tertiary,var(--color-figma-border))] text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-70">
+                          {layer.prefix}.*
+                        </div>
+                      )}
+                      <div className="divide-y divide-[var(--color-figma-border)]">
+                        {layer.mappings.map((mapping, mi) => (
+                          <div key={mi} className="flex items-center gap-1 px-2 py-1">
+                            <span className="font-mono text-[9px] text-[var(--color-figma-text)] min-w-0 truncate">
+                              {layer.prefix}.{mapping.semantic}
+                            </span>
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="shrink-0 text-[var(--color-figma-text-tertiary)] opacity-60" aria-hidden="true">
+                              <path d="M2 1l4 3-4 3V1z" />
+                            </svg>
+                            <span className="font-mono text-[9px] text-[var(--color-figma-accent)] shrink-0">
+                              {'{' + template.defaultPrefix + '.' + mapping.step + '}'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+                    Token name uses the prefix you set in the next step.
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
