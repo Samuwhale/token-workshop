@@ -739,3 +739,28 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: The most impactful finding is that AnalyticsPanel (1596 lines) bundles six unrelated features — validation issues, set statistics, contrast matrix, duplicate detection, scale inspector, and component coverage — into a single panel where none are discoverable from their natural context. Consolidating each feature into its host panel (validation into Tokens tab, contrast into Preview, coverage into Canvas Audit, duplicates into Health) would simultaneously simplify the tab structure and improve discoverability.
 ---
+
+## 2026-04-04 - ThemeManager.tsx is a 2439-line monolith with 44 useState hooks
+- Extracted 4 domain-specific custom hooks + context provider from ThemeManager.tsx:
+  - **New `useThemeDimensions`** (`packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts`): owns all dimension data, fetch/coverage/missingOverrides computation, dimension CRUD (create/rename/delete) with loading guards (`isCreatingDim`, `isRenamingDim`, `isDeletingDim`)
+  - **New `useThemeOptions`** (`packages/figma-plugin/src/ui/hooks/useThemeOptions.ts`): owns option-level CRUD (add, duplicate, rename, delete) with per-dim loading guards (`isAddingOption` record, `isDuplicatingOption`, `isRenamingOption`, `isDeletingOption`)
+  - **New `useThemeCoverage`** (`packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts`): owns coverage UI state (expandedCoverage, expandedStale, showMissingOnly, etc.), auto-expands sections with gaps via useEffect, `handleBulkCreateMissingOverrides`
+  - **New `useThemeCompare`** (`packages/figma-plugin/src/ui/hooks/useThemeCompare.ts`): owns all compare panel state with `navigateToCompare` handler for atomic updates
+  - **New `ThemeManagerContext.tsx`** (`packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx`): `ThemeManagerModalsState` interface, `ThemeManagerModalsProvider`, `useThemeManagerModals()` hook, `ThemeManagerModals` component reading all modal state from context
+  - **Modified `themeManagerTypes.ts`**: added `STATE_LABELS` and `STATE_DESCRIPTIONS` constants (moved from ThemeManager.tsx inline)
+  - **Modified `ThemeManager.tsx`**: reduced from 2439 to ~1730 lines; replaced 44+ useState with 4 hook calls + minimal local state; replaced 177-line modal JSX block with `<ThemeManagerModals />`; fixed pre-existing `setCompareOptA`/`setCompareOptB` undefined bug
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts` (new, ~460 lines)
+  - `packages/figma-plugin/src/ui/hooks/useThemeOptions.ts` (new, ~290 lines)
+  - `packages/figma-plugin/src/ui/hooks/useThemeCoverage.ts` (new, ~115 lines)
+  - `packages/figma-plugin/src/ui/hooks/useThemeCompare.ts` (new, ~60 lines)
+  - `packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx` (new, ~258 lines)
+  - `packages/figma-plugin/src/ui/components/themeManagerTypes.ts` ~L1-13 (added constants)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` (heavily modified)
+- **Learnings for future iterations:**
+  - When coverage/missingOverrides are computed inside fetchDimensions, keep them in the fetching hook as outputs and pass them as inputs to the coverage UI hook — avoids re-fetching
+  - `copyFromNewOption` state needed by `handleAddOption` lives in a different hook (useThemeBulkOps) — pass it as params to `useThemeOptions`
+  - Pre-existing bugs surface during refactoring: `setCompareOptA`/`setCompareOptB` were used in JSX but never defined — caught and fixed during the rewrite
+  - `useMemo` and derived state must always appear BEFORE conditional early returns (rules-of-hooks TDZ rule)
+  - `useThemeManagerModalsValue` helper using `Object.values(deps)` as useMemo dep array is an anti-pattern — use explicit dep arrays instead
+---

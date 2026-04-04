@@ -355,3 +355,29 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — 3 consolidation/simplification (AnalyticsPanel decomposition, HealthPanel merge, Compare unification), 3 missing features (copy shortcut, dimension duplicate, bulk DTCG import), 3 workflow friction (editor scroll, resolver preview, generator diff), 2 state persistence (consistency results, set theme badges), 1 architecture (PanelRouter prop explosion)
 Already up to date.
+[main d8d3bf3a] chore(backlog): product pass – product-pass
+ 5 files changed, 32 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (navigation structure, TOP_TABS, command palette commands), PanelRouter.tsx (80+ prop interface, context usage), TokenEditor.tsx (remounting behavior, scroll, composite editors), TokenTreeNode.tsx (context menus for tokens and groups), SetSwitcher.tsx (folder grouping, management mode, missing theme indicators), AnalyticsPanel.tsx (six sub-features: validation, stats, contrast, duplicates, scale inspector, coverage), HealthPanel.tsx (summary cards, CTA navigation), ComparePanel.tsx + CrossThemeComparePanel.tsx + ThemeCompare.tsx + UnifiedComparePanel.tsx (three comparison modes), ConsistencyPanel.tsx (scan result persistence), CreatePanel.tsx (single/scale/bulk tabs), BatchEditor.tsx (batch operations), ResolverPanel.tsx (no resolved preview), ThemeManager.tsx (dimension CRUD, missing duplicate), GraphPanel.tsx (generator pipeline, SVG export), TokenGeneratorDialog.tsx (save-and-apply without diff preview), PublishPanel.tsx (sync entity pattern), EmptyState.tsx (onboarding), WelcomePrompt.tsx, QuickStartDialog.tsx, SettingsPanel.tsx (settings export/import), NotificationHistory.tsx, ErrorBoundary.tsx, server routes (sets, tokens, themes, generators, resolvers)
+- Found 12 items — written to backlog-inbox.md
+- Notable: The most impactful finding is that AnalyticsPanel (1596 lines) bundles six unrelated features — validation issues, set statistics, contrast matrix, duplicate detection, scale inspector, and component coverage — into a single panel where none are discoverable from their natural context. Consolidating each feature into its host panel (validation into Tokens tab, contrast into Preview, coverage into Canvas Audit, duplicates into Health) would simultaneously simplify the tab structure and improve discoverability.
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  16 queued · 0
+0 in-progress · last took 15m30s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager.tsx is a 2439-line monolith with 44 useState hooks — extract domain-specific custom hooks (useThemeDimensions, useThemeCoverage, useThemeCompare, useThemeOptions) and use a context provider to eliminate prop-drilling, mirroring the TokenListModalsContext pattern already applied to TokenList; the component has 8 identical error-handling blocks, duplicated dimension/option existence checks, and no loading guards on async server calls allowing duplicate submissions
+  Worktree: /tmp/backlog-3108-NSSegw
+  Running agent… (started 19:45:43)
+
+  ✓ done: ThemeManager.tsx is a 2439-line monolith with 44 useState hooks — extract domain-specific custom hooks (useThemeDimensions, useThemeCoverage, useThemeCompare, useThemeOptions) and use a context provider to eliminate prop-drilling, mirroring the TokenListModalsContext pattern already applied to TokenList; the component has 8 identical error-handling blocks, duplicated dimension/option existence checks, and no loading guards on async server calls allowing duplicate submissions
+    Extracted 4 custom hooks + ThemeManagerContext/ThemeManagerModals; ThemeManager.tsx reduced from 2439 to ~1730 lines; all 4 validate.sh gates pass
+    102 turns · 1482s · $6.08
+
+  Merging to main: ThemeManager.tsx is a 2439-line monolith with 44 useState hooks — extract domain-specific custom hooks (useThemeDimensions, useThemeCoverage, useThemeCompare, useThemeOptions) and use a context provider to eliminate prop-drilling, mirroring the TokenListModalsContext pattern already applied to TokenList; the component has 8 identical error-handling blocks, duplicated dimension/option existence checks, and no loading guards on async server calls allowing duplicate submissions
+Already up to date.

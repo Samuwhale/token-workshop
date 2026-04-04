@@ -1,4 +1,16 @@
-// Shared types for ThemeManager and its extracted hooks
+// Shared types and constants for ThemeManager and its extracted hooks
+
+export const STATE_LABELS: Record<string, string> = {
+  disabled: 'Excluded',
+  source: 'Base',
+  enabled: 'Override',
+};
+
+export const STATE_DESCRIPTIONS: Record<string, string> = {
+  disabled: 'Tokens from this set are not used in this option',
+  source: 'Provides default token values — overridden by Override sets',
+  enabled: 'Highest priority — these tokens override Base set values',
+};
 
 export type CoverageToken = {
   path: string;

@@ -1,32 +1,23 @@
-import { getErrorMessage } from '../shared/utils';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Spinner } from './Spinner';
-import { ConfirmModal } from './ConfirmModal';
-import { apiFetch, ApiError } from '../shared/apiFetch';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
-import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
+import type { ThemeDimension, ThemeOption } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { ResolverContentProps } from './ResolverPanel';
 import { ResolverContent } from './ResolverPanel';
-import type { CoverageMap, CoverageToken, AutoFillPreview, MissingOverrideToken, MissingOverridesMap } from './themeManagerTypes';
+import type { CoverageToken } from './themeManagerTypes';
+import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
 import { UnifiedComparePanel } from './UnifiedComparePanel';
 import type { CompareMode } from './UnifiedComparePanel';
 import type { TokenMapEntry } from '../../shared/types';
 import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
-
-const STATE_LABELS: Record<string, string> = {
-  disabled: 'Excluded',
-  source: 'Base',
-  enabled: 'Override',
-};
-
-const STATE_DESCRIPTIONS: Record<string, string> = {
-  disabled: 'Tokens from this set are not used in this option',
-  source: 'Provides default token values — overridden by Override sets',
-  enabled: 'Highest priority — these tokens override Base set values',
-};
+import { useThemeDimensions } from '../hooks/useThemeDimensions';
+import { useThemeOptions } from '../hooks/useThemeOptions';
+import { useThemeCoverage } from '../hooks/useThemeCoverage';
+import { useThemeCompare } from '../hooks/useThemeCompare';
+import { ThemeManagerModalsProvider, ThemeManagerModals } from './ThemeManagerContext';
+import type { ThemeManagerModalsState } from './ThemeManagerContext';
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -73,71 +64,6 @@ function slugify(name: string): string {
 
 export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
-  const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
-
-  useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchWarnings, setFetchWarnings] = useState<string | null>(null);
-
-  // Create dimension
-  const [newDimName, setNewDimName] = useState('');
-  const [showCreateDim, setShowCreateDim] = useState(false);
-  const [createDimError, setCreateDimError] = useState<string | null>(null);
-
-  // Rename dimension
-  const [renameDim, setRenameDim] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
-  const [renameError, setRenameError] = useState<string | null>(null);
-
-  // Rename option
-  const [renameOption, setRenameOption] = useState<{ dimId: string; optionName: string } | null>(null);
-  const [renameOptionValue, setRenameOptionValue] = useState('');
-  const [renameOptionError, setRenameOptionError] = useState<string | null>(null);
-
-  // Delete dimension confirmation
-  const [dimensionDeleteConfirm, setDimensionDeleteConfirm] = useState<string | null>(null);
-
-  // Delete option confirmation
-  const [optionDeleteConfirm, setOptionDeleteConfirm] = useState<{ dimId: string; optionName: string } | null>(null);
-
-  // Add option per dimension
-  const [newOptionNames, setNewOptionNames] = useState<Record<string, string>>({});
-  const [showAddOption, setShowAddOption] = useState<Record<string, boolean>>({});
-  const [addOptionErrors, setAddOptionErrors] = useState<Record<string, string>>({});
-  const addOptionInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  // Coverage gaps (unresolved alias chains)
-  const [coverage, setCoverage] = useState<CoverageMap>({});
-  const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set());
-  const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set());
-  const [showMissingOnly, setShowMissingOnly] = useState<Set<string>>(new Set());
-
-  // Missing overrides: source tokens absent from any enabled/override set
-  const [missingOverrides, setMissingOverrides] = useState<MissingOverridesMap>({});
-  const [expandedMissingOverrides, setExpandedMissingOverrides] = useState<Set<string>>(new Set());
-  const [creatingMissingKeys, setCreatingMissingKeys] = useState<Set<string>>(new Set());
-  const [missingOverrideSearch, setMissingOverrideSearch] = useState<Record<string, string>>({});
-
-  // Per-option set ordering
-  const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
-
-  // Newly created dimension for auto-scroll
-  const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
-
-  // Debounced fetchDimensions
-  const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // AbortController for in-flight fetchDimensions — cancelled on re-fetch or unmount
-  const fetchAbortRef = useRef<AbortController | null>(null);
-
-  // --- New stacking UI state ---
-  // Selected option tab per dimension
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  // Token values per set (for live preview)
-  const [setTokenValues, setSetTokenValues] = useState<Record<string, Record<string, any>>>({});
-  // Token types per set (for auto-fill)
-  const setTokenTypesRef = useRef<Record<string, Record<string, string>>>({});
 
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
@@ -149,218 +75,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
 
-  const fetchDimensions = useCallback(async () => {
-    if (!connected) { setLoading(false); return; }
-    // Cancel any in-flight fetch to avoid racing setState calls
-    fetchAbortRef.current?.abort();
-    const controller = new AbortController();
-    fetchAbortRef.current = controller;
-    try {
-      const data = await apiFetch<{ dimensions?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: controller.signal });
-      const allDimensions: ThemeDimension[] = data.dimensions || [];
-      setDimensions(allDimensions);
+  // --- Domain hooks ---
+  const {
+    dimensions, setDimensions,
+    loading, error, setError, fetchWarnings, setFetchWarnings,
+    coverage, missingOverrides,
+    optionSetOrders, setOptionSetOrders,
+    selectedOptions, setSelectedOptions,
+    setTokenValues, setTokenTypesRef,
+    newlyCreatedDim,
+    fetchDimensions, debouncedFetchDimensions,
+    newDimName, setNewDimName,
+    showCreateDim, setShowCreateDim,
+    createDimError, setCreateDimError,
+    isCreatingDim, handleCreateDimension,
+    renameDim, renameValue, setRenameValue, renameError, isRenamingDim,
+    startRenameDim, cancelRenameDim, executeRenameDim,
+    dimensionDeleteConfirm, setDimensionDeleteConfirm, isDeletingDim,
+    executeDeleteDimension,
+  } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
 
-      // Initialise per-option set orders
-      setOptionSetOrders(prev => {
-        const next = { ...prev };
-        for (const dim of allDimensions) {
-          if (!next[dim.id]) next[dim.id] = {};
-          for (const opt of dim.options) {
-            if (!next[dim.id][opt.name]) {
-              const optSetKeys = Object.keys(opt.sets).filter(s => sets.includes(s));
-              const rest = sets.filter(s => !optSetKeys.includes(s));
-              next[dim.id][opt.name] = [...optSetKeys, ...rest];
-            }
-          }
-        }
-        return next;
-      });
-
-      // Auto-select first option for dimensions without a selection
-      setSelectedOptions(prev => {
-        const next = { ...prev };
-        for (const dim of allDimensions) {
-          if (!next[dim.id] && dim.options.length > 0) {
-            next[dim.id] = dim.options[0].name;
-          }
-          // Fix stale selection
-          if (next[dim.id] && !dim.options.some(o => o.name === next[dim.id])) {
-            next[dim.id] = dim.options[0]?.name || '';
-          }
-        }
-        return next;
-      });
-
-      // Compute token values per set
-      const tokenValues: Record<string, Record<string, any>> = {};
-      const tokenTypes: Record<string, Record<string, string>> = {};
-      const failedSets: string[] = [];
-      await Promise.all(sets.map(async (s) => {
-        try {
-          const d = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`, { signal: controller.signal });
-          const map: Record<string, any> = {};
-          const typeMap: Record<string, string> = {};
-          for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
-            map[path] = token.$value;
-            if (token.$type) typeMap[path] = token.$type;
-          }
-          tokenValues[s] = map;
-          tokenTypes[s] = typeMap;
-        } catch (err) {
-          console.warn('[ThemeManager] failed to fetch token set:', s, err);
-          failedSets.push(s);
-        }
-      }));
-      setSetTokenValues(tokenValues);
-      setTokenTypesRef.current = tokenTypes;
-      if (failedSets.length > 0) {
-        setFetchWarnings(`Could not load ${failedSets.length === 1 ? `set "${failedSets[0]}"` : `${failedSets.length} sets (${failedSets.join(', ')})`} — coverage data may be incomplete`);
-      } else {
-        setFetchWarnings(null);
-      }
-
-      const isResolved = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): boolean => {
-        if (typeof value !== 'string') return true;
-        const m = /^\{([^}]+)\}$/.exec(value);
-        if (!m) return true;
-        const target = m[1];
-        if (visited.has(target)) return false;
-        if (!(target in activeValues)) return false;
-        return isResolved(activeValues[target], activeValues, new Set([...visited, target]));
-      };
-
-      /** Find the first alias target in a reference chain that's missing from activeValues */
-      const findMissingRef = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): string | null => {
-        if (typeof value !== 'string') return null;
-        const m = /^\{([^}]+)\}$/.exec(value);
-        if (!m) return null;
-        const target = m[1];
-        if (visited.has(target)) return null; // circular — no single missing ref
-        if (!(target in activeValues)) return target; // this is the missing one
-        return findMissingRef(activeValues[target], activeValues, new Set([...visited, target]));
-      };
-
-      /** Search all loaded sets for a concrete value at the given path */
-      const findFillValue = (path: string): { value: unknown; type?: string } | null => {
-        for (const [setName, tokens] of Object.entries(tokenValues)) {
-          if (path in tokens) {
-            return { value: tokens[path], type: tokenTypes[setName]?.[path] };
-          }
-        }
-        return null;
-      };
-
-      const cov: CoverageMap = {};
-      for (const dim of allDimensions) {
-        cov[dim.id] = {};
-        for (const opt of dim.options) {
-          const activeValues: Record<string, any> = {};
-          const tokenSetOrigin: Record<string, string> = {};
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'source') {
-              for (const path of Object.keys(tokenValues[setName] ?? {})) {
-                tokenSetOrigin[path] = setName;
-              }
-              Object.assign(activeValues, tokenValues[setName] ?? {});
-            }
-          }
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'enabled') {
-              for (const path of Object.keys(tokenValues[setName] ?? {})) {
-                tokenSetOrigin[path] = setName;
-              }
-              Object.assign(activeValues, tokenValues[setName] ?? {});
-            }
-          }
-          const uncovered: CoverageToken[] = [];
-          for (const [p, v] of Object.entries(activeValues)) {
-            if (isResolved(v, activeValues)) continue;
-            const missingRef = findMissingRef(v, activeValues);
-            const entry: CoverageToken = { path: p, set: tokenSetOrigin[p] ?? '', missingRef: missingRef ?? undefined };
-            if (missingRef) {
-              const found = findFillValue(missingRef);
-              if (found) {
-                entry.fillValue = found.value;
-                entry.fillType = found.type;
-              }
-            }
-            uncovered.push(entry);
-          }
-          cov[dim.id][opt.name] = { uncovered };
-        }
-      }
-      setCoverage(cov);
-      const keysWithGaps = new Set<string>();
-      for (const dim of allDimensions) {
-        for (const opt of dim.options) {
-          if ((cov[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0) {
-            keysWithGaps.add(`${dim.id}:${opt.name}`);
-          }
-        }
-      }
-      setExpandedCoverage(keysWithGaps);
-
-      // Compute missing overrides: tokens in source sets absent from all enabled sets
-      const moMap: MissingOverridesMap = {};
-      for (const dim of allDimensions) {
-        moMap[dim.id] = {};
-        for (const opt of dim.options) {
-          // Collect paths present in any enabled (override) set
-          const enabledPaths = new Set<string>();
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'enabled') {
-              for (const path of Object.keys(tokenValues[setName] ?? {})) {
-                enabledPaths.add(path);
-              }
-            }
-          }
-          // Only meaningful when there's at least one enabled set
-          const hasEnabledSets = enabledPaths.size > 0 || Object.values(opt.sets).some(s => s === 'enabled');
-          const missing: MissingOverrideToken[] = [];
-          if (hasEnabledSets) {
-            for (const [setName, state] of Object.entries(opt.sets)) {
-              if (state === 'source') {
-                for (const [path, value] of Object.entries(tokenValues[setName] ?? {})) {
-                  if (!enabledPaths.has(path)) {
-                    missing.push({
-                      path,
-                      sourceSet: setName,
-                      value,
-                      type: tokenTypes[setName]?.[path],
-                    });
-                  }
-                }
-              }
-            }
-          }
-          moMap[dim.id][opt.name] = { missing };
-        }
-      }
-      setMissingOverrides(moMap);
-    } catch (err) {
-      if (controller.signal.aborted) return; // superseded by a newer fetch
-      setError(getErrorMessage(err));
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
-  }, [serverUrl, connected, sets]);
-
-  const debouncedFetchDimensions = useCallback(() => {
-    if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
-    debounceFetchTimer.current = setTimeout(() => {
-      debounceFetchTimer.current = null;
-      fetchDimensions();
-    }, 600);
-  }, [fetchDimensions]);
-
-  useEffect(() => () => {
-    if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
-    fetchAbortRef.current?.abort();
-  }, []);
-
+  useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
-
-  // --- Custom hooks for cohesive state groups ---
 
   const {
     draggingDimId, dragOverDimId, draggingOpt, dragOverOpt,
@@ -369,13 +105,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleOptDragStart, handleOptDragOver, handleOptDrop, handleOptDragEnd,
   } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
 
-  const [showCompare, setShowCompare] = useState(false);
-  const [compareMode, setCompareMode] = useState<CompareMode>('theme-options');
-  const [compareTokenPath, setCompareTokenPath] = useState('');
-  const [compareTokenPaths, setCompareTokenPaths] = useState<Set<string>>(new Set());
-  const [compareThemeKey, setCompareThemeKey] = useState(0);
-  const [compareThemeDefaultA, setCompareThemeDefaultA] = useState('');
-  const [compareThemeDefaultB, setCompareThemeDefaultB] = useState('');
+  const {
+    showCompare, setShowCompare,
+    compareMode, setCompareMode,
+    compareTokenPath, setCompareTokenPath,
+    compareTokenPaths, setCompareTokenPaths,
+    compareThemeKey, setCompareThemeKey,
+    compareThemeDefaultA, setCompareThemeDefaultA,
+    compareThemeDefaultB, setCompareThemeDefaultB,
+    navigateToCompare,
+  } = useThemeCompare();
 
   const {
     bulkMenu, setBulkMenu, bulkMenuRef, savingKeys,
@@ -390,40 +129,36 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleAutoFillAllOptions, executeAutoFillAllOptions,
   } = useThemeAutoFill({ serverUrl, dimensions, coverage, debouncedFetchDimensions, setError });
 
-  // Bulk-create missing override tokens: creates all source tokens absent from enabled sets into the first override set
-  const handleBulkCreateMissingOverrides = useCallback(async (dimId: string, optionName: string, targetSet: string, tokens: MissingOverrideToken[]) => {
-    if (tokens.length === 0) return;
-    const fillKey = `${dimId}:${optionName}:__missing__`;
-    setCreatingMissingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
-    try {
-      const batch = tokens.map(t => {
-        const entry: { path: string; $value: unknown; $type?: string } = { path: t.path, $value: t.value };
-        if (t.type) entry.$type = t.type;
-        return entry;
-      });
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: batch, strategy: 'skip' }),
-      });
-      debouncedFetchDimensions();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to create missing override tokens'));
-    } finally {
-      setCreatingMissingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
-    }
-  }, [serverUrl, debouncedFetchDimensions, setError]);
+  const {
+    newOptionNames, setNewOptionNames,
+    showAddOption, setShowAddOption,
+    addOptionErrors, setAddOptionErrors,
+    addOptionInputRefs,
+    handleAddOption,
+    handleDuplicateOption,
+    renameOption, renameOptionValue, setRenameOptionValue, renameOptionError,
+    startRenameOption, cancelRenameOption, executeRenameOption,
+    optionDeleteConfirm, setOptionDeleteConfirm,
+    executeDeleteOption,
+  } = useThemeOptions({
+    serverUrl, connected, sets, dimensions, setDimensions,
+    debouncedFetchDimensions, fetchDimensions,
+    selectedOptions, setSelectedOptions,
+    optionSetOrders, setOptionSetOrders,
+    setError, onSuccess, onPushUndo,
+    copyFromNewOption, setCopyFromNewOption,
+  });
 
-  // Total fillable gaps across all dimensions and options
-  const totalFillableGaps = useMemo(() => {
-    let total = 0;
-    for (const dimCoverage of Object.values(coverage)) {
-      for (const optCoverage of Object.values(dimCoverage)) {
-        total += optCoverage.uncovered.filter(i => i.missingRef && i.fillValue !== undefined).length;
-      }
-    }
-    return total;
-  }, [coverage]);
+  const {
+    expandedCoverage, setExpandedCoverage,
+    expandedStale, setExpandedStale,
+    showMissingOnly, setShowMissingOnly,
+    expandedMissingOverrides, setExpandedMissingOverrides,
+    creatingMissingKeys, setCreatingMissingKeys,
+    missingOverrideSearch, setMissingOverrideSearch,
+    totalFillableGaps,
+    handleBulkCreateMissingOverrides,
+  } = useThemeCoverage({ coverage, missingOverrides, serverUrl, debouncedFetchDimensions, setError });
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
 
@@ -442,303 +177,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         });
         if (dimWithGaps) handleAutoFillAllRef.current(dimWithGaps.id);
       },
-      navigateToCompare: (mode, path, tokenPaths, optionA, optionB) => {
-        setCompareMode(mode);
-        if (path !== undefined) setCompareTokenPath(path);
-        if (tokenPaths !== undefined) setCompareTokenPaths(tokenPaths);
-        if (optionA !== undefined) setCompareThemeDefaultA(optionA);
-        if (optionB !== undefined) setCompareThemeDefaultB(optionB);
-        setCompareThemeKey(k => k + 1);
-        setShowCompare(true);
-      },
+      navigateToCompare,
     };
     return () => { themeManagerHandle.current = null; };
-  }, [themeManagerHandle, dimensions, coverage]);
-
-  // --- Create dimension ---
-
-  const handleCreateDimension = async () => {
-    const name = newDimName.trim();
-    if (!name || !connected) return;
-    const id = slugify(name) || name.toLowerCase().replace(/\s+/g, '-');
-    if (!id || !/^[a-z0-9-]+$/.test(id)) {
-      setCreateDimError('Name must contain at least one letter or number (spaces and hyphens are allowed).');
-      return;
-    }
-    if (dimensions.some(d => d.id === id || d.name.toLowerCase() === name.toLowerCase())) {
-      setCreateDimError(`A dimension with that name already exists.`);
-      return;
-    }
-    setCreateDimError(null);
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name }),
-      });
-      setNewDimName('');
-      setShowCreateDim(false);
-      setNewlyCreatedDim(id);
-      setDimensions(prev => [...prev, { id, name, options: [] }]);
-      debouncedFetchDimensions();
-      onSuccess?.(`Created dimension "${name}"`);
-    } catch (err) {
-      setCreateDimError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to create dimension'));
-    }
-  };
-
-  // --- Rename dimension ---
-
-  const startRenameDim = (id: string, currentName: string) => {
-    setRenameDim(id);
-    setRenameValue(currentName);
-    setRenameError(null);
-  };
-
-  const cancelRenameDim = () => {
-    setRenameDim(null);
-    setRenameValue('');
-    setRenameError(null);
-  };
-
-  const executeRenameDim = async () => {
-    if (!renameDim) return;
-    const name = renameValue.trim();
-    if (!name) { setRenameError('Name cannot be empty'); return; }
-    const current = dimensions.find(d => d.id === renameDim);
-    if (!current) { cancelRenameDim(); return; }
-    if (name === current.name) { cancelRenameDim(); return; }
-    if (dimensions.some(d => d.id !== renameDim && d.name === name)) {
-      setRenameError(`Dimension "${name}" already exists`);
-      return;
-    }
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
-      cancelRenameDim();
-      debouncedFetchDimensions();
-      onSuccess?.(`Renamed dimension to "${name}"`);
-    } catch (err) {
-      setRenameError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
-    }
-  };
-
-  // --- Rename option ---
-
-  const startRenameOption = (dimId: string, optionName: string) => {
-    setRenameOption({ dimId, optionName });
-    setRenameOptionValue(optionName);
-    setRenameOptionError(null);
-  };
-
-  const cancelRenameOption = () => {
-    setRenameOption(null);
-    setRenameOptionValue('');
-    setRenameOptionError(null);
-  };
-
-  const executeRenameOption = async () => {
-    if (!renameOption) return;
-    const name = renameOptionValue.trim();
-    if (!name) { setRenameOptionError('Name cannot be empty'); return; }
-    if (name === renameOption.optionName) { cancelRenameOption(); return; }
-    const dim = dimensions.find(d => d.id === renameOption.dimId);
-    if (!dim) { cancelRenameOption(); return; }
-    if (dim.options.some(o => o.name === name)) {
-      setRenameOptionError(`Option "${name}" already exists`);
-      return;
-    }
-    try {
-      await apiFetch(
-        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameOption.dimId)}/options/${encodeURIComponent(renameOption.optionName)}`,
-        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) },
-      );
-      setDimensions(prev => prev.map(d =>
-        d.id === renameOption.dimId
-          ? { ...d, options: d.options.map(o => o.name === renameOption.optionName ? { ...o, name } : o) }
-          : d,
-      ));
-      setOptionSetOrders(prev => {
-        const next = { ...prev };
-        if (next[renameOption.dimId]?.[renameOption.optionName]) {
-          next[renameOption.dimId] = { ...next[renameOption.dimId], [name]: next[renameOption.dimId][renameOption.optionName] };
-          delete next[renameOption.dimId][renameOption.optionName];
-        }
-        return next;
-      });
-      // Update selected option if it was the renamed one
-      setSelectedOptions(prev => {
-        if (prev[renameOption.dimId] === renameOption.optionName) {
-          return { ...prev, [renameOption.dimId]: name };
-        }
-        return prev;
-      });
-      cancelRenameOption();
-      debouncedFetchDimensions();
-      onSuccess?.(`Renamed option to "${name}"`);
-    } catch (err) {
-      setRenameOptionError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
-    }
-  };
-
-  // --- Delete dimension ---
-
-  const executeDeleteDimension = async (id: string) => {
-    // Snapshot the full dimension (with all options) for undo
-    const snapshot = dimensions.find(d => d.id === id);
-    if (!snapshot) return;
-    const savedDim = JSON.parse(JSON.stringify(snapshot)) as ThemeDimension;
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      setDimensions(prev => prev.filter(d => d.id !== id));
-      debouncedFetchDimensions();
-
-      // Push undo slot to recreate the dimension + all its options
-      onPushUndo?.({
-        description: `Deleted layer "${savedDim.name}"`,
-        restore: async () => {
-          // Recreate the dimension
-          try {
-            await apiFetch(`${serverUrl}/api/themes/dimensions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
-            });
-          } catch (err) {
-            setError(err instanceof ApiError ? err.message : 'Failed to undo: could not recreate layer');
-            return;
-          }
-          // Recreate each option
-          for (const opt of savedDim.options) {
-            try {
-              await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: opt.name, sets: opt.sets }),
-              });
-            } catch (err) {
-              console.warn('[ThemeManager] failed to restore option during undo:', opt.name, err);
-              setError(`Undo restored layer but failed to restore option "${opt.name}"`);
-            }
-          }
-          fetchDimensions();
-        },
-      });
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to delete dimension'));
-    }
-  };
-
-  // --- Add option ---
-
-  const handleAddOption = async (dimId: string) => {
-    const name = (newOptionNames[dimId] || '').trim();
-    if (!name || !connected) return;
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    if (dim.options.some(o => o.name === name)) {
-      setAddOptionErrors(prev => ({ ...prev, [dimId]: `Option "${name}" already exists in this dimension.` }));
-      return;
-    }
-    setAddOptionErrors(prev => ({ ...prev, [dimId]: '' }));
-    // Seed from a copy-from source if one is selected, otherwise start all disabled
-    const copyFromName = copyFromNewOption[dimId] || '';
-    const sourceOpt = copyFromName ? dim.options.find(o => o.name === copyFromName) : null;
-    const initialSets: Record<string, 'disabled' | 'enabled' | 'source'> = {};
-    if (sourceOpt) {
-      sets.forEach(s => { initialSets[s] = (sourceOpt.sets[s] as 'disabled' | 'enabled' | 'source') || 'disabled'; });
-    } else {
-      sets.forEach(s => { initialSets[s] = 'disabled'; });
-    }
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, sets: initialSets }),
-      });
-      setNewOptionNames(prev => ({ ...prev, [dimId]: '' }));
-      setCopyFromNewOption(prev => ({ ...prev, [dimId]: '' }));
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId ? { ...d, options: [...d.options, { name, sets: initialSets }] } : d,
-      ));
-      // Auto-select newly added option
-      setSelectedOptions(prev => ({ ...prev, [dimId]: name }));
-      debouncedFetchDimensions();
-      setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
-      onSuccess?.(`Added option "${name}"`);
-    } catch (err) {
-      setAddOptionErrors(prev => ({ ...prev, [dimId]: err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to add option') }));
-    }
-  };
-
-  // --- Duplicate option ---
-
-  const handleDuplicateOption = async (dimId: string, optionName: string) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim || !connected) return;
-    const opt = dim.options.find(o => o.name === optionName);
-    if (!opt) return;
-    let newName = `${optionName} copy`;
-    let counter = 2;
-    while (dim.options.some(o => o.name === newName)) {
-      newName = `${optionName} copy ${counter++}`;
-    }
-    try {
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, sets: { ...opt.sets } }),
-      });
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId ? { ...d, options: [...d.options, { name: newName, sets: { ...opt.sets } }] } : d,
-      ));
-      setSelectedOptions(prev => ({ ...prev, [dimId]: newName }));
-      debouncedFetchDimensions();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to duplicate option'));
-    }
-  };
-
-
-  // --- Delete option ---
-
-  const executeDeleteOption = async (dimId: string, optionName: string) => {
-    // Snapshot the option for undo
-    const dim = dimensions.find(d => d.id === dimId);
-    const snapshot = dim?.options.find(o => o.name === optionName);
-    if (!snapshot) return;
-    const savedOpt = JSON.parse(JSON.stringify(snapshot)) as ThemeOption;
-    const dimName = dim!.name;
-    try {
-      await apiFetch(
-        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options/${encodeURIComponent(optionName)}`,
-        { method: 'DELETE' },
-      );
-      setDimensions(prev => prev.map(d =>
-        d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
-      ));
-      debouncedFetchDimensions();
-
-      // Push undo slot to recreate the option
-      onPushUndo?.({
-        description: `Deleted option "${optionName}" from "${dimName}"`,
-        restore: async () => {
-          await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: savedOpt.name, sets: savedOpt.sets }),
-          });
-          fetchDimensions();
-        },
-      });
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to delete option'));
-    }
-  };
+  }, [themeManagerHandle, dimensions, coverage, navigateToCompare]);
 
   // --- Live preview: compute resolved token values for current selections ---
 
@@ -922,6 +364,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     return <span className="font-mono text-[10px]">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>;
   };
 
+  // Filter dimensions (and their options) by search query and/or gaps toggle
+  // Must be before early returns to satisfy rules-of-hooks
+  const filteredDimensions = useMemo(() => {
+    let result = dimensions;
+    if (showOnlyWithGaps) {
+      result = result.filter(dim => {
+        const dimCov = coverage[dim.id] ?? {};
+        return Object.values(dimCov).some(opt => opt.uncovered.length > 0);
+      });
+    }
+    const q = dimSearch.trim().toLowerCase();
+    if (!q) return result;
+    return result.filter(dim => {
+      if (dim.name.toLowerCase().includes(q)) return true;
+      return dim.options.some(o => o.name.toLowerCase().includes(q));
+    });
+  }, [dimensions, dimSearch, showOnlyWithGaps, coverage]);
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -938,23 +398,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       </div>
     );
   }
-
-  // Filter dimensions (and their options) by search query and/or gaps toggle
-  const filteredDimensions = useMemo(() => {
-    let result = dimensions;
-    if (showOnlyWithGaps) {
-      result = result.filter(dim => {
-        const dimCov = coverage[dim.id] ?? {};
-        return Object.values(dimCov).some(opt => opt.uncovered.length > 0);
-      });
-    }
-    const q = dimSearch.trim().toLowerCase();
-    if (!q) return result;
-    return result.filter(dim => {
-      if (dim.name.toLowerCase().includes(q)) return true;
-      return dim.options.some(o => o.name.toLowerCase().includes(q));
-    });
-  }, [dimensions, dimSearch, showOnlyWithGaps, coverage]);
 
   // Advanced mode: render the resolver UI instead of the theme dimension grid
   if (themeMode === 'advanced' && resolverState) {
@@ -986,7 +429,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     );
   }
 
+  const modalContextValue = useMemo<ThemeManagerModalsState>(() => ({
+    dimensions,
+    autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
+    executeAutoFillAll, executeAutoFillAllOptions,
+    dimensionDeleteConfirm, setDimensionDeleteConfirm: (id) => setDimensionDeleteConfirm(id),
+    executeDeleteDimension,
+    optionDeleteConfirm, setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
+    executeDeleteOption,
+    bulkMenu, setBulkMenu: (v) => setBulkMenu(v), bulkMenuRef,
+    handleBulkSetState,
+  }), [
+    dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
+    dimensionDeleteConfirm, executeDeleteDimension,
+    optionDeleteConfirm, executeDeleteOption,
+    bulkMenu, bulkMenuRef, handleBulkSetState,
+  ]);
+
   return (
+    <ThemeManagerModalsProvider value={modalContextValue}>
     <div className="flex flex-col h-full">
       {/* Mode toggle bar — only shown when resolver state is available */}
       {resolverState && (
@@ -1451,8 +912,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               onClick={() => {
                                 setShowCompare(true);
                                 setShowPreview(false);
-                                setCompareOptA({ dimId: dim.id, optionName: dim.options[0].name });
-                                setCompareOptB({ dimId: dim.id, optionName: dim.options[1].name });
+                                setCompareThemeDefaultA(`${dim.id}:${dim.options[0].name}`);
+                                setCompareThemeDefaultB(`${dim.id}:${dim.options[1].name}`);
+                                setCompareThemeKey(k => k + 1);
                               }}
                               className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                               title={`Compare ${dim.name} options`}
@@ -2231,10 +1693,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             <div className="flex gap-2">
               <button
                 onClick={handleCreateDimension}
-                disabled={!newDimName}
+                disabled={!newDimName || isCreatingDim}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                Create Layer
+                {isCreatingDim ? 'Creating…' : 'Create Layer'}
               </button>
               <button
                 onClick={() => { setShowCreateDim(false); setNewDimName(''); setCreateDimError(null); }}
@@ -2260,186 +1722,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         </>
       )}
 
-      {/* Auto-fill confirmation modal */}
-      {autoFillPreview && (() => {
-        const dimName = dimensions.find(d => d.id === autoFillPreview.dimId)?.name ?? autoFillPreview.dimId;
-        /** Shared strategy picker rendered in both modal variants */
-        const strategyPicker = (
-          <div className="mt-2 flex flex-col gap-1">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">If a token already exists in the target set:</div>
-            <div className="flex gap-2">
-              {(['skip', 'overwrite'] as const).map(s => (
-                <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="autofill-strategy"
-                    value={s}
-                    checked={autoFillStrategy === s}
-                    onChange={() => setAutoFillStrategy(s)}
-                    className="cursor-pointer"
-                  />
-                  <span className="text-[11px] text-[var(--color-figma-text)]">
-                    {s === 'skip' ? 'Skip (keep existing value)' : 'Overwrite (replace with filled value)'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
-
-        if (autoFillPreview.mode === 'single-option') {
-          const { optionName, targetSet, tokens } = autoFillPreview;
-          return (
-            <ConfirmModal
-              title={`Auto-fill ${tokens.length} token${tokens.length !== 1 ? 's' : ''}?`}
-              wide
-              confirmLabel="Fill tokens"
-              onCancel={() => setAutoFillPreview(null)}
-              onConfirm={() => executeAutoFillAll(autoFillPreview, autoFillStrategy)}
-            >
-              <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Writing <strong>{tokens.length}</strong> token{tokens.length !== 1 ? 's' : ''} to <span className="font-mono font-medium text-[var(--color-figma-text)]">{targetSet}</span> (override set for <strong>{optionName}</strong> in <strong>{dimName}</strong>).
-              </p>
-              {strategyPicker}
-              <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
-                <table className="w-full text-[10px]">
-                  <thead>
-                    <tr className="text-left bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] sticky top-0">
-                      <th className="px-2 py-1 font-medium">Token path</th>
-                      <th className="px-2 py-1 font-medium">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-figma-border)]">
-                    {tokens.map(t => (
-                      <tr key={t.path}>
-                        <td className="px-2 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[140px]" title={t.path}>{t.path}</td>
-                        <td className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] truncate max-w-[100px]" title={String(t.$value)}>
-                          {t.$type && <span className="mr-1 text-[var(--color-figma-text-tertiary)]">{t.$type}</span>}
-                          {typeof t.$value === 'object' ? JSON.stringify(t.$value) : String(t.$value)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </ConfirmModal>
-          );
-        } else {
-          const { perSetBatch, totalCount } = autoFillPreview;
-          const setEntries = Object.entries(perSetBatch);
-          return (
-            <ConfirmModal
-              title={`Auto-fill ${totalCount} token${totalCount !== 1 ? 's' : ''} across all options?`}
-              wide
-              confirmLabel="Fill all options"
-              onCancel={() => setAutoFillPreview(null)}
-              onConfirm={() => executeAutoFillAllOptions(autoFillPreview, autoFillStrategy)}
-            >
-              <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Writing <strong>{totalCount}</strong> token{totalCount !== 1 ? 's' : ''} to {setEntries.length} set{setEntries.length !== 1 ? 's' : ''} across all options in <strong>{dimName}</strong>.
-              </p>
-              {strategyPicker}
-              <div className="mt-2 max-h-40 overflow-y-auto rounded border border-[var(--color-figma-border)]">
-                {setEntries.map(([targetSet, tokens]) => (
-                  <div key={targetSet}>
-                    <div className="sticky top-0 bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-                      <span className="font-mono text-[var(--color-figma-text)]">{targetSet}</span>
-                      <span className="ml-1 text-[var(--color-figma-text-tertiary)]">({tokens.length} token{tokens.length !== 1 ? 's' : ''})</span>
-                    </div>
-                    <table className="w-full text-[10px]">
-                      <tbody className="divide-y divide-[var(--color-figma-border)]">
-                        {tokens.map(t => (
-                          <tr key={t.path}>
-                            <td className="px-2 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[140px]" title={t.path}>{t.path}</td>
-                            <td className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] truncate max-w-[100px]" title={String(t.$value)}>
-                              {t.$type && <span className="mr-1 text-[var(--color-figma-text-tertiary)]">{t.$type}</span>}
-                              {typeof t.$value === 'object' ? JSON.stringify(t.$value) : String(t.$value)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            </ConfirmModal>
-          );
-        }
-      })()}
-
-      {/* Delete dimension confirmation */}
-      {dimensionDeleteConfirm && (() => {
-        const dim = dimensions.find(d => d.id === dimensionDeleteConfirm);
-        if (!dim) return null;
-        return (
-          <ConfirmModal
-            title={`Delete layer "${dim.name}"?`}
-            description={`This will permanently delete the layer and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''} it contains. Token resolution across all sets that use this layer will be affected.`}
-            confirmLabel="Delete layer"
-            danger
-            onConfirm={async () => {
-              setDimensionDeleteConfirm(null);
-              await executeDeleteDimension(dim.id);
-            }}
-            onCancel={() => setDimensionDeleteConfirm(null)}
-          />
-        );
-      })()}
-
-      {/* Delete option confirmation */}
-      {optionDeleteConfirm && (() => {
-        const dim = dimensions.find(d => d.id === optionDeleteConfirm.dimId);
-        if (!dim) return null;
-        return (
-          <ConfirmModal
-            title={`Delete option "${optionDeleteConfirm.optionName}"?`}
-            description={`This will permanently delete the option from layer "${dim.name}". Any token assignments specific to this option will be lost.`}
-            confirmLabel="Delete option"
-            danger
-            onConfirm={async () => {
-              const { dimId, optionName } = optionDeleteConfirm;
-              setOptionDeleteConfirm(null);
-              await executeDeleteOption(dimId, optionName);
-            }}
-            onCancel={() => setOptionDeleteConfirm(null)}
-          />
-        );
-      })()}
-
-      {/* Bulk set-status context menu */}
-      {bulkMenu && (
-        <div
-          ref={bulkMenuRef}
-          role="menu"
-          aria-label={`Set "${bulkMenu.setName}" in all options`}
-          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px]"
-          style={{ top: bulkMenu.y, left: bulkMenu.x }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider" aria-hidden="true">
-            Set &ldquo;{bulkMenu.setName}&rdquo; in all options
-          </div>
-          {(['disabled', 'source', 'enabled'] as const).map(s => (
-            <button
-              key={s}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => handleBulkSetState(bulkMenu.dimId, bulkMenu.setName, s)}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
-            >
-              <span className={`inline-block w-2 h-2 rounded-full ${
-                s === 'source'
-                  ? 'bg-[var(--color-figma-accent)]'
-                  : s === 'enabled'
-                  ? 'bg-[var(--color-figma-success)]'
-                  : 'bg-[var(--color-figma-text-tertiary)]'
-              }`} />
-              {STATE_LABELS[s]} — {STATE_DESCRIPTIONS[s]}
-            </button>
-          ))}
-        </div>
-      )}
-
+      <ThemeManagerModals />
     </div>
+    </ThemeManagerModalsProvider>
   );
 }
