@@ -343,3 +343,15 @@ Already up to date.
 
   Merging to main: Import panel lacks Escape key handling and keyboard shortcuts for bulk actions
 Already up to date.
+[main a77073c8] chore(backlog): done – Import panel lacks Escape key handling and keyboard shortcuts for bulk actions
+ 7 files changed, 119 insertions(+), 9 deletions(-)
+  ✓ Merged and marked done
+
+  Milestone: 1383 items done — running product discovery pass
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — 3 consolidation/simplification (AnalyticsPanel decomposition, HealthPanel merge, Compare unification), 3 missing features (copy shortcut, dimension duplicate, bulk DTCG import), 3 workflow friction (editor scroll, resolver preview, generator diff), 2 state persistence (consistency results, set theme badges), 1 architecture (PanelRouter prop explosion)
+Already up to date.
