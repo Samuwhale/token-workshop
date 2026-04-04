@@ -582,6 +582,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const paths = tokens.map(t => t.path);
+        const setExistedBefore = !!(await fastify.tokenStore.getSet(set));
         const before = await snapshotPaths(fastify.tokenStore, set, paths);
         const result = await fastify.tokenStore.batchUpsertTokens(
           set,
@@ -596,6 +597,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: paths,
           beforeSnapshot: before,
           afterSnapshot: after,
+          ...(!setExistedBefore ? { rollbackSteps: [{ action: 'delete-set' as const, name: set }] } : {}),
         });
         return { ok: true, ...result };
       } catch (err) {

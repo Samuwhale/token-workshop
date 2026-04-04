@@ -871,6 +871,7 @@ export class TokenStore {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
       throw new BadRequestError(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
+    const wasNewSet = !this.sets.has(setName);
     let set = this.sets.get(setName);
     if (!set) {
       set = await this._createSetNoRebuild(setName);
@@ -919,6 +920,14 @@ export class TokenStore {
         await this.saveSet(setName);
       } catch (err) {
         this.restoreSnapshots(snapshot);
+        if (wasNewSet) {
+          // The set was created solely for this batch — roll back its creation entirely.
+          const newSet = this.sets.get(setName);
+          this.sets.delete(setName);
+          if (newSet) {
+            await fs.unlink(newSet.filePath).catch(() => {});
+          }
+        }
         throw err;
       }
     });

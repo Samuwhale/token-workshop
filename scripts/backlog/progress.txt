@@ -688,3 +688,17 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: batchUpsertTokens creates sets outside the snapshot boundary so failed batches leave orphan empty sets; variableSync main loop has no per-token error isolation while styleSync already does it correctly
 ---
+
+## 2026-04-04 - Token-store batchUpsertTokens creates new sets outside the snapshot boundary
+- Fixed two related issues:
+  1. **Internal rollback in `batchUpsertTokens`** (`token-store.ts` ~L874): tracked `wasNewSet = !this.sets.has(setName)` before calling `_createSetNoRebuild`. In the catch block (after `restoreSnapshots`), if `wasNewSet`, the newly created set entry is removed from `this.sets` and its file is deleted from disk via `fs.unlink`. This ensures a failed batch upsert leaves no ghost empty set.
+  2. **Operation log rollback for batch-upsert that creates a new set** (`routes/tokens.ts` ~L582): added `setExistedBefore = !!(await fastify.tokenStore.getSet(set))` before calling `batchUpsertTokens`. If the set was newly created by the upsert, the operation log entry now includes `rollbackSteps: [{ action: 'delete-set', name: set }]`. This means the operation-log-level undo properly deletes the set rather than leaving an empty ghost.
+- Files changed:
+  - `packages/server/src/services/token-store.ts` ~L874-935
+  - `packages/server/src/routes/tokens.ts` ~L582-605
+- **Learnings for future iterations:**
+  - `_createSetNoRebuild` both writes to disk and adds to `this.sets`, so rollback must handle both memory and disk cleanup.
+  - `snapshotSets` only snapshots tokens — it does not capture whether the set *exists* at all. For new-set rollback, a boolean `wasNewSet` flag is the right pattern.
+  - The internal snapshot (token-store) and the operation-log snapshot (route) are two separate layers: both need fixes when a new set is created mid-operation.
+  - For `deleteTokens`: the snapshot IS taken before mutations and the operation-log rollback works correctly (set exists after token deletion since `saveSet` doesn't auto-delete empty sets). No bug exists in the current implementation.
+---

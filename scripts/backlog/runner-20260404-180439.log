@@ -270,3 +270,30 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: ThemeManager monolith extraction, variableSync per-token error isolation, batchUpsertTokens snapshot boundary bug, resolver formula unit fallback, scan signal race condition
 Already up to date.
+[main 52265163] chore(backlog): code pass – code-pass
+ 5 files changed, 25 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/figma-plugin/src/ui/components/ThemeManager.tsx (2439 lines, 44 useState, error handling, async guards), packages/server/src/services/token-store.ts (batchUpsertTokens snapshot boundary, withBatch/endBatch rebuild logic), packages/figma-plugin/src/plugin/variableSync.ts (main loop error isolation, rollback coverage), packages/figma-plugin/src/plugin/styleSync.ts (per-token try-catch pattern comparison), packages/figma-plugin/src/plugin/controller.ts (scan signal lifecycle), packages/core/src/resolver.ts (formula unit extraction, cycle detection), packages/figma-plugin/src/ui/hooks/ (useTokenEditorSave, useTokenEditorLoad, useLint, useTokenCrud ref-update patterns), packages/server/src/services/event-bus.ts, packages/server/src/services/manual-snapshot.ts, packages/server/src/services/operation-log.ts
+- Found 5 items — written to backlog-inbox.md
+- Notable: batchUpsertTokens creates sets outside the snapshot boundary so failed batches leave orphan empty sets; variableSync main loop has no per-token error isolation while styleSync already does it correctly
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  7 queued · 0
+0 in-progress · last took 5m48s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Token-store batchUpsertTokens creates new sets outside the snapshot boundary (token-store.ts:874-891) — if _createSetNoRebuild succeeds but the subsequent batch fails and restoreSnapshots runs, the newly created empty set remains registered in this.sets but its tokens are restored to empty state; the snapshot should be taken before set creation, or set creation should be rolled back in the catch block; similar issue exists in batchDeleteTokens (token-store.ts:950-968) where deleted sets are not tracked for rollback
+  Worktree: /tmp/backlog-3108-nBwmjo
+  Running agent… (started 19:19:33)
+
+  ✓ done: Token-store batchUpsertTokens creates new sets outside the snapshot boundary
+    Fixed two layers: (1) token-store internal rollback now deletes the ghost set from memory+disk when batch fails; (2) operation log route records rollbackSteps: [{action:'delete-set'}] when batchUpsertTokens creates a new set, enabling proper undo
+    23 turns · 403s · $0.98
+
+  Merging to main: Token-store batchUpsertTokens creates new sets outside the snapshot boundary
+Already up to date.
