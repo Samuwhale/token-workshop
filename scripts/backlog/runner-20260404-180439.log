@@ -1163,3 +1163,36 @@ Already up to date.
   ✓ product pass: product-pass
     11 items written to inbox — keyboard tree navigation, batch editor preview, generator quick-edit, command palette autocomplete, batch delete API, import diff view, silent import skip feedback, PanelHelpHint coverage, recent tokens, resolver error exposure, search consolidation
 Already up to date.
+[main df374c05] chore(backlog): product pass – product-pass
+ 5 files changed, 31 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-05 - Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+- Removed the standalone "Resolver" sub-tab from the Define tab, reducing it from 4 to 3 sub-tabs (tokens, themes, generators)
+- The resolver UI was already embedded in ThemeManager via a mode toggle (simple/advanced); made this the canonical access point
+- Renamed mode toggle labels from "simple"/"advanced" to "Theme Layers"/"DTCG Resolvers" for clarity
+
+═══════════════════════════════════════════════════════════════
+  #44  ·  32 queued · 0
+0 in-progress · last took 11m22s
+═══════════════════════════════════════════════════════════════
+  → Add inline token value editing on double-click in the token tree — TokenList.tsx requires opening the full TokenEditor modal to change any value; for simple edits (changing a color hex, adjusting a dimension, toggling a boolean), this is excessive friction; double-clicking a token value cell should open a compact inline editor (type-appropriate: color picker for colors, number input for dimensions, text for strings) that saves on Enter/blur and cancels on Escape
+  Worktree: /tmp/backlog-3108-7r8yio
+  Running agent… (started 00:26:00)
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    3 turns · 39s · $0.23
+  ⚠ Agent returned unexpected status '' — unclaiming item [1/5]
+
+## 2026-04-05 - Merge Resolver panel into ThemeManager — ResolverPanel.tsx and ThemeManager.tsx both manage theme-like behavior with overlapping concepts
+- Removed the standalone "Resolver" sub-tab from the Define tab, reducing it from 4 to 3 sub-tabs (tokens, themes, generators)
+- The resolver UI was already embedded in ThemeManager via a mode toggle (simple/advanced); made this the canonical access point
+- Renamed mode toggle labels from "simple"/"advanced" to "Theme Layers"/"DTCG Resolvers" for clarity
+
+  Stopped after 44 iterations (1413 total items completed).

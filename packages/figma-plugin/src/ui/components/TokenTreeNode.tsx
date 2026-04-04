@@ -1531,6 +1531,18 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         >
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
         </span>
+      ) : canInlineEdit && node.$type === 'color' ? (
+        <span
+          className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-pointer hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
+          title="Click to edit color"
+          onClick={e => {
+            e.stopPropagation();
+            setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000');
+            setColorPickerOpen(true);
+          }}
+        >
+          {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
+        </span>
       ) : (
         <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate" title={formatValue(node.$type, displayValue)}>
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}

@@ -699,3 +699,11 @@
   - Adding `switchToResolverMode()` to the imperative handle is the cleanest way to let App.tsx trigger internal view-state changes in ThemeManager without prop-drilling or lifting state
   - A small `setTimeout(..., 50)` is needed when navigating to a tab and then calling an imperative handle method — the ThemeManager isn't mounted until after navigation renders, so the handle ref is null synchronously
 ---
+
+## 2026-04-05 - Add inline token value editing on double-click in the token tree
+- Inline editing was already comprehensively implemented (INLINE_SIMPLE_TYPES, inlineEditActive state, stepper inputs, text inputs, color picker via swatch, boolean toggle, Tab navigation). The one gap: the hex value text for color tokens was a static non-clickable span — only the color swatch on the left was clickable. Fixed by adding a new branch in the value cell conditional for `canInlineEdit && node.$type === 'color'` that makes the hex text clickable with cursor-pointer/hover-underline styling, opening the same ColorPicker via setPendingColor + setColorPickerOpen.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1521
+- **Learnings for future iterations:**
+  - Inline editing for non-color simple types uses single-click on the value text (activates on first click; double-click selects all text in the freshly opened input — excellent UX). Color is different: the value text and the color swatch are separate UI elements; both should trigger the picker.
+  - The value cell conditional chain is: alias → editable-non-color → editable-color → static. Keep the color branch before static to maintain this O(1) rendering order.
+---
