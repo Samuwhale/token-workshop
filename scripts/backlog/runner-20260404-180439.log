@@ -120,3 +120,26 @@ Already up to date.
 
   Merging to main: Manual snapshot restore has no concurrency guard
 Already up to date.
+[main 3df7547d] chore(backlog): done – Manual snapshot restore has no concurrency guard
+ 5 files changed, 118 insertions(+), 74 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Manual snapshot restore has no concurrency guard
+- Added promise-chain mutex (`lockChain` + `withLock`) to `ManualSnapshotStore` serializing all mutating operations: `save()`, `delete()`, and `restore()`. Concurrent `restore()` calls now queue behind each other so journal writes and token-set iteration never interleave.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L58-67 (lockChain field + withLock helper), ~L109 (save), ~L164 (delete), ~L253 (restore)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  8 queued · 0
+0 in-progress · last took 1m42s
+═══════════════════════════════════════════════════════════════
+  → Server resolver routes accept unvalidated request bodies and token rename routes skip path validation — POST /resolvers, POST /resolvers/from-themes, and PUT /resolvers/:name cast request.body directly to ResolverFile without validating required fields; token rename-preview endpoints (tokens.ts) check query params for truthiness but skip isValidTokenPath() validation that all other path-accepting endpoints use
+  Worktree: /tmp/backlog-3108-nrECIu
+  Running agent… (started 18:41:15)
+
+  ✓ done: Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
+    Added isValidResolverName/isValidResolverBody validators to resolver routes and applied isValidTokenPath to rename-preview endpoints; all gates pass
+    15 turns · 131s · $0.47
+
+  Merging to main: Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
+Already up to date.

@@ -647,8 +647,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/tokens/rename-preview',
     async (request, reply) => {
       const { oldPath, newPath } = request.query;
-      if (!oldPath || !newPath) {
-        return reply.status(400).send({ error: 'oldPath and newPath query params are required' });
+      if (!isValidTokenPath(oldPath) || !isValidTokenPath(newPath)) {
+        return reply.status(400).send({ error: 'oldPath and newPath must be valid non-empty paths with no leading/trailing dots' });
       }
       try {
         const changes = fastify.tokenStore.previewRenameToken(oldPath, newPath);
@@ -664,8 +664,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/groups/rename-preview',
     async (request, reply) => {
       const { oldGroupPath, newGroupPath } = request.query;
-      if (!oldGroupPath || !newGroupPath) {
-        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath query params are required' });
+      if (!isValidTokenPath(oldGroupPath) || !isValidTokenPath(newGroupPath)) {
+        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath must be valid non-empty paths with no leading/trailing dots' });
       }
       try {
         const changes = fastify.tokenStore.previewRenameGroup(oldGroupPath, newGroupPath);

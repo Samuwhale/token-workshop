@@ -602,3 +602,12 @@
   - The mutex should cover all methods that write shared mutable state (snapshots array + disk files), not just the primary offender — `save()` and `delete()` both call `persist()` and mutate `this.snapshots`, so they need the same protection.
   - `withLock` swallows errors in the chain tail (`lockChain = next.then(() => {}, () => {})`) so a failed operation doesn't permanently block subsequent callers.
 ---
+
+## 2026-04-04 - Server resolver routes accept unvalidated request bodies and token rename routes skip path validation
+- Added `isValidResolverName()` and `isValidResolverBody()` helpers to `resolvers.ts`; applied them to POST /resolvers (name + body), PUT /resolvers/:name (body), and POST /resolvers/from-themes (optional name when provided)
+- Applied `isValidTokenPath()` to rename-preview endpoints in `tokens.ts` (was only checking truthiness, now uses the same validator as the actual rename endpoints)
+- Files changed: `packages/server/src/routes/resolvers.ts` ~L16-31 (helpers), ~L44-47 (POST /resolvers), ~L57-61 (from-themes), ~L116-118 (PUT); `packages/server/src/routes/tokens.ts` ~L650-652, ~L667-669 (rename-preview)
+- **Learnings for future iterations:**
+  - Dry-run / preview endpoints are easy to miss when adding validation since they don't mutate state, but they still pass user input to store methods that may throw on malformed paths
+  - Resolver body validation must check both `version === '2025.10'` and `Array.isArray(resolutionOrder)` — these are the two required fields per the ResolverFile interface
+---

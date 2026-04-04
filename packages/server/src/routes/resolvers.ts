@@ -12,6 +12,23 @@ import path from 'node:path';
 import { convertThemesToResolver } from '../services/themes-to-resolver.js';
 import { handleRouteError } from '../errors.js';
 
+/** Validates a resolver name: non-empty, no null bytes, no path traversal, no leading/trailing whitespace. */
+function isValidResolverName(name: unknown): name is string {
+  if (typeof name !== 'string') return false;
+  if (name.length === 0 || name !== name.trim()) return false;
+  if (name.includes('\0') || name.includes('..')) return false;
+  return true;
+}
+
+/** Validates required fields in a ResolverFile body. */
+function isValidResolverBody(body: unknown): body is ResolverFile {
+  if (typeof body !== 'object' || body === null) return false;
+  const b = body as Record<string, unknown>;
+  if (b['version'] !== '2025.10') return false;
+  if (!Array.isArray(b['resolutionOrder'])) return false;
+  return true;
+}
+
 export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   // List all resolvers
@@ -25,7 +42,8 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.post<{ Body: { name: string } & ResolverFile }>('/resolvers', async (req, reply) => {
     const { name, ...file } = req.body as { name: string } & ResolverFile;
-    if (!name) return reply.status(400).send({ error: 'name is required' });
+    if (!isValidResolverName(name)) return reply.status(400).send({ error: 'name must be a non-empty string with no null bytes or path traversal' });
+    if (!isValidResolverBody(file)) return reply.status(400).send({ error: 'version ("2025.10") and resolutionOrder (array) are required' });
     try {
       await fastify.resolverStore.create(name, file);
       await fastify.operationLog.record({
@@ -48,7 +66,11 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // IMPORTANT: Must be registered BEFORE /resolvers/:name routes
   // -----------------------------------------------------------------------
   fastify.post<{ Body: { name?: string } }>('/resolvers/from-themes', async (req, reply) => {
-    const resolverName = (req.body as { name?: string })?.name || 'theme-resolver';
+    const providedName = (req.body as { name?: string })?.name;
+    if (providedName !== undefined && !isValidResolverName(providedName)) {
+      return reply.status(400).send({ error: 'name must be a non-empty string with no null bytes or path traversal' });
+    }
+    const resolverName = providedName || 'theme-resolver';
     try {
       const storeDir = fastify.resolverStore.getDir();
       const themesPath = path.join(storeDir, '$themes.json');
@@ -97,6 +119,9 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // Update a resolver
   // -----------------------------------------------------------------------
   fastify.put<{ Params: { name: string }; Body: ResolverFile }>('/resolvers/:name', async (req, reply) => {
+    if (!isValidResolverBody(req.body)) {
+      return reply.status(400).send({ error: 'version ("2025.10") and resolutionOrder (array) are required' });
+    }
     try {
       const beforeFile = fastify.resolverStore.get(req.params.name);
       await fastify.resolverStore.update(req.params.name, req.body as ResolverFile);
