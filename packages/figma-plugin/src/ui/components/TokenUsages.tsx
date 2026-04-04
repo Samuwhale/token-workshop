@@ -83,6 +83,7 @@ export function TokenUsages({
   const [layersTotal, setLayersTotal] = useState(0);
   const [layersLoading, setLayersLoading] = useState(false);
   const [layersScanned, setLayersScanned] = useState(false);
+  const [layersScanError, setLayersScanError] = useState<string | null>(null);
   const [componentNames, setComponentNames] = useState<string[]>([]);
   const [showComponentList, setShowComponentList] = useState(false);
 
@@ -90,6 +91,7 @@ export function TokenUsages({
   const [variables, setVariables] = useState<BoundVariable[]>([]);
   const [variablesLoading, setVariablesLoading] = useState(false);
   const [variablesScanned, setVariablesScanned] = useState(false);
+  const [variablesScanError, setVariablesScanError] = useState<string | null>(null);
 
   // Scan for bound layers when section is expanded
   useEffect(() => {
@@ -103,6 +105,7 @@ export function TokenUsages({
       setLayers(msg.layers ?? []);
       setLayersTotal(msg.total ?? 0);
       setComponentNames(msg.componentNames ?? []);
+      setLayersScanError(msg.error ?? null);
       setLayersLoading(false);
       setLayersScanned(true);
     };
@@ -132,6 +135,7 @@ export function TokenUsages({
       const msg = event.data?.pluginMessage;
       if (!msg || msg.type !== 'token-variable-bindings-result' || msg.tokenPath !== tokenPath) return;
       setVariables(msg.variables ?? []);
+      setVariablesScanError(msg.error ?? null);
       setVariablesLoading(false);
       setVariablesScanned(true);
     };
@@ -158,8 +162,10 @@ export function TokenUsages({
     setLayersTotal(0);
     setComponentNames([]);
     setShowComponentList(false);
+    setLayersScanError(null);
     setVariablesScanned(false);
     setVariables([]);
+    setVariablesScanError(null);
   }, [tokenPath]);
 
   const selectLayer = useCallback((nodeId: string) => {
@@ -332,11 +338,22 @@ export function TokenUsages({
             </>
           ) : null}
 
+          {/* Layer scan error */}
+          {layersScanned && layersScanError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+              <span className="text-orange-500" title={layersScanError}>Layer scan failed — {layersScanError}</span>
+            </div>
+          )}
+
           {/* Figma variable bindings */}
           {variablesLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
               <Spinner />
               Scanning variables…
+            </div>
+          ) : variablesScanned && variablesScanError ? (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+              <span className="text-orange-500" title={variablesScanError}>Variable scan failed — {variablesScanError}</span>
             </div>
           ) : variablesScanned && variables.length > 0 ? (
             <>

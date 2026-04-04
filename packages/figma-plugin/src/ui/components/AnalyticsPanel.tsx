@@ -190,7 +190,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     };
   }, [tokenChangeKey, runValidate]);
 
-  // Listen for component-coverage-result from controller
+  // Listen for component-coverage-result / component-coverage-error from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
@@ -199,6 +199,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
         if (resolve) {
           coveragePendingRef.current.delete(msg.correlationId);
           resolve(msg);
+        }
+      } else if (msg?.type === 'component-coverage-error' && msg.correlationId) {
+        const resolve = coveragePendingRef.current.get(msg.correlationId);
+        if (resolve) {
+          coveragePendingRef.current.delete(msg.correlationId);
+          // Reject by resolving with an error marker; the caller checks coverageError separately
+          resolve({ __error: msg.error });
         }
       }
     };
@@ -220,8 +227,12 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
         coveragePendingRef.current.set(cid, (data) => { clearTimeout(timeout); resolve(data); });
         parent.postMessage({ pluginMessage: { type: 'scan-component-coverage', correlationId: cid } }, '*');
       });
-      setCoverageResult(result);
-      setShowCoverage(true);
+      if (result?.__error) {
+        setCoverageError(`Scan failed: ${result.__error}`);
+      } else {
+        setCoverageResult(result);
+        setShowCoverage(true);
+      }
     } catch (err) {
       setCoverageError(err instanceof Error && err.message === 'Scan timed out'
         ? 'Scan timed out. Try selecting fewer components.'

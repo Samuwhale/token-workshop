@@ -774,6 +774,7 @@ export interface TokenVariableBindingsMessage {
   type: 'token-variable-bindings-result';
   tokenPath: string;
   variables: { name: string; collection: string; resolvedType: string }[];
+  error?: string;
 }
 
 export interface AvailableFontsMessage {
@@ -825,6 +826,18 @@ export interface TokenUsageResultMessage {
   layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[];
   total: number;
   componentNames: string[];
+  error?: string;
+}
+
+export interface CanvasHeatmapErrorMessage {
+  type: 'canvas-heatmap-error';
+  error: string;
+}
+
+export interface ComponentCoverageErrorMessage {
+  type: 'component-coverage-error';
+  error: string;
+  correlationId?: string;
 }
 
 export interface ConsistencyScanProgressMessage {
@@ -912,7 +925,9 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'select-next-sibling-result',
   'canvas-heatmap-progress',
   'canvas-heatmap-result',
+  'canvas-heatmap-error',
   'component-coverage-result',
+  'component-coverage-error',
   'extracted-tokens',
   'selection',
   'search-layers-result',

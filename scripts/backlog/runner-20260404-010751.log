@@ -414,3 +414,10 @@ Already up to date.
   → Plugin sandbox functions silently return success on Figma API failures — `scanTokenVariableBindings` (variableSync.ts L375) catches all errors and posts empty `variables: []` to UI, making it impossible to distinguish "no bindings" from "API failed"; `readFigmaVariables` (variableSync.ts L196) has the same pattern; `heatmapScanning.ts` has 5 catch blocks (L47, L60, L188, L205, L264) that post generic error messages without the original error details; `consistencyScanner.ts` L396 catches and returns partial results without indicating the scan was incomplete; these should distinguish API failures from empty results and surface actionable error information to the UI
   Worktree: /tmp/backlog-92209-whhEia
   Running agent… (started 02:17:13)
+
+  ✓ done: Plugin sandbox functions silently return success on Figma API failures
+    Fixed 4 catch blocks across variableSync.ts and heatmapScanning.ts to surface actionable errors; updated useHeatmap.ts, AnalyticsPanel.tsx, and TokenUsages.tsx to handle the new error messages; all 4 validate gates pass
+    54 turns · 384s · $1.45
+
+  Merging to main: Plugin sandbox functions silently return success on Figma API failures
+Already up to date.

@@ -45,7 +45,7 @@ export async function scanComponentCoverage(correlationId?: string) {
       correlationId,
     });
   } catch (error) {
-    figma.ui.postMessage({ type: 'error', message: String(error) });
+    figma.ui.postMessage({ type: 'component-coverage-error', error: String(error), correlationId });
   }
 }
 
@@ -186,7 +186,7 @@ export async function scanCanvasHeatmap(scope: HeatmapScope = 'page') {
       nodes: result.slice(0, 300),
     });
   } catch (error) {
-    figma.ui.postMessage({ type: 'error', message: String(error) });
+    figma.ui.postMessage({ type: 'canvas-heatmap-error', error: String(error) });
   }
 }
 
@@ -262,7 +262,14 @@ export async function scanTokenUsage(tokenPath: string) {
       componentNames,
     });
   } catch (error) {
-    figma.ui.postMessage({ type: 'token-usage-result', tokenPath, layers: [], total: 0, componentNames: [] });
+    figma.ui.postMessage({
+      type: 'token-usage-result',
+      tokenPath,
+      layers: [],
+      total: 0,
+      componentNames: [],
+      error: `Figma API error: ${error instanceof Error ? error.message : String(error)}`,
+    });
   }
 }
 

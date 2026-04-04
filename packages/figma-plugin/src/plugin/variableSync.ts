@@ -372,11 +372,12 @@ export async function scanTokenVariableBindings(tokenPath: string) {
       tokenPath,
       variables: results,
     });
-  } catch {
+  } catch (err) {
     figma.ui.postMessage({
       type: 'token-variable-bindings-result',
       tokenPath,
       variables: [],
+      error: `Figma Variables API error: ${err instanceof Error ? err.message : String(err)}`,
     });
   }
 }

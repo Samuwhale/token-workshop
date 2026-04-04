@@ -408,3 +408,21 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: App.tsx is the largest structural liability — 46 useState calls in one component means every state change re-renders the entire plugin UI; the 6 compare-related states, 4 analytics states, and 3 graph states each have zero interaction with each other but all live in the same render cycle
 ---
+
+## 2026-04-04 - Plugin sandbox functions silently return success on Figma API failures
+- Fixed `scanTokenVariableBindings` (variableSync.ts L375): catch block now includes `error` field in the `token-variable-bindings-result` message so UI distinguishes "no bindings" from "API failed"
+- Fixed `scanCanvasHeatmap` (heatmapScanning.ts L188): changed generic `{ type: 'error' }` to `{ type: 'canvas-heatmap-error', error }` so useHeatmap.ts can surface it immediately instead of waiting for the 30-second timeout
+- Fixed `scanComponentCoverage` (heatmapScanning.ts L47): changed generic `{ type: 'error' }` to `{ type: 'component-coverage-error', error, correlationId }` so AnalyticsPanel's correlationId-based Promise resolution can detect failures
+- Fixed `scanTokenUsage` (heatmapScanning.ts L264): added `error` field to existing `token-usage-result` message so UI distinguishes empty results from scan failure
+- `readFigmaVariables` (variableSync.ts L196) already posted `variables-read-error` correctly — no change needed
+- `consistencyScanner.ts` L396 already posted `consistency-scan-error` correctly — no change needed
+- Updated `shared/types.ts`: added `error?: string` to `TokenVariableBindingsMessage` and `TokenUsageResultMessage`; added `CanvasHeatmapErrorMessage` and `ComponentCoverageErrorMessage` interfaces; added both to known message types set
+- Updated `useHeatmap.ts`: handles `canvas-heatmap-error` by clearing timeout/progress and setting `heatmapError`
+- Updated `AnalyticsPanel.tsx`: handles `component-coverage-error` via error-marker pattern (resolves pending Promise with `{ __error }` sentinel); `runCoverageScan` checks for marker and calls `setCoverageError`
+- Updated `TokenUsages.tsx`: added `layersScanError` and `variablesScanError` states; message handlers populate these from `msg.error`; renders inline orange error text when scan fails
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L773, ~L822, ~L830, ~L913; `packages/figma-plugin/src/plugin/variableSync.ts` ~L375; `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L47, ~L188, ~L264; `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` ~L62; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L194, ~L230; `packages/figma-plugin/src/ui/components/TokenUsages.tsx` ~L85, ~L103, ~L135, ~L342
+- **Learnings for future iterations:**
+  - When a plugin function uses a correlationId-based Promise pattern (resolve stored in a ref Map), the error handler must also pass the correlationId so it can resolve/reject the right pending promise
+  - For functions that return same-type messages on both success and error (like `token-variable-bindings-result`), adding an optional `error?: string` field is cleaner than a new message type — the UI's existing message filter still matches, and it just checks the field
+  - The `scanCanvasHeatmap` generic `error` message was invisible to `useHeatmap.ts` because the hook only listened for `canvas-heatmap-result` — the scan would silently hang until the 30s timeout; always use dedicated error message types that match what the UI listens for
+---

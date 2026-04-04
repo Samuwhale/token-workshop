@@ -64,6 +64,11 @@ export function useHeatmap() {
         });
         setHeatmapLoading(false);
         setHeatmapError(null);
+      } else if (msg?.type === 'canvas-heatmap-error') {
+        clearScanTimeout();
+        setHeatmapProgress(null);
+        setHeatmapLoading(false);
+        setHeatmapError(`Scan failed: ${msg.error}`);
       }
     };
     window.addEventListener('message', handler);

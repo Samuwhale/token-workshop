@@ -307,3 +307,21 @@ Already up to date.
   ✓ code pass: code-pass
     4 items written to inbox: App.tsx 3378-line monolith (46 useState), UI hooks missing abort signals/error states across 15 hooks, GeneratorService in-memory-only errors + concurrent mutation window, TokenTreeNode 2044-line component with non-memoized handlers in virtualized list
 Already up to date.
+[main deec80d4] chore(backlog): code pass – code-pass
+ 6 files changed, 31 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: App.tsx (3378L, 46 useState, 70 hooks), TokenTreeNode.tsx (2044L, 25 useState), all UI hooks (51 files, 163 apiFetch calls across 31 files — only 4 hooks use abort signals), useTokens.ts fetch duplication (fetchAllTokensFlat vs fetchAllTokensFlatWithSets), generator-service.ts (executeGenerator re-read race L589-626, in-memory-only generatorErrors), token-store.ts (beginBatch/endBatch, reorderSets), git-sync.ts (showFileAtCommit input handling), plugin sandbox (heatmapScanning error swallowing), core resolver (type inference fallback)
+- Found 4 items — written to backlog-inbox.md
+- Notable: App.tsx is the largest structural liability — 46 useState calls in one component means every state change re-renders the entire plugin UI; the 6 compare-related states, 4 analytics states, and 3 graph states each have zero interaction with each other but all live in the same render cycle
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  14 queued · 3 in-progress · last took 10m40s
+═══════════════════════════════════════════════════════════════
+  → EmptyState overwhelms with 8+ buttons and no progressive disclosure — the "Or start with" section lists every import source simultaneously, creating decision paralysis for new users; group by familiarity (e.g., "From Figma" / "From file" / "From scratch") and collapse less-common sources behind a "More options" toggle (EmptyState.tsx)
+  Worktree: /tmp/backlog-91634-WQc02O
+  Running agent… (started 02:22:28)
