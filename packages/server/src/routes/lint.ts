@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { LintConfigStore, lintTokens, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
 import type { LintConfig } from '../services/lint.js'; // used by PUT /lint/config body type
+import { handleRouteError } from '../errors.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -69,7 +70,7 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
       const warnings = issues.filter(i => i.severity === 'warning').length;
       return { issues, summary: { total: issues.length, errors, warnings } };
     } catch (err) {
-      return reply.status(500).send({ error: 'Validation failed', detail: String(err) });
+      return handleRouteError(reply, err, 'Validation failed');
     }
   });
 
@@ -93,7 +94,7 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
       const violations = await lintTokens(set, fastify.tokenStore, config);
       return { set, violations, count: violations.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Lint failed', detail: String(err) });
+      return handleRouteError(reply, err, 'Lint failed');
     }
   });
 };

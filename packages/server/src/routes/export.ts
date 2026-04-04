@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { exportTokens, type ExportPlatform, type CssExportOptions } from '../services/style-dict.js';
 import type { TokenGroup } from '@tokenmanager/core';
+import { handleRouteError } from '../errors.js';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript', 'tailwind', 'css-in-js'];
 
@@ -193,7 +194,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         const { results, warnings } = await exportTokens(tokenData, platforms, undefined, cssOptions);
         return { results, ...(warnings.length > 0 && { warnings }) };
       } catch (err) {
-        return reply.status(500).send({ error: 'Failed to export tokens', detail: String(err) });
+        return handleRouteError(reply, err, 'Failed to export tokens');
       }
     },
   );

@@ -113,7 +113,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         },
       };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get sync status', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get sync status');
     }
   });
 
@@ -127,7 +127,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.init();
       return { ok: true };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to initialize git repo', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to initialize git repo');
     }
   });
 
@@ -142,7 +142,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const commitHash = await fastify.gitSync.commit(message, files);
       return { ok: true, commit: commitHash, message };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to commit', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to commit');
     }
   });
 
@@ -189,7 +189,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const conflicts = await fastify.gitSync.getConflicts();
       return { conflicts };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get conflicts', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get conflicts');
     }
   });
 
@@ -222,7 +222,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.abortMerge();
       return { ok: true };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to abort merge', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to abort merge');
     }
   });
 
@@ -248,7 +248,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         hasMore,
       };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get log', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get log');
     }
   });
 
@@ -265,7 +265,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const changes = buildTokenDiff(fileDiffs);
       return { hash, changes, fileCount: fileDiffs.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get commit diff', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get commit diff');
     }
   });
 
@@ -284,7 +284,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const changes = buildTokenDiff(fileDiffs);
       return { from, to, changes, fileCount: fileDiffs.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compare commits', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compare commits');
     }
   });
 
@@ -429,7 +429,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         };
       });
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to restore tokens', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to restore tokens');
     }
   });
 
@@ -459,7 +459,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.setRemote(trimmed);
       return { ok: true, remote: trimmed };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to set remote');
     }
   });
 
@@ -470,7 +470,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const current = await fastify.gitSync.getCurrentBranch();
       return { branches, current };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to list branches', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to list branches');
     }
   });
 
@@ -489,7 +489,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { ok: true, branch, created: !!create };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to checkout branch');
     }
   });
 
@@ -531,7 +531,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const changes = buildTokenDiff(fileDiffs);
       return { changes, fileCount: fileDiffs.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compute token diff', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compute token diff');
     }
   });
 

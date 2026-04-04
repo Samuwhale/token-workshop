@@ -21,7 +21,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveTokens();
       return resolved;
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to resolve tokens', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to resolve tokens');
     }
   });
 
@@ -561,7 +561,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const dependents = fastify.tokenStore.getDependents(tokenPath);
       return { tokenPath, dependents, count: dependents.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get dependents', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get dependents');
     }
   });
 
@@ -580,7 +580,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const dependents = fastify.tokenStore.getGroupDependents(groupPath);
       return { groupPath, dependents, count: dependents.length };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get group dependents', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get group dependents');
     }
   });
 
@@ -779,7 +779,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveToken(tokenPath);
       return { path: tokenPath, token, resolved: resolved?.$value ?? null };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to get token', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to get token');
     }
   });
 
@@ -929,7 +929,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
           return { ok: true, deleted: deleted.length, paths: deleted, set };
         } catch (err) {
-          return reply.status(500).send({ error: 'Failed to delete tokens', detail: String(err) });
+          return handleRouteError(reply, err, 'Failed to delete tokens');
         }
       });
     },
@@ -998,7 +998,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
           return { ok: true, path: tokenPath, set };
         } catch (err) {
-          return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
+          return handleRouteError(reply, err, 'Failed to delete token');
         }
       });
     },

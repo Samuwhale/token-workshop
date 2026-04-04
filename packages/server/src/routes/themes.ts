@@ -142,7 +142,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       const dimensions = await store.load();
       return { dimensions };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to load themes', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to load themes');
     }
   });
 
@@ -455,7 +455,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       coverageCache = { themeMtimeMs: currentMtime, result: coverage };
       return { coverage };
     } catch (err) {
-      return reply.status(500).send({ error: 'Failed to compute coverage', detail: String(err) });
+      return handleRouteError(reply, err, 'Failed to compute coverage');
     }
   });
 };

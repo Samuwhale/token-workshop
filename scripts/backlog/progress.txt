@@ -380,3 +380,13 @@
   - Progress overlays should appear after the confirm modal closes (not replace it), so the UX flow is: confirm → modal closes → progress overlay appears → overlay closes on completion
   - `abortRef.current.signal.aborted` check in `finally` prevents state updates after component unmount during navigation
 ---
+
+## 2026-04-04 - Server routes use two incompatible error handling patterns
+- Replaced all 27 inline `reply.status(500).send({ error, detail: String(err) })` calls with `handleRouteError(reply, err, 'message')` across 6 route files.
+- Added `import { handleRouteError } from '../errors.js'` to `lint.ts` and `export.ts` which lacked it.
+- Files changed: `packages/server/src/routes/sync.ts` (13 replacements), `packages/server/src/routes/tokens.ts` (6 replacements), `packages/server/src/routes/sets.ts` (4 replacements), `packages/server/src/routes/themes.ts` (2 replacements), `packages/server/src/routes/lint.ts` (2 replacements + import), `packages/server/src/routes/export.ts` (1 replacement + import)
+- **Learnings for future iterations:**
+  - `handleRouteError` already existed and was already imported in most route files — only `lint.ts` and `export.ts` needed the import added.
+  - The inline pattern always returned 500; `handleRouteError` correctly passes typed errors (NotFoundError→404, ConflictError→409, BadRequestError→400) through to the client.
+  - The `detail: String(err)` field in the inline pattern is reproduced by `handleRouteError`'s fallback branch when a `fallbackMessage` is provided.
+---

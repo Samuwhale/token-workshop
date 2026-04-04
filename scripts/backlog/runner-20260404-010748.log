@@ -349,3 +349,10 @@ Already up to date.
   → Server routes use two incompatible error handling patterns — 27 routes use inline `reply.status(500).send({ error, detail })` while 70 routes use `handleRouteError(reply, err)` from `errors.ts`; the inline pattern loses typed HTTP errors (NotFoundError→404, ConflictError→409, BadRequestError→400) and always returns 500 even for client errors; worst offenders are sync.ts (12 inline), sets.ts (4 inline), tokens.ts (5 inline), and themes.ts (2 inline); all inline `reply.status(500)` catches should be replaced with `handleRouteError` to get correct status codes and consistent response shape (all route files under packages/server/src/routes/)
   Worktree: /tmp/backlog-91949-18Wj7l
   Running agent… (started 02:14:00)
+
+  ✓ done: Server routes use two incompatible error handling patterns
+    Replaced all 27 inline reply.status(500) catches with handleRouteError across sync.ts (13), tokens.ts (6), sets.ts (4), themes.ts (2), lint.ts (2+import), export.ts (1+import)
+    50 turns · 201s · $0.91
+
+  Merging to main: Server routes use two incompatible error handling patterns
+Already up to date.

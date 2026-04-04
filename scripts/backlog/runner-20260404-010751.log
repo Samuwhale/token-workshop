@@ -399,3 +399,18 @@ Already up to date.
 
   Merging to main: Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting
 Already up to date.
+[main c2a541c7] chore(backlog): done – Variable/style sync operations (handleSyncGroup, handleSyncGroupStyles) have no progress reporting
+ 5 files changed, 101 insertions(+), 1 deletion(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Variable/style group sync operations have no progress reporting
+- Added `syncGroupApplying`, `syncGroupProgress`, `syncGroupStylesApplying`, `syncGroupStylesProgress` state to `useFigmaSync.ts`
+- Added `useEffect` in `useFigmaSync.ts` to listen for `variable-sync-progress` and `style-sync-progress` plugin messages and update the respective progress state
+- Updated `handleSyncGroup` to set `syncGroupApplying=true` / clear on finish with `finally` block
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  13 queued · 2 in-progress · last took 5m6s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox functions silently return success on Figma API failures — `scanTokenVariableBindings` (variableSync.ts L375) catches all errors and posts empty `variables: []` to UI, making it impossible to distinguish "no bindings" from "API failed"; `readFigmaVariables` (variableSync.ts L196) has the same pattern; `heatmapScanning.ts` has 5 catch blocks (L47, L60, L188, L205, L264) that post generic error messages without the original error details; `consistencyScanner.ts` L396 catches and returns partial results without indicating the scan was incomplete; these should distinguish API failures from empty results and surface actionable error information to the UI
+  Worktree: /tmp/backlog-92209-whhEia
+  Running agent… (started 02:17:13)
