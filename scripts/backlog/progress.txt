@@ -647,3 +647,14 @@
   - Re-reading `this.generators.get(id)` before updating is correct and sufficient for JS single-threaded semantics; the concurrent-mutation window was in `saveGenerators` file I/O, not the map itself
   - Adding a `saveLock` chain (same pattern as `git-sync.ts`) serializes rename races without blocking the map mutations themselves
 ---
+
+## 2026-04-04 - Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
+- The `lintDuplicateGroups` memo already read from `validateResults` filtered by `rule === 'no-duplicate-values'` — the data source was already unified. The remaining problem was that the generic Violations section ALSO rendered `no-duplicate-values` violations via `issueGroups`, creating parallel display of the same data.
+- Fixed by excluding `rule === 'no-duplicate-values'` from `activeIssues` and `suppressedIssues` (the source for the Violations section). This makes the Duplicate Values accordion the sole canonical display for duplicate violations.
+- Updated the "All tokens valid" empty-state check from `validateResults.length === 0` to `validateResults.every(i => i.rule === 'no-duplicate-values')` so the checkmark correctly appears when there are no structural issues even if duplicate violations exist.
+- Added contextual note "Duplicate values are shown below." to the "All tokens valid" message when duplicates exist.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L445, ~L772, ~L778
+- **Learnings for future iterations:**
+  - When a lint rule has a dedicated rich-UI section, filtering it out of the generic violations list makes the dedicated section the canonical view and eliminates the "parallel display" problem.
+  - The `validateResults.every(i => i.rule === 'no-duplicate-values')` check is the correct pattern for "are there any non-duplicate-values violations?" — covers the case where only duplicate violations exist (which should still show "All tokens valid" in the structural check).
+---

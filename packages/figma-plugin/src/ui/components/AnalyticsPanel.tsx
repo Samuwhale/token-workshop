@@ -442,11 +442,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
     }
   };
 
+  // no-duplicate-values violations are excluded here — they are displayed in
+  // the dedicated Duplicate Values section below with grouping and deduplicate actions.
   const activeIssues = validateResults
-    ? validateResults.filter(i => !suppressedKeys.has(suppressKey(i)))
+    ? validateResults.filter(i => i.rule !== 'no-duplicate-values' && !suppressedKeys.has(suppressKey(i)))
     : null;
   const suppressedIssues = validateResults
-    ? validateResults.filter(i => suppressedKeys.has(suppressKey(i)))
+    ? validateResults.filter(i => i.rule !== 'no-duplicate-values' && suppressedKeys.has(suppressKey(i)))
     : null;
 
   const filteredIssues = activeIssues
@@ -769,13 +771,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, tokenChangeK
           </div>
           {filteredIssues && filteredIssues.length === 0 ? (
             <div className="px-3 py-6 text-center">
-              {validateResults.length === 0 ? (
+              {validateResults.every(i => i.rule === 'no-duplicate-values') ? (
                 <>
                   <div className="text-[16px] mb-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
                   </div>
                   <div className="text-[11px] font-medium text-[var(--color-figma-text)]">All tokens valid</div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">No broken references, type mismatches, or circular references.</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">No broken references, type mismatches, or circular references.{lintDuplicateGroups.length > 0 ? ' Duplicate values are shown below.' : ''}</div>
                 </>
               ) : (
                 <div className="text-[11px] text-[var(--color-figma-text-secondary)]">No issues match this filter</div>

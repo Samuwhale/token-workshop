@@ -466,3 +466,25 @@ Already up to date.
 
   Merging to main: GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
 Already up to date.
+[main cf3f3dba] chore(backlog): done – GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
+ 7 files changed, 79 insertions(+), 26 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - GeneratorService errors are in-memory only and executeGenerator has a concurrent-mutation window
+- Added `lastRunError?: { message, at, blockedBy? }` to `TokenGenerator` in core, replacing the in-memory `generatorErrors: Map` in the service
+- Removed `private generatorErrors: Map<string, GeneratorRunError>` and exported `GeneratorRunError` interface from generator-service.ts
+- Added `private saveLock: Promise<void>` mutex to serialize all `saveGenerators()` calls; renamed inner write logic to `_doSave()` so the lock wraps snapshot+write+rename atomically
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  15 queued · 3 in-progress · last took 7m48s
+═══════════════════════════════════════════════════════════════
+  → Merge AnalyticsPanel's "Duplicates" tab into the lint rule system — duplicate-value detection is conceptually a lint rule (no-duplicate-values already exists in lint.ts) but results are displayed in a separate tab with its own scan flow rather than as lint violations; unify by making the duplicates tab read from lint violations filtered by rule ID, eliminating the parallel scan/fetch/display code (AnalyticsPanel.tsx duplicates tab, lint.ts no-duplicate-values rule)
+  Worktree: /tmp/backlog-91949-iRadtf
+  Running agent… (started 02:51:05)
+
+  ✓ done: Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
+    Excluded no-duplicate-values from the generic Violations section so the Duplicate Values accordion is the sole display; updated empty-state check to correctly show "All tokens valid" when only duplicate violations exist
+    18 turns · 335s · $0.92
+
+  Merging to main: Merge AnalyticsPanel's "Duplicates" tab into the lint rule system
+Already up to date.
