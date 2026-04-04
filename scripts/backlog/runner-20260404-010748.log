@@ -555,3 +555,18 @@ Already up to date.
 
   Merging to main: No token search from the Inspect panel
 Already up to date.
+[main baf6ba02] chore(backlog): done – No token search from the Inspect panel
+ 6 files changed, 97 insertions(+), 61 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - No token search from the Inspect panel
+- Added an always-visible "🔍 bind" chip to each unbound property row in the Inspect panel. Previously, the bind button was hidden at opacity-40 and only appeared on hover, making it hard to discover. The chip is bordered, always visible, and clicking it opens the existing inline bind panel (which already has search, scoring, and candidate display with autoFocus).
+- The `canBind` button was removed from the opacity-40 hover-only container and promoted to a standalone always-visible chip. The hover-only container now only contains bound-row actions (navigate, remove, remap) and the "create token" action.
+- No changes needed to `SelectionInspector.tsx` or `QuickApplyPicker.tsx` — only `PropertyRow.tsx` was modified.
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  7 queued · 3 in-progress · last took 7m22s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager "Auto-fill" feature is buried and unnamed — the auto-fill capability (filling token gaps across theme options) is hidden inside the coverage analysis section with no command palette entry, no keyboard shortcut, and no mention in the guided setup; add a command palette entry "Auto-fill theme gaps" and surface it as a suggested action when coverage analysis detects gaps (ThemeManager.tsx auto-fill section, App.tsx command palette)
+  Worktree: /tmp/backlog-91949-O6NHSB
+  Running agent… (started 03:13:14)

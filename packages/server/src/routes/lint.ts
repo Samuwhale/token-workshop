@@ -55,6 +55,28 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
         if ('options' in rv && rv.options !== undefined && (typeof rv.options !== 'object' || Array.isArray(rv.options) || rv.options === null)) {
           return reply.status(400).send({ error: `Lint rule "${ruleKey}.options" must be an object` });
         }
+        if ('excludePaths' in rv && rv.excludePaths !== undefined) {
+          if (!Array.isArray(rv.excludePaths) || !(rv.excludePaths as unknown[]).every(p => typeof p === 'string')) {
+            return reply.status(400).send({ error: `Lint rule "${ruleKey}.excludePaths" must be an array of strings` });
+          }
+        }
+        if ('setOverrides' in rv && rv.setOverrides !== undefined) {
+          if (typeof rv.setOverrides !== 'object' || Array.isArray(rv.setOverrides) || rv.setOverrides === null) {
+            return reply.status(400).send({ error: `Lint rule "${ruleKey}.setOverrides" must be an object` });
+          }
+          for (const [setName, setVal] of Object.entries(rv.setOverrides as Record<string, unknown>)) {
+            if (typeof setVal !== 'object' || setVal === null || Array.isArray(setVal)) {
+              return reply.status(400).send({ error: `Lint rule "${ruleKey}.setOverrides["${setName}"]" must be an object` });
+            }
+            const sv = setVal as Record<string, unknown>;
+            if ('enabled' in sv && typeof sv.enabled !== 'boolean') {
+              return reply.status(400).send({ error: `Lint rule "${ruleKey}.setOverrides["${setName}"].enabled" must be a boolean` });
+            }
+            if ('severity' in sv && sv.severity !== undefined && !VALID_SEVERITIES.has(sv.severity as string)) {
+              return reply.status(400).send({ error: `Lint rule "${ruleKey}.setOverrides["${setName}"].severity" must be "error", "warning", or "info"` });
+            }
+          }
+        }
       }
     }
     const cfg = await lintConfigStore.update(b as Partial<LintConfig>);

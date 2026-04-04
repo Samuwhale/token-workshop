@@ -3,10 +3,26 @@ import { apiFetch } from '../shared/apiFetch';
 
 export type Severity = 'error' | 'warning' | 'info';
 
+export interface LintRuleSetOverride {
+  enabled?: boolean;
+  severity?: Severity;
+  options?: Record<string, unknown>;
+}
+
 export interface LintRuleConfig {
   enabled: boolean;
   severity?: Severity;
   options?: Record<string, unknown>;
+  /**
+   * Exclude token paths matching these prefix patterns from this rule.
+   * A pattern matches if the token path equals the pattern or starts with "<pattern>.".
+   */
+  excludePaths?: string[];
+  /**
+   * Per-set overrides — merged with the global rule config when linting a specific set.
+   * Keyed by set name. Unset fields fall back to the global values.
+   */
+  setOverrides?: Record<string, LintRuleSetOverride>;
 }
 
 export interface LintConfig {

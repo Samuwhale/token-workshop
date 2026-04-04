@@ -453,3 +453,19 @@
   - When a button needs to be always-discoverable (not hover-revealed), promote it outside the opacity-40 group container. Keep secondary/destructive actions in the hover-only zone.
   - The `canBind` gate (`!isBound && connected && hasAnyTokens && !isThisPropActive`) naturally suppresses the chip when the bind panel is open for that row, preventing double-display.
 ---
+
+## 2026-04-04 - LintConfigPanel has no per-set or per-group rule scoping
+- Added `excludePaths?: string[]` and `setOverrides?: Record<string, LintRuleSetOverride>` to `LintRuleConfig` in both server service and client hook
+- Added `LintRuleSetOverride` interface (enabled?, severity?, options?)
+- Added `resolveRuleForSet(rule, setName)` helper in lint.ts that merges global rule with per-set override before running
+- Added `isPathExcluded(tokenPath, excludePaths)` helper implementing prefix matching: a pattern matches if `tokenPath === pattern` or `tokenPath.startsWith(pattern + '.')`
+- Applied both filters in all 5 lint rules in `lintTokens()` — each rule resolves its effective config for the current set before checking tokens, and skips tokens whose paths are excluded
+- Updated server route validation in `lint.ts` routes to accept and validate `excludePaths` (array of strings) and `setOverrides` (object of override configs) in PUT /api/lint/config
+- Added scope UI section to `LintConfigPanel.tsx` expanded rule view: "Exclude paths" text input (comma-separated, saved on blur) and "Set overrides" list with per-set enabled/severity controls and add/remove capability
+- Files changed: `packages/server/src/services/lint.ts` ~L13-43, ~L120-150, ~L195, ~L228, ~L254, ~L300, ~L323; `packages/server/src/routes/lint.ts` ~L55-80; `packages/figma-plugin/src/ui/hooks/useLintConfig.ts` ~L6-25; `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` (scope UI in expanded section)
+- **Learnings for future iterations:**
+  - The `resolveRuleForSet` + `isPathExcluded` pattern is composable and clean — resolve once per rule per lint run, then filter per token
+  - Prefix matching (path === p || path.startsWith(p + '.')) is the most useful form of path exclusion — no wildcards needed for common "exclude this group" use cases
+  - `setOverrides` as `Record<setName, partial override>` means a single global config file can express different policies per set without duplicating the entire config
+  - For the UI, saving excludePaths on blur (not on change) avoids excessive API calls during typing — unlike severity selects which save immediately
+---

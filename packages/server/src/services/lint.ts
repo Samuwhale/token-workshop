@@ -10,11 +10,29 @@ import { isSafeRegex } from './token-tree-utils.js';
 
 export type Severity = 'error' | 'warning' | 'info';
 
+export interface LintRuleSetOverride {
+  enabled?: boolean;
+  severity?: Severity;
+  options?: Record<string, unknown>;
+}
+
 export interface LintRuleConfig {
   enabled: boolean;
   severity?: Severity;
   /** rule-specific options */
   options?: Record<string, unknown>;
+  /**
+   * Exclude token paths matching these prefix patterns from this rule.
+   * A pattern matches if the token path equals the pattern or starts with "<pattern>.".
+   * Example: ["legacy", "internal.raw"] skips paths under the "legacy" and "internal.raw" groups.
+   */
+  excludePaths?: string[];
+  /**
+   * Per-set overrides — merged with the global rule config when linting a specific set.
+   * Keyed by set name. Unset fields fall back to the global values.
+   * Example: { "internal": { enabled: false }, "brand-a": { severity: "error" } }
+   */
+  setOverrides?: Record<string, LintRuleSetOverride>;
 }
 
 export interface LintConfig {
@@ -138,6 +156,34 @@ function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, vis
 }
 
 // ---------------------------------------------------------------------------
+// Scope filter helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Merge a global rule config with its per-set override (if any), returning
+ * the effective config for the given set name.
+ */
+function resolveRuleForSet(rule: LintRuleConfig, setName: string): LintRuleConfig {
+  const override = rule.setOverrides?.[setName];
+  if (!override) return rule;
+  return {
+    ...rule,
+    enabled: override.enabled ?? rule.enabled,
+    severity: override.severity ?? rule.severity,
+    options: override.options ? { ...rule.options, ...override.options } : rule.options,
+  };
+}
+
+/**
+ * Returns true if the token path should be excluded by the rule's excludePaths list.
+ * A pattern matches if tokenPath === pattern or tokenPath starts with "<pattern>.".
+ */
+function isPathExcluded(tokenPath: string, excludePaths: string[] | undefined): boolean {
+  if (!excludePaths || excludePaths.length === 0) return false;
+  return excludePaths.some(p => tokenPath === p || tokenPath.startsWith(p + '.'));
+}
+
+// ---------------------------------------------------------------------------
 // Rules engine
 // ---------------------------------------------------------------------------
 
@@ -178,10 +224,11 @@ export async function lintTokens(
   const rules = lintConfig.lintRules;
 
   // --- no-raw-color ---
-  const noRawColor = rules['no-raw-color'];
+  const noRawColor = rules['no-raw-color'] ? resolveRuleForSet(rules['no-raw-color'], setName) : undefined;
   if (noRawColor?.enabled) {
     const severity = noRawColor.severity ?? 'warning';
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, noRawColor.excludePaths)) continue;
       if (token.$type === 'color' && !isReference(token.$value)) {
         const rawHex = token.$value as string;
         const nearest = findNearestColorAlias(rawHex, tokenPath, allFlatTokens);
@@ -207,10 +254,11 @@ export async function lintTokens(
   }
 
   // --- require-description ---
-  const requireDesc = rules['require-description'];
+  const requireDesc = rules['require-description'] ? resolveRuleForSet(rules['require-description'], setName) : undefined;
   if (requireDesc?.enabled) {
     const severity = requireDesc.severity ?? 'info';
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, requireDesc.excludePaths)) continue;
       if (!token.$description) {
         violations.push({
           rule: 'require-description',
@@ -224,7 +272,7 @@ export async function lintTokens(
   }
 
   // --- path-pattern ---
-  const pathPattern = rules['path-pattern'];
+  const pathPattern = rules['path-pattern'] ? resolveRuleForSet(rules['path-pattern'], setName) : undefined;
   if (pathPattern?.enabled) {
     const pattern = (pathPattern.options?.pattern as string | undefined) ?? '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$';
     const severity = pathPattern.severity ?? 'warning';
@@ -245,6 +293,7 @@ export async function lintTokens(
     if (!regex) {
       // Skip path-pattern checks — the regex is invalid
     } else for (const tokenPath of Object.keys(flatTokens)) {
+      if (isPathExcluded(tokenPath, pathPattern.excludePaths)) continue;
       // Test each segment
       const segments = tokenPath.split('.');
       for (const seg of segments) {
@@ -272,11 +321,12 @@ export async function lintTokens(
   }
 
   // --- max-alias-depth ---
-  const maxAliasDepth = rules['max-alias-depth'];
+  const maxAliasDepth = rules['max-alias-depth'] ? resolveRuleForSet(rules['max-alias-depth'], setName) : undefined;
   if (maxAliasDepth?.enabled) {
     const maxDepth = (maxAliasDepth.options?.maxDepth as number | undefined) ?? 3;
     const severity = maxAliasDepth.severity ?? 'warning';
     for (const [tokenPath] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, maxAliasDepth.excludePaths)) continue;
       const depth = getAliasDepth(tokenPath, allFlatTokens);
       if (depth > maxDepth) {
         const resolvedTarget = resolveAliasTarget(tokenPath, allFlatTokens);
@@ -295,11 +345,12 @@ export async function lintTokens(
   }
 
   // --- no-duplicate-values ---
-  const noDuplicates = rules['no-duplicate-values'];
+  const noDuplicates = rules['no-duplicate-values'] ? resolveRuleForSet(rules['no-duplicate-values'], setName) : undefined;
   if (noDuplicates?.enabled) {
     const severity = noDuplicates.severity ?? 'info';
     const valueMap = new Map<string, string[]>();
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, noDuplicates.excludePaths)) continue;
       if (isReference(token.$value)) continue; // aliases are expected to share values
       const key = `${token.$type ?? ''}:${serializeValue(token.$value)}`;
       if (!valueMap.has(key)) valueMap.set(key, []);
