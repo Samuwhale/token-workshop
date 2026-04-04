@@ -874,3 +874,18 @@ Already up to date.
 
   Merging to main: PreviewPanel has no loading indicator while resolving CSS custom property slots
 Already up to date.
+[main 9a9e8244] chore(backlog): done – PreviewPanel has no loading indicator while resolving CSS custom property slots
+ 6 files changed, 72 insertions(+), 24 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - PreviewPanel has no loading indicator while resolving CSS custom property slots
+- Added `useDeferredValue(allTokensFlat)` to defer all heavy synchronous token computations (cssVars, colorGroups, gradientTokens, shadowTokens, effectTimingTokens, typeTokens, previewSlots, relevantTemplates) so they don't block the UI
+- Added `useTransition` to wrap template switches (`startTransition(() => setTemplate(t.id))`) so template changes yield to higher-priority renders
+- Derived `isStale = allTokensFlat !== deferredTokensFlat || isPending` flag
+
+═══════════════════════════════════════════════════════════════
+  #38  ·  7 queued · 3 in-progress · last took 3m34s
+═══════════════════════════════════════════════════════════════
+  → Server token-store.ts has no unit tests — the largest and most critical service (1000+ lines) handling all token CRUD, alias resolution, cross-set dependencies, file watching, and batch operations has zero test coverage; a single bug here can corrupt all token data (packages/server/src/services/token-store.ts)
+  Worktree: /tmp/backlog-91949-pBsc3e
+  Running agent… (started 04:26:52)

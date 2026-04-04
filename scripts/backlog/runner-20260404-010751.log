@@ -956,3 +956,10 @@ Already up to date.
   → `useSyncBindings` and `useWindowResize` are defined inline in App.tsx instead of extracted to hooks/ — these 160+ lines of hook logic in the 3,481-line App.tsx contribute to its size and make the hooks undiscoverable for reuse; extract them to the hooks/ directory following the pattern of all other custom hooks (App.tsx inline hook definitions)
   Worktree: /tmp/backlog-92209-xTxkt3
   Running agent… (started 04:26:12)
+
+  ✓ done: Extract useSyncBindings and useWindowResize from App.tsx to hooks/
+    useSyncBindings was already extracted to ConnectionContext.tsx; extracted useWindowResize to hooks/useWindowResize.ts and updated App.tsx import
+    15 turns · 96s · $0.35
+
+  Merging to main: Extract useSyncBindings and useWindowResize from App.tsx to hooks/
+Already up to date.
