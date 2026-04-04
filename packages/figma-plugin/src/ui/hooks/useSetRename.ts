@@ -8,7 +8,7 @@ interface UseSetRenameParams {
   getDisconnectSignal: () => AbortSignal;
   activeSet: string;
   setActiveSet: (set: string) => void;
-  refreshTokens: () => void;
+  renameSetInState: (oldName: string, newName: string) => void;
   setSuccessToast: (msg: string) => void;
   markDisconnected: () => void;
   setTabMenuOpen: (v: string | null) => void;
@@ -16,7 +16,7 @@ interface UseSetRenameParams {
 
 export function useSetRename({
   serverUrl, connected, getDisconnectSignal,
-  activeSet, setActiveSet, refreshTokens,
+  activeSet, setActiveSet, renameSetInState,
   setSuccessToast, markDisconnected, setTabMenuOpen,
 }: UseSetRenameParams) {
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
@@ -60,9 +60,9 @@ export function useSetRename({
         signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
       const oldName = renamingSet;
+      renameSetInState(oldName, newName);
       if (activeSet === renamingSet) setActiveSet(newName);
       cancelRename();
-      refreshTokens();
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();

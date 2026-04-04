@@ -555,3 +555,19 @@
   - `useState` setters are stable references, so existing `useCallback` dependency arrays work unchanged after extraction
   - The `CompareMode` type import can be dropped from App.tsx because App.tsx never references the type directly in annotations — the state variable's type is inferred from the hook's return type
 ---
+
+## 2026-04-04 - Full token refresh after every set operation
+- Added 5 incremental state helpers to `useTokens.ts`: `addSetToState`, `removeSetFromState`, `renameSetInState`, `updateSetMetadataInState`, `fetchTokensForSet`
+- `useSetDelete`: replaced `refreshTokens()` + `setSets()` with `removeSetFromState()` + conditional `fetchTokensForSet(newActive)` (only fetches tokens when the active set was deleted)
+- `useSetRename`: replaced `refreshTokens()` with `renameSetInState(oldName, newName)` — no server round-trip at all since token content is unchanged after rename
+- `useSetDuplicate`: replaced `refreshTokens()` (primary op) with `addSetToState(newName, tokenCounts[setName] ?? 0)`; kept `refreshTokens` for undo/redo closures
+- `useSetMetadata`: replaced `refreshTokens()` with `updateSetMetadataInState()` — only description/collection/mode fields updated locally
+- `useSetTabs.handleCreateSet`: replaced `refreshTokens()` with `addSetToState(name, 0)`
+- `App.tsx createSetByName`: replaced `refreshTokens()` with `addSetToState(name, 0)`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L133, `useSetDelete.ts` (full rewrite), `useSetRename.ts` ~L11, ~L55, `useSetDuplicate.ts` ~L9, ~L47, `useSetMetadata.ts` (full rewrite), `useSetTabs.ts` ~L14, ~L239, `App.tsx` ~L325, ~L587, ~L601-617
+- **Learnings for future iterations:**
+  - `renameSetInState` needs to copy value as `next[oldName] ?? ''` not just `next[oldName]` to keep TypeScript happy with string-typed maps
+  - `fetchTokensForSet` shares the gen/signal logic with `refreshTokens` — both increment `fetchGenRef` so they compete correctly; whichever starts last wins
+  - Undo/redo closures in `useSetDuplicate` still use `refreshTokens()` (correct: rare path, full consistency needed after undo)
+  - Reorder error fallbacks in `useSetTabs` still use `refreshTokens()` (correct: they need to revert optimistic `setSets` to server-authoritative order)
+---

@@ -11,6 +11,7 @@ interface UseSetTabsParams {
   sets: string[];
   setSets: (sets: string[]) => void;
   activeSet: string;
+  addSetToState: (name: string, count?: number) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
@@ -23,7 +24,7 @@ interface UseSetTabsParams {
 export function useSetTabs({
   serverUrl, connected, getDisconnectSignal,
   sets, setSets, activeSet,
-  refreshTokens, setSuccessToast, setErrorToast, markDisconnected,
+  addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected,
   perSetFlat, allTokensFlat, activeThemes,
 }: UseSetTabsParams) {
   // Drag state
@@ -236,7 +237,7 @@ export function useSetTabs({
       setCreatingSet(false);
       setNewSetName('');
       setNewSetError('');
-      refreshTokens();
+      addSetToState(name, 0);
       setSuccessToast(`Created set "${name}"`);
     } catch (err) {
       if (isNetworkError(err)) {

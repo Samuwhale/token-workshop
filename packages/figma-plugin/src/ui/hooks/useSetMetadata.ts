@@ -8,7 +8,7 @@ interface UseSetMetadataParams {
   setDescriptions: Record<string, string>;
   setCollectionNames: Record<string, string>;
   setModeNames: Record<string, string>;
-  refreshTokens: () => void;
+  updateSetMetadataInState: (name: string, description: string, collectionName: string, modeName: string) => void;
   setTabMenuOpen: (v: string | null) => void;
   onError: (msg: string) => void;
 }
@@ -16,7 +16,7 @@ interface UseSetMetadataParams {
 export function useSetMetadata({
   serverUrl, connected,
   setDescriptions, setCollectionNames, setModeNames,
-  refreshTokens, setTabMenuOpen, onError,
+  updateSetMetadataInState, setTabMenuOpen, onError,
 }: UseSetMetadataParams) {
   const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
   const [metadataDescription, setMetadataDescription] = useState('');
@@ -47,8 +47,8 @@ export function useSetMetadata({
       onError(`Save metadata failed: ${getErrorMessage(err)}`);
       return;
     }
+    updateSetMetadataInState(editingMetadataSet, metadataDescription, metadataCollectionName, metadataModeName);
     setEditingMetadataSet(null);
-    refreshTokens();
   };
 
   return {

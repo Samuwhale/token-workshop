@@ -130,7 +130,60 @@ export function useTokens(
     // cause a redundant double-fetch whenever connection state changes.
   }, [activeSet]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
+  /** Add a new set to local state without re-fetching from server. */
+  const addSetToState = useCallback((name: string, count = 0) => {
+    setSets(prev => prev.includes(name) ? prev : [...prev, name]);
+    setSetTokenCounts(prev => ({ ...prev, [name]: count }));
+  }, []);
+
+  /** Remove a set from all local state maps without re-fetching. */
+  const removeSetFromState = useCallback((name: string) => {
+    setSets(prev => prev.filter(s => s !== name));
+    setSetTokenCounts(prev => { const next = { ...prev }; delete next[name]; return next; });
+    setSetDescriptions(prev => { const next = { ...prev }; delete next[name]; return next; });
+    setSetCollectionNames(prev => { const next = { ...prev }; delete next[name]; return next; });
+    setSetModeNames(prev => { const next = { ...prev }; delete next[name]; return next; });
+  }, []);
+
+  /** Rename a set across all local state maps without re-fetching. */
+  const renameSetInState = useCallback((oldName: string, newName: string) => {
+    setSets(prev => prev.map(s => s === oldName ? newName : s));
+    setSetTokenCounts(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName]; delete next[oldName]; } return next; });
+    setSetDescriptions(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
+    setSetCollectionNames(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
+    setSetModeNames(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
+  }, []);
+
+  /** Update only the metadata fields for a set without re-fetching. */
+  const updateSetMetadataInState = useCallback((name: string, description: string, collectionName: string, modeName: string) => {
+    setSetDescriptions(prev => ({ ...prev, [name]: description }));
+    setSetCollectionNames(prev => ({ ...prev, [name]: collectionName }));
+    setSetModeNames(prev => ({ ...prev, [name]: modeName }));
+  }, []);
+
+  /** Fetch tokens for a specific set without re-fetching the sets list. */
+  const fetchTokensForSet = useCallback(async (setName: string) => {
+    if (!connected || !setName) return;
+    const gen = ++fetchGenRef.current;
+    const unmountSig = unmountControllerRef.current.signal;
+    const disconnectSig = getDisconnectSignal?.();
+    const signal = (disconnectSig != null)
+      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig, unmountSig])
+      : AbortSignal.any([AbortSignal.timeout(5000), unmountSig]);
+    try {
+      const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal });
+      if (gen !== fetchGenRef.current || signal.aborted) return;
+      setTokens(buildTree(tokensData.tokens || {}));
+      setTokenRevision(r => r + 1);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      const isNetworkErr = isNetworkError(err);
+      if (isNetworkErr) onNetworkError?.();
+      console.error('Failed to fetch tokens for set:', setName, err);
+    }
+  }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
+
+  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {

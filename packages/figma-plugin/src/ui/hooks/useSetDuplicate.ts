@@ -6,6 +6,8 @@ interface UseSetDuplicateParams {
   connected: boolean;
   getDisconnectSignal: () => AbortSignal;
   sets: string[];
+  tokenCounts: Record<string, number>;
+  addSetToState: (name: string, count?: number) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
@@ -16,8 +18,8 @@ interface UseSetDuplicateParams {
 
 export function useSetDuplicate({
   serverUrl, connected, getDisconnectSignal,
-  sets, refreshTokens, setSuccessToast, setErrorToast,
-  markDisconnected, pushUndo, setTabMenuOpen,
+  sets, tokenCounts, addSetToState, refreshTokens,
+  setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen,
 }: UseSetDuplicateParams) {
 
   const handleDuplicateSet = async (setName: string) => {
@@ -44,7 +46,7 @@ export function useSetDuplicate({
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;
     }
-    refreshTokens();
+    addSetToState(newName, tokenCounts[setName] ?? 0);
     setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
     const url = serverUrl;
     const dupName = newName;

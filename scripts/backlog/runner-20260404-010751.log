@@ -531,3 +531,21 @@ Already up to date.
 
   Merging to main: App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
 Already up to date.
+[main 0e635f09] chore(backlog): done – App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
+ 8 files changed, 94 insertions(+), 17 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useAnalyticsState.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useCompareState.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useGraphState.ts
+  ✓ Merged and marked done
+
+## 2026-04-04 - App.tsx is a 3378-line monolith with 46 useState calls — extract domain-specific state groups into composite hooks
+- Created three composite hooks to extract state from App.tsx:
+  - `useCompareState` (6 useState): `compareMode`, `compareTokenPaths`, `compareTokenPath`, `compareThemeKey`, `compareThemeDefaultA`, `compareThemeDefaultB`
+  - `useAnalyticsState` (4 useState): `validateKey`, `analyticsIssueCount`, `showIssuesOnly`, `showValidationReturn`
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  15 queued · 3 in-progress · last took 3m11s
+═══════════════════════════════════════════════════════════════
+  → UI data-fetching hooks lack abort signals and error feedback — of ~15 hooks that call apiFetch, only 4 pass abort signals; useGitConflicts, useRecentOperations, useResolvers, useGitDiff, useLintConfig, and useThemeBulkOps all fire fetch calls that cannot be cancelled on component unmount or server disconnect, causing state-update-on-unmounted-component warnings; additionally useTokenDataLoading catches fetch errors but has no error state — it logs to console and sets loading=false so users see an empty token list with no failure indication; fetchAllTokensFlat and fetchAllTokensFlatWithSets in useTokens.ts are 80% duplicated code (both fetch /api/sets then Promise.allSettled over each set) differing only in per-set tracking — a single parameterized function would eliminate the duplication and ensure bug fixes apply to both paths (hooks/*.ts, useTokens.ts L136-210)
+  Worktree: /tmp/backlog-92209-DNPBvY
+  Running agent… (started 02:40:15)
