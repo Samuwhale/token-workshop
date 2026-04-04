@@ -5,7 +5,7 @@ import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from 
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
-import { stableStringify, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
@@ -28,6 +28,9 @@ import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
 import type { TokenTreeContextType } from './tokenListTypes';
 import { TokenListModals } from './TokenListModals';
+import { TokenListModalsProvider } from './TokenListModalsContext';
+import type { TokenListModalsState } from './TokenListModalsContext';
+import { useExtractToAlias } from '../hooks/useExtractToAlias';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
@@ -1480,60 +1483,18 @@ export function TokenList({
       }
     : null;
 
-  // Extract to alias state
-  const [extractToken, setExtractToken] = useState<{ path: string; $type?: string; $value: any } | null>(null);
-  const [extractMode, setExtractMode] = useState<'new' | 'existing'>('new');
-  const [newPrimitivePath, setNewPrimitivePath] = useState('');
-  const [newPrimitiveSet, setNewPrimitiveSet] = useState('');
-  const [existingAlias, setExistingAlias] = useState('');
-  const [existingAliasSearch, setExistingAliasSearch] = useState('');
-  const [extractError, setExtractError] = useState('');
-
-  const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: any) => {
-    const lastSegment = path.split('.').pop() ?? 'token';
-    const suggested = `primitives.${$type || 'color'}.${lastSegment}`;
-    setNewPrimitivePath(suggested);
-    setNewPrimitiveSet(setName);
-    setExistingAlias('');
-    setExistingAliasSearch('');
-    setExtractMode('new');
-    setExtractError('');
-    setExtractToken({ path, $type, $value });
-  }, [setName]);
-
-  const handleConfirmExtractToAlias = useCallback(async () => {
-    if (!extractToken || !connected) return;
-    setExtractError('');
-
-    if (extractMode === 'new') {
-      if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
-      try {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${tokenPathToUrlSegment(newPrimitivePath.trim())}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
-        });
-      } catch (err) {
-        setExtractError(err instanceof ApiError ? err.message : 'Failed to create primitive token.');
-        return;
-      }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
-      });
-    } else {
-      if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(extractToken.path)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $value: `{${existingAlias}}` }),
-      });
-    }
-
-    setExtractToken(null);
-    onRefresh();
-  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveSet, existingAlias, connected, serverUrl, setName, onRefresh]);
+  // Extract to alias state — managed by useExtractToAlias hook
+  const {
+    extractToken, setExtractToken,
+    extractMode, setExtractMode,
+    newPrimitivePath, setNewPrimitivePath,
+    newPrimitiveSet, setNewPrimitiveSet,
+    existingAlias, setExistingAlias,
+    existingAliasSearch, setExistingAliasSearch,
+    extractError, setExtractError,
+    handleOpenExtractToAlias,
+    handleConfirmExtractToAlias,
+  } = useExtractToAlias({ connected, serverUrl, setName, onRefresh });
 
   // requestBulkDelete wrapper — passes current selectedPaths
   const requestBulkDelete = useCallback(() => {
@@ -2033,6 +1994,145 @@ export function TokenList({
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
     pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
+  ]);
+
+  // Build modal context value — memoized so TokenListModals only re-renders when
+  // modal-related state actually changes, not on every TokenList render.
+  const modalContextValue = useMemo<TokenListModalsState>(() => ({
+    showScaffold,
+    onSetShowScaffold: setShowScaffold,
+    serverUrl,
+    setName,
+    sets,
+    onRefresh,
+    allTokensFlat,
+    connected,
+    deleteConfirm,
+    modalProps,
+    executeDelete,
+    onSetDeleteConfirm: setDeleteConfirm,
+    newGroupDialogParent,
+    newGroupName,
+    newGroupError,
+    onSetNewGroupName: setNewGroupName,
+    onSetNewGroupError: setNewGroupError,
+    handleCreateGroup,
+    onSetNewGroupDialogParent: setNewGroupDialogParent,
+    renameTokenConfirm,
+    executeTokenRename,
+    onSetRenameTokenConfirm: setRenameTokenConfirm,
+    renameGroupConfirm,
+    executeGroupRename,
+    onSetRenameGroupConfirm: setRenameGroupConfirm,
+    varDiffPending,
+    doApplyVariables,
+    onSetVarDiffPending: setVarDiffPending,
+    extractToken,
+    extractMode,
+    onSetExtractMode: setExtractMode,
+    newPrimitivePath,
+    onSetNewPrimitivePath: setNewPrimitivePath,
+    newPrimitiveSet,
+    onSetNewPrimitiveSet: setNewPrimitiveSet,
+    existingAlias,
+    onSetExistingAlias: setExistingAlias,
+    existingAliasSearch,
+    onSetExistingAliasSearch: setExistingAliasSearch,
+    extractError,
+    onSetExtractError: setExtractError,
+    handleConfirmExtractToAlias,
+    onSetExtractToken: setExtractToken,
+    showFindReplace,
+    frFind,
+    frReplace,
+    frIsRegex,
+    frScope,
+    frTarget,
+    frError,
+    frBusy,
+    frRegexError,
+    frPreview,
+    frValuePreview,
+    frConflictCount,
+    frRenameCount,
+    frValueCount,
+    frAliasImpact,
+    frTypeFilter,
+    frAvailableTypes,
+    onSetFrFind: setFrFind,
+    onSetFrReplace: setFrReplace,
+    onSetFrIsRegex: setFrIsRegex,
+    onSetFrScope: setFrScope,
+    onSetFrTarget: setFrTarget,
+    onSetFrTypeFilter: setFrTypeFilter,
+    onSetFrError: setFrError,
+    onSetShowFindReplace: setShowFindReplace,
+    handleFindReplace,
+    cancelFindReplace,
+    promoteRows,
+    promoteBusy,
+    onSetPromoteRows: setPromoteRows,
+    handleConfirmPromote,
+    movingToken,
+    movingGroup,
+    moveTargetSet: movingGroup ? moveGroupTargetSet : moveTokenTargetSet,
+    onSetMoveTargetSet: movingGroup ? setMoveGroupTargetSet : handleChangeMoveTokenTargetSet,
+    onSetMovingToken: setMovingToken,
+    onSetMovingGroup: setMovingGroup,
+    handleConfirmMoveToken,
+    handleConfirmMoveGroup,
+    moveConflict: movingToken ? moveConflict : null,
+    moveConflictAction,
+    onSetMoveConflictAction: setMoveConflictAction,
+    moveConflictNewPath,
+    onSetMoveConflictNewPath: setMoveConflictNewPath,
+    moveSourceToken: movingToken ? (allTokensFlat[movingToken] ?? null) : null,
+    copyingToken,
+    copyingGroup,
+    copyTargetSet: copyingGroup ? copyGroupTargetSet : copyTokenTargetSet,
+    onSetCopyTargetSet: copyingGroup ? setCopyGroupTargetSet : handleChangeCopyTokenTargetSet,
+    onSetCopyingToken: setCopyingToken,
+    onSetCopyingGroup: setCopyingGroup,
+    handleConfirmCopyToken,
+    handleConfirmCopyGroup,
+    copyConflict: copyingToken ? copyConflict : null,
+    copyConflictAction,
+    onSetCopyConflictAction: setCopyConflictAction,
+    copyConflictNewPath,
+    onSetCopyConflictNewPath: setCopyConflictNewPath,
+    copySourceToken: copyingToken ? (allTokensFlat[copyingToken] ?? null) : null,
+    showMoveToGroup,
+    moveToGroupTarget,
+    moveToGroupError,
+    selectedMoveCount: selectedPaths.size,
+    onSetShowMoveToGroup: setShowMoveToGroup,
+    onSetMoveToGroupTarget: setMoveToGroupTarget,
+    onSetMoveToGroupError: setMoveToGroupError,
+    handleBatchMoveToGroup,
+  }), [
+    showScaffold, serverUrl, setName, sets, onRefresh, allTokensFlat, connected,
+    deleteConfirm, modalProps, executeDelete,
+    newGroupDialogParent, newGroupName, newGroupError, handleCreateGroup,
+    renameTokenConfirm, executeTokenRename,
+    renameGroupConfirm, executeGroupRename,
+    varDiffPending, doApplyVariables,
+    extractToken, extractMode, newPrimitivePath, newPrimitiveSet,
+    existingAlias, existingAliasSearch, extractError, handleConfirmExtractToAlias,
+    showFindReplace, frFind, frReplace, frIsRegex, frScope, frTarget,
+    frError, frBusy, frRegexError, frPreview, frValuePreview,
+    frConflictCount, frRenameCount, frValueCount, frAliasImpact,
+    frTypeFilter, frAvailableTypes, handleFindReplace, cancelFindReplace,
+    promoteRows, promoteBusy, handleConfirmPromote,
+    movingToken, movingGroup, moveGroupTargetSet, moveTokenTargetSet,
+    setMoveGroupTargetSet, handleChangeMoveTokenTargetSet,
+    handleConfirmMoveToken, handleConfirmMoveGroup,
+    moveConflict, moveConflictAction, moveConflictNewPath,
+    copyingToken, copyingGroup, copyGroupTargetSet, copyTokenTargetSet,
+    setCopyGroupTargetSet, handleChangeCopyTokenTargetSet,
+    handleConfirmCopyToken, handleConfirmCopyGroup,
+    copyConflict, copyConflictAction, copyConflictNewPath,
+    showMoveToGroup, moveToGroupTarget, moveToGroupError,
+    selectedPaths, handleBatchMoveToGroup,
   ]);
 
   return (
@@ -3886,118 +3986,9 @@ export function TokenList({
         </div>
       )}
 
-      <TokenListModals
-        showScaffold={showScaffold}
-        onSetShowScaffold={setShowScaffold}
-        serverUrl={serverUrl}
-        setName={setName}
-        sets={sets}
-        onRefresh={onRefresh}
-        allTokensFlat={allTokensFlat}
-        connected={connected}
-        deleteConfirm={deleteConfirm}
-        modalProps={modalProps}
-        executeDelete={executeDelete}
-        onSetDeleteConfirm={setDeleteConfirm}
-        newGroupDialogParent={newGroupDialogParent}
-        newGroupName={newGroupName}
-        newGroupError={newGroupError}
-        onSetNewGroupName={setNewGroupName}
-        onSetNewGroupError={setNewGroupError}
-        handleCreateGroup={handleCreateGroup}
-        onSetNewGroupDialogParent={setNewGroupDialogParent}
-        renameTokenConfirm={renameTokenConfirm}
-        executeTokenRename={executeTokenRename}
-        onSetRenameTokenConfirm={setRenameTokenConfirm}
-        renameGroupConfirm={renameGroupConfirm}
-        executeGroupRename={executeGroupRename}
-        onSetRenameGroupConfirm={setRenameGroupConfirm}
-        varDiffPending={varDiffPending}
-        doApplyVariables={doApplyVariables}
-        onSetVarDiffPending={setVarDiffPending}
-        extractToken={extractToken}
-        extractMode={extractMode}
-        onSetExtractMode={setExtractMode}
-        newPrimitivePath={newPrimitivePath}
-        onSetNewPrimitivePath={setNewPrimitivePath}
-        newPrimitiveSet={newPrimitiveSet}
-        onSetNewPrimitiveSet={setNewPrimitiveSet}
-        existingAlias={existingAlias}
-        onSetExistingAlias={setExistingAlias}
-        existingAliasSearch={existingAliasSearch}
-        onSetExistingAliasSearch={setExistingAliasSearch}
-        extractError={extractError}
-        onSetExtractError={setExtractError}
-        handleConfirmExtractToAlias={handleConfirmExtractToAlias}
-        onSetExtractToken={setExtractToken}
-        showFindReplace={showFindReplace}
-        frFind={frFind}
-        frReplace={frReplace}
-        frIsRegex={frIsRegex}
-        frScope={frScope}
-        frTarget={frTarget}
-        frError={frError}
-        frBusy={frBusy}
-        frRegexError={frRegexError}
-        frPreview={frPreview}
-        frValuePreview={frValuePreview}
-        frConflictCount={frConflictCount}
-        frRenameCount={frRenameCount}
-        frValueCount={frValueCount}
-        frAliasImpact={frAliasImpact}
-        onSetFrFind={setFrFind}
-        onSetFrReplace={setFrReplace}
-        onSetFrIsRegex={setFrIsRegex}
-        frTypeFilter={frTypeFilter}
-        frAvailableTypes={frAvailableTypes}
-        onSetFrScope={setFrScope}
-        onSetFrTarget={setFrTarget}
-        onSetFrTypeFilter={setFrTypeFilter}
-        onSetFrError={setFrError}
-        onSetShowFindReplace={setShowFindReplace}
-        handleFindReplace={handleFindReplace}
-        cancelFindReplace={cancelFindReplace}
-        promoteRows={promoteRows}
-        promoteBusy={promoteBusy}
-        onSetPromoteRows={setPromoteRows}
-        handleConfirmPromote={handleConfirmPromote}
-        movingToken={movingToken}
-        movingGroup={movingGroup}
-        moveTargetSet={movingGroup ? moveGroupTargetSet : moveTokenTargetSet}
-        onSetMoveTargetSet={movingGroup ? setMoveGroupTargetSet : handleChangeMoveTokenTargetSet}
-        onSetMovingToken={setMovingToken}
-        onSetMovingGroup={setMovingGroup}
-        handleConfirmMoveToken={handleConfirmMoveToken}
-        handleConfirmMoveGroup={handleConfirmMoveGroup}
-        moveConflict={movingToken ? moveConflict : null}
-        moveConflictAction={moveConflictAction}
-        onSetMoveConflictAction={setMoveConflictAction}
-        moveConflictNewPath={moveConflictNewPath}
-        onSetMoveConflictNewPath={setMoveConflictNewPath}
-        moveSourceToken={movingToken ? (allTokensFlat[movingToken] ?? null) : null}
-        copyingToken={copyingToken}
-        copyingGroup={copyingGroup}
-        copyTargetSet={copyingGroup ? copyGroupTargetSet : copyTokenTargetSet}
-        onSetCopyTargetSet={copyingGroup ? setCopyGroupTargetSet : handleChangeCopyTokenTargetSet}
-        onSetCopyingToken={setCopyingToken}
-        onSetCopyingGroup={setCopyingGroup}
-        handleConfirmCopyToken={handleConfirmCopyToken}
-        handleConfirmCopyGroup={handleConfirmCopyGroup}
-        copyConflict={copyingToken ? copyConflict : null}
-        copyConflictAction={copyConflictAction}
-        onSetCopyConflictAction={setCopyConflictAction}
-        copyConflictNewPath={copyConflictNewPath}
-        onSetCopyConflictNewPath={setCopyConflictNewPath}
-        copySourceToken={copyingToken ? (allTokensFlat[copyingToken] ?? null) : null}
-        showMoveToGroup={showMoveToGroup}
-        moveToGroupTarget={moveToGroupTarget}
-        moveToGroupError={moveToGroupError}
-        selectedMoveCount={selectedPaths.size}
-        onSetShowMoveToGroup={setShowMoveToGroup}
-        onSetMoveToGroupTarget={setMoveToGroupTarget}
-        onSetMoveToGroupError={setMoveToGroupError}
-        handleBatchMoveToGroup={handleBatchMoveToGroup}
-      />
+      <TokenListModalsProvider value={modalContextValue}>
+        <TokenListModals />
+      </TokenListModalsProvider>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
 import type { DeleteConfirm, PromoteRow, AffectedRef } from './tokenListTypes';
+import { useTokenListModals } from './TokenListModalsContext';
 
 export interface TokenListModalsProps {
   // Quick Start Dialog
@@ -218,7 +219,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
   );
 }
 
-export function TokenListModals(props: TokenListModalsProps) {
+export function TokenListModals() {
   const {
     showScaffold,
     onSetShowScaffold,
@@ -330,7 +331,7 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetMoveToGroupTarget,
     onSetMoveToGroupError,
     handleBatchMoveToGroup,
-  } = props;
+  } = useTokenListModals();
 
   return (
     <>

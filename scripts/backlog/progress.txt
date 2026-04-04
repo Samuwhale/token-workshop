@@ -151,3 +151,21 @@
   - Network errors go through `onNetworkError` (triggers disconnect); non-network errors need a separate error state — these are distinct failure modes that should not be conflated.
   - The `setFetchError(null)` clear should happen at the first successful point in the try block (after sets load) rather than inside the `allSets.length > 0` branch, so that a previously-errored state clears even when there are no sets.
 ---
+
+## 2026-04-04 - TokenList.tsx has ~60 useState hooks and passes 100+ individual props to TokenListModals
+- Eliminated prop-drilling of 50+ individual props to `TokenListModals` using a dedicated context:
+  - **New `useExtractToAlias` hook** (`packages/figma-plugin/src/ui/hooks/useExtractToAlias.ts`): extracted 6 inline `useState` calls + 2 handlers (handleOpenExtractToAlias, handleConfirmExtractToAlias) from TokenList into a reusable hook
+  - **New `TokenListModalsContext.tsx`** (`packages/figma-plugin/src/ui/components/TokenListModalsContext.tsx`): exports `TokenListModalsState` type, `TokenListModalsProvider` component, and `useTokenListModals()` hook
+  - **`TokenListModals.tsx`**: changed `function TokenListModals(props: TokenListModalsProps)` to `function TokenListModals()` — reads all state from `useTokenListModals()` context instead of props
+  - **`TokenList.tsx`**: added `useMemo<TokenListModalsState>` that builds the modal context value (memoized so `TokenListModals` only re-renders on modal-relevant state changes, not unrelated TokenList state like `searchQuery`/`expandedPaths`/`virtualScrollTop`); wraps `<TokenListModals />` with `<TokenListModalsProvider value={modalContextValue}>` instead of spreading 50+ props
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useExtractToAlias.ts` (new)
+  - `packages/figma-plugin/src/ui/components/TokenListModalsContext.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L221 (function signature change)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L30-33 (imports), ~L1486 (hook call), ~L1999 (useMemo), ~L3989 (provider usage)
+- **Learnings for future iterations:**
+  - `TokenListModalsProps` is preserved as the context type — the `TokenListModalsProvider` accepts `value: TokenListModalsState` which is the same shape; no interface duplication needed
+  - The memoized context value is the performance key: only modal-state changes (moveConflict, frFind, extractToken, etc.) trigger `TokenListModals` re-renders, not unrelated list state (search, virtual scroll, expansions)
+  - State setter functions from `useState` are stable references — safe to include in `useMemo` deps without causing extra renders, but also safe to omit if ESLint is a concern
+  - When extracting a custom hook that calls `useCallback` with captured state, make sure the hook's own `useState` calls come before any `useCallback` that references them (TDZ rule)
+---
