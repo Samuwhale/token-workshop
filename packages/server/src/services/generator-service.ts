@@ -119,7 +119,12 @@ export class GeneratorService {
     };
     const tmp = `${this.filePath}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-    await fs.rename(tmp, this.filePath);
+    try {
+      await fs.rename(tmp, this.filePath);
+    } catch (err) {
+      await fs.unlink(tmp).catch(() => {});
+      throw err;
+    }
   }
 
   async getAll(): Promise<TokenGenerator[]> {
@@ -148,7 +153,12 @@ export class GeneratorService {
           'Ensure no generator sources from its own output group.',
       );
     }
-    await this.saveGenerators();
+    try {
+      await this.saveGenerators();
+    } catch (err) {
+      this.generators.delete(generator.id);
+      throw err;
+    }
     return generator;
   }
 
@@ -175,14 +185,25 @@ export class GeneratorService {
           'Ensure no generator sources from its own output group.',
       );
     }
-    await this.saveGenerators();
+    try {
+      await this.saveGenerators();
+    } catch (err) {
+      this.generators.set(id, existing);
+      throw err;
+    }
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
-    if (!this.generators.has(id)) return false;
+    const existing = this.generators.get(id);
+    if (!existing) return false;
     this.generators.delete(id);
-    await this.saveGenerators();
+    try {
+      await this.saveGenerators();
+    } catch (err) {
+      this.generators.set(id, existing);
+      throw err;
+    }
     return true;
   }
 

@@ -226,3 +226,15 @@
   - `figma.off()` requires the exact same function reference as `figma.on()` — store the handler in a variable before registering.
   - The `all-pages` scope iterates `figma.root.children` (stable, page-independent), so a `currentpagechange` event there is expected and should not abort.
 ---
+
+## 2026-04-04 - Generator service has in-memory/disk state divergence and stale-detection inconsistency
+- Fixed three bugs:
+  1. `create()`, `update()`, `delete()` now rollback in-memory state if `saveGenerators()` throws — wrapping the await in try/catch and restoring the prior Map entry (or deleting the new one).
+  2. `_doSave()` now wraps `fs.rename` in try/finally to unlink the `.tmp` file on rename failure, preventing temp file leaks.
+  3. `GET /generators` route now uses `stableStringify` (imported from `../services/stable-stringify.js`) instead of `JSON.stringify` for the `isStale` comparison, eliminating false-positive staleness for objects with non-deterministic key ordering.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L116, ~L141, ~L168, ~L183; `packages/server/src/routes/generators.ts` ~L22, ~L392
+- **Learnings for future iterations:**
+  - Mutation-before-save pattern is easy to overlook: whenever you mutate in-memory state and then await a disk write, add a try/catch that restores the prior state on failure.
+  - `.tmp` file rename failures require explicit cleanup — the same `try { rename } catch { unlink(tmp); throw }` pattern applies anywhere atomic writes are used.
+  - Any staleness/comparison logic that operates on nested objects must use `stableStringify`, not `JSON.stringify` — applies to both service and route layers.
+---

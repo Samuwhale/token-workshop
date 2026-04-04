@@ -21,6 +21,7 @@ import type {
 import { DIMENSION_UNITS, evalExpr, substituteVars } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import { snapshotGroup } from '../services/operation-log.js';
+import { stableStringify } from '../services/stable-stringify.js';
 
 const VALID_GENERATOR_TYPES: readonly string[] = [
   'colorRamp',
@@ -389,7 +390,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         if (!gen.sourceToken || gen.lastRunAt === undefined) return gen;
         const resolved = await fastify.tokenStore.resolveToken(gen.sourceToken).catch(() => null);
         if (resolved === null) return gen;
-        const isStale = JSON.stringify(resolved.$value) !== JSON.stringify(gen.lastRunSourceValue);
+        const isStale = stableStringify(resolved.$value) !== stableStringify(gen.lastRunSourceValue);
         return { ...gen, isStale };
       }));
     } catch (err) {
