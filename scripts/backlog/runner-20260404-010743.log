@@ -304,3 +304,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    4 items written to inbox: App.tsx 3378-line monolith (46 useState), UI hooks missing abort signals/error states across 15 hooks, GeneratorService in-memory-only errors + concurrent mutation window, TokenTreeNode 2044-line component with non-memoized handlers in virtualized list
+Already up to date.

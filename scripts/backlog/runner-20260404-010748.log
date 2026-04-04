@@ -378,3 +378,18 @@ Already up to date.
 
   Merging to main: TokenStore.saveSet has no per-set write serialization
 Already up to date.
+[main a602904c] chore(backlog): done – TokenStore.saveSet has no per-set write serialization
+ 5 files changed, 56 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - TokenStore.saveSet has no per-set write serialization
+- Added `private _saveChains = new Map<string, Promise<void>>()` field to `TokenStore` class
+- Rewrote `saveSet` from `private async saveSet(name)` to a non-async method that chains the actual I/O (mkdir + writeFile + rename) behind any in-flight write for the same set name, using the same promise-chain mutex pattern as `TokenLock`
+- The chain advances regardless of success/failure (`.catch(() => {})`) to prevent deadlock — identical to `TokenLock.withLock`
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  11 queued · 2 in-progress · last took 4m41s
+═══════════════════════════════════════════════════════════════
+  → Core resolver `collectReferences` silently adds undefined to reference set on malformed formula — resolver.ts L237 uses regex match group `m[1]` from `makeReferenceGlobalRegex()` without null-checking the capture group; if a formula contains a malformed reference like `{.}` or `{}`, the regex matches but `m[1]` is undefined, adding `undefined` to the references Set which propagates through dependency graph construction and can cause "Cannot read properties of undefined" errors during resolution; additionally dtcg-resolver.ts L203-204 casts `dtcgToken.$value as Token['$value']` and `dtcgToken.$type as TokenType | undefined` without validation, losing type safety at the DTCG-to-internal boundary (packages/core/src/resolver.ts, packages/core/src/dtcg-resolver.ts)
+  Worktree: /tmp/backlog-91949-GBxB4g
+  Running agent… (started 02:22:10)

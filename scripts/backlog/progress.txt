@@ -402,3 +402,9 @@
   - Per-set chains are the right granularity — independent sets can still write in parallel, only same-set writes are serialized
   - `JSON.stringify` runs inside the chain so it always captures the most up-to-date in-memory state when the chain slot executes — correct behavior since later callers inherit all earlier mutations
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: App.tsx (3378L, 46 useState, 70 hooks), TokenTreeNode.tsx (2044L, 25 useState), all UI hooks (51 files, 163 apiFetch calls across 31 files — only 4 hooks use abort signals), useTokens.ts fetch duplication (fetchAllTokensFlat vs fetchAllTokensFlatWithSets), generator-service.ts (executeGenerator re-read race L589-626, in-memory-only generatorErrors), token-store.ts (beginBatch/endBatch, reorderSets), git-sync.ts (showFileAtCommit input handling), plugin sandbox (heatmapScanning error swallowing), core resolver (type inference fallback)
+- Found 4 items — written to backlog-inbox.md
+- Notable: App.tsx is the largest structural liability — 46 useState calls in one component means every state change re-renders the entire plugin UI; the 6 compare-related states, 4 analytics states, and 3 graph states each have zero interaction with each other but all live in the same render cycle
+---
