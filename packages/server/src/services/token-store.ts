@@ -265,17 +265,18 @@ export class TokenStore {
 
   private rebuildFlatTokens(): void {
     if (this._batchDepth > 0) return; // deferred — endBatch() always rebuilds
-    this.flatTokens.clear();
+    const newMap = new Map<string, Array<{ token: Token; setName: string }>>();
     for (const [setName, set] of this.sets) {
       for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
-        let entries = this.flatTokens.get(tokenPath);
+        let entries = newMap.get(tokenPath);
         if (!entries) {
           entries = [];
-          this.flatTokens.set(tokenPath, entries);
+          newMap.set(tokenPath, entries);
         }
         entries.push({ token: token as Token, setName });
       }
     }
+    this.flatTokens = newMap; // atomic swap — no reader sees a partial/empty map
     this.rebuildResolver();
     this.rebuildCrossSetDependents();
   }
@@ -800,6 +801,7 @@ export class TokenStore {
       await this.saveSet(setName);
     } catch (err) {
       this.restoreSnapshots(snapshot);
+      this.rebuildFlatTokens(); // in-place mutations above corrupted flatTokens entries; rebuild from restored snapshot
       throw err;
     }
     this.rebuildFlatTokens();

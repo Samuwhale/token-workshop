@@ -610,3 +610,13 @@
   - For mutations (POST): don't abort the HTTP request (server may have already processed it); use a `mountedRef` to gate all setState calls in catch/finally instead.
   - `finally { setLoading(false) }` must be guarded with `if (!controller.signal.aborted)` — `finally` runs even when `return` is in `catch`, so an early return on `AbortError` still hits the finally block and would trigger a state update on an unmounted component.
 ---
+
+## 2026-04-04 - TokenStore rebuildFlatTokens() non-atomic + missing rebuild on error path
+- Fixed `rebuildFlatTokens()` to build into a new `Map` and assign atomically (`this.flatTokens = newMap`), eliminating the window where concurrent SSE/resolveTokens readers could observe an empty or partial token map
+- Added `this.rebuildFlatTokens()` in the `updateToken` catch block after `restoreSnapshots()`: `updateToken` mutates token properties in-place (`existing.$value = …`), which corrupts the existing `flatTokens` entries; `restoreSnapshots` replaces the tree with a deep clone but `flatTokens` still held references to the mutated objects — the rebuild re-derives from the restored snapshot
+- `setToken`, `deleteToken`, `createGroup`, `updateGroupMeta` don't need error-path rebuilds because they either replace whole objects (not mutate in-place) or run inside `withBatch` (whose `endBatch` always calls `rebuildFlatTokens`)
+- Files changed: `packages/server/src/services/token-store.ts` ~L266, ~L800
+- **Learnings for future iterations:**
+  - In-place mutation of objects already referenced by a derived data structure (flatTokens) is the subtle bug — `setTokenAtPath` replaces the node so old references stay valid, but `updateToken`'s property-assignment pattern corrupts the referenced object
+  - Atomic Map swap is a one-liner: build into a local `newMap`, assign to `this.flatTokens` at the end; readers never see a partial state
+---

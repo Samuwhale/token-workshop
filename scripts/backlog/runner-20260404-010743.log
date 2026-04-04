@@ -444,3 +444,10 @@ Already up to date.
   → [HIGH] TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically — any concurrent reader (SSE snapshot, resolveTokens, getFlatTokensForSet) that runs between `.clear()` and completion sees an empty or partial token map; additionally, on saveSet failure the catch path calls restoreSnapshots but never calls rebuildFlatTokens, leaving flatTokens/resolver permanently stale until the next successful write; fix by building into a new Map and swapping atomically, and always rebuilding on the error path (packages/server/src/services/token-store.ts L266-280, L767-771, L800-806)
   Worktree: /tmp/backlog-91634-YbOjq5
   Running agent… (started 02:45:51)
+
+  ✓ done: TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically
+    Fixed atomic swap (build new Map, assign to this.flatTokens) + added rebuildFlatTokens() on updateToken error path since in-place property mutation corrupts flatTokens entries that restoreSnapshots can't fix
+    14 turns · 187s · $0.45
+
+  Merging to main: TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically
+Already up to date.

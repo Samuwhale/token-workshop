@@ -556,3 +556,18 @@ Already up to date.
 
   Merging to main: UI data-fetching hooks lack abort signals and error feedback
 Already up to date.
+[main 8af11cba] chore(backlog): done – UI data-fetching hooks lack abort signals and error feedback
+ 13 files changed, 150 insertions(+), 63 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - UI data-fetching hooks lack abort signals and error feedback
+- Deduplicated `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` in `useTokens.ts` into a shared `fetchAllSets` internal helper; both exports are now thin wrappers that guarantee bug fixes propagate to both
+- Added `tokensError: string | null` state to `useTokenDataLoading.ts`; cleared on success, set on fetch failure; exposed in return value
+- Added dismissible error banner in `App.tsx` (define/tokens tab) showing `tokensError` with a Retry button that calls `refreshTokens`
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  18 queued · 3 in-progress · last took 7m9s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] OperationLog.record() has no write serialization — two concurrent token mutations both call record(), both push to the in-memory array, both call persist() which writes the full array to disk; the second persist() overwrites the first's file atomically, but if the first persist() started before the second's push(), the first's file content is missing the second entry; needs the same promise-chain mutex pattern used by TokenStore and ResolverStore (packages/server/src/services/operation-log.ts L111-125)
+  Worktree: /tmp/backlog-92209-NWPxdG
+  Running agent… (started 02:47:24)
