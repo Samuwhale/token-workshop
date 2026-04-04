@@ -363,3 +363,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — consolidation (AnalyticsPanel stats/duplicates tabs), dead code (useThemeCompare), workflow gaps (keyboard tree nav, inspector search, export diffs, generator overrides, auto-fill discoverability), and UX improvements (preview templates, lint scoping, health dashboard, value paste)
+Already up to date.

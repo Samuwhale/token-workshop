@@ -508,3 +508,9 @@
   - `handleToggleMultiBrand` only sets/unsets `inputTable` state; `editableSourcePath` was never touched — the bug was purely UI visibility
   - Multi-brand toggle placement near the "Set" selector is logical since multi-brand replaces the single-set target with multi-set routing
 ---
+
+## 2026-04-04 - product-pass
+- Areas explored: App.tsx (state management, navigation, command palette), all 100+ components in ui/components/, all hooks in ui/hooks/, all server routes and services, shared utilities, ThemeManager, AnalyticsPanel, PreviewPanel, ExportPanel, LintConfigPanel, comparison panels (ComparePanel, CrossThemeComparePanel, ThemeCompare, UnifiedComparePanel), TokenEditor, TokenTreeNode, CanvasAuditPanel, PublishPanel, HistoryPanel, SelectionInspector, GeneratorPipelineCard, ResolverPanel, SetSwitcher, MetadataEditor, plugin controller message types
+- Found 12 items — written to backlog-inbox.md
+- Notable: AnalyticsPanel has a "Stats" tab and a "Duplicates" tab that overlap with existing features (token list counts and lint no-duplicate-values rule) — consolidating these would reduce panel count and cognitive load. Also, useThemeCompare.ts is orphaned after comparison refactoring.
+---

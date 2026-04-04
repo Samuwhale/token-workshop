@@ -487,3 +487,18 @@ Already up to date.
 
   Merging to main: Multi-brand generator mode is hidden and mode-switching loses state
 Already up to date.
+[main 9030b84c] chore(backlog): done – Multi-brand generator mode is hidden and mode-switching loses state
+ 5 files changed, 89 insertions(+), 60 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Multi-brand generator mode is hidden and mode-switching loses state
+- Removed `showAdvancedOptions` state — no longer needed
+- Moved multi-brand toggle out of "Advanced options" collapsible into a visible toggle row (pill-style button) within the "Target + Name" section; shows description text when disabled
+- When multi-brand is enabled, shows `InputTableEditor` and "Target set template" inline directly below the toggle (inside an accent-bordered card)
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  7 queued · 2 in-progress · last took 3m46s
+═══════════════════════════════════════════════════════════════
+  → Semantic mapping only previewable after generator save — template semantic layers (e.g., action.default→500) are defined but only shown in a post-save dialog; users can't preview or customize the semantic token mapping during template selection, before committing to a generator; show semantic mapping preview inline in the template card or as a step before save (GraphPanel.tsx templates, SemanticMappingDialog.tsx)
+  Worktree: /tmp/backlog-92209-tot7BR
+  Running agent… (started 02:33:36)
