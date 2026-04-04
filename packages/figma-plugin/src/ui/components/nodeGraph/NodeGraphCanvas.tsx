@@ -186,6 +186,7 @@ export function NodeGraphCanvas({
   const dragRef = useRef<{ nodeId: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; graphX: number; graphY: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 600, h: 400 });
+  const addBtnRef = useRef<HTMLButtonElement>(null);
 
   // ---------------------------------------------------------------------------
   // Search — compute matched node IDs
@@ -416,6 +417,24 @@ export function NodeGraphCanvas({
   }, [selectedNodeId, selectedEdgeId, graph.nodes, removeNode, removeEdge, cancelWiring, setSelectedNodeId, setSelectedEdgeId]);
 
   // ---------------------------------------------------------------------------
+  // Floating "+" button — opens AddNodeMenu near the button
+  // ---------------------------------------------------------------------------
+  const handleAddButtonClick = useCallback(() => {
+    const btn = addBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    // Place menu above-right of the button
+    const menuX = rect.left;
+    const menuY = rect.top - (TRANSFORM_OPS.length * 30 + 32) - 4;
+    // Graph position: center of current viewport
+    const graphCenter = screenToGraph(
+      (containerSize.w) / 2 + (containerRef.current?.getBoundingClientRect().left ?? 0),
+      (containerSize.h) / 2 + (containerRef.current?.getBoundingClientRect().top ?? 0),
+    );
+    setContextMenu({ x: menuX, y: Math.max(4, menuY), graphX: graphCenter.x, graphY: graphCenter.y });
+  }, [screenToGraph, containerSize]);
+
+  // ---------------------------------------------------------------------------
   // Fit to view
   // ---------------------------------------------------------------------------
   const fitToView = useCallback(() => {
@@ -607,9 +626,20 @@ export function NodeGraphCanvas({
         </span>
       </div>
 
+      {/* Floating "+" button — bottom-left, above help text */}
+      <button
+        ref={addBtnRef}
+        onClick={handleAddButtonClick}
+        className="absolute bottom-8 left-2 w-7 h-7 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] flex items-center justify-center text-[16px] font-bold shadow-sm transition-colors"
+        style={{ zIndex: 10, lineHeight: 1 }}
+        title="Add transform node"
+      >
+        +
+      </button>
+
       {/* Help text */}
       <div className="absolute bottom-2 left-2 text-[8px] text-[var(--color-figma-text-tertiary)] pointer-events-none" style={{ zIndex: 10 }}>
-        Scroll to zoom &middot; Drag to pan &middot; Right-click to add transform
+        Scroll to zoom &middot; Drag to pan &middot; Right-click or + to add transform
       </div>
 
       {/* Minimap */}

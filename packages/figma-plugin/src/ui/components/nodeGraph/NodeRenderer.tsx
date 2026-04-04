@@ -1,5 +1,5 @@
 import type { GraphNode, Port, PortDirection, PortType } from './nodeGraphTypes';
-import { NODE_HEADER_H, PORT_ROW_H, PORT_RADIUS, isCompatiblePortType } from './nodeGraphTypes';
+import { NODE_HEADER_H, PORT_ROW_H, PORT_RADIUS, GENERATOR_PREVIEW_H, isCompatiblePortType } from './nodeGraphTypes';
 
 // ---------------------------------------------------------------------------
 // Color scheme per node kind
@@ -273,6 +273,177 @@ function TransformParamsInline({
 }
 
 // ---------------------------------------------------------------------------
+// Inline preview for generator nodes
+// ---------------------------------------------------------------------------
+
+function GeneratorPreview({ node }: { node: GraphNode }) {
+  const y = NODE_HEADER_H + node.ports.length * PORT_ROW_H + 4;
+  const padX = 10;
+  const w = node.width - padX * 2;
+
+  // If we have actual preview colors from the generator, show them
+  if (node.previewColors && node.previewColors.length > 0) {
+    const colors = node.previewColors.slice(0, 7);
+    const dotR = 4;
+    const spacing = Math.min(w / colors.length, dotR * 3);
+    const totalW = (colors.length - 1) * spacing;
+    const startX = padX + (w - totalW) / 2;
+    return (
+      <g style={{ pointerEvents: 'none' }}>
+        {colors.map((c, i) => (
+          <circle
+            key={i}
+            cx={startX + i * spacing}
+            cy={y + GENERATOR_PREVIEW_H / 2}
+            r={dotR}
+            fill={c}
+            stroke="var(--color-figma-border)"
+            strokeWidth={0.5}
+          />
+        ))}
+      </g>
+    );
+  }
+
+  // Schematic previews based on generator type
+  switch (node.generatorType) {
+    case 'colorRamp':
+    case 'darkModeInversion': {
+      // Row of dots from light to dark
+      const count = Math.min(node.stepCount || 5, 7);
+      const dotR = 4;
+      const spacing = Math.min(w / count, dotR * 3);
+      const totalW = (count - 1) * spacing;
+      const startX = padX + (w - totalW) / 2;
+      return (
+        <g style={{ pointerEvents: 'none' }}>
+          {Array.from({ length: count }, (_, i) => {
+            const lightness = 90 - (i / (count - 1)) * 70;
+            return (
+              <circle
+                key={i}
+                cx={startX + i * spacing}
+                cy={y + GENERATOR_PREVIEW_H / 2}
+                r={dotR}
+                fill={`hsl(220, 50%, ${lightness}%)`}
+                stroke="var(--color-figma-border)"
+                strokeWidth={0.5}
+              />
+            );
+          })}
+        </g>
+      );
+    }
+
+    case 'typeScale': {
+      // Horizontal bars of decreasing width
+      const barCount = Math.min(node.stepCount || 3, 4);
+      const barH = 2.5;
+      const gap = 1.5;
+      const totalH = barCount * barH + (barCount - 1) * gap;
+      const startY = y + (GENERATOR_PREVIEW_H - totalH) / 2;
+      return (
+        <g style={{ pointerEvents: 'none' }}>
+          {Array.from({ length: barCount }, (_, i) => {
+            const barW = w * (1 - i * 0.2);
+            return (
+              <rect
+                key={i}
+                x={padX}
+                y={startY + i * (barH + gap)}
+                width={Math.max(8, barW)}
+                height={barH}
+                rx={1}
+                fill="var(--color-figma-text-tertiary)"
+                opacity={0.8 - i * 0.15}
+              />
+            );
+          })}
+        </g>
+      );
+    }
+
+    case 'spacingScale':
+    case 'borderRadiusScale': {
+      // Increasing-size squares
+      const count = Math.min(node.stepCount || 4, 5);
+      const maxSize = 10;
+      const spacing2 = w / (count + 1);
+      return (
+        <g style={{ pointerEvents: 'none' }}>
+          {Array.from({ length: count }, (_, i) => {
+            const size = 3 + (i / (count - 1)) * (maxSize - 3);
+            return (
+              <rect
+                key={i}
+                x={padX + spacing2 * (i + 1) - size / 2}
+                y={y + GENERATOR_PREVIEW_H / 2 - size / 2}
+                width={size}
+                height={size}
+                rx={node.generatorType === 'borderRadiusScale' ? size * 0.3 : 1}
+                fill="none"
+                stroke="var(--color-figma-text-tertiary)"
+                strokeWidth={1}
+                opacity={0.7}
+              />
+            );
+          })}
+        </g>
+      );
+    }
+
+    case 'opacityScale': {
+      // Row of circles with decreasing opacity
+      const count = Math.min(node.stepCount || 5, 6);
+      const dotR = 4;
+      const spacing3 = Math.min(w / count, dotR * 3);
+      const totalW = (count - 1) * spacing3;
+      const startX = padX + (w - totalW) / 2;
+      return (
+        <g style={{ pointerEvents: 'none' }}>
+          {Array.from({ length: count }, (_, i) => {
+            const opacity = 1 - (i / count) * 0.8;
+            return (
+              <circle
+                key={i}
+                cx={startX + i * spacing3}
+                cy={y + GENERATOR_PREVIEW_H / 2}
+                r={dotR}
+                fill="var(--color-figma-text-secondary)"
+                opacity={opacity}
+              />
+            );
+          })}
+        </g>
+      );
+    }
+
+    default: {
+      // Generic: small dots indicating step count
+      const count = Math.min(node.stepCount || 3, 6);
+      const dotR = 2;
+      const spacing4 = dotR * 3;
+      const totalW = (count - 1) * spacing4;
+      const startX = padX + (w - totalW) / 2;
+      return (
+        <g style={{ pointerEvents: 'none' }}>
+          {Array.from({ length: count }, (_, i) => (
+            <circle
+              key={i}
+              cx={startX + i * spacing4}
+              cy={y + GENERATOR_PREVIEW_H / 2}
+              r={dotR}
+              fill="var(--color-figma-text-tertiary)"
+              opacity={0.6}
+            />
+          ))}
+        </g>
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Node component
 // ---------------------------------------------------------------------------
 
@@ -438,6 +609,9 @@ export function NodeRenderer({
           {node.targetSet ? `\u2192 ${node.targetSet}` : ''}
         </text>
       )}
+
+      {/* Inline preview for generator nodes */}
+      {node.kind === 'generator' && <GeneratorPreview node={node} />}
 
       {/* Ports */}
       {node.ports.map((port, pi) => (

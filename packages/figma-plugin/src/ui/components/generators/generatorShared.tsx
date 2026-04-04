@@ -149,11 +149,10 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const isLocked = override?.locked ?? false;
   const isOverridden = Boolean(override);
 
   const handleStartEdit = () => {
-    setEditValue(formatValue(token.value));
+    setEditValue(formatValue(override?.value ?? token.value));
     setEditing(true);
   };
 
@@ -165,11 +164,31 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
   };
 
   return (
-    <div className={`flex items-center gap-1.5 px-1 py-0.5 rounded ${token.warning ? 'bg-[var(--color-figma-error)]/8' : isOverridden ? 'bg-[var(--color-figma-accent)]/8' : ''}`}>
+    <div className={`group flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors cursor-pointer ${
+      token.warning ? 'bg-[var(--color-figma-error)]/8' : isOverridden ? 'bg-[var(--color-figma-accent)]/8' : 'hover:bg-[var(--color-figma-bg-hover)]'
+    }`}
+      onClick={!editing ? handleStartEdit : undefined}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleStartEdit(); } }}
+    >
+      {/* Step name */}
       <span className="w-8 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{token.stepName}</span>
-      {isOverwrite && (
-        <span className="shrink-0 px-1 leading-none rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">update</span>
+
+      {/* Lock badge for overridden values */}
+      {isOverridden && (
+        <span className="shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]" title="Locked override — survives regeneration">
+          <svg width="7" height="7" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+            <path d="M9 5V4a3 3 0 0 0-6 0v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1ZM4 4a2 2 0 1 1 4 0v1H4V4Z" />
+          </svg>
+          <span className="text-[8px] font-medium">locked</span>
+        </span>
       )}
+
+      {isOverwrite && !isOverridden && (
+        <span className="shrink-0 px-1 py-0.5 leading-none rounded text-[8px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">update</span>
+      )}
+
       {token.warning && (
         <span title={token.warning} className="shrink-0 text-[var(--color-figma-error)]" aria-label="Formula error">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -180,37 +199,30 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
         </span>
       )}
       {children}
+
+      {/* Inline edit / clear controls */}
       {editing ? (
         <input
           autoFocus
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
+          onClick={e => e.stopPropagation()}
           onBlur={handleCommit}
           onKeyDown={e => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setEditing(false); }}
-          className="w-20 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none shrink-0"
+          className="w-24 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none shrink-0"
         />
       ) : (
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            onClick={handleStartEdit}
-            title="Edit value"
-            aria-label="Edit value"
-            className={`p-0.5 rounded transition-colors ${
-              isOverridden
-                ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15'
-                : 'text-[var(--color-figma-text-secondary)] opacity-30 hover:opacity-100 hover:text-[var(--color-figma-accent)]'
-            }`}
-          >
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5 1 11l.5-2.5Z" />
-            </svg>
-          </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Click hint — appears on hover */}
+          <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-60 transition-opacity select-none">
+            click to edit
+          </span>
           {isOverridden && (
             <button
-              onClick={() => onOverrideClear(token.stepName)}
+              onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
               title="Clear override"
               aria-label="Clear override"
-              className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+              className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
             >
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <line x1="2" y1="2" x2="10" y2="10" />

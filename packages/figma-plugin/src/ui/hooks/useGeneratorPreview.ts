@@ -34,6 +34,8 @@ export interface UseGeneratorPreviewReturn {
   existingOverwritePathSet: Set<string>;
   /** Brand name used for the preview sample, if multi-brand */
   previewBrand: string | undefined;
+  /** Preview tokens for ALL brand rows, keyed by brand name (populated only when multi-brand) */
+  multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
 }
 
 export function useGeneratorPreview({
@@ -51,12 +53,14 @@ export function useGeneratorPreview({
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [multiBrandPreviews, setMultiBrandPreviews] = useState<Map<string, GeneratedTokenResult[]>>(new Map());
 
   const [existingSetTokens, setExistingSetTokens] = useState<Record<string, { $value: unknown; $type: string }>>({});
   const [existingTokensError, setExistingTokensError] = useState('');
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const multiBrandAbortRef = useRef<AbortController | null>(null);
 
   // For multi-brand, find the first row with a usable input value
   const firstBrandRow = useMemo(() => {
@@ -124,9 +128,68 @@ export function useGeneratorPreview({
     return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
   }, [fetchPreview]);
 
+  // All usable brand rows for multi-brand preview
+  const allBrandRows = useMemo(() => {
+    if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return [];
+    return inputTable.rows.filter(r => r.brand.trim() && r.inputs[inputTable.inputKey] !== undefined);
+  }, [isMultiBrand, inputTable]);
+
+  // Fetch preview for ALL brands when multi-brand is active
+  useEffect(() => {
+    multiBrandAbortRef.current?.abort();
+
+    if (!isMultiBrand || allBrandRows.length === 0) {
+      setMultiBrandPreviews(new Map());
+      return;
+    }
+
+    const controller = new AbortController();
+    multiBrandAbortRef.current = controller;
+
+    const fetchAll = async () => {
+      const results = new Map<string, GeneratedTokenResult[]>();
+      // Fetch all brand previews in parallel
+      const promises = allBrandRows.map(async (row) => {
+        const body: Record<string, unknown> = {
+          type: selectedType,
+          targetGroup,
+          targetSet,
+          config,
+          overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
+          sourceValue: row.inputs[inputTable!.inputKey],
+        };
+        try {
+          const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
+            `${serverUrl}/api/generators/preview`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: createFetchSignal(controller.signal) },
+          );
+          return { brand: row.brand, tokens: data.tokens ?? [] };
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return null;
+          // Silently skip failed brand previews — the single-brand preview already shows errors
+          return { brand: row.brand, tokens: [] as GeneratedTokenResult[] };
+        }
+      });
+      const settled = await Promise.all(promises);
+      if (controller.signal.aborted) return;
+      for (const result of settled) {
+        if (result) results.set(result.brand, result.tokens);
+      }
+      setMultiBrandPreviews(results);
+    };
+
+    // Debounce to match the single-preview debounce timing
+    const timer = setTimeout(fetchAll, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [serverUrl, selectedType, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, allBrandRows, inputTable]);
+
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      multiBrandAbortRef.current?.abort();
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
@@ -190,5 +253,6 @@ export function useGeneratorPreview({
     overwrittenEntries,
     existingOverwritePathSet,
     previewBrand,
+    multiBrandPreviews,
   };
 }

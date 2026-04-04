@@ -56,6 +56,8 @@ export interface GraphNode {
   // Output nodes
   targetGroup?: string;
   targetSet?: string;
+  // Preview data for inline node previews
+  previewColors?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -107,8 +109,13 @@ export const PORT_ROW_H = 22;
 export const PORT_RADIUS = 5;
 export const PORT_HIT_RADIUS = 12;
 
+/** Extra height added for inline previews in generator nodes */
+export const GENERATOR_PREVIEW_H = 20;
+
 export function nodeHeight(node: GraphNode): number {
-  return NODE_HEADER_H + Math.max(1, node.ports.length) * PORT_ROW_H + 8;
+  const base = NODE_HEADER_H + Math.max(1, node.ports.length) * PORT_ROW_H + 8;
+  if (node.kind === 'generator') return base + GENERATOR_PREVIEW_H;
+  return base;
 }
 
 // ---------------------------------------------------------------------------

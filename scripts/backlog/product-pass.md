@@ -6,6 +6,12 @@ Codebase patterns are injected into your system prompt. Recent progress log is a
 
 ---
 
+## User Context
+
+The primary users are UX/UI designers and design system maintainers working inside Figma. They manage design token libraries — creating, editing, and organizing tokens across themes and scales — and expect a workflow-first tool that integrates naturally with how they already work in Figma.
+
+---
+
 ## Goal
 
 Find **5–15 concrete, actionable items** across the product and write them to `backlog-inbox.md`. Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category? Explore as many areas as you need.

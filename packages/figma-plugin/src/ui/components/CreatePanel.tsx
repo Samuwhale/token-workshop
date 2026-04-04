@@ -17,7 +17,8 @@ import {
 } from './ValueEditors';
 import type { GraphTemplate } from './graph-templates';
 import type { GeneratorType } from '../hooks/useGenerators';
-import { TYPE_LABELS, PRIMARY_TYPES } from './generators/generatorUtils';
+import { TYPE_LABELS, TYPE_DESCRIPTIONS, PRIMARY_TYPES } from './generators/generatorUtils';
+import { TypeThumbnail } from './generators/TypeThumbnail';
 import { Collapsible } from './Collapsible';
 
 // ---------------------------------------------------------------------------
@@ -599,8 +600,8 @@ function ScaleTab({
 
   return (
     <div className="p-4 flex flex-col gap-3">
-      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-        Choose a template to generate a scale of tokens from a source value.
+      <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+        Generate a full scale of tokens from a single value. Pick a template to get started — you'll configure the details in the next step.
       </p>
       <input
         type="text"
@@ -609,23 +610,30 @@ function ScaleTab({
         onChange={e => setSearch(e.target.value)}
         className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
       />
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {filteredTemplates.map(t => (
           <button
             key={t.id}
             type="button"
             onClick={() => onOpenGenerator(t)}
-            className="w-full text-left p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-colors group"
+            className="w-full text-left p-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-all group"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)]">
-                {t.label}
-              </span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
-                {TYPE_LABELS[t.generatorType as GeneratorType] || t.generatorType}
-              </span>
+            <div className="flex items-start gap-2.5">
+              <div className="flex-none w-8 h-8 rounded flex items-center justify-center bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] group-hover:text-[var(--color-figma-accent)] transition-colors">
+                <TypeThumbnail type={t.generatorType as GeneratorType} size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)] transition-colors">
+                    {t.label}
+                  </span>
+                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                    {TYPE_LABELS[t.generatorType as GeneratorType] || t.generatorType}
+                  </span>
+                </div>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">{t.description}</p>
+              </div>
             </div>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">{t.description}</p>
           </button>
         ))}
         {filteredTemplates.length === 0 && (
@@ -635,18 +643,24 @@ function ScaleTab({
         )}
       </div>
 
-      {/* Manual generator types */}
+      {/* Manual generator types — visual cards */}
       <div className="mt-2 pt-3 border-t border-[var(--color-figma-border)]">
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2">Or create a custom generator:</p>
-        <div className="grid grid-cols-2 gap-1">
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2">Or start from scratch:</p>
+        <div className="flex flex-col gap-1">
           {PRIMARY_TYPES.map(type => (
             <button
               key={type}
               type="button"
               onClick={() => onOpenGenerator({ id: `custom-${type}`, label: TYPE_LABELS[type], description: '', generatorType: type, defaultPrefix: '', config: {}, requiresSource: true, stages: [], semanticLayers: [] } as any)}
-              className="px-2 py-1.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-left"
+              className="w-full text-left px-2.5 py-2 rounded-lg border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2.5 group"
             >
-              {TYPE_LABELS[type]}
+              <div className="flex-none w-6 h-6 rounded flex items-center justify-center text-[var(--color-figma-text-secondary)] group-hover:text-[var(--color-figma-accent)] transition-colors">
+                <TypeThumbnail type={type} size={14} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{TYPE_LABELS[type]}</span>
+                <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-snug">{TYPE_DESCRIPTIONS[type]}</p>
+              </div>
             </button>
           ))}
         </div>
@@ -734,77 +748,129 @@ function BulkTab({
 
   const validCount = rows.filter(r => r.name.trim()).length;
 
+  // Paste handler: detect tab-separated values and auto-populate rows
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text/plain');
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2 || !lines[0].includes('\t')) return; // Not tabular data
+    e.preventDefault();
+    const parsed = lines.map(line => {
+      const parts = line.split('\t');
+      return {
+        id: String(nextId.current++),
+        name: (parts[0] || '').trim(),
+        type: (['color', 'dimension', 'number', 'string', 'boolean', 'duration'].includes((parts[1] || '').trim().toLowerCase())
+          ? (parts[1] || '').trim().toLowerCase()
+          : 'color'),
+        value: (parts[2] || parts[1] || '').trim(),
+      };
+    }).filter(r => r.name);
+    if (parsed.length > 0) setRows(parsed);
+  };
+
   return (
-    <div className="p-4 flex flex-col gap-3">
-      <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Group prefix</label>
-        <input
-          type="text"
-          placeholder="Root (none)"
-          value={group}
-          onChange={e => setGroup(e.target.value)}
-          list="bulk-groups"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-        />
-        <datalist id="bulk-groups">
-          {allGroupPaths.slice(0, 30).map(g => <option key={g} value={g} />)}
-        </datalist>
+    <div className="p-4 flex flex-col gap-3" onPaste={handlePaste}>
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Group prefix</label>
+          <input
+            type="text"
+            placeholder="Root (none)"
+            value={group}
+            onChange={e => setGroup(e.target.value)}
+            list="bulk-groups"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+          />
+          <datalist id="bulk-groups">
+            {allGroupPaths.slice(0, 30).map(g => <option key={g} value={g} />)}
+          </datalist>
+        </div>
       </div>
 
+      <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+        Paste tab-separated data (name, type, value) to auto-fill rows.
+      </p>
 
-      <div className="grid grid-cols-[1fr_80px_1fr_24px] gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+      {/* Column headers */}
+      <div className="grid grid-cols-[20px_1fr_80px_1fr_24px] gap-1 text-[10px] text-[var(--color-figma-text-secondary)] px-0.5">
+        <span></span>
         <span>Name</span>
         <span>Type</span>
         <span>Value</span>
         <span></span>
       </div>
 
-
-      <div className="flex flex-col gap-1">
-        {rows.map(row => (
-          <div key={row.id} className="grid grid-cols-[1fr_80px_1fr_24px] gap-1 items-center">
-            <input
-              type="text"
-              placeholder="name"
-              value={row.name}
-              onChange={e => updateRow(row.id, 'name', e.target.value)}
-              className="px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-            />
-            <select
-              value={row.type}
-              onChange={e => updateRow(row.id, 'type', e.target.value)}
-              className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px]"
-            >
-              <option value="color">color</option>
-              <option value="dimension">dimension</option>
-              <option value="number">number</option>
-              <option value="string">string</option>
-              <option value="boolean">boolean</option>
-              <option value="duration">duration</option>
-            </select>
-            <input
-              type="text"
-              placeholder={valuePlaceholderForType(row.type)}
-              value={row.value}
-              onChange={e => updateRow(row.id, 'value', e.target.value)}
-              className="px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-            />
-            <button
-              type="button"
-              onClick={() => removeRow(row.id)}
-              disabled={rows.length <= 1}
-              className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] disabled:opacity-30"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            </button>
-          </div>
-        ))}
+      <div className="flex flex-col gap-1.5">
+        {rows.map(row => {
+          const isColor = row.type === 'color';
+          const hasColorValue = isColor && /^#[0-9a-fA-F]{6}$/i.test(row.value);
+          return (
+            <div key={row.id} className="grid grid-cols-[20px_1fr_80px_1fr_24px] gap-1 items-center">
+              {/* Value preview */}
+              <div className="flex items-center justify-center">
+                {isColor && hasColorValue ? (
+                  <div className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)]" style={{ backgroundColor: row.value }} />
+                ) : row.type === 'dimension' && row.value ? (
+                  <div className="w-4 h-1.5 rounded-sm bg-[var(--color-figma-accent)]/40" style={{ width: `${Math.min(16, Math.max(4, parseFloat(row.value) || 4))}px` }} />
+                ) : (
+                  <div className="w-4 h-4 rounded-sm border border-dashed border-[var(--color-figma-border)]/40" />
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="name"
+                value={row.name}
+                onChange={e => updateRow(row.id, 'name', e.target.value)}
+                className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+              />
+              <select
+                value={row.type}
+                onChange={e => updateRow(row.id, 'type', e.target.value)}
+                className="px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px]"
+              >
+                <option value="color">color</option>
+                <option value="dimension">dimension</option>
+                <option value="number">number</option>
+                <option value="string">string</option>
+                <option value="boolean">boolean</option>
+                <option value="duration">duration</option>
+              </select>
+              {/* Type-aware value input */}
+              <div className="flex items-center gap-1">
+                {isColor && (
+                  <input
+                    type="color"
+                    value={hasColorValue ? row.value : '#808080'}
+                    onChange={e => updateRow(row.id, 'value', e.target.value)}
+                    className="w-6 h-6 rounded cursor-pointer border border-[var(--color-figma-border)] shrink-0"
+                    aria-label={`Pick color for ${row.name || 'row'}`}
+                  />
+                )}
+                <input
+                  type="text"
+                  placeholder={valuePlaceholderForType(row.type)}
+                  value={row.value}
+                  onChange={e => updateRow(row.id, 'value', e.target.value)}
+                  className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeRow(row.id)}
+                disabled={rows.length <= 1}
+                className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] disabled:opacity-30"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <button
         type="button"
         onClick={addRow}
-        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+        className="w-full px-2 py-2 rounded-lg border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
       >
         + Add row
       </button>

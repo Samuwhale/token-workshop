@@ -181,7 +181,16 @@ select:focus-visible,
   .gen-dialog-preview {
     position: sticky;
     top: 0;
-    max-height: calc(90vh - 120px);
+    max-height: calc(90vh - 160px);
     overflow-y: auto;
   }
+}
+
+/* Stepper step transition */
+@keyframes step-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-step-enter {
+  animation: step-enter 150ms ease-out;
 }

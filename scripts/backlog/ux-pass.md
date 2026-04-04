@@ -6,6 +6,12 @@ Codebase patterns are injected into your system prompt. Recent progress log is a
 
 ---
 
+## User Context
+
+The primary users are UX/UI designers and design system maintainers working inside Figma. They manage design token libraries — creating, editing, and organizing tokens across themes and scales — and expect a workflow-first tool that integrates naturally with how they already work in Figma.
+
+---
+
 ## Goal
 
 Find **4–10 concrete usability issues** by walking through the UI code as a user would. Apply established usability heuristics and cognitive walkthrough methodology — but adapted for code-level evaluation (you cannot see the live UI, only read the code that produces it).

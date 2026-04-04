@@ -112,3 +112,23 @@ export const ADVANCED_TYPES: GeneratorType[] = [
 ];
 
 export const ALL_TYPES: GeneratorType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
+
+// ---------------------------------------------------------------------------
+// Designer-friendly descriptions (Phase 1B: intent-based type selector)
+// ---------------------------------------------------------------------------
+
+/** One-line descriptions for each generator type, written for designers. */
+export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
+  colorRamp: 'Generate a full color scale from a single base color',
+  typeScale: 'Create a harmonious font size progression using a ratio',
+  spacingScale: 'Build consistent spacing values from a base unit',
+  opacityScale: 'Define a set of opacity levels for layering effects',
+  borderRadiusScale: 'Generate rounded corner values from small to large',
+  zIndexScale: 'Set up stacking order values for layered components',
+  shadowScale: 'Create elevation levels with progressive shadow depth',
+  customScale: 'Write a formula to generate any numeric scale',
+  accessibleColorPair: 'Generate foreground/background pairs that meet WCAG contrast',
+  darkModeInversion: 'Invert a color for dark mode with perceptual accuracy',
+  contrastCheck: 'Verify WCAG contrast ratios for a set of colors',
+};
+

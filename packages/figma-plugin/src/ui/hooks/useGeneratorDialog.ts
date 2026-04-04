@@ -47,6 +47,11 @@ interface UseGeneratorDialogReturn {
   currentConfig: GeneratorConfig;
   lockedCount: number;
   isDirtyRef: React.RefObject<boolean>;
+  // Config undo
+  canUndo: boolean;
+  canRedo: boolean;
+  handleUndo: () => void;
+  handleRedo: () => void;
   // State
   selectedType: GeneratorType;
   name: string;
@@ -61,6 +66,7 @@ interface UseGeneratorDialogReturn {
   previewLoading: boolean;
   previewError: string;
   previewBrand: string | undefined;
+  multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   existingTokensError: string;
@@ -174,6 +180,44 @@ export function useGeneratorDialog({
   const isDirtyRef = useRef(false);
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
+  // --- Config undo/redo stack ---
+  const MAX_UNDO = 20;
+  const [configUndoStack, setConfigUndoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
+  const [configRedoStack, setConfigRedoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
+  const pushConfigSnapshot = useCallback(() => {
+    const currentCfg = configs[selectedType];
+    if (!currentCfg) return;
+    setConfigUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+    setConfigRedoStack([]);
+  }, [configs, selectedType]);
+
+  const canUndo = configUndoStack.length > 0;
+  const canRedo = configRedoStack.length > 0;
+
+  const handleUndo = useCallback(() => {
+    if (configUndoStack.length === 0) return;
+    const currentCfg = configs[selectedType];
+    if (currentCfg) {
+      setConfigRedoStack(prev => [...prev, { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+    }
+    const snapshot = configUndoStack[configUndoStack.length - 1];
+    setConfigUndoStack(prev => prev.slice(0, -1));
+    setSelectedType(snapshot.type);
+    setConfigs(prev => ({ ...prev, [snapshot.type]: snapshot.config }));
+  }, [configUndoStack, configs, selectedType]);
+
+  const handleRedo = useCallback(() => {
+    if (configRedoStack.length === 0) return;
+    const currentCfg = configs[selectedType];
+    if (currentCfg) {
+      setConfigUndoStack(prev => [...prev, { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
+    }
+    const snapshot = configRedoStack[configRedoStack.length - 1];
+    setConfigRedoStack(prev => prev.slice(0, -1));
+    setSelectedType(snapshot.type);
+    setConfigs(prev => ({ ...prev, [snapshot.type]: snapshot.config }));
+  }, [configRedoStack, configs, selectedType]);
+
   // Derived values
   const isMultiBrand = Boolean(inputTable);
   const typeNeedsValue = VALUE_REQUIRED_TYPES.includes(selectedType);
@@ -197,6 +241,7 @@ export function useGeneratorDialog({
     overwrittenEntries,
     existingOverwritePathSet,
     previewBrand,
+    multiBrandPreviews,
   } = useGeneratorPreview({
     serverUrl,
     selectedType,
@@ -253,6 +298,7 @@ export function useGeneratorDialog({
   // --- Config handlers ---
 
   const handleTypeChange = (type: GeneratorType) => {
+    pushConfigSnapshot();
     markDirty();
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
@@ -271,6 +317,7 @@ export function useGeneratorDialog({
   };
 
   const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
+    pushConfigSnapshot();
     markDirty();
     setConfigs(prev => ({ ...prev, [type]: cfg }));
   };
@@ -313,6 +360,11 @@ export function useGeneratorDialog({
     currentConfig,
     lockedCount,
     isDirtyRef,
+    // Config undo
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
     // State
     selectedType,
     name,
@@ -327,6 +379,7 @@ export function useGeneratorDialog({
     previewLoading,
     previewError,
     previewBrand,
+    multiBrandPreviews,
     overwrittenEntries,
     existingOverwritePathSet,
     existingTokensError,

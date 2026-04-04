@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { labToHex, hexToLab } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
@@ -66,15 +66,37 @@ interface BezierCurveEditorProps {
   chromaBoost?: number;
 }
 
-const W = 240;
-const H = 160;
 const PAD = 24;
-const GW = W - PAD * 2;
-const GH = H - PAD * 2;
+const MIN_W = 200;
+const MIN_H = 140;
+const ASPECT = 1.5; // width:height
 
 export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChange, sourceHex, chromaBoost = 1.0 }: BezierCurveEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<0 | 1 | null>(null);
+  const [selectedCP, setSelectedCP] = useState<0 | 1 | null>(null);
+  const [size, setSize] = useState({ w: 280, h: 186 });
+
+  // Responsive sizing via ResizeObserver
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) return;
+      const w = Math.max(MIN_W, Math.floor(entry.contentRect.width));
+      const h = Math.max(MIN_H, Math.floor(w / ASPECT));
+      setSize({ w, h });
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const W = size.w;
+  const H = size.h;
+  const GW = W - PAD * 2;
+  const GH = H - PAD * 2;
 
   const [cx1, cy1, cx2, cy2] = curve;
 
@@ -156,10 +178,34 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
       })
     : null;
 
+  // Keyboard nudge for selected control point
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (selectedCP === null) return;
+    const step = e.shiftKey ? 0.05 : 0.01;
+    const newCurve: [number, number, number, number] = [...curve];
+    const i = selectedCP;
+    switch (e.key) {
+      case 'ArrowLeft': newCurve[i * 2] = Math.max(0, Math.min(1, newCurve[i * 2] - step)); break;
+      case 'ArrowRight': newCurve[i * 2] = Math.max(0, Math.min(1, newCurve[i * 2] + step)); break;
+      case 'ArrowUp': newCurve[i * 2 + 1] = Math.min(1.8, newCurve[i * 2 + 1] + step); break;
+      case 'ArrowDown': newCurve[i * 2 + 1] = Math.max(-0.5, newCurve[i * 2 + 1] - step); break;
+      default: return;
+    }
+    e.preventDefault();
+    newCurve[i * 2] = Math.round(newCurve[i * 2] * 100) / 100;
+    newCurve[i * 2 + 1] = Math.round(newCurve[i * 2 + 1] * 100) / 100;
+    onChange(newCurve);
+  }, [selectedCP, curve, onChange]);
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5" ref={containerRef}>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Lightness curve</span>
+        {selectedCP !== null && (
+          <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">
+            Arrow keys to nudge, Shift for larger steps
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-1">
         {CURVE_PRESETS.map(p => {
@@ -182,7 +228,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
       </div>
       <svg
         ref={svgRef}
-        width={W}
+        width="100%"
         height={H}
         viewBox={`0 0 ${W} ${H}`}
         className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded select-none overflow-visible"
@@ -190,6 +236,10 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="img"
+        aria-label="Lightness curve editor"
       >
         {/* Grid lines */}
         {gridLines.map((y, i) => (
@@ -231,15 +281,15 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
           </g>
         ))}
 
-        {/* Draggable control points */}
-        <circle cx={scx1} cy={scy1} r="6"
-          fill="var(--color-figma-accent)" stroke="white" strokeWidth="1.5"
+        {/* Draggable control points — click to select for keyboard nudge */}
+        <circle cx={scx1} cy={scy1} r={selectedCP === 0 ? 7 : 6}
+          fill="var(--color-figma-accent)" stroke={selectedCP === 0 ? '#fff' : 'white'} strokeWidth={selectedCP === 0 ? 2.5 : 1.5}
           style={{ cursor: 'grab' }}
-          onPointerDown={e => handlePointerDown(0, e)} />
-        <circle cx={scx2} cy={scy2} r="6"
-          fill="var(--color-figma-accent)" stroke="white" strokeWidth="1.5"
+          onPointerDown={e => { handlePointerDown(0, e); setSelectedCP(0); }} />
+        <circle cx={scx2} cy={scy2} r={selectedCP === 1 ? 7 : 6}
+          fill="var(--color-figma-accent)" stroke={selectedCP === 1 ? '#fff' : 'white'} strokeWidth={selectedCP === 1 ? 2.5 : 1.5}
           style={{ cursor: 'grab' }}
-          onPointerDown={e => handlePointerDown(1, e)} />
+          onPointerDown={e => { handlePointerDown(1, e); setSelectedCP(1); }} />
 
         {/* Axis labels */}
         <text x={PAD - 2} y={PAD + GH + 2} textAnchor="end"

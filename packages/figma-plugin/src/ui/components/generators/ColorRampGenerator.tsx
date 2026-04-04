@@ -109,36 +109,28 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
 }) {
   return (
     <div className="flex flex-col gap-2">
-      {/* Tall swatch strip with step labels */}
+      {/* Tall swatch strip with step labels — click any swatch to edit */}
       <div className="flex gap-0.5 rounded overflow-hidden" style={{ height: tokens.length > 7 ? '48px' : '56px' }}>
         {tokens.map((t) => {
           const hex = String(t.value);
-          // Choose label color based on luminance (rough check via the step position)
           const idx = tokens.indexOf(t);
           const isLight = idx < tokens.length * 0.4;
+          const isOverridden = Boolean(overrides[t.stepName]);
           return (
-            <div
+            <SwatchCell
               key={t.stepName}
-              className="flex-1 min-w-0 relative flex flex-col items-center justify-end pb-1"
-              style={{ background: hex }}
-              title={`${t.path}: ${hex}${overwritePaths?.has(t.path) ? ' (will overwrite)' : ''}`}
-            >
-              <span className={`text-[7px] font-mono leading-none ${isLight ? 'text-black/50' : 'text-white/60'}`}>{t.stepName}</span>
-              {t.isOverridden && (
-                <div className="absolute top-1 left-1/2 -translate-x-1/2">
-                  <svg width="8" height="8" viewBox="0 0 12 12" fill="white" opacity="0.8">
-                    <path d="M8 1.5L6.5 3 9 5.5l1.5-1.5L8 1.5zM5.5 4l-4 4 .5 2 2-.5 4-4L5.5 4z"/>
-                  </svg>
-                </div>
-              )}
-              {overwritePaths?.has(t.path) && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--color-figma-warning)]" aria-hidden="true" />
-              )}
-            </div>
+              token={t}
+              hex={hex}
+              isLight={isLight}
+              isOverridden={isOverridden}
+              isOverwrite={overwritePaths?.has(t.path)}
+              onOverrideChange={onOverrideChange}
+              onOverrideClear={onOverrideClear}
+            />
           );
         })}
       </div>
-      {/* WCAG contrast badges: green=AAA (≥7:1), amber=AA (≥4.5:1), dash=fail */}
+      {/* WCAG contrast badges: green=AAA (>=7:1), amber=AA (>=4.5:1), dash=fail */}
       {tokens.length > 0 && (
         <div className="flex flex-col gap-0.5">
           <ContrastBadgeRow tokens={tokens} bg="#ffffff" label="on ◻" />
@@ -146,6 +138,94 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
         </div>
       )}
       <OverrideTable tokens={tokens} overrides={overrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} overwritePaths={overwritePaths} />
+    </div>
+  );
+}
+
+/** Individual swatch cell with click-to-edit via native color input. */
+function SwatchCell({
+  token,
+  hex,
+  isLight,
+  isOverridden,
+  isOverwrite,
+  onOverrideChange,
+  onOverrideClear,
+}: {
+  token: GeneratedTokenResult;
+  hex: string;
+  isLight: boolean;
+  isOverridden: boolean;
+  isOverwrite?: boolean;
+  onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
+  onOverrideClear: (stepName: string) => void;
+}) {
+  const colorInputRef = { current: null as HTMLInputElement | null };
+  const normalizedHex = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#808080';
+
+  const handleClick = () => {
+    colorInputRef.current?.click();
+  };
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onOverrideChange(token.stepName, e.target.value, true);
+  };
+
+  return (
+    <div
+      className="flex-1 min-w-0 relative flex flex-col items-center justify-end pb-1 cursor-pointer group/swatch"
+      style={{ background: hex }}
+      title={`${token.stepName}: ${hex} — click to edit`}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+    >
+      {/* Hidden native color input */}
+      <input
+        ref={el => { colorInputRef.current = el; }}
+        type="color"
+        value={normalizedHex}
+        onChange={handleColorChange}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        tabIndex={-1}
+        aria-label={`Edit color for step ${token.stepName}`}
+      />
+
+      {/* Step label */}
+      <span className={`text-[7px] font-mono leading-none ${isLight ? 'text-black/50' : 'text-white/60'}`}>{token.stepName}</span>
+
+      {/* Lock badge for overridden swatches */}
+      {isOverridden && (
+        <div className="absolute top-1 left-1/2 -translate-x-1/2" title="Locked override">
+          <svg width="8" height="8" viewBox="0 0 12 12" fill="white" opacity="0.85" aria-hidden="true">
+            <path d="M9 5V4a3 3 0 0 0-6 0v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1ZM4 4a2 2 0 1 1 4 0v1H4V4Z" />
+          </svg>
+        </div>
+      )}
+
+      {/* Clear button appears on hover for overridden swatches */}
+      {isOverridden && (
+        <button
+          onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
+          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity bg-black/30 text-white hover:bg-red-500/80"
+          title="Clear override"
+          aria-label="Clear override"
+        >
+          <svg width="6" height="6" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l6 6M9 3l-6 6" /></svg>
+        </button>
+      )}
+
+      {/* Edit hint on hover */}
+      <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover/swatch:opacity-100 transition-opacity ${isLight ? 'bg-black/5' : 'bg-white/10'}`} aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5 1 11l.5-2.5Z" />
+        </svg>
+      </div>
+
+      {isOverwrite && !isOverridden && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--color-figma-warning)]" aria-hidden="true" />
+      )}
     </div>
   );
 }
