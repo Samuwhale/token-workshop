@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import { OverrideRow, OverrideTable } from './generatorShared';
+import { OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
 import { wcagContrast } from '../../shared/colorUtils';
 import { TokenRefInput } from '../TokenRefInput';
@@ -160,7 +161,7 @@ function SwatchCell({
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
 }) {
-  const colorInputRef = { current: null as HTMLInputElement | null };
+  const colorInputRef = useRef<HTMLInputElement>(null);
   const normalizedHex = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#808080';
 
   const handleClick = () => {
@@ -183,7 +184,7 @@ function SwatchCell({
     >
       {/* Hidden native color input */}
       <input
-        ref={el => { colorInputRef.current = el; }}
+        ref={colorInputRef}
         type="color"
         value={normalizedHex}
         onChange={handleColorChange}

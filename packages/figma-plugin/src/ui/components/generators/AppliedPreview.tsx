@@ -21,7 +21,6 @@ function ColorRampApplied({ tokens }: { tokens: GeneratedTokenResult[] }) {
   const surface = colors[0]?.hex ?? '#f8f9fa';
   const surfaceSubtle = colors[1]?.hex ?? '#f1f3f5';
   const primary = colors[Math.floor(colors.length * 0.5)]?.hex ?? '#3b82f6';
-  const primaryHover = colors[Math.floor(colors.length * 0.6)]?.hex ?? '#2563eb';
   const textDefault = colors[colors.length - 1]?.hex ?? '#111827';
   const textSubtle = colors[Math.floor(colors.length * 0.65)]?.hex ?? '#6b7280';
   const border = colors[Math.floor(colors.length * 0.2)]?.hex ?? '#e5e7eb';

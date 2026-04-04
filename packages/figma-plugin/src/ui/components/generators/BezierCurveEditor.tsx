@@ -106,10 +106,10 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
     PAD + (1 - ny) * GH,
   ];
 
-  const fromSvg = (sx: number, sy: number): [number, number] => [
+  const fromSvg = useCallback((sx: number, sy: number): [number, number] => [
     (sx - PAD) / GW,
     1 - (sy - PAD) / GH,
-  ];
+  ], [GW, GH]);
 
   const handlePointerDown = useCallback((idx: 0 | 1, e: React.PointerEvent) => {
     e.preventDefault();
@@ -135,7 +135,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
       newCurve[3] = Math.round(clampedY * 100) / 100;
     }
     onChange(newCurve);
-  }, [dragging, curve, onChange]);
+  }, [dragging, curve, onChange, fromSvg]);
 
   const handlePointerUp = useCallback(() => {
     setDragging(null);

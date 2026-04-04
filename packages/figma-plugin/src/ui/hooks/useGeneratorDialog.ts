@@ -181,15 +181,45 @@ export function useGeneratorDialog({
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
   // --- Config undo/redo stack ---
+  // Snapshots are debounced: rapid edits (keystrokes) are coalesced into one snapshot.
+  // Type changes and preset selections push immediately.
   const MAX_UNDO = 20;
   const [configUndoStack, setConfigUndoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
   const [configRedoStack, setConfigRedoStack] = useState<Array<{ type: GeneratorType; config: GeneratorConfig }>>([]);
+  const undoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSnapshotRef = useRef<{ type: GeneratorType; config: GeneratorConfig } | null>(null);
+
+  const flushSnapshot = useCallback(() => {
+    if (pendingSnapshotRef.current) {
+      const snap = pendingSnapshotRef.current;
+      pendingSnapshotRef.current = null;
+      setConfigUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), snap]);
+      setConfigRedoStack([]);
+    }
+  }, []);
+
+  /** Push snapshot immediately (for discrete changes like type switch or preset). */
   const pushConfigSnapshot = useCallback(() => {
+    // Flush any pending debounced snapshot first
+    if (undoDebounceRef.current) { clearTimeout(undoDebounceRef.current); undoDebounceRef.current = null; }
+    flushSnapshot();
     const currentCfg = configs[selectedType];
     if (!currentCfg) return;
     setConfigUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) }]);
     setConfigRedoStack([]);
-  }, [configs, selectedType]);
+  }, [configs, selectedType, flushSnapshot]);
+
+  /** Queue a debounced snapshot (for continuous edits like slider/input). */
+  const pushConfigSnapshotDebounced = useCallback(() => {
+    const currentCfg = configs[selectedType];
+    if (!currentCfg) return;
+    // Only capture the snapshot if we don't already have a pending one
+    if (!pendingSnapshotRef.current) {
+      pendingSnapshotRef.current = { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) };
+    }
+    if (undoDebounceRef.current) clearTimeout(undoDebounceRef.current);
+    undoDebounceRef.current = setTimeout(flushSnapshot, 500);
+  }, [configs, selectedType, flushSnapshot]);
 
   const canUndo = configUndoStack.length > 0;
   const canRedo = configRedoStack.length > 0;
@@ -317,7 +347,7 @@ export function useGeneratorDialog({
   };
 
   const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
-    pushConfigSnapshot();
+    pushConfigSnapshotDebounced();
     markDirty();
     setConfigs(prev => ({ ...prev, [type]: cfg }));
   };

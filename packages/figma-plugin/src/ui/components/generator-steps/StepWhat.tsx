@@ -56,7 +56,6 @@ export interface StepWhatProps {
   hasSource: boolean;
   hasValue: boolean;
   isMultiBrand: boolean;
-  isEditing: boolean;
   // Source binding
   editableSourcePath: string;
   sourceTokenPath?: string;
@@ -72,8 +71,6 @@ export interface StepWhatProps {
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   lockedCount: number;
   overwrittenEntries: OverwrittenEntry[];
-  existingOverwritePathSet: Set<string>;
-  existingTokensError: string;
   // Token data
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
@@ -158,7 +155,6 @@ export function StepWhat({
   hasSource,
   hasValue,
   isMultiBrand,
-  isEditing,
   editableSourcePath,
   sourceTokenPath,
   sourceTokenType,
@@ -172,8 +168,6 @@ export function StepWhat({
   pendingOverrides,
   lockedCount,
   overwrittenEntries,
-  existingOverwritePathSet,
-  existingTokensError,
   allTokensFlat,
   pathToSet,
   canUndo,

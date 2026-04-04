@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConfirmModal } from './ConfirmModal';
 import type {
   TokenGenerator,
@@ -172,9 +172,11 @@ export function TokenGeneratorDialog({
   // --- Handle confirmation flow from useGeneratorSave ---
   // When useGeneratorSave sets showConfirmation=true after handleSave(),
   // we navigate to the review step
-  if (dialog.showConfirmation && currentStep !== 'review') {
-    setCurrentStep('review');
-  }
+  useEffect(() => {
+    if (dialog.showConfirmation && currentStep !== 'review') {
+      setCurrentStep('review');
+    }
+  }, [dialog.showConfirmation, currentStep]);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
@@ -195,11 +197,11 @@ export function TokenGeneratorDialog({
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">
           <div className="flex items-center gap-2">
             {currentStep !== 'where' ? (
-              <button onClick={goPrev} aria-label="Back" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button type="button" onClick={goPrev} aria-label="Back" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
               </button>
             ) : onBack ? (
-              <button onClick={onBack} aria-label="Back to templates" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button type="button" onClick={onBack} aria-label="Back to templates" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
               </button>
             ) : null}
@@ -207,7 +209,7 @@ export function TokenGeneratorDialog({
               {dialog.isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
             </span>
           </div>
-          <button onClick={handleClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+          <button type="button" onClick={handleClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -248,7 +250,6 @@ export function TokenGeneratorDialog({
               hasSource={dialog.hasSource}
               hasValue={dialog.hasValue}
               isMultiBrand={dialog.isMultiBrand}
-              isEditing={dialog.isEditing}
               editableSourcePath={dialog.editableSourcePath}
               sourceTokenPath={sourceTokenPath}
               sourceTokenType={sourceTokenType}
@@ -262,8 +263,6 @@ export function TokenGeneratorDialog({
               pendingOverrides={dialog.pendingOverrides}
               lockedCount={dialog.lockedCount}
               overwrittenEntries={dialog.overwrittenEntries}
-              existingOverwritePathSet={dialog.existingOverwritePathSet}
-              existingTokensError={dialog.existingTokensError}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
               canUndo={dialog.canUndo}
@@ -323,12 +322,14 @@ export function TokenGeneratorDialog({
           )}
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={currentStep === 'where' ? handleClose : goPrev}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
             >
               {currentStep === 'where' ? 'Cancel' : 'Back'}
             </button>
             <button
+              type="button"
               onClick={handleFooterClick}
               disabled={footerDisabled}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5"

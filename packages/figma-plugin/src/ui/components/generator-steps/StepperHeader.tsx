@@ -39,6 +39,7 @@ export function StepperHeader({
               type="button"
               onClick={() => isClickable && onStepClick(step.key)}
               disabled={!isClickable}
+              aria-label={`Step ${step.number}: ${step.label}`}
               className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors text-left min-w-0 ${
                 isActive
                   ? 'bg-[var(--color-figma-accent)]/10'
