@@ -469,3 +469,9 @@
   - When toggling `tabIndex` between 0 and -1 based on a mode flag, always verify that the relevant keyboard handler already covers the new interaction (here, Space-to-toggle was already wired up — removing the tabIndex guard was sufficient).
   - A short inline keyboard hint in the mode toolbar (not a separate banner) is the least-intrusive way to communicate key bindings for keyboard-only users without adding visual weight.
 ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/ (token-store.ts write guards, git-sync.ts checkout guards, resolver-store.ts writeToDisk, generator-service.ts rollback), packages/server/src/routes/ (resolvers.ts body validation, tokens.ts query param validation), packages/figma-plugin/src/plugin/ (variableSync.ts rollback flow, selectionHandling.ts, heatmapScanning.ts, fontLoading.ts, controller.ts message validation), packages/figma-plugin/src/ui/hooks/ (useFigmaSync.ts state duplication, useTokenSyncBase.ts abort gaps, 21 hooks with AbortError pattern), packages/figma-plugin/src/ui/components/PublishPanel.tsx (var/style helper duplication), packages/figma-plugin/src/ui/shared/colorUtils.ts (cross-module duplication analysis), packages/core/src/ (color-math.ts, color-parse.ts, types.ts, validator.ts)
+- Found 4 items — written to backlog-inbox.md
+- Notable: useTokenSyncBase.applyDiff fires parallel pull API calls with no abort signal — unmounting mid-pull causes setState-after-unmount; useFigmaSync triples the same 4-state pattern (pending/applying/progress/error) for 3 sync flows creating 13 useState hooks
+---
