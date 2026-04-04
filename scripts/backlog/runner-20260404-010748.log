@@ -745,3 +745,21 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — covering import merge gaps, missing token types in quick-create, scan cancellation, theme UX terminology, export preset persistence, progress reporting gaps, multi-mode export loss, PreviewPanel loading, App.tsx inline hooks, token-store test coverage, settings backup gaps, and theme coverage discoverability
 Already up to date.
+[main eab40199] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - product-pass
+- Areas explored: UI components (ExportPanel, PublishPanel, ThemeManager, SettingsPanel, GraphPanel, PreviewPanel, AnalyticsPanel, TokenEditor, TokenList, TokenTreeNode, SelectionInspector, ValueEditors, ImportPanel), server routes (13 route files), server services (13 service files), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts), hooks (52 custom hooks), App.tsx, storage.ts
+- Found 12 items — written to backlog-inbox.md
+- Notable: Import flow silently overwrites existing tokens with no merge/conflict preview; multi-mode Figma Variable export silently drops non-default modes for CSS/Tailwind/etc.; token-store.ts (the most critical service) has zero unit test coverage
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  12 queued · 3 in-progress · last took 7m51s
+═══════════════════════════════════════════════════════════════
+  → Import flow has no merge/conflict preview — importing into an existing token set silently overwrites matching paths with no diff preview or skip/overwrite/rename choice per token; users can accidentally lose manual edits when re-importing from Figma Variables or a JSON file (ImportPanel.tsx)
+  Worktree: /tmp/backlog-91949-Ud6Duk
+  Running agent… (started 04:02:24)

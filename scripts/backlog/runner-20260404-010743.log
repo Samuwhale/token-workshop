@@ -729,3 +729,10 @@ Already up to date.
   → Server token routes in `tokens.ts` accept path-operation parameters (oldGroupPath, newGroupPath, targetSet, etc.) from request bodies without validation before passing to service methods — at least 12 route handlers destructure and forward body properties directly (lines 96, 127, 165, 199, 228, 259, 288, 322, 353, 392, 431, 472); while services have some internal guards, missing route-level validation means malformed input (empty strings, paths with invalid characters) propagates deeper than necessary and produces confusing error messages instead of clean 400 responses
   Worktree: /tmp/backlog-91634-ZnTZI8
   Running agent… (started 03:57:50)
+
+  ✓ done: Server token routes accept path-operation parameters without validation
+    Added isValidTokenPath, isValidSetName, isNonEmptyTrimmedString helpers; applied to all 14+ route handlers so whitespace-only strings, malformed paths (leading/trailing/consecutive dots), invalid set names, and bad items in paths[] arrays now return clean 400s at route level
+    33 turns · 476s · $1.34
+
+  Merging to main: Server token routes accept path-operation parameters without validation
+Already up to date.

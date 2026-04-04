@@ -12,6 +12,31 @@ function validateTokenBody(body: unknown): body is Partial<Token> {
   return true;
 }
 
+const PATH_MAX_LEN = 500;
+
+/** Validates a token path string: non-empty, no leading/trailing whitespace, no leading/trailing/consecutive dots. */
+function isValidTokenPath(path: unknown): path is string {
+  if (typeof path !== 'string') return false;
+  if (path.length === 0 || path.length > PATH_MAX_LEN) return false;
+  if (path !== path.trim()) return false;
+  if (path.startsWith('.') || path.endsWith('.')) return false;
+  if (path.includes('..')) return false;
+  return true;
+}
+
+/** Validates a set name: non-empty string, no leading/trailing whitespace, no null bytes or path traversal. */
+function isValidSetName(name: unknown): name is string {
+  if (typeof name !== 'string') return false;
+  if (name.length === 0 || name !== name.trim()) return false;
+  if (name.includes('\0') || name.includes('..')) return false;
+  return true;
+}
+
+/** Validates a single segment key (direct child name): non-empty string, no leading/trailing whitespace. */
+function isNonEmptyTrimmedString(v: unknown): v is string {
+  return typeof v === 'string' && v.length > 0 && v === v.trim();
+}
+
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
@@ -94,8 +119,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { oldGroupPath, newGroupPath, updateAliases } = request.body ?? {};
-      if (!oldGroupPath || !newGroupPath) {
-        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath are required' });
+      if (!isValidTokenPath(oldGroupPath) || !isValidTokenPath(newGroupPath)) {
+        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath must be valid non-empty paths with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
@@ -125,8 +150,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { groupPath, targetSet } = request.body ?? {};
-      if (!groupPath || !targetSet) {
-        return reply.status(400).send({ error: 'groupPath and targetSet are required' });
+      if (!isValidTokenPath(groupPath)) {
+        return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (!isValidSetName(targetSet)) {
+        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
       }
       return withLock(async () => {
         try {
@@ -163,8 +191,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { groupPath, targetSet } = request.body ?? {};
-      if (!groupPath || !targetSet) {
-        return reply.status(400).send({ error: 'groupPath and targetSet are required' });
+      if (!isValidTokenPath(groupPath)) {
+        return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (!isValidSetName(targetSet)) {
+        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
       }
       return withLock(async () => {
         try {
@@ -197,8 +228,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { groupPath } = request.body ?? {};
-      if (!groupPath) {
-        return reply.status(400).send({ error: 'groupPath is required' });
+      if (!isValidTokenPath(groupPath)) {
+        return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
@@ -226,8 +257,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { groupPath = '', orderedKeys } = request.body ?? {};
+      if (groupPath && !isValidTokenPath(groupPath)) {
+        return reply.status(400).send({ error: 'groupPath must be a valid path with no leading/trailing dots' });
+      }
       if (!Array.isArray(orderedKeys)) {
         return reply.status(400).send({ error: 'orderedKeys must be an array' });
+      }
+      if (orderedKeys.some((k: unknown) => !isNonEmptyTrimmedString(k))) {
+        return reply.status(400).send({ error: 'Each item in orderedKeys must be a non-empty string' });
       }
       return withLock(async () => {
         try {
@@ -257,8 +294,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { groupPath } = request.body ?? {};
-      if (!groupPath) {
-        return reply.status(400).send({ error: 'groupPath is required' });
+      if (!isValidTokenPath(groupPath)) {
+        return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
@@ -286,6 +323,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/tokens/:set/groups/meta', async (request, reply) => {
     const { set } = request.params;
     const { groupPath = '', $type, $description } = request.body ?? {};
+    if (groupPath && !isValidTokenPath(groupPath)) {
+      return reply.status(400).send({ error: 'groupPath must be a valid path with no leading/trailing dots' });
+    }
     if ($type !== undefined && $type !== null && !TOKEN_TYPE_VALUES.has($type)) {
       return reply.status(400).send({ error: `Invalid $type "${$type}": must be a valid DTCG token type` });
     }
@@ -320,8 +360,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/tokens/:set/bulk-rename', async (request, reply) => {
     const { set } = request.params;
     const { find, replace, isRegex } = request.body ?? {};
-    if (!find || replace === undefined) {
-      return reply.status(400).send({ error: 'find and replace are required' });
+    if (typeof find !== 'string' || find.length === 0) {
+      return reply.status(400).send({ error: 'find must be a non-empty string' });
+    }
+    if (typeof replace !== 'string') {
+      return reply.status(400).send({ error: 'replace must be a string' });
+    }
+    if (find.length > PATH_MAX_LEN || replace.length > PATH_MAX_LEN) {
+      return reply.status(400).send({ error: `find and replace must not exceed ${PATH_MAX_LEN} characters` });
     }
     return withLock(async () => {
       try {
@@ -355,8 +401,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'patches must be a non-empty array' });
     }
     for (const p of patches) {
-      if (!p.path || !p.patch || typeof p.patch !== 'object') {
-        return reply.status(400).send({ error: 'Each entry must have a path and patch object' });
+      if (!isValidTokenPath(p.path)) {
+        return reply.status(400).send({ error: 'Each entry must have a valid non-empty path with no leading/trailing dots' });
+      }
+      if (!p.patch || typeof p.patch !== 'object') {
+        return reply.status(400).send({ error: `Each entry must have a patch object (got invalid patch for "${p.path}")` });
       }
       if (!validateTokenBody(p.patch)) {
         return reply.status(400).send({ error: `Invalid patch for "${p.path}": $type must be a valid DTCG token type` });
@@ -394,8 +443,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'renames must be a non-empty array' });
     }
     for (const r of renames) {
-      if (!r.oldPath || !r.newPath) {
-        return reply.status(400).send({ error: 'Each rename must have oldPath and newPath' });
+      if (!isValidTokenPath(r.oldPath) || !isValidTokenPath(r.newPath)) {
+        return reply.status(400).send({ error: 'Each rename must have valid oldPath and newPath with no leading/trailing dots' });
       }
     }
     return withLock(async () => {
@@ -432,8 +481,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!Array.isArray(paths) || paths.length === 0) {
       return reply.status(400).send({ error: 'paths must be a non-empty array' });
     }
-    if (!targetSet) {
-      return reply.status(400).send({ error: 'targetSet is required' });
+    if (paths.some((p: unknown) => !isValidTokenPath(p))) {
+      return reply.status(400).send({ error: 'Each path must be a valid non-empty string with no leading/trailing dots' });
+    }
+    if (!isValidSetName(targetSet)) {
+      return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
     }
     return withLock(async () => {
       try {
@@ -473,8 +525,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!Array.isArray(paths) || paths.length === 0) {
       return reply.status(400).send({ error: 'paths must be a non-empty array' });
     }
-    if (!targetSet) {
-      return reply.status(400).send({ error: 'targetSet is required' });
+    if (paths.some((p: unknown) => !isValidTokenPath(p))) {
+      return reply.status(400).send({ error: 'Each path must be a valid non-empty string with no leading/trailing dots' });
+    }
+    if (!isValidSetName(targetSet)) {
+      return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
     }
     return withLock(async () => {
       try {
@@ -514,8 +569,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
     }
     for (const t of tokens) {
-      if (!t.path || t.$value === undefined) {
-        return reply.status(400).send({ error: 'Each token must have a path and $value' });
+      if (!isValidTokenPath(t.path)) {
+        return reply.status(400).send({ error: 'Each token must have a valid non-empty path with no leading/trailing dots' });
+      }
+      if (t.$value === undefined) {
+        return reply.status(400).send({ error: `Token "${t.path}" must have a $value` });
       }
       if (!validateTokenBody(t)) {
         return reply.status(400).send({ error: `Invalid token body for "${t.path}": $type must be a valid DTCG token type` });
@@ -624,8 +682,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { oldPath, newPath, updateAliases } = request.body ?? {};
-      if (!oldPath || !newPath) {
-        return reply.status(400).send({ error: 'oldPath and newPath are required' });
+      if (!isValidTokenPath(oldPath) || !isValidTokenPath(newPath)) {
+        return reply.status(400).send({ error: 'oldPath and newPath must be valid non-empty paths with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
@@ -655,8 +713,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { tokenPath, targetSet } = request.body ?? {};
-      if (!tokenPath || !targetSet) {
-        return reply.status(400).send({ error: 'tokenPath and targetSet are required' });
+      if (!isValidTokenPath(tokenPath)) {
+        return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (!isValidSetName(targetSet)) {
+        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
       }
       return withLock(async () => {
         try {
@@ -693,8 +754,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { set } = request.params;
       const { tokenPath, targetSet } = request.body ?? {};
-      if (!tokenPath || !targetSet) {
-        return reply.status(400).send({ error: 'tokenPath and targetSet are required' });
+      if (!isValidTokenPath(tokenPath)) {
+        return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (!isValidSetName(targetSet)) {
+        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
       }
       return withLock(async () => {
         try {
@@ -874,6 +938,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const { paths, force } = request.body ?? {};
       if (!Array.isArray(paths) || paths.length === 0) {
         return reply.status(400).send({ error: 'paths array is required and must not be empty' });
+      }
+      if (paths.some((p: unknown) => !isValidTokenPath(p))) {
+        return reply.status(400).send({ error: 'Each path must be a valid non-empty string with no leading/trailing dots' });
       }
 
       return withLock(async () => {

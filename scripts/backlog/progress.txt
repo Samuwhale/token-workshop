@@ -511,3 +511,17 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: Import flow silently overwrites existing tokens with no merge/conflict preview; multi-mode Figma Variable export silently drops non-default modes for CSS/Tailwind/etc.; token-store.ts (the most critical service) has zero unit test coverage
 ---
+
+## 2026-04-04 - Server token routes accept path-operation parameters without validation
+- Added three validator helpers at the top of `tokens.ts` (after `validateTokenBody`): `isValidTokenPath` (non-empty string, no leading/trailing whitespace, no leading/trailing/consecutive dots, max 500 chars), `isValidSetName` (non-empty string, no null bytes or `..` path traversal), `isNonEmptyTrimmedString` (for segment keys in orderedKeys arrays)
+- Updated all 14+ route handlers to use these validators instead of bare `!param` truthiness checks: groups/rename, groups/move, groups/copy, groups/duplicate, groups/reorder, groups/create, groups/meta, bulk-rename, batch-update, batch-rename-paths, batch-move, batch-copy, batch (upsert), tokens/rename, tokens/move, tokens/copy, bulk-delete
+- groups/move, groups/copy, tokens/move, tokens/copy, batch-move, batch-copy now validate `targetSet` with `isValidSetName` instead of a bare truthiness check
+- Array operations (batch-move, batch-copy, bulk-delete) now iterate and validate each individual path item, catching malformed entries that would previously silently propagate into service methods
+- bulk-rename `find`/`replace` now check `typeof === 'string'` and enforce the same 500-char length limit
+- Files changed: `packages/server/src/routes/tokens.ts` ~L6-L38 (helpers), ~L115, ~L147, ~L189, ~L223, ~L255, ~L285, ~L315, ~L350, ~L380, ~L420, ~L500, ~L525, ~L563, ~L580, ~L660, ~L680, ~L720, ~L900
+- **Learnings for future iterations:**
+  - `isValidTokenPath` must NOT reject paths like `spacing.1.5` where a segment name contains a dot — the `..` consecutive-dot check is safe but single dots within segments are valid; only reject when dots appear at start/end or consecutively
+  - For optional path params that default to `''` (like `groupPath` in groups/meta and groups/reorder), use `if (groupPath && !isValidTokenPath(groupPath))` — empty string is the valid root sentinel, not a malformed path
+  - `orderedKeys` items are segment names (keys), not full paths — use `isNonEmptyTrimmedString` not `isValidTokenPath` to avoid rejecting segment names like `1.5` that look like paths with internal dots
+  - The `replace` param in bulk-rename is intentionally allowed to be an empty string (replacing with nothing is valid delete behavior), so the check is `typeof replace !== 'string'` not `!replace`
+---
