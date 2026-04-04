@@ -809,6 +809,20 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     }
   }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Debounced live preview: when results are already showing and export-affecting
+  // settings change, auto-re-run the export after 250 ms of idle time so the
+  // preview stays in sync without hammering the server on every keystroke / toggle.
+  const livePreviewFnRef = useRef<() => void>(() => {});
+  livePreviewFnRef.current = handleExport;
+  const livePreviewHasResultsRef = useRef(false);
+  livePreviewHasResultsRef.current = results.length > 0;
+
+  useEffect(() => {
+    if (!livePreviewHasResultsRef.current || !connected) return;
+    const timer = setTimeout(() => livePreviewFnRef.current(), 250);
+    return () => clearTimeout(timer);
+  }, [selected, cssSelector, selectedSets, selectedTypes, pathPrefix, changesOnly, diffPaths, connected]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">

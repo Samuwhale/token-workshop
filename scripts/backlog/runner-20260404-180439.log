@@ -71,3 +71,29 @@ Already up to date.
   ✓ ux pass: ux-pass
     6 items written to inbox: inconsistent destructive-action safety across panels, silent SelectionInspector binding operations, missing aria-labels on ~117 icon buttons, opaque import conflict cycling, missing success feedback in ThemeManager/ResolverPanel, missing keyboard handlers in import flow
 Already up to date.
+[main 06c67433] chore(backlog): ux pass – ux-pass
+ 5 files changed, 27 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - ux-pass
+- Areas explored: ThemeManager (2415 lines), ResolverPanel (802 lines), ImportPanel + ImportConflictResolver + ImportSourceSelector + ImportPanelContext (full import flow), SelectionInspector binding operations, ConfirmModal baseline, SuccessToast/UndoToast/ToastStack feedback system, icon button aria-label audit across all components, SnapshotsSource delete flow, AnalyticsPanel delete flow, GeneratorPipelineCard delete flow
+- Heuristics most relevant: consistency (destructive action safety varies by panel), visibility of system status (silent mutations), accessibility (icon buttons missing aria-label), recognition over recall (import conflict cycling)
+- Found 6 items — written to backlog-inbox.md
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  10 queued · 0
+0 in-progress · last took 8m47s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel live preview re-runs all format generators on every settings change without debounce — changing a single toggle synchronously rebuilds the full ZIP and all preview strings; for large token sets this causes visible jank; debounce the preview rebuild by ~250ms (ExportPanel.tsx)
+  Worktree: /tmp/backlog-3108-iK4r9V
+  Running agent… (started 18:30:59)
+
+  ✓ done: ExportPanel live preview debounce
+    Added 250ms debounced auto-re-export effect using stable callback ref pattern; fires when export-affecting settings change while results are already showing, without infinite-loop risk from results deps
+    44 turns · 506s · $1.42
+
+  Merging to main: ExportPanel live preview debounce
+Already up to date.

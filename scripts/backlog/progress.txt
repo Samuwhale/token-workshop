@@ -584,3 +584,13 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: Destructive action safety is the most systemic issue — delete confirmation ranges from full ConfirmModal (ThemeManager dimensions, GeneratorPipelineCard) to inline confirm (AnalyticsPanel bulk delete) to completely absent (ThemeManager options, SnapshotsSource snapshots, AnalyticsPanel individual tokens). This inconsistency means users can't build reliable expectations about what will happen when they click a delete button.
 ---
+
+## 2026-04-04 - ExportPanel live preview debounce
+- Added 250ms debounced auto-re-export: when `results.length > 0` (preview is showing) and export-affecting settings change (`selected`, `cssSelector`, `selectedSets`, `selectedTypes`, `pathPrefix`, `changesOnly`, `diffPaths`, `connected`), the export automatically re-runs after 250ms idle, keeping the preview in sync without hammering the server on every keystroke/toggle.
+- Used "stable callback ref" pattern: `livePreviewFnRef.current = handleExport` on every render so the timer always calls the latest closure; `livePreviewHasResultsRef.current = results.length > 0` avoids putting `results` in deps (which would cause an infinite re-export loop since each export updates `results`).
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L811-L826
+- **Learnings for future iterations:**
+  - "Live preview" in ExportPanel was not yet wired up — the Preview section showed old results until the user clicked "Refresh". The debounced effect closes this gap.
+  - Never put `results` (the output of the export) in the auto-export effect's deps — it would trigger an infinite loop. Use a ref (`hasResultsRef.current`) to check for initial results without adding it to deps.
+  - `changesOnly` and `diffPaths` should both be in deps: `changesOnly` toggles the mode, `diffPaths` carries the actual diff data and can change independently when the user refreshes the diff.
+---
