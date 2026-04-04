@@ -10,15 +10,13 @@ import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import type { ColorModifierOp } from '@tokenmanager/core';
-import { validateColorModifiers } from '@tokenmanager/core';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
 import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor, FontStyleEditor, TextDecorationEditor, TextTransformEditor, PercentageEditor, LinkEditor, LetterSpacingEditor, LineHeightEditor, CubicBezierEditor, TransitionEditor, CustomEditor, VALUE_FORMAT_HINTS } from './ValueEditors';
-import { AliasPicker, resolveAliasChain } from './AliasPicker';
-import { resolveTokenValue, isAlias, extractAliasPath } from '../../shared/resolveAlias';
+import { AliasPicker } from './AliasPicker';
+import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
 import { ColorModifiersEditor } from './ColorModifiersEditor';
 import { TokenUsages } from './TokenUsages';
@@ -26,6 +24,17 @@ import { MetadataEditor } from './MetadataEditor';
 import { PathAutocomplete } from './PathAutocomplete';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
+
+// Hooks
+import { useTokenEditorFields } from '../hooks/useTokenEditorFields';
+import { useTokenEditorLoad } from '../hooks/useTokenEditorLoad';
+import { useTokenDependents } from '../hooks/useTokenDependents';
+import { useTokenAliasEditor } from '../hooks/useTokenAliasEditor';
+import { useTokenTypeParsing } from '../hooks/useTokenTypeParsing';
+import { useTokenEditorUIState } from '../hooks/useTokenEditorUIState';
+import { useTokenEditorSave } from '../hooks/useTokenEditorSave';
+import { useTokenEditorGenerators } from '../hooks/useTokenEditorGenerators';
+import { clearEditorDraft, saveEditorDraft, formatDraftAge } from '../hooks/useTokenEditorUtils';
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -485,66 +494,6 @@ function ThemeValuesSection({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Token value history section
-// ---------------------------------------------------------------------------
-
-// TokenHistorySection, HistoryValueChip, HistoryEntryData, and formatRelativeTime
-// are defined in TokenHistorySection.tsx and imported above.
-
-// ---------------------------------------------------------------------------
-// Draft auto-save utilities
-// Drafts are stored in sessionStorage (survives accidental panel close within
-// the same browser session but is discarded when the tab closes).
-// ---------------------------------------------------------------------------
-const EDITOR_DRAFT_PREFIX = 'tm_editor_draft';
-
-interface EditorDraftData {
-  tokenType: string;
-  value: any;
-  description: string;
-  reference: string;
-  scopes: string[];
-  colorModifiers: ColorModifierOp[];
-  modeValues: Record<string, any>;
-  extensionsJsonText: string;
-  lifecycle: 'draft' | 'published' | 'deprecated';
-  extendsPath: string;
-  savedAt: number;
-}
-
-function editorDraftKey(setName: string, tokenPath: string): string {
-  return `${EDITOR_DRAFT_PREFIX}:${setName}:${tokenPath}`;
-}
-
-function saveEditorDraft(setName: string, tokenPath: string, data: Omit<EditorDraftData, 'savedAt'>): void {
-  try {
-    sessionStorage.setItem(editorDraftKey(setName, tokenPath), JSON.stringify({ ...data, savedAt: Date.now() }));
-  } catch { /* quota exceeded – best-effort */ }
-}
-
-function loadEditorDraft(setName: string, tokenPath: string): EditorDraftData | null {
-  try {
-    const raw = sessionStorage.getItem(editorDraftKey(setName, tokenPath));
-    if (!raw) return null;
-    return JSON.parse(raw) as EditorDraftData;
-  } catch { return null; }
-}
-
-function clearEditorDraft(setName: string, tokenPath: string): void {
-  try { sessionStorage.removeItem(editorDraftKey(setName, tokenPath)); } catch { /* ignore */ }
-}
-
-function formatDraftAge(savedAt: number): string {
-  const seconds = Math.floor((Date.now() - savedAt) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-}
-// ---------------------------------------------------------------------------
-
 interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
@@ -591,280 +540,223 @@ interface TokenEditorProps {
 }
 
 export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken, onNavigateToGenerator }: TokenEditorProps) {
-  const [loading, setLoading] = useState(!isCreateMode);
-  // Editable path, only used in create mode
-  const [editPath, setEditPath] = useState(tokenPath);
-  const [showPathAutocomplete, setShowPathAutocomplete] = useState(false);
-  const pathInputWrapperRef = useRef<HTMLDivElement>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [tokenType, setTokenType] = useState(initialType || 'color');
-  const [value, setValue] = useState<any>(() => {
-    if (!isCreateMode) return '';
-    const t = initialType || 'color';
-    // Pre-fill from initialValue when provided (and not an alias — aliases are handled via reference state)
-    if (initialValue && !isAlias(initialValue)) {
-      return parseInitialValueForType(t, initialValue);
-    }
-    if (t === 'color') return '#000000';
-    if (t === 'dimension') return { value: 0, unit: 'px' };
-    if (t === 'number' || t === 'duration') return 0;
-    if (t === 'boolean') return false;
-    if (t === 'shadow') return { x: 0, y: 0, blur: 4, spread: 0, color: '#000000', type: 'dropShadow' };
-    return '';
+
+  // 1. Fields hook — all editable state
+  const fields = useTokenEditorFields({
+    isCreateMode,
+    initialType,
+    initialValue,
+    tokenPath,
+    allTokensFlat,
   });
-  const [description, setDescription] = useState('');
-  const [reference, setReference] = useState(() => {
-    if (isCreateMode && initialValue && isAlias(initialValue)) return initialValue;
-    return '';
-  });
-  const [aliasMode, setAliasMode] = useState(() => {
-    if (isCreateMode && initialValue && isAlias(initialValue)) return true;
-    return false;
-  });
-  const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const refInputRef = useRef<HTMLInputElement>(null);
+  const {
+    initialRef,
+    tokenType, setTokenType,
+    value, setValue,
+    description, setDescription,
+    reference, setReference,
+    aliasMode, setAliasMode,
+    scopes, setScopes,
+    colorModifiers, setColorModifiers,
+    modeValues, setModeValues,
+    extensionsJsonText, setExtensionsJsonText,
+    extensionsJsonError, setExtensionsJsonError,
+    lifecycle, setLifecycle,
+    extendsPath, setExtendsPath,
+    preAliasValueRef,
+    isDirty,
+    colorFlatMap,
+    outgoingRefs,
+  } = fields;
+
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
-  const didAutoFocusRef = useRef(false);
-  const preAliasValueRef = useRef<any>(null);
-  const fontFamilyRef = useRef<HTMLInputElement>(null);
-  const fontSizeRef = useRef<HTMLInputElement>(null);
-  const [scopes, setScopes] = useState<string[]>([]);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string; lifecycle: 'draft' | 'published' | 'deprecated'; extendsPath: string } | null>(null);
+
+  // Alias editor hook — needed by load hook (refInputRef) and save hook (handleToggleAlias)
+  // We initialize it early since load hook needs refInputRef
+  const aliasEditor = useTokenAliasEditor({
+    aliasMode,
+    setAliasMode,
+    value,
+    setValue,
+    reference,
+    setReference,
+    tokenType,
+    allTokensFlat,
+    preAliasValueRef,
+  });
+  const { showAutocomplete, setShowAutocomplete, refInputRef, handleToggleAlias } = aliasEditor;
+
+  // Transient error state — also needed by load hook
+  const [error, setError] = useState<string | null>(null);
+
+  // 2. Load hook — fetches token, populates fields
+  const loadResult = useTokenEditorLoad({
+    serverUrl,
+    setName,
+    tokenPath,
+    isCreateMode,
+    initialRef,
+    setTokenType,
+    setValue,
+    setDescription,
+    setReference,
+    setAliasMode,
+    setScopes,
+    setColorModifiers,
+    setModeValues,
+    setExtensionsJsonText,
+    setLifecycle,
+    setExtendsPath,
+    setError,
+    refInputRef,
+    valueEditorContainerRef,
+  });
+  const { loading, pendingDraft, setPendingDraft, initialServerSnapshotRef } = loadResult;
+
+  // 3. Dependents hook
+  const { dependents, dependentsLoading } = useTokenDependents({
+    serverUrl,
+    setName,
+    tokenPath,
+    isCreateMode,
+  });
+
+  // 5. Type parsing hook
+  const typeParsing = useTokenTypeParsing({
+    tokenType,
+    setTokenType,
+    value,
+    setValue,
+    aliasMode,
+    reference,
+    setReference,
+    setAliasMode,
+    setShowAutocomplete,
+    setScopes,
+    setExtendsPath,
+    extensionsJsonError,
+    isCreateMode,
+    editPath: tokenPath, // placeholder; updated below after UIState
+    allTokensFlat,
+    currentTokenPath: tokenPath,
+    detectAliasCycle,
+  });
+  const {
+    pendingTypeChange,
+    setPendingTypeChange,
+    showPendingDependents,
+    setShowPendingDependents,
+    fontFamilyRef,
+    fontSizeRef,
+    aliasHasCycle,
+    canSave,
+    saveBlockReason,
+    applyTypeChange,
+    handleTypeChange,
+    focusBlockedField,
+  } = typeParsing;
+
+  // 6. UI state hook
+  const uiState = useTokenEditorUIState({
+    isDirty,
+    onBack,
+    setShowDiscardConfirm: () => {}, // placeholder; we manage showDiscardConfirm here
+    tokenType,
+    aliasMode,
+    value,
+    tokenPath,
+    setName,
+  });
+  const {
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    copied,
+    setCopied,
+    pasteFlash,
+    showPathAutocomplete,
+    setShowPathAutocomplete,
+    editPath,
+    setEditPath,
+    refsExpanded,
+    setRefsExpanded,
+    pathInputWrapperRef,
+    handlePasteInValueEditor,
+  } = uiState;
+
+  // showDiscardConfirm managed here since it's referenced by both UIState and Save
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
-  const [editingGeneratorInDialog, setEditingGeneratorInDialog] = useState<TokenGenerator | undefined>(undefined);
-  const [duplicateTemplate, setDuplicateTemplate] = useState<import('../hooks/useGenerators').GeneratorTemplate | undefined>(undefined);
-  const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
-  const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
-  const [showPendingDependents, setShowPendingDependents] = useState(false);
-  const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
-  const [dependentsLoading, setDependentsLoading] = useState(false);
-  const [modeValues, setModeValues] = useState<Record<string, any>>({});
-  const [extensionsJsonText, setExtensionsJsonText] = useState('');
-  const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
-  const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');
-  const [extendsPath, setExtendsPath] = useState('');
-  const initialServerSnapshotRef = useRef<string | null>(null);
-  const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
-  const [showConflictConfirm, setShowConflictConfirm] = useState(false);
-  // Stores the args of the last failed save so the user can retry it
-  const [saveRetryArgs, setSaveRetryArgs] = useState<[boolean, boolean] | null>(null);
-  // Draft recovery: set when the editor loads and finds a newer draft in sessionStorage
-  const [pendingDraft, setPendingDraft] = useState<EditorDraftData | null>(null);
-  // Brief visual feedback when a clipboard paste is successfully parsed
-  const [pasteFlash, setPasteFlash] = useState(false);
-  // References section: expanded state for incoming dependents list
-  const [refsExpanded, setRefsExpanded] = useState(false);
 
-  const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
+  const handleBack = useCallback(() => {
+    if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
+  }, [isDirty, onBack]);
 
-  const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
-  const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
+  // Keep the ref up-to-date so App.tsx's backdrop click can call handleBack()
+  if (closeRef) closeRef.current = handleBack;
 
-  // Flat map of color token string values — used for reference resolution in this editor.
-  // Overlay the current editor value for the token being edited so dependent previews
-  // reflect the latest saved/loaded value even when the parent's allTokensFlat is stale.
-  const colorFlatMap = useMemo(() => {
-    const map: Record<string, unknown> = {};
-    for (const [p, e] of Object.entries(allTokensFlat)) {
-      if (e.$type === 'color') map[p] = e.$value;
-    }
-    if (tokenType === 'color' && !isCreateMode) {
-      map[tokenPath] = reference || value;
-    }
-    return map;
-  }, [allTokensFlat, tokenType, tokenPath, isCreateMode, reference, value]);
+  // 7. Save hook
+  const saveHook = useTokenEditorSave({
+    serverUrl,
+    setName,
+    tokenPath,
+    isCreateMode,
+    editPath,
+    tokenType,
+    value,
+    reference,
+    description,
+    scopes,
+    colorModifiers,
+    modeValues,
+    extensionsJsonText,
+    lifecycle,
+    extendsPath,
+    initialServerSnapshotRef,
+    onBack,
+    onSaved,
+    onSaveAndCreateAnother,
+    handleToggleAlias,
+    handleBack,
+    showDiscardConfirm,
+    setShowDiscardConfirm,
+    showAutocomplete,
+    setShowAutocomplete,
+    isDirty,
+  });
+  const {
+    saving,
+    error: saveError,
+    setError: setSaveError,
+    showConflictConfirm,
+    setShowConflictConfirm,
+    saveRetryArgs,
+    setSaveRetryArgs,
+    handleSaveRef,
+    handleSave,
+    handleDelete,
+  } = saveHook;
 
-  // Outgoing references: alias paths that this token references
-  const outgoingRefs = useMemo((): string[] => {
-    if (aliasMode && reference) {
-      const p = extractAliasPath(reference);
-      return p ? [p] : [];
-    }
-    // Non-alias: extract embedded alias refs from composite value
-    if (!aliasMode && value && typeof value === 'object') {
-      const refs: string[] = [];
-      const items = Array.isArray(value) ? value : [value];
-      for (const item of items) {
-        if (item && typeof item === 'object') {
-          for (const v of Object.values(item as Record<string, unknown>)) {
-            if (typeof v === 'string') {
-              const p = extractAliasPath(v);
-              if (p) refs.push(p);
-            }
-          }
-        }
-      }
-      return refs;
-    }
-    return [];
-  }, [aliasMode, reference, value]);
+  // Merge errors from load and save hooks
+  const displayError = error || saveError;
+  const setDisplayError = (v: string | null) => { setError(v); setSaveError(v); };
 
-  useEffect(() => {
-    if (isCreateMode) return; // skip fetch in create mode
-    const controller = new AbortController();
-    const fetchToken = async () => {
-      try {
-        const data = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
-        const token = data.token;
-        setTokenType(token?.$type || 'string');
-        setValue(token?.$value ?? '');
-        setDescription(token?.$description || '');
-        const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
-        setScopes(Array.isArray(savedScopes) ? savedScopes : []);
-        const savedModifiers = token?.$extensions?.tokenmanager?.colorModifier;
-        const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
-        setColorModifiers(loadedModifiers);
-        const savedModes = token?.$extensions?.tokenmanager?.modes;
-        const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};
-        setModeValues(loadedModes);
-        const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
-        const loadedLifecycle: 'draft' | 'published' | 'deprecated' = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
-        setLifecycle(loadedLifecycle);
-        const savedExtends = token?.$extensions?.tokenmanager?.extends;
-        const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
-        setExtendsPath(loadedExtends);
-        const ext = token?.$extensions ?? {};
-        const knownExtKeys = new Set(['com.figma.scopes', 'tokenmanager']);
-        const otherExt: Record<string, any> = {};
-        for (const [k, v] of Object.entries(ext)) {
-          if (!knownExtKeys.has(k)) otherExt[k] = v;
-        }
-        const otherExtText = Object.keys(otherExt).length > 0 ? JSON.stringify(otherExt, null, 2) : '';
-        setExtensionsJsonText(otherExtText);
-        initialServerSnapshotRef.current = JSON.stringify(token ?? null);
-        const ref = isAlias(token?.$value) ? token.$value : '';
-        if (ref) setReference(ref);
-        initialRef.current = {
-          value: token?.$value ?? '',
-          description: token?.$description || '',
-          reference: ref,
-          scopes: Array.isArray(savedScopes) ? savedScopes : [],
-          type: token?.$type || 'string',
-          colorModifiers: loadedModifiers,
-          modeValues: loadedModes,
-          extensionsJsonText: otherExtText,
-          lifecycle: loadedLifecycle,
-          extendsPath: loadedExtends,
-        };
-        if (isAlias(token?.$value)) {
-          setReference(token.$value);
-        }
-        // Check for a saved draft that differs from the current server state
-        const draft = loadEditorDraft(setName, tokenPath);
-        if (draft) {
-          const init = initialRef.current!;
-          const draftDiffers = (
-            draft.tokenType !== init.type ||
-            JSON.stringify(draft.value) !== JSON.stringify(init.value) ||
-            draft.description !== init.description ||
-            draft.reference !== init.reference ||
-            JSON.stringify(draft.scopes) !== JSON.stringify(init.scopes) ||
-            JSON.stringify(draft.colorModifiers) !== JSON.stringify(init.colorModifiers) ||
-            JSON.stringify(draft.modeValues) !== JSON.stringify(init.modeValues) ||
-            draft.extensionsJsonText !== init.extensionsJsonText ||
-            draft.lifecycle !== init.lifecycle ||
-            draft.extendsPath !== init.extendsPath
-          );
-          if (draftDiffers) {
-            setPendingDraft(draft);
-          } else {
-            // Draft matches server — no longer needed
-            clearEditorDraft(setName, tokenPath);
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setError(getErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchToken();
-    return () => controller.abort();
-  }, [serverUrl, setName, tokenPath, isCreateMode]);
+  // 8. Generators hook
+  const generators$ = useTokenEditorGenerators({
+    tokenPath,
+    tokenType,
+    generators,
+  });
+  const {
+    showGeneratorDialog,
+    setShowGeneratorDialog,
+    editingGeneratorInDialog,
+    setEditingGeneratorInDialog,
+    duplicateTemplate,
+    setDuplicateTemplate,
+    existingGeneratorsForToken,
+    canBeGeneratorSource,
+  } = generators$;
 
-  // Fetch reverse dependencies (tokens that reference this one)
-  useEffect(() => {
-    if (isCreateMode) return;
-    const controller = new AbortController();
-    const fetchDependents = async () => {
-      setDependentsLoading(true);
-      try {
-        const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`, { signal: controller.signal });
-        setDependents(data.dependents ?? []);
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        console.warn('[TokenEditor] failed to fetch dependents:', err);
-      } finally {
-        setDependentsLoading(false);
-      }
-    };
-    fetchDependents();
-    return () => controller.abort();
-  }, [serverUrl, setName, tokenPath, isCreateMode]);
-
-  // Sync alias mode with loaded reference
-  useEffect(() => {
-    if (reference) setAliasMode(true);
-  }, [reference]);
-
-  // Auto-focus the appropriate field once edit mode data finishes loading
-  useEffect(() => {
-    if (isCreateMode || loading || didAutoFocusRef.current) return;
-    didAutoFocusRef.current = true;
-    if (reference) {
-      // Alias token: reference input mounts after aliasMode effect fires (next render)
-      setTimeout(() => refInputRef.current?.focus(), 0);
-    } else {
-      // Non-alias token: value editors are already mounted; focus first text input
-      const input = valueEditorContainerRef.current?.querySelector<HTMLElement>(
-        'input:not([type="color"]):not([type="checkbox"]):not([type="hidden"]):not([type="radio"]), textarea'
-      );
-      input?.focus();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
-
-  const isDirty = useMemo(() => {
-    if (!initialRef.current) return false;
-    const init = initialRef.current;
-    return (
-      tokenType !== init.type ||
-      value !== init.value ||
-      description !== init.description ||
-      reference !== init.reference ||
-      JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
-      JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
-      JSON.stringify(modeValues) !== JSON.stringify(init.modeValues) ||
-      extensionsJsonText !== init.extensionsJsonText ||
-      lifecycle !== init.lifecycle ||
-      extendsPath !== init.extendsPath
-    );
-  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
-
-  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
-
-  // Auto-save draft to sessionStorage whenever the editor has unsaved changes.
-  // This ensures changes survive an accidental panel close within the same session.
-  useEffect(() => {
-    if (!isDirty || isCreateMode) return;
-    saveEditorDraft(setName, tokenPath, {
-      tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath,
-    });
-  }, [isDirty, setName, tokenPath, isCreateMode, tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
-
-  const aliasHasCycle = useMemo((): string[] | null => {
-    if (!aliasMode || !isAlias(reference)) return null;
-    const currentPath = isCreateMode ? editPath.trim() : tokenPath;
-    if (!currentPath) return null;
-    return detectAliasCycle(reference, currentPath, allTokensFlat);
-  }, [aliasMode, reference, isCreateMode, editPath, tokenPath, allTokensFlat]);
-
-  // Real-time duplicate path detection in create mode
+  // Cross-cutting: re-compute type parsing with actual editPath
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
     const trimmed = editPath.trim();
@@ -872,113 +764,20 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return trimmed in allTokensFlat;
   }, [isCreateMode, editPath, allTokensFlat]);
 
+  // onDirtyChange cross-cut effect
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+
+  // Auto-save draft to sessionStorage whenever the editor has unsaved changes.
+  useEffect(() => {
+    if (!isDirty || isCreateMode) return;
+    saveEditorDraft(setName, tokenPath, {
+      tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath,
+    });
+  }, [isDirty, setName, tokenPath, isCreateMode, tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
+
   // Smart alias suggestion: find tokens whose value is near the current value
   const currentPathForMatch = isCreateMode ? editPath.trim() : tokenPath;
   const nearbyMatches = useNearbyTokenMatch(value, tokenType, allTokensFlat, currentPathForMatch, !aliasMode);
-
-  const canSave = useMemo(() => {
-    if (aliasHasCycle) return false;
-    if (extensionsJsonError) return false;
-    if (duplicatePath) return false;
-    if (tokenType === 'typography' && !aliasMode) {
-      const v = typeof value === 'object' && value !== null ? value : {};
-      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
-      if (!family || String(family).trim() === '') return false;
-      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
-      if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
-    }
-    return true;
-  }, [aliasHasCycle, extensionsJsonError, duplicatePath, tokenType, value, aliasMode]);
-
-  const saveBlockReason = useMemo(() => {
-    if (aliasHasCycle) return 'Circular reference';
-    if (duplicatePath) return 'A token with this path already exists';
-    if (extensionsJsonError) return 'Fix extensions JSON';
-    if (tokenType === 'typography' && !aliasMode) {
-      const v = typeof value === 'object' && value !== null ? value : {};
-      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
-      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
-      const missingFamily = !family || String(family).trim() === '';
-      const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
-      if (missingFamily && missingSize) return 'Font family and size required';
-      if (missingFamily) return 'Font family required';
-      if (missingSize) return 'Font size required';
-    }
-    if (isCreateMode && !editPath.trim()) return 'Enter a token path';
-    return null;
-  }, [aliasHasCycle, duplicatePath, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
-
-  const focusBlockedField = useCallback(() => {
-    if (tokenType !== 'typography' || aliasMode) return;
-    const v = typeof value === 'object' && value !== null ? value : {};
-    const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
-    const missingFamily = !family || String(family).trim() === '';
-    if (missingFamily) {
-      fontFamilyRef.current?.focus();
-      return;
-    }
-    const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
-    const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
-    if (missingSize) {
-      fontSizeRef.current?.focus();
-    }
-  }, [tokenType, aliasMode, value]);
-
-  const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
-    color: '#000000',
-    dimension: { value: 0, unit: 'px' },
-    typography: {},
-    shadow: { x: 0, y: 0, blur: 4, spread: 0, color: '#000000', type: 'dropShadow' },
-    border: {},
-    number: 0,
-    string: '',
-    boolean: false,
-    gradient: { type: 'linear', stops: [] },
-    duration: 0,
-    fontFamily: '',
-    composition: {},
-    cubicBezier: [0, 0, 1, 1],
-    transition: { duration: { value: 200, unit: 'ms' }, delay: { value: 0, unit: 'ms' }, timingFunction: [0.25, 0.1, 0.25, 1] },
-    fontStyle: 'normal',
-    lineHeight: 1.5,
-    letterSpacing: { value: 0, unit: 'px' },
-    percentage: 0,
-    link: '',
-    textDecoration: 'none',
-    textTransform: 'none',
-    custom: '',
-    fontWeight: 400,
-    strokeStyle: 'solid',
-    asset: '',
-  };
-
-  const applyTypeChange = (newType: string) => {
-    setTokenType(newType);
-    setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
-    setScopes([]);
-    setReference('');
-    setAliasMode(false);
-    setShowAutocomplete(false);
-    setPendingTypeChange(null);
-    setShowPendingDependents(false);
-    setExtendsPath('');
-  };
-
-  const handleTypeChange = (newType: string) => {
-    if (aliasMode) { applyTypeChange(newType); return; }
-    const isDefaultValue = JSON.stringify(value) === JSON.stringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '');
-    if (!isDefaultValue) {
-      setPendingTypeChange(newType);
-    } else {
-      applyTypeChange(newType);
-    }
-  };
-
-  const handleBack = () => {
-    if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
-  };
-  // Keep the ref up-to-date so App.tsx's backdrop click can call handleBack()
-  if (closeRef) closeRef.current = handleBack;
 
   const handleRevert = () => {
     if (!initialRef.current) return;
@@ -994,12 +793,12 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setExtensionsJsonError(null);
     setExtendsPath(init.extendsPath);
     setAliasMode(!!init.reference);
-    // Clear any saved draft since the user has explicitly reverted
     clearEditorDraft(setName, tokenPath);
     setPendingDraft(null);
   };
 
-  const applyDraft = (draft: EditorDraftData) => {
+  const applyDraft = (draft: typeof pendingDraft) => {
+    if (!draft) return;
     setTokenType(draft.tokenType);
     setValue(draft.value);
     setDescription(draft.description);
@@ -1012,181 +811,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setLifecycle(draft.lifecycle);
     setExtendsPath(draft.extendsPath);
     setPendingDraft(null);
-    // Draft will be re-saved by the auto-save effect since isDirty becomes true
   };
 
-  /** Handle paste events bubbling from the value editor area. Parses structured clipboard
-   *  content (hex colors, dimension strings, JSON objects) and applies it to the token value. */
-  const handlePasteInValueEditor = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
-    if (aliasMode) return;
-    const text = e.clipboardData.getData('text/plain');
-    if (!text.trim()) return;
-
-    const target = e.target as HTMLElement;
-    const tagName = target.tagName;
-    const inputType = tagName === 'INPUT' ? (target as HTMLInputElement).type : '';
-    const isPlainTextInput =
-      (tagName === 'INPUT' && (inputType === 'text' || inputType === 'url' || inputType === 'search' || inputType === '')) ||
-      tagName === 'TEXTAREA';
-    const clipboardIsJson = text.trim().startsWith('{') || text.trim().startsWith('[');
-
-    // Let plain text inputs handle their own plain-text paste natively
-    if (isPlainTextInput && !clipboardIsJson) return;
-
-    const parsed = parsePastedValue(tokenType, text);
-    if (parsed === null) return;
-
-    e.preventDefault();
-    setValue(parsed);
-    setPasteFlash(true);
-    setTimeout(() => setPasteFlash(false), 1500);
-  }, [aliasMode, tokenType]);
-
-  const handleDelete = async () => {
-    try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { method: 'DELETE' });
-      onBack();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Delete failed'));
-      setShowDeleteConfirm(false);
-    }
-  };
-
-  const handleToggleAlias = useCallback(() => {
-    const next = !aliasMode;
-    setAliasMode(next);
-    if (next) {
-      preAliasValueRef.current = value;
-      if (!reference) setReference('{');
-      setTimeout(() => { refInputRef.current?.focus(); }, 0);
-    } else {
-      // Try to resolve the alias to its concrete value so the user keeps
-      // the resolved result (e.g. #1a73e8) instead of the stale pre-alias value.
-      let resolved: any = null;
-      if (reference && isAlias(reference)) {
-        const result = resolveTokenValue(reference, tokenType, allTokensFlat);
-        if (result.value != null && !result.error) {
-          resolved = result.value;
-        }
-      }
-      setValue(resolved ?? preAliasValueRef.current ?? value);
-      preAliasValueRef.current = null;
-      setReference('');
-      setShowAutocomplete(false);
-    }
-  }, [aliasMode, value, reference, tokenType, allTokensFlat]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (showDiscardConfirm) { setShowDiscardConfirm(false); return; }
-        if (showAutocomplete) { setShowAutocomplete(false); return; }
-        handleBack();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
-        e.preventDefault();
-        handleToggleAlias();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (e.shiftKey && isCreateMode && onSaveAndCreateAnother) {
-          handleSaveRef.current(false, true);
-        } else {
-          handleSaveRef.current();
-        }
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSaveRef.current();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete, handleToggleAlias, isCreateMode, onSaveAndCreateAnother]);
-
-  const handleSave = async (forceOverwrite = false, createAnother = false) => {
-    if (isCreateMode && !editPath.trim()) {
-      setSaveRetryArgs(null);
-      setError('Token path cannot be empty');
-      return;
-    }
-    setSaving(true);
-    setSaveRetryArgs(null);
-    setError(null);
-    try {
-      // Conflict detection: if the token was modified on the server since we loaded it, warn the user.
-      if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
-        try {
-          const checkData = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
-          const currentSnapshot = JSON.stringify(checkData.token ?? null);
-          if (currentSnapshot !== initialServerSnapshotRef.current) {
-            setShowConflictConfirm(true);
-            setSaving(false);
-            return;
-          }
-        } catch (err) {
-          console.warn('[TokenEditor] conflict check failed, proceeding with save:', err);
-        }
-      }
-
-      const body: any = {
-        $type: tokenType,
-        $value: reference || value,
-      };
-      if (description) body.$description = description;
-      const extensions: Record<string, any> = {};
-      if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
-      const tmExt: Record<string, any> = {};
-      if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
-      const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
-      if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
-      if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
-      if (extendsPath) tmExt.extends = extendsPath;
-      if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
-      const trimmedExtJson = extensionsJsonText.trim();
-      if (trimmedExtJson && trimmedExtJson !== '{}') {
-        try {
-          const parsed = JSON.parse(trimmedExtJson);
-          if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            Object.assign(extensions, parsed);
-          }
-        } catch (err) {
-          console.debug('[TokenEditor] invalid extensions JSON:', err);
-          setSaveRetryArgs(null);
-          setError('Invalid JSON in Extensions — fix before saving');
-          setSaving(false);
-          return;
-        }
-      }
-      if (Object.keys(extensions).length > 0) body.$extensions = extensions;
-
-      const targetPath = isCreateMode ? editPath.trim() : tokenPath;
-      const encodedTargetPath = tokenPathToUrlSegment(targetPath);
-      const method = isCreateMode ? 'POST' : 'PATCH';
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const label = isCreateMode ? 'created' : 'saved';
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
-      // Clear any saved draft now that the token has been persisted
-      clearEditorDraft(setName, targetPath);
-      onSaved?.(targetPath);
-      if (createAnother && isCreateMode && onSaveAndCreateAnother) {
-        onSaveAndCreateAnother(targetPath, tokenType);
-      } else {
-        onBack();
-      }
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setSaveRetryArgs([forceOverwrite, createAnother]);
-    } finally {
-      setSaving(false);
-    }
-  };
-  handleSaveRef.current = handleSave;
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    handlePasteInValueEditor(e, parsePastedValue, setValue);
+  }, [handlePasteInValueEditor, setValue]);
 
   if (loading) {
     return (
@@ -1216,7 +845,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               <input
                 type="text"
                 value={editPath}
-                onChange={e => { setEditPath(e.target.value); setError(null); setShowPathAutocomplete(true); }}
+                onChange={e => { setEditPath(e.target.value); setDisplayError(null); setShowPathAutocomplete(true); }}
                 onFocus={() => { if (editPath.trim()) setShowPathAutocomplete(true); }}
                 onBlur={e => {
                   // Close autocomplete unless the click is within the autocomplete dropdown
@@ -1235,7 +864,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                   allTokensFlat={allTokensFlat}
                   onSelect={path => {
                     setEditPath(path);
-                    setError(null);
+                    setDisplayError(null);
                     // Keep autocomplete open if the selected path ends with a dot (group)
                     setShowPathAutocomplete(path.endsWith('.'));
                   }}
@@ -1269,7 +898,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 <button
                   key={prefix}
                   type="button"
-                  onClick={() => { setEditPath(prefix); setError(null); }}
+                  onClick={() => { setEditPath(prefix); setDisplayError(null); }}
                   className="px-1 py-px rounded text-[10px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
                 >
                   {prefix}
@@ -1362,9 +991,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
       {/* Editor body */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
-        {error && (
+        {displayError && (
           <div role="alert" className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto flex items-start gap-2">
-            <span className="flex-1">{error}</span>
+            <span className="flex-1">{displayError}</span>
             {saveRetryArgs && (
               <button
                 type="button"
@@ -1516,7 +1145,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
         {/* Type-specific editor */}
         {!reference && (
-          <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePasteInValueEditor}>
+          <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center justify-between">
                 <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1848,7 +1477,6 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                     <button
                       onClick={e => {
                         e.stopPropagation();
-                        // Duplicate: open as new with pre-filled config via template
                         setDuplicateTemplate({
                           id: `dup-${gen.id}`,
                           label: `${gen.name} (copy)`,
@@ -2059,4 +1687,3 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     </div>
   );
 }
-

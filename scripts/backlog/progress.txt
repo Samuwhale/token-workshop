@@ -488,3 +488,33 @@
   - Overflow panels (import, settings) are handled via early `if` checks in PanelRouter before the PANEL_MAP lookup, since they supersede the active tab.
   - `export type TopTab`, `export type SubTab`, `export type OverflowPanel` must be added to App.tsx so PanelRouter can import them without circular deps.
 ---
+
+## 2026-04-04 - TokenEditor.tsx has 40 useState hooks in a single 2062-line component
+- Extracted 9 focused custom hooks from TokenEditor.tsx (2062→1689 lines) following the TokenTreeContext extraction pattern:
+  - `useTokenEditorUtils.ts` — draft type + sessionStorage helpers (EditorDraftData, saveEditorDraft, loadEditorDraft, clearEditorDraft, formatDraftAge)
+  - `useTokenEditorFields.ts` — all 12 form field states, initialRef, isDirty, colorFlatMap, outgoingRefs
+  - `useTokenEditorLoad.ts` — token fetch effect, draft detection, alias-mode sync, auto-focus
+  - `useTokenDependents.ts` — reverse-dependency fetch
+  - `useTokenAliasEditor.ts` — alias toggle, autocomplete, handleToggleAlias
+  - `useTokenTypeParsing.ts` — type-change confirm flow, canSave, saveBlockReason, duplicatePath, DEFAULT_VALUE_FOR_TYPE
+  - `useTokenEditorSave.ts` — handleSave, handleDelete, conflict confirm, keyboard shortcut handler
+  - `useTokenEditorUIState.ts` — transient modals, clipboard, path autocomplete, editPath, pasteFlash
+  - `useTokenEditorGenerators.ts` — generator dialog state, existingGeneratorsForToken
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` (2062→1689 lines)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorUtils.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorFields.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenDependents.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenAliasEditor.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenTypeParsing.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorUIState.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorGenerators.ts` (new)
+- **Learnings for future iterations:**
+  - Hook call order is critical: declare field hooks first (they create the refs/setters), then pass setters into load hook so it can hydrate fields on mount
+  - `handleSaveRef.current = handleSave` must be at module level (not inside an effect) to stay consistent with the stable-ref pattern
+  - `closeRef.current = handleBack` assignment stays in the component body (not a hook), since it's a render-time ref mutation
+  - Cross-cutting effects (onDirtyChange, auto-save draft) that span multiple hooks stay in the main component
+  - The 2 sub-components (ExtendsTokenPicker, ThemeValuesSection) kept their local state — they're already well-bounded
+---
