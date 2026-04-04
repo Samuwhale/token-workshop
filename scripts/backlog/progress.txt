@@ -434,3 +434,12 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: ImportPanelContext has 44 useState hooks in a single context provider — the same monolith pattern that TokenList had before extraction; token-store watcher fires scheduleRebuild unconditionally even after loadSet fails, broadcasting stale-data SSE events to all clients
 ---
+
+## 2026-04-04 - No way to duplicate a theme dimension with all its options
+- Added `handleDuplicateDimension(id)` to `useThemeDimensions.ts`: generates a unique name (`"Name Copy"`, `"Name Copy 2"`, etc.) and unique ID (slugified), POSTs the new dimension, then POSTs each option with identical set assignments, optimistically updates local state, and fires a success toast
+- Added a duplicate (copy-icon) button in the dimension header in `ThemeManager.tsx`, placed to the left of the existing delete button — same hover-only opacity pattern, disabled while `isDuplicatingDim` is true
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts` ~L69,108,420, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L94,932
+- **Learnings for future iterations:**
+  - The delete dimension undo handler already shows the pattern for re-creating a dimension with options (POST dimension then POST each option) — the duplicate handler follows the same sequential API call pattern
+  - Unique name suffix logic: start with `"Name Copy"`, increment counter ("Name Copy 2", "Name Copy 3") while there's a case-insensitive collision; separately deduplicate the slugified ID in case multiple copies collide at the slug level
+---

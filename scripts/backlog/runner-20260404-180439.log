@@ -680,3 +680,29 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: ImportPanelContext monolith (44 useState), token-store watcher rebuild-after-fail, rename recovery marker deletion on theme failure, useGitStatus dead-code error handler, plugin snapshot revert with no validation, ExportPanel duplicated set fetches
 Already up to date.
+[main 04cd120b] chore(backlog): code pass – code-pass
+ 3 files changed, 23 insertions(+)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-04 - code-pass
+- Areas explored: packages/server/src/services/token-store.ts (watcher error handling, saveSet chain, rename recovery), packages/server/src/routes/tokens.ts (error propagation from saveSet), packages/figma-plugin/src/ui/hooks/useFigmaSync.ts (AbortController lifecycle, eslint-disable deps), packages/figma-plugin/src/ui/hooks/useGitStatus.ts (nested try-catch error swallowing), packages/figma-plugin/src/ui/hooks/useServerEvents.ts (reconnect race conditions), packages/figma-plugin/src/ui/hooks/useTokenDataLoading.ts (stale fetch races), packages/figma-plugin/src/plugin/controller.ts (revert snapshot validation, withSyncLock), packages/figma-plugin/src/plugin/variableSync.ts (rollback error isolation), packages/figma-plugin/src/ui/components/ImportPanelContext.tsx (monolith complexity), packages/figma-plugin/src/ui/components/ExportPanel.tsx (duplicated set fetches), packages/figma-plugin/src/ui/components/TokenList.tsx (useState count)
+- Found 6 items — written to backlog-inbox.md
+- Notable: ImportPanelContext has 44 useState hooks in a single context provider — the same monolith pattern that TokenList had before extraction; token-store watcher fires scheduleRebuild unconditionally even after loadSet fails, broadcasting stale-data SSE events to all clients
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  16 queued · 0
+0 in-progress · last took 8m54s
+═══════════════════════════════════════════════════════════════
+  → No way to duplicate a theme dimension with all its options — ThemeManager.tsx supports creating and deleting dimensions but has no "Duplicate dimension" action; for design systems with similar theme axes (e.g. duplicating a "brand" dimension to create "sub-brand" with the same option structure), users must manually recreate every option and reassign every set; a duplicate action that copies the dimension structure and set assignments (with a name suffix) would save significant manual work
+  Worktree: /tmp/backlog-3108-jV8Ftr
+  Running agent… (started 22:09:50)
+
+  ✓ done: No way to duplicate a theme dimension with all its options
+    Added handleDuplicateDimension to useThemeDimensions hook (unique name/ID generation, POST dimension + all options) and a duplicate button in the ThemeManager dimension header
+    26 turns · 240s · $0.83
+
+  Merging to main: No way to duplicate a theme dimension with all its options
+Already up to date.

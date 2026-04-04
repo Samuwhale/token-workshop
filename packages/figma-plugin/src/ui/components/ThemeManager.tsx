@@ -93,6 +93,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     startRenameDim, cancelRenameDim, executeRenameDim,
     dimensionDeleteConfirm, setDimensionDeleteConfirm, isDeletingDim,
     executeDeleteDimension,
+    isDuplicatingDim, handleDuplicateDimension,
   } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
@@ -928,6 +929,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               Compare
                             </button>
                           )}
+                          <button
+                            onClick={() => handleDuplicateDimension(dim.id)}
+                            disabled={isDuplicatingDim}
+                            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-25 disabled:pointer-events-none"
+                            title="Duplicate layer" aria-label="Duplicate layer"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                            </svg>
+                          </button>
                           <button
                             onClick={() => setDimensionDeleteConfirm(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
