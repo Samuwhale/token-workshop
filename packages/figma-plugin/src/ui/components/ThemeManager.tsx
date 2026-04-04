@@ -73,6 +73,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Dimension/option search filter
   const [dimSearch, setDimSearch] = useState('');
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
+  const previewSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
 
   // --- Domain hooks ---
@@ -1521,6 +1522,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                       placeholder="Filter tokens…"
                                       value={missingOverrideSearch[moKey] ?? ''}
                                       onChange={e => setMissingOverrideSearch(prev => ({ ...prev, [moKey]: e.target.value }))}
+                                      onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); if (missingOverrideSearch[moKey]) setMissingOverrideSearch(prev => ({ ...prev, [moKey]: '' })); (e.currentTarget as HTMLInputElement).blur(); } }}
                                       className="w-full mb-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
                                     />
                                   )}
@@ -1629,10 +1631,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </div>
                 <div className="px-3 py-1 border-t border-[var(--color-figma-border)]">
                   <input
+                    ref={previewSearchRef}
                     type="text"
                     placeholder="Search tokens..."
                     value={previewSearch}
                     onChange={e => setPreviewSearch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); if (previewSearch) setPreviewSearch(''); previewSearchRef.current?.blur(); } }}
                     className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                 </div>

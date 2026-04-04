@@ -925,3 +925,26 @@ Already up to date.
 
   Merging to main: Export panel presents too many filter options simultaneously without progressive disclosure
 Already up to date.
+[main 4cfa7c95] chore(backlog): done – Export panel presents too many filter options simultaneously without progressive disclosure
+ 5 files changed, 308 insertions(+), 185 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - Export panel presents too many filter options simultaneously without progressive disclosure
+- Made all 5 filter sections in Platforms export mode collapsible with chevron toggle + summary:
+  1. **CSS Selector**: collapsed by default when value is `:root`; shows current value as summary when collapsed; "Reset to :root" action only shown when expanded
+  2. **Token Sets**: collapsed by default when all sets selected; shows "All sets" / "N of M" / "None selected" summary when collapsed; "Deselect all"/"Select all" action only shown when expanded
+
+═══════════════════════════════════════════════════════════════
+  #35  ·  25 queued · 0
+0 in-progress · last took 5m19s
+═══════════════════════════════════════════════════════════════
+  → Escape key behavior is inconsistent between search inputs across panels — TokenList search (TokenList.tsx:2598) does not handle Escape at all (only hint navigation); ThemeManager dimension search (ThemeManager.tsx:701) clears the query and blurs on Escape; ThemeManager preview token search has no Escape handler; ThemeManager missing-override filter has no Escape handler; a user who learns Escape-to-clear in one panel will be confused when it doesn't work in another (violates: consistency, user control and freedom)
+  Worktree: /tmp/backlog-3108-5cp8uP
+  Running agent… (started 23:26:29)
+
+  ✓ done: Escape key behavior is inconsistent between search inputs across panels
+    Standardized Escape-to-clear-and-blur across TokenList search, ThemeManager preview search, and ThemeManager missing-override filter; dim search was already correct
+    16 turns · 711s · $0.37
+
+  Merging to main: Escape key behavior is inconsistent between search inputs across panels
+Already up to date.

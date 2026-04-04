@@ -571,3 +571,16 @@
   - When collapsing/expanding, keep action buttons (Clear, Reset, Deselect all) only in the expanded state — showing them when collapsed would require interaction before seeing context
   - Initialize collapse state from the persisted filter value so active filters are always visible on page load, even without user having to manually expand
 ---
+
+## 2026-04-04 - Escape key behavior is inconsistent between search inputs across panels
+- Standardized Escape-to-clear-and-blur behavior across all search inputs:
+  1. **`TokenList.tsx`** (~L2647): The Escape handler already cleared the query (added in a previous session) but never blurred the input. Updated to always blur on Escape (clear if needed, then `searchRef.current?.blur()`).
+  2. **`ThemeManager.tsx`** (~L76): Added `previewSearchRef = useRef<HTMLInputElement | null>(null)` for the preview token search input.
+  3. **`ThemeManager.tsx`** (~L1634): Added `ref={previewSearchRef}` and `onKeyDown` Escape handler (clear `previewSearch` + blur) to the "Token Resolution Preview" search input.
+  4. **`ThemeManager.tsx`** (~L1523): Added `onKeyDown` Escape handler using `e.currentTarget.blur()` (no ref needed since the input is inside a loop) to the missing-override filter input — clears the per-key search entry.
+- The dimension search (ThemeManager ~L702) was already correct (the reference implementation): Escape clears query AND blurs.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2647, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L76, ~L1634, ~L1523
+- **Learnings for future iterations:**
+  - For search inputs that are rendered inside loops (e.g., one per missing-override group), `e.currentTarget.blur()` is the right approach since a single ref can't track multiple instances simultaneously.
+  - The canonical Escape pattern: `e.preventDefault(); if (query) clearQuery(); inputRef.current?.blur();` — always blur, clear only if needed.
+---

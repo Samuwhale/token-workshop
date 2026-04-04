@@ -2645,7 +2645,10 @@ export function TokenList({
                     onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); setSearchFocused(false); }}
                     onKeyDown={e => {
                       if (e.key === 'Escape') {
-                        if (searchQuery) { e.preventDefault(); setSearchQuery(''); setHintIndex(0); return; }
+                        e.preventDefault();
+                        if (searchQuery) { setSearchQuery(''); setHintIndex(0); }
+                        searchRef.current?.blur();
+                        return;
                       }
                       if (!showQualifierHints || qualifierHints.length === 0) return;
                       if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
