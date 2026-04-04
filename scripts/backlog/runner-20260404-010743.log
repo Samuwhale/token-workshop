@@ -451,3 +451,18 @@ Already up to date.
 
   Merging to main: TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically
 Already up to date.
+[main 13fefa5e] chore(backlog): done – TokenStore rebuildFlatTokens() clears the Map then re-populates it non-atomically
+ 6 files changed, 40 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - TokenStore rebuildFlatTokens() non-atomic + missing rebuild on error path
+- Fixed `rebuildFlatTokens()` to build into a new `Map` and assign atomically (`this.flatTokens = newMap`), eliminating the window where concurrent SSE/resolveTokens readers could observe an empty or partial token map
+- Added `this.rebuildFlatTokens()` in the `updateToken` catch block after `restoreSnapshots()`: `updateToken` mutates token properties in-place (`existing.$value = …`), which corrupts the existing `flatTokens` entries; `restoreSnapshots` replaces the tree with a deep clone but `flatTokens` still held references to the mutated objects — the rebuild re-derives from the restored snapshot
+- `setToken`, `deleteToken`, `createGroup`, `updateGroupMeta` don't need error-path rebuilds because they either replace whole objects (not mutate in-place) or run inside `withBatch` (whose `endBatch` always calls `rebuildFlatTokens`)
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  17 queued · 3 in-progress · last took 3m16s
+═══════════════════════════════════════════════════════════════
+  → TokenTreeNode.tsx is 2044 lines with 25 useState calls and defines ~15 non-memoized handler functions that create new closures on every render — handleApplyToSelection (L442) performs expensive token resolution including alias traversal on every render (not wrapped in useCallback or gated behind user interaction); the component renders once per visible token in a potentially 1000+ item virtualized list, so these per-render allocations multiply; additionally the component mixes rendering logic for leaf tokens, group headers, inline editors, context menus, drag handles, and binding indicators in a single function body with no sub-component extraction — this makes it impossible to memoize individual concerns and means any state change (e.g., hovering a different row) re-runs all handler definitions for every visible row (TokenTreeNode.tsx)
+  Worktree: /tmp/backlog-91634-iB5DaK
+  Running agent… (started 02:49:07)

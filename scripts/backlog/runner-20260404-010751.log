@@ -571,3 +571,10 @@ Already up to date.
   → [HIGH] OperationLog.record() has no write serialization — two concurrent token mutations both call record(), both push to the in-memory array, both call persist() which writes the full array to disk; the second persist() overwrites the first's file atomically, but if the first persist() started before the second's push(), the first's file content is missing the second entry; needs the same promise-chain mutex pattern used by TokenStore and ResolverStore (packages/server/src/services/operation-log.ts L111-125)
   Worktree: /tmp/backlog-92209-NWPxdG
   Running agent… (started 02:47:24)
+
+  ✓ done: OperationLog.record() has no write serialization
+    Added promise-chain mutex (lockChain + withLock) to OperationLog; extracted pushAndPersist helper; record() and rollback() both serialize through withLock to prevent concurrent persist races
+    17 turns · 154s · $0.46
+
+  Merging to main: OperationLog.record() has no write serialization
+Already up to date.

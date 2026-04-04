@@ -84,6 +84,13 @@ export class OperationLog {
   private filePath: string;
   private tokenDir: string;
   private loadPromise: Promise<void> | null = null;
+  private lockChain: Promise<void> = Promise.resolve();
+
+  private withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.lockChain.then(() => fn());
+    this.lockChain = next.then(() => {}, () => {});
+    return next;
+  }
 
   constructor(tokenDir: string) {
     this.tokenDir = path.resolve(tokenDir);
@@ -107,9 +114,8 @@ export class OperationLog {
     await fs.rename(tmp, this.filePath);
   }
 
-  /** Record a new operation entry. */
-  async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
-    await this.ensureLoaded();
+  /** Push a new entry and persist — must be called while holding the lock. */
+  private async pushAndPersist(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
     const full: OperationEntry = {
       ...entry,
       id: randomUUID(),
@@ -122,6 +128,12 @@ export class OperationLog {
     }
     await this.persist();
     return full;
+  }
+
+  /** Record a new operation entry. */
+  async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
+    await this.ensureLoaded();
+    return this.withLock(() => this.pushAndPersist(entry));
   }
 
   /** Get recent entries (newest first) as lightweight summaries, with total count. */
@@ -382,20 +394,21 @@ export class OperationLog {
       throw err;
     }
 
-    entry.rolledBack = true;
-
-    // Record the rollback as its own operation
-    const rollbackEntry = await this.record({
-      type: 'rollback',
-      description: `Undo: ${entry.description}`,
-      setName: entry.setName,
-      affectedPaths: entry.affectedPaths,
-      beforeSnapshot: currentSnapshot,
-      afterSnapshot: entry.beforeSnapshot,
-      ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
+    // Mark the original entry as rolled-back and record the rollback entry atomically
+    // under the lock so no concurrent record() can interleave between the two writes.
+    const rollbackEntry = await this.withLock(async () => {
+      entry.rolledBack = true;
+      return this.pushAndPersist({
+        type: 'rollback',
+        description: `Undo: ${entry.description}`,
+        setName: entry.setName,
+        affectedPaths: entry.affectedPaths,
+        beforeSnapshot: currentSnapshot,
+        afterSnapshot: entry.beforeSnapshot,
+        ...(inverseSteps?.length ? { rollbackSteps: inverseSteps } : {}),
+      });
     });
 
-    await this.persist();
     return { restoredPaths: Object.keys(entry.beforeSnapshot), rollbackEntryId: rollbackEntry.id };
   }
 

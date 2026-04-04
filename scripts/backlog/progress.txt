@@ -620,3 +620,14 @@
   - In-place mutation of objects already referenced by a derived data structure (flatTokens) is the subtle bug — `setTokenAtPath` replaces the node so old references stay valid, but `updateToken`'s property-assignment pattern corrupts the referenced object
   - Atomic Map swap is a one-liner: build into a local `newMap`, assign to `this.flatTokens` at the end; readers never see a partial state
 ---
+
+## 2026-04-04 - OperationLog.record() has no write serialization
+- Added promise-chain mutex (`lockChain` + `withLock`) to `OperationLog` to serialize all writes to `this.entries` and `persist()`
+- Extracted `pushAndPersist()` private helper containing the push-trim-persist logic; marked with doc comment "must be called while holding the lock"
+- `record()` now wraps `pushAndPersist()` in `withLock()`
+- `rollback()` final section (setting `entry.rolledBack = true` + creating the rollback entry) moved into a single `withLock()` call so the flag mutation and the new entry are persisted atomically; removed the now-redundant separate `await this.persist()` call
+- Files changed: `packages/server/src/services/operation-log.ts` ~L82-L137, ~L397-L412
+- **Learnings for future iterations:**
+  - When a method calls another method that already holds the lock (re-entrancy), extract a non-locking `_locked` variant and have both call it inside their respective `withLock` scopes
+  - The redundant `persist()` after `record()` in `rollback()` was harmless but created confusion — removing it is safe because `pushAndPersist()` already persists
+---
