@@ -495,3 +495,13 @@
   - `TypeError` from `fetch()` always carries a recognizable message ("Failed to fetch", "NetworkError", "Load failed"). Non-fetch TypeErrors (property access on null, etc.) have different messages — message-based discrimination is the correct approach.
   - Safari throws `TypeError: Load failed` for network failures; always include it alongside the Chrome/Firefox strings.
 ---
+
+## 2026-04-04 - Plugin MESSAGE_SCHEMA missing resolvedValue validation for 3 message types
+- Added `['resolvedValue', 'any']` to `MESSAGE_SCHEMA` entries for `apply-to-selection`, `batch-bind-heatmap-nodes`, and `apply-to-nodes` — these handlers already passed `msg.resolvedValue` to `applyTokenValue()` but the schema never validated its presence
+- Extended `Check` type union to include `'any'` and updated `validateMessage` to treat `'any'` as a presence-only check (rejects `undefined`, allows `null` and all other types) since `ResolvedTokenValue` is a wide union that includes `null` as a valid value
+- Added null/undefined guard in `applyTokenValue` typography branch: `if (value == null || typeof value !== 'object' || Array.isArray(value)) break;` before accessing `val.fontFamily` — also replaced implicit `value` cast with explicit `const val = value as TypographyValue`
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L62, ~L70, ~L87, ~L94, ~L122; `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L97
+- **Learnings for future iterations:**
+  - When `ResolvedTokenValue` (or any wide union including null) must be validated in the schema, an `'any'` type that only checks for `undefined` (not null) is the correct semantic — null can be a legitimate payload
+  - The schema's null-rejection in the general path is still right for string/number/boolean/object fields, so splitting the check into "undefined = missing" vs "null = missing" based on expected type is the clean solution
+---

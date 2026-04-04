@@ -59,7 +59,7 @@ function reportError(handler: string, e: unknown): void {
 // checks.  "object" also passes arrays; use "array" for strict array checks.
 // ---------------------------------------------------------------------------
 
-type Check = [prop: string, expected: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function'];
+type Check = [prop: string, expected: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function' | 'any'];
 
 const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'apply-variables':            [['tokens', 'array']],
@@ -67,7 +67,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'read-variables':             [],
   'read-styles':                [],
   'export-all-variables':       [],
-  'apply-to-selection':         [['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'apply-to-selection':         [['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
   'get-selection':              [],
   'set-deep-inspect':           [['enabled', 'boolean']],
   'remove-binding':             [['property', 'string']],
@@ -84,14 +84,14 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'select-next-sibling':        [],
   'scan-canvas-heatmap':        [],
   'select-heatmap-nodes':       [['nodeIds', 'array']],
-  'batch-bind-heatmap-nodes':   [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'batch-bind-heatmap-nodes':   [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
   'scan-single-token-usage':    [['tokenPath', 'string']],
   'scan-token-variable-bindings': [['tokenPath', 'string']],
   'extract-tokens-from-selection': [],
   'scan-consistency':           [['tokenMap', 'object'], ['scope', 'string']],
   'search-layers':              [['query', 'string']],
   'find-peers-for-property':    [['nodeId', 'string'], ['property', 'string']],
-  'apply-to-nodes':             [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string']],
+  'apply-to-nodes':             [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
   'remove-binding-from-node':   [['nodeId', 'string'], ['property', 'string']],
   'get-available-fonts':        [],
   'eyedropper':                 [],
@@ -121,7 +121,14 @@ function validateMessage(msg: Record<string, unknown>): string | null {
   }
   for (const [prop, expected] of checks) {
     const val = msg[prop];
-    if (val === undefined || val === null) {
+    if (val === undefined) {
+      return `${type}: missing required property "${prop}"`;
+    }
+    if (expected === 'any') {
+      // allow any value including null — presence check only
+      continue;
+    }
+    if (val === null) {
       return `${type}: missing required property "${prop}"`;
     }
     if (expected === 'array') {

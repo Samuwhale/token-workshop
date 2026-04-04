@@ -97,7 +97,8 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
     case 'typography':
       if (node.type === 'TEXT') {
         const textNode = node as TextNode;
-        const val = value;
+        if (value == null || typeof value !== 'object' || Array.isArray(value)) break;
+        const val = value as TypographyValue;
         try {
           const family = (Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily) || 'Inter';
           const style = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : (val.fontStyle || 'Regular');

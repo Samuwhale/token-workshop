@@ -714,3 +714,18 @@ Already up to date.
 
   Merging to main: isNetworkError() classifies ALL TypeErrors as network errors
 Already up to date.
+[main 389a2723] chore(backlog): done – isNetworkError() classifies ALL TypeErrors as network errors
+ 6 files changed, 38 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-04 - isNetworkError() classifies ALL TypeErrors as network errors
+- Narrowed `isNetworkError()` in `apiFetch.ts` to check the error message instead of returning `true` for any `TypeError`. Since `TypeError` extends `Error`, removing the unconditional early-return and falling through to the message check covers all browsers: Chrome ("Failed to fetch"), Firefox ("NetworkError"), Safari ("Load failed"), Node ("fetch failed").
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` ~L24
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  2 queued · 2 in-progress · last took 1m15s
+═══════════════════════════════════════════════════════════════
+  → Server token routes in `tokens.ts` accept path-operation parameters (oldGroupPath, newGroupPath, targetSet, etc.) from request bodies without validation before passing to service methods — at least 12 route handlers destructure and forward body properties directly (lines 96, 127, 165, 199, 228, 259, 288, 322, 353, 392, 431, 472); while services have some internal guards, missing route-level validation means malformed input (empty strings, paths with invalid characters) propagates deeper than necessary and produces confusing error messages instead of clean 400 responses
+  Worktree: /tmp/backlog-91634-ZnTZI8
+  Running agent… (started 03:57:50)
