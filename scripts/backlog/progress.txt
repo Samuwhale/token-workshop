@@ -336,3 +336,13 @@
   - `opacity-50` on the section wrapper (not just the checkbox) gives good visual feedback that the section is excluded without hiding the content — the user can still review what they're skipping.
   - The confirm button label needed a third state: "Publish" (default), "Publish without Git" (merge conflicts), "Nothing selected" (nothing checked) — handled with a simple ternary chain.
 ---
+
+## 2026-04-05 - Gradient editor has no visual builder
+- Replaced the static CSS preview strip in GradientEditor with a fully interactive two-part builder: (1) a tall gradient bar that shows the live preview and accepts pointer clicks to add new stops; (2) a marker strip below showing draggable circle handles at each stop's position. Each marker uses `setPointerCapture` for smooth drag-to-reorder. The selected stop is tracked via `selectedIdx` state; clicking a marker or a row in the stop list selects it. Selected rows in the stop list are highlighted with an accent ring. Helper functions `gradientStopColor()` and `buildGradientCss()` were extracted to avoid duplication. Token alias stops show as grey in the visual bar. Added `GradientBar` and `GradientStopMarker` components before `GradientEditor`.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1373 (new GradientStopMarker, GradientBar components; updated GradientEditor; updated GradientStopRow to accept isSelected/onSelect props)
+- **Learnings for future iterations:**
+  - For draggable handles in a gradient bar, the two-section layout (preview bar on top + marker strip below) gives clean event separation: bar clicks add stops, marker clicks/drags select/move them. Avoid placing markers over the bar to prevent hit-testing conflicts.
+  - `setPointerCapture` on the marker element is essential for smooth dragging — without it, fast mouse movements leave the capture area and drop the drag. Store dragging state in a `useRef` (not `useState`) to avoid re-render cycles during drag.
+  - A `getBarPos(clientX)` function closed over a `barRef` gives clean screen-to-normalized-position conversion shared between the bar's click handler and the marker's pointer-move handler.
+  - `e.stopPropagation()` + `onClick={e => e.stopPropagation()}` both needed on markers to prevent the parent container's click handler from firing.
+---

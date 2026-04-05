@@ -1375,34 +1375,180 @@ interface GradientStop {
   position: number;
 }
 
+function gradientStopColor(stop: GradientStop): string {
+  return typeof stop.color === 'string' && !stop.color.startsWith('{') ? stop.color : '#aaaaaa';
+}
+
+function buildGradientCss(gradientType: string, stops: GradientStop[]): string {
+  const parts = stops
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map(s => `${gradientStopColor(s)} ${Math.round(s.position * 100)}%`)
+    .join(', ');
+  return `${gradientType}-gradient(to right, ${parts})`;
+}
+
+function GradientStopMarker({ position, color, isSelected, onSelect, onMove, getBarPos }: {
+  position: number;
+  color: string;
+  isSelected: boolean;
+  onSelect: () => void;
+  onMove: (pos: number) => void;
+  getBarPos: (clientX: number) => number;
+}) {
+  const draggingRef = useRef(false);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect();
+    draggingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    onMove(getBarPos(e.clientX));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <div
+      className="absolute top-0 bottom-0 flex items-center justify-center cursor-ew-resize z-10"
+      style={{ left: `${position * 100}%`, transform: 'translateX(-50%)' }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onClick={e => e.stopPropagation()}
+    >
+      {/* Triangle tooth pointing up into the gradient bar */}
+      <div
+        className="absolute"
+        style={{
+          top: -4,
+          width: 0,
+          height: 0,
+          borderLeft: '4px solid transparent',
+          borderRight: '4px solid transparent',
+          borderBottom: isSelected ? '4px solid var(--color-figma-accent)' : '4px solid var(--color-figma-text-secondary)',
+        }}
+      />
+      {/* Color swatch circle */}
+      <div
+        className="rounded-full"
+        style={{
+          width: 12,
+          height: 12,
+          backgroundColor: color,
+          border: isSelected
+            ? '2px solid var(--color-figma-accent)'
+            : '2px solid var(--color-figma-text-secondary)',
+          boxShadow: isSelected
+            ? '0 0 0 1px var(--color-figma-accent), 0 1px 3px rgba(0,0,0,0.5)'
+            : '0 1px 3px rgba(0,0,0,0.4)',
+        }}
+      />
+    </div>
+  );
+}
+
+function GradientBar({ stops, selectedIdx, gradientType, onSelect, onMove, onAdd }: {
+  stops: GradientStop[];
+  selectedIdx: number;
+  gradientType: string;
+  onSelect: (idx: number) => void;
+  onMove: (idx: number, newPos: number) => void;
+  onAdd: (pos: number) => void;
+}) {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  const getBarPos = (clientX: number): number => {
+    if (!barRef.current) return 0;
+    const rect = barRef.current.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  };
+
+  const handleBarPointerDown = (e: React.PointerEvent) => {
+    const pos = getBarPos(e.clientX);
+    // Select nearest stop if within 5% threshold, otherwise add
+    let nearestIdx = -1;
+    let nearestDist = Infinity;
+    stops.forEach((s, i) => {
+      const d = Math.abs(s.position - pos);
+      if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+    });
+    if (nearestDist < 0.05) {
+      onSelect(nearestIdx);
+    } else {
+      onAdd(pos);
+    }
+  };
+
+  const gradientCss = buildGradientCss(gradientType, stops);
+
+  return (
+    <div className="flex flex-col select-none">
+      {/* Gradient preview bar — click to add stops */}
+      <div
+        ref={barRef}
+        className="w-full rounded-t border-x border-t border-[var(--color-figma-border)] cursor-crosshair"
+        style={{ height: 28, background: gradientCss }}
+        onPointerDown={handleBarPointerDown}
+        title="Click to add a stop"
+      />
+      {/* Stop markers strip */}
+      <div
+        className="relative w-full rounded-b border border-[var(--color-figma-border)] border-t-[var(--color-figma-border)] cursor-crosshair overflow-visible"
+        style={{ height: 18, background: 'var(--color-figma-bg-secondary)' }}
+        onPointerDown={handleBarPointerDown}
+      >
+        {stops.map((stop, idx) => (
+          <GradientStopMarker
+            key={idx}
+            position={stop.position}
+            color={gradientStopColor(stop)}
+            isSelected={selectedIdx === idx}
+            onSelect={() => onSelect(idx)}
+            onMove={newPos => onMove(idx, newPos)}
+            getBarPos={getBarPos}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
   const stops: GradientStop[] = Array.isArray(value?.stops) && value.stops.length >= 2
     ? value.stops
     : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
   const gradientType: string = value?.type || 'linear';
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const safeSelectedIdx = Math.min(selectedIdx, stops.length - 1);
 
   const updateStop = (idx: number, patch: Partial<GradientStop>) => {
     const next = stops.map((s, i) => i === idx ? { ...s, ...patch } : s);
     onChange({ ...value, stops: next });
   };
 
-  const addStop = () => {
-    onChange({ ...value, stops: [...stops, { color: '#808080', position: 0.5 }] });
+  const addStop = (pos?: number) => {
+    const newPos = pos ?? 0.5;
+    const newStops = [...stops, { color: '#808080', position: newPos }];
+    onChange({ ...value, stops: newStops });
+    setSelectedIdx(newStops.length - 1);
   };
 
   const removeStop = (idx: number) => {
     if (stops.length <= 2) return;
-    onChange({ ...value, stops: stops.filter((_, i) => i !== idx) });
+    const newStops = stops.filter((_, i) => i !== idx);
+    onChange({ ...value, stops: newStops });
+    setSelectedIdx(Math.min(idx, newStops.length - 1));
   };
-
-  const previewParts = stops
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map(s => {
-      const color = typeof s.color === 'string' && !s.color.startsWith('{') ? s.color : '#aaaaaa';
-      return `${color} ${Math.round(s.position * 100)}%`;
-    })
-    .join(', ');
 
   return (
     <div className="flex flex-col gap-2">
@@ -1417,25 +1563,31 @@ export function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { 
           <option value="radial">Radial</option>
         </select>
       </div>
-      <div
-        className="w-full h-6 rounded border border-[var(--color-figma-border)]"
-        style={{ background: `${gradientType}-gradient(to right, ${previewParts})` }}
+      <GradientBar
+        stops={stops}
+        selectedIdx={safeSelectedIdx}
+        gradientType={gradientType}
+        onSelect={setSelectedIdx}
+        onMove={(idx, newPos) => updateStop(idx, { position: newPos })}
+        onAdd={addStop}
       />
       <div className={labelClass}>Stops</div>
       {stops.map((stop, idx) => (
         <GradientStopRow
           key={idx}
           stop={stop}
+          isSelected={idx === safeSelectedIdx}
           canRemove={stops.length > 2}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
+          onSelect={() => setSelectedIdx(idx)}
           onChange={patch => updateStop(idx, patch)}
           onRemove={() => removeStop(idx)}
         />
       ))}
       <button
         type="button"
-        onClick={addStop}
+        onClick={() => addStop()}
         className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
       >
         + Add stop
@@ -1444,11 +1596,13 @@ export function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { 
   );
 }
 
-function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, onRemove }: {
+function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet, onSelect, onChange, onRemove }: {
   stop: GradientStop;
+  isSelected: boolean;
   canRemove: boolean;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
+  onSelect: () => void;
   onChange: (patch: Partial<GradientStop>) => void;
   onRemove: () => void;
 }) {
@@ -1477,7 +1631,10 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
   })();
 
   return (
-    <div className="flex items-start gap-1.5">
+    <div
+      className={`flex items-start gap-1.5 rounded px-1 -mx-1 cursor-pointer transition-colors ${isSelected ? 'bg-[var(--color-figma-accent)]/10 ring-1 ring-[var(--color-figma-accent)]/30' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+      onClick={onSelect}
+    >
       <div className="w-16 shrink-0">
         <StepperInput
           value={Math.round(stop.position * 100)}
