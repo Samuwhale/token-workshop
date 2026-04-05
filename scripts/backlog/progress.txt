@@ -440,3 +440,13 @@
   - Simple mode applies even to single sets (reorganizes by type vs original hierarchy). Info banners that gate on multi-set conditions will silently miss single-set cases.
   - Both the "you're in simple mode" and "return to simple mode" bars had the same `sets.length > 1` gate — always fix the symmetric pair together.
 ---
+
+## 2026-04-05 - No cross-set token search in the token list
+- Cross-set search infrastructure already existed (server API + "All sets" toggle + results UI), but had two bugs: (1) structured qualifiers (`type:`, `has:`, etc.) were delegated to the command palette instead of using the server API when "All sets" mode was active; (2) empty query in cross-set mode showed "No tokens found across all sets" instead of falling back to the normal tree.
+- Fixed by: (a) adding `crossSetSearch` to `setSearchQuery` callback deps and skipping the command palette delegation when `crossSetSearch=true`; (b) always returning `null` (not `[]`) from `crossSetResults` when query is empty so the normal tree renders; (c) updating the search placeholder to say "Search all N sets — try …" when cross-set mode is active; (d) exporting `CROSS_SET_PAGE_SIZE` from the hook return (it was used in TokenList.tsx but was not in scope).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L89 (moved `crossSetSearch` useState declaration before `setSearchQuery`), ~L102 (skip command palette when crossSetSearch), ~L215 (return null not [] for empty query), ~L423 (export CROSS_SET_PAGE_SIZE); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L762 (destructure CROSS_SET_PAGE_SIZE), ~L2599 (cross-set placeholder text)
+- **Learnings for future iterations:**
+  - The TDZ rule applies to `useState` values referenced in `useCallback` deps: if a `useCallback` captures a `useState` value added to its dep array, the `useState` declaration MUST appear before the `useCallback` in the function body. TypeScript doesn't catch this — it only verifies the variable is declared somewhere in scope.
+  - When cross-set search mode returns an empty array `[]` vs `null`, these have different UI semantics (empty result vs "not in this mode"). Always use `null` as the "inactive" sentinel to show the default tree view.
+  - Server-side search endpoints that support all structured qualifiers natively don't need client-side command palette delegation — if a search mode has its own backend, let the user use all qualifiers directly.
+---

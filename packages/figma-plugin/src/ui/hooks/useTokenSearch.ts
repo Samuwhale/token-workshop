@@ -86,6 +86,9 @@ export function useTokenSearch({
     setTypeFilterState(lsGet(STORAGE_KEY.tokenTypeFilter(setName), ''));
   }, [setName]);
 
+  // Declared before setSearchQuery to avoid TDZ — setSearchQuery references crossSetSearch
+  const [crossSetSearch, setCrossSetSearch] = useState(false);
+
   const saveScrollAnchor = useCallback(() => {
     const top = virtualScrollTopRef.current;
     const items = flatItemsRef.current;
@@ -97,8 +100,9 @@ export function useTokenSearch({
   }, [virtualScrollTopRef, flatItemsRef, itemOffsetsRef, scrollAnchorPathRef, isFilterChangeRef]);
 
   const setSearchQuery = useCallback((v: string) => {
-    // Delegate to command palette when the query contains structured qualifiers
-    if (v && hasStructuredQualifiers(v) && onOpenCommandPaletteWithQuery) {
+    // Delegate to command palette when the query contains structured qualifiers,
+    // UNLESS cross-set mode is active — the server search handles all qualifiers natively.
+    if (v && hasStructuredQualifiers(v) && onOpenCommandPaletteWithQuery && !crossSetSearch) {
       onOpenCommandPaletteWithQuery(v);
       // Clear in-tree search so the tree shows unfiltered
       setSearchQueryState('');
@@ -108,7 +112,7 @@ export function useTokenSearch({
     saveScrollAnchor();
     setSearchQueryState(v);
     try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[useTokenSearch] storage write search query:', e); }
-  }, [saveScrollAnchor, onOpenCommandPaletteWithQuery]);
+  }, [saveScrollAnchor, onOpenCommandPaletteWithQuery, crossSetSearch]);
 
   const setTypeFilter = useCallback((v: string) => {
     saveScrollAnchor();
@@ -129,8 +133,6 @@ export function useTokenSearch({
     setShowDuplicatesState(v);
     try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch (e) { console.debug('[useTokenSearch] storage write duplicates flag:', e); }
   }, []);
-
-  const [crossSetSearch, setCrossSetSearch] = useState(false);
 
   // Filter presets — persisted globally in localStorage
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() =>
@@ -212,7 +214,9 @@ export function useTokenSearch({
 
   useEffect(() => {
     if (!crossSetSearch || !searchQuery.trim()) {
-      setCrossSetResults(crossSetSearch ? [] : null);
+      // When cross-set mode is active but no query, return null so the normal tree renders
+      // (rather than [] which would show "No tokens found across all sets")
+      setCrossSetResults(null);
       setCrossSetTotal(0);
       return;
     }
@@ -421,6 +425,7 @@ export function useTokenSearch({
     qualifierHintsRef,
     qualifierHelpRef,
     crossSetAbortRef,
+    CROSS_SET_PAGE_SIZE,
     // Callbacks
     saveScrollAnchor,
     setSearchQuery,
