@@ -1,5 +1,6 @@
 import { useImportPanel } from './ImportPanelContext';
 import { defaultSetName, modeKey } from './importPanelTypes';
+import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportVariablesView() {
   const {
@@ -55,6 +56,14 @@ export function ImportVariablesView() {
               const key = modeKey(col.name, mode.modeId);
               const enabled = modeEnabled[key] ?? true;
               const setName = modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length);
+              const trimmedName = setName.trim();
+              const setNameError = enabled
+                ? !trimmedName
+                  ? 'Name cannot be empty'
+                  : !SET_NAME_RE.test(trimmedName)
+                    ? 'Use letters, numbers, - _ (/ for folders)'
+                    : null
+                : null;
               return (
                 <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 transition-colors ${enabled ? 'bg-[var(--color-figma-accent)]/5' : 'bg-transparent opacity-50'}`}>
                   <input
@@ -69,23 +78,32 @@ export function ImportVariablesView() {
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                         {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
                       </span>
-                      {enabled && (sets.includes(setName) ? (
+                      {enabled && !setNameError && (sets.includes(setName) ? (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#e8a100)] font-medium">existing</span>
                       ) : setName ? (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
                       ) : null)}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                      <span className="shrink-0">→</span>
-                      <input
-                        type="text"
-                        value={setName}
-                        disabled={!enabled}
-                        onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
-                        className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-50 font-mono"
-                        placeholder="set-name"
-                        aria-label="Set name for mode"
-                      />
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        <span className="shrink-0">→</span>
+                        <input
+                          type="text"
+                          value={setName}
+                          disabled={!enabled}
+                          onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
+                          className={`flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] focus-visible:outline-none disabled:opacity-50 font-mono ${setNameError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                          placeholder="set-name"
+                          aria-label="Set name for mode"
+                          aria-invalid={setNameError ? true : undefined}
+                          aria-describedby={setNameError ? `err-${key}` : undefined}
+                        />
+                      </div>
+                      {setNameError && (
+                        <p id={`err-${key}`} role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)] leading-tight pl-3">
+                          {setNameError}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

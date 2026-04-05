@@ -1,5 +1,6 @@
 import { useImportPanel } from './ImportPanelContext';
 import { ImportConflictResolver } from './ImportConflictResolver';
+import { SET_NAME_RE } from '../shared/utils';
 
 export function ImportStylesFooter() {
   const {
@@ -41,17 +42,30 @@ export function ImportStylesFooter() {
               autoFocus
               type="text"
               value={newSetDraft}
-              onChange={e => { setNewSetDraft(e.target.value); setNewSetError(null); }}
+              onChange={e => {
+                const val = e.target.value;
+                setNewSetDraft(val);
+                const trimmed = val.trim();
+                if (!trimmed) {
+                  setNewSetError(null);
+                } else if (!SET_NAME_RE.test(trimmed)) {
+                  setNewSetError('Use letters, numbers, - _ (/ for folders)');
+                } else {
+                  setNewSetError(null);
+                }
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter') commitNewSet();
                 if (e.key === 'Escape') cancelNewSet();
               }}
               placeholder="New set name…"
-              className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none"
+              aria-invalid={newSetError ? true : undefined}
+              className={`flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewSet}
-              className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90"
+              disabled={!newSetDraft.trim() || !!newSetError}
+              className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
             >
               Create
             </button>
@@ -62,7 +76,7 @@ export function ImportStylesFooter() {
               Cancel
             </button>
           </div>
-          {newSetError && <p className="text-[10px] text-[var(--color-figma-text-danger)]">{newSetError}</p>}
+          {newSetError && <p role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)]">{newSetError}</p>}
           {!newSetError && newSetDraft.trim() && sets.includes(newSetDraft.trim()) && (
             <p className="text-[10px] text-[var(--color-figma-warning,#e8a100)]">Set already exists — tokens will be merged in</p>
           )}
@@ -146,19 +160,25 @@ export function ImportStylesFooter() {
       {conflictPaths !== null && conflictPaths.length > 0 ? (
         <ImportConflictResolver />
       ) : (
-        <button
-          onClick={handleImportStyles}
-          disabled={selectedTokens.size === 0 || importing || checkingConflicts}
-          className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-        >
-          {checkingConflicts
-            ? 'Checking for conflicts…'
-            : importing
-              ? importProgress
-                ? `Importing ${importProgress.done}/${importProgress.total}…`
-                : 'Importing…'
-              : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
-        </button>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={handleImportStyles}
+            disabled={selectedTokens.size === 0 || importing || checkingConflicts}
+            title={selectedTokens.size === 0 ? 'Select at least one token to import' : undefined}
+            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+          >
+            {checkingConflicts
+              ? 'Checking for conflicts…'
+              : importing
+                ? importProgress
+                  ? `Importing ${importProgress.done}/${importProgress.total}…`
+                  : 'Importing…'
+                : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
+          </button>
+          {!importing && !checkingConflicts && selectedTokens.size === 0 && tokens.length > 0 && (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">Select at least one token above to import</p>
+          )}
+        </div>
       )}
       {importing && importProgress && importProgress.total > 0 && conflictPaths === null && (
         <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">

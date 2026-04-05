@@ -762,3 +762,15 @@
   - A sliding-window counter per IP, exempt for read-only methods, is all that's needed — don't over-engineer with token buckets or persistent stores for this use case.
   - `onRequest` hook fires before route handlers and before body parsing, making it the right lifecycle point for request-level throttling.
 ---
+
+## 2026-04-05 - Import flow set name inputs have no client-side validation
+- Added real-time inline validation to all set name inputs in the import flow, preventing users from discovering errors only after server rejection.
+- **ImportVariablesView.tsx**: Per-mode set name inputs now validate on every change using `SET_NAME_RE`. Error message appears below the input with a red border when empty or invalid characters are used. The "existing"/"new" badge is suppressed while the name is invalid.
+- **ImportVariablesFooter.tsx**: Import buttons (all 3 conflict-resolution variants + the simple import button) are now disabled when any enabled mode has an invalid set name. A red helper text "Fix invalid set names above before importing" explains why. Separately, "Enable at least one mode above to import" explains the `totalEnabledSets === 0` disabled case (was previously silent).
+- **ImportStylesFooter.tsx**: New set name `onChange` now validates in real-time (shows format error immediately, clears as soon as valid). "Create" button is disabled when input is empty or invalid. Import button gains a `title` tooltip and a helper text "Select at least one token above to import" when `selectedTokens.size === 0` and tokens are loaded.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportVariablesView.tsx` ~L1,L54; `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` ~L1,L8,L120; `packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx` ~L1,L37,L149
+- **Learnings for future iterations:**
+  - The `ImportVariablesFooter` needed to re-compute `hasInvalidSetNames` from the same `modeEnabled`/`modeSetNames`/`collectionData` available in context — no new context state was needed.
+  - Inline validation on change should clear errors immediately when input becomes valid but only show "cannot be empty" on submit (not on every keystroke), to avoid alarming users who are still typing. Only format errors (invalid chars) are shown proactively.
+  - When a disabled button has multiple possible reasons, use `title` for tooltip-on-hover AND inline helper text below the button so the reason is visible without hover.
+---
