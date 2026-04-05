@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type HeatmapScope, type ResolvedTokenValue } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
@@ -92,7 +92,7 @@ export function selectNextSibling() {
 }
 
 // Scan visual nodes for token/variable binding coverage
-export async function scanCanvasHeatmap(scope: HeatmapScope = 'page', signal?: { aborted: boolean }) {
+export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { aborted: boolean }) {
   // Abort if the user navigates to a different page mid-scan (only relevant for
   // page/selection scopes where figma.currentPage is captured at scan start).
   let pageChangeHandler: (() => void) | null = null;

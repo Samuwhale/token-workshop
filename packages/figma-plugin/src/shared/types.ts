@@ -473,11 +473,11 @@ export interface ScanTokenUsageMessage {
   type: 'scan-token-usage';
 }
 
-export type HeatmapScope = 'page' | 'selection' | 'all-pages';
+export type ScanScope = 'page' | 'selection' | 'all-pages';
 
 export interface ScanCanvasHeatmapMessage {
   type: 'scan-canvas-heatmap';
-  scope?: HeatmapScope;
+  scope?: ScanScope;
 }
 
 export interface SelectHeatmapNodesMessage {

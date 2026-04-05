@@ -1,8 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
-import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
+import { useCallback, useMemo } from 'react';
+import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion, ScanScope } from '../../shared/types';
 import { useUsageContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { ScanScopeSelector } from './ScanScopeSelector';
+import { useScanScope } from '../hooks/useScanScope';
 
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
@@ -11,8 +13,6 @@ interface ConsistencyPanelProps {
   scope?: ScanScope;
   onScopeChange?: (scope: ScanScope) => void;
 }
-
-type ScanScope = 'selection' | 'page' | 'all-pages';
 type SuggestionCategory = 'color' | 'dimension' | 'typography' | 'other';
 
 const PROPERTY_LABELS: Record<string, string> = {
@@ -172,9 +172,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope: externa
   const help = usePanelHelp('consistency');
 
   // Scope is local UI preference — doesn't need to persist across tab switches
-  const [internalScope, setInternalScope] = useState<ScanScope>('page');
-  const scope = externalScope ?? internalScope;
-  const setScope = externalOnScopeChange ?? setInternalScope;
+  const [scope, setScope] = useScanScope(externalScope, externalOnScopeChange);
   // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
   const [snapConfirm, setSnapConfirm] = useState<ConsistencySuggestion[] | null>(null);
 
@@ -295,25 +293,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope: externa
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
         {/* Scope toggle — hidden when scope is controlled by a parent panel */}
         {!externalScope && (
-          <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px]">
-            {([
-              { value: 'page', label: 'Page' },
-              { value: 'selection', label: 'Selection' },
-              { value: 'all-pages', label: 'All pages' },
-            ] as { value: ScanScope; label: string }[]).map(({ value: s, label }) => (
-              <button
-                key={s}
-                onClick={() => setScope(s)}
-                className={`px-2 py-1 transition-colors ${
-                  scope === s
-                    ? 'bg-[var(--color-figma-accent)] text-white'
-                    : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ScanScopeSelector value={scope} onChange={setScope} />
         )}
         <PanelHelpIcon panelKey="consistency" title="Consistency Scanner" expanded={help.expanded} onToggle={help.toggle} />
         {scanning ? (

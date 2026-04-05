@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Spinner } from './Spinner';
-import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type HeatmapScope } from '../../shared/types';
+import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type ScanScope } from '../../shared/types';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
-
-export type { HeatmapScope };
+import { ScanScopeSelector } from './ScanScopeSelector';
 
 interface HeatmapNode {
   id: string;
@@ -27,9 +26,9 @@ interface HeatmapPanelProps {
   loading: boolean;
   progress?: { processed: number; total: number } | null;
   error?: string | null;
-  scope: HeatmapScope;
-  onScopeChange: (scope: HeatmapScope) => void;
-  onRescan: (scope?: HeatmapScope) => void;
+  scope: ScanScope;
+  onScopeChange: (scope: ScanScope) => void;
+  onRescan: (scope?: ScanScope) => void;
   onCancel?: () => void;
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
@@ -83,11 +82,6 @@ interface QuickBindState {
   statusLabel: string;
 }
 
-const SCOPE_OPTIONS: { value: HeatmapScope; label: string }[] = [
-  { value: 'page', label: 'Current page' },
-  { value: 'selection', label: 'Selection' },
-  { value: 'all-pages', label: 'All pages' },
-];
 
 export function HeatmapPanel({ result, loading, progress, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind, hideScopeSelector }: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
@@ -203,15 +197,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
                 JSON
               </button>
               {!hideScopeSelector && (
-                <select
-                  value={scope}
-                  onChange={e => { const s = e.target.value as HeatmapScope; onScopeChange(s); onRescan(s); }}
-                  className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  {SCOPE_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                <ScanScopeSelector value={scope} onChange={s => { onScopeChange(s); onRescan(s); }} />
               )}
               <button
                 onClick={() => onRescan()}
@@ -374,18 +360,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
 
           {/* Scope selector */}
           {!hideScopeSelector && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scope:</span>
-            <select
-              value={scope}
-              onChange={e => onScopeChange(e.target.value as HeatmapScope)}
-              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
-            >
-              {SCOPE_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+            <ScanScopeSelector value={scope} onChange={onScopeChange} showLabel />
           )}
 
           {/* CTA */}

@@ -416,3 +416,13 @@
   - The standard `edgePath()` bezier (horizontal control points) produces weird S-curves when x1 > x2 (right-to-left). The `depEdgePath()` function uses `rightX = max(x1,x2) + 60` as the routing waypoint, producing a "paperclip" arc that routes around the right column and arrives at the destination with a left-to-right tangent.
   - Topological sort using Kahn's algorithm (BFS on in-degree) is the right primitive for DAG-ordering generators; cycle members fall back to original order safely.
 ---
+
+## 2026-04-05 - Consolidate analysis panel scan scope selectors
+- Extracted shared `ScanScopeSelector` component (segmented button group, consistent with existing button patterns) and `useScanScope` hook (controlled/uncontrolled scope state). Renamed `HeatmapScope` type to `ScanScope` in `shared/types.ts` and updated all ~15 references. Removed duplicated `SCOPE_OPTIONS` constants from `HeatmapPanel.tsx` and `CanvasAnalysisPanel.tsx`. Replaced ConsistencyPanel's inline button group and HeatmapPanel's two `<select>` dropdowns with `<ScanScopeSelector>`. Eliminated the `heatmapScope as 'selection' | 'page' | 'all-pages'` cast in CanvasAnalysisPanel. Standardized labels to "Page / Selection / All pages" (was "Current page" in heatmap selectors).
+- Note: HealthPanel had no scan scope UI — the backlog item description was slightly inaccurate; scope consolidation applied to the two panels that actually had it (Consistency + Heatmap) plus their shared parent (CanvasAnalysisPanel).
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L476, `packages/figma-plugin/src/ui/components/ScanScopeSelector.tsx` (new), `packages/figma-plugin/src/ui/hooks/useScanScope.ts` (new), `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L3, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L1, `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L1, `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` ~L28, `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` ~L2, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L1
+- **Learnings for future iterations:**
+  - `useScanScope(externalValue?, externalOnChange?, initial?)` cleanly encapsulates the controlled/uncontrolled scope pattern found in panels that can be embedded (scope driven by parent) or standalone (own state).
+  - When a component exports a type that other hooks import (HeatmapPanel exported `HeatmapScope`), moving that type to `shared/types.ts` and importing directly avoids indirect import chains through component files.
+  - `ScanScopeSelector` accepts `showLabel` prop to optionally prepend "Scope:" text — useful when the component sits in a toolbar with other controls vs. standalone use.
+---

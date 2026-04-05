@@ -25,7 +25,7 @@ import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import { useSelection } from '../hooks/useSelection';
 import { useHeatmap } from '../hooks/useHeatmap';
 import type { HeatmapResult } from '../components/HeatmapPanel';
-import type { SelectionNodeInfo, HeatmapScope, ConsistencySuggestion } from '../../shared/types';
+import type { SelectionNodeInfo, ScanScope, ConsistencySuggestion } from '../../shared/types';
 import type { HeatmapProgress } from '../hooks/useHeatmap';
 
 // ---------------------------------------------------------------------------
@@ -43,9 +43,9 @@ export interface HeatmapContextValue {
   heatmapLoading: boolean;
   heatmapError: string | null;
   heatmapProgress: HeatmapProgress | null;
-  heatmapScope: HeatmapScope;
-  setHeatmapScope: (scope: HeatmapScope) => void;
-  triggerHeatmapScan: (scope?: HeatmapScope) => void;
+  heatmapScope: ScanScope;
+  setScanScope: (scope: ScanScope) => void;
+  triggerHeatmapScan: (scope?: ScanScope) => void;
   cancelHeatmapScan: () => void;
 }
 
@@ -111,17 +111,17 @@ function SelectionProvider({ children }: { children: ReactNode }) {
 function HeatmapProvider({ children }: { children: ReactNode }) {
   const {
     heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-    heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+    heatmapScope, setScanScope, triggerHeatmapScan, cancelHeatmapScan,
   } = useHeatmap();
 
   const value = useMemo<HeatmapContextValue>(
     () => ({
       heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-      heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+      heatmapScope, setScanScope, triggerHeatmapScan, cancelHeatmapScan,
     }),
     [
       heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-      heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+      heatmapScope, setScanScope, triggerHeatmapScan, cancelHeatmapScan,
     ],
   );
 

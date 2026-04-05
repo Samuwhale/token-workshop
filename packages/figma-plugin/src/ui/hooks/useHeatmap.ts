@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { HeatmapResult, HeatmapScope } from '../components/HeatmapPanel';
+import type { HeatmapResult } from '../components/HeatmapPanel';
+import type { ScanScope } from '../../shared/types';
 
 const SCAN_TIMEOUT_MS = 30_000;
 
@@ -12,7 +13,7 @@ export function useHeatmap() {
   const [heatmapResult, setHeatmapResult] = useState<HeatmapResult | null>(null);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [heatmapError, setHeatmapError] = useState<string | null>(null);
-  const [heatmapScope, setHeatmapScope] = useState<HeatmapScope>('page');
+  const [heatmapScope, setScanScope] = useState<ScanScope>('page');
   const [heatmapProgress, setHeatmapProgress] = useState<HeatmapProgress | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,7 +32,7 @@ export function useHeatmap() {
     setHeatmapProgress(null);
   }, [clearScanTimeout]);
 
-  const triggerHeatmapScan = useCallback((scope?: HeatmapScope) => {
+  const triggerHeatmapScan = useCallback((scope?: ScanScope) => {
     const effectiveScope = scope ?? heatmapScope;
     clearScanTimeout();
     setHeatmapLoading(true);
@@ -84,5 +85,5 @@ export function useHeatmap() {
     };
   }, [clearScanTimeout]);
 
-  return { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan };
+  return { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setScanScope, triggerHeatmapScan, cancelHeatmapScan };
 }
