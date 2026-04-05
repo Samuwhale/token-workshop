@@ -508,3 +508,12 @@
   - When a compensating action (structural revert) fails inside an error handler, always combine both messages into a single thrown error so the HTTP layer surfaces the full picture — callers can't distinguish "rollback failed cleanly" from "rollback left state inconsistent" without this.
   - Setting `statusCode: 500` directly on the Error object is consistent with the existing typed-error pattern in `errors.ts` for Fastify route error propagation.
 ---
+
+## 2026-04-05 - No dry-run preview for generators
+- **Stale — already done.** The dry-run preview was implemented across two prior sessions:
+  - `a72544f9`: Added per-card "Preview output" button + `DryRunPreview` component showing +new/~changed/−removed diff pills with expandable detail lists.
+  - `f4c8dc9b`: Added `DryRunDiff` impact summary (created/updated/deleted/unchanged counts) before confirming run.
+  - The `Re-run` button in `GeneratorPipelineCard` (line ~957) calls `handlePreviewOutput()` on first click, showing the diff first; the actual run only happens after clicking "Run (apply N changes)" in the `DryRunPreview` panel.
+  - Quick-edit panel shows a live `LiveDiffPreview` that auto-updates as config changes via `useGeneratorPreview` hook.
+- No changes made.
+---
