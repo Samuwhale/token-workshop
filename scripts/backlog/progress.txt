@@ -438,3 +438,9 @@
   - To expose TokenList drag state to App.tsx without prop threading, add lightweight `onTokenDragStart`/`onTokenDragEnd` callbacks to `TokenListActions` and track the state at App level. App then passes the derived `tokenDragFromSet` down to `useSetTabs`.
   - `handleSetDragLeave` must check `!e.currentTarget.contains(e.relatedTarget as Node | null)` to avoid false leaves when moving between child elements.
 ---
+
+## 2026-04-05 - code-pass
+- Areas explored: server routes (sync.ts, tokens.ts, generators.ts, snapshots.ts, docs.ts, operations.ts), server services (token-store.ts, resolver-store.ts, operation-log.ts), core package (color-math.ts, color-parse.ts, color-modifier.ts, resolver.ts, dtcg-types.ts, validator.ts, eval-expr.ts), plugin sandbox (controller.ts, variableSync.ts, selectionHandling.ts, heatmapScanning.ts, consistencyScanner.ts), UI hooks (useImportApply.ts, useThemeBulkOps.ts, useGeneratorPreview.ts, useTokenEditorSave.ts, useTokenDataLoading.ts, useServerConnection.ts, useImportSource.ts, useGitSync.ts, useAnalyticsState.ts), shared types
+- Found 6 items — written to backlog-inbox.md
+- Notable: The most impactful finding is the divergent hex color handling across three core files (color-math.ts, color-parse.ts, color-modifier.ts) — `hexToRgb` and `parseHexStr` disagree on alpha representation and shorthand expansion, and `reapplyAlpha` hardcodes 6-char hex assumptions that will break with wide-gamut colors. The useImportApply monolith (12 useState, 5 workflows, duplicated token-building code, retry race condition) is the largest structural issue.
+---
