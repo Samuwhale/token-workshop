@@ -293,3 +293,26 @@ Already up to date.
 
   Merging to main: PasteTokensModal lacks "overwrite all conflicts" shortcut
 Already up to date.
+[main 44ec0345] chore(backlog): done – PasteTokensModal lacks "overwrite all conflicts" shortcut
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - CreatePanel "token already exists" error has no navigation link
+- Added a "Go to token" inline button next to the "Token already exists" error message in `SingleCreateTab`. The button calls `onCreateAndEdit(fullPath)` which closes the create panel, highlights the token, opens its editor, and navigates to the define/tokens tab — the exact same action as "Create & Edit" on a new token.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L716
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #13  ·  10 queued · 0
+0 in-progress · last took 58s
+═══════════════════════════════════════════════════════════════
+  → No "duplicate set as theme override" workflow — duplicating a set copies all tokens verbatim, but when creating theme variants (e.g., dark mode from light mode) users want to create an override set pre-linked to a theme dimension option containing only the tokens they intend to change; add a "Create override set from…" flow that connects set creation with theme configuration
+  Worktree: /tmp/backlog-50286-imZBQR
+  Running agent… (started 23:25:54)
+
+  ✓ done: No "duplicate set as theme override" workflow — duplicating a set copies all tokens verbatim, but when creating theme variants (e.g., dark mode from light mode) users want to create an override set pre-linked to a theme dimension option containing only the tokens they intend to change; add a "Create override set from…" flow that connects set creation with theme configuration
+    Added "Create override set from this…" to the per-set-row context menu in ThemeManager. Modal lets users name the set, pick a theme option to link it to as Override, and choose empty vs copy-all. Creates the set via API and links it to the theme option atomically.
+    56 turns · 639s · $2.48
+
+  Merging to main: No "duplicate set as theme override" workflow — duplicating a set copies all tokens verbatim, but when creating theme variants (e.g., dark mode from light mode) users want to create an override set pre-linked to a theme dimension option containing only the tokens they intend to change; add a "Create override set from…" flow that connects set creation with theme configuration
+Already up to date.

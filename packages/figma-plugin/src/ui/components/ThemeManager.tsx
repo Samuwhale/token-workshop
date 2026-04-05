@@ -21,6 +21,7 @@ import type { ThemeManagerModalsState } from './ThemeManagerContext';
 import { ThemeCoverageMatrix } from './ThemeCoverageMatrix';
 import { adaptShortcut } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
+import { apiFetch } from '../shared/apiFetch';
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -49,6 +50,8 @@ interface ThemeManagerProps {
   onGapsDetected?: (count: number) => void;
   /** Called after batch token creation so the app can refresh its token data. */
   onTokensCreated?: () => void;
+  /** Called after a new set is created (e.g. via "Create override set") so the parent can update the set list. */
+  onSetCreated?: (name: string) => void;
   /** Navigate to the Tokens sub-tab (used in Compare empty states). */
   onGoToTokens?: () => void;
   /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
@@ -101,7 +104,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension, onSetCreated }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
 
   // Live preview panel
@@ -212,6 +215,54 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeCoverage({ coverage, missingOverrides, serverUrl, debouncedFetchDimensions, setError });
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
+
+  // --- Create override set ---
+  const [createOverrideSet, setCreateOverrideSet] = useState<{ dimId: string; setName: string; optName?: string } | null>(null);
+  const [isCreatingOverrideSet, setIsCreatingOverrideSet] = useState(false);
+
+  const executeCreateOverrideSet = useCallback(async ({ newName, optionName, startEmpty }: { newName: string; optionName: string; startEmpty: boolean }) => {
+    if (!createOverrideSet) return;
+    const { dimId, setName: sourceName } = createOverrideSet;
+    setIsCreatingOverrideSet(true);
+    try {
+      if (startEmpty) {
+        await apiFetch<{ ok: true; name: string }>(`${serverUrl}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName }),
+        });
+      } else {
+        await apiFetch<{ ok: true; name: string; originalName: string }>(
+          `${serverUrl}/api/sets/${encodeURIComponent(sourceName)}/duplicate`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName }),
+          },
+        );
+      }
+      // Link the new set to the selected theme option as Override
+      const dim = dimensions.find(d => d.id === dimId);
+      const opt = dim?.options.find(o => o.name === optionName);
+      if (dim && opt) {
+        const updatedSets = { ...opt.sets, [newName]: 'enabled' as const };
+        await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: optionName, sets: updatedSets }),
+        });
+      }
+      onSetCreated?.(newName);
+      onTokensCreated?.();
+      await debouncedFetchDimensions();
+      setCreateOverrideSet(null);
+      onSuccess?.(`Created override set "${newName}"${dim && opt ? ` linked to ${dim.name} → ${optionName}` : ''}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create override set');
+    } finally {
+      setIsCreatingOverrideSet(false);
+    }
+  }, [createOverrideSet, dimensions, serverUrl, debouncedFetchDimensions, onSetCreated, onTokensCreated, onSuccess, setError]);
 
   // Sync showCompare (set by external navigateToCompare calls) → activeView
   useEffect(() => {
@@ -409,7 +460,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           e.preventDefault();
           const x = Math.min(e.clientX, window.innerWidth - 180);
           const y = Math.min(e.clientY, window.innerHeight - 120);
-          setBulkMenu({ x, y, dimId: dim.id, setName });
+          setBulkMenu({ x, y, dimId: dim.id, setName, optName: opt.name });
         }}
       >
         <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
@@ -452,7 +503,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             const x = Math.min(rect.right + 4, window.innerWidth - 180);
             const y = Math.min(rect.bottom, window.innerHeight - 120);
-            setBulkMenu({ x, y, dimId: dim.id, setName });
+            setBulkMenu({ x, y, dimId: dim.id, setName, optName: opt.name });
           }}
           className="opacity-40 group-hover/setrow:opacity-100 focus:opacity-100 transition-opacity px-1 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           aria-label={`Set "${setName}" status in all options`}
@@ -544,11 +595,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     executeDeleteOption,
     bulkMenu, setBulkMenu: (v) => setBulkMenu(v), bulkMenuRef,
     handleBulkSetState,
+    createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   }), [
     dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
     dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, executeDeleteOption,
     bulkMenu, bulkMenuRef, handleBulkSetState,
+    createOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   ]);
 
   return (

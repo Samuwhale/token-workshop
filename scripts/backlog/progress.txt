@@ -623,3 +623,16 @@
   - The `onCreateAndEdit` callback already handles "navigate to token in editor" — it's not just for post-create; reuse it for navigation from any context where you have a token path.
   - The button is conditionally rendered (`{onCreateAndEdit && ...}`) so it degrades gracefully if the callback isn't provided (e.g. future standalone usage).
 ---
+
+## 2026-04-05 - No "duplicate set as theme override" workflow
+- Implemented "Create override set from this…" flow in ThemeManager. Right-clicking any set row in a theme option (or using the ⋯ menu) now shows a "Create override set from this…" menu item below a separator. A modal lets the user: name the new set (auto-suggested as `[setName]-override`), pick which theme option to link it to as Override, and choose between starting empty (recommended for targeted overrides) or copying all tokens from the source. On confirm, the set is created via the API and the theme option is updated atomically. The new set is added to the sets list and the parent navigates to it.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx` — added `createOverrideSet` fields to `ThemeManagerModalsState`, new `CreateOverrideSetModal` component, "Create override set from this…" menu item with separator in the bulk menu
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` — added `apiFetch` import, `onSetCreated` prop, `createOverrideSet` state, `executeCreateOverrideSet` callback, passes `optName` to `setBulkMenu` calls in `renderSetRow`, new fields in `modalContextValue`
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` — destructures `addSetToState` from `useTokenSetsContext`, passes `onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}` to `ThemeManager`
+- **Learnings for future iterations:**
+  - The `bulkMenu` context-menu state in ThemeManagerContext is the correct trigger point for per-set-row actions — it fires from both right-click and the ⋯ button on every set row. Adding `optName?: string` to it gives per-option context to new actions without breaking the existing "set in all options" behavior.
+  - The duplicate endpoint (`POST /api/sets/:name/duplicate`) accepts an optional `newName` body param — use it directly instead of duplicate-then-rename.
+  - For Empty start, `POST /api/sets` with no `tokens` field creates an empty set; for Copy start, use the duplicate endpoint with `newName`.
+  - After creating a set inside ThemeManager, call `onSetCreated(name)` + `onTokensCreated()` + `debouncedFetchDimensions()` to keep set list, token data, and theme dimensions all in sync.
+---

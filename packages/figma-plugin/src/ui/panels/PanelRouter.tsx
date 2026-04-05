@@ -217,7 +217,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   const {
     sets, activeSet, setActiveSet, tokens,
     setCollectionNames, setModeNames,
-    fetchError, refreshTokens,
+    fetchError, refreshTokens, addSetToState,
   } = useTokenSetsContext();
   const {
     allTokensFlat, pathToSet, perSetFlat, syncSnapshot,
@@ -655,6 +655,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               pathToSet={pathToSet}
               onGapsDetected={p.setThemeGapCount}
               onTokensCreated={p.refreshAll}
+              onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
               onGoToTokens={() => navigateTo('define', 'tokens')}
               themeManagerHandle={p.themeManagerHandleRef}
               onSuccess={p.setSuccessToast}

@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useState, useRef, useEffect } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
+import { FieldMessage } from '../shared/FieldMessage';
 import type { AutoFillPreview } from './themeManagerTypes';
 import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 
@@ -25,10 +26,15 @@ export interface ThemeManagerModalsState {
   setOptionDeleteConfirm: (v: { dimId: string; optionName: string } | null) => void;
   executeDeleteOption: (dimId: string, optionName: string) => Promise<void>;
   // Bulk context menu
-  bulkMenu: { x: number; y: number; dimId: string; setName: string } | null;
-  setBulkMenu: (v: { x: number; y: number; dimId: string; setName: string } | null) => void;
+  bulkMenu: { x: number; y: number; dimId: string; setName: string; optName?: string } | null;
+  setBulkMenu: (v: { x: number; y: number; dimId: string; setName: string; optName?: string } | null) => void;
   bulkMenuRef: React.RefObject<HTMLDivElement | null>;
   handleBulkSetState: (dimId: string, setName: string, state: 'disabled' | 'source' | 'enabled') => void;
+  // Create override set
+  createOverrideSet: { dimId: string; setName: string; optName?: string } | null;
+  setCreateOverrideSet: (v: { dimId: string; setName: string; optName?: string } | null) => void;
+  executeCreateOverrideSet: (params: { newName: string; optionName: string; startEmpty: boolean }) => Promise<void>;
+  isCreatingOverrideSet: boolean;
 }
 
 const ThemeManagerModalsContext = createContext<ThemeManagerModalsState | null>(null);
@@ -52,6 +58,141 @@ export function ThemeManagerModalsProvider({ value, children }: ThemeManagerModa
   );
 }
 
+// ---------------------------------------------------------------------------
+// CreateOverrideSetModal — separate component so it can use useState
+// ---------------------------------------------------------------------------
+
+interface CreateOverrideSetModalProps {
+  dimId: string;
+  setName: string;
+  optName?: string;
+  dimensions: ThemeDimension[];
+  onClose: () => void;
+  onExecute: (params: { newName: string; optionName: string; startEmpty: boolean }) => Promise<void>;
+  isCreating: boolean;
+}
+
+function CreateOverrideSetModal({
+  dimId, setName, optName: initialOptName, dimensions, onClose, onExecute, isCreating,
+}: CreateOverrideSetModalProps) {
+  const dim = dimensions.find(d => d.id === dimId);
+  const defaultOptName = initialOptName ?? dim?.options[0]?.name ?? '';
+  const [newName, setNewName] = useState(`${setName}-override`);
+  const [optionName, setOptionName] = useState(defaultOptName);
+  const [startEmpty, setStartEmpty] = useState(true);
+  const [nameError, setNameError] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, []);
+
+  const handleConfirm = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) { setNameError('Name is required'); return; }
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(trimmed)) {
+      setNameError('Use only letters, numbers, dashes, underscores, or / for folders');
+      return;
+    }
+    if (!optionName) { setNameError('Select a theme option'); return; }
+    setNameError('');
+    await onExecute({ newName: trimmed, optionName, startEmpty });
+  };
+
+  return (
+    <ConfirmModal
+      title={`Create override set from "${setName}"`}
+      wide
+      confirmLabel={isCreating ? 'Creating…' : 'Create override set'}
+      confirmDisabled={isCreating || !newName.trim() || !optionName}
+      onCancel={onClose}
+      onConfirm={handleConfirm}
+    >
+      <div className="mt-3 flex flex-col gap-3">
+        {/* Name */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            New set name
+          </label>
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={newName}
+            onChange={e => { setNewName(e.target.value); setNameError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }}
+            className={`w-full px-2 py-1 text-[11px] rounded border bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] ${nameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+            placeholder="e.g. colors-dark-override"
+          />
+          <FieldMessage error={nameError} />
+        </div>
+
+        {/* Theme option selector */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Link to theme option (as Override)
+          </label>
+          {dim ? (
+            <select
+              value={optionName}
+              onChange={e => setOptionName(e.target.value)}
+              className="w-full px-2 py-1 text-[11px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)]"
+            >
+              {dim.options.map(opt => (
+                <option key={opt.name} value={opt.name}>{opt.name}</option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">No options found in this dimension.</p>
+          )}
+          <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
+            The new set will be added to <strong>{dim?.name ?? dimId}</strong> → <strong>{optionName}</strong> with Override status.
+          </p>
+        </div>
+
+        {/* Content choice */}
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Starting content
+          </span>
+          <label className="flex items-start gap-2 cursor-pointer select-none group">
+            <input
+              type="radio"
+              name="override-content"
+              value="empty"
+              checked={startEmpty}
+              onChange={() => setStartEmpty(true)}
+              className="mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="text-[11px] text-[var(--color-figma-text)]">Empty set</span>
+              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
+                Recommended — add only the tokens you intend to override.
+              </p>
+            </div>
+          </label>
+          <label className="flex items-start gap-2 cursor-pointer select-none group">
+            <input
+              type="radio"
+              name="override-content"
+              value="copy"
+              checked={!startEmpty}
+              onChange={() => setStartEmpty(false)}
+              className="mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="text-[11px] text-[var(--color-figma-text)]">Copy all tokens from <span className="font-mono">{setName}</span></span>
+              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-snug">
+                Creates a full duplicate — delete unwanted tokens afterward.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+    </ConfirmModal>
+  );
+}
+
 /** Renders all modal dialogs and the bulk context menu. Place once at the end of ThemeManager JSX. */
 export function ThemeManagerModals() {
   const {
@@ -61,6 +202,7 @@ export function ThemeManagerModals() {
     dimensionDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm, executeDeleteOption,
     bulkMenu, setBulkMenu, bulkMenuRef, handleBulkSetState,
+    createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   } = useThemeManagerModals();
 
   return (
@@ -214,6 +356,19 @@ export function ThemeManagerModals() {
         );
       })()}
 
+      {/* Create override set modal */}
+      {createOverrideSet && (
+        <CreateOverrideSetModal
+          dimId={createOverrideSet.dimId}
+          setName={createOverrideSet.setName}
+          optName={createOverrideSet.optName}
+          dimensions={dimensions}
+          onClose={() => setCreateOverrideSet(null)}
+          onExecute={executeCreateOverrideSet}
+          isCreating={isCreatingOverrideSet}
+        />
+      )}
+
       {/* Bulk set-status context menu */}
       {bulkMenu && (
         <div
@@ -245,6 +400,22 @@ export function ThemeManagerModals() {
               {STATE_LABELS[s]} — {STATE_DESCRIPTIONS[s]}
             </button>
           ))}
+          <div className="my-1 border-t border-[var(--color-figma-border)]" role="separator" />
+          <button
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              setBulkMenu(null);
+              setCreateOverrideSet({ dimId: bulkMenu.dimId, setName: bulkMenu.setName, optName: bulkMenu.optName });
+            }}
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
+            Create override set from this…
+          </button>
         </div>
       )}
     </>
