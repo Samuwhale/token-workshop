@@ -5,6 +5,7 @@ import { PLATFORMS } from '../shared/platforms';
 import { useLintConfig } from '../hooks/useLintConfig';
 import { LintConfigPanel } from './LintConfigPanel';
 import { formatHexAs } from '../shared/colorUtils';
+import { dispatchToast } from '../shared/toastBus';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -246,6 +247,7 @@ export function SettingsPanel({
   // ---- Backup & Restore ----
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
   const importFileRef = useRef<HTMLInputElement | null>(null);
 
   // Pending import diff — set after parsing file, cleared on apply/cancel
@@ -309,14 +311,17 @@ export function SettingsPanel({
     a.download = 'tokenmanager-settings.json';
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast('Settings exported — tokenmanager-settings.json downloaded', 'success');
   }, []);
 
   const handleImportFile = useCallback((file: File) => {
     setImportError(null);
     setImportSuccess(false);
     setPendingImport(null);
+    setImportLoading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
+      setImportLoading(false);
       try {
         const raw = e.target?.result;
         if (typeof raw !== 'string') throw new Error('Could not read file');
@@ -370,7 +375,7 @@ export function SettingsPanel({
         setImportError(err instanceof Error ? err.message : 'Failed to import settings');
       }
     };
-    reader.onerror = () => setImportError('Failed to read file');
+    reader.onerror = () => { setImportLoading(false); setImportError('Failed to read file'); };
     reader.readAsText(file);
   }, []);
 
@@ -390,6 +395,7 @@ export function SettingsPanel({
     if (applied === 0) { setImportError('Failed to write settings'); setConfirmingReload(false); return; }
     setPendingImport(null);
     setImportSuccess(true);
+    dispatchToast(`Settings imported — ${applied} setting${applied !== 1 ? 's' : ''} applied`, 'success');
     setTimeout(() => { window.location.reload(); }, 800);
   }, [pendingImport, confirmingReload]);
 
@@ -800,12 +806,19 @@ export function SettingsPanel({
               </button>
               <button
                 onClick={() => { setImportError(null); setImportSuccess(false); importFileRef.current?.click(); }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
+                disabled={importLoading}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                </svg>
-                Import settings
+                {importLoading ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                  </svg>
+                )}
+                {importLoading ? 'Parsing…' : 'Import settings'}
               </button>
               <input
                 ref={importFileRef}

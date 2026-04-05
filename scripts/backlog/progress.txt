@@ -722,3 +722,12 @@
   - Tailwind named group variants work with `group-focus-within` too: `group-focus-within/breadcrumb:opacity-100` targets focus within elements marked `group/breadcrumb`.
   - `group-focus-within` fires when the group element OR any descendant has focus — this keeps buttons visible as the user tabs through them, which is exactly what's needed for keyboard accessibility of hover-only actions.
 ---
+
+## 2026-04-05 - SettingsPanel has no loading or success feedback for import/export
+- Added `dispatchToast` call at the end of `handleExportSettings` so users see a success notification after the JSON download is triggered. Added `importLoading` state wired into `handleImportFile` (set true before FileReader.readAsText, cleared in onload/onerror), disabling the import button and replacing its icon/label with a spinner + "Parsing…" text during async file read. Added `dispatchToast` call in `handleApplyImport` after successful localStorage writes, reporting how many settings were applied.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L1 (import), ~L248 (importLoading state), ~L311 (export toast), ~L319 (importLoading=true), ~L322 (importLoading=false in onload), ~L376 (importLoading=false in onerror), ~L393 (import apply toast), ~L806 (spinner in button JSX)
+- **Learnings for future iterations:**
+  - For synchronous operations (export), `dispatchToast` is the right feedback mechanism — no loading state needed.
+  - For async FileReader operations, set loading state before `readAsText()` and clear it in both `onload` and `onerror` callbacks.
+  - The existing inline `importSuccess` message ("Settings imported — reloading…") stays as a visual anchor in the panel; the `dispatchToast` adds the same feedback to the global notification history.
+---
