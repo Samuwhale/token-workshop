@@ -826,3 +826,26 @@ Already up to date.
 
   Merging to main: Search input behavior is fragmented across three systems — in-tree search (TokenList "/" key), command palette (Cmd+K with ">" prefix), and set switcher each have different fuzzy matching algorithms, different qualifier support, and different keyboard behaviors; consolidate the search UX so the command palette serves as the single advanced search surface and in-tree search delegates to it for structured queries
 Already up to date.
+[main 80ac45fc] chore(backlog): done – Search input behavior is fragmented across three systems — in-tree search (TokenList "/" key), command palette (Cmd+K with ">" prefix), and set switcher each have different fuzzy matching algorithms, different qualifier support, and different keyboard behaviors; consolidate the search UX so the command palette serves as the single advanced search surface and in-tree search delegates to it for structured queries
+ 10 files changed, 68 insertions(+), 37 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Search input behavior is fragmented across three systems — consolidate so command palette is the single advanced search surface
+- Unified fuzzy matching: replaced CommandPalette's private simpler `fuzzyScore` (consecutive bonus only, score 0 for non-match) with the shared `fuzzyScore` from `shared/fuzzyMatch.ts` (segment-boundary bonuses, camelCase bonuses, exact-prefix bonuses, -1 for non-match). All `score > 0` call-site guards handle -1 correctly.
+- In-tree → command palette delegation: added `onOpenCommandPaletteWithQuery?: (query: string) => void` to `TokenListActions`. When `setSearchQuery` is called with a value that passes `hasStructuredQualifiers()` (i.e., contains `type:x`, `has:x`, `value:x`, etc.), the in-tree search clears and the command palette opens in token mode (`">" + " " + query`) instead. Wired through `tokenListTypes.ts` → `PanelRouter.tsx` → `App.tsx` (inline callback that sets `commandPaletteInitialQuery` + `setShowCommandPalette(true)`).
+- SetSwitcher ranked matching: replaced boolean `fuzzyMatch` with `fuzzyScore` from the shared module; filtered results are now sorted by score (highest first) instead of insertion order, making large foldered set lists easier to navigate.
+
+═══════════════════════════════════════════════════════════════
+  #34  ·  22 queued · 0
+0 in-progress · last took 8m11s
+═══════════════════════════════════════════════════════════════
+  → PublishPanel.tsx is a 2128-line monolith with 15+ useState hooks, 3 sync entity hooks, and inline async workflows — readiness checks (~80 lines at L259-338), orphan deletion state (L226-228), publish-all flow (L234-237), and confirmation modals are all tangled in one component; extract `useReadinessChecks`, `usePublishAll`, and `useOrphanCleanup` hooks following the `useSyncEntity` decomposition pattern
+  Worktree: /tmp/backlog-54964-WVTL5x
+  Running agent… (started 03:35:55)
+
+  ✓ done: PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
+    Extracted three hooks (~365 lines total): useOrphanCleanup, useReadinessChecks, usePublishAll. Circular dependency broken with late-bound trampoline refs. All 4 validation gates pass.
+    26 turns · 477s · $1.5
+
+  Merging to main: PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
+Already up to date.

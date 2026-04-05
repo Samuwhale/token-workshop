@@ -553,3 +553,22 @@
   - `hasStructuredQualifiers` uses `QUALIFIER_RE = /\b(type|has|...):\S+/gi` which requires at least one non-space char after the colon — so partial typing like `type:` alone doesn't trigger delegation; only `type:color` (with a value) does.
   - For the delegation UX: clearing in-tree search before opening the palette prevents the tree from showing filtered results in the background while the palette is open.
 ---
+
+## 2026-04-05 - PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
+- Extracted three domain-specific hooks from `PublishPanel.tsx` following the `useSyncEntity` decomposition pattern:
+  1. **`useOrphanCleanup.ts`** — orphan deletion state (`orphansDeleting`, `orphanConfirm`), message handler effect, and `executeOrphanDeletion` async callback (~85 lines)
+  2. **`useReadinessChecks.ts`** — readiness check state (5 useState), `runReadinessChecks` callback, auto-run effects, and derived counts (`readinessFails`, `readinessPasses`, etc.) (~170 lines); also exports `ReadinessCheck` interface and `LAST_READINESS_CHANGE_KEY`
+  3. **`usePublishAll.ts`** — publish-all state (4 useState), derived booleans (`hasVarChanges`, `publishAllAvailable`, etc.), `handleOpenPublishAll`, and `runPublishAll` callbacks (~110 lines); also exports `ConfirmAction` and `PublishAllStep` types
+- Cross-hook circular dependency (orphanCleanup needs `runReadinessChecks` + `setReadinessError`; readiness needs `setOrphanConfirm`) broken with the "late-bound trampoline ref" pattern: three `useRef(() => {})` + stable `useCallback` wrappers created in the component, real implementations assigned after all hooks are instantiated
+- `PublishPanel.tsx` reduced from ~480 lines of component logic to ~250 (hooks are called and destructured, JSX is unchanged)
+- `ConfirmAction` and `PublishAllStep` moved from `PublishPanel.tsx` to `usePublishAll.ts` (exported); `ReadinessCheck` and `LAST_READINESS_CHANGE_KEY` moved to `useReadinessChecks.ts` (exported)
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` (rewritten component body)
+  - `packages/figma-plugin/src/ui/hooks/useOrphanCleanup.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` (new)
+- **Learnings for future iterations:**
+  - When extracting hooks that have circular dependencies, the "late-bound trampoline ref" pattern is the standard solution: create `useRef(() => {})` + stable `useCallback(() => ref.current())` wrappers BEFORE all hook calls, pass the stable wrappers as params, then assign real implementations to the refs after all hooks are called. This never triggers re-registration because the stable wrappers have empty deps.
+  - Types that span hook/component boundaries should move to the hook file and be exported from there — avoids component→hook imports which feel antipattern.
+  - Destructuring all hook return values at the call site keeps JSX unchanged, making the refactor a clean drop-in with zero JSX diffs.
+---

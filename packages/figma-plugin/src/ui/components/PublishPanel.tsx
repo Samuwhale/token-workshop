@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
-import { flattenTokenGroup } from '@tokenmanager/core';
-import { describeError } from '../shared/utils';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useGitSync } from '../hooks/useGitSync';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { apiFetch } from '../shared/apiFetch';
 import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
 import { ApplyDiffConfirmModal } from './publish/PublishModals';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
+import { useReadinessChecks } from '../hooks/useReadinessChecks';
+import { usePublishAll, type ConfirmAction } from '../hooks/usePublishAll';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
@@ -141,10 +141,6 @@ const styleBuilders = createSyncBuilders(STYLE_SYNC_SPEC);
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 
-type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | 'publish-all' | null;
-
-type PublishAllStep = 'variables' | 'styles' | 'git' | null;
-
 interface PublishPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -154,20 +150,6 @@ interface PublishPanelProps {
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
 }
-
-interface ReadinessCheck {
-  id: string;
-  label: string;
-  status: 'pass' | 'fail' | 'pending';
-  /** true = must fix before publish; false = recommended but not blocking */
-  blocking: boolean;
-  count?: number;
-  detail?: string;
-  fixLabel?: string;
-  onFix?: () => void;
-}
-
-const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
@@ -217,271 +199,53 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   // ── Shared diff filter ──
   const [diffFilter, setDiffFilter] = useState('');
 
-  // ── Readiness state ──
-  const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
-  const [readinessLoading, setReadinessLoading] = useState(false);
-  const [readinessError, setReadinessError] = useState<string | null>(null);
-  /** tokenChangeKey value at the time checks last completed successfully */
-  const [checksRunAtKey, setChecksRunAtKey] = useState<number | null>(null);
-  /** True when a sync/apply happened after checks ran, making results outdated */
-  const [checksStale, setChecksStale] = useState(false);
-  const [orphansDeleting, setOrphansDeleting] = useState(false);
-  const orphansPendingRef = useRef<Map<string, (result: { count: number; failures?: string[] }) => void>>(new Map());
-  // orphanConfirm holds the data needed to render the confirmation modal and execute deletion
-  const [orphanConfirm, setOrphanConfirm] = useState<{ orphanPaths: string[]; localPaths: Set<string> } | null>(null);
-
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
-  // ── Publish-all state ──
-  const [publishAllStep, setPublishAllStep] = useState<PublishAllStep>(null);
-  const [publishAllError, setPublishAllError] = useState<string | null>(null);
-  const [publishAllGitSkipped, setPublishAllGitSkipped] = useState(false);
-  const [compareAllLoading, setCompareAllLoading] = useState(false);
+  // ── Late-bound trampoline refs (breaks circular hook dependency) ──
+  const onOrphanDeletionCompleteRef = useRef<() => void>(() => {});
+  const stableOnOrphanDeletionComplete = useCallback(() => onOrphanDeletionCompleteRef.current(), []);
+  const setReadinessErrorRef = useRef<(msg: string | null) => void>(() => {});
+  const stableSetReadinessError = useCallback((msg: string | null) => setReadinessErrorRef.current(msg), []);
+  const markChecksStaleRef = useRef<() => void>(() => {});
+  const stableMarkChecksStale = useCallback(() => markChecksStaleRef.current(), []);
 
-  // ── Orphan deletion message handler ──
-  useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'orphans-deleted' && msg.correlationId) {
-        const resolve = orphansPendingRef.current.get(msg.correlationId);
-        if (resolve) {
-          orphansPendingRef.current.delete(msg.correlationId);
-          resolve({ count: msg.count ?? 0, failures: msg.failures });
-        }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+  const orphanCleanup = useOrphanCleanup({
+    collectionMap,
+    onDeletionComplete: stableOnOrphanDeletionComplete,
+    setReadinessError: stableSetReadinessError,
+  });
 
-  /* ── Readiness callbacks ───────────────────────────────────────────────── */
+  const readiness = useReadinessChecks({
+    serverUrl, activeSet, connected,
+    collectionMap, modeMap, tokenChangeKey,
+    readFigmaTokens: varSync.readFigmaTokens,
+    setOrphanConfirm: orphanCleanup.setOrphanConfirm,
+  });
 
-  const READINESS_TIMEOUT_MS = 15_000;
+  const publishAll = usePublishAll({
+    varSync, styleSync, git,
+    setConfirmAction,
+    markChecksStale: stableMarkChecksStale,
+  });
 
-  const runReadinessChecks = useCallback(async () => {
-    if (!activeSet) return;
-    setReadinessLoading(true);
-    setReadinessError(null);
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('No response from Figma after 15 s — make sure the plugin is open and try again.')), READINESS_TIMEOUT_MS)
-      );
-      const figmaTokens = await Promise.race([varSync.readFigmaTokens(), timeoutPromise]);
+  // Wire trampolines to real implementations (runs every render — that's intentional)
+  onOrphanDeletionCompleteRef.current = readiness.runReadinessChecks;
+  setReadinessErrorRef.current = readiness.setReadinessError;
+  markChecksStaleRef.current = () => readiness.setChecksStale(true);
 
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      const localTokens = flattenTokenGroup(data.tokens || {});
-      const localFlat = Array.from(localTokens, ([path, token]) => ({
-        path, value: String(token.$value), type: String(token.$type ?? 'string'),
-      }));
-
-      const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
-      const localPaths = new Set(localTokens.keys());
-
-      const missingInFigma = localFlat.filter(t => !figmaMap.has(t.path));
-      const missingScopes = figmaTokens.filter(t =>
-        !t.$scopes || t.$scopes.length === 0 || (t.$scopes.length === 1 && t.$scopes[0] === 'ALL_SCOPES')
-      );
-      const missingDescriptions = figmaTokens.filter(t => !t.$description);
-      const orphans = figmaTokens.filter(t => !localPaths.has(t.path));
-
-      const checks: ReadinessCheck[] = [
-        {
-          id: 'all-vars',
-          label: 'All tokens have Figma variables',
-          blocking: true,
-          status: missingInFigma.length === 0 ? 'pass' : 'fail',
-          count: missingInFigma.length || undefined,
-          detail: missingInFigma.length > 0 ? 'Some local tokens are not yet pushed to Figma. Use the fix button to create the missing variables now.' : undefined,
-          fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
-          onFix: missingInFigma.length > 0 ? () => {
-            const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value, setName: activeSet }));
-            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
-          } : undefined,
-        },
-        {
-          id: 'orphans',
-          label: 'No orphan Figma variables',
-          blocking: true,
-          status: orphans.length === 0 ? 'pass' : 'fail',
-          count: orphans.length || undefined,
-          detail: orphans.length > 0 ? 'Figma contains variables that no longer exist in the token set. Delete them to keep Figma in sync.' : undefined,
-          fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
-          onFix: orphans.length > 0 ? () => {
-            setOrphanConfirm({ orphanPaths: orphans.map(o => o.path), localPaths });
-          } : undefined,
-        },
-        {
-          id: 'scopes',
-          label: 'Scopes set for every variable',
-          blocking: true,
-          status: missingScopes.length === 0 ? 'pass' : 'fail',
-          count: missingScopes.length || undefined,
-          detail: missingScopes.length > 0 ? 'Open the Figma Variables panel \u2192 select each variable \u2192 set scopes to control where it can be applied (e.g. Fill, Stroke, Gap).' : undefined,
-        },
-        {
-          id: 'descriptions',
-          label: 'Descriptions populated',
-          blocking: false,
-          status: missingDescriptions.length === 0 ? 'pass' : 'fail',
-          count: missingDescriptions.length || undefined,
-          detail: missingDescriptions.length > 0 ? 'Add $description fields to tokens in the token editor, then re-sync to Figma. Descriptions help designers understand how to use each variable.' : undefined,
-        },
-      ];
-      setReadinessChecks(checks);
-      const runKey = tokenChangeKey ?? 0;
-      setChecksRunAtKey(runKey);
-      setChecksStale(false);
-      try { localStorage.setItem(LAST_READINESS_CHANGE_KEY, String(runKey)); } catch { /* ignore */ }
-    } catch (err) {
-      setReadinessError(describeError(err, 'Readiness checks'));
-    } finally {
-      setReadinessLoading(false);
-    }
-  }, [serverUrl, activeSet, varSync.readFigmaTokens, collectionMap, modeMap, tokenChangeKey]);
-
-  /* ── Auto-run checks when tab activates after token edits ───────────── */
-
-  const runReadinessChecksRef = useRef(runReadinessChecks);
-  useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
-
-  // On mount: auto-run if tokens changed since the last check (user edited then navigated here)
-  useEffect(() => {
-    if (!connected || !activeSet || tokenChangeKey === undefined) return;
-    const stored = localStorage.getItem(LAST_READINESS_CHANGE_KEY);
-    if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
-      runReadinessChecksRef.current();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally runs only on mount
-
-  // While mounted: auto-recheck whenever tokenChangeKey increments (after at least one prior check)
-  useEffect(() => {
-    if (!connected || !activeSet || tokenChangeKey === undefined) return;
-    if (checksRunAtKey === null) return; // skip until the user has triggered at least one check
-    if (tokenChangeKey === checksRunAtKey) return; // already current
-    runReadinessChecksRef.current();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenChangeKey]); // re-run when token data changes
-
-  /* ── Publish-all pending counts ─────────────────────────────────────── */
-
-  const hasVarChanges = varSync.checked && varSync.syncCount > 0;
-  const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
-  const gitDiffPendingCount = useMemo(
-    () => Object.values(git.diffChoices).filter(c => c !== 'skip').length,
-    [git.diffChoices],
-  );
-  const hasGitDiffChanges = git.diffView != null && gitDiffPendingCount > 0;
-  const hasMergeConflicts = git.mergeConflicts.length > 0;
-  // When merge conflicts exist, exclude git from publish-all so Variables + Styles can still proceed
-  const effectiveHasGitDiffChanges = hasGitDiffChanges && !hasMergeConflicts;
-  const publishAllSections = (hasVarChanges ? 1 : 0) + (hasStyleChanges ? 1 : 0) + (effectiveHasGitDiffChanges ? 1 : 0);
-  // Show the Publish All banner when any single compared target has pending changes.
-  // Auto-compare is enabled for variables, so this typically appears right after connecting.
-  const publishAllAvailable = publishAllSections >= 1;
-  const publishAllBusy = publishAllStep !== null;
-
-  // "Publish All" fast path: auto-compare any unchecked targets, then open the combined modal.
-  // This lets users click one button to compare everything and confirm in a single step.
-  const handleOpenPublishAll = useCallback(async () => {
-    const toCompare: Promise<void>[] = [];
-    if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
-    if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
-    if (git.diffView === null && !git.diffLoading) toCompare.push(git.computeDiff());
-
-    if (toCompare.length > 0) {
-      setCompareAllLoading(true);
-      try {
-        await Promise.all(toCompare);
-      } catch {
-        // Each entity surfaces its own error in its section; we still open the modal.
-      } finally {
-        setCompareAllLoading(false);
-      }
-    }
-    setConfirmAction('publish-all');
-  }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff]);
-
-  const runPublishAll = useCallback(async () => {
-    setPublishAllError(null);
-    setPublishAllGitSkipped(false);
-
-    try {
-      if (hasVarChanges) {
-        setPublishAllStep('variables');
-        await varSync.applyDiff();
-      }
-      if (hasStyleChanges) {
-        setPublishAllStep('styles');
-        await styleSync.applyDiff();
-      }
-      // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
-      if (hasGitDiffChanges && !hasMergeConflicts) {
-        setPublishAllStep('git');
-        await git.applyDiff();
-      } else if (hasMergeConflicts && hasGitDiffChanges) {
-        setPublishAllGitSkipped(true);
-      }
-      setChecksStale(true);
-    } catch (err) {
-      setPublishAllError(describeError(err));
-    } finally {
-      setPublishAllStep(null);
-    }
-  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git]);
-
-  const executeOrphanDeletion = useCallback(async () => {
-    if (!orphanConfirm) return;
-    const { localPaths } = orphanConfirm;
-    setOrphanConfirm(null);
-    setOrphansDeleting(true);
-    setReadinessError(null);
-    // Clear any stale handlers from a previous invocation so a late plugin response
-    // from an earlier timed-out attempt cannot interfere with this new run.
-    orphansPendingRef.current.clear();
-    const MAX_RETRIES = 2;
-    const TIMEOUTS = [10000, 20000, 30000];
-    let deleteResult: { count: number; failures?: string[] } | null = null;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        deleteResult = await new Promise<{ count: number; failures?: string[] }>((resolve, reject) => {
-          const cid = `orphans-${Date.now()}-${Math.random()}`;
-          const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
-          orphansPendingRef.current.set(cid, (result) => { clearTimeout(timeout); resolve(result); });
-          parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
-        });
-        break;
-      } catch (err) {
-        const isTimeout = err instanceof Error && err.message === 'Timeout';
-        if (!isTimeout) {
-          setOrphansDeleting(false);
-          setReadinessError(describeError(err, 'Orphan deletion'));
-          return;
-        }
-      }
-    }
-    setOrphansDeleting(false);
-    if (deleteResult !== null) {
-      if (deleteResult.failures && deleteResult.failures.length > 0) {
-        const failList = deleteResult.failures.slice(0, 3).join('; ');
-        const extra = deleteResult.failures.length > 3 ? ` (+${deleteResult.failures.length - 3} more)` : '';
-        setReadinessError(`Orphan deletion partially failed — ${deleteResult.failures.length} variable(s) could not be removed: ${failList}${extra}`);
-      }
-      runReadinessChecks();
-    } else {
-      setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');
-    }
-  }, [orphanConfirm, collectionMap, runReadinessChecks]);
-
-  const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
-  const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
-  const readinessBlockingFails = readinessChecks.filter(c => c.status === 'fail' && c.blocking).length;
-  const isReadinessOutdated = readinessChecks.length > 0 && (
-    checksStale ||
-    (tokenChangeKey !== undefined && checksRunAtKey !== null && tokenChangeKey !== checksRunAtKey)
-  );
-
+  // Destructure for ergonomic JSX access
+  const {
+    readinessChecks, readinessLoading, readinessError, setChecksStale,
+    runReadinessChecks, readinessFails, readinessPasses, readinessBlockingFails, isReadinessOutdated,
+  } = readiness;
+  const { orphansDeleting, orphanConfirm, setOrphanConfirm, executeOrphanDeletion } = orphanCleanup;
+  const {
+    publishAllStep, publishAllError, publishAllGitSkipped, setPublishAllGitSkipped,
+    compareAllLoading, hasVarChanges, hasStyleChanges, hasGitDiffChanges,
+    effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
+    gitDiffPendingCount, handleOpenPublishAll, runPublishAll,
+  } = publishAll;
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
