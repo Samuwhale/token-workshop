@@ -244,7 +244,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     publishAllStep, publishAllError, publishAllGitSkipped, setPublishAllGitSkipped,
     compareAllLoading, hasVarChanges, hasStyleChanges, hasGitDiffChanges,
     effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
-    gitDiffPendingCount, handleOpenPublishAll, runPublishAll,
+    gitDiffPendingCount, handleOpenPublishAll, runPublishAll, quickSync, quickSyncing,
   } = publishAll;
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
@@ -389,17 +389,17 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       </div>
 
       {/* ── Publish all banner ──────────────────────────────────────────── */}
-      {(publishAllAvailable || publishAllBusy || compareAllLoading) && (
+      {(publishAllAvailable || publishAllBusy || quickSyncing || compareAllLoading) && (
         <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <div className="flex flex-col gap-1.5 rounded-lg border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 p-2.5">
-            {(publishAllBusy || compareAllLoading) ? (
+            {(publishAllBusy || quickSyncing || compareAllLoading) ? (
               <div className="flex items-center gap-2">
                 <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
                 <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
-                  {compareAllLoading && 'Comparing all targets\u2026'}
-                  {publishAllStep === 'variables' && 'Applying variable changes\u2026'}
-                  {publishAllStep === 'styles' && 'Applying style changes\u2026'}
-                  {publishAllStep === 'git' && 'Applying git diff changes\u2026'}
+                  {compareAllLoading && 'Comparing\u2026'}
+                  {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables\u2026' : 'Applying variable changes\u2026')}
+                  {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles\u2026' : 'Applying style changes\u2026')}
+                  {!compareAllLoading && publishAllStep === 'git' && 'Applying git diff changes\u2026'}
                 </span>
               </div>
             ) : (
@@ -416,12 +416,21 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     ].filter(Boolean).join(', ')}
                   </span>
                 </div>
-                <button
-                  onClick={handleOpenPublishAll}
-                  className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                >
-                  {hasMergeConflicts ? 'Publish without Git' : 'Publish all'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={quickSync}
+                    title="Compare and apply all variable + style changes immediately, without preview"
+                    className="text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                  >
+                    Sync all
+                  </button>
+                  <button
+                    onClick={handleOpenPublishAll}
+                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                  >
+                    {hasMergeConflicts ? 'Publish without Git' : 'Review & publish'}
+                  </button>
+                </div>
               </div>
             )}
             {hasMergeConflicts && !publishAllBusy && (

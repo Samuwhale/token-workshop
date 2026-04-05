@@ -48,6 +48,9 @@ export interface UsePublishAllReturn {
   gitDiffPendingCount: number;
   handleOpenPublishAll: () => Promise<void>;
   runPublishAll: () => Promise<void>;
+  /** One-click sync: auto-compare variables + styles then apply immediately, no preview modal. */
+  quickSync: () => Promise<void>;
+  quickSyncing: boolean;
 }
 
 export function usePublishAll({
@@ -61,6 +64,7 @@ export function usePublishAll({
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
   const [publishAllGitSkipped, setPublishAllGitSkipped] = useState(false);
   const [compareAllLoading, setCompareAllLoading] = useState(false);
+  const [quickSyncing, setQuickSyncing] = useState(false);
 
   const hasVarChanges = varSync.checked && varSync.syncCount > 0;
   const hasStyleChanges = styleSync.checked && styleSync.syncCount > 0;
@@ -127,6 +131,42 @@ export function usePublishAll({
     }
   }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git.applyDiff, markChecksStale]);
 
+  // One-click "Sync all changes": auto-compare variables + styles, then apply immediately.
+  // Git is intentionally excluded — git operations (push/pull/commit) require deliberate review.
+  // applyDiff reads from rowsRef/dirsRef which computeDiff updates synchronously,
+  // so calling applyDiff right after computeDiff sees the fresh computed rows.
+  const quickSync = useCallback(async () => {
+    setPublishAllError(null);
+    setQuickSyncing(true);
+    setCompareAllLoading(true);
+
+    try {
+      const toCompare: Promise<void>[] = [];
+      if (!varSync.checked && !varSync.loading) toCompare.push(varSync.computeDiff());
+      if (!styleSync.checked && !styleSync.loading) toCompare.push(styleSync.computeDiff());
+      if (toCompare.length > 0) {
+        await Promise.all(toCompare);
+      }
+    } catch {
+      // Each entity surfaces its own error; continue to apply what we can
+    } finally {
+      setCompareAllLoading(false);
+    }
+
+    try {
+      setPublishAllStep('variables');
+      await varSync.applyDiff();
+      setPublishAllStep('styles');
+      await styleSync.applyDiff();
+      markChecksStale();
+    } catch (err) {
+      setPublishAllError(describeError(err));
+    } finally {
+      setPublishAllStep(null);
+      setQuickSyncing(false);
+    }
+  }, [varSync.checked, varSync.loading, varSync.computeDiff, varSync.applyDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, styleSync.applyDiff, markChecksStale]);
+
   return {
     publishAllStep,
     publishAllError,
@@ -144,5 +184,7 @@ export function usePublishAll({
     gitDiffPendingCount,
     handleOpenPublishAll,
     runPublishAll,
+    quickSync,
+    quickSyncing,
   };
 }

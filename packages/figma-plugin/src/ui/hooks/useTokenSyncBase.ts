@@ -188,12 +188,14 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
       }
 
       setRows(newRows);
+      rowsRef.current = newRows; // update ref immediately so applyDiff sees fresh data
       setChecked(true);
       const newDirs: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const r of newRows) {
         newDirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
       }
       setDirs(newDirs);
+      dirsRef.current = newDirs; // update ref immediately so applyDiff sees fresh data
     } catch (err) {
       setError(describeError(err, cfg.compareErrorLabel));
     } finally {
@@ -206,13 +208,18 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
     const dirsSnapshot = dirsRef.current;
     const rowsSnapshot = rowsRef.current;
     const signal = abortRef.current.signal;
+
+    const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
+    const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
+
+    // No-op: nothing to apply (supports quick-sync calling applyDiff unconditionally)
+    if (pushRows.length === 0 && pullRows.length === 0) return;
+
     setSyncing(true);
     setError(null);
     setProgress(null);
     progressRef.current = null;
     try {
-      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
       const totalOps = pushRows.length + pullRows.length;
 
       // Execute push (local → Figma)

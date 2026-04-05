@@ -881,3 +881,16 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: The most impactful finding is the publish/sync flow requiring 4 sequential manual steps (Compare → Select → Preview → Apply) with no quick-sync path — power users who sync multiple times daily would benefit enormously from a one-click "sync all changes" action. The second most impactful is the complete lack of cross-feature discovery between ThemeManager and Generators — users must navigate between two separate tabs with no contextual bridge to understand that generators can fill theme dimensions.
 ---
+
+## 2026-04-05 - Publish flow requires 4 sequential steps with no combined "quick sync" path
+- Added "Sync all" one-click button to the publish banner in PublishPanel. Clicking it auto-compares variables + styles (if not yet checked) and immediately applies all diffs with default directions (local-only → push, figma-only → pull, conflicts → push) without a preview modal. Git is intentionally excluded from quick sync since git operations require deliberate review.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L190: in `computeDiff`, added `rowsRef.current = newRows` and `dirsRef.current = newDirs` directly after the state setters, so refs are up-to-date when `applyDiff` is called immediately after compute (without waiting for a re-render)
+  - `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L206: moved `pushRows`/`pullRows` computation before the try block in `applyDiff`; added early no-op return when both are empty, so calling `applyDiff` on an entity with no changes is clean (no spurious toast)
+  - `packages/figma-plugin/src/ui/hooks/usePublishAll.ts`: added `quickSync` function + `quickSyncing` state + updated `UsePublishAllReturn` interface
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L247: destructures `quickSync`/`quickSyncing`; updates banner to show "Sync all" (outlined secondary) and "Review & publish" (filled primary) buttons side-by-side; progress messages updated to show "Syncing variables…" / "Syncing styles…" during quick sync
+- **Learnings for future iterations:**
+  - `applyDiff` reads from `rowsRef.current`/`dirsRef.current` at call time, but those refs are only updated at render time (`rowsRef.current = rows`). To call `applyDiff` immediately after `computeDiff` in the same async chain (no re-render in between), you must also update the refs directly inside `computeDiff` after setting state.
+  - Adding an early no-op return to `applyDiff` (when no rows match 'push' or 'pull') makes it safe to call unconditionally after compare — clean behavior even when an entity has zero diffs.
+  - Git is safely excluded from "quick sync" patterns because git operations (push/pull/commit) have meaningful side effects that users should review explicitly; only Figma-bound variable/style syncs have sensible defaults for auto-apply.
+---
