@@ -401,3 +401,31 @@ Already up to date.
 
   Merging to main: useTokenCrud.ts consolidation into focused sub-hooks
 Already up to date.
+[main 85110b58] chore(backlog): done – useTokenCrud.ts consolidation into focused sub-hooks
+ 10 files changed, 849 insertions(+), 628 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenDelete.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenDuplicate.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenRelocate.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenRename.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenSave.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - useTokenCrud.ts consolidation into focused sub-hooks
+- Created 5 focused sub-hooks and rewrote `useTokenCrud.ts` as a 102-line orchestrator (down from 657):
+  1. `useTokenRelocate.ts` — parameterized `mode: 'move' | 'copy'` hook; called twice from useTokenCrud to replace the near-identical move/copy flows. Eliminates duplicate state (conflictAction, conflictNewPath, targetSet, fromSet) and duplicate handlers.
+  2. `useTokenRename.ts` — rename preview + execute + undo/redo + pendingRenameToken state.
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  15 queued · 0
+0 in-progress · last took 6m19s
+═══════════════════════════════════════════════════════════════
+  → `Record<string, any>` is used as the de-facto token type across 30+ call sites in UI hooks — `useTokens.ts` fetches `{ tokens: Record<string, any> }`, `useSetMergeSplit.ts` flattens into `Record<string, any>`, `useGeneratorPreview.ts` stores existing tokens as `Record<string, any>`, `useTokenEditorFields.ts` types modeValues as `Record<string, any>`, and `history/types.ts` casts `SnapshotDiff.before`/`after` through `as any` despite the interface already having `$type`/`$value` — define a proper `DTCGTokenRecord` type (or reuse `DTCGToken` from core) for API response typing and propagate it through hooks to eliminate the `as any` casts and catch type errors at compile time
+  Worktree: /tmp/backlog-54964-RRc1L7
+  Running agent… (started 01:57:36)
+
+  ✓ done: Replace Record<string, any> with proper types across UI hooks
+    Replaced Record<string, any> with DTCGGroup/DTCGToken/Record<string,unknown> in 6 files; removed 4 redundant as any casts in history/types.ts where SnapshotDiff was already properly typed
+    43 turns · 290s · $1.35
+
+  Merging to main: Replace Record<string, any> with proper types across UI hooks
+Already up to date.

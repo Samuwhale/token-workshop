@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type DTCGGroup, type DTCGToken } from '@tokenmanager/core';
 import type { UndoSlot } from './useUndo';
 import { apiFetch } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
@@ -17,8 +17,8 @@ interface UseSetMergeSplitParams {
   setTabMenuOpen: (v: string | null) => void;
 }
 
-function flattenTokensObj(obj: DTCGGroup): Record<string, any> {
-  const flat: Record<string, any> = {};
+function flattenTokensObj(obj: DTCGGroup): Record<string, DTCGToken> {
+  const flat: Record<string, DTCGToken> = {};
   for (const [path, token] of flattenTokenGroup(obj)) {
     flat[path] = token;
   }
@@ -33,9 +33,9 @@ export function useSetMergeSplit({
   // Merge state
   const [mergingSet, setMergingSet] = useState<string | null>(null);
   const [mergeTargetSet, setMergeTargetSet] = useState<string>('');
-  const [mergeConflicts, setMergeConflicts] = useState<Array<{ path: string; sourceValue: any; targetValue: any }>>([]);
+  const [mergeConflicts, setMergeConflicts] = useState<Array<{ path: string; sourceValue: unknown; targetValue: unknown }>>([]);
   const [mergeResolutions, setMergeResolutions] = useState<Record<string, 'source' | 'target'>>({});
-  const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, any>>({});
+  const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, DTCGToken>>({});
   const [mergeChecked, setMergeChecked] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
   // Tracks the target that was used for the most recent conflict check,
@@ -80,14 +80,14 @@ export function useSetMergeSplit({
     setMergeLoading(true);
     try {
       const [srcData, tgtData] = await Promise.all([
-        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(checkTarget)}`),
+        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
+        apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(checkTarget)}`),
       ]);
       // Discard results if the target changed while the check was in flight
       if (mergeCheckTargetRef.current !== checkTarget) return;
       const srcFlat = flattenTokensObj(srcData.tokens || {});
       const tgtFlat = flattenTokensObj(tgtData.tokens || {});
-      const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
+      const conflicts: Array<{ path: string; sourceValue: unknown; targetValue: unknown }> = [];
       for (const [path, srcEntry] of Object.entries(srcFlat)) {
         if (tgtFlat[path]) {
           if (JSON.stringify(srcEntry.$value) !== JSON.stringify(tgtFlat[path].$value)) {
@@ -114,7 +114,7 @@ export function useSetMergeSplit({
     if (!mergingSet || !mergeTargetSet || !connected || !mergeChecked) return;
     setMergeLoading(true);
     try {
-      const tgtData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
+      const tgtData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
       const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
       const tgtFlat = flattenTokensObj(preMergeTokens);
       const writes: Promise<unknown>[] = [];
@@ -177,12 +177,12 @@ export function useSetMergeSplit({
     setTabMenuOpen(null);
     if (!connected) return;
     try {
-      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
+      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
       const tokenRoot = data.tokens || {};
       const preview = Object.entries(tokenRoot)
         .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
         .map(([key, val]) => {
-          const flat = flattenTokensObj(val as Record<string, any>);
+          const flat = flattenTokensObj(val as DTCGGroup);
           const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
           return { key, newName: `${setName}-${sanitized}`, count: Object.keys(flat).length };
         })
@@ -203,7 +203,7 @@ export function useSetMergeSplit({
     if (!splittingSet || !connected) return;
     setSplitLoading(true);
     try {
-      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
+      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const tokenRoot = data.tokens || {};
       const originalTokens: Record<string, unknown> = tokenRoot;
       const createdNames: string[] = [];

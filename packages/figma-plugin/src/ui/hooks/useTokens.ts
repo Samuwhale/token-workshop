@@ -95,7 +95,7 @@ export function useTokens(
           setActiveSet(current);
         }
 
-        const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
+        const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
         if (gen !== fetchGenRef.current || signal.aborted) return;
         setTokens(buildTree(tokensData.tokens || {}));
         setTokenRevision(r => r + 1);
@@ -174,7 +174,7 @@ export function useTokens(
     const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
     const signal = createFetchSignal(disconnectCombined);
     try {
-      const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal });
+      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal });
       if (gen !== fetchGenRef.current || signal.aborted) return;
       setTokens(buildTree(tokensData.tokens || {}));
       setTokenRevision(r => r + 1);
@@ -207,7 +207,7 @@ async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{
       const perSetSignal = signal
         ? AbortSignal.any([AbortSignal.timeout(5000), signal])
         : AbortSignal.timeout(5000);
-      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: perSetSignal });
+      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: perSetSignal });
       return { setName, tokens: data.tokens || {} };
     })
   );
@@ -254,7 +254,7 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string, signal?: Abo
 }
 
 
-function buildTree(group: Record<string, any>, prefix = ''): TokenNode[] {
+function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
   const nodes: TokenNode[] = [];
   for (const [key, value] of Object.entries(group)) {
     if (key.startsWith('$')) continue;

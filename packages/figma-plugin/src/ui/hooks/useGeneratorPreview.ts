@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
 
 export interface OverwrittenEntry {
@@ -199,7 +199,7 @@ export function useGeneratorPreview({
     if (!targetSet) return;
     const controller = new AbortController();
     setExistingTokensError('');
-    apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: createFetchSignal(controller.signal) })
+    apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: createFetchSignal(controller.signal) })
       .then(data => {
         if (controller.signal.aborted) return;
         const map = flattenTokenGroup(data.tokens || {});

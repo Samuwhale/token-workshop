@@ -929,3 +929,24 @@
   - Cross-hook state wiring (duplicate triggering rename) is cleanly done via an `onNewPath` callback prop on the consumer hook rather than lifting state to the orchestrator.
   - The orchestrator return object can alias sub-hook values to preserve the existing public API with zero changes to callers.
 ---
+
+## 2026-04-05 - Replace Record<string, any> with proper types across UI hooks
+- Replaced all `Record<string, any>` / `as any` API response and state typings with proper DTCG types:
+  1. `useTokens.ts`: Three `apiFetch<{ tokens: Record<string, any> }>` → `{ tokens: DTCGGroup }`; `buildTree` parameter `Record<string, any>` → `DTCGGroup`
+  2. `useSetMergeSplit.ts`: Added `DTCGToken` import; `flattenTokensObj` return type → `Record<string, DTCGToken>`; `mergeSrcFlat` state → `Record<string, DTCGToken>`; all API fetches → `DTCGGroup`; conflict array `sourceValue/targetValue: any` → `unknown`; split cast `val as Record<string, any>` → `val as DTCGGroup`
+  3. `useGeneratorPreview.ts`: Added `DTCGGroup` import; API fetch → `{ tokens: DTCGGroup }`
+  4. `useTokenEditorFields.ts`: `FieldsSnapshot.modeValues` and `useState` → `Record<string, unknown>`
+  5. `useTokenEditorLoad.ts`: `setModeValues` param and `loadedModes` local → `Record<string, unknown>`
+  6. `history/types.ts`: Removed 4 unnecessary `as any` casts in `snapshotDiffToChange` — `SnapshotDiff.before/after` already typed as `{ $value: unknown; $type?: string }`
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L98,177,210,257
+  - `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L2,20,36-38,83-84,90,117,180,185
+  - `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L4,202
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorFields.ts` ~L13,80
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorLoad.ts` ~L27,80
+  - `packages/figma-plugin/src/ui/components/history/types.ts` ~L81-89
+- **Learnings for future iterations:**
+  - `SnapshotDiff.before/after` was already typed with `$value` and `$type` — the `as any` casts were entirely redundant noise from an earlier draft
+  - `DTCGGroup` is the correct type for nested API response bodies; `DTCGToken` (from `flattenTokenGroup`) is the correct type for flattened path-to-token maps
+  - `modeValues` are per-mode token values with polymorphic shapes — `Record<string, unknown>` is correct; avoid `Record<string, any>` for these
+---

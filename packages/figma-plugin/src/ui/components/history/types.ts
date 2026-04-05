@@ -78,14 +78,14 @@ export interface HistoryPanelProps {
 
 /** Convert snapshot diff entry to unified TokenChange */
 export function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
-  const type = (d.before as any)?.$type ?? (d.after as any)?.$type ?? '';
+  const type = d.before?.$type ?? d.after?.$type ?? '';
   return {
     path: d.path,
     set: d.set,
     type,
     status: d.status,
-    before: (d.before as any)?.$value,
-    after: (d.after as any)?.$value,
+    before: d.before?.$value,
+    after: d.after?.$value,
   };
 }
 

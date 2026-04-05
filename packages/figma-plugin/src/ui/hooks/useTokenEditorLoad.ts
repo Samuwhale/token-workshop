@@ -24,7 +24,7 @@ interface UseTokenEditorLoadParams {
   setAliasMode: (v: boolean) => void;
   setScopes: (v: string[]) => void;
   setColorModifiers: (v: ColorModifierOp[]) => void;
-  setModeValues: (v: Record<string, any>) => void;
+  setModeValues: (v: Record<string, unknown>) => void;
   setExtensionsJsonText: (v: string) => void;
   setLifecycle: (v: 'draft' | 'published' | 'deprecated') => void;
   setExtendsPath: (v: string) => void;
@@ -77,7 +77,7 @@ export function useTokenEditorLoad({
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
         const savedModes = token?.$extensions?.tokenmanager?.modes;
-        const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};
+        const loadedModes: Record<string, unknown> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, unknown> : {};
         setModeValues(loadedModes);
         const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
         const loadedLifecycle: 'draft' | 'published' | 'deprecated' = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
