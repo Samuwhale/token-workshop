@@ -461,3 +461,14 @@
   - The themes.ts `withLock` has a domain-specific signature (load-modify-save transaction), but its internal chaining logic was identical. The refactor keeps the public `DimensionsStore.withLock` interface unchanged — only the implementation body now delegates to `PromiseChainLock.run`.
   - `GeneratorService.saveGenerators` was an unusual case: the lock name was `saveLock` (not `withLock`/`lockChain`) and the locked function was always `_doSave`. Converting it to `this.saveLock.run(() => this._doSave())` preserved the public `saveGenerators()` method signature unchanged.
 ---
+
+## 2026-04-05 - Plugin sandbox variableSync rollback is all-or-nothing for the deletion phase
+- Fixed per-variable granularity in both rollback paths (`applyVariables` catch block and `revertVariables`). Previously, if any single restore operation failed (e.g., the `scopes` setter on one variable), the entire deletion phase was skipped for ALL created variables and collections, leaving orphan variables in the document. Now each restore failure is tracked by its specific varId, and the deletion phase always runs — only variables that individually failed their restore are skipped (defensively; in practice `createdVariableIds` and `variableSnapshots` are always disjoint sets, so all created orphans get cleaned up).
+- In `applyVariables`: extracted `varSnapshotEntries` array before building `restoreTasks` so indices correlate reliably with `restoreResults`; replaced the all-or-nothing `if/else` with per-varId tracking via `failedRestoreVarIds` Set.
+- In `revertVariables`: added `failedRestoreVarIds` Set; each property-setter catch block sets `varFailed = true`; added `failedRestoreVarIds.add(varId)` at end of each task; removed the skip-all `else` guard.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L168 (applyVariables rollback), ~L249 (revertVariables)
+- **Learnings for future iterations:**
+  - `variableSnapshots` (existing vars) and `createdVariableIds` (new vars) are always disjoint — a restore failure for an existing variable should never block deletion of a newly-created orphan variable. When these two concerns are conflated in an if/else, any property-setter failure (even `scopes`) blocks the entire cleanup path.
+  - To correlate `Promise.allSettled` results with their input varIds, build tasks from a named array (`varSnapshotEntries`) rather than calling `Array.from(map.entries())` twice — even though Map iteration order is deterministic, using the same array reference makes the index correlation explicit and safe.
+  - In `revertVariables`, failures accumulate inline via `failures.push()` rather than being thrown, so tracking per-variable failure requires a `varFailed` local flag per async task rather than checking `r.status === 'rejected'`.
+---

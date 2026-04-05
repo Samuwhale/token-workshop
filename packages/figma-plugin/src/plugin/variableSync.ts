@@ -165,8 +165,10 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     // Attempt to roll back all changes made before the failure
     const rollbackFailures: string[] = [];
 
-    // Restore all original state for variables that existed before this operation — run in parallel
-    const restoreTasks = Array.from(variableSnapshots.entries()).map(async ([varId, snapshot]) => {
+    // Restore all original state for variables that existed before this operation — run in parallel.
+    // Build from a stable array so result indices correlate with varIds.
+    const varSnapshotEntries = Array.from(variableSnapshots.entries());
+    const restoreTasks = varSnapshotEntries.map(async ([varId, snapshot]) => {
       const v = await figma.variables.getVariableByIdAsync(varId);
       if (!v) return;
       const errs: string[] = [];
@@ -183,19 +185,25 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       } catch (e) { errs.push(`pluginData: ${getErrorMessage(e)}`); }
       if (errs.length > 0) throw new Error(`var ${varId}: ${errs.join('; ')}`);
     });
+    // Correlate results with varIds to know exactly which variables failed to restore
     const restoreResults = await Promise.allSettled(restoreTasks);
-    const restoresFailed = restoreResults.filter(r => r.status === 'rejected');
-    for (const r of restoreResults) {
-      if (r.status === 'rejected') rollbackFailures.push(`restore: ${getErrorMessage(r.reason)}`);
+    const failedRestoreVarIds = new Set<string>();
+    for (let i = 0; i < restoreResults.length; i++) {
+      const r = restoreResults[i];
+      if (r.status === 'rejected') {
+        failedRestoreVarIds.add(varSnapshotEntries[i][0]);
+        rollbackFailures.push(`restore: ${getErrorMessage(r.reason)}`);
+      }
+    }
+    if (failedRestoreVarIds.size > 0) {
+      console.error('[applyVariables] some variable restores failed:', [...failedRestoreVarIds]);
     }
 
-    if (restoresFailed.length > 0) {
-      // Skip deletions — restores failed, so deleting created variables/collections now would
-      // cause unrecoverable data loss (the originals didn't restore cleanly).
-      console.error('[applyVariables] skipping deletion phase because restore(s) failed:', restoresFailed.map(r => (r as PromiseRejectedResult).reason));
-    } else {
-    // Delete variables created during this operation (reverse order) — run in parallel
+    // Delete variables created during this operation (reverse order) — run in parallel.
+    // Skip only variables whose own restore failed; created variables and snapshot variables
+    // are disjoint sets so this guard is defensive, but keeps the intent explicit.
     const deleteTasks = [...createdVariableIds].reverse().map(async (varId) => {
+      if (failedRestoreVarIds.has(varId)) return;
       const v = await figma.variables.getVariableByIdAsync(varId);
       if (v) v.remove();
     });
@@ -222,7 +230,6 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     } catch (e) {
       rollbackFailures.push(`collection cleanup fetch failed: ${getErrorMessage(e)}`);
     }
-    } // end else (restores succeeded)
 
     const rolledBack = rollbackFailures.length === 0;
     const rollbackError = rolledBack
@@ -240,39 +247,44 @@ export async function revertVariables(
   correlationId?: string,
 ) {
   const failures: string[] = [];
+  // Track which specific varIds had restore failures to avoid skipping unrelated deletions
+  const failedRestoreVarIds = new Set<string>();
 
   // Restore pre-sync state for every variable that was modified — run in parallel
   const restoreTasks = Object.entries(data.records).map(async ([varId, snapshot]) => {
     const v = await figma.variables.getVariableByIdAsync(varId);
-    if (!v) { failures.push(`var ${varId} no longer exists`); return; }
+    if (!v) { failures.push(`var ${varId} no longer exists`); failedRestoreVarIds.add(varId); return; }
+    let varFailed = false;
     for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
-      try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { failures.push(`setValueForMode(${varId}, ${modeId}): ${getErrorMessage(e)}`); }
+      try { v.setValueForMode(modeId, value as VariableValue); } catch (e) { failures.push(`setValueForMode(${varId}, ${modeId}): ${getErrorMessage(e)}`); varFailed = true; }
     }
-    try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${getErrorMessage(e)}`); }
-    try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${getErrorMessage(e)}`); }
-    try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${getErrorMessage(e)}`); }
-    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); }
+    try { v.name = snapshot.name; } catch (e) { failures.push(`name(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
+    try { v.description = snapshot.description; } catch (e) { failures.push(`description(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
+    try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch (e) { failures.push(`hiddenFromPublishing(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
+    try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     try {
       v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
       v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
-    } catch (e) { failures.push(`pluginData(${varId}): ${getErrorMessage(e)}`); }
+    } catch (e) { failures.push(`pluginData(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
+    if (varFailed) failedRestoreVarIds.add(varId);
   });
   await Promise.allSettled(restoreTasks);
 
-  if (failures.length > 0) {
-    // Skip deletions — one or more restores failed, so deleting created variables now would
-    // cause unrecoverable data loss (the originals didn't restore cleanly).
-    console.error('[revertVariables] skipping deletion phase because restore(s) failed:', failures);
-  } else {
-    // Delete variables that were created during the sync — run in parallel
-    const deleteTasks = [...data.createdIds].reverse().map(async (varId) => {
-      const v = await figma.variables.getVariableByIdAsync(varId);
-      if (v) {
-        try { v.remove(); } catch (e) { failures.push(`delete(${varId}): ${getErrorMessage(e)}`); }
-      }
-    });
-    await Promise.allSettled(deleteTasks);
+  if (failedRestoreVarIds.size > 0) {
+    console.error('[revertVariables] some variable restores failed:', [...failedRestoreVarIds]);
   }
+
+  // Delete variables that were created during the sync — run in parallel.
+  // Skip only variables whose own restore failed; data.records and data.createdIds are disjoint
+  // sets so failedRestoreVarIds will not intersect createdIds in practice — the guard is defensive.
+  const deleteTasks = [...data.createdIds].reverse().map(async (varId) => {
+    if (failedRestoreVarIds.has(varId)) return;
+    const v = await figma.variables.getVariableByIdAsync(varId);
+    if (v) {
+      try { v.remove(); } catch (e) { failures.push(`delete(${varId}): ${getErrorMessage(e)}`); }
+    }
+  });
+  await Promise.allSettled(deleteTasks);
 
   figma.ui.postMessage({
     type: 'variables-reverted',
