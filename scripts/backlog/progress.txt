@@ -720,3 +720,15 @@
 - **Learnings for future iterations:**
   - When a backlog item describes a missing feature that may have been implemented in a prior session's collateral work, check the context menu, editor, and wiring before assuming it's still missing.
 ---
+
+## 2026-04-05 - Command palette token action buttons keyboard accessibility and copy feedback
+- Fixed all 8 action buttons (Path, {ref}, Val, CSS, Dup, Ren, Mov, Del): changed `tabIndex={-1}` to `tabIndex={flatIdx === activeIdx ? 0 : -1}` so only the active row's buttons are in the tab order; added `onFocus={() => setActiveIdx(flatIdx)}` to keep row highlight in sync when focus enters an action button; added `onKeyDown={handleActionButtonKeyDown}` to return focus to the search input on Escape/Arrow keys
+- Added `copyWithFeedback(label, fn)` helper that defers `onClose()` by 1.4 s and shows a "✓ Copied <label>" badge in the search bar; copy buttons (Path, {ref}, Val, CSS) now use this instead of immediately closing
+- The Del button's `onDeleteToken` already dispatches through `handlePaletteDeleteToken` → `setPaletteDeleteConfirm` → ConfirmModal in App.tsx — confirmation was already wired; the backlog description was describing a historical state
+- Del button styled with red tint (`text-red-300`) on the active row to distinguish it from the safe copy/edit actions
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L144 (state additions), ~L155 (copyWithFeedback helper), ~L168 (handleActionButtonKeyDown), ~L478 (copied feedback indicator), ~L740-L840 (all 8 action buttons)
+- **Learnings for future iterations:**
+  - `tabIndex={isActive ? 0 : -1}` with `onFocus={() => setActiveIdx(idx)}` is the pattern for making "only-when-active" buttons accessible without polluting the global tab order with N×8 stops
+  - Copy-feedback-before-close pattern: track `copiedLabel` state + timer ref, show in-palette indicator, defer `onClose()` so users see confirmation within the same UI context
+  - `onKeyDown` to return focus to a parent input (Escape/ArrowUp/ArrowDown) is the right way to make satellite buttons feel like a natural extension of arrow-key navigation rather than a separate tab island
+---

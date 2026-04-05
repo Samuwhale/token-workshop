@@ -148,11 +148,32 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   const [showAllQualifiers, setShowAllQualifiers] = useState(false);
   const [searchAllSets, setSearchAllSets] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [recent] = useState<RecentEntry[]>(() => loadRecent());
   useFocusTrap(dialogRef, { initialFocusRef: inputRef });
+
+  const copyWithFeedback = (label: string, action: () => void) => {
+    action();
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    setCopiedLabel(label);
+    copyTimerRef.current = setTimeout(() => {
+      setCopiedLabel(null);
+      onClose();
+    }, 1400);
+  };
+
+  // Key handler for action buttons — Escape/arrows return focus to search input
+  const handleActionButtonKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopPropagation();
+      inputRef.current?.focus();
+    }
+  };
 
   // Reset visible count when query changes
   useEffect(() => {
@@ -450,9 +471,16 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               ?
             </button>
           )}
-          <kbd className="text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
-            ESC
-          </kbd>
+          {copiedLabel ? (
+            <span className="text-[10px] font-medium text-green-500 bg-green-500/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
+              <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
+              Copied {copiedLabel}
+            </span>
+          ) : (
+            <kbd className="text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
+              ESC
+            </kbd>
+          )}
         </div>
 
         {/* Qualifier hint chips — persistent reference row */}
@@ -718,80 +746,96 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   </button>
                   {onCopyTokenPath && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy path: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onCopyTokenPath(token.path); onClose(); }}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('Path', () => onCopyTokenPath(token.path)); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Path
                     </button>
                   )}
                   {onCopyTokenRef && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy DTCG alias: {${token.path}}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onCopyTokenRef(token.path); onClose(); }}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('{ref}', () => onCopyTokenRef(token.path)); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       {'{ref}'}
                     </button>
                   )}
                   {onCopyTokenValue && token.value != null && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy raw value: ${token.value}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onCopyTokenValue(token.value!); onClose(); }}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('Val', () => onCopyTokenValue(token.value!)); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Val
                     </button>
                   )}
                   {onCopyTokenCssVar && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy CSS var: ${tokenCssVar(token.path)}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onCopyTokenCssVar(token.path); onClose(); }}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('CSS', () => onCopyTokenCssVar(token.path)); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       CSS
                     </button>
                   )}
                   {onDuplicateToken && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Duplicate token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Dup
                     </button>
                   )}
                   {onRenameToken && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Rename token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onRenameToken(token.path); onClose(); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Ren
                     </button>
                   )}
                   {onMoveToken && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Move to set: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onMoveToken(token.path); onClose(); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Mov
                     </button>
                   )}
                   {onDeleteToken && (
                     <button
-                      tabIndex={-1}
+                      tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Delete token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-red-300 hover:text-red-100 focus:text-red-100 focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-red-400'}`}
                       onClick={(e) => { e.stopPropagation(); onDeleteToken(token.path); onClose(); }}
+                      onFocus={() => setActiveIdx(flatIdx)}
+                      onKeyDown={handleActionButtonKeyDown}
                     >
                       Del
                     </button>
