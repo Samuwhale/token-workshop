@@ -401,3 +401,16 @@
   - In a `finally` block, throwing replaces the original error. To propagate both run-error and rollback-error cleanly, split the try/catch/finally: use `finally` only for cleanup (endBatch), capture the run error in a `catch` clause, then handle rollback and re-throw in sequential code after the try block.
   - `Promise.allSettled([singlePromise])` is safe even with one item — the `[outcome]` destructure pattern is readable and consistent with the multi-item allSettled pattern.
 ---
+
+## 2026-04-05 - No saved filter presets for the token list
+- Added named filter presets that persist to localStorage and are accessible from a bookmark-icon dropdown next to the search bar (between the `?` qualifier help button and the type filter dropdown).
+- Each preset stores `{ id, name, query }`. The dropdown shows the preset list (click to apply, hover X to delete) and a save-current form (name input + Save button) that only appears when there is an active search query. The bookmark button turns accent-colored when any presets are saved.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L55 (added `FILTER_PRESETS: 'tm_filter_presets'` to `STORAGE_KEYS`)
+  - `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L6 (added `FilterPreset` interface and imports), ~L133 (preset state: `filterPresets`, `showPresetDropdown`, `presetNameInput`, `presetDropdownRef`), ~L145 (handlers: `saveFilterPreset`, `deleteFilterPreset`, `applyFilterPreset`), ~L383 (return object additions)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L746 (destructure new values from tokenSearch), ~L2680 (preset button + dropdown JSX inserted before type filter)
+- **Learnings for future iterations:**
+  - Presets are stored globally (not per-set) since filter queries like `type:color has:unused` are useful across all sets.
+  - The `setSearchQuery` callback in `useTokenSearch` already handles structured qualifier delegation to the command palette, so `applyFilterPreset` simply calls `setSearchQuery` and the routing logic is preserved for free.
+  - The `onBlur` + `setTimeout(..., 150)` pattern (same as qualifier help) prevents the dropdown from closing when the user clicks an item inside it — `onMouseDown` `e.preventDefault()` on interactive items prevents blur before click fires.
+---

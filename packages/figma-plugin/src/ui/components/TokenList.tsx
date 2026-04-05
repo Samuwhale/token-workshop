@@ -744,6 +744,13 @@ export function TokenList({
     refFilter,
     showDuplicates,
     crossSetSearch, setCrossSetSearch,
+    filterPresets,
+    showPresetDropdown, setShowPresetDropdown,
+    presetNameInput, setPresetNameInput,
+    presetDropdownRef,
+    saveFilterPreset,
+    deleteFilterPreset,
+    applyFilterPreset,
     showQualifierHints, setShowQualifierHints,
     showQualifierHelp, setShowQualifierHelp,
     hintIndex, setHintIndex,
@@ -2673,6 +2680,84 @@ export function TokenList({
                       </div>
                       <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
                         Combine qualifiers: <span className="font-mono">type:color has:alias</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Filter presets */}
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setShowPresetDropdown(v => !v)}
+                    onBlur={() => { setTimeout(() => setShowPresetDropdown(false), 150); }}
+                    title="Filter presets"
+                    aria-label="Filter presets"
+                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] cursor-pointer transition-colors ${showPresetDropdown || filterPresets.length > 0 ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </button>
+                  {showPresetDropdown && (
+                    <div ref={presetDropdownRef} className="absolute right-0 top-full mt-1 w-52 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
+                      <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
+                        <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Filter Presets</span>
+                      </div>
+                      {filterPresets.length === 0 ? (
+                        <div className="px-2 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">No saved presets yet.</div>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto">
+                          {filterPresets.map(preset => (
+                            <div key={preset.id} className="flex items-center gap-1 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] group">
+                              <button
+                                onMouseDown={e => e.preventDefault()}
+                                onClick={() => applyFilterPreset(preset)}
+                                className="flex-1 min-w-0 text-left"
+                                title={`Apply: ${preset.query}`}
+                              >
+                                <div className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{preset.name}</div>
+                                <div className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] truncate">{preset.query}</div>
+                              </button>
+                              <button
+                                onMouseDown={e => e.preventDefault()}
+                                onClick={() => deleteFilterPreset(preset.id)}
+                                title="Delete preset"
+                                aria-label={`Delete preset "${preset.name}"`}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] shrink-0"
+                              >
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)]">
+                        <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1">
+                          {searchQuery.trim() ? 'Save current filter as preset:' : 'Enter a search query to save as preset.'}
+                        </div>
+                        {searchQuery.trim() && (
+                          <form
+                            onSubmit={e => { e.preventDefault(); saveFilterPreset(presetNameInput); }}
+                            className="flex gap-1"
+                          >
+                            <input
+                              type="text"
+                              value={presetNameInput}
+                              onChange={e => setPresetNameInput(e.target.value)}
+                              placeholder="Preset name…"
+                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                              autoFocus
+                            />
+                            <button
+                              type="submit"
+                              disabled={!presetNameInput.trim()}
+                              className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                            >
+                              Save
+                            </button>
+                          </form>
+                        )}
                       </div>
                     </div>
                   )}

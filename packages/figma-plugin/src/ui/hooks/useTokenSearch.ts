@@ -3,7 +3,13 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from './useGenerators';
 import type { LintViolation } from './useLint';
-import { STORAGE_KEY, lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+
+export interface FilterPreset {
+  id: string;
+  name: string;
+  query: string;
+}
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
   findGroupByPath, parseStructuredQuery, hasStructuredQualifiers, QUERY_QUALIFIERS,
@@ -125,6 +131,39 @@ export function useTokenSearch({
   }, []);
 
   const [crossSetSearch, setCrossSetSearch] = useState(false);
+
+  // Filter presets — persisted globally in localStorage
+  const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() =>
+    lsGetJson<FilterPreset[]>(STORAGE_KEYS.FILTER_PRESETS, [])
+  );
+  const [showPresetDropdown, setShowPresetDropdown] = useState(false);
+  const [presetNameInput, setPresetNameInput] = useState('');
+  const presetDropdownRef = useRef<HTMLDivElement>(null);
+
+  const saveFilterPreset = useCallback((name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || !searchQuery.trim()) return;
+    const preset: FilterPreset = { id: Date.now().toString(), name: trimmed, query: searchQuery.trim() };
+    setFilterPresets(prev => {
+      const next = [...prev, preset];
+      lsSetJson(STORAGE_KEYS.FILTER_PRESETS, next);
+      return next;
+    });
+    setPresetNameInput('');
+  }, [searchQuery]);
+
+  const deleteFilterPreset = useCallback((id: string) => {
+    setFilterPresets(prev => {
+      const next = prev.filter(p => p.id !== id);
+      lsSetJson(STORAGE_KEYS.FILTER_PRESETS, next);
+      return next;
+    });
+  }, []);
+
+  const applyFilterPreset = useCallback((preset: FilterPreset) => {
+    setSearchQuery(preset.query);
+    setShowPresetDropdown(false);
+  }, [setSearchQuery]);
 
   const [showQualifierHints, setShowQualifierHints] = useState(false);
   const [showQualifierHelp, setShowQualifierHelp] = useState(false);
@@ -352,6 +391,15 @@ export function useTokenSearch({
     setShowDuplicatesState,
     crossSetSearch,
     setCrossSetSearch,
+    filterPresets,
+    showPresetDropdown,
+    setShowPresetDropdown,
+    presetNameInput,
+    setPresetNameInput,
+    presetDropdownRef,
+    saveFilterPreset,
+    deleteFilterPreset,
+    applyFilterPreset,
     showQualifierHints,
     setShowQualifierHints,
     showQualifierHelp,
