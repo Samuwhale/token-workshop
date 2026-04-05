@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { flattenTokenGroup, COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
+import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { parseInlineValue, valuePlaceholderForType } from './tokenListHelpers';
 import { getDefaultValue } from './tokenListUtils';
@@ -37,6 +38,7 @@ interface CreateSingleDraftData {
   tokenType: string;
   value: any;
   description: string;
+  scopes: string[];
   extendsPath: string;
   refMode: boolean;
   refQuery: string;
@@ -412,6 +414,8 @@ function SingleCreateTab({
     return getDefaultValue(initialType || 'color');
   });
   const [description, setDescription] = useState('');
+  const [scopes, setScopes] = useState<string[]>([]);
+  const [showScopes, setShowScopes] = useState(false);
   const [targetSet, setTargetSet] = useState(activeSet);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -433,8 +437,8 @@ function SingleCreateTab({
   // Auto-save draft whenever form has a name
   useEffect(() => {
     if (!name.trim()) { clearCreateDraft(); return; }
-    saveCreateDraft({ targetSet, group, name, tokenType, value, description, extendsPath, refMode, refQuery });
-  }, [targetSet, group, name, tokenType, value, description, extendsPath, refMode, refQuery]);
+    saveCreateDraft({ targetSet, group, name, tokenType, value, description, scopes, extendsPath, refMode, refQuery });
+  }, [targetSet, group, name, tokenType, value, description, scopes, extendsPath, refMode, refQuery]);
 
   const handleRestoreDraft = useCallback(() => {
     if (!pendingDraft) return;
@@ -445,6 +449,7 @@ function SingleCreateTab({
     setTokenType(pendingDraft.tokenType);
     setValue(pendingDraft.value);
     setDescription(pendingDraft.description);
+    setScopes(pendingDraft.scopes ?? []);
     setExtendsPath(pendingDraft.extendsPath);
     setRefMode(pendingDraft.refMode);
     setRefQuery(pendingDraft.refQuery);
@@ -511,7 +516,10 @@ function SingleCreateTab({
     try {
       const body: Record<string, any> = { $type: tokenType, $value: value };
       if (description.trim()) body.$description = description.trim();
-      if (extendsPath) body.$extensions = { tokenmanager: { extends: extendsPath } };
+      const extensions: Record<string, any> = {};
+      if (extendsPath) extensions.tokenmanager = { extends: extendsPath };
+      if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
+      if (Object.keys(extensions).length > 0) body.$extensions = extensions;
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPathToUrlSegment(fullPath)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -525,6 +533,7 @@ function SingleCreateTab({
       setName('');
       setValue(getDefaultValue(tokenType));
       setDescription('');
+      setScopes([]);
       setRefMode(false);
       setRefQuery('');
       setExtendsPath('');
@@ -534,7 +543,7 @@ function SingleCreateTab({
     } finally {
       setSaving(false);
     }
-  }, [saveBlockReason, connected, saving, tokenType, value, description, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated]);
+  }, [saveBlockReason, connected, saving, tokenType, value, description, scopes, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated]);
 
   const handleTypeChange = (type: string) => {
     typeSetManually.current = true;
@@ -544,6 +553,7 @@ function SingleCreateTab({
     setRefMode(false);
     setRefQuery('');
     setExtendsPath('');
+    setScopes([]);
   };
 
   // Stable ref so the keydown handler never goes stale without re-registering
@@ -841,14 +851,54 @@ function SingleCreateTab({
       {/* Description */}
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Description</label>
-        <input
-          type="text"
+        <textarea
           placeholder="Optional description"
           value={description}
           onChange={e => setDescription(e.target.value)}
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+          rows={2}
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
         />
       </div>
+
+      {/* Figma Variable Scopes — only for types that have scope definitions */}
+      {FIGMA_SCOPES[tokenType] && (
+        <div className="rounded border border-[var(--color-figma-border)]">
+          <button
+            type="button"
+            onClick={() => setShowScopes(v => !v)}
+            title="Scopes control which Figma properties this variable is offered for"
+            className="w-full px-2.5 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium bg-[var(--color-figma-bg-secondary)] rounded"
+          >
+            <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : '(optional)'}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
+              <path d="M2 3.5l3 3 3-3"/>
+            </svg>
+          </button>
+          {showScopes && (
+            <div className="px-2.5 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Controls where this variable appears in Figma's picker. Empty = all scopes.
+              </p>
+              {FIGMA_SCOPES[tokenType].map(scope => (
+                <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={scopes.includes(scope.value)}
+                    onChange={e => setScopes(
+                      e.target.checked ? [...scopes, scope.value] : scopes.filter(s => s !== scope.value)
+                    )}
+                    className="w-3 h-3 rounded mt-0.5"
+                  />
+                  <span className="flex flex-col">
+                    <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Extends — only for composite token types */}
       {COMPOSITE_TOKEN_TYPES.has(tokenType) && !refMode && (

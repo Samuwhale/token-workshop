@@ -493,3 +493,18 @@
   - The `select-node` message + `selectNode()` in `heatmapScanning.ts` is the single canonical way to select+focus a canvas node from the UI — no new plugin handler needed, just wire the existing one.
   - Use `group/layer` + `group-hover/layer:` named group classes when adding hover actions to a nested row that already has inner `group/row` elements — named groups prevent the outer hover from colliding with inner row hover styles.
 ---
+
+## 2026-04-05 - CreatePanel does not allow setting description or metadata during creation
+- Upgraded description field from `<input>` to `<textarea>` (rows=2, resize-none, min-h-[48px]) matching MetadataEditor style
+- Added `scopes: string[]` state and a collapsible "Figma variable scopes" section (only visible for types that have scope definitions: color, number, dimension, string, boolean)
+- Scopes section uses same toggle+chevron pattern as MetadataEditor, with checkbox list per scope and helper text
+- Wired scopes into `handleCreate` body, merging with existing `$extensions` (extendsPath goes to `tokenmanager.extends`, scopes go to `com.figma.scopes`)
+- Updated `CreateSingleDraftData` interface to persist scopes in draft storage
+- Updated draft auto-save, `handleRestoreDraft`, post-create reset, and `handleTypeChange` to handle scopes
+- Imported `FIGMA_SCOPES` from `MetadataEditor.tsx` to avoid duplication
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1 (import), ~L33 (interface), ~L418 (state), ~L437 (draft save), ~L440 (restore draft), ~L513 (handleCreate body), ~L535 (reset), ~L546 (deps), ~L549 (handleTypeChange), ~L855 (description textarea), ~L866 (scopes section)
+- **Learnings for future iterations:**
+  - Scopes are type-specific — always reset scopes when the token type changes, so stale color scopes don't linger when switching to a dimension token
+  - When merging multiple extension namespaces (tokenmanager extends + com.figma.scopes), build a single `extensions` object and conditionally add each key, then assign once to `body.$extensions` — avoids overwriting one with the other
+  - Draft storage interfaces need a `?? []` guard on restore (older drafts won't have the `scopes` key)
+---
