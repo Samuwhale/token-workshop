@@ -676,3 +676,13 @@
 - **Learnings for future iterations:**
   - Before implementing a shortcut item, grep for the feature name + "matchesShortcut" in App.tsx — the shortcut registry is well-maintained and items may already be done.
 ---
+
+## 2026-04-05 - ThemeManager hover-only actions are not discoverable
+- Applied the "faint-always-visible" pattern to all dimension header hover-only actions. Changed `opacity-0` to `opacity-20` (so icons are dimly visible as affordances at rest) and added `pointer-events-none group-hover:pointer-events-auto transition-opacity` to prevent accidental clicks while the buttons are at low opacity.
+- Actions updated: drag grip handle, rename button, move up/down buttons wrapper, duplicate button, delete button. Compare and Generate buttons already used `opacity-40` (the correct pattern). Set row ⋯ menu button already used `opacity-40`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1030, ~L1076, ~L1086, ~L1146, ~L1156
+- **Learnings for future iterations:**
+  - The distinction between `opacity-0` (fully invisible) and `opacity-20`/`opacity-40` (faint but visible) is the key UX lever for discoverability vs. clutter. Use `opacity-0` only for truly secondary/redundant actions; use `opacity-20` for primary actions users need to discover.
+  - Always pair a reduced-opacity "hint" state with `pointer-events-none` to avoid accidental clicks on faintly rendered buttons.
+  - `transition-opacity` should be added alongside any opacity change for smoothness.
+---

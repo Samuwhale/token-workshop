@@ -1027,7 +1027,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       {/* Drag grip handle */}
                       {dimensions.length > 1 && (
                         <span
-                          className="cursor-grab active:cursor-grabbing text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-60 hover:!opacity-100 flex-shrink-0 select-none"
+                          className="cursor-grab active:cursor-grabbing text-[var(--color-figma-text-tertiary)] opacity-20 group-hover:opacity-60 hover:!opacity-100 flex-shrink-0 select-none transition-opacity"
                           title="Drag to reorder axis"
                           aria-hidden="true"
                         >
@@ -1073,7 +1073,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             )}
                             <button
                               onClick={() => startRenameDim(dim.id, dim.name)}
-                              className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                              className="p-0.5 rounded opacity-20 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0 pointer-events-none group-hover:pointer-events-auto transition-opacity"
                               title="Rename axis" aria-label="Rename axis"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1083,7 +1083,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </button>
                           </div>
                           {dimensions.length > 1 && (
-                            <div className="flex items-center gap-0 flex-shrink-0 opacity-0 group-hover:opacity-100">
+                            <div className="flex items-center gap-0 flex-shrink-0 opacity-20 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
                               <button
                                 onClick={() => handleMoveDimension(dim.id, 'up')}
                                 disabled={dimIdx === 0}
@@ -1143,7 +1143,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           <button
                             onClick={() => handleDuplicateDimension(dim.id)}
                             disabled={isDuplicatingDim}
-                            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-25 disabled:pointer-events-none"
+                            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] text-[10px] flex-shrink-0 opacity-20 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto disabled:opacity-25 disabled:pointer-events-none transition-opacity"
                             title="Duplicate axis" aria-label="Duplicate axis"
                           >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1153,7 +1153,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           </button>
                           <button
                             onClick={() => openDeleteConfirm(dim.id)}
-                            className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
+                            className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-20 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity"
                             title="Delete axis" aria-label="Delete axis"
                           >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

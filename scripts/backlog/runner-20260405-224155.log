@@ -409,3 +409,26 @@ Already up to date.
 
   Merging to main: No keyboard shortcut for quick set switching
 Already up to date.
+[main c7e6730f] chore(backlog): done – No keyboard shortcut for quick set switching
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No keyboard shortcut for quick set switching
+- Stale — already implemented. `Cmd+Shift+S` (⌘⇧S) opens/closes the SetSwitcher modal. Registered as `QUICK_SWITCH_SET` in `shortcutRegistry.ts`, wired in App.tsx, visible in keyboard shortcuts help modal and command palette.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #18  ·  5 queued · 0
+0 in-progress · last took 1m21s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager hover-only actions are not discoverable — dimension reorder grips, delete buttons, and option management buttons only appear on hover; first-time users have no visual hint these actions exist; add persistent but subtle affordances (e.g., faint icons) or an onboarding tooltip the first time the theme panel is opened
+  Worktree: /tmp/backlog-50286-coYrtj
+  Running agent… (started 23:54:42)
+
+  ✓ done: ThemeManager hover-only actions are not discoverable — dimension reorder grips, delete buttons, and option management buttons only appear on hover; first-time users have no visual hint these actions exist; add persistent but subtle affordances (e.g., faint icons) or an onboarding tooltip the first time the theme panel is opened
+    Applied faint-always-visible pattern (opacity-0 → opacity-20 + pointer-events-none at rest) to dimension header drag grip, rename, move up/down, duplicate, and delete buttons in ThemeManager.tsx
+    12 turns · 172s · $0.52
+
+  Merging to main: ThemeManager hover-only actions are not discoverable — dimension reorder grips, delete buttons, and option management buttons only appear on hover; first-time users have no visual hint these actions exist; add persistent but subtle affordances (e.g., faint icons) or an onboarding tooltip the first time the theme panel is opened
+Already up to date.
