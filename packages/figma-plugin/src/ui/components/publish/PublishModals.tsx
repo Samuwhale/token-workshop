@@ -487,22 +487,22 @@ export function CommitPreviewModal({
     >
       <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="commit-preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="commit-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
+          <h3 id="commit-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review what will be committed before proceeding.
+            Review your changes before saving.
           </p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           <div className="mb-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Message</div>
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Save note</div>
             <div className="text-[11px] text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
           </div>
 
           <div className="mb-2">
             <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 flex items-center justify-between">
               <span>
-                {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to commit
+                {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to save
                 {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
               </span>
               {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
@@ -596,7 +596,7 @@ export function CommitPreviewModal({
             className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {busy && <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />}
-            {busy ? 'Committing\u2026' : `Commit ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+            {busy ? 'Saving\u2026' : `Save ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
           </button>
         </div>
       </div>

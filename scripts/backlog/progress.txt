@@ -493,3 +493,22 @@
   - The batch copy (Cmd+C in TokenList.tsx) already built nested DTCG — only the single-token context menu used a flat snippet. When adding format improvements, check both paths.
   - `fmtKey: 'json'` in the context menu maps to the `'json'` PreferredCopyFormat key in SettingsPanel — renaming the UI label is safe without changing the storage key.
 ---
+
+## 2026-04-05 - Git workflow in PublishPanel assumes git familiarity
+- Translated git terminology to design language throughout the PublishPanel git workflow:
+  - "Ours (local)" / "Theirs (remote)" → "Your version" / "Server version" in conflict resolver
+  - "Merge conflicts" → "Conflicting edits"; "Abort merge" → "Cancel"; "Resolve all conflicts" → "Apply my choices"
+  - "All ours" / "All theirs" → "All yours" / "All server's"
+  - "N conflicts (regions)" → "N sections"; "Commit" → "Save"; "Commit message" → "Save note"
+  - "N uncommitted" badge → "N unsaved"; "Clean" → "Up to date"
+  - "↑ Push" / "↓ Pull" buttons → "↑ Share" / "↓ Get updates" with descriptive tooltips
+  - Ahead/behind indicator tooltips updated to plain language ("N saved versions ready to share")
+  - Confirm modal: "Commit changes" → "Save version"; "files to commit" → "files to save"
+- Added "What does this mean?" collapsible help section inside the conflict resolver that explains conflicts in plain design language (your edits vs. someone else's, no git jargon)
+- Auto-generated commit messages from diff summary via `generateCommitMessage()` in `useGitSync.ts`: watches `allChanges`, generates "Update colors; Add typography" style messages, marks auto-generated with "auto" badge; user can override (message won't be replaced), and a "Suggest" button re-generates
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L14,L37,L91; `packages/figma-plugin/src/ui/components/publish/GitSubPanel.tsx` ~L17,L80,L120,L263; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L582; `packages/figma-plugin/src/ui/components/publish/PublishModals.tsx` ~L490,L498,L505,L599
+- **Learnings for future iterations:**
+  - The `commitMsgUserEdited` ref pattern (track whether user manually edited a derived/suggested value) is reusable for any auto-suggested input that should yield to user intent.
+  - When translating git concepts, keep the UI consistent throughout the entire flow (badge, panel, conflict UI, confirm modal) — it's easy to miss the modal since it's in a separate file.
+  - The "What does this mean?" expandable works well with the existing `conflictHelpOpen` local state pattern — no need to persist this state.
+---
