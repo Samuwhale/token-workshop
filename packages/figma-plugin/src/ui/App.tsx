@@ -2067,22 +2067,24 @@ export function App() {
       )}
 
       {/* Simple mode info bar — shows when set navigation is hidden */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && isSimpleMode && sets.length > 1 && (
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && isSimpleMode && sets.length >= 1 && (
         <div className="flex items-center justify-between px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {totalTokenCount} tokens across {sets.length} sets — organized by type
+            {sets.length > 1
+              ? `${totalTokenCount} tokens across ${sets.length} sets — organized by type`
+              : `${totalTokenCount} tokens — organized by type`}
           </span>
           <button
             onClick={() => { setAdvancedModeOverride(true); lsSet(STORAGE_KEYS.ADVANCED_MODE, 'true'); }}
             className="text-[10px] text-[var(--color-figma-accent)] hover:underline shrink-0 ml-2"
           >
-            Show sets
+            {sets.length > 1 ? 'Show sets' : 'Show original structure'}
           </button>
         </div>
       )}
 
       {/* Advanced mode return bar — shown when user opted into advanced mode but could use simple mode */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && advancedModeOverride && totalTokenCount > 0 && totalTokenCount < 200 && sets.length > 1 && (
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && advancedModeOverride && totalTokenCount > 0 && totalTokenCount < 200 && sets.length >= 1 && (
         <div className="flex items-center justify-end px-2 py-0.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
           <button
             onClick={() => { setAdvancedModeOverride(false); lsRemove(STORAGE_KEYS.ADVANCED_MODE); }}

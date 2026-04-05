@@ -432,3 +432,11 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: CanvasAnalysisPanel wraps HeatmapPanel+ConsistencyPanel+ComponentCoveragePanel as tabs, but the standalone versions are still importable and share overlapping scope state — a consolidation opportunity. TokenTableView has significantly fewer capabilities than the tree view (no context menu, no popover editing, no batch ops) and may not justify its maintenance cost.
 ---
+
+## 2026-04-05 - "Simple mode" auto-activates with no explanation
+- The info banner already existed but had `sets.length > 1` condition, so single-set users got no explanation when their tokens were silently reorganized by type. Fixed by changing to `sets.length >= 1` in both the info bar and the "return to simple mode" bar. Updated copy: single-set case shows "N tokens — organized by type" with "Show original structure" button instead of "Show sets".
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2070 (info bar condition + copy), ~L2085 (advanced mode return bar condition)
+- **Learnings for future iterations:**
+  - Simple mode applies even to single sets (reorganizes by type vs original hierarchy). Info banners that gate on multi-set conditions will silently miss single-set cases.
+  - Both the "you're in simple mode" and "return to simple mode" bars had the same `sets.length > 1` gate — always fix the symmetric pair together.
+---
