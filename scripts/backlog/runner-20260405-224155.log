@@ -339,3 +339,27 @@ Already up to date.
 
   Merging to main: TokenTableView is a second token view with significantly fewer capabilities than the tree view — it has no context menu, no inline popover editing for complex types, no drag-and-drop, no multi-select batch operations, and no pinning; either invest in making it feature-complete or remove it in favor of the tree view which already supports flat display via search/filter
 Already up to date.
+[main 983a12e7] chore(backlog): done – TokenTableView is a second token view with significantly fewer capabilities than the tree view — it has no context menu, no inline popover editing for complex types, no drag-and-drop, no multi-select batch operations, and no pinning; either invest in making it feature-complete or remove it in favor of the tree view which already supports flat display via search/filter
+ 6 files changed, 40 insertions(+), 404 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/components/TokenTableView.tsx
+  ✓ Merged and marked done
+
+## 2026-04-05 - TokenTableView removal in favor of tree view
+- Removed `TokenTableView.tsx` entirely and all references to it in `TokenList.tsx`. The table view offered flat display, sortable columns, and basic inline editing, but lacked context menus, complex type popover editors, drag-and-drop, pinning, batch operations, and keyboard shortcuts. Rather than duplicating all of this from the tree view, we removed the table view since the tree view already supports flat display when search/filters are applied.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` (deleted), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L37 (import), ~L298 (type), ~L300-303 (localStorage load), ~L305 (setViewMode type), ~L2242 (view mode toggle), ~L3361 (render block)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #15  ·  8 queued · 0
+0 in-progress · last took 2m58s
+═══════════════════════════════════════════════════════════════
+  → No lightweight "find references" for tokens — the context menu has "Open in dependency graph" which navigates away to a separate panel, but there's no inline way to see "which tokens alias this one?" without leaving the current view; add a quick popover or expandable section showing reverse references directly in the token list row
+  Worktree: /tmp/backlog-50286-Vh2Ahd
+  Running agent… (started 23:39:38)
+
+  ✓ done: No lightweight "find references" for tokens — the context menu has "Open in dependency graph" which navigates away to a separate panel, but there's no inline way to see "which tokens alias this one?" without leaving the current view; add a quick popover or expandable section showing reverse references directly in the token list row
+    Added chain-link icon button in hover actions + "Find references" context menu item that open an inline popover listing all tokens that alias the current one, computed client-side from allTokensFlat with click-outside/Escape dismissal and navigate-on-click.
+    36 turns · 322s · $1.25
+
+  Merging to main: No lightweight "find references" for tokens — the context menu has "Open in dependency graph" which navigates away to a separate panel, but there's no inline way to see "which tokens alias this one?" without leaving the current view; add a quick popover or expandable section showing reverse references directly in the token list row
+Already up to date.

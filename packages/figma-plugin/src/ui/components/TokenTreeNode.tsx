@@ -25,6 +25,40 @@ import { AliasAutocomplete } from './AliasAutocomplete';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
 
+// ---------------------------------------------------------------------------
+// Reverse-reference helpers (used by "Find references" popover)
+// ---------------------------------------------------------------------------
+
+/** Returns true if `value` contains a direct alias reference to `target`. */
+function hasDirectRef(value: unknown, target: string): boolean {
+  if (typeof value === 'string') {
+    return extractAliasPath(value) === target;
+  }
+  if (value && typeof value === 'object') {
+    const items = Array.isArray(value) ? value : [value];
+    for (const item of items) {
+      if (item && typeof item === 'object') {
+        for (const v of Object.values(item as Record<string, unknown>)) {
+          if (typeof v === 'string' && extractAliasPath(v) === target) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/** Returns sorted list of token paths in `allTokensFlat` that alias `targetPath`. */
+function getIncomingRefs(
+  targetPath: string,
+  allTokensFlat: Record<string, TokenMapEntry>,
+): string[] {
+  const results: string[] = [];
+  for (const [path, entry] of Object.entries(allTokensFlat)) {
+    if (hasDirectRef(entry.$value, targetPath)) results.push(path);
+  }
+  return results.sort();
+}
+
 // Stable empty array to avoid creating new references when a node has no lint violations
 const EMPTY_LINT_VIOLATIONS: NonNullable<TokenTreeNodeProps['lintViolations']> = [];
 
@@ -986,6 +1020,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [pendingColor, setPendingColor] = useState('');
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [refsPopover, setRefsPopover] = useState<{ pos: { x: number; y: number }; refs: string[] } | null>(null);
+  const refsPopoverRef = useRef<HTMLDivElement>(null);
   const chainExpanded = chainExpandedProp;
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
@@ -1065,6 +1101,16 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
   }, [contextMenuPos]);
+
+  // Close refs popover on outside click or Escape
+  useEffect(() => {
+    if (!refsPopover) return;
+    const close = () => setRefsPopover(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setRefsPopover(null); } };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
+  }, [refsPopover]);
 
   // Close alias picker on outside click
   useEffect(() => {
@@ -2104,6 +2150,29 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               </svg>
             )}
           </button>
+          {/* Find references — show which tokens alias this one */}
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              const refs = getIncomingRefs(node.path, allTokensFlat);
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setRefsPopover({
+                refs,
+                pos: {
+                  x: Math.min(rect.left, window.innerWidth - 244),
+                  y: Math.min(rect.bottom + 4, window.innerHeight - 240),
+                },
+              });
+            }}
+            title="Find references (tokens that alias this)"
+            aria-label="Find references"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.72-1.71"/>
+            </svg>
+          </button>
           {/* More actions — opens full context menu */}
           <button
             onClick={e => {
@@ -2370,6 +2439,30 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               <span>View history</span>
             </button>
           )}
+          {!selectMode && (
+            <button
+              role="menuitem"
+              tabIndex={-1}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                const refs = getIncomingRefs(node.path, allTokensFlat);
+                const rect = nodeRef.current?.getBoundingClientRect();
+                setContextMenuPos(null);
+                setRefsPopover({
+                  refs,
+                  pos: rect
+                    ? {
+                        x: Math.min(rect.right + 4, window.innerWidth - 244),
+                        y: Math.min(rect.top, window.innerHeight - 240),
+                      }
+                    : { x: 100, y: 100 },
+                });
+              }}
+            >
+              <span>Find references</span>
+            </button>
+          )}
           {onShowReferences && !selectMode && (
             <button
               role="menuitem"
@@ -2547,6 +2640,59 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               onClose={() => setAliasPickerOpen(false)}
             />
           </div>
+        </div>
+      )}
+
+      {/* Reverse-reference popover — shows tokens that alias this one */}
+      {refsPopover && (
+        <div
+          ref={refsPopoverRef}
+          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg w-60 overflow-hidden"
+          style={{ top: refsPopover.pos.y, left: refsPopover.pos.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+              {refsPopover.refs.length === 0
+                ? 'No references'
+                : `${refsPopover.refs.length} reference${refsPopover.refs.length !== 1 ? 's' : ''}`}
+            </span>
+            <button
+              onClick={() => setRefsPopover(null)}
+              className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)]"
+              aria-label="Close"
+            >
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          {refsPopover.refs.length === 0 ? (
+            <div className="px-3 py-3 text-[11px] text-[var(--color-figma-text-tertiary)] text-center">
+              No tokens reference this one
+            </div>
+          ) : (
+            <div className="max-h-48 overflow-y-auto">
+              {refsPopover.refs.map(refPath => {
+                const setLabel = pathToSet?.[refPath];
+                return (
+                  <button
+                    key={refPath}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    onClick={() => {
+                      setRefsPopover(null);
+                      onNavigateToAlias?.(refPath, node.path);
+                    }}
+                  >
+                    <span className="text-[11px] text-[var(--color-figma-text)] truncate flex-1 min-w-0">{refPath}</span>
+                    {setLabel && setLabel !== setName && (
+                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded">{setLabel}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

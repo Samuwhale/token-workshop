@@ -644,3 +644,14 @@
   - When removing a view mode, also update: (1) the type union, (2) the localStorage hydration guard, (3) the toggle button array, (4) the rendering conditional. All four must be updated in sync.
   - `displayedLeafNodes` is shared infrastructure used for keyboard shortcuts, select-all, filter counts, and pinned tokens — it's not specific to the table view and should not be removed when the table view is removed.
 ---
+
+## 2026-04-05 - No lightweight "find references" for tokens
+- Added inline "Find references" feature to token list rows. Clicking the chain-link icon button in the hover actions toolbar (or selecting "Find references" from the right-click context menu) opens a popover listing all tokens in the current flat token map that alias the hovered token via `{path}` syntax.
+- Popover shows token count in header, each referencing token as a clickable row (clicking navigates to it via `onNavigateToAlias`), and a set-name badge when the referencing token lives in a different set. Dismisses on click-outside or Escape.
+- Computation is fully client-side using the `allTokensFlat` already available in context — no API call needed. Module-level `hasDirectRef` + `getIncomingRefs` helpers handle simple string aliases as well as composite token values (shadow, border, typography, etc.) with nested sub-properties.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L28 (module-level helpers), ~L1024 (state), ~L1106 (useEffect close-handler), ~L2153 (hover button), ~L2442 (context menu item), ~L2646 (popover DOM)
+- **Learnings for future iterations:**
+  - `allTokensFlat` is always available in `TokenTreeContext` — no server round-trip is needed for reverse-reference lookup; scan it locally on demand.
+  - The `hasDirectRef` helper must handle both scalar string aliases and composite object values (each sub-property can independently be an alias), so a simple `isAlias(entry.$value)` check is insufficient.
+  - When adding a new popover to `TokenTreeNode`, add a paired `useEffect` (identical to the `contextMenuPos` one) that registers `click` + `keydown` listeners to close it on outside-click / Escape — but make sure `onClick={e => e.stopPropagation()}` is on the popover div itself so internal clicks don't bubble and immediately close it.
+---
