@@ -1268,7 +1268,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
                 {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} />}
                 {tokenType === 'cubicBezier' && <CubicBezierEditor value={value} onChange={setValue} />}
-                {tokenType === 'transition' && <TransitionEditor value={value} onChange={setValue} />}
+                {tokenType === 'transition' && <TransitionEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
                 {tokenType === 'fontStyle' && <FontStyleEditor value={value} onChange={setValue} />}
                 {tokenType === 'lineHeight' && <LineHeightEditor value={value} onChange={setValue} />}
                 {tokenType === 'letterSpacing' && <LetterSpacingEditor value={value} onChange={setValue} />}

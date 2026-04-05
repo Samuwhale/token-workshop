@@ -73,7 +73,7 @@ function TypeEditor({
     case 'cubicBezier':
       return <CubicBezierEditor value={value} onChange={onChange} />;
     case 'transition':
-      return <TransitionEditor value={value} onChange={onChange} />;
+      return <TransitionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
     case 'strokeStyle':
       return <StrokeStyleEditor value={value} onChange={onChange} />;
     case 'fontStyle':

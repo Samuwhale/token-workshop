@@ -923,7 +923,7 @@ function ValueEditorForType({
     case 'letterSpacing': return <LetterSpacingEditor value={value} onChange={onChange} />;
     case 'lineHeight': return <LineHeightEditor value={value} onChange={onChange} />;
     case 'cubicBezier': return <CubicBezierEditor value={value} onChange={onChange} />;
-    case 'transition': return <TransitionEditor value={value} onChange={onChange} />;
+    case 'transition': return <TransitionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
     case 'textDecoration': return <TextDecorationEditor value={value} onChange={onChange} />;
     case 'textTransform': return <TextTransformEditor value={value} onChange={onChange} />;
     case 'asset': return <AssetEditor value={value} onChange={onChange} />;

@@ -442,6 +442,7 @@ function SubPropInput({
   className,
   inputType = 'number',
   inputRef,
+  autoFocus,
 }: {
   value: any;
   onChange: (v: any) => void;
@@ -452,10 +453,12 @@ function SubPropInput({
   className?: string;
   inputType?: 'number' | 'string';
   inputRef?: Ref<HTMLInputElement>;
+  autoFocus?: boolean;
 }) {
   const isAlias = typeof value === 'string' && value.startsWith('{');
   const displayValue = isAlias ? value : String(value ?? '');
-  const [showAC, setShowAC] = useState(false);
+  // Auto-show autocomplete when mounted mid-typing an alias (e.g. value === '{')
+  const [showAC, setShowAC] = useState(() => typeof value === 'string' && value.includes('{') && !value.endsWith('}'));
   const localRef = useRef<HTMLInputElement>(null);
   const effectiveRef = inputRef || localRef;
 
@@ -480,6 +483,7 @@ function SubPropInput({
       <input
         ref={effectiveRef as any}
         type="text"
+        autoFocus={autoFocus}
         value={displayValue}
         onChange={e => {
           const raw = e.target.value;
@@ -528,6 +532,83 @@ function SubPropInput({
           onClose={() => setShowAC(false)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Dimension sub-property input: number + unit select for literal values,
+ * SubPropInput with autocomplete for alias values. Includes a link button to switch modes.
+ */
+function DimensionSubProp({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToSet,
+  units = ['px', 'rem'],
+  placeholder = '0',
+  inputRef,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  units?: string[];
+  placeholder?: string;
+  inputRef?: Ref<HTMLInputElement>;
+}) {
+  const isAliasVal = typeof value === 'string' && value.startsWith('{');
+  const dim = !isAliasVal && typeof value === 'object' && value !== null ? value : { value: typeof value === 'number' ? value : 0, unit: units[0] };
+
+  if (isAliasVal) {
+    return (
+      <SubPropInput
+        value={value}
+        onChange={onChange}
+        allTokensFlat={allTokensFlat}
+        pathToSet={pathToSet}
+        filterType="dimension"
+        inputType="string"
+        autoFocus={value === '{'}
+        inputRef={inputRef}
+      />
+    );
+  }
+
+  return (
+    <div className="flex gap-1 items-center">
+      <input
+        ref={inputRef as any}
+        type="number"
+        value={dim.value ?? 0}
+        onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}
+        className={`${inputClass} flex-1`}
+        placeholder={placeholder}
+        onKeyDown={e => {
+          if (e.key === '{') {
+            e.preventDefault();
+            onChange('{');
+          }
+        }}
+      />
+      <select
+        value={dim.unit ?? units[0]}
+        onChange={e => onChange({ ...dim, unit: e.target.value })}
+        className={`${inputClass} w-14`}
+      >
+        {units.map(u => <option key={u} value={u}>{u}</option>)}
+      </select>
+      <button
+        type="button"
+        onClick={() => onChange('{')}
+        title="Reference a token"
+        className="p-0.5 rounded shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+        </svg>
+      </button>
     </div>
   );
 }
@@ -664,8 +745,6 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
     delete next[key];
     onChange(next);
   };
-  const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
-  const fontSize = !isFontSizeAlias && typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
   const isFontWeightAlias = typeof val.fontWeight === 'string' && val.fontWeight.startsWith('{');
 
   // Determine available weights for the selected font family (if font data is available)
@@ -754,40 +833,14 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
             {base && isInherited('fontSize') && <InheritedBadge propKey="fontSize" onOverride={() => update('fontSize', val.fontSize)} />}
             {base && !isInherited('fontSize') && <RevertBadge propKey="fontSize" onRevert={() => revertToInherited('fontSize')} />}
           </div>
-          {isFontSizeAlias ? (
-            <SubPropInput
-              value={val.fontSize}
-              onChange={v => update('fontSize', v)}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              inputRef={fontSizeRef}
-            />
-          ) : (
-            <div className="flex gap-1">
-              <input
-                ref={fontSizeRef}
-                type="number"
-                value={fontSize.value}
-                onChange={e => update('fontSize', { ...fontSize, value: parseFloat(e.target.value) || 0 })}
-                className={inputClass + ' flex-1'}
-                placeholder="{token}"
-                onKeyDown={e => {
-                  if (e.key === '{') {
-                    e.preventDefault();
-                    update('fontSize', '{');
-                  }
-                }}
-              />
-              <select
-                value={fontSize.unit}
-                onChange={e => update('fontSize', { ...fontSize, unit: e.target.value })}
-                className={inputClass + ' w-14'}
-              >
-                <option value="px">px</option>
-                <option value="rem">rem</option>
-              </select>
-            </div>
-          )}
+          <DimensionSubProp
+            value={val.fontSize ?? { value: 16, unit: 'px' }}
+            onChange={v => update('fontSize', v)}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            units={['px', 'rem']}
+            inputRef={fontSizeRef}
+          />
         </div>
         <div className="w-20">
           <div className={labelClass}>
@@ -801,23 +854,37 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
               onChange={v => update('fontWeight', v)}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
+              autoFocus={val.fontWeight === '{'}
             />
           ) : (
             <div>
-              <select
-                value={val.fontWeight ?? 400}
-                onChange={e => update('fontWeight', parseInt(e.target.value))}
-                className={`${inputClass} ${fieldBorderClass(false, weightUnavailable)}`}
-              >
-                {FONT_WEIGHTS.map(fw => {
-                  const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
-                  return (
-                    <option key={fw.value} value={fw.value} disabled={unavailable}>
-                      {fw.label}{unavailable ? ' ✕' : ''}
-                    </option>
-                  );
-                })}
-              </select>
+              <div className="flex gap-1 items-center">
+                <select
+                  value={val.fontWeight ?? 400}
+                  onChange={e => update('fontWeight', parseInt(e.target.value))}
+                  className={`${inputClass} flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
+                >
+                  {FONT_WEIGHTS.map(fw => {
+                    const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
+                    return (
+                      <option key={fw.value} value={fw.value} disabled={unavailable}>
+                        {fw.label}{unavailable ? ' ✕' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => update('fontWeight', '{')}
+                  title="Reference a token"
+                  className="p-0.5 rounded shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                  </svg>
+                </button>
+              </div>
               <FieldMessage warning={weightUnavailable ? `Weight ${currentWeight} not available in this font family` : undefined} />
             </div>
           )}
@@ -961,8 +1028,6 @@ export function BorderEditor({ value, onChange, allTokensFlat, pathToSet, baseVa
       onChange({ ...val, [key]: v });
     }
   };
-  const isWidthAlias = typeof val.width === 'string' && val.width.startsWith('{');
-  const width = !isWidthAlias && typeof val.width === 'object' ? val.width : { value: val.width ?? 1, unit: 'px' };
   const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
 
   return (
@@ -990,37 +1055,12 @@ export function BorderEditor({ value, onChange, allTokensFlat, pathToSet, baseVa
       <div className="flex gap-2">
         <div className="flex-1">
           <div className={labelClass}>Width</div>
-          {isWidthAlias ? (
-            <SubPropInput
-              value={val.width}
-              onChange={v => update('width', v)}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-            />
-          ) : (
-            <div className="flex gap-1">
-              <input
-                type="number"
-                value={width.value}
-                onChange={e => update('width', { ...width, value: parseFloat(e.target.value) || 0 })}
-                className={inputClass + ' flex-1'}
-                onKeyDown={e => {
-                  if (e.key === '{') {
-                    e.preventDefault();
-                    update('width', '{');
-                  }
-                }}
-              />
-              <select
-                value={width.unit}
-                onChange={e => update('width', { ...width, unit: e.target.value })}
-                className={inputClass + ' w-14'}
-              >
-                <option value="px">px</option>
-                <option value="rem">rem</option>
-              </select>
-            </div>
-          )}
+          <DimensionSubProp
+            value={val.width ?? { value: 1, unit: 'px' }}
+            onChange={v => update('width', v)}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+          />
         </div>
         <div className="flex-1">
           <div className={labelClass}>Style</div>
@@ -2194,7 +2234,7 @@ export function CubicBezierEditor({ value, onChange }: { value: any; onChange: (
 // Transition editor (composite: duration, delay, timingFunction)
 // ---------------------------------------------------------------------------
 
-export function TransitionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
   const val = typeof value === 'object' && value !== null ? value : {};
   const duration = val.duration ?? { value: 200, unit: 'ms' };
   const delay = val.delay ?? { value: 0, unit: 'ms' };
@@ -2202,54 +2242,29 @@ export function TransitionEditor({ value, onChange }: { value: any; onChange: (v
 
   const update = (patch: Record<string, any>) => onChange({ duration, delay, timingFunction, ...val, ...patch });
 
-  const durationMs = typeof duration?.value === 'number' ? duration.value : typeof duration === 'number' ? duration : 200;
-  const durationUnit: 'ms' | 's' = duration?.unit === 's' ? 's' : 'ms';
-  const delayMs = typeof delay?.value === 'number' ? delay.value : typeof delay === 'number' ? delay : 0;
-  const delayUnit: 'ms' | 's' = delay?.unit === 's' ? 's' : 'ms';
-
   return (
     <div className="flex flex-col gap-3">
       <div>
         <div className={labelClass}>Duration</div>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            min={0}
-            step={durationUnit === 'ms' ? 50 : 0.05}
-            value={durationMs}
-            onChange={e => update({ duration: { value: parseFloat(e.target.value) || 0, unit: durationUnit } })}
-            className={inputClass + ' flex-1'}
-          />
-          <select
-            value={durationUnit}
-            onChange={e => update({ duration: { value: durationMs, unit: e.target.value } })}
-            className={inputClass + ' w-16'}
-          >
-            <option value="ms">ms</option>
-            <option value="s">s</option>
-          </select>
-        </div>
+        <DimensionSubProp
+          value={typeof duration === 'string' ? duration : duration}
+          onChange={v => update({ duration: v })}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          units={['ms', 's']}
+          placeholder="200"
+        />
       </div>
       <div>
         <div className={labelClass}>Delay</div>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            min={0}
-            step={delayUnit === 'ms' ? 50 : 0.05}
-            value={delayMs}
-            onChange={e => update({ delay: { value: parseFloat(e.target.value) || 0, unit: delayUnit } })}
-            className={inputClass + ' flex-1'}
-          />
-          <select
-            value={delayUnit}
-            onChange={e => update({ delay: { value: delayMs, unit: e.target.value } })}
-            className={inputClass + ' w-16'}
-          >
-            <option value="ms">ms</option>
-            <option value="s">s</option>
-          </select>
-        </div>
+        <DimensionSubProp
+          value={typeof delay === 'string' ? delay : delay}
+          onChange={v => update({ delay: v })}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          units={['ms', 's']}
+          placeholder="0"
+        />
       </div>
       <div>
         <div className={labelClass}>Timing Function</div>
