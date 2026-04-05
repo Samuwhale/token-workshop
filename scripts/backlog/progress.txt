@@ -639,3 +639,19 @@
   - `isRunningRef` mutex is correct but creates a silent gap: the last auto-recheck attempt that was blocked never gets retried. Any ref-guarded async operation should check for accumulated work on completion.
   - `tokenChangeKey` in the `useCallback` closure is the value captured when that callback version was created, not the live value — that's why a separate `latestTokenChangeKeyRef` is needed to detect in-flight drift.
 ---
+
+## 2026-04-05 - Token usage tracking does not include theme/resolver assignment
+- Added theme option and resolver configuration sections to the "Where is this token used?" panel in TokenUsages.tsx.
+- **Theme assignments**: Computes which theme options (across all dimensions) include the token's owning set as `enabled` or `source`, using `dimensions` from `useThemeSwitcherContext()` and `pathToSet` prop.
+- **Resolver assignments**: Extends `ResolverMeta` on the server with `referencedSets: string[]` (extracted from all external `$ref` sources in the resolver file's sets and modifiers). The UI's `ResolverMeta` type mirrors this field. `useResolverContext()` provides resolver data in `TokenUsages` without prop-drilling.
+- Updated count badge, `hasAnyContent`, and `nothingFound` logic to include the new sections. Empty state text updated to mention theme options and resolvers.
+- Files changed:
+  - `packages/server/src/services/resolver-store.ts` ~L43 (ResolverMeta type), ~L108 (list() populates referencedSets), ~L211 (extractReferencedSets private method)
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L21 (ResolverMeta type)
+  - `packages/figma-plugin/src/ui/components/TokenUsages.tsx` ~L1 (imports), ~L21 (TokenUsagesProps + pathToSet), ~L80 (function sig + theme/resolver logic), ~L496 (Theme assignments section), ~L527 (Resolver configurations section)
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1601 (pass pathToSet to TokenUsages)
+- **Learnings for future iterations:**
+  - `useThemeSwitcherContext()` and `useResolverContext()` are available throughout the plugin UI tree — prefer calling them directly in leaf components over prop-drilling to avoid prop explosion.
+  - `ResolverSource` is a union of `ResolverRef | DTCGGroup`. The `$ref` discrimination check (`'$ref' in src`) is needed to distinguish file refs from inline token groups. Internal pointer refs start with `#/` and should be excluded when building the referenced-sets list.
+  - Token set membership for a token is `pathToSet[tokenPath]` — always use this rather than the `setName` prop which reflects the currently-selected set in the editor panel, not necessarily the token's canonical set.
+---

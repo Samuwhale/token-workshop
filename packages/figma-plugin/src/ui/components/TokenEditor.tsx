@@ -1600,6 +1600,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           aliasMode={aliasMode}
           allTokensFlat={allTokensFlat}
           colorFlatMap={colorFlatMap}
+          pathToSet={pathToSet}
           initialValue={initialRef.current?.value}
           producingGenerator={derivedTokenPaths?.get(tokenPath) ?? null}
           sourceGenerators={existingGeneratorsForToken}

@@ -12,6 +12,7 @@ import type {
   ResolverFile,
   ResolverInput,
   ResolverModifier,
+  ResolverSource,
   Token,
   ResolverResult,
 } from '@tokenmanager/core';
@@ -44,6 +45,8 @@ export interface ResolverMeta {
   name: string;
   description?: string;
   modifiers: Record<string, { contexts: string[]; default?: string }>;
+  /** Token set names referenced by this resolver's sources (external $ref entries). */
+  referencedSets: string[];
 }
 
 export class ResolverStore {
@@ -109,6 +112,7 @@ export class ResolverStore {
         name,
         description: file.description,
         modifiers: this.extractModifierMeta(file),
+        referencedSets: this.extractReferencedSets(file),
       });
     }
     return result;
@@ -208,6 +212,36 @@ export class ResolverStore {
   // -----------------------------------------------------------------------
   // Internals
   // -----------------------------------------------------------------------
+
+  private extractReferencedSets(file: ResolverFile): string[] {
+    const sets = new Set<string>();
+
+    const addFromSources = (sources: ResolverSource[]) => {
+      for (const src of sources) {
+        // Only external file refs (not internal pointer refs like "#/sets/base")
+        if ('$ref' in src && typeof src.$ref === 'string' && !src.$ref.startsWith('#/')) {
+          let name = src.$ref;
+          if (name.endsWith('.tokens.json')) name = name.slice(0, -'.tokens.json'.length);
+          sets.add(name);
+        }
+      }
+    };
+
+    if (file.sets) {
+      for (const rset of Object.values(file.sets)) {
+        addFromSources(rset.sources);
+      }
+    }
+    if (file.modifiers) {
+      for (const mod of Object.values(file.modifiers)) {
+        for (const ctxSources of Object.values(mod.contexts)) {
+          addFromSources(ctxSources);
+        }
+      }
+    }
+
+    return [...sets];
+  }
 
   private extractModifierMeta(file: ResolverFile): Record<string, { contexts: string[]; default?: string }> {
     const meta: Record<string, { contexts: string[]; default?: string }> = {};

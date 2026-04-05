@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from '../hooks/useGenerators';
+import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
 
 interface BoundLayer {
   id: string;
@@ -29,6 +30,8 @@ interface TokenUsagesProps {
   aliasMode: boolean;
   allTokensFlat: Record<string, TokenMapEntry>;
   colorFlatMap: Record<string, unknown>;
+  /** Maps each token path to its owning set name. */
+  pathToSet: Record<string, string>;
   initialValue: any;
   /** Generator that produces this token (if any). */
   producingGenerator: TokenGenerator | null;
@@ -79,10 +82,36 @@ const GENERATOR_TYPE_STYLES: Record<string, { label: string; classes: string }> 
 
 export function TokenUsages({
   dependents, dependentsLoading, setName, tokenPath, tokenType, value,
-  isDirty, aliasMode, allTokensFlat, colorFlatMap, initialValue,
+  isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToSet, initialValue,
   producingGenerator, sourceGenerators, onNavigateToToken, onShowReferences, onNavigateToGenerator,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
+
+  // Theme and resolver contexts for assignment data
+  const { dimensions } = useThemeSwitcherContext();
+  const { resolvers } = useResolverContext();
+
+  // Which set owns this token
+  const owningSet = pathToSet[tokenPath] ?? setName;
+
+  // Theme options that include this token's set (enabled or source)
+  const themeAssignments = useMemo(() => {
+    const result: Array<{ dimName: string; optionName: string; status: 'enabled' | 'source' }> = [];
+    for (const dim of dimensions) {
+      for (const option of dim.options) {
+        const status = option.sets[owningSet];
+        if (status === 'enabled' || status === 'source') {
+          result.push({ dimName: dim.name, optionName: option.name, status });
+        }
+      }
+    }
+    return result;
+  }, [dimensions, owningSet]);
+
+  // Resolvers that reference this token's set
+  const resolverAssignments = useMemo(() => {
+    return resolvers.filter(r => r.referencedSets.includes(owningSet));
+  }, [resolvers, owningSet]);
 
   // Layers state
   const [layers, setLayers] = useState<BoundLayer[]>([]);
@@ -186,7 +215,8 @@ export function TokenUsages({
   const generatorCount = (producingGenerator ? 1 : 0) + sourceGenerators.length;
   const variableCount = variablesScanned ? variables.length : 0;
   const layerCount = layersScanned ? layersTotal : 0;
-  const knownTotal = dependents.length + variableCount + layerCount + generatorCount;
+  const knownTotal = dependents.length + variableCount + layerCount + generatorCount +
+    themeAssignments.length + resolverAssignments.length;
   const hasUnscannedSections = !layersScanned || !variablesScanned;
 
   const countLabel = dependentsLoading
@@ -204,8 +234,8 @@ export function TokenUsages({
   const oldColorHex = tokenType === 'color' && typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
   const newColorHex = tokenType === 'color' && typeof value === 'string' ? value.slice(0, 7) : null;
 
-  const hasAnyContent = dependents.length > 0 || generatorCount > 0 ||
-    (variablesScanned && variables.length > 0) || (layersScanned && layers.length > 0);
+  const hasAnyContent = dependents.length > 0 || generatorCount > 0 || themeAssignments.length > 0 ||
+    resolverAssignments.length > 0 || (variablesScanned && variables.length > 0) || (layersScanned && layers.length > 0);
   const nothingFound = !dependentsLoading && !layersLoading && !variablesLoading &&
     layersScanned && variablesScanned && !hasAnyContent;
 
@@ -465,6 +495,61 @@ export function TokenUsages({
             </>
           )}
 
+          {/* Theme assignments */}
+          {themeAssignments.length > 0 && (
+            <>
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+                Theme options ({themeAssignments.length})
+              </div>
+              <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
+                {themeAssignments.map(({ dimName, optionName, status }) => (
+                  <div key={`${dimName}/${optionName}`} className="px-3 py-1.5 flex items-center gap-2">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate" title={`${dimName} / ${optionName}`}>
+                      <span className="opacity-60">{dimName} / </span>{optionName}
+                    </span>
+                    <span className={`shrink-0 px-1 py-0.5 rounded text-[8px] ${
+                      status === 'source'
+                        ? 'bg-purple-500/15 text-purple-600'
+                        : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                    }`}>
+                      {status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Resolver configurations */}
+          {resolverAssignments.length > 0 && (
+            <>
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+                Resolvers ({resolverAssignments.length})
+              </div>
+              <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
+                {resolverAssignments.map(resolver => (
+                  <div key={resolver.name} className="px-3 py-1.5 flex items-center gap-2">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
+                      <path d="M3 3h7v7H3V3zM14 3h7v7h-7V3zM3 14h7v7H3v-7z"/>
+                      <path d="M17.5 17.5l3 3M14 20.5h7"/>
+                    </svg>
+                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate font-mono" title={resolver.name}>
+                      {resolver.name}
+                    </span>
+                    {resolver.description && (
+                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 truncate max-w-[80px]" title={resolver.description}>
+                        {resolver.description}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Bound layers section */}
           {layersLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -517,7 +602,7 @@ export function TokenUsages({
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generator, or layer.</p>
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generator, layer, theme option, or resolver.</p>
             </div>
           )}
         </div>
