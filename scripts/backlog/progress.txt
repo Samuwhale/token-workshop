@@ -669,3 +669,10 @@
   - Always declare derived consts that are referenced by earlier consts (overallStatus, totalIssues) before them — TypeScript doesn't catch TDZ for consts within the same function scope.
   - `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })` works in the plugin iframe for scrolling within the overflow-y-auto body div — no bodyRef needed.
 ---
+
+## 2026-04-05 - No keyboard shortcut for quick set switching
+- Stale — already implemented. `Cmd+Shift+S` (⌘⇧S) opens/closes the SetSwitcher modal. Registered as `QUICK_SWITCH_SET` in `shortcutRegistry.ts`, wired in App.tsx, visible in keyboard shortcuts help modal and command palette.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing a shortcut item, grep for the feature name + "matchesShortcut" in App.tsx — the shortcut registry is well-maintained and items may already be done.
+---

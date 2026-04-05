@@ -386,3 +386,26 @@ Already up to date.
 
   Merging to main: HealthPanel lacks a summary score or prioritized issue list
 Already up to date.
+[main c7f6a1b4] chore(backlog): done – HealthPanel lacks a summary score or prioritized issue list
+ 5 files changed, 302 insertions(+), 32 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - HealthPanel lacks a summary score or prioritized issue list
+- Added a `PriorityIssue` interface and computed a comprehensive `priorityIssues` array from ALL health sources (lint errors/warnings, validation errors/warnings grouped by rule, generator failures, stale generators, duplicate token values, canvas unbound layers, unused tokens).
+- Added an always-visible "Priority issues" section between the header and the collapsible section-breakdown, showing up to 8 issues sorted critical → warning → info with category pills, counts, and direct CTA buttons ("Fix", "Run", "Audit", "Review", "Go to set").
+- CTA buttons use action string keys resolved at render time so the useMemo deps are clean; scroll-to CTAs use `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })` targeting new `id` attributes on the validation, unused, and duplicates sections.
+
+═══════════════════════════════════════════════════════════════
+  #17  ·  6 queued · 0
+0 in-progress · last took 8m14s
+═══════════════════════════════════════════════════════════════
+  → No keyboard shortcut for quick set switching — the SetSwitcher is a modal triggered by clicking; power users managing 10+ sets need a Cmd+Shift+S or similar hotkey to pop the set switcher without reaching for the mouse, similar to how IDEs switch between files with Cmd+P
+  Worktree: /tmp/backlog-50286-ghd4WY
+  Running agent… (started 23:53:21)
+
+  ✓ done: No keyboard shortcut for quick set switching
+    stale — already done. Cmd+Shift+S (QUICK_SWITCH_SET) is fully implemented in shortcutRegistry.ts and wired in App.tsx.
+    8 turns · 74s · $0.34
+
+  Merging to main: No keyboard shortcut for quick set switching
+Already up to date.
