@@ -476,3 +476,14 @@
   - The conflict resolver already had both values available (existing + incoming); the fix was purely presentational — grid-cols-2 with tinted column backgrounds is the cleaner pattern vs stacked rows with glyph markers.
   - Adding `title={String(value)}` on the value spans provides full-value tooltip for truncated entries without extra DOM.
 ---
+
+## 2026-04-05 - CSS and Tailwind imports silently skip dynamic values
+- The file-upload flow (processCSSFile/processTailwindFile) already tracked skipped entries and displayed them in ImportTokenListView. The gap was PasteTokensModal: it called parseInput() but only destructured {tokens, errors, format}, discarding the skipped array silently.
+- Changes:
+  1. `tokenParsers.ts`: Added `typeof val === 'function'` case to `flattenJSObject` (records entry with reason "Function value — cannot be resolved statically"). Added `console.debug` logging in both `parseCSSCustomProperties` and `flattenJSObject` whenever an entry is skipped.
+  2. `PasteTokensModal.tsx`: Destructured `skipped: parsedSkipped` from `parseInput()`. Added expandable "N values skipped (unsupported)" collapsible section below the errors area showing path + reason + expression for each skipped entry. Added "N unsupported" amber count to the preview summary bar. Reset expanded state when input changes.
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenParsers.ts` ~L114, ~L232; `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L69, ~L244
+- **Learnings for future iterations:**
+  - The file-upload import flow and the paste modal share the same parse functions but have separate UI layers — check both paths when adding parse feedback, not just the one that's most obvious.
+  - `parsedSkipped` (parse-time skips) vs `skipped` (conflict-skips in paste modal) are different concepts; name them distinctly to avoid confusion.
+---

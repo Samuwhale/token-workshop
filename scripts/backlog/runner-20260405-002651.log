@@ -696,3 +696,26 @@ Already up to date.
 
   Merging to main: Import preview has no side-by-side diff for conflicts
 Already up to date.
+[main 28f03139] chore(backlog): done – Import preview has no side-by-side diff for conflicts
+ 5 files changed, 57 insertions(+), 18 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Import preview has no side-by-side diff for conflicts
+- Replaced the vertical stacked `−`/`+` diff in `ImportConflictResolver.tsx` with a two-column grid layout showing "Current" (left, red-tinted) and "Incoming" (right, green-tinted) values side-by-side. Column headers are color-coded to match their semantic meaning. When a token is rejected, the "Incoming" column dims and strikes through. The "merge" annotation note moved below the grid. All existing filter, bulk-action, and keyboard shortcut behavior is unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx` ~L218
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #29  ·  21 queued · 0
+0 in-progress · last took 2m40s
+═══════════════════════════════════════════════════════════════
+  → CSS and Tailwind imports silently skip dynamic values — ImportPanelContext processes CSS custom properties and Tailwind configs but expressions like calc(), var() compositions, and JS functions are silently dropped with no feedback; log skipped entries and show a "N values skipped (unsupported)" summary with the list of skipped property names
+  Worktree: /tmp/backlog-54964-gWSI0c
+  Running agent… (started 02:53:10)
+
+  ✓ done: CSS and Tailwind imports silently skip dynamic values
+    Added console.debug logging for skipped entries in tokenParsers.ts and wired up the skipped array in PasteTokensModal with an expandable "N values skipped (unsupported)" UI — the file-upload path was already complete
+    38 turns · 568s · $1.47
+
+  Merging to main: CSS and Tailwind imports silently skip dynamic values
+Already up to date.

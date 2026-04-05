@@ -113,11 +113,13 @@ export function parseCSSCustomProperties(raw: string): ParseResult {
       rawValue = `{${cssVarToPath(simpleVarRef[1])}}`;
     } else if (DYNAMIC_CSS_PATTERN.test(rawValue) || rawValue.includes('var(')) {
       // Dynamic expression — cannot be resolved to a static design token value
-      skipped.push({
+      const entry: SkippedEntry = {
         path,
         originalExpression: rawValue,
         reason: 'Dynamic CSS expression — cannot be resolved statically',
-      });
+      };
+      skipped.push(entry);
+      console.debug('[tokenParsers] CSS skipped:', entry.path, '—', entry.reason, `(${rawValue})`);
       continue;
     }
     tokens.push({ path, ...inferType(rawValue) });
@@ -230,23 +232,21 @@ export function flattenJSObject(
       const strVal = String(val);
       results.push({ path, ...inferType(strVal) });
     } else if (Array.isArray(val)) {
-      skipped.push({
-        path,
-        originalExpression: JSON.stringify(val),
-        reason: 'Array value — not a scalar design token',
-      });
+      const entry: SkippedEntry = { path, originalExpression: JSON.stringify(val), reason: 'Array value — not a scalar design token' };
+      skipped.push(entry);
+      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
+    } else if (typeof val === 'function') {
+      const entry: SkippedEntry = { path, originalExpression: '[function]', reason: 'Function value — cannot be resolved statically' };
+      skipped.push(entry);
+      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
     } else if (typeof val === 'boolean') {
-      skipped.push({
-        path,
-        originalExpression: String(val),
-        reason: 'Boolean value — not a supported token type',
-      });
+      const entry: SkippedEntry = { path, originalExpression: String(val), reason: 'Boolean value — not a supported token type' };
+      skipped.push(entry);
+      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
     } else if (val === null) {
-      skipped.push({
-        path,
-        originalExpression: 'null',
-        reason: 'Null value — no token value to import',
-      });
+      const entry: SkippedEntry = { path, originalExpression: 'null', reason: 'Null value — no token value to import' };
+      skipped.push(entry);
+      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
     }
   }
   return results;

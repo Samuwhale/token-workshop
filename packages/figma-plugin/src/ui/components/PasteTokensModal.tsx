@@ -62,11 +62,12 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   const [submitError, setSubmitError] = useState('');
   const [rowOverwrites, setRowOverwrites] = useState<Record<string, boolean>>({});
   const [overwriteAll, setOverwriteAll] = useState(false);
+  const [parsedSkippedExpanded, setParsedSkippedExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, { initialFocusRef: textareaRef });
 
-  const { tokens: parsedTokens, errors, format } = useMemo(() => parseInput(input), [input]);
+  const { tokens: parsedTokens, errors, format, skipped: parsedSkipped } = useMemo(() => parseInput(input), [input]);
 
   // Apply group prefix to paths
   const prefixedTokens = useMemo(() =>
@@ -104,6 +105,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   useEffect(() => {
     setRowOverwrites({});
     setOverwriteAll(false);
+    setParsedSkippedExpanded(false);
   }, [input]);
 
   const handleOverwriteAll = (checked: boolean) => {
@@ -248,6 +250,44 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
               ))}
             </div>
           )}
+
+          {/* Parse-skipped entries (dynamic CSS expressions, unsupported Tailwind values) */}
+          {parsedSkipped.length > 0 && (
+            <div className="rounded border border-[var(--color-figma-border)] text-[10px] overflow-hidden">
+              <button
+                onClick={() => setParsedSkippedExpanded(p => !p)}
+                className="w-full flex items-center justify-between px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors text-left"
+                aria-expanded={parsedSkippedExpanded}
+              >
+                <span className="text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{parsedSkipped.length}</span>
+                  {' '}value{parsedSkipped.length !== 1 ? 's' : ''} skipped (unsupported)
+                </span>
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  className={`text-[var(--color-figma-text-secondary)] transition-transform ${parsedSkippedExpanded ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+              </button>
+              {parsedSkippedExpanded && (
+                <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                  {parsedSkipped.map((entry, i) => (
+                    <div key={i} className="px-2 py-1.5 flex flex-col gap-0.5">
+                      <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
+                      <span className="text-[var(--color-figma-text-secondary)] text-[9px]">
+                        {entry.reason}
+                        {entry.originalExpression && (
+                          <> — <code className="font-mono text-[var(--color-figma-text)]">{entry.originalExpression.length > 48 ? entry.originalExpression.slice(0, 48) + '…' : entry.originalExpression}</code></>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Preview */}
@@ -268,6 +308,9 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                 )}
                 {skipped.length > 0 && (
                   <span className="text-[var(--color-figma-text-secondary)]">{skipped.length} skipped</span>
+                )}
+                {parsedSkipped.length > 0 && (
+                  <span className="text-[var(--color-figma-warning,#e8a100)]">{parsedSkipped.length} unsupported</span>
                 )}
               </div>
               {conflicts.length > 0 && (
