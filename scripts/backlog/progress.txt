@@ -487,3 +487,10 @@
   - The file-upload import flow and the paste modal share the same parse functions but have separate UI layers — check both paths when adding parse feedback, not just the one that's most obvious.
   - `parsedSkipped` (parse-time skips) vs `skipped` (conflict-skips in paste modal) are different concepts; name them distinctly to avoid confusion.
 ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: TokenTreeNode.tsx (rename/context menu patterns), TokenList.tsx (filter menus), TokenListModals.tsx (modal patterns), SetSwitcher.tsx (set CRUD), ThemeManager.tsx (dimension/option rename), HealthPanel.tsx (fix actions, error handling, empty states), ResolverPanel.tsx (delete flow), PasteTokensModal.tsx (modal dismiss), SemanticMappingDialog.tsx (modal dismiss/a11y), ConfirmModal.tsx (reference pattern), CommandPalette.tsx (reference pattern), App.tsx (menus, keyboard shortcuts), GeneratorPipelineCard.tsx (error recovery), TokenEditor.tsx (save feedback), SettingsPanel.tsx (settings feedback)
+- Heuristics most relevant: consistency and standards, visibility of system status, error recovery, keyboard accessibility
+- Found 6 items — written to backlog-inbox.md
+- Notable: The most impactful finding is the inconsistent inline editing patterns — rename is implemented three different ways (no-buttons+blur-save, buttons+no-blur, buttons+validation) across TokenTreeNode, SetSwitcher, and ThemeManager, making the same conceptual action feel unpredictable. The HealthPanel silent error swallowing is the most technically clear-cut fix.
+---
