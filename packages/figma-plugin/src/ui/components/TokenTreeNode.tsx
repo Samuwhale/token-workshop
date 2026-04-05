@@ -278,8 +278,10 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     }
   }, [onUpdateGroupMeta, node.path, groupMetaType, groupMetaDescription]);
 
+  const isCategoryHeader = depth === 0;
+
   return (
-    <div>
+    <div className={isCategoryHeader ? 'border-t border-[var(--color-figma-border)]' : ''}>
       <div
         role="button"
         tabIndex={groupRovingFocusPath === node.path ? 0 : -1}
@@ -369,12 +371,18 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             {renameGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameGroupError}</p>}
           </div>
         ) : (
-          <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
+          <span className={isCategoryHeader ? 'text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex-1' : 'text-[11px] font-medium text-[var(--color-figma-text)] flex-1'}>{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
         )}
         {!renamingGroup && node.children && (
-          <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
-            {leafCount === 0 ? 'empty' : `(${leafCount})`}
-          </span>
+          isCategoryHeader ? (
+            <span className={`text-[10px] ml-1 shrink-0 px-1.5 py-0.5 rounded-full font-medium ${leafCount === 0 ? 'text-[var(--color-figma-text-tertiary)] opacity-60' : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]'}`}>
+              {leafCount === 0 ? 'empty' : leafCount}
+            </span>
+          ) : (
+            <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
+              {leafCount === 0 ? 'empty' : `(${leafCount})`}
+            </span>
+          )
         )}
         {!renamingGroup && themeCoverage && (() => {
           const cov = themeCoverage!.get(node.path);

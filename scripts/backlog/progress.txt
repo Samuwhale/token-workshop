@@ -512,3 +512,12 @@
   - When translating git concepts, keep the UI consistent throughout the entire flow (badge, panel, conflict UI, confirm modal) — it's easy to miss the modal since it's in a separate file.
   - The "What does this mean?" expandable works well with the existing `conflictHelpOpen` local state pattern — no need to persist this state.
 ---
+
+## 2026-04-05 - Token tree category headers
+- Added visual differentiation for depth-0 (top-level) group nodes to appear as prominent section/category headers in the token tree. Changes: (1) outer wrapper div gets `border-t border-[var(--color-figma-border)]` for visual separation between categories; (2) group name text changes from `text-[11px] font-medium text-figma-text` to `text-[10px] font-semibold uppercase tracking-wider text-figma-text-secondary` at depth 0; (3) count badge changes from subtle `(N)` parenthetical text to a styled pill badge `bg-figma-bg-hover px-1.5 py-0.5 rounded-full` at depth 0. Nested groups (depth>0) retain original styling.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L281-L390 (TokenGroupNode component)
+- **Learnings for future iterations:**
+  - The tree already had expand/collapse and count badges — what was missing was depth-based visual hierarchy. Always check for existing partial implementations before building from scratch.
+  - The `isCategoryHeader = depth === 0` pattern is clean and readable; worth using for any per-depth conditional styling in tree components.
+  - Border-t on all depth-0 groups (including the first) is intentional: it separates the list content from the toolbar/filter bar above without needing `first:` selectors that don't work with virtual scroll slices.
+---
