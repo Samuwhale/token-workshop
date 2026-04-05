@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { DTCGToken, ResolvedToken } from '@tokenmanager/core';
 import { wcagLuminance } from '@tokenmanager/core';
+import { handleRouteError } from '../errors.js';
 
 function contrastRatio(hex1: string, hex2: string): number | null {
   const l1 = wcagLuminance(hex1);
@@ -204,34 +205,42 @@ function renderIndexPage(sets: { name: string; count: number }[]): string {
 export async function docsRoutes(fastify: FastifyInstance) {
   // GET /docs — index of all sets
   fastify.get('/docs', async (_request, reply) => {
-    const allSets = await fastify.tokenStore.getSets();
-    const setInfos: { name: string; count: number }[] = [];
-    for (const name of allSets) {
-      const flat = await fastify.tokenStore.getFlatTokensForSet(name);
-      setInfos.push({ name, count: Object.keys(flat).length });
+    try {
+      const allSets = await fastify.tokenStore.getSets();
+      const setInfos: { name: string; count: number }[] = [];
+      for (const name of allSets) {
+        const flat = await fastify.tokenStore.getFlatTokensForSet(name);
+        setInfos.push({ name, count: Object.keys(flat).length });
+      }
+      reply.header('Content-Type', 'text/html; charset=utf-8');
+      return renderIndexPage(setInfos);
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to load docs index');
     }
-    reply.header('Content-Type', 'text/html; charset=utf-8');
-    return renderIndexPage(setInfos);
   });
 
   // GET /docs/:set — style guide for a specific set
   fastify.get<{ Params: { set: string } }>('/docs/:set', async (request, reply) => {
-    const { set } = request.params;
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      reply.status(404).header('Content-Type', 'text/html; charset=utf-8');
-      return `<!DOCTYPE html><html><body><h1>Set "${escapeHtml(set)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
+    try {
+      const { set } = request.params;
+      const tokenSet = await fastify.tokenStore.getSet(set);
+      if (!tokenSet) {
+        reply.status(404).header('Content-Type', 'text/html; charset=utf-8');
+        return `<!DOCTYPE html><html><body><h1>Set "${escapeHtml(set)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
+      }
+      const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
+      const flat: FlatToken[] = resolved
+        .filter(t => t.setName === set)
+        .map(t => ({
+          path: t.path,
+          $type: t.$type || 'string',
+          $value: t.$value,
+          $description: t.$description,
+        }));
+      reply.header('Content-Type', 'text/html; charset=utf-8');
+      return renderSetPage(set, flat);
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to load docs for set');
     }
-    const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
-    const flat: FlatToken[] = resolved
-      .filter(t => t.setName === set)
-      .map(t => ({
-        path: t.path,
-        $type: t.$type || 'string',
-        $value: t.$value,
-        $description: t.$description,
-      }));
-    reply.header('Content-Type', 'text/html; charset=utf-8');
-    return renderSetPage(set, flat);
   });
 }

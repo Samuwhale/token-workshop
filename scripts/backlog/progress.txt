@@ -616,3 +616,10 @@
   - Auto-clearing sibling error state inside a setter callback (e.g. `setNewDimName` clearing `createDimError`) is a clean encapsulation: the component doesn't need to know which errors to clear on input change.
   - When a context interface has `setX: (v: T | null) => void` but the new API separates it into `openX(v: T)` + `closeX()`, update the context interface to match — don't wrap with a union adapter, the separation is the point.
 ---
+
+## 2026-04-05 - Docs routes have no try-catch
+- Wrapped both `GET /docs` and `GET /docs/:set` handlers in `packages/server/src/routes/docs.ts` with try-catch blocks using `handleRouteError`. Added import for `handleRouteError` from `../errors.js`.
+- Files changed: `packages/server/src/routes/docs.ts` ~L204
+- **Learnings for future iterations:**
+  - Straightforward one-file fix; no new patterns beyond what's already documented.
+---

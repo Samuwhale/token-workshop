@@ -898,3 +898,27 @@ Already up to date.
 
   Merging to main: useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers — mixes dimension CRUD (create/rename/delete/duplicate), coverage computation, and transient UI form state (newDimName, renameDim, renameValue, showCreateDim, createDimError) in a single hook; split into `useThemeDimensionsCrud` and keep coverage as a separate concern, encapsulate form state behind action callbacks instead of exposing raw setters
 Already up to date.
+[main 5eb988f5] chore(backlog): done – useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers — mixes dimension CRUD (create/rename/delete/duplicate), coverage computation, and transient UI form state (newDimName, renameDim, renameValue, showCreateDim, createDimError) in a single hook; split into `useThemeDimensionsCrud` and keep coverage as a separate concern, encapsulate form state behind action callbacks instead of exposing raw setters
+ 8 files changed, 426 insertions(+), 282 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers
+- Created `useThemeDimensionsCrud.ts` (~240 lines): handles create/rename/delete/duplicate dimension operations. Takes `dimensions`, `setDimensions`, `fetchDimensions`, `debouncedFetchDimensions`, and `setError` as params (same pattern as `useThemeOptions`). Exposes encapsulated form state via action callbacks instead of raw `React.Dispatch` setters:
+  - Create form: `openCreateDim(name?)`, `closeCreateDim()`, `setNewDimName(name)` (auto-clears error) replace `setShowCreateDim`, `setNewDimName: Dispatch`, `setCreateDimError`
+  - Rename form: `setRenameValue(v)` (auto-clears error) replaces `setRenameValue: Dispatch`, `setRenameError` — `startRenameDim`/`cancelRenameDim`/`executeRenameDim` unchanged
+
+═══════════════════════════════════════════════════════════════
+  #37  ·  19 queued · 0
+0 in-progress · last took 8m37s
+═══════════════════════════════════════════════════════════════
+  → Docs routes have no try-catch — `GET /docs` (L206) and `GET /docs/:set` (L218) in `packages/server/src/routes/docs.ts` call `getSets()`, `getFlatTokensForSet()`, and `resolveTokens()` without error handling; if any throw, the request crashes with an unhandled exception; every other route file wraps token store calls in try-catch with `handleRouteError`
+  Worktree: /tmp/backlog-54964-DKdWU8
+  Running agent… (started 04:02:03)
+
+  ✓ done: Docs routes have no try-catch — GET /docs and GET /docs/:set crash with unhandled exceptions
+    Wrapped both route handlers in try-catch using handleRouteError, matching the pattern used in all other route files
+    8 turns · 57s · $0.23
+
+  Merging to main: Docs routes have no try-catch — GET /docs and GET /docs/:set crash with unhandled exceptions
+Already up to date.
