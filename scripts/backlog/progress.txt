@@ -676,3 +676,11 @@
 - **Learnings for future iterations:**
   - When a backlog item says a feature "only appears during creation", verify the rendered option actions bar before assuming it's missing — it may have been added as a toolbar icon rather than an inline selector.
 ---
+
+## 2026-04-05 - ExportPanel filter configuration not saved independently from presets
+- Added `handleLoadPresetFiltersOnly(preset)` that applies only selectedSets, selectedTypes, and pathPrefix from a preset, leaving platforms, CSS selector, zip options, and changesOnly unchanged. Exposed it as a hover-visible funnel-icon button on each preset item (between the preset name and the delete X). Updated the tooltip on the main "load" button to clarify it loads platforms+filters. Updated the empty-state hint text to mention filters-only apply.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L774 (handleLoadPresetFiltersOnly), ~L1108 (funnel button in preset item), ~L1092 (empty state hint)
+- **Learnings for future iterations:**
+  - The simplest solution to "can't apply a subset of a preset" is a secondary hover-action on the existing preset item, not a separate storage structure. Existing presets double as filter profiles once you can apply them selectively.
+  - Funnel SVG icon: `<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />` on viewBox 0 0 24 24 — universally recognized filter symbol.
+---

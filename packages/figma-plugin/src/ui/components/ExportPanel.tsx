@@ -773,6 +773,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setDiffError(null);
   };
 
+  // Apply only the filter fields (sets, types, path prefix) from a preset,
+  // leaving platforms and other output settings unchanged.
+  const handleLoadPresetFiltersOnly = (preset: ExportPreset) => {
+    setSelectedSets(preset.selectedSets === null ? null : new Set(preset.selectedSets));
+    setSelectedTypes(preset.selectedTypes === null ? null : new Set(preset.selectedTypes));
+    setPathPrefix(preset.pathPrefix);
+  };
+
   const handleDeletePreset = (id: string) => {
     setPendingDeletePresetId(id);
   };
@@ -1084,7 +1092,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
               {presets.length === 0 && !showSavePreset && (
                 <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
-                  No presets yet. Configure your export settings and click "Save current" to create one.
+                  No presets yet. Configure your export settings and click "Save current" to create one. Hover a preset to apply its filters independently of platforms.
                 </div>
               )}
 
@@ -1094,10 +1102,20 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     <div key={preset.id} className="group flex items-center gap-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden">
                       <button
                         onClick={() => handleLoadPreset(preset)}
-                        title={`Load preset: ${preset.name}`}
+                        title={`Load preset: ${preset.name} (platforms + filters)`}
                         className="px-2 py-1 text-[10px] text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                       >
                         {preset.name}
+                      </button>
+                      <button
+                        onClick={() => handleLoadPresetFiltersOnly(preset)}
+                        title={`Apply filters only: sets, types, path prefix (keeps current platforms)`}
+                        className="px-1 py-1 opacity-0 group-hover:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                        aria-label={`Apply filters only from preset ${preset.name}`}
+                      >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        </svg>
                       </button>
                       <button
                         onClick={() => handleDeletePreset(preset.id)}
