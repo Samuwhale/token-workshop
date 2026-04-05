@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
 import { modeKey, defaultSetName } from './importPanelTypes';
@@ -32,11 +33,13 @@ export function ImportVariablesFooter() {
     })
   );
 
+  const [showAllConflicts, setShowAllConflicts] = useState(false);
+
   const hasConflicts = varConflictPreview !== null && varConflictPreview.overwriteCount > 0;
   const visibleDetails = varConflictDetails
-    ? varConflictDetails.slice(0, MAX_VISIBLE_CONFLICTS)
+    ? showAllConflicts ? varConflictDetails : varConflictDetails.slice(0, MAX_VISIBLE_CONFLICTS)
     : null;
-  const hiddenCount = varConflictDetails
+  const hiddenCount = varConflictDetails && !showAllConflicts
     ? Math.max(0, varConflictDetails.length - MAX_VISIBLE_CONFLICTS)
     : 0;
 
@@ -126,8 +129,14 @@ export function ImportVariablesFooter() {
                 </div>
               ))}
               {hiddenCount > 0 && (
-                <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] text-center bg-[var(--color-figma-bg)]">
-                  and {hiddenCount} more…
+                <div className="px-2 py-1.5 text-center bg-[var(--color-figma-bg)]">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllConflicts(true)}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  >
+                    Show {hiddenCount} more…
+                  </button>
                 </div>
               )}
             </div>
@@ -148,7 +157,7 @@ export function ImportVariablesFooter() {
               Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Replaces all conflicting values with incoming ones
+              Overwrites all {varConflictPreview.overwriteCount} conflicting token{varConflictPreview.overwriteCount !== 1 ? 's' : ''} with the incoming values
             </p>
           </div>
           <div className="flex flex-col gap-0.5">
@@ -161,7 +170,7 @@ export function ImportVariablesFooter() {
               Import & merge ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} value updates)
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Adds new tokens and updates conflicting values; keeps descriptions &amp; extensions
+              Adds new tokens and updates existing values. Any notes or metadata on conflicting tokens are kept as-is.
             </p>
           </div>
           <div className="flex flex-col gap-0.5">
@@ -174,7 +183,7 @@ export function ImportVariablesFooter() {
               Import & keep existing ({varConflictPreview.newCount} new only)
             </button>
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
-              Adds only new tokens; leaves all conflicting tokens unchanged
+              Adds only new tokens. Skips any tokens that already exist — nothing is overwritten.
             </p>
           </div>
           {hasInvalidSetNames && (

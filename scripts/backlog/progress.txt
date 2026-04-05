@@ -768,3 +768,17 @@
   - Auto-dismiss pattern: `useEffect(() => { if (!val) return; const t = setTimeout(() => setVal(null), ms); return () => clearTimeout(t); }, [val])` — the early return on null prevents the timer from firing after manual dismiss, and cleanup clears it on re-trigger.
   - Persistent status strips (always visible while condition is true) are better than one-time toasts for contextual state like "generators are stale" — the strip naturally disappears when the underlying condition resolves.
 ---
+
+## 2026-04-05 - Import conflict resolver jargon and truncation
+- Replaced DTCG-jargon copy with plain-language descriptions across all three conflict UI components:
+  - `ImportVariablesFooter.tsx`: Strategy button descriptions now say "Overwrites all N conflicting tokens with the incoming values", "Adds new tokens and updates existing values. Any notes or metadata on conflicting tokens are kept as-is.", and "Adds only new tokens. Skips any tokens that already exist — nothing is overwritten."
+  - `ImportConflictResolver.tsx`: Per-token toggle tooltips now say "replace the current value with the incoming value", "update the value but keep any notes or metadata on the existing token", "skip this token, keep the current value". Inline merge note changed from "Value updated · description & extensions kept" to "Value will update · notes and metadata preserved".
+- Replaced static "and N more…" text with clickable "Show N more…" buttons in both conflict detail lists:
+  - `ImportVariablesFooter.tsx`: Added `showAllConflicts` state; button calls `setShowAllConflicts(true)` to reveal all entries.
+  - `ImportStylesFooter.tsx`: Added `showAllPreviewConflicts` state; refactored to compute all tokens first, then slice. Button calls `setShowAllPreviewConflicts(true)`.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` ~L7, ~L36, ~L128, ~L150, ~L163, ~L176; `packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx` ~L39, ~L220; `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx` ~L194, ~L245
+- **Learnings for future iterations:**
+  - "descriptions & extensions" is DTCG structural terminology — users see it as opaque jargon. Plain alternatives: "notes and metadata", "any notes or info you've added".
+  - When a list truncates, a static "and N more…" label satisfies neither recognition nor user control. A button that expands inline is minimal and correct — no modal, no pagination needed.
+  - The allConflictingTokens/visibleTokens split: compute the full list first, then derive the visible slice from it, rather than slicing during the map — this keeps `hiddenCount` accurate without re-counting from the original data source.
+---

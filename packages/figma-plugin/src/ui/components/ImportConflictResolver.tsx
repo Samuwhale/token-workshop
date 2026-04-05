@@ -192,10 +192,10 @@ export function ImportConflictResolver() {
                         aria-pressed={decision === d}
                         title={
                           d === 'accept'
-                            ? 'Accept: overwrite existing value with incoming'
+                            ? 'Accept: replace the current value with the incoming value'
                             : d === 'merge'
-                              ? 'Merge: update value, keep existing description & extensions'
-                              : 'Reject: skip this token, keep existing unchanged'
+                              ? 'Merge: update the value but keep any notes or metadata on the existing token'
+                              : 'Reject: skip this token, keep the current value'
                         }
                         className={`px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
@@ -243,7 +243,7 @@ export function ImportConflictResolver() {
                 </div>
                 {decision === 'merge' && (
                   <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5 ml-0.5">
-                    Value updated · description &amp; extensions kept
+                    Value will update · notes and metadata preserved
                   </div>
                 )}
               </div>

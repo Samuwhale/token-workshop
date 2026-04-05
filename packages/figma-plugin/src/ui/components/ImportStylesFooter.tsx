@@ -37,18 +37,23 @@ export function ImportStylesFooter() {
   } = useImportPanel();
 
   const [previewConflictsExpanded, setPreviewConflictsExpanded] = useState(false);
+  const [showAllPreviewConflicts, setShowAllPreviewConflicts] = useState(false);
 
   // Compute conflicting tokens for the pre-import preview
-  const conflictingPreviewTokens =
+  const allConflictingPreviewTokens =
     existingTokenMap !== null && previewOverwriteCount !== null && previewOverwriteCount > 0
       ? tokens
           .filter(t => selectedTokens.has(t.path) && existingTokenMap.has(t.path))
-          .slice(0, MAX_PREVIEW_CONFLICTS)
           .map(incoming => ({ incoming, existing: existingTokenMap.get(incoming.path)! }))
       : null;
+  const conflictingPreviewTokens = allConflictingPreviewTokens !== null
+    ? showAllPreviewConflicts
+      ? allConflictingPreviewTokens
+      : allConflictingPreviewTokens.slice(0, MAX_PREVIEW_CONFLICTS)
+    : null;
   const hiddenPreviewCount =
-    conflictingPreviewTokens !== null
-      ? Math.max(0, (previewOverwriteCount ?? 0) - MAX_PREVIEW_CONFLICTS)
+    allConflictingPreviewTokens !== null && !showAllPreviewConflicts
+      ? Math.max(0, allConflictingPreviewTokens.length - MAX_PREVIEW_CONFLICTS)
       : 0;
 
   return (
@@ -218,8 +223,14 @@ export function ImportStylesFooter() {
                 </div>
               ))}
               {hiddenPreviewCount > 0 && (
-                <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] text-center bg-[var(--color-figma-bg)]">
-                  and {hiddenPreviewCount} more…
+                <div className="px-2 py-1.5 text-center bg-[var(--color-figma-bg)]">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllPreviewConflicts(true)}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  >
+                    Show {hiddenPreviewCount} more…
+                  </button>
                 </div>
               )}
             </div>
