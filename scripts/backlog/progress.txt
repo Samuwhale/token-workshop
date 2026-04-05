@@ -637,3 +637,11 @@
   - Check `useThemeBulkOps.ts` first before adding menu keyboard logic — it already handled Escape + arrow navigation + first-item auto-focus for the bulk menu. Only the trigger button was missing.
   - For toggle button groups, `role="group" aria-label="[what is being controlled]"` plus per-button `aria-label` including the item name and description gives screen readers complete context without redundancy.
 ---
+
+## 2026-04-05 - ExportPanel "Save to Token Server" shows no in-plugin success state after saving
+- Stale — already done. The "Dual notification channels" commit (2349064d) replaced `parent.postMessage({ type: 'notify' })` with `dispatchToast(...)` in `handleConfirmSave`, providing an in-plugin toast via ToastStack. The ConfirmModal also shows a spinner (busy state) during the async save. The full flow: spinner while saving → `dispatchToast` fires → modal closes → toast visible at bottom of plugin.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item is filed alongside a notification-channel refactor, the refactor may incidentally fix the item. Always check recent commits touching the same file before implementing.
+  - `dispatchToast` in the success path of an async handler fires before `setSavePhase('idle')`, so the toast is dispatched while the modal is still technically "mounted" — React batches the state changes and renders the toast and modal-close together.
+---
