@@ -51,6 +51,7 @@ export const STORAGE_KEYS = {
   CONDENSED_VIEW:        'tm_condensed_view',
   INSPECT_PROP_FILTER:      'tm_inspect_prop_filter',
   INSPECT_PROP_FILTER_MODE: 'tm_inspect_prop_filter_mode',
+  SETTINGS_ACTIVE_TAB:      'tm_settings_active_tab',
 } as const;
 
 /** Per-set dynamic key builders */

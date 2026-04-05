@@ -450,3 +450,13 @@
   - The internal `InternalSlot` type extends `UndoSlot` — keeping the public API clean while storing bookkeeping fields (`_pushedAt`, `_mergeCount`, `_restores`, `_redos`) alongside each entry in the stack.
   - `limit` was missing from the `pushUndo` `useCallback` dependency array in the original code; fixed as part of this change.
 ---
+
+## 2026-04-05 - SettingsPanel is a single unstructured scroll
+- Added tab navigation (Appearance | Connection | Export | Advanced) and a keyword search bar to SettingsPanel.tsx. Tabs persist to localStorage via new `SETTINGS_ACTIVE_TAB` key. Sections are now only shown when their tab is active. The search bar filters sections by title + keyword index across all tabs; non-matching sections are hidden and matching sections show a tab badge ("Appearance", "Export", etc.) for context. Empty search state shows a "No settings match" message.
+- Sections reorganized: Appearance = UI Preferences; Connection = Server Connection; Export = Export Defaults + Validation; Advanced = Undo History + Backup & Restore + Danger Zone. Sections that are the primary content of their tab (Export Defaults, Undo History) open by default.
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L53 (new SETTINGS_ACTIVE_TAB key), `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L14 (SettingsTab type), ~L22 (SETTINGS_TABS + SECTION_SEARCH_META consts), ~L66 (Section tabBadge prop), ~L280 (activeTab/searchQuery state + showSection/matchingSections), ~L531 (search bar JSX), ~L560 (tab bar JSX), ~L592 (conditional section rendering throughout)
+- **Learnings for future iterations:**
+  - `{showSection('id') && <Section ...>...</Section>}` pattern works cleanly for conditional rendering; close with `</Section>}` not `</Section>}`.
+  - Tab badge shown only when `searchQuery` is non-empty lets the same Section component serve both modes without duplicating content.
+  - `shadow-[inset_0_-2px_0_var(--color-figma-accent)]` is a clean way to render an active tab underline without a negative margin hack.
+---

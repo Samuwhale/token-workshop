@@ -14,6 +14,28 @@ import { dispatchToast } from '../shared/toastBus';
 type Density = 'compact' | 'default' | 'comfortable';
 type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 export type PreferredCopyFormat = 'css-var' | 'dtcg-ref' | 'scss' | 'raw' | 'json';
+type SettingsTab = 'appearance' | 'connection' | 'export' | 'advanced';
+
+// ---------------------------------------------------------------------------
+// Settings tab config and search metadata
+// ---------------------------------------------------------------------------
+
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'connection', label: 'Connection' },
+  { id: 'export', label: 'Export' },
+  { id: 'advanced', label: 'Advanced' },
+];
+
+const SECTION_SEARCH_META: { id: string; tab: SettingsTab; title: string; keywords: string[] }[] = [
+  { id: 'ui-prefs', tab: 'appearance', title: 'UI Preferences', keywords: ['density', 'compact', 'comfortable', 'color', 'format', 'hex', 'rgb', 'hsl', 'oklch', 'p3', 'copy', 'advanced', 'contrast', 'deprecated', 'display', 'appearance', 'theme'] },
+  { id: 'connection', tab: 'connection', title: 'Server Connection', keywords: ['server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network'] },
+  { id: 'export-defaults', tab: 'export', title: 'Export Defaults', keywords: ['platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format'] },
+  { id: 'validation', tab: 'export', title: 'Validation', keywords: ['lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config'] },
+  { id: 'undo', tab: 'advanced', title: 'Undo History', keywords: ['undo', 'history', 'steps', 'max', 'redo'] },
+  { id: 'backup', tab: 'advanced', title: 'Backup & Restore', keywords: ['backup', 'restore', 'import', 'export', 'json', 'file', 'transfer'] },
+  { id: 'danger', tab: 'advanced', title: 'Danger Zone', keywords: ['clear', 'delete', 'reset', 'danger', 'data', 'remove'] },
+];
 
 // ---------------------------------------------------------------------------
 // Custom event for cross-component settings sync
@@ -43,7 +65,7 @@ export function useSettingsListener(key: string): number {
 // Section component
 // ---------------------------------------------------------------------------
 
-function Section({ title, children, defaultOpen = true, danger = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean; danger?: boolean }) {
+function Section({ title, children, defaultOpen = true, danger = false, tabBadge }: { title: string; children: React.ReactNode; defaultOpen?: boolean; danger?: boolean; tabBadge?: string }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`rounded border overflow-hidden ${danger ? 'border-[var(--color-figma-error)] opacity-80' : 'border-[var(--color-figma-border)]'}`}>
@@ -51,7 +73,14 @@ function Section({ title, children, defaultOpen = true, danger = false }: { titl
         onClick={() => setOpen(o => !o)}
         className={`w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] ${danger ? 'text-[var(--color-figma-error)]' : ''}`}
       >
-        <span className={`text-[10px] font-medium uppercase tracking-wide ${danger ? '' : 'text-[var(--color-figma-text-secondary)]'}`}>{title}</span>
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-medium uppercase tracking-wide ${danger ? '' : 'text-[var(--color-figma-text-secondary)]'}`}>{title}</span>
+          {tabBadge && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium uppercase tracking-wide">
+              {tabBadge}
+            </span>
+          )}
+        </div>
         <svg
           width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
           className={`text-[var(--color-figma-text-secondary)] transition-transform ${open ? 'rotate-90' : ''}`}
@@ -243,6 +272,31 @@ export function SettingsPanel({
   });
   const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
   const [hideDeprecated, setHideDeprecated] = useState<boolean>(() => lsGet(STORAGE_KEYS.HIDE_DEPRECATED) === 'true');
+
+  // ---- Tab navigation & search ----
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    const saved = lsGet(STORAGE_KEYS.SETTINGS_ACTIVE_TAB);
+    return (saved === 'appearance' || saved === 'connection' || saved === 'export' || saved === 'advanced') ? saved : 'appearance';
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleTabChange = useCallback((tab: SettingsTab) => {
+    setActiveTab(tab);
+    lsSet(STORAGE_KEYS.SETTINGS_ACTIVE_TAB, tab);
+  }, []);
+
+  /** Returns true when the section should be visible given search query or active tab. */
+  const showSection = useCallback((id: string): boolean => {
+    const q = searchQuery.toLowerCase().trim();
+    const meta = SECTION_SEARCH_META.find(s => s.id === id);
+    if (!meta) return false;
+    if (!q) return meta.tab === activeTab;
+    return meta.title.toLowerCase().includes(q) || meta.keywords.some(k => k.includes(q));
+  }, [searchQuery, activeTab]);
+
+  const matchingSections = searchQuery.trim()
+    ? SECTION_SEARCH_META.filter(s => showSection(s.id))
+    : [];
 
   // ---- Backup & Restore ----
   const [importError, setImportError] = useState<string | null>(null);
@@ -474,12 +528,69 @@ export function SettingsPanel({
         <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Settings</span>
       </div>
 
+      {/* Search bar */}
+      <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div className="relative">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] pointer-events-none" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search settings…"
+            aria-label="Search settings"
+            className="w-full pl-7 pr-6 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] placeholder:text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tab bar — hidden when searching */}
+      {!searchQuery && (
+        <div className="flex border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Settings categories">
+          {SETTINGS_TABS.map(tab => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'text-[var(--color-figma-accent)] shadow-[inset_0_-2px_0_var(--color-figma-accent)]'
+                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 p-3">
 
+          {/* Search empty state */}
+          {searchQuery && matchingSections.length === 0 && (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-4">
+              No settings match &ldquo;{searchQuery}&rdquo;
+            </p>
+          )}
+
           {/* ---- UI Preferences ---- */}
-          <Section title="UI Preferences">
+          {showSection('ui-prefs') && <Section title="UI Preferences" tabBadge={searchQuery ? 'Appearance' : undefined}>
             {/* Density */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -619,10 +730,10 @@ export function SettingsPanel({
               label="Hide deprecated tokens"
               description="Filter out tokens marked as deprecated from the token list"
             />
-          </Section>
+          </Section>}
 
           {/* ---- Server Connection ---- */}
-          <Section title="Server Connection">
+          {showSection('connection') && <Section title="Server Connection" tabBadge={searchQuery ? 'Connection' : undefined}>
             <div className="flex items-center justify-between mb-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Local server URL</label>
               <span className={`flex items-center gap-1 text-[10px] font-medium ${connected ? 'text-[var(--color-figma-success)]' : checking ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
@@ -694,10 +805,10 @@ export function SettingsPanel({
                 {checking ? 'Connecting\u2026' : 'Connect'}
               </button>
             </div>
-          </Section>
+          </Section>}
 
           {/* ---- Export Defaults ---- */}
-          <Section title="Export Defaults" defaultOpen={false}>
+          {showSection('export-defaults') && <Section title="Export Defaults" defaultOpen={true} tabBadge={searchQuery ? 'Export' : undefined}>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] text-[var(--color-figma-text)]">Default platforms</span>
@@ -754,10 +865,10 @@ export function SettingsPanel({
                 CSS selector wrapping exported custom properties (default: <code className="font-mono">:root</code>).
               </p>
             </div>
-          </Section>
+          </Section>}
 
           {/* ---- Undo History ---- */}
-          <Section title="Undo History" defaultOpen={false}>
+          {showSection('undo') && <Section title="Undo History" defaultOpen={true} tabBadge={searchQuery ? 'Advanced' : undefined}>
             <div className="flex items-center justify-between gap-2">
               <div>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] block">Max undo steps</span>
@@ -786,10 +897,10 @@ export function SettingsPanel({
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Number of undo actions to keep in history (1–200). Default is 20.
             </p>
-          </Section>
+          </Section>}
 
           {/* ---- Backup & Restore ---- */}
-          <Section title="Backup & Restore" defaultOpen={false}>
+          {showSection('backup') && <Section title="Backup & Restore" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Export your UI preferences, export defaults, server URL, and per-set sort/filter settings to a JSON file.
               Import on another machine or after clearing browser data to restore configuration.
@@ -902,10 +1013,10 @@ export function SettingsPanel({
                 </div>
               </div>
             )}
-          </Section>
+          </Section>}
 
           {/* ---- Validation ---- */}
-          <Section title="Validation" defaultOpen={false}>
+          {showSection('validation') && <Section title="Validation" defaultOpen={false} tabBadge={searchQuery ? 'Export' : undefined}>
             {!connected ? (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Connect to the local server to configure lint rules.
@@ -922,10 +1033,10 @@ export function SettingsPanel({
                 onLintRefresh={() => {}}
               />
             )}
-          </Section>
+          </Section>}
 
           {/* ---- Danger Zone ---- */}
-          <Section title="Danger Zone" defaultOpen={false} danger>
+          {showSection('danger') && <Section title="Danger Zone" defaultOpen={false} danger tabBadge={searchQuery ? 'Advanced' : undefined}>
             {!showClearConfirm ? (
               <>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -969,7 +1080,7 @@ export function SettingsPanel({
                 </div>
               </>
             )}
-          </Section>
+          </Section>}
 
         </div>
       </div>
