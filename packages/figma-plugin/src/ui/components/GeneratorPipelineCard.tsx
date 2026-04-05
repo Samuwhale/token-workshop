@@ -7,6 +7,7 @@ import { VALUE_REQUIRED_TYPES } from './generators/generatorUtils';
 import { OverrideRow, formatValue } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
 import { ConfirmModal } from './ConfirmModal';
+import { useGeneratorPreview, type GeneratorPreviewDiff } from '../hooks/useGeneratorPreview';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -157,6 +158,109 @@ function DryRunPreview({ diff, onConfirmRun, onClose, running }: {
       >
         {running ? 'Running…' : totalChanges === 0 ? 'Run (no changes)' : `Run (apply ${totalChanges} change${totalChanges !== 1 ? 's' : ''})`}
       </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Live diff preview (used by Quick edit panel — auto-updates as config changes)
+// ---------------------------------------------------------------------------
+
+function LiveDiffPreview({ diff, loading }: { diff: GeneratorPreviewDiff | null; loading: boolean }) {
+  const [expanded, setExpanded] = useState<'created' | 'updated' | 'deleted' | null>(null);
+
+  if (loading && !diff) {
+    return (
+      <div className="flex items-center gap-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+        Loading preview…
+      </div>
+    );
+  }
+
+  if (!diff) return null;
+
+  const totalChanges = diff.created.length + diff.updated.length + diff.deleted.length;
+  const totalTokens = totalChanges + diff.unchanged.length;
+
+  if (totalTokens === 0) {
+    return <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic py-1">No tokens would be generated.</p>;
+  }
+
+  return (
+    <div className={`space-y-1 transition-opacity duration-150 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+      <div className="flex items-center gap-1 flex-wrap">
+        {diff.created.length > 0 && (
+          <button
+            onClick={() => setExpanded(expanded === 'created' ? null : 'created')}
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'created' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'}`}
+          >
+            +{diff.created.length} new
+          </button>
+        )}
+        {diff.updated.length > 0 && (
+          <button
+            onClick={() => setExpanded(expanded === 'updated' ? null : 'updated')}
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'updated' ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'}`}
+          >
+            ~{diff.updated.length} changed
+          </button>
+        )}
+        {diff.deleted.length > 0 && (
+          <button
+            onClick={() => setExpanded(expanded === 'deleted' ? null : 'deleted')}
+            className={`text-[10px] px-1.5 py-px rounded font-medium transition-colors ${expanded === 'deleted' ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'}`}
+          >
+            -{diff.deleted.length} removed
+          </button>
+        )}
+        {diff.unchanged.length > 0 && (
+          <span className="text-[10px] px-1.5 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">
+            ={diff.unchanged.length} unchanged
+          </span>
+        )}
+        {totalChanges === 0 && diff.unchanged.length > 0 && (
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic ml-1">— nothing would change</span>
+        )}
+      </div>
+
+      {expanded === 'created' && diff.created.length > 0 && (
+        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
+          {diff.created.map(t => (
+            <div key={t.path} className="flex items-center gap-1 text-[10px]">
+              <span className="text-emerald-600 font-medium shrink-0">+</span>
+              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+              <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[70px]">{formatTokenValue(t.value)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded === 'updated' && diff.updated.length > 0 && (
+        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
+          {diff.updated.map(t => (
+            <div key={t.path} className="flex flex-col gap-px text-[10px] py-0.5 border-b border-[var(--color-figma-border)] last:border-b-0">
+              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">was</span>
+                <span className="font-mono text-red-500 truncate max-w-[80px]">{formatTokenValue(t.currentValue)}</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)] shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                <span className="font-mono text-emerald-600 truncate max-w-[80px]">{formatTokenValue(t.newValue)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded === 'deleted' && diff.deleted.length > 0 && (
+        <div className="max-h-24 overflow-y-auto space-y-px mt-0.5">
+          {diff.deleted.map(t => (
+            <div key={t.path} className="flex items-center gap-1 text-[10px]">
+              <span className="text-red-500 font-medium shrink-0">−</span>
+              <span className="font-mono text-[var(--color-figma-text-secondary)] truncate">{t.path}</span>
+              <span className="ml-auto font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[70px]">{formatTokenValue(t.currentValue)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -436,6 +540,20 @@ function QuickEditPanel({ generator, serverUrl, allSets, onSaved, onOpenFullDial
   const [error, setError] = useState<string | null>(null);
 
   const needsSource = VALUE_REQUIRED_TYPES.includes(generator.type);
+  const isMultiBrand = !!(generator.inputTable?.rows?.length);
+
+  const { previewDiff, previewLoading, previewError } = useGeneratorPreview({
+    serverUrl,
+    selectedType: generator.type,
+    sourceTokenPath: needsSource && sourceToken.trim() ? sourceToken.trim() : undefined,
+    inlineValue: !needsSource ? generator.inlineValue : undefined,
+    targetGroup,
+    targetSet,
+    config,
+    pendingOverrides: generator.overrides ?? {},
+    isMultiBrand,
+    inputTable: generator.inputTable,
+  });
 
   const handleSave = async () => {
     setSaving(true);
@@ -490,6 +608,23 @@ function QuickEditPanel({ generator, serverUrl, allSets, onSaved, onOpenFullDial
           {allSets.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      {/* Live preview diff */}
+      {!isMultiBrand && (
+        <div className="pt-1.5 border-t border-[var(--color-figma-border)]">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Preview changes</span>
+            {previewLoading && previewDiff && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+            )}
+          </div>
+          {previewError ? (
+            <p className="text-[10px] text-[var(--color-figma-error)]">{previewError}</p>
+          ) : (
+            <LiveDiffPreview diff={previewDiff} loading={previewLoading} />
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">

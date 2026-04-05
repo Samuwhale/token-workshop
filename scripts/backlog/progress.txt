@@ -750,3 +750,15 @@
 - **Learnings for future iterations:**
   - Before implementing, verify with Grep whether the feature may already exist. The backlog item described a missing feature but it had already been built.
 ---
+
+## 2026-04-05 - Generator dry-run preview requires opening the full edit dialog
+- Added live preview to `QuickEditPanel` in `GeneratorPipelineCard.tsx`. When config values are changed in the inline quick-edit panel, a "Preview changes" section now auto-updates (300ms debounce via `useGeneratorPreview`) showing +N new / ~M changed / -P removed / =Q unchanged pills with expandable token-level details. No save required to see the diff.
+- Extended `useGeneratorPreview.ts` to compute all four diff categories: `created` (tokens new to the target group), `updated` (existing tokens with changed values), `deleted` (tokens in the target group no longer produced by the new config), `unchanged`. Exposed as `previewDiff: GeneratorPreviewDiff | null` alongside the existing `overwrittenEntries` return.
+- Added `LiveDiffPreview` component in `GeneratorPipelineCard.tsx` (reuses same pill+expandable pattern as `DryRunPreview` but without a run button — appropriate for the always-on live preview context).
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` — `GeneratorPreviewDiff` interface, extended `useMemo` diff computation, `previewDiff` in return type
+  - `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` — `LiveDiffPreview` component, `useGeneratorPreview` call in `QuickEditPanel`
+- **Learnings for future iterations:**
+  - The "deleted" tokens category requires knowing which tokens are managed by the generator. Filtering `existingSetTokens` by `targetGroup` prefix is a good heuristic — generators own their target group. Tokens without a `targetGroup` prefix (empty string) are skipped for deletion detection to avoid false positives.
+  - Multi-brand generators skip live diff entirely (preview panel is hidden for them) because each brand writes to a different set — per-brand diff would require fetching multiple sets.
+---

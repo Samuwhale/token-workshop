@@ -1131,3 +1131,26 @@ Already up to date.
 
   Merging to main: No way to duplicate a theme dimension with all its options
 Already up to date.
+[main 08b34bfb] chore(backlog): done – No way to duplicate a theme dimension with all its options
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No way to duplicate a theme dimension with all its options
+- Stale — already done. `handleDuplicateDimension` is fully implemented in `useThemeDimensionsCrud.ts` (L257-328) and a Duplicate button is wired in `ThemeManager.tsx` (L971). The function creates a new dimension with a unique "Copy" name, then copies all options and their set assignments via sequential API calls.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #47  ·  9 queued · 0
+0 in-progress · last took 1m27s
+═══════════════════════════════════════════════════════════════
+  → Generator dry-run preview requires opening the full edit dialog — GeneratorPipelineCard.tsx shows a "Preview" button that fetches /api/generators/:id/preview, but the results appear in a tab panel inside the card; there's no way to preview generator output changes when editing config values without going through the 3-step dialog, applying, and checking the token list
+  Worktree: /tmp/backlog-54964-4oyqYi
+  Running agent… (started 05:08:07)
+
+  ✓ done: Generator dry-run preview requires opening the full edit dialog
+    Added live "Preview changes" diff to QuickEditPanel (useGeneratorPreview hook, +new/~changed/-removed/=unchanged pills with expandable details); also extended useGeneratorPreview to compute full four-category diff including deleted tokens
+    27 turns · 480s · $1.31
+
+  Merging to main: Generator dry-run preview requires opening the full edit dialog
+Already up to date.
