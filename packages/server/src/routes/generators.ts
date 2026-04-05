@@ -573,6 +573,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const updates: Partial<Omit<TokenGenerator, 'id' | 'createdAt'>> = {};
 
         if (typeof body.name === 'string') updates.name = body.name;
+        if (typeof body.enabled === 'boolean') updates.enabled = body.enabled;
         if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
         if (typeof body.targetSet === 'string') updates.targetSet = body.targetSet;
         if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
@@ -616,7 +617,11 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           request.params.id,
           updates,
         );
-        await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        // Skip re-run when only the enabled flag changed — it's a state toggle, not a config change.
+        const onlyEnabledChanged = Object.keys(updates).every(k => k === 'enabled');
+        if (!onlyEnabledChanged) {
+          await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        }
         const afterSet = generator.targetSet || targetSet;
         const afterGroup = generator.targetGroup || targetGroup;
         const after = afterSet && afterGroup ? await snapshotGroup(fastify.tokenStore, afterSet, afterGroup) : {};

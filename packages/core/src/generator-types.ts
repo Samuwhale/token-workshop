@@ -334,6 +334,12 @@ export interface TokenGenerator {
    * Falls back to `targetSet` when absent.
    */
   targetSetTemplate?: string;
+  /**
+   * When false, the generator is disabled and will be skipped during auto-run cascades
+   * triggered by source token changes. Manual re-runs still work.
+   * Defaults to true (enabled) when absent.
+   */
+  enabled?: boolean;
   createdAt: string;
   updatedAt: string;
   /** ISO timestamp of the last successful run. Absent if the generator has never been run. */

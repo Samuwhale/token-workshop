@@ -464,10 +464,10 @@ export class GeneratorService {
    * Safe to call from a token-update event listener.
    */
   async runForSourceToken(tokenPath: string, tokenStore: TokenStore): Promise<void> {
-    // Find all generators that directly source this token
+    // Find all generators that directly source this token (skip disabled ones)
     const directlyAffected = new Set(
       [...this.generators.values()]
-        .filter(g => g.sourceToken === tokenPath)
+        .filter(g => g.sourceToken === tokenPath && g.enabled !== false)
         .map(g => g.id),
     );
     if (directlyAffected.size === 0) return;
@@ -483,12 +483,13 @@ export class GeneratorService {
       return;
     }
 
-    // Expand the affected set to include transitive dependents
+    // Expand the affected set to include transitive dependents (skip disabled ones)
     const affected = new Set(directlyAffected);
     for (const genId of order) {
       if (affected.has(genId)) continue;
       const gen = this.generators.get(genId);
       if (!gen?.sourceToken) continue;
+      if (gen.enabled === false) continue;
       for (const affectedId of affected) {
         const affectedGen = this.generators.get(affectedId);
         if (affectedGen && gen.sourceToken.startsWith(affectedGen.targetGroup + '.')) {

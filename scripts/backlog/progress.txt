@@ -642,3 +642,14 @@
   - `DTCGToken.$value` is already `unknown` by design, so changing the change-record fields to `unknown` is a zero-friction improvement — callers serialise via `stableStringify` or pass straight to JSON responses, neither of which needs narrower types.
   - The restore handler lower in the same file correctly used `Map<string, Token>` (the internal token type) rather than `DTCGToken`; these are different types for different purposes — `DTCGToken` for raw file format, `Token` for in-memory store entries.
 ---
+
+## 2026-04-05 - Generator disable/enable toggle
+- Added `enabled?: boolean` field to `TokenGenerator` interface in core. Defaults to `true` when absent (backwards compatible).
+- Updated `runForSourceToken()` in generator-service.ts to filter disabled generators from `directlyAffected` and skip them during transitive dependency expansion.
+- Updated PUT `/api/generators/:id` route to accept `enabled` field. Added skip-re-run logic when only `enabled` changed (toggle is a state change, not a config change — re-run on every toggle would be confusing).
+- Added `handleToggleEnabled` handler and pause/play icon button to `GeneratorPipelineCard` header. Disabled generators show dashed border, 60% opacity, and a "Paused" badge. The toggle button shows a pause icon (enabled) or play icon (disabled).
+- Files changed: `packages/core/src/generator-types.ts` ~L337; `packages/server/src/services/generator-service.ts` ~L468, ~L491; `packages/server/src/routes/generators.ts` ~L576, ~L620; `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L693, ~L840
+- **Learnings for future iterations:**
+  - When adding a "state toggle" field to a PUT endpoint that always re-runs after save, check whether the re-run should be skipped for that specific update. A toggle that triggers a re-run on every click is confusing UX.
+  - The `enabled` skip must happen in both the `directlyAffected` filter AND the transitive expansion loop in `runForSourceToken` — skipping only one still allows disabled generators to cascade.
+---

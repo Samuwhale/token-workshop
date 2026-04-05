@@ -690,11 +690,30 @@ export function GeneratorPipelineCard({
   const [stepResults, setStepResults] = useState<GeneratedTokenResult[] | null>(null);
   const [stepsLoading, setStepsLoading] = useState(false);
   const [stepOverrideError, setStepOverrideError] = useState<string | null>(null);
+  const [togglingEnabled, setTogglingEnabled] = useState(false);
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
+  const isEnabled = generator.enabled !== false;
   const hasError = !!generator.lastRunError;
   const isStale = !!generator.isStale && !hasError;
   const overrideCount = Object.keys(generator.overrides ?? {}).length;
+
+  const handleToggleEnabled = async () => {
+    setTogglingEnabled(true);
+    setActionError(null);
+    try {
+      await apiFetch(`${serverUrl}/api/generators/${generator.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !isEnabled }),
+      });
+      onRefresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Toggle failed');
+    } finally {
+      setTogglingEnabled(false);
+    }
+  };
 
   const handleRerun = async () => {
     setRunning(true);
@@ -821,13 +840,18 @@ export function GeneratorPipelineCard({
   };
 
   return (
-    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${hasError ? 'border-[var(--color-figma-error)]' : isStale ? 'border-yellow-400/70' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
+    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? 'opacity-60 border-[var(--color-figma-border)] border-dashed' : hasError ? 'border-[var(--color-figma-error)]' : isStale ? 'border-yellow-400/70' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}
         </span>
         <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate flex-1">{generator.name}</span>
-        {isStale && (
+        {!isEnabled && (
+          <span className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1.5 py-px leading-none">
+            Paused
+          </span>
+        )}
+        {isEnabled && isStale && (
           <span
             title={`Source token "${generator.sourceToken}" has changed since this generator last ran. Re-run to update generated tokens.`}
             className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-50 border border-yellow-300 rounded px-1.5 py-px leading-none"
@@ -847,6 +871,24 @@ export function GeneratorPipelineCard({
             </svg>
           </span>
         )}
+        <button
+          onClick={handleToggleEnabled}
+          disabled={togglingEnabled}
+          title={isEnabled ? 'Pause auto-run (disable generator)' : 'Resume auto-run (enable generator)'}
+          aria-label={isEnabled ? 'Disable generator' : 'Enable generator'}
+          aria-pressed={isEnabled}
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--color-figma-bg-secondary)] transition-colors disabled:opacity-50"
+        >
+          {isEnabled ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          )}
+        </button>
       </div>
       {hasError && (
         <div className="mb-2 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">
