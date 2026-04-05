@@ -440,6 +440,54 @@ export function App() {
     setSuccessToast(`Created set "${name}"`);
   }, [serverUrl, getDisconnectSignal, addSetToState, setSuccessToast]);
 
+  // Bulk delete sets — used by SetSwitcher multi-select
+  const handleBulkDeleteSets = useCallback(async (setsToDelete: string[]) => {
+    let currentActive = activeSet;
+    const currentSets = sets;
+    for (const setName of setsToDelete) {
+      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, {
+        method: 'DELETE',
+        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+      });
+      removeSetFromState(setName);
+      if (currentActive === setName) {
+        const remaining = currentSets.filter(s => !setsToDelete.includes(s));
+        const newActive = remaining[0] ?? '';
+        currentActive = newActive;
+        setActiveSet(newActive);
+        if (newActive) await fetchTokensForSet(newActive);
+      }
+    }
+    setSuccessToast(`Deleted ${setsToDelete.length} set${setsToDelete.length !== 1 ? 's' : ''}`);
+  }, [serverUrl, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, setSuccessToast, getDisconnectSignal]);
+
+  // Bulk duplicate sets — used by SetSwitcher multi-select
+  const handleBulkDuplicateSets = useCallback(async (setsToDuplicate: string[]) => {
+    for (const setName of setsToDuplicate) {
+      const result = await apiFetch<{ ok: true; name: string; originalName: string }>(
+        `${serverUrl}/api/sets/${encodeURIComponent(setName)}/duplicate`,
+        { method: 'POST', signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]) },
+      );
+      addSetToState(result.name, setTokenCounts[setName] ?? 0);
+    }
+    setSuccessToast(`Duplicated ${setsToDuplicate.length} set${setsToDuplicate.length !== 1 ? 's' : ''}`);
+  }, [serverUrl, addSetToState, setTokenCounts, setSuccessToast, getDisconnectSignal]);
+
+  // Bulk move sets to folder — used by SetSwitcher multi-select
+  const handleBulkMoveToFolder = useCallback(async (moves: Array<{ from: string; to: string }>) => {
+    for (const { from, to } of moves) {
+      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(from)}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName: to }),
+        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+      });
+      renameSetInState(from, to);
+      if (activeSet === from) setActiveSet(to);
+    }
+    setSuccessToast(`Moved ${moves.length} set${moves.length !== 1 ? 's' : ''} to folder`);
+  }, [serverUrl, activeSet, setActiveSet, renameSetInState, setSuccessToast, getDisconnectSignal]);
+
   // Per-set type breakdown for tab tooltips
   const setByTypeCounts = useMemo(() => {
     const result: Record<string, Record<string, number>> = {};
@@ -2971,6 +3019,9 @@ export function App() {
           setTokenCounts={setTokenCounts}
           setDescriptions={setDescriptions}
           dimensions={dimensions}
+          onBulkDelete={handleBulkDeleteSets}
+          onBulkDuplicate={handleBulkDuplicateSets}
+          onBulkMoveToFolder={handleBulkMoveToFolder}
         />
       )}
 

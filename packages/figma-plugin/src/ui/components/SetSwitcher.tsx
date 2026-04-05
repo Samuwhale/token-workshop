@@ -95,6 +95,10 @@ interface SetSwitcherProps {
   setTokenCounts?: Record<string, number>;
   setDescriptions?: Record<string, string>;
   dimensions?: ThemeDimension[];
+  // Bulk operation callbacks (manage mode multi-select)
+  onBulkDelete?: (sets: string[]) => Promise<void>;
+  onBulkDuplicate?: (sets: string[]) => Promise<void>;
+  onBulkMoveToFolder?: (moves: Array<{ from: string; to: string }>) => Promise<void>;
 }
 
 
@@ -126,6 +130,9 @@ export function SetSwitcher({
   setTokenCounts = {},
   setDescriptions = {},
   dimensions = [],
+  onBulkDelete,
+  onBulkDuplicate,
+  onBulkMoveToFolder,
 }: SetSwitcherProps) {
   const setThemeLabels = buildSetThemeLabels(dimensions);
   const [mode, setMode] = useState<'switch' | 'manage'>(initialMode);
@@ -311,6 +318,9 @@ export function SetSwitcher({
             newSetInputRef={newSetInputRef}
             onCreateSubmit={handleCreateSubmit}
             canCreate={!!onCreateSet}
+            onBulkDelete={onBulkDelete}
+            onBulkDuplicate={onBulkDuplicate}
+            onBulkMoveToFolder={onBulkMoveToFolder}
           />
         )}
 
@@ -470,7 +480,19 @@ interface ManageViewProps {
   newSetInputRef: React.RefObject<HTMLInputElement>;
   onCreateSubmit: () => void;
   canCreate: boolean;
+  onBulkDelete?: (sets: string[]) => Promise<void>;
+  onBulkDuplicate?: (sets: string[]) => Promise<void>;
+  onBulkMoveToFolder?: (moves: Array<{ from: string; to: string }>) => Promise<void>;
 }
+
+/** Extract the leaf segment (after last `/`) from a set name. */
+function leafName(setName: string): string {
+  const idx = setName.lastIndexOf('/');
+  return idx === -1 ? setName : setName.slice(idx + 1);
+}
+
+/** Folder-name validation: one path segment, no slashes. */
+const FOLDER_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
 function ManageView({
   listRef, filtered, sets, activeSet, query,
@@ -479,9 +501,100 @@ function ManageView({
   creatingSet, setCreatingSet, newSetName, setNewSetName,
   newSetError, setNewSetError, createPending,
   newSetInputRef, onCreateSubmit, canCreate,
+  onBulkDelete, onBulkDuplicate, onBulkMoveToFolder,
 }: ManageViewProps) {
   const [dragSetName, setDragSetName] = useState<string | null>(null);
   const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
+
+  // Multi-select state
+  const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
+  const [bulkFolderMode, setBulkFolderMode] = useState(false);
+  const [bulkFolder, setBulkFolder] = useState('');
+  const [bulkFolderError, setBulkFolderError] = useState('');
+  const [bulkPending, setBulkPending] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+
+  const bulkFolderInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear selection when filter query changes
+  useEffect(() => {
+    setSelectedSets(new Set());
+    setBulkFolderMode(false);
+    setDeleteConfirming(false);
+  }, [query]);
+
+  // Focus folder input when folder mode opens
+  useEffect(() => {
+    if (bulkFolderMode) bulkFolderInputRef.current?.focus();
+  }, [bulkFolderMode]);
+
+  const hasBulkOps = !!(onBulkDelete || onBulkDuplicate || onBulkMoveToFolder);
+  const hasSelection = selectedSets.size > 0;
+
+  const toggleSelect = (set: string) => {
+    setSelectedSets(prev => {
+      const s = new Set(prev);
+      if (s.has(set)) s.delete(set); else s.add(set);
+      return s;
+    });
+  };
+
+  const selectAll = () => setSelectedSets(new Set(filtered));
+  const clearSelection = () => {
+    setSelectedSets(new Set());
+    setBulkFolderMode(false);
+    setBulkFolder('');
+    setBulkFolderError('');
+    setDeleteConfirming(false);
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (!onBulkDuplicate || !hasSelection) return;
+    setBulkPending(true);
+    try {
+      await onBulkDuplicate(Array.from(selectedSets));
+      clearSelection();
+    } finally {
+      setBulkPending(false);
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (!onBulkDelete || !hasSelection) return;
+    setBulkPending(true);
+    try {
+      await onBulkDelete(Array.from(selectedSets));
+      clearSelection();
+    } finally {
+      setBulkPending(false);
+      setDeleteConfirming(false);
+    }
+  };
+
+  const handleBulkMoveToFolder = async () => {
+    if (!onBulkMoveToFolder || !hasSelection) return;
+    const folder = bulkFolder.trim();
+    if (!folder) { setBulkFolderError('Folder name cannot be empty'); return; }
+    if (!FOLDER_NAME_RE.test(folder)) { setBulkFolderError('Use letters, numbers, - and _ (/ for sub-folders)'); return; }
+    const moves = Array.from(selectedSets).map(set => ({
+      from: set,
+      to: `${folder}/${leafName(set)}`,
+    }));
+    // Skip no-op moves (already in that exact path)
+    const actualMoves = moves.filter(m => m.from !== m.to);
+    if (!actualMoves.length) { setBulkFolderError('All selected sets are already in that folder'); return; }
+    setBulkPending(true);
+    setBulkFolderError('');
+    try {
+      await onBulkMoveToFolder(actualMoves);
+      clearSelection();
+      setBulkFolder('');
+    } catch (err) {
+      setBulkFolderError(err instanceof Error ? err.message : 'Move failed');
+    } finally {
+      setBulkPending(false);
+    }
+  };
 
   const handleDragStart = useCallback((e: React.DragEvent, setName: string) => {
     setDragSetName(setName);
@@ -528,6 +641,130 @@ function ManageView({
         </div>
       ) : (
         <>
+          {/* Bulk action toolbar — shown when 1+ sets are selected */}
+          {hasBulkOps && hasSelection && (
+            <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              {/* Main toolbar row */}
+              <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
+                <span className="text-[var(--color-figma-text-secondary)] shrink-0 mr-0.5">
+                  {selectedSets.size} selected
+                </span>
+                {selectedSets.size < filtered.length && (
+                  <button
+                    onClick={selectAll}
+                    className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors shrink-0"
+                    disabled={bulkPending}
+                  >
+                    All
+                  </button>
+                )}
+                <div className="flex-1" />
+                {onBulkMoveToFolder && !bulkFolderMode && !deleteConfirming && (
+                  <button
+                    onClick={() => { setBulkFolderMode(true); setDeleteConfirming(false); }}
+                    disabled={bulkPending}
+                    className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors shrink-0"
+                    title="Move selected sets to a folder"
+                  >
+                    Move to folder
+                  </button>
+                )}
+                {onBulkDuplicate && !deleteConfirming && !bulkFolderMode && (
+                  <button
+                    onClick={handleBulkDuplicate}
+                    disabled={bulkPending}
+                    className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors shrink-0"
+                    title="Duplicate selected sets"
+                  >
+                    {bulkPending ? 'Working…' : 'Duplicate'}
+                  </button>
+                )}
+                {onBulkDelete && !deleteConfirming && !bulkFolderMode && (
+                  <button
+                    onClick={() => { setDeleteConfirming(true); setBulkFolderMode(false); }}
+                    disabled={bulkPending}
+                    className="px-1.5 py-0.5 rounded text-[10px] text-red-500 hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+                    title="Delete selected sets"
+                  >
+                    Delete
+                  </button>
+                )}
+                <button
+                  onClick={clearSelection}
+                  disabled={bulkPending}
+                  className="ml-0.5 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+                  title="Clear selection"
+                  aria-label="Clear selection"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M1 1l8 8M9 1L1 9" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Delete confirmation strip */}
+              {deleteConfirming && (
+                <div className="flex items-center gap-2 px-2 py-1.5 bg-red-500/10 border-t border-red-500/20 text-[11px]">
+                  <span className="text-[var(--color-figma-text)] flex-1">
+                    Delete {selectedSets.size} set{selectedSets.size !== 1 ? 's' : ''}? This cannot be undone.
+                  </span>
+                  <button
+                    onClick={handleBulkDeleteConfirm}
+                    disabled={bulkPending}
+                    className="px-2 py-0.5 rounded text-[10px] bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 shrink-0 transition-colors"
+                  >
+                    {bulkPending ? 'Deleting…' : 'Confirm delete'}
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirming(false)}
+                    disabled={bulkPending}
+                    className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* Move-to-folder input strip */}
+              {bulkFolderMode && (
+                <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)]">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      ref={bulkFolderInputRef}
+                      type="text"
+                      value={bulkFolder}
+                      onChange={e => { setBulkFolder(e.target.value); setBulkFolderError(''); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); handleBulkMoveToFolder(); }
+                        if (e.key === 'Escape') { e.preventDefault(); setBulkFolderMode(false); setBulkFolder(''); setBulkFolderError(''); }
+                      }}
+                      placeholder="Folder name (e.g. brand or brand/sub)"
+                      className="flex-1 px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus-visible:border-[var(--color-figma-accent)] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+                      disabled={bulkPending}
+                    />
+                    <button
+                      onClick={handleBulkMoveToFolder}
+                      disabled={bulkPending || !bulkFolder.trim()}
+                      className="px-2 py-1 text-[11px] rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 shrink-0 transition-colors"
+                    >
+                      {bulkPending ? 'Moving…' : 'Move'}
+                    </button>
+                    <button
+                      onClick={() => { setBulkFolderMode(false); setBulkFolder(''); setBulkFolderError(''); }}
+                      disabled={bulkPending}
+                      className="px-1.5 py-1 text-[11px] rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {bulkFolderError && (
+                    <div className="mt-1 text-[10px] text-red-500">{bulkFolderError}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {filtered.map((set) => {
             const isCurrent = set === activeSet;
             const idx = sets.indexOf(set);
@@ -539,19 +776,32 @@ function ManageView({
             const isDragOver = dragOverSetName === set && dragSetName !== set;
             const isDragging = dragSetName === set;
             const themeLabels = setThemeLabels[set] ?? [];
+            const isSelected = selectedSets.has(set);
 
             return (
               <div
                 key={set}
-                draggable={canDrag}
-                onDragStart={canDrag ? e => handleDragStart(e, set) : undefined}
-                onDragOver={canDrag ? e => handleDragOver(e, set) : undefined}
-                onDrop={canDrag ? e => handleDrop(e, set) : undefined}
-                onDragEnd={canDrag ? handleDragEnd : undefined}
-                className={`group flex items-center gap-2 px-3 py-2 text-[12px] border-b border-[var(--color-figma-border)] last:border-b-0 transition-colors ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]' : isCurrent ? 'bg-[var(--color-figma-bg-secondary)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+                draggable={canDrag && !hasBulkOps}
+                onDragStart={canDrag && !hasBulkOps ? e => handleDragStart(e, set) : undefined}
+                onDragOver={canDrag && !hasBulkOps ? e => handleDragOver(e, set) : undefined}
+                onDrop={canDrag && !hasBulkOps ? e => handleDrop(e, set) : undefined}
+                onDragEnd={canDrag && !hasBulkOps ? handleDragEnd : undefined}
+                className={`group flex items-center gap-2 px-3 py-2 text-[12px] border-b border-[var(--color-figma-border)] last:border-b-0 transition-colors ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-l-2 border-l-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]' : isSelected ? 'bg-[var(--color-figma-accent)]/8' : isCurrent ? 'bg-[var(--color-figma-bg-secondary)]' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
               >
-                {/* Drag handle */}
-                {canDrag && (
+                {/* Checkbox (multi-select) */}
+                {hasBulkOps && (
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(set)}
+                    onClick={e => e.stopPropagation()}
+                    className="shrink-0 accent-[var(--color-figma-accent)] cursor-pointer"
+                    aria-label={`Select ${set}`}
+                  />
+                )}
+
+                {/* Drag handle — hidden when bulk ops are available */}
+                {canDrag && !hasBulkOps && (
                   <span className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing" aria-hidden="true">
                     <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
                       <circle cx="2" cy="2" r="1" /><circle cx="6" cy="2" r="1" />

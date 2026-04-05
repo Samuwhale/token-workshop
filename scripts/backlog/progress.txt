@@ -653,3 +653,15 @@
   - When adding a "state toggle" field to a PUT endpoint that always re-runs after save, check whether the re-run should be skipped for that specific update. A toggle that triggers a re-run on every click is confusing UX.
   - The `enabled` skip must happen in both the `directlyAffected` filter AND the transitive expansion loop in `runForSourceToken` — skipping only one still allows disabled generators to cascade.
 ---
+
+## 2026-04-05 - No multi-select for token sets in SetSwitcher
+- Added checkbox selection in manage mode with a bulk action toolbar (delete selected, move to folder, duplicate selected)
+- `SetSwitcher.tsx`: Added `onBulkDelete`, `onBulkDuplicate`, `onBulkMoveToFolder` props; added `selectedSets` state, checkbox per row, sticky bulk action toolbar with inline delete confirmation and move-to-folder input strip; drag-and-drop disabled when bulk ops are available to avoid conflict with checkboxes
+- `App.tsx`: Added `handleBulkDeleteSets`, `handleBulkDuplicateSets`, `handleBulkMoveToFolder` callbacks using `apiFetch` directly (sequential per-set API calls); wired to SetSwitcher props
+- Files changed: `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L300, `packages/figma-plugin/src/ui/App.tsx` ~L431, ~L3020
+- **Learnings for future iterations:**
+  - Bulk ops need separate async callback props rather than reusing single-item callbacks (which often open dialogs or trigger intermediate state)
+  - Drag-and-drop conflicts with checkbox selection — disable drag when `hasBulkOps` is true rather than trying to coexist
+  - Inline delete confirmation (turning the delete button into "confirm delete" strip) works cleanly without adding external state to the parent component
+  - `leafName(set)` extraction (after last `/`) is the right unit for move-to-folder: preserves naming within the set regardless of current folder depth
+---
