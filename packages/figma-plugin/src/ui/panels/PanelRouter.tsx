@@ -28,8 +28,7 @@ import type { ThemeManagerHandle } from '../components/ThemeManager';
 import { PublishPanel } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
-import { HeatmapPanel } from '../components/HeatmapPanel';
-import { ConsistencyPanel } from '../components/ConsistencyPanel';
+import { CanvasAnalysisPanel } from '../components/CanvasAnalysisPanel';
 import { ComponentCoveragePanel } from '../components/ComponentCoveragePanel';
 import { GraphPanel } from '../components/GraphPanel';
 import { TokenFlowPanel } from '../components/TokenFlowPanel';
@@ -391,11 +390,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       themes:     renderDefineThemes,
     },
     apply: {
-      inspect:      renderApplyInspect,
-      coverage:     renderApplyCoverage,
-      consistency:  renderApplyConsistency,
-      components:   renderApplyComponents,
-      dependencies: renderApplyDependencies,
+      inspect:          renderApplyInspect,
+      'canvas-analysis': renderApplyCanvasAnalysis,
+      components:       renderApplyComponents,
+      dependencies:     renderApplyDependencies,
     },
     ship: {
       publish:    renderShipPublish,
@@ -693,35 +691,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  function renderApplyCoverage(): ReactNode {
+  function renderApplyCanvasAnalysis(): ReactNode {
     return (
-      <ErrorBoundary panelName="Coverage" onReset={() => navigateTo('apply', 'inspect')}>
-        <HeatmapPanel
-          result={heatmapResult}
-          loading={heatmapLoading}
-          progress={heatmapProgress}
-          error={heatmapError}
-          scope={heatmapScope}
-          onScopeChange={setHeatmapScope}
-          onRescan={triggerHeatmapScan}
-          onCancel={cancelHeatmapScan}
+      <ErrorBoundary panelName="Canvas Analysis" onReset={() => navigateTo('apply', 'inspect')}>
+        <CanvasAnalysisPanel
+          availableTokens={allTokensFlat}
+          heatmapResult={heatmapResult}
+          heatmapLoading={heatmapLoading}
+          heatmapProgress={heatmapProgress}
+          heatmapError={heatmapError}
           onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
           onBatchBind={(nodeIds, tokenPath, property) => {
             const entry = allTokensFlat[tokenPath];
             if (!entry) return;
             parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
           }}
-          availableTokens={allTokensFlat}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderApplyConsistency(): ReactNode {
-    return (
-      <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
-        <ConsistencyPanel
-          availableTokens={allTokensFlat}
           onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
         />
       </ErrorBoundary>

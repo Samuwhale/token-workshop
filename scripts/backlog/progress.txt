@@ -823,3 +823,20 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: The strongest consolidation opportunity is merging Consistency and Heatmap panels — they scan the same Figma layers for the same class of problem (unbound/misbound tokens) with separate scope selectors and scan triggers, forcing users to context-switch between two panels for a single workflow. The most impactful missing feature is batch token upsert API — every import, generation, and multi-edit hits the server once per token with no atomicity guarantee. Smart type inference from token path is the highest-ROI small fix (saves a manual step on every single token creation).
 ---
+
+## 2026-04-05 - Merge Consistency panel and Heatmap panel into a single "Canvas Analysis" panel
+- Created unified `CanvasAnalysisPanel.tsx` with a shared scope selector (dropdown) and internal tab switcher (Coverage / Suggestions). Both sub-panels are mounted simultaneously (with `hidden` class on the inactive one) to preserve scan state across tab switches.
+- `HeatmapPanel`: added optional `hideScopeSelector` prop — wraps both the stats-bar scope `<select>` and the empty-state scope `<select>` in `{!hideScopeSelector && (...)}`.
+- `ConsistencyPanel`: added optional `scope` and `onScopeChange` props. When `scope` is provided externally, local state is bypassed and the internal scope toggle buttons are hidden.
+- `CanvasAnalysisPanel`: reads `heatmapScope`/`setHeatmapScope`/`triggerHeatmapScan`/`cancelHeatmapScan` directly from `useHeatmapContext()`. Receives heatmap result/loading/progress/error as props from PanelRouter. Passes the shared `heatmapScope` as the `scope` prop to `ConsistencyPanel` so both tabs always use the same scope.
+- `navigationTypes.ts`: replaced `'coverage' | 'consistency'` with `'canvas-analysis'` in `ApplySubTab`. Updated `TOP_TABS` from two entries to one `{ id: 'canvas-analysis', label: 'Canvas Analysis' }`.
+- `PanelRouter.tsx`: removed `HeatmapPanel` and `ConsistencyPanel` imports, added `CanvasAnalysisPanel` import. Replaced `renderApplyCoverage` and `renderApplyConsistency` with single `renderApplyCanvasAnalysis`. Updated routing table.
+- `App.tsx`: updated command palette handlers (canvas-coverage → `canvas-analysis`, canvas-consistency → `canvas-analysis`), toolbar toggle button (`coverage` → `canvas-analysis`), and sub-tab auto-scan trigger (`coverage` → `canvas-analysis`).
+- `HealthPanel.tsx`: updated `onNavigateTo('apply', 'coverage')` → `onNavigateTo('apply', 'canvas-analysis')`.
+- Files changed: `src/ui/shared/navigationTypes.ts` ~L11,L24-25; `src/ui/components/HeatmapPanel.tsx` ~L26,L90,L203,L373; `src/ui/components/ConsistencyPanel.tsx` ~L7,L168,L172,L292; `src/ui/components/CanvasAnalysisPanel.tsx` (new); `src/ui/panels/PanelRouter.tsx` ~L31,L394,L696; `src/ui/App.tsx` ~L1003,L1010,L1541,L1696; `src/ui/components/HealthPanel.tsx` ~L892
+- **Learnings for future iterations:**
+  - Using `hidden` CSS class (not conditional rendering) to toggle between tabs preserves scan results and loading state in both sub-panels without needing to lift all state up.
+  - When merging two panels that each have their own scope selector, the cleanest approach is: add a `hideScopeSelector`/external-scope prop to each sub-panel, then have the wrapper own the shared scope and pass it down.
+  - HeatmapScope and ConsistencyPanel's ScanScope are identical union types but defined separately — they cast cleanly since the values are the same strings.
+  - Remember to audit HealthPanel and command palette for navigation targets when renaming sub-tabs — these are often missed.
+---

@@ -34,6 +34,8 @@ interface HeatmapPanelProps {
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
   onBatchBind?: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
+  /** When true, hides the embedded scope selector (used when scope is controlled by a parent panel). */
+  hideScopeSelector?: boolean;
 }
 
 const STATUS_COLORS = {
@@ -87,7 +89,7 @@ const SCOPE_OPTIONS: { value: HeatmapScope; label: string }[] = [
   { value: 'all-pages', label: 'All pages' },
 ];
 
-export function HeatmapPanel({ result, loading, progress, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+export function HeatmapPanel({ result, loading, progress, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind, hideScopeSelector }: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
@@ -200,15 +202,17 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               >
                 JSON
               </button>
-              <select
-                value={scope}
-                onChange={e => { const s = e.target.value as HeatmapScope; onScopeChange(s); onRescan(s); }}
-                className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
-              >
-                {SCOPE_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+              {!hideScopeSelector && (
+                <select
+                  value={scope}
+                  onChange={e => { const s = e.target.value as HeatmapScope; onScopeChange(s); onRescan(s); }}
+                  className="text-[10px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+                >
+                  {SCOPE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={() => onRescan()}
                 className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
@@ -369,6 +373,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
           </div>
 
           {/* Scope selector */}
+          {!hideScopeSelector && (
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scope:</span>
             <select
@@ -381,6 +386,7 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               ))}
             </select>
           </div>
+          )}
 
           {/* CTA */}
           <button

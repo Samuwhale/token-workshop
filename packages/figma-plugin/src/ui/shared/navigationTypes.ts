@@ -8,7 +8,7 @@ import { STORAGE_KEYS } from './storage';
 
 export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators';
-type ApplySubTab = 'inspect' | 'coverage' | 'consistency' | 'components' | 'dependencies';
+type ApplySubTab = 'inspect' | 'canvas-analysis' | 'components' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type OverflowPanel = 'import' | 'settings' | null;
@@ -21,8 +21,7 @@ export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
-    { id: 'coverage', label: 'Coverage' },
-    { id: 'consistency', label: 'Consistency' },
+    { id: 'canvas-analysis', label: 'Canvas Analysis' },
     { id: 'components', label: 'Components' },
     { id: 'dependencies', label: 'Dependencies' },
   ]},

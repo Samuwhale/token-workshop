@@ -1004,14 +1004,14 @@ export function App() {
         label: 'Canvas Coverage',
         description: 'Token binding coverage heatmap for the canvas',
         category: 'Navigation',
-        handler: () => { navigateTo('apply', 'coverage'); triggerHeatmapScan(); },
+        handler: () => { navigateTo('apply', 'canvas-analysis'); triggerHeatmapScan(); },
       },
       {
         id: 'canvas-consistency',
-        label: 'Canvas Consistency',
+        label: 'Canvas Suggestions',
         description: 'Near-match token consistency check for the canvas',
         category: 'Navigation',
-        handler: () => navigateTo('apply', 'consistency'),
+        handler: () => navigateTo('apply', 'canvas-analysis'),
       },
       {
         id: 'canvas-components',
@@ -1539,21 +1539,21 @@ export function App() {
         {/* Canvas Coverage toggle */}
         <button
           onClick={() => {
-            if (activeTopTab === 'apply' && activeSubTab === 'coverage') {
+            if (activeTopTab === 'apply' && activeSubTab === 'canvas-analysis') {
               navigateTo('apply', 'inspect');
             } else {
-              navigateTo('apply', 'coverage');
+              navigateTo('apply', 'canvas-analysis');
               triggerHeatmapScan();
             }
           }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            activeTopTab === 'apply' && activeSubTab === 'coverage'
+            activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Canvas coverage: token binding heatmap"
-          aria-label="Toggle canvas coverage"
-          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'coverage'}
+          title="Canvas analysis: coverage heatmap and consistency suggestions"
+          aria-label="Toggle canvas analysis"
+          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -1693,7 +1693,7 @@ export function App() {
                 onClick={() => {
                   guardEditorAction(() => {
                     setSubTab(sub.id);
-                    if (sub.id === 'coverage') triggerHeatmapScan();
+                    if (sub.id === 'canvas-analysis') triggerHeatmapScan();
                   });
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${

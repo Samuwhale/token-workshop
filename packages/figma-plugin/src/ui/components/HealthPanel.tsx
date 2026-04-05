@@ -889,7 +889,7 @@ export function HealthPanel({
                       : `${canvasCoveragePercent}% fully bound · ${heatmapResult.green} green, ${heatmapResult.yellow} partial, ${heatmapResult.red} unbound`
                 }
                 ctaLabel={heatmapResult ? 'Full audit' : 'Scan canvas'}
-                onCta={() => { onNavigateTo('apply', 'coverage'); if (!heatmapResult) onTriggerHeatmap(); }}
+                onCta={() => { onNavigateTo('apply', 'canvas-analysis'); if (!heatmapResult) onTriggerHeatmap(); }}
               >
                 {heatmapResult && (
                   <div className="flex gap-2">
