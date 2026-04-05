@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import type { TokenMapEntry, BindableProperty, ScanScope } from '../../shared/types';
 import { HeatmapPanel } from './HeatmapPanel';
 import type { HeatmapResult } from './HeatmapPanel';
@@ -37,17 +37,10 @@ export function CanvasAnalysisPanel({
 
   const {
     heatmapScope,
-    setHeatmapScope,
+    setScanScope,
     triggerHeatmapScan,
     cancelHeatmapScan,
   } = useHeatmapContext();
-
-  // Shared scope change handler: update context scope (used by heatmap) and
-  // automatically trigger a new heatmap scan when the user explicitly changes scope
-  // while coverage results are already visible.
-  const handleScopeChange = useCallback((newScope: ScanScope) => {
-    setHeatmapScope(newScope);
-  }, [setHeatmapScope]);
 
   return (
     <div className="flex flex-col h-full">
@@ -56,7 +49,7 @@ export function CanvasAnalysisPanel({
         {/* Scope selector — only relevant for coverage/suggestions tabs */}
         {activeTab !== 'components' && (
           <div className="mr-3">
-            <ScanScopeSelector value={heatmapScope} onChange={handleScopeChange} showLabel />
+            <ScanScopeSelector value={heatmapScope} onChange={setScanScope} showLabel />
           </div>
         )}
 
@@ -83,7 +76,7 @@ export function CanvasAnalysisPanel({
         </div>
       </div>
 
-      {/* Tab content — both panels are mounted to preserve their state */}
+      {/* Tab content — all panels are mounted to preserve their state */}
       <div className={`flex-1 flex flex-col overflow-hidden ${activeTab === 'coverage' ? '' : 'hidden'}`}>
         <HeatmapPanel
           result={heatmapResult}
@@ -91,13 +84,11 @@ export function CanvasAnalysisPanel({
           progress={heatmapProgress}
           error={heatmapError}
           scope={heatmapScope}
-          onScopeChange={setHeatmapScope}
           onRescan={triggerHeatmapScan}
           onCancel={cancelHeatmapScan}
           onSelectNodes={onSelectNodes}
           onBatchBind={onBatchBind}
           availableTokens={availableTokens}
-          hideScopeSelector
         />
       </div>
 
@@ -106,7 +97,6 @@ export function CanvasAnalysisPanel({
           availableTokens={availableTokens}
           onSelectNode={onSelectNode}
           scope={heatmapScope}
-          onScopeChange={handleScopeChange}
         />
       </div>
 

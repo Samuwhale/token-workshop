@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { Spinner } from './Spinner';
 import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry, type ScanScope } from '../../shared/types';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
-import { ScanScopeSelector } from './ScanScopeSelector';
 
 interface HeatmapNode {
   id: string;
@@ -28,14 +27,11 @@ interface HeatmapPanelProps {
   progress?: { processed: number; total: number } | null;
   error?: string | null;
   scope: ScanScope;
-  onScopeChange: (scope: ScanScope) => void;
   onRescan: (scope?: ScanScope) => void;
   onCancel?: () => void;
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
   onBatchBind?: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
-  /** When true, hides the embedded scope selector (used when scope is controlled by a parent panel). */
-  hideScopeSelector?: boolean;
 }
 
 const STATUS_COLORS = {
@@ -84,7 +80,7 @@ interface QuickBindState {
 }
 
 
-export function HeatmapPanel({ result, loading, progress, error, scope, onScopeChange, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind, hideScopeSelector }: HeatmapPanelProps) {
+export function HeatmapPanel({ result, loading, progress, error, scope, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
   const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
@@ -197,9 +193,6 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               >
                 JSON
               </button>
-              {!hideScopeSelector && (
-                <ScanScopeSelector value={scope} onChange={s => { onScopeChange(s); onRescan(s); }} />
-              )}
               <button
                 onClick={() => onRescan()}
                 className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
@@ -358,11 +351,6 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               </div>
             ))}
           </div>
-
-          {/* Scope selector */}
-          {!hideScopeSelector && (
-            <ScanScopeSelector value={scope} onChange={onScopeChange} showLabel />
-          )}
 
           {/* CTA */}
           <button

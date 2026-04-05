@@ -154,3 +154,26 @@ Already up to date.
 
   Merging to main: manual-snapshot.ts quarantined sets never added to completedSets
 Already up to date.
+[main 4ba91d59] chore(backlog): done – manual-snapshot.ts quarantined sets never added to completedSets
+ 5 files changed, 37 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - manual-snapshot.ts quarantined sets never added to completedSets
+- Fixed: when a set exceeds MAX_RECOVERY_RETRIES during crash recovery, it is now added to `journal.completedSets` and the journal is written to disk before the `continue`. This prevents the quarantined set from re-appearing in `pending` on every subsequent server restart.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L321
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #7  ·  16 queued · 0
+0 in-progress · last took 1m1s
+═══════════════════════════════════════════════════════════════
+  → Consolidate canvas analysis panels — HeatmapPanel, ConsistencyPanel, and ComponentCoveragePanel exist both as standalone imports and as tabs inside CanvasAnalysisPanel; the standalone versions are dead weight since the CanvasAnalysisPanel wrapper is the only one rendered in PanelRouter; remove the standalone routing paths and unify scope state management (currently three separate ScanScopeSelector instances)
+  Worktree: /tmp/backlog-50286-sKKiUs
+  Running agent… (started 23:07:58)
+
+  ✓ done: Consolidate canvas analysis panels — HeatmapPanel, ConsistencyPanel, and ComponentCoveragePanel exist both as standalone imports and as tabs inside CanvasAnalysisPanel; the standalone versions are dead weight since the CanvasAnalysisPanel wrapper is the only one rendered in PanelRouter; remove the standalone routing paths and unify scope state management (currently three separate ScanScopeSelector instances)
+    Unified scope management to single ScanScopeSelector in CanvasAnalysisPanel toolbar; removed hideScopeSelector/onScopeChange from HeatmapPanel, removed controlled/uncontrolled duality from ConsistencyPanel, deleted useScanScope.ts, and fixed a silent setHeatmapScope→setScanScope name mismatch
+    43 turns · 349s · $1.4
+
+  Merging to main: Consolidate canvas analysis panels — HeatmapPanel, ConsistencyPanel, and ComponentCoveragePanel exist both as standalone imports and as tabs inside CanvasAnalysisPanel; the standalone versions are dead weight since the CanvasAnalysisPanel wrapper is the only one rendered in PanelRouter; remove the standalone routing paths and unify scope state management (currently three separate ScanScopeSelector instances)
+Already up to date.

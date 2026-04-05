@@ -571,3 +571,15 @@
 - **Learnings for future iterations:**
   - When a loop uses `continue` to skip an item that was supposed to be "done", double-check that it's added to the tracking list (completedSets, etc.) before skipping — otherwise the skip is ephemeral and the item resurfaces on the next run.
 ---
+
+## 2026-04-05 - Consolidate canvas analysis panels
+- Removed standalone scope management from HeatmapPanel and ConsistencyPanel; CanvasAnalysisPanel's single shared ScanScopeSelector (in the toolbar) is now the sole scope control point. Fixed a property name mismatch (`setHeatmapScope` → `setScanScope`) in CanvasAnalysisPanel that was silently broken. Deleted the `useScanScope` controlled/uncontrolled hook since scope is always provided by the parent.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L38 (fixed destructuring, removed `handleScopeChange`, removed `onScopeChange`/`hideScopeSelector` from HeatmapPanel usage, removed `onScopeChange` from ConsistencyPanel usage)
+  - `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L25 (removed `onScopeChange`/`hideScopeSelector` from props, removed `ScanScopeSelector` import, removed two embedded scope selector instances)
+  - `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L6 (removed `ScanScopeSelector`/`useScanScope` imports, made `scope` required, removed controlled/uncontrolled duality, removed embedded scope selector)
+  - `packages/figma-plugin/src/ui/hooks/useScanScope.ts` (deleted)
+- **Learnings for future iterations:**
+  - A prop named `setScanScope` in the context interface vs `setHeatmapScope` destructured in the consumer is not caught by TypeScript (only catches missing declaration, not naming mismatch when destructuring with rename). Always verify destructuring aliases match the interface exactly.
+  - The controlled/uncontrolled `useScanScope` hook was pure overhead — scope is always provided by the parent when inside `CanvasAnalysisPanel`. If a panel is only ever embedded in one parent, prefer required props over the controlled/uncontrolled pattern.
+---

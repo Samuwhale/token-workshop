@@ -3,15 +3,10 @@ import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion, ScanScope 
 import { useUsageContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
-import { ScanScopeSelector } from './ScanScopeSelector';
-import { useScanScope } from '../hooks/useScanScope';
-
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
   onSelectNode: (nodeId: string) => void;
-  /** When provided, the panel uses this scope instead of internal state and hides its own scope selector. */
-  scope?: ScanScope;
-  onScopeChange?: (scope: ScanScope) => void;
+  scope: ScanScope;
 }
 type SuggestionCategory = 'color' | 'dimension' | 'typography' | 'other';
 
@@ -168,11 +163,8 @@ function SuggestionCard({
   );
 }
 
-export function ConsistencyPanel({ availableTokens, onSelectNode, scope: externalScope, onScopeChange: externalOnScopeChange }: ConsistencyPanelProps) {
+export function ConsistencyPanel({ availableTokens, onSelectNode, scope }: ConsistencyPanelProps) {
   const help = usePanelHelp('consistency');
-
-  // Scope is local UI preference — doesn't need to persist across tab switches
-  const [scope, setScope] = useScanScope(externalScope, externalOnScopeChange);
   // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
   const [snapConfirm, setSnapConfirm] = useState<ConsistencySuggestion[] | null>(null);
 
@@ -291,10 +283,6 @@ export function ConsistencyPanel({ availableTokens, onSelectNode, scope: externa
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        {/* Scope toggle — hidden when scope is controlled by a parent panel */}
-        {!externalScope && (
-          <ScanScopeSelector value={scope} onChange={setScope} />
-        )}
         <PanelHelpIcon panelKey="consistency" title="Consistency Scanner" expanded={help.expanded} onToggle={help.toggle} />
         {scanning ? (
           <button
