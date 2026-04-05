@@ -194,9 +194,9 @@ export function useTokenSearch({
     crossSetAbortRef.current = ctrl;
 
     const timer = setTimeout(() => {
-      apiFetch<{ results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
+      apiFetch<{ data: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
         .then(data => {
-          const mapped = data.results.map(r => ({
+          const mapped = data.data.map(r => ({
             setName: r.setName,
             path: r.path,
             entry: { $value: r.$value as any, $type: r.$type, $name: r.name },

@@ -60,8 +60,8 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     setCommitOffset(0);
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
-      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`, { signal: controller.signal });
-      setCommits(data.commits || []);
+      const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`, { signal: controller.signal });
+      setCommits(data.data || []);
       setHasMore(data.hasMore ?? false);
     } catch (err) {
       if (isAbortError(err)) return;
@@ -84,10 +84,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     const nextOffset = commitOffset + 50;
     try {
       const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
-      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
+      const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(
         `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
       );
-      setCommits(prev => [...prev, ...(data.commits ?? [])]);
+      setCommits(prev => [...prev, ...(data.data ?? [])]);
       setHasMore(data.hasMore ?? false);
       setCommitOffset(nextOffset);
     } catch (err) {

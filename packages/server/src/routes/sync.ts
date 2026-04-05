@@ -258,15 +258,15 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const log = await fastify.gitSync.log(limit + 1, offset, search);
       const all = log.all;
       const hasMore = all.length > limit;
-      return {
-        commits: all.slice(0, limit).map(entry => ({
-          hash: entry.hash,
-          date: entry.date,
-          message: entry.message,
-          author: entry.author_name,
-        })),
-        hasMore,
-      };
+      const data = all.slice(0, limit).map(entry => ({
+        hash: entry.hash,
+        date: entry.date,
+        message: entry.message,
+        author: entry.author_name,
+      }));
+      // total is not cheaply available from git log; use -1 as sentinel when unknown
+      const total = hasMore ? -1 : offset + data.length;
+      return { data, total, hasMore, limit, offset };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to get log');
     }

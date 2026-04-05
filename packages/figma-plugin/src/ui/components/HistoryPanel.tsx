@@ -87,10 +87,10 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
       const [commitsData, snapshotsData] = await Promise.all([
-        apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`),
+        apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`),
         apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`),
       ]);
-      setTimelineCommits(commitsData.commits ?? []);
+      setTimelineCommits(commitsData.data ?? []);
       setHasMoreCommits(commitsData.hasMore ?? false);
       setTimelineSnapshots(snapshotsData.snapshots ?? []);
     } catch (err) {
@@ -112,10 +112,10 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     const nextOffset = commitOffset + 50;
     try {
       const searchParam = debouncedTimelineSearch ? `&search=${encodeURIComponent(debouncedTimelineSearch)}` : '';
-      const data = await apiFetch<{ commits?: CommitEntry[]; hasMore?: boolean }>(
+      const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(
         `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
       );
-      setTimelineCommits(prev => [...prev, ...(data.commits ?? [])]);
+      setTimelineCommits(prev => [...prev, ...(data.data ?? [])]);
       setHasMoreCommits(data.hasMore ?? false);
       setCommitOffset(nextOffset);
     } catch (err) {

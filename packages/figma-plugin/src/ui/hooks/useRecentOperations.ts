@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal, type PaginatedResponse } from '../shared/apiFetch';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 
 export interface OperationEntry {
@@ -59,12 +59,12 @@ export function useRecentOperations({
     if (!connected) return;
     const effectiveLimit = limit ?? loadedCount;
     try {
-      const data = await apiFetch<{ operations: OperationEntry[]; total: number }>(
+      const data = await apiFetch<PaginatedResponse<OperationEntry>>(
         `${serverUrl}/api/operations?limit=${effectiveLimit}`,
         { signal: createFetchSignal(unmountRef.current.signal) },
       );
-      setRecentOperations(data.operations);
-      setTotal(data.total);
+      setRecentOperations(data.data ?? []);
+      setTotal(data.total ?? 0);
     } catch (err) {
       if (isAbortError(err)) return;
       console.warn('[useRecentOperations] fetch failed:', err);

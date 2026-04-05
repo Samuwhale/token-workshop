@@ -67,13 +67,13 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
     setError(null);
     try {
       const qs = new URLSearchParams({ path: tokenPath, limit: '20', offset: String(offset) });
-      const data = await apiFetch<{ entries: HistoryEntryData[]; total: number; hasMore: boolean }>(
+      const data = await apiFetch<{ data: HistoryEntryData[]; total: number; hasMore: boolean }>(
         `${serverUrl}/api/operations/token-history?${qs}`,
       );
       if (offset === 0) {
-        setEntries(data.entries);
+        setEntries(data.data);
       } else {
-        setEntries(prev => [...prev, ...data.entries]);
+        setEntries(prev => [...prev, ...data.data]);
       }
       setTotal(data.total);
       setHasMore(data.hasMore);

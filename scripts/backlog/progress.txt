@@ -414,3 +414,27 @@
   - For array-valued composite tokens (e.g. multiple shadows), apply the transform to every element of the array that has the targeted sub-property — use `.map()` with a changed flag.
   - The "N non-color skipped" notes should gate on `hasColors && !allColors` (not just `!allColors`) so they don't show misleading copy when the section is shown solely because of a composite sub-prop target.
 ---
+
+## 2026-04-05 - Standardize server API pagination envelope
+- Renamed response keys to use a common `{ data, total, hasMore, limit, offset }` envelope across all list endpoints:
+  - `/api/operations`: `operations` → `data`, added `limit` + `offset`
+  - `/api/operations/token-history`: `entries` → `data`, added `limit` + `offset`
+  - `/api/tokens/search`: `results` → `data`, added `hasMore` + `limit` + `offset` (was missing all three)
+  - `/api/sync/log`: `commits` → `data`, added `total` + `limit` + `offset` (was missing all three; `total` is set to actual count when `hasMore=false`, `-1` sentinel when unknown)
+- Added `PaginatedResponse<T>` interface and `fetchPage()` helper to `packages/figma-plugin/src/ui/shared/apiFetch.ts`
+- Updated all UI consumers: `useRecentOperations.ts`, `TokenHistorySection.tsx`, `useTokenSearch.ts`, `GitCommitsSource.tsx`, `HistoryPanel.tsx`
+- Files changed:
+  - `packages/server/src/routes/operations.ts` ~L13, ~L33
+  - `packages/server/src/routes/tokens.ts` ~L96-L111
+  - `packages/server/src/routes/sync.ts` ~L258-L270
+  - `packages/figma-plugin/src/ui/shared/apiFetch.ts` ~L59 (new PaginatedResponse + fetchPage)
+  - `packages/figma-plugin/src/ui/hooks/useRecentOperations.ts` ~L62
+  - `packages/figma-plugin/src/ui/components/TokenHistorySection.tsx` ~L70
+  - `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L197
+  - `packages/figma-plugin/src/ui/components/history/GitCommitsSource.tsx` ~L63, ~L87
+  - `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L90, ~L115
+- **Learnings for future iterations:**
+  - UI consumers must use defensive `?? []` fallbacks when reading `data.data` — a real server running at port 9400 may return old format during validate.sh, causing a render crash if the state is set to `undefined`
+  - `/api/sync/log` cannot cheaply compute total via git log; use `-1` as a sentinel when `hasMore=true` and set `total = offset + data.length` when `hasMore=false`
+  - The headless UI validation catches TypeError render crashes even when all network errors are filtered — component state set to `undefined` (instead of `[]`) will crash on `.length`
+---

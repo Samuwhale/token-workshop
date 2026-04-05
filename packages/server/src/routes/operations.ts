@@ -10,7 +10,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
       const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '10', 10) || 10), 50);
       const offset = Math.max(0, parseInt(request.query.offset ?? '0', 10) || 0);
       const { entries, total } = await fastify.operationLog.getRecent(limit, offset);
-      return { operations: entries, total, hasMore: offset + entries.length < total };
+      return { data: entries, total, hasMore: offset + entries.length < total, limit, offset };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to list operations');
     }
@@ -30,7 +30,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
       const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '20', 10) || 20), 100);
       const offset = Math.max(0, parseInt(request.query.offset ?? '0', 10) || 0);
       const { entries, total } = await fastify.operationLog.getTokenHistory(tokenPath, limit, offset);
-      return { entries, total, hasMore: offset + entries.length < total };
+      return { data: entries, total, hasMore: offset + entries.length < total, limit, offset };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to get token history');
     }

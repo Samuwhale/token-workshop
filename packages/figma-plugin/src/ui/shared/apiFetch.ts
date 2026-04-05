@@ -56,6 +56,36 @@ export function createFetchSignal(disconnectSignal?: AbortSignal, timeoutMs = 50
   return disconnectSignal ? AbortSignal.any([timeout, disconnectSignal]) : timeout;
 }
 
+/**
+ * Standard pagination envelope returned by all list endpoints.
+ * `total` may be -1 when the server cannot cheaply compute it (e.g. git log).
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  hasMore: boolean;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Fetch a paginated list endpoint and return the standard envelope.
+ * Builds the URL with `limit` and `offset` appended (or overriding existing ones).
+ */
+export async function fetchPage<T>(
+  baseUrl: string,
+  limit: number,
+  offset: number,
+  options?: RequestInit,
+): Promise<PaginatedResponse<T>> {
+  const url = new URL(baseUrl, 'http://localhost');
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('offset', String(offset));
+  // Re-build as a relative URL with the same path+query (strip the fake origin)
+  const fullUrl = baseUrl.includes('://') ? url.toString() : url.pathname + url.search;
+  return apiFetch<PaginatedResponse<T>>(fullUrl, options);
+}
+
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
   if (!res.ok) {

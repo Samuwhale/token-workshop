@@ -93,6 +93,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           validateSearchList(nameQ, 'name');
         if (listError) return reply.status(400).send({ error: listError });
 
+        const resolvedLimit = limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200;
+        const resolvedOffset = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,
@@ -101,10 +103,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           descs: desc ? desc.split(',') : undefined,
           paths: pathQ ? pathQ.split(',') : undefined,
           names: nameQ ? nameQ.split(',') : undefined,
-          limit: limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200,
-          offset: offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0,
+          limit: resolvedLimit,
+          offset: resolvedOffset,
         });
-        return { results, total };
+        return { data: results, total, hasMore: resolvedOffset + results.length < total, limit: resolvedLimit, offset: resolvedOffset };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to search tokens');
       }
