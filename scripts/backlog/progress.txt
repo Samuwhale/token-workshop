@@ -621,3 +621,12 @@
   - The `handleRowKeyDown` deps array must include `handleContextMenuApply` or ESLint will warn; the hook is already stable via its own `useCallback` deps so this adds no re-render cost.
   - Bare letter shortcuts in `handleRowKeyDown` must guard `!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey` to avoid conflicting with browser or OS shortcuts.
 ---
+
+## 2026-04-05 - Publish readiness checks go stale silently after token edits
+- Root cause: when tokens are edited *during* an active check run, the auto-recheck effect (triggered by tokenChangeKey change) fires but is blocked by `isRunningRef.current = true`. After the check completes it sets `checksRunAtKey` to the old key value, leaving `isReadinessOutdated = true` with no further trigger to re-run — the tokenChangeKey effect won't fire again because the key hasn't changed.
+- Fix: added `latestTokenChangeKeyRef` (synced to `tokenChangeKey` via useEffect) in `useReadinessChecks.ts`. In the `finally` block of `runReadinessChecks`, after clearing `isRunningRef`, compare `thisRunKey` (from the closure) against `latestTokenChangeKeyRef.current`. If they differ (edits accumulated in-flight), schedule a follow-up via `Promise.resolve().then(() => runReadinessChecksRef.current())`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L67 (latestTokenChangeKeyRef + useEffect), ~L154 (finally follow-up logic)
+- **Learnings for future iterations:**
+  - `isRunningRef` mutex is correct but creates a silent gap: the last auto-recheck attempt that was blocked never gets retried. Any ref-guarded async operation should check for accumulated work on completion.
+  - `tokenChangeKey` in the `useCallback` closure is the value captured when that callback version was created, not the live value — that's why a separate `latestTokenChangeKeyRef` is needed to detect in-flight drift.
+---

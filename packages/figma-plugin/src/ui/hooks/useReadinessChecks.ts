@@ -67,6 +67,13 @@ export function useReadinessChecks({
   /** Prevents concurrent check runs (e.g. when multiple auto-rerun triggers fire together) */
   const isRunningRef = useRef(false);
 
+  /**
+   * Tracks the latest tokenChangeKey at all times so the check's finally-block
+   * can detect edits that accumulated *during* a run and schedule a follow-up.
+   */
+  const latestTokenChangeKeyRef = useRef<number | undefined>(tokenChangeKey);
+  useEffect(() => { latestTokenChangeKeyRef.current = tokenChangeKey; }, [tokenChangeKey]);
+
   const runReadinessChecks = useCallback(async () => {
     if (!activeSet || isRunningRef.current) return;
     isRunningRef.current = true;
@@ -147,6 +154,13 @@ export function useReadinessChecks({
     } finally {
       setReadinessLoading(false);
       isRunningRef.current = false;
+      // If token changes accumulated while this run was in-flight, kick off a
+      // follow-up so results never stay silently outdated after concurrent edits.
+      const thisRunKey = tokenChangeKey ?? 0;
+      const latestKey = latestTokenChangeKeyRef.current ?? 0;
+      if (latestKey !== thisRunKey) {
+        Promise.resolve().then(() => runReadinessChecksRef.current());
+      }
     }
   }, [serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap, tokenChangeKey, setOrphanConfirm]);
 
