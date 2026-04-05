@@ -782,3 +782,17 @@
   - When a list truncates, a static "and N more…" label satisfies neither recognition nor user control. A button that expands inline is minimal and correct — no modal, no pagination needed.
   - The allConflictingTokens/visibleTokens split: compute the full list first, then derive the visible slice from it, rather than slicing during the map — this keeps `hiddenCount` accurate without re-counting from the original data source.
 ---
+
+## 2026-04-05 - ImportTokenListView search filter and inline alias display
+- Added a text search input (appears when >10 tokens) that filters the token list by path or value (including alias reference targets like `{color.primary}`)
+- Made alias resolved values visible inline: chained aliases now show `→ direct.target → resolved.end.value` on the same row; no longer tooltip-only
+- Added color swatch for color aliases (shows the resolved hex color as a swatch, not just a blank placeholder)
+- Added empty-state message when search has no matches: "No tokens match 'xyz'"
+- Added result count footer: "Showing N of M tokens" when search filters the list
+- Removed the redundant dead `TokenRow` component (was never used by the render — only `TokenRowWithAlias` was); re-exported `TokenRowWithAlias` as `TokenRow` for any external imports
+- Files changed: `packages/figma-plugin/src/ui/components/ImportTokenListView.tsx` ~L1 (full rewrite)
+- **Learnings for future iterations:**
+  - Search threshold of `tokens.length > 10` keeps the input hidden for small imports (avoids clutter) while exposing it for the large imports where it's useful
+  - Filtering by `token.$value` catches alias reference strings like `{color.primary.500}` — users can search for alias dependencies by target name
+  - The `TokenRow` export was a dead alias pointing to a function that was never actually used by the main component; the safe fix is to re-export the real component under that name
+---
