@@ -18,6 +18,16 @@ import { LightnessInspectorPanel } from './LightnessInspectorPanel';
 
 type HealthStatus = 'healthy' | 'warning' | 'critical';
 
+interface PriorityIssue {
+  severity: 'critical' | 'warning' | 'info';
+  category: string;
+  message: string;
+  count: number;
+  ctaLabel: string;
+  /** Stable string key describing the action — resolved to a handler in JSX */
+  action: 'lint' | 'generators' | 'validation-scroll' | 'duplicates-scroll' | 'canvas' | 'unused-scroll';
+}
+
 interface HealthSectionProps {
   title: string;
   status: HealthStatus | null;
@@ -112,6 +122,21 @@ function HealthSection({ title, status, count, detail, children, ctaLabel, onCta
         </div>
       )}
     </div>
+  );
+}
+
+function priorityCategoryClass(severity: PriorityIssue['severity']): string {
+  if (severity === 'critical') return 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] border-[var(--color-figma-error)]/30';
+  if (severity === 'warning') return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
+  return 'bg-sky-500/10 text-sky-500 border-sky-500/30';
+}
+
+function InfoIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 16v-4M12 8h.01"/>
+    </svg>
   );
 }
 
@@ -485,14 +510,18 @@ export function HealthPanel({
     ? Object.keys(allTokensFlat).filter(path => !tokenUsageCounts[path]).length
     : 0;
 
+  const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
+
   const overallStatus: HealthStatus =
     lintErrors > 0 || validationErrors > 0 || errorGenerators.length > 0 ? 'critical'
-    : lintWarnings > 0 || validationWarnings > 0 || staleGenerators.length > 0 ? 'warning'
+    : lintWarnings > 0 || validationWarnings > 0 || staleGenerators.length > 0 || totalDuplicateAliases > 0 || (heatmapResult?.red ?? 0) > 0 ? 'warning'
     : 'healthy';
 
   const totalIssues =
     lintErrors + lintWarnings +
-    staleGenerators.length + errorGenerators.length;
+    staleGenerators.length + errorGenerators.length +
+    totalDuplicateAliases +
+    (heatmapResult?.red ?? 0);
 
   const lintStatus: HealthStatus | null =
     lintErrors > 0 ? 'critical' : lintWarnings > 0 ? 'warning' : 'healthy';
@@ -508,7 +537,147 @@ export function HealthPanel({
     ? Math.round((heatmapResult.green / heatmapResult.total) * 100)
     : null;
 
-  const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
+  // Comprehensive prioritised issue list — aggregates ALL sources so the panel
+  // is useful at a glance without expanding any sub-section.
+  const priorityIssues = ((): PriorityIssue[] => {
+    const items: PriorityIssue[] = [];
+
+    // ── Critical ──────────────────────────────────────────────────────────────
+    if (lintErrors > 0) {
+      items.push({
+        severity: 'critical',
+        category: 'Lint',
+        message: `${lintErrors} error${lintErrors !== 1 ? 's' : ''} in current set`,
+        count: lintErrors,
+        ctaLabel: 'Go to set',
+        action: 'lint',
+      });
+    }
+
+    if (activeIssues) {
+      const errorsByRule = new Map<string, number>();
+      for (const issue of activeIssues) {
+        if (issue.severity === 'error') {
+          errorsByRule.set(issue.rule, (errorsByRule.get(issue.rule) ?? 0) + 1);
+        }
+      }
+      for (const [rule, count] of [...errorsByRule.entries()].sort((a, b) => b[1] - a[1])) {
+        const meta = getRuleLabel(rule);
+        items.push({
+          severity: 'critical',
+          category: meta?.label ?? rule,
+          message: `${count} token${count !== 1 ? 's' : ''} affected`,
+          count,
+          ctaLabel: 'Fix',
+          action: 'validation-scroll',
+        });
+      }
+    }
+
+    if (errorGenerators.length > 0) {
+      items.push({
+        severity: 'critical',
+        category: 'Generators',
+        message: `${errorGenerators.length} failed`,
+        count: errorGenerators.length,
+        ctaLabel: 'View',
+        action: 'generators',
+      });
+    }
+
+    // ── Warning ───────────────────────────────────────────────────────────────
+    if (lintWarnings > 0) {
+      items.push({
+        severity: 'warning',
+        category: 'Lint',
+        message: `${lintWarnings} warning${lintWarnings !== 1 ? 's' : ''} in current set`,
+        count: lintWarnings,
+        ctaLabel: 'Go to set',
+        action: 'lint',
+      });
+    }
+
+    if (activeIssues) {
+      const warnsByRule = new Map<string, number>();
+      for (const issue of activeIssues) {
+        if (issue.severity === 'warning') {
+          warnsByRule.set(issue.rule, (warnsByRule.get(issue.rule) ?? 0) + 1);
+        }
+      }
+      for (const [rule, count] of [...warnsByRule.entries()].sort((a, b) => b[1] - a[1])) {
+        const meta = getRuleLabel(rule);
+        items.push({
+          severity: 'warning',
+          category: meta?.label ?? rule,
+          message: `${count} token${count !== 1 ? 's' : ''} affected`,
+          count,
+          ctaLabel: 'View',
+          action: 'validation-scroll',
+        });
+      }
+    }
+
+    if (totalDuplicateAliases > 0) {
+      items.push({
+        severity: 'warning',
+        category: 'Duplicates',
+        message: `${totalDuplicateAliases} redundant value${totalDuplicateAliases !== 1 ? 's' : ''}`,
+        count: totalDuplicateAliases,
+        ctaLabel: 'Fix',
+        action: 'duplicates-scroll',
+      });
+    }
+
+    if (staleGenerators.length > 0) {
+      items.push({
+        severity: 'warning',
+        category: 'Generators',
+        message: `${staleGenerators.length} stale`,
+        count: staleGenerators.length,
+        ctaLabel: 'Run',
+        action: 'generators',
+      });
+    }
+
+    if (heatmapResult && heatmapResult.red > 0) {
+      items.push({
+        severity: 'warning',
+        category: 'Canvas',
+        message: `${heatmapResult.red} unbound layer${heatmapResult.red !== 1 ? 's' : ''}`,
+        count: heatmapResult.red,
+        ctaLabel: 'Audit',
+        action: 'canvas',
+      });
+    }
+
+    // ── Info ──────────────────────────────────────────────────────────────────
+    if (hasUsageData && unusedCount > 0) {
+      items.push({
+        severity: 'info',
+        category: 'Unused',
+        message: `${unusedCount} unused token${unusedCount !== 1 ? 's' : ''}`,
+        count: unusedCount,
+        ctaLabel: 'Review',
+        action: 'unused-scroll',
+      });
+    }
+
+    return items;
+  })();
+
+  const totalAllIssues =
+    priorityIssues.filter(i => i.severity !== 'info').reduce((sum, i) => sum + i.count, 0);
+
+  const resolveIssueAction = (action: PriorityIssue['action']) => {
+    switch (action) {
+      case 'lint': return () => onNavigateTo('define', 'tokens');
+      case 'generators': return () => onNavigateTo('define', 'generators');
+      case 'canvas': return () => { onNavigateTo('apply', 'canvas-analysis'); if (!heatmapResult) onTriggerHeatmap(); };
+      case 'validation-scroll': return () => document.getElementById('health-validation-section')?.scrollIntoView({ behavior: 'smooth' });
+      case 'duplicates-scroll': return () => document.getElementById('health-duplicates-section')?.scrollIntoView({ behavior: 'smooth' });
+      case 'unused-scroll': return () => document.getElementById('health-unused-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   function formatValidatedAt(date: Date): string {
     const diffMs = Date.now() - date.getTime();
@@ -566,7 +735,70 @@ export function HealthPanel({
         </div>
       </div>
 
-      {/* Health Dashboard Strip */}
+      {/* Priority Issues — always visible when connected and validation has run */}
+      {connected && validationIssuesProp !== null && priorityIssues.length > 0 && (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)]">
+          {/* Summary header row */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+              Priority issues
+            </span>
+            <span className="flex-1" />
+            {priorityIssues.filter(i => i.severity === 'critical').length > 0 && (
+              <span className="text-[10px] font-bold tabular-nums text-[var(--color-figma-error)]">
+                {priorityIssues.filter(i => i.severity === 'critical').reduce((s, i) => s + i.count, 0)} critical
+              </span>
+            )}
+            {priorityIssues.filter(i => i.severity === 'warning').length > 0 && (
+              <span className="text-[10px] font-bold tabular-nums text-amber-500">
+                {priorityIssues.filter(i => i.severity === 'warning').reduce((s, i) => s + i.count, 0)} warning
+              </span>
+            )}
+            {priorityIssues.filter(i => i.severity === 'info').length > 0 && (
+              <span className="text-[10px] tabular-nums text-sky-500">
+                {priorityIssues.filter(i => i.severity === 'info').reduce((s, i) => s + i.count, 0)} info
+              </span>
+            )}
+          </div>
+          {/* Issue rows — up to 8 visible */}
+          {priorityIssues.slice(0, 8).map((issue, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-2 px-3 py-1.5 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span className={`shrink-0 ${issue.severity === 'critical' ? 'text-[var(--color-figma-error)]' : issue.severity === 'warning' ? 'text-amber-500' : 'text-sky-500'}`}>
+                {issue.severity === 'info' ? <InfoIcon /> : <StatusIcon status={issue.severity} />}
+              </span>
+              <span className={`shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded border ${priorityCategoryClass(issue.severity)}`}>
+                {issue.category}
+              </span>
+              <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)] truncate min-w-0">
+                {issue.message}
+              </span>
+              <button
+                onClick={resolveIssueAction(issue.action)}
+                className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors whitespace-nowrap"
+              >
+                {issue.ctaLabel}
+              </button>
+            </div>
+          ))}
+          {priorityIssues.length > 8 && (
+            <div className="px-3 py-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
+              +{priorityIssues.length - 8} more — see section details below
+            </div>
+          )}
+          {/* All-clear row for non-info issues when only info issues remain */}
+          {totalAllIssues === 0 && priorityIssues.length > 0 && (
+            <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex items-center gap-1.5 text-[var(--color-figma-success,#18a058)]">
+              <StatusIcon status="healthy" />
+              <span className="text-[10px]">No critical or warning issues</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Section Breakdown — collapsible, shows per-area health cards */}
       {connected && (
         <div className="shrink-0 border-b border-[var(--color-figma-border)]">
           <button
@@ -574,17 +806,14 @@ export function HealthPanel({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             aria-expanded={dashboardExpanded}
           >
-            <span className={statusColor(overallStatus)}>
-              <StatusIcon status={overallStatus} />
-            </span>
             <span className="flex-1 text-left font-medium text-[var(--color-figma-text-secondary)]">
-              Health summary
-              {totalIssues > 0 && (
+              Section breakdown
+              {validationIssuesProp === null && totalIssues > 0 && (
                 <span className={`ml-1.5 ${statusColor(overallStatus)}`}>
                   — {totalIssues} issue{totalIssues !== 1 ? 's' : ''}
                 </span>
               )}
-              {totalIssues === 0 && (
+              {validationIssuesProp === null && totalIssues === 0 && (
                 <span className="ml-1.5 text-[var(--color-figma-text-secondary)] opacity-60">— all clear</span>
               )}
             </span>
@@ -741,7 +970,7 @@ export function HealthPanel({
           <>
             {/* Validation Issues */}
             {validationIssuesProp !== null && (
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+              <div id="health-validation-section" className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
                 <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                   <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                     Validation Report
@@ -974,26 +1203,30 @@ export function HealthPanel({
             )}
 
             {/* Unused Tokens */}
-            <UnusedTokensPanel
-              serverUrl={serverUrl}
-              unusedTokens={unusedTokens}
-              hasUsageData={hasUsageData}
-              unusedCount={unusedCount}
-              onNavigateToToken={onNavigateToToken}
-              onError={onError}
-              onMutate={() => setReloadKey(k => k + 1)}
-            />
+            <div id="health-unused-section">
+              <UnusedTokensPanel
+                serverUrl={serverUrl}
+                unusedTokens={unusedTokens}
+                hasUsageData={hasUsageData}
+                unusedCount={unusedCount}
+                onNavigateToToken={onNavigateToToken}
+                onError={onError}
+                onMutate={() => setReloadKey(k => k + 1)}
+              />
+            </div>
 
             {/* Duplicate Detection */}
-            <DuplicateDetectionPanel
-              serverUrl={serverUrl}
-              lintDuplicateGroups={lintDuplicateGroups}
-              totalDuplicateAliases={totalDuplicateAliases}
-              onNavigateToToken={onNavigateToToken}
-              onError={onError}
-              onMutate={() => setReloadKey(k => k + 1)}
-              onRefreshValidation={onRefreshValidation}
-            />
+            <div id="health-duplicates-section">
+              <DuplicateDetectionPanel
+                serverUrl={serverUrl}
+                lintDuplicateGroups={lintDuplicateGroups}
+                totalDuplicateAliases={totalDuplicateAliases}
+                onNavigateToToken={onNavigateToToken}
+                onError={onError}
+                onMutate={() => setReloadKey(k => k + 1)}
+                onRefreshValidation={onRefreshValidation}
+              />
+            </div>
 
             {/* Color Contrast Matrix */}
             <ContrastMatrixPanel

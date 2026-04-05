@@ -655,3 +655,17 @@
   - The `hasDirectRef` helper must handle both scalar string aliases and composite object values (each sub-property can independently be an alias), so a simple `isAlias(entry.$value)` check is insufficient.
   - When adding a new popover to `TokenTreeNode`, add a paired `useEffect` (identical to the `contextMenuPos` one) that registers `click` + `keydown` listeners to close it on outside-click / Escape — but make sure `onClick={e => e.stopPropagation()}` is on the popover div itself so internal clicks don't bubble and immediately close it.
 ---
+
+## 2026-04-05 - HealthPanel lacks a summary score or prioritized issue list
+- Added a `PriorityIssue` interface and computed a comprehensive `priorityIssues` array from ALL health sources (lint errors/warnings, validation errors/warnings grouped by rule, generator failures, stale generators, duplicate token values, canvas unbound layers, unused tokens).
+- Added an always-visible "Priority issues" section between the header and the collapsible section-breakdown, showing up to 8 issues sorted critical → warning → info with category pills, counts, and direct CTA buttons ("Fix", "Run", "Audit", "Review", "Go to set").
+- CTA buttons use action string keys resolved at render time so the useMemo deps are clean; scroll-to CTAs use `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })` targeting new `id` attributes on the validation, unused, and duplicates sections.
+- Updated `overallStatus` and `totalIssues` to include duplicates and canvas unbound layers (previously only lint + generators).
+- Renamed collapsible "Health summary" strip to "Section breakdown" to disambiguate from the new always-visible top summary.
+- Moved `totalDuplicateAliases` declaration above `overallStatus` to avoid TDZ (was previously declared after the expressions that referenced it).
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L19 (PriorityIssue interface), ~L119 (InfoIcon + priorityCategoryClass helpers), ~L513 (totalDuplicateAliases moved up), ~L540 (priorityIssues IIFE), ~L668 (totalAllIssues + resolveIssueAction), ~L750 (priority list JSX), ~L803 (section breakdown rename), ~L973 (id on validation section), ~L1206 (id wrappers on unused + duplicates)
+- **Learnings for future iterations:**
+  - For summary views that aggregate multiple data sources, compute a flat `priorityIssues` array using an IIFE rather than useMemo to avoid callback dep problems — the callbacks use stable prop refs and setState setters, so the IIFE re-runs on every render (fine since all inputs are already memoized).
+  - Always declare derived consts that are referenced by earlier consts (overallStatus, totalIssues) before them — TypeScript doesn't catch TDZ for consts within the same function scope.
+  - `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })` works in the plugin iframe for scrolling within the overflow-y-auto body div — no bodyRef needed.
+---

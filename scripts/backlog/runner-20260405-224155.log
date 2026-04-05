@@ -363,3 +363,26 @@ Already up to date.
 
   Merging to main: No lightweight "find references" for tokens — the context menu has "Open in dependency graph" which navigates away to a separate panel, but there's no inline way to see "which tokens alias this one?" without leaving the current view; add a quick popover or expandable section showing reverse references directly in the token list row
 Already up to date.
+[main 397151e1] chore(backlog): done – No lightweight "find references" for tokens — the context menu has "Open in dependency graph" which navigates away to a separate panel, but there's no inline way to see "which tokens alias this one?" without leaving the current view; add a quick popover or expandable section showing reverse references directly in the token list row
+ 5 files changed, 184 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No lightweight "find references" for tokens
+- Added inline "Find references" feature to token list rows. Clicking the chain-link icon button in the hover actions toolbar (or selecting "Find references" from the right-click context menu) opens a popover listing all tokens in the current flat token map that alias the hovered token via `{path}` syntax.
+- Popover shows token count in header, each referencing token as a clickable row (clicking navigates to it via `onNavigateToAlias`), and a set-name badge when the referencing token lives in a different set. Dismisses on click-outside or Escape.
+- Computation is fully client-side using the `allTokensFlat` already available in context — no API call needed. Module-level `hasDirectRef` + `getIncomingRefs` helpers handle simple string aliases as well as composite token values (shadow, border, typography, etc.) with nested sub-properties.
+
+═══════════════════════════════════════════════════════════════
+  #16  ·  7 queued · 0
+0 in-progress · last took 5m29s
+═══════════════════════════════════════════════════════════════
+  → HealthPanel lacks a summary score or prioritized issue list — it aggregates 5+ sub-panels (lint, duplicates, contrast, lightness, unused, coverage) but users must expand each section manually to discover problems; add a top-level health summary with the most urgent issues listed first so the panel is useful at a glance
+  Worktree: /tmp/backlog-50286-LWRMWR
+  Running agent… (started 23:45:08)
+
+  ✓ done: HealthPanel lacks a summary score or prioritized issue list
+    Added always-visible "Priority issues" section aggregating lint, validation, generators, duplicates, canvas, and unused tokens into a sorted critical→warning→info list with category pills and direct CTA buttons — no expansion required to see what needs fixing.
+    37 turns · 486s · $1.63
+
+  Merging to main: HealthPanel lacks a summary score or prioritized issue list
+Already up to date.
