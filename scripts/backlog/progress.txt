@@ -583,3 +583,13 @@
   - The `setErrorHandler` in Fastify receives `(err, request, reply)` — do NOT call `return reply.send(...)`, just call `reply.status(...).send(...)` without returning (Fastify manages the lifecycle). But returning is also fine.
   - Handlers that only call synchronous in-memory methods (resolver store list/get) still benefit from try-catch because unexpected type errors or undefined property access would otherwise bubble unhandled.
 ---
+
+## 2026-04-05 - Fix parseInt || fallback treating 0 as falsy in paginated endpoints
+- Replaced `parseInt(...) || default` with `isNaN(parsed) ? default : parsed` in all three paginated route handlers.
+- Before: `parseInt('0', 10) || 200` → `200` (bug: client sending `?limit=0` or `?offset=0` got the default instead of 0)
+- After: `isNaN(parsed) ? 200 : parsed` → `0` (correct; NaN from non-numeric input still falls back to the default)
+- Files changed: `packages/server/src/routes/operations.ts` ~L10-11, ~L41-42; `packages/server/src/routes/tokens.ts` ~L96-97
+- **Learnings for future iterations:**
+  - `parseInt(str, 10) || fallback` is incorrect for numeric query params because `0` is a valid value but falsy — always use `isNaN` to distinguish "parse failed" from "value is zero"
+  - The tokens.ts variant had an additional outer `limit ? ... : 200` guard (truthy check on the raw string) which was also wrong for `?limit=0` since `'0'` is a truthy string — the fix simplifies it to a single `isNaN` check
+---

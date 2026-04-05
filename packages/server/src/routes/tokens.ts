@@ -93,8 +93,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           validateSearchList(nameQ, 'name');
         if (listError) return reply.status(400).send({ error: listError });
 
-        const resolvedLimit = limit ? Math.min(parseInt(limit, 10) || 200, 1000) : 200;
-        const resolvedOffset = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
+        const parsedLimit = parseInt(limit ?? '200', 10);
+        const resolvedLimit = Math.min(isNaN(parsedLimit) ? 200 : parsedLimit, 1000);
+        const parsedOffset = parseInt(offset ?? '0', 10);
+        const resolvedOffset = Math.max(isNaN(parsedOffset) ? 0 : parsedOffset, 0);
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,

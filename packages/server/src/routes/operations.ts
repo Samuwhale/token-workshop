@@ -7,8 +7,10 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/operations — list recent operations
   fastify.get<{ Querystring: { limit?: string; offset?: string } }>('/operations', async (request, reply) => {
     try {
-      const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '10', 10) || 10), 50);
-      const offset = Math.max(0, parseInt(request.query.offset ?? '0', 10) || 0);
+      const parsedLimit = parseInt(request.query.limit ?? '10', 10);
+      const limit = Math.min(Math.max(1, isNaN(parsedLimit) ? 10 : parsedLimit), 50);
+      const parsedOffset = parseInt(request.query.offset ?? '0', 10);
+      const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
       const { entries, total } = await fastify.operationLog.getRecent(limit, offset);
       return { data: entries, total, hasMore: offset + entries.length < total, limit, offset };
     } catch (err) {
@@ -38,8 +40,10 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         reply.code(400);
         return { error: 'Missing required query param: path' };
       }
-      const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '20', 10) || 20), 100);
-      const offset = Math.max(0, parseInt(request.query.offset ?? '0', 10) || 0);
+      const parsedLimit = parseInt(request.query.limit ?? '20', 10);
+      const limit = Math.min(Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit), 100);
+      const parsedOffset = parseInt(request.query.offset ?? '0', 10);
+      const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
       const { entries, total } = await fastify.operationLog.getTokenHistory(tokenPath, limit, offset);
       return { data: entries, total, hasMore: offset + entries.length < total, limit, offset };
     } catch (err) {
