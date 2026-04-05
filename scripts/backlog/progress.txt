@@ -606,3 +606,12 @@
   - The `!== null` pattern for checking "token not found" is dangerous when the function returns `undefined` (not `null`) for not-found — always use a truthy check or `!== undefined` when the contract returns `undefined`
   - Pre-run snapshot captures should never silently fall back to `{}` — an empty snapshot means all pre-existing tokens would be deleted on rollback, which is worse than the original error
 ---
+
+## 2026-04-05 - Bulk create tab shows no success feedback
+- Added success toast after bulk token creation with "Created N tokens" message; partial success shows "Created N tokens, X failed" as an error toast. Changed loop to continue-on-error (catching per-row failures) instead of aborting at first error. Added `rowErrors` state to track per-row failure messages, shown as red border on the name input + inline error text below the row. Rows reset only when all succeed; on partial failure, failing rows stay and show their errors. Clearing rowErrors when a row is edited or removed.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1118 (rowErrors state), ~L1130 (updateRow clears error), ~L1140 (removeRow clears error), ~L1145 (handleCreateAll rewrite), ~L1301 (per-row error UI)
+- **Learnings for future iterations:**
+  - Bulk operations should always be continue-on-error (not abort-on-first-error) — users can fix and retry individual rows when errors are shown inline.
+  - When partial success occurs, don't reset the form — keep failing rows so users can correct them without re-typing everything.
+  - Per-row error indicators need both a visual cue (border color) and text explaining what went wrong, since the generic error message at the bottom of the form doesn't identify which row failed.
+---

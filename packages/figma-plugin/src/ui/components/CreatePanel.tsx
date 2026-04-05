@@ -1117,6 +1117,7 @@ function BulkTab({
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const nextId = useRef(4);
 
   const addRow = () => {
@@ -1125,6 +1126,8 @@ function BulkTab({
   };
 
   const updateRow = (id: string, field: string, value: string) => {
+    // Clear per-row error when user edits the row
+    setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
     setRows(r => r.map(row => {
       if (row.id !== id) return row;
       // Clear rawValue when user manually edits the value field so parseInlineValue is used
@@ -1137,6 +1140,7 @@ function BulkTab({
   const removeRow = (id: string) => {
     if (rows.length <= 1) return;
     setRows(r => r.filter(row => row.id !== id));
+    setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
   const handleCreateAll = async () => {
@@ -1144,26 +1148,45 @@ function BulkTab({
     if (validRows.length === 0 || !connected) return;
     setSaving(true);
     setError('');
+    setRowErrors({});
+    let succeeded = 0;
+    const newRowErrors: Record<string, string> = {};
     try {
       for (const row of validRows) {
         const fullPath = group.trim() ? `${group.trim()}.${row.name.trim()}` : row.name.trim();
         const parsedValue = row.rawValue !== undefined ? row.rawValue : parseInlineValue(row.type, row.value.trim());
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(fullPath)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: row.type, $value: parsedValue }),
-        });
-        onTokenCreated?.(fullPath);
+        try {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(fullPath)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: row.type, $value: parsedValue }),
+          });
+          onTokenCreated?.(fullPath);
+          succeeded++;
+        } catch (rowErr) {
+          newRowErrors[row.id] = rowErr instanceof ApiError ? rowErr.message : String(rowErr);
+        }
       }
-      onRefresh();
-      // Reset rows
-      setRows([
-        { id: String(nextId.current++), name: '', type: 'color', value: '' },
-        { id: String(nextId.current++), name: '', type: 'color', value: '' },
-        { id: String(nextId.current++), name: '', type: 'color', value: '' },
-      ]);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
+      const failed = validRows.length - succeeded;
+      if (succeeded > 0) {
+        onRefresh();
+        if (failed === 0) {
+          dispatchToast(`Created ${succeeded} token${succeeded !== 1 ? 's' : ''}`, 'success');
+          // Only reset rows when all succeeded
+          setRows([
+            { id: String(nextId.current++), name: '', type: 'color', value: '' },
+            { id: String(nextId.current++), name: '', type: 'color', value: '' },
+            { id: String(nextId.current++), name: '', type: 'color', value: '' },
+          ]);
+        } else {
+          dispatchToast(`Created ${succeeded} token${succeeded !== 1 ? 's' : ''}, ${failed} failed`, 'error');
+          setRowErrors(newRowErrors);
+        }
+      } else {
+        // All failed
+        setRowErrors(newRowErrors);
+        setError(`All ${validRows.length} token${validRows.length !== 1 ? 's' : ''} failed to create`);
+      }
     } finally {
       setSaving(false);
     }
@@ -1263,10 +1286,11 @@ function BulkTab({
         {rows.map(row => {
           const isColor = row.type === 'color';
           const hasColorValue = isColor && /^#[0-9a-fA-F]{6}$/i.test(row.value);
+          const rowError = rowErrors[row.id];
           return (
-            <div key={row.id} className="grid grid-cols-[20px_1fr_80px_1fr_24px] gap-1 items-center">
+            <div key={row.id} className="grid grid-cols-[20px_1fr_80px_1fr_24px] gap-1 items-start">
               {/* Value preview */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center pt-1.5">
                 {isColor && hasColorValue ? (
                   <div className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)]" style={{ backgroundColor: row.value }} />
                 ) : row.type === 'dimension' && row.value ? (
@@ -1275,13 +1299,16 @@ function BulkTab({
                   <div className="w-4 h-4 rounded-sm border border-dashed border-[var(--color-figma-border)]/40" />
                 )}
               </div>
+              <div className="flex flex-col gap-0.5">
               <input
                 type="text"
                 placeholder="name"
                 value={row.name}
                 onChange={e => updateRow(row.id, 'name', e.target.value)}
-                className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                className={`px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${rowError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               />
+              {rowError && <p className="text-[9px] text-[var(--color-figma-error)] leading-tight" title={rowError}>{rowError}</p>}
+              </div>
               <select
                 value={row.type}
                 onChange={e => updateRow(row.id, 'type', e.target.value)}
