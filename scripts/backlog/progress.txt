@@ -637,3 +637,10 @@
   - Panels mounted with `hidden` class (not conditionally rendered) preserve their scan state when switching tabs — good for expensive operations like coverage scans
   - Always grep for command palette `navigateTo` calls when removing a sub-tab — they're easy to miss since they're not type-checked against the SubTab union at the call site
 ---
+
+## 2026-04-05 - Token search qualifiers are undiscoverable
+- Stale — already implemented. The search bar has: (1) a cycling placeholder showing qualifier examples (`type:color`, `has:alias`, etc.) every 3 seconds, (2) an autocomplete dropdown on focus showing all QUERY_QUALIFIERS with descriptions and keyboard navigation, (3) a `?` help button that opens a full qualifier cheat sheet with clickable insertion. All qualifiers including `type:`, `has:alias`, `has:unused`, `value:`, `generator:`, `path:`, `name:`, `desc:`, `group:` are present in QUERY_QUALIFIERS.
+- Files changed: none (feature already exists in `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` ~L130-151, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L148, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2494-2579)
+- **Learnings for future iterations:**
+  - When a backlog item describes a discoverability gap, check if a previous session already addressed it via cycling placeholders + autocomplete + help button before implementing anything new
+---
