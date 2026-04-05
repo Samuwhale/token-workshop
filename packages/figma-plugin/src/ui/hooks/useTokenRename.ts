@@ -71,6 +71,8 @@ export function useTokenRename({
       const capturedUrl = serverUrl;
       onPushUndo({
         description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
+        groupKey: `rename-${capturedSet}`,
+        groupSummary: (n) => `Rename ${n} tokens`,
         restore: async () => {
           if (setNameRef.current !== capturedSet) {
             onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);

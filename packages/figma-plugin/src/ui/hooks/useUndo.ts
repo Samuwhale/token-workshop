@@ -4,6 +4,32 @@ export interface UndoSlot {
   description: string;
   restore: () => Promise<void>;
   redo?: () => Promise<void>;
+  /**
+   * When set, consecutive pushes with the same groupKey arriving within
+   * GROUP_TIMEOUT_MS are merged into a single undo entry instead of creating
+   * separate entries. Useful for rapid sequential edits of the same logical type
+   * (e.g. renaming several tokens in a row).
+   */
+  groupKey?: string;
+  /**
+   * Optional callback to produce a description for the merged entry.
+   * Receives the number of individual operations that have been merged.
+   * Defaults to the last pushed slot's description if not provided.
+   */
+  groupSummary?: (count: number) => string;
+}
+
+/** How long (ms) to keep the grouping window open after the last push. */
+const GROUP_TIMEOUT_MS = 2000;
+
+/** Internal slot stored in the past/future stacks — extends the public interface. */
+interface InternalSlot extends UndoSlot {
+  _pushedAt: number;
+  _mergeCount: number;
+  /** All constituent restore functions in push-order (oldest first). */
+  _restores: Array<() => Promise<void>>;
+  /** All constituent redo functions in push-order (oldest first). */
+  _redos: Array<() => Promise<void>>;
 }
 
 const DEFAULT_MAX_HISTORY = 20;
@@ -11,9 +37,9 @@ const DEFAULT_MAX_HISTORY = 20;
 export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY, onError?: (message: string) => void) {
   const limit = Math.max(1, Math.min(200, Math.round(maxHistory)));
   // past[last] = most recent undoable action
-  const [past, setPast] = useState<UndoSlot[]>([]);
+  const [past, setPast] = useState<InternalSlot[]>([]);
   // future[last] = most recent redoable action (from an undo)
-  const [future, setFuture] = useState<UndoSlot[]>([]);
+  const [future, setFuture] = useState<InternalSlot[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const executingRef = useRef(false);
   const pastRef = useRef(past);
@@ -22,13 +48,56 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY, onError?: (mes
   futureRef.current = future;
 
   const pushUndo = useCallback((slot: UndoSlot) => {
+    const now = Date.now();
     setPast(prev => {
-      const next = [...prev, slot];
+      const last = prev.length > 0 ? prev[prev.length - 1] : undefined;
+
+      // Merge with previous entry when groupKey matches and window is still open
+      if (
+        slot.groupKey &&
+        last?.groupKey === slot.groupKey &&
+        (now - last._pushedAt) < GROUP_TIMEOUT_MS
+      ) {
+        const newRestores = [...last._restores, slot.restore];
+        const newRedos = slot.redo ? [...last._redos, slot.redo] : last._redos;
+        const newCount = last._mergeCount + 1;
+        const summaryFn = slot.groupSummary ?? last.groupSummary;
+        const merged: InternalSlot = {
+          description: summaryFn?.(newCount) ?? slot.description,
+          groupKey: slot.groupKey,
+          groupSummary: summaryFn,
+          restore: async () => {
+            // Undo newest-first so dependent operations unwind in the right order
+            for (let i = newRestores.length - 1; i >= 0; i--) {
+              await newRestores[i]();
+            }
+          },
+          redo: newRedos.length > 0
+            ? async () => { for (const r of newRedos) await r(); }
+            : undefined,
+          _pushedAt: now,
+          _mergeCount: newCount,
+          _restores: newRestores,
+          _redos: newRedos,
+        };
+        const next = [...prev.slice(0, -1), merged];
+        return next.length > limit ? next.slice(next.length - limit) : next;
+      }
+
+      // Regular push
+      const internal: InternalSlot = {
+        ...slot,
+        _pushedAt: now,
+        _mergeCount: 1,
+        _restores: [slot.restore],
+        _redos: slot.redo ? [slot.redo] : [],
+      };
+      const next = [...prev, internal];
       return next.length > limit ? next.slice(next.length - limit) : next;
     });
     setFuture([]);
     setDismissed(false);
-  }, []);
+  }, [limit]);
 
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;

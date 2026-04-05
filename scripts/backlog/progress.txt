@@ -437,3 +437,16 @@
   - `perSetFlat` is built from `fetchAllTokensFlatWithSets` without `resolveAllAliases`, so its values preserve alias references intact. `allTokensFlat` runs `resolveAllAliases` on top.
   - The condition `if (onPushUndo && oldEntry)` silently skips undo when `oldEntry` is falsy — dangerous when `allTokensFlat` is the themed view which may exclude some sets.
 ---
+
+## 2026-04-05 - No undo operation grouping
+- Added time-based undo grouping to `useUndo.ts`: consecutive `pushUndo` calls with the same `groupKey` arriving within 2 seconds are merged into a single undo entry instead of creating separate entries. The merged entry's `restore` runs all individual restores in newest-first order (correct for dependent operations); `redo` runs them oldest-first. Description is updated via an optional `groupSummary(count)` callback.
+- Applied grouping to `useTokenRename.ts`: rename pushes now carry `groupKey: \`rename-${capturedSet}\`` and `groupSummary: (n) => \`Rename ${n} tokens\`` — renaming 5 tokens in rapid succession creates one "Rename 5 tokens" undo entry instead of 5 separate ones.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L1 (UndoSlot interface + InternalSlot type + GROUP_TIMEOUT_MS + merge logic in pushUndo)
+  - `packages/figma-plugin/src/ui/hooks/useTokenRename.ts` ~L72 (groupKey + groupSummary on rename pushUndo call)
+- **Learnings for future iterations:**
+  - The `groupKey` approach is opt-in per call site, so existing callers are unaffected; only rename (and any future operations that set `groupKey`) get merged.
+  - `_pushedAt` is reset to `Date.now()` on each merge, meaning the 2-second window slides: as long as each successive rename happens within 2s of the previous one, they all accumulate into one group entry.
+  - The internal `InternalSlot` type extends `UndoSlot` — keeping the public API clean while storing bookkeeping fields (`_pushedAt`, `_mergeCount`, `_restores`, `_redos`) alongside each entry in the stack.
+  - `limit` was missing from the `pushUndo` `useCallback` dependency array in the original code; fixed as part of this change.
+---
