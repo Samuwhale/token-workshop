@@ -159,11 +159,14 @@ export class ResolverStore {
     this._startWriteGuard(filePath);
     try {
       await fs.unlink(filePath);
-    } catch {
-      // File may already be gone
-    } finally {
+    } catch (err) {
       this._clearWriteGuard(filePath);
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      // File already gone — safe to continue
+      this.resolvers.delete(name);
+      return true;
     }
+    this._clearWriteGuard(filePath);
     this.resolvers.delete(name);
     return true;
   }

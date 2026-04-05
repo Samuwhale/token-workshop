@@ -476,3 +476,11 @@
   - `apiFetch` only throws on HTTP 4xx/5xx; a partial-success 200 response with failure details in the body is silently treated as success unless the caller inspects the returned data.
   - After partial apply, calling `computeDiff()` (not just `fetchStatus()`) is the right refresh — it updates the diff view so the user sees which files remain outstanding.
 ---
+
+## 2026-04-05 - Resolver-store delete catches all unlink errors silently
+- Fixed `resolver-store.ts` `delete()` to only swallow `ENOENT` (file already gone) and re-throw all other errors (permission-denied, disk-full, etc.). Previously the `finally` block always cleared the write guard and the code always removed the resolver from memory regardless of unlink outcome. Now non-ENOENT errors propagate to the caller before the in-memory state is mutated, preserving disk/memory consistency.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L156
+- **Learnings for future iterations:**
+  - When silencing file-deletion errors, always be explicit: catch the error variable, check `.code === 'ENOENT'`, and re-throw anything else. A bare `catch {}` or `catch { // may already be gone }` is almost always wrong for anything beyond trivial scripts.
+  - If a `finally` block unconditionally mutates state (here: `resolvers.delete(name)`), moving the mutation after the try/catch body and handling it explicitly in the ENOENT branch makes the control flow much clearer.
+---
