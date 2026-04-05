@@ -35,8 +35,8 @@ export function normalizeHex(hex: string): string {
   return '#' + h;
 }
 
-/** Parse hex string to {r, g, b, a?} with values in 0-1 range. Handles 6 and 8 char hex (no shorthand). */
-export function hexToRgb(hex: string): { r: number; g: number; b: number; a?: number } | null {
+/** Parse hex string to {r, g, b, a} with values in 0-1 range. Handles 3/4/6/8 char hex. Alpha defaults to 1 when absent. */
+export function hexToRgb(hex: string): { r: number; g: number; b: number; a: number } | null {
   const h = expandHex(hex.replace('#', ''));
   if (h.length !== 6 && h.length !== 8) return null;
   if (!/^[0-9a-fA-F]+$/.test(h)) return null;
@@ -44,7 +44,7 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number; a?: nu
     r: parseInt(h.slice(0, 2), 16) / 255,
     g: parseInt(h.slice(2, 4), 16) / 255,
     b: parseInt(h.slice(4, 6), 16) / 255,
-    ...(h.length === 8 && { a: parseInt(h.slice(6, 8), 16) / 255 }),
+    a: h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1,
   };
 }
 

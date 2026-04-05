@@ -5,7 +5,7 @@
  * All operations work in CIELAB space for perceptual correctness.
  */
 
-import { hexToLab, labToHex, setHexAlpha } from './color-math.js';
+import { hexToLab, labToHex, setHexAlpha, normalizeHex } from './color-math.js';
 import type { ColorModifierOp } from './types.js';
 
 /**
@@ -48,10 +48,12 @@ function extractAlpha(hex: string): number | null {
   return null;
 }
 
-/** Re-append alpha to a 6-char hex result if the source had one. */
+/** Re-append alpha to a hex result if the source had one. Handles both 6-char and 8-char hex input. */
 function reapplyAlpha(result: string, alpha: number | null): string {
   if (alpha === null) return result;
-  return `${result.slice(0, 7)}${alpha.toString(16).padStart(2, '0')}`;
+  // normalizeHex expands shorthand and lowercases; slice(0, 7) gives '#rrggbb' regardless of input length
+  const base = normalizeHex(result).slice(0, 7);
+  return `${base}${alpha.toString(16).padStart(2, '0')}`;
 }
 
 export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): string {

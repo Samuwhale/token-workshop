@@ -595,3 +595,15 @@
   - Moving pre-condition checks (`dim.find(...)`) from inside the task to the outer handler body is functionally equivalent when those checks use only the closed-over render values, and makes each handler's guard logic explicit and testable.
   - `Promise.all(...).then(() => undefined)` is the correct typing to convert `Promise<void[]>` → `Promise<void>` for a unified `apiCall: () => Promise<void>` signature.
 ---
+
+## 2026-04-05 - Divergent hex color parsing between hexToRgb, parseHexStr, and reapplyAlpha
+- Unified hex parsing across core color files:
+  1. `hexToRgb()` in color-math.ts: changed return type from `{ r, g, b, a?: number }` to `{ r, g, b, a: number }` — alpha now defaults to 1 when absent, matching parseHexStr's behavior.
+  2. `parseHexStr()` in color-parse.ts: replaced 10-line inline expansion logic with a single `hexToRgb()` call from color-math. Eliminated duplicate shorthand expansion and hex validation code. Added `hexToRgb` to the import from color-math.
+  3. `reapplyAlpha()` in color-modifier.ts: replaced hardcoded `result.slice(0, 7)` with `normalizeHex(result).slice(0, 7)` — handles 8-char hex input (strips existing alpha before reapplying) and is resilient to future non-standard inputs. Added `normalizeHex` to the import from color-math.
+- Files changed: `packages/core/src/color-math.ts` ~L38; `packages/core/src/color-parse.ts` ~L33, ~L387; `packages/core/src/color-modifier.ts` ~L8, ~L52
+- **Learnings for future iterations:**
+  - color-parse.ts already imports from color-math.ts, so adding `hexToRgb` to that import is safe and eliminates duplication without circular deps.
+  - All existing callers of `hexToRgb` only used `.r`, `.g`, `.b` — none checked `.a === undefined` — so the type change to always-present `a: number` was backward compatible.
+  - `normalizeHex` returns `#` + lowercase hex regardless of input length; `.slice(0, 7)` reliably gives `#rrggbb` even for 8-char `#rrggbbaa` inputs.
+---

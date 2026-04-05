@@ -30,7 +30,7 @@ export interface ParsedColor {
 // sRGB linearization — imported from the single source of truth in color-math
 // ---------------------------------------------------------------------------
 
-import { srgbToLinear as toLinear, srgbFromLinear as fromLinear, labToSrgb } from './color-math.js';
+import { srgbToLinear as toLinear, srgbFromLinear as fromLinear, labToSrgb, hexToRgb } from './color-math.js';
 
 // ---------------------------------------------------------------------------
 // OKLAB / OKLCh math (Bjorn Ottosson)
@@ -385,16 +385,9 @@ function parseRawNum(s: string): number | null {
 }
 
 function parseHexStr(hex: string): ParsedColor | null {
-  let h = hex.replace('#', '').toLowerCase();
-  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-  else if (h.length === 4) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
-  if (h.length !== 6 && h.length !== 8) return null;
-  if (!/^[0-9a-f]+$/.test(h)) return null;
-  const r = parseInt(h.slice(0, 2), 16) / 255;
-  const g = parseInt(h.slice(2, 4), 16) / 255;
-  const b = parseInt(h.slice(4, 6), 16) / 255;
-  const a = h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1;
-  return { space: 'srgb', coords: [r, g, b], alpha: a };
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return { space: 'srgb', coords: [rgb.r, rgb.g, rgb.b], alpha: rgb.a };
 }
 
 /**
