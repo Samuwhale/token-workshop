@@ -757,3 +757,14 @@
   - Successful mutations that change visible state (collapsing input, clearing spinner) need a success toast so users can distinguish success from a swallowed failure
   - `dispatchToast(message, 'success'|'error')` from `../shared/toastBus` is the canonical notification path for in-UI feedback
 ---
+
+## 2026-04-05 - GraphPanel result toasts auto-dismiss and stale explanation
+- Added auto-dismiss `useEffect` timers for all 4 run result toasts: success toasts (runAllResult, runStaleResult) dismiss after 4s, error toasts (runAllError, runStaleError) dismiss after 8s. Each effect returns a clearTimeout cleanup so manual dismiss or re-trigger resets the timer cleanly.
+- Added `staleSourceTokens` useMemo that collects unique source token paths from stale generators, used in both the tooltip and the new info strip.
+- Updated the "Re-run stale" button `title` tooltip from a generic "source token changed since last run" to a specific message listing the affected source token paths (e.g. "…because these source tokens have changed: colors.brand, spacing.base").
+- Added a persistent stale info strip (yellow, between PanelHelpBanner and existing result toasts) that explains in plain language: "N generators are out of date — [tokenName] has changed since last run. Use Re-run stale to refresh." Strip disappears automatically after a successful re-run (because `staleGenerators` empties via `onRefresh`).
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L142 (auto-dismiss effects), ~L233 (staleSourceTokens memo), ~L449 (button tooltip), ~L515 (stale info strip)
+- **Learnings for future iterations:**
+  - Auto-dismiss pattern: `useEffect(() => { if (!val) return; const t = setTimeout(() => setVal(null), ms); return () => clearTimeout(t); }, [val])` — the early return on null prevents the timer from firing after manual dismiss, and cleanup clears it on re-trigger.
+  - Persistent status strips (always visible while condition is true) are better than one-time toasts for contextual state like "generators are stale" — the strip naturally disappears when the underlying condition resolves.
+---

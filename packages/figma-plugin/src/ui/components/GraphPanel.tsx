@@ -139,6 +139,28 @@ export function GraphPanel({
   const [runStaleResult, setRunStaleResult] = useState<{ count: number; tokenCount: number } | null>(null);
   const [runStaleError, setRunStaleError] = useState<string | null>(null);
 
+  // Auto-dismiss run result toasts
+  useEffect(() => {
+    if (!runAllResult) return;
+    const t = setTimeout(() => setRunAllResult(null), 4000);
+    return () => clearTimeout(t);
+  }, [runAllResult]);
+  useEffect(() => {
+    if (!runAllError) return;
+    const t = setTimeout(() => setRunAllError(null), 8000);
+    return () => clearTimeout(t);
+  }, [runAllError]);
+  useEffect(() => {
+    if (!runStaleResult) return;
+    const t = setTimeout(() => setRunStaleResult(null), 4000);
+    return () => clearTimeout(t);
+  }, [runStaleResult]);
+  useEffect(() => {
+    if (!runStaleError) return;
+    const t = setTimeout(() => setRunStaleError(null), 8000);
+    return () => clearTimeout(t);
+  }, [runStaleError]);
+
   // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
   useEffect(() => {
     if (!openTemplatePicker) return;
@@ -211,6 +233,15 @@ export function GraphPanel({
   };
 
   const staleGenerators = setGenerators.filter(g => g.isStale);
+
+  // Unique source token paths for all stale generators (for tooltip + info strip)
+  const staleSourceTokens = useMemo(() => {
+    const tokens = new Set<string>();
+    for (const g of staleGenerators) {
+      if (g.sourceToken) tokens.add(g.sourceToken);
+    }
+    return Array.from(tokens);
+  }, [staleGenerators]);
 
   const handleRunStale = async () => {
     setRunningStale(true);
@@ -401,7 +432,7 @@ export function GraphPanel({
                 onClick={handleRunStale}
                 disabled={!connected || runningStale || runningAll}
                 className="text-[10px] px-2 py-1 rounded border border-yellow-400/60 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                title={`Re-run ${staleGenerators.length} stale generator${staleGenerators.length !== 1 ? 's' : ''} (source token changed since last run)`}
+                title={`Re-run ${staleGenerators.length} stale generator${staleGenerators.length !== 1 ? 's' : ''} — generated tokens are out of date because ${staleSourceTokens.length > 0 ? `${staleSourceTokens.length === 1 ? 'this source token has' : 'these source tokens have'} changed: ${staleSourceTokens.join(', ')}` : 'source tokens changed since last run'}`}
               >
                 {runningStale
                   ? (
@@ -465,6 +496,22 @@ export function GraphPanel({
             description="Turn a single source token into a whole token group automatically — color ramps, spacing scales, type scales, and more. Pick a template to get started, then customize the parameters."
             onDismiss={help.dismiss}
           />
+        )}
+
+        {staleGenerators.length > 0 && (
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-start gap-1.5 shrink-0">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
+              <path d="M12 9v4M12 17h.01" />
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>
+              {staleGenerators.length === 1 ? '1 generator is' : `${staleGenerators.length} generators are`} out of date —{' '}
+              {staleSourceTokens.length > 0
+                ? <><strong>{staleSourceTokens.join(', ')}</strong> {staleSourceTokens.length === 1 ? 'has' : 'have'} changed since last run</>
+                : <>source tokens changed since last run</>
+              }. Use <strong>Re-run stale</strong> to refresh.
+            </span>
+          </div>
         )}
 
         {justApplied && (
