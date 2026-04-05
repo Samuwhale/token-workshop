@@ -725,3 +725,10 @@
   - Annotating `isDifferentFromFirst` (JSON.stringify comparison against the first definition's value) gives a simple, dependency-free way to flag overrides without requiring full theme configuration knowledge.
   - The "where" overlay uses `absolute inset-0` within the TokenList's `relative` container to replace the token tree without navigating away — same pattern as other panels/overlays in the codebase.
 ---
+
+## 2026-04-05 - Find-and-replace has no dry-run mode for value replacements
+- Stale — already implemented. `frValuePreview` useMemo in `useFindReplace.ts` (lines 217-250) computes old/new value pairs before any mutation. `TokenListModals.tsx` (lines 926-1000) renders a full diff table with old value (struck-through, red highlight on match) and new value (green highlight on replacement), grouped by set in all-sets mode. The "Update N" button (line 1050) is disabled when `frValuePreview.length === 0`, so nothing applies immediately — explicit click required. Behaviour is identical to the name-rename preview.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Both names and values have parity in find-replace preview UX; no gap exists.
+---

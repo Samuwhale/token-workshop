@@ -1061,3 +1061,26 @@ Already up to date.
 
   Merging to main: No cross-set token search on the server
 Already up to date.
+[main a4e7823d] chore(backlog): done – No cross-set token search on the server
+ 10 files changed, 272 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No cross-set token search on the server
+- Added `GET /api/tokens/where?path=X` endpoint to the server that returns all set definitions for an exact token path, with `isAlias` and `isDifferentFromFirst` annotation so designers can instantly see which sets define a token and which are overrides.
+- Added `getTokenDefinitions(tokenPath)` method to `TokenStore` — extracts all `{setName, token}` entries from the internal `flatTokens` map for a given path.
+- Added 4 tests for `getTokenDefinitions` in `token-store.test.ts` covering: missing path, single-set, multi-set, and full token field inclusion.
+
+═══════════════════════════════════════════════════════════════
+  #44  ·  12 queued · 0
+0 in-progress · last took 10m13s
+═══════════════════════════════════════════════════════════════
+  → Find-and-replace has no dry-run mode for value replacements — useFindReplace.ts supports find/replace on names (with preview) and values, but value replacement has no preview of what will change before applying; name renames show a diff table but value changes are applied immediately
+  Worktree: /tmp/backlog-54964-1bSws6
+  Running agent… (started 04:57:14)
+
+  ✓ done: Find-and-replace has no dry-run mode for value replacements
+    stale — already done: frValuePreview + diff table UI already implemented with identical UX to name-rename preview
+    8 turns · 109s · $0.44
+
+  Merging to main: Find-and-replace has no dry-run mode for value replacements
+Already up to date.
