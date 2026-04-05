@@ -485,3 +485,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: The command palette's entire structured token search feature (qualifier chips, autocomplete values, help syntax examples) uses onMouseDown + tabIndex={-1} exclusively, making it fully mouse-only despite being a keyboard power-user feature. Also, HistoryPanel's handleSaveSnapshot has try/finally with no catch — a failed save silently resets the UI identically to a successful save.
 ---
+
+## 2026-04-05 - DeepInspectSection cannot select child layers in the canvas
+- Added `onSelectNode` prop to `DeepInspectSection` and wired it to the existing `select-node` postMessage infrastructure (already used by LayerSearchPanel and TokenUsages). Each nested layer row now shows a faint target/crosshair icon button (always dimly visible, full opacity on hover) that calls `figma.currentPage.selection = [node]` + `figma.viewport.scrollAndZoomIntoView([node])` via the plugin sandbox.
+- Files changed: `packages/figma-plugin/src/ui/components/DeepInspectSection.tsx` ~L10 (prop interface), ~L132 (destructure), ~L168 (layer name row + select button); `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L785 (handleSelectDeepNode handler), ~L1268 (onSelectNode prop pass)
+- **Learnings for future iterations:**
+  - The `select-node` message + `selectNode()` in `heatmapScanning.ts` is the single canonical way to select+focus a canvas node from the UI — no new plugin handler needed, just wire the existing one.
+  - Use `group/layer` + `group-hover/layer:` named group classes when adding hover actions to a nested row that already has inner `group/row` elements — named groups prevent the outer hover from colliding with inner row hover styles.
+---

@@ -782,6 +782,11 @@ export function SelectionInspector({
     );
   }
 
+  // Deep inspect: select a nested child node in the Figma canvas
+  const handleSelectDeepNode = (nodeId: string) => {
+    parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*');
+  };
+
   // Deep inspect: remove binding from a nested child node
   const handleDeepRemoveBinding = (nodeId: string, property: BindableProperty, tokenPath: string) => {
     parent.postMessage({ pluginMessage: { type: 'remove-binding-from-node', nodeId, property } }, '*');
@@ -1266,6 +1271,7 @@ export function SelectionInspector({
             onNavigateToToken={onNavigateToToken}
             onRemoveBinding={handleDeepRemoveBinding}
             onBindToken={handleDeepBindToken}
+            onSelectNode={handleSelectDeepNode}
           />
         )}
 

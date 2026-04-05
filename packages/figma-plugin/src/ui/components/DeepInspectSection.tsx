@@ -13,6 +13,7 @@ interface DeepInspectSectionProps {
   onNavigateToToken?: (tokenPath: string) => void;
   onRemoveBinding?: (nodeId: string, property: BindableProperty, tokenPath: string) => void;
   onBindToken?: (nodeId: string, property: BindableProperty, tokenPath: string) => void;
+  onSelectNode?: (nodeId: string) => void;
 }
 
 /** Inline bind panel for a single deep-inspect property row */
@@ -129,7 +130,7 @@ function DeepBindPanel({
   );
 }
 
-export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken, onRemoveBinding, onBindToken }: DeepInspectSectionProps) {
+export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken, onRemoveBinding, onBindToken, onSelectNode }: DeepInspectSectionProps) {
   // Track which property on which node has an open bind panel: "nodeId:prop"
   const [activeBindKey, setActiveBindKey] = useState<string | null>(null);
 
@@ -165,7 +166,7 @@ export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken
             className="px-2 py-1.5 rounded"
             style={{ paddingLeft: `${8 + indent * 10}px` }}
           >
-            <div className="flex items-center gap-1 mb-0.5">
+            <div className="flex items-center gap-1 mb-0.5 group/layer">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
               </svg>
@@ -175,6 +176,19 @@ export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken
               <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
                 {child.type}
               </span>
+              {onSelectNode && (
+                <button
+                  onClick={() => onSelectNode(child.id)}
+                  title="Select layer in Figma"
+                  aria-label={`Select ${child.name} in Figma`}
+                  className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="flex flex-col gap-0.5 pl-3">
               {boundProps.map(prop => {
