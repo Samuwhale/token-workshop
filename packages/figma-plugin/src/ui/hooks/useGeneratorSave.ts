@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
+import type { UndoSlot } from './useUndo';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -30,6 +31,7 @@ interface UseGeneratorSaveParams {
   previewTokens: GeneratedTokenResult[];
   onSaved: (info?: { targetGroup: string }) => void;
   onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
+  pushUndo?: (slot: UndoSlot) => void;
 }
 
 export interface UseGeneratorSaveReturn {
@@ -72,6 +74,7 @@ export function useGeneratorSave({
   previewTokens,
   onSaved,
   onInterceptSemanticMapping,
+  pushUndo,
 }: UseGeneratorSaveParams): UseGeneratorSaveReturn {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -109,6 +112,50 @@ export function useGeneratorSave({
         body: JSON.stringify(body),
       });
       setShowConfirmation(false);
+
+      if (pushUndo) {
+        if (isEditing && existingGenerator) {
+          const prevGen = existingGenerator;
+          const prevBody = {
+            type: prevGen.type,
+            name: prevGen.name,
+            sourceToken: prevGen.sourceToken,
+            inlineValue: prevGen.inlineValue,
+            targetSet: prevGen.targetSet,
+            targetGroup: prevGen.targetGroup,
+            config: prevGen.config,
+            overrides: prevGen.overrides,
+            inputTable: prevGen.inputTable,
+            targetSetTemplate: prevGen.targetSetTemplate,
+          };
+          pushUndo({
+            description: `Edited generator "${prevGen.name}"`,
+            restore: async () => {
+              await apiFetch(`${serverUrl}/api/generators/${prevGen.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prevBody),
+              });
+            },
+            redo: async () => {
+              await apiFetch(`${serverUrl}/api/generators/${prevGen.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+            },
+          });
+        } else {
+          const newId = savedGen.id;
+          const genName = name.trim();
+          pushUndo({
+            description: `Created generator "${genName}"`,
+            restore: async () => {
+              await apiFetch(`${serverUrl}/api/generators/${newId}?deleteTokens=false`, { method: 'DELETE' });
+            },
+          });
+        }
+      }
 
       if (!isEditing) {
         let tokensForMapping = previewTokens;
@@ -167,7 +214,7 @@ export function useGeneratorSave({
       setSaveError(getErrorMessage(err));
       setSaving(false);
     }
-  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
+  }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, inlineValue, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping, pushUndo]);
 
   /** Step 1: Validate inputs, show the confirmation preview.
    *  For editing: kicks off the overwrite check in the background so the preview

@@ -17,6 +17,7 @@ import {
 } from '../components/generators/generatorUtils';
 import { useGeneratorPreview } from './useGeneratorPreview';
 import { useGeneratorSave } from './useGeneratorSave';
+import type { UndoSlot } from './useUndo';
 
 import type { OverwrittenEntry } from './useGeneratorPreview';
 export type { OverwrittenEntry } from './useGeneratorPreview';
@@ -33,6 +34,7 @@ interface UseGeneratorDialogParams {
   onSaved: (info?: { targetGroup: string }) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
   onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
+  pushUndo?: (slot: UndoSlot) => void;
 }
 
 interface UseGeneratorDialogReturn {
@@ -118,6 +120,7 @@ export function useGeneratorDialog({
   template,
   onSaved,
   onInterceptSemanticMapping,
+  pushUndo,
 }: UseGeneratorDialogParams): UseGeneratorDialogReturn {
   const isEditing = Boolean(existingGenerator);
 
@@ -337,6 +340,7 @@ export function useGeneratorDialog({
     previewTokens,
     onSaved,
     onInterceptSemanticMapping,
+    pushUndo,
   });
 
   // --- Config handlers ---

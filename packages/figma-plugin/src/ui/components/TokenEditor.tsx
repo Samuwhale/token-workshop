@@ -538,6 +538,8 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   /** Navigate to a generator in GraphPanel */
   onNavigateToGenerator?: (generatorId: string) => void;
+  /** Push an undo slot after a successful token save or create */
+  pushUndo?: (slot: import('../hooks/useUndo').UndoSlot) => void;
 }
 
 function SaveChangesDialog({ canSave, isCreateMode, editPath, saving, onSave, onDiscard, onCancel }: {
@@ -596,7 +598,7 @@ function SaveChangesDialog({ canSave, isCreateMode, editPath, saving, onSave, on
   );
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken, onNavigateToGenerator }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [], fontWeightsByFamily = {}, derivedTokenPaths, closeRef, onShowReferences, onNavigateToToken, onNavigateToGenerator, pushUndo }: TokenEditorProps) {
 
   // 1. Fields hook — all editable state
   const fields = useTokenEditorFields({
@@ -773,6 +775,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     onBack,
     onSaved,
     onSaveAndCreateAnother,
+    pushUndo,
     handleToggleAlias,
     handleBack,
     showDiscardConfirm,

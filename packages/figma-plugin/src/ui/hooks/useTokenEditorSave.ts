@@ -3,6 +3,7 @@ import type { ColorModifierOp } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { clearEditorDraft } from './useTokenEditorUtils';
+import type { UndoSlot } from './useUndo';
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
@@ -24,6 +25,7 @@ interface UseTokenEditorSaveParams {
   onBack: () => void;
   onSaved?: (savedPath: string) => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
+  pushUndo?: (slot: UndoSlot) => void;
   // For keyboard handler
   handleToggleAlias: () => void;
   handleBack: () => void;
@@ -54,6 +56,7 @@ export function useTokenEditorSave({
   onBack,
   onSaved,
   onSaveAndCreateAnother,
+  pushUndo,
   handleToggleAlias,
   handleBack,
   showDiscardConfirm,
@@ -145,6 +148,39 @@ export function useTokenEditorSave({
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
       clearEditorDraft(setName, targetPath);
+
+      if (pushUndo) {
+        const encodedSavedPath = tokenPathToUrlSegment(targetPath);
+        if (isCreateMode) {
+          pushUndo({
+            description: `Created token "${targetPath}"`,
+            restore: async () => {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, { method: 'DELETE' });
+            },
+          });
+        } else if (initialServerSnapshotRef.current !== null) {
+          const previousTokenJson = initialServerSnapshotRef.current;
+          const previousBody = JSON.parse(previousTokenJson);
+          pushUndo({
+            description: `Edited token "${targetPath}"`,
+            restore: async () => {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(previousBody),
+              });
+            },
+            redo: async () => {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedSavedPath}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+            },
+          });
+        }
+      }
+
       onSaved?.(targetPath);
       if (createAnother && isCreateMode && onSaveAndCreateAnother) {
         onSaveAndCreateAnother(targetPath, tokenType);

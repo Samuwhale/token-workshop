@@ -675,3 +675,17 @@
   - The alias-mode toggle inside the popover reuses `AliasAutocomplete` which already handles onSelect; calling `onSave(\`{\${path}}\`)` directly closes the popover in one step.
   - All existing ValueEditors sub-components accept `(value, onChange, allTokensFlat, pathToSet)` — they work as-is inside the popover with zero prop-API changes.
 ---
+
+## 2026-04-05 - Undo coverage extended to token edits, set rename, generator config, theme dimension rename
+- Extended `pushUndo` coverage to four previously-uncovered operations:
+  1. **Token value saves** (`useTokenEditorSave`): For PATCH (edit), captures `initialServerSnapshotRef.current` as the pre-save state and pushes an undo slot that PATCHes it back, plus a redo slot. For POST (create), pushes undo that DELETEs the created token. Wired `pushUndo` prop through `TokenEditor` → `useTokenEditorSave`, and passed from `App.tsx` `<TokenEditor>`.
+  2. **Set rename** (`useSetRename`): After successful rename, pushes undo/redo slots that call the rename API in reverse. Added optional `onPushUndo` param; wired from `App.tsx` (alongside existing `onPushUndo: pushUndo` pattern).
+  3. **Generator config changes** (`useGeneratorSave`): For PUT (edit), snapshots the `existingGenerator` body before saving and pushes undo/redo slots restoring via PUT. For POST (create), pushes undo that DELETEs the new generator with `?deleteTokens=false`. Threaded `pushUndo` through `useGeneratorDialog` → `useGeneratorSave`; added `onPushUndo` prop to `TokenGeneratorDialog`; passed it in `GeneratorPipelineCard` (already wired via `GraphPanel.onPushUndo`) and `GraphPanel` template dialog.
+  4. **Theme dimension rename** (`useThemeDimensionsCrud`): In `executeRenameDim`, after success, pushes undo/redo slots calling `PUT /api/themes/dimensions/{id}` with old/new name, also updating local `dimensions` state optimistically.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetRename.ts` ~L1,L17,L62; `packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts` ~L1,L35,L145; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L540,L601,L780; `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L1,L33,L111; `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L20,L35,L122,L340; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L36,L58; `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` ~L185,L218; `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L666,L678,L1082; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L320,L615; `packages/figma-plugin/src/ui/App.tsx` ~L427,L2544
+- **Learnings for future iterations:**
+  - `initialServerSnapshotRef.current` in `useTokenEditorSave` already stores the JSON-stringified token as fetched on load — it's the right pre-save snapshot for undo without any extra fetch.
+  - For generator edit undo, `existingGenerator` (prop) is the canonical before-state — no API refetch needed; just snapshot its fields into the undo body.
+  - `useGeneratorDialog` has its own internal config undo/redo stack (for within-dialog changes) — this is separate from the global app undo stack we're extending here. They coexist cleanly.
+  - The `?deleteTokens=false` query param on generator DELETE is important for undo: we don't want generated tokens removed when undoing a generator creation (they should persist).
+---

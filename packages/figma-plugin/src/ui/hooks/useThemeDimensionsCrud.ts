@@ -186,16 +186,36 @@ export function useThemeDimensionsCrud({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
+      const oldName = current.name;
       setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
       debouncedFetchDimensions();
       onSuccess?.(`Renamed dimension to "${name}"`);
+      onPushUndo?.({
+        description: `Renamed layer "${oldName}" → "${name}"`,
+        restore: async () => {
+          await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: oldName }),
+          });
+          setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name: oldName } : d));
+        },
+        redo: async () => {
+          await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
+          setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
+        },
+      });
     } catch (err) {
       setRenameError(makeErrorMsg(err, 'Rename failed'));
     } finally {
       setIsRenamingDim(false);
     }
-  }, [renameDim, isRenamingDim, renameValue, dimensions, serverUrl, setDimensions, debouncedFetchDimensions, onSuccess, cancelRenameDim]);
+  }, [renameDim, isRenamingDim, renameValue, dimensions, serverUrl, setDimensions, debouncedFetchDimensions, onSuccess, cancelRenameDim, onPushUndo]);
 
   // --- Encapsulated delete form actions ---
 

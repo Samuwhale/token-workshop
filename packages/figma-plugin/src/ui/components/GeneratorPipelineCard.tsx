@@ -664,6 +664,7 @@ export interface GeneratorPipelineCardProps {
   activeSet: string;
   onRefresh: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
+  onPushUndo?: (slot: import('../hooks/useUndo').UndoSlot) => void;
 }
 
 export function GeneratorPipelineCard({
@@ -675,6 +676,7 @@ export function GeneratorPipelineCard({
   activeSet,
   onRefresh,
   allTokensFlat,
+  onPushUndo,
 }: GeneratorPipelineCardProps) {
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1079,6 +1081,7 @@ export function GeneratorPipelineCard({
           existingGenerator={generator}
           onClose={() => setShowEditDialog(false)}
           onSaved={() => { setShowEditDialog(false); onRefresh(); }}
+          onPushUndo={onPushUndo}
         />
       )}
 

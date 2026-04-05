@@ -1,6 +1,7 @@
 import { useState, useRef, useLayoutEffect } from 'react';
 import { apiFetch, isNetworkError } from '../shared/apiFetch';
 import { SET_NAME_RE } from '../shared/utils';
+import type { UndoSlot } from './useUndo';
 
 interface UseSetRenameParams {
   serverUrl: string;
@@ -12,12 +13,14 @@ interface UseSetRenameParams {
   setSuccessToast: (msg: string) => void;
   markDisconnected: () => void;
   setTabMenuOpen: (v: string | null) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 export function useSetRename({
   serverUrl, connected, getDisconnectSignal,
   activeSet, setActiveSet, renameSetInState,
   setSuccessToast, markDisconnected, setTabMenuOpen,
+  onPushUndo,
 }: UseSetRenameParams) {
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -64,6 +67,27 @@ export function useSetRename({
       if (activeSet === renamingSet) setActiveSet(newName);
       cancelRename();
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
+      onPushUndo?.({
+        description: `Renamed set "${oldName}" → "${newName}"`,
+        restore: async () => {
+          await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(newName)}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName: oldName }),
+          });
+          renameSetInState(newName, oldName);
+          if (activeSet === newName) setActiveSet(oldName);
+        },
+        redo: async () => {
+          await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(oldName)}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName }),
+          });
+          renameSetInState(oldName, newName);
+          if (activeSet === oldName) setActiveSet(newName);
+        },
+      });
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();
       setRenameError(err instanceof Error ? err.message : 'Rename failed');

@@ -424,7 +424,7 @@ export function App() {
   // Set management hooks
   const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, updateSetMetadataInState, setTabMenuOpen, onError: setErrorToast });
   const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen, onPushUndo: pushUndo });
-  const { renamingSet, renameValue, setRenameValue, renameError, setRenameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, renameSetInState, setSuccessToast, markDisconnected, setTabMenuOpen });
+  const { renamingSet, renameValue, setRenameValue, renameError, setRenameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, renameSetInState, setSuccessToast, markDisconnected, setTabMenuOpen, onPushUndo: pushUndo });
   const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, tokenCounts: setTokenCounts, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen });
   const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });
 
@@ -2544,6 +2544,7 @@ export function App() {
                 onShowReferences={(path) => { setFlowPanelInitialPath(path); navigateTo('apply', 'dependencies'); }}
                 onNavigateToToken={handleNavigateToAlias}
                 onNavigateToGenerator={handleNavigateToGenerator}
+                pushUndo={pushUndo}
               />
             </div>
           </div>

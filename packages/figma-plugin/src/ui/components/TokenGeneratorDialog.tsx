@@ -35,6 +35,8 @@ export interface TokenGeneratorDialogProps {
   onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
   /** Token path → set name for autocomplete display */
   pathToSet?: Record<string, string>;
+  /** Push an undo slot after a successful generator save */
+  onPushUndo?: (slot: import('../hooks/useUndo').UndoSlot) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,6 +59,7 @@ export function TokenGeneratorDialog({
   onSaved,
   onInterceptSemanticMapping,
   pathToSet,
+  onPushUndo,
 }: TokenGeneratorDialogProps) {
   const dialog = useGeneratorDialog({
     serverUrl,
@@ -69,6 +72,7 @@ export function TokenGeneratorDialog({
     template,
     onSaved,
     onInterceptSemanticMapping,
+    pushUndo: onPushUndo,
   });
 
   // --- Stepper state ---
