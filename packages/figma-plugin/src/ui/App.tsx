@@ -1756,10 +1756,13 @@ export function App() {
       {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && !isSimpleMode && (
         <>
         <div className="relative">
-        <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        <div ref={setTabsScrollRef} className={`flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto transition-colors ${tokenDragState ? 'bg-[var(--color-figma-accent)]/[0.03]' : ''}`} style={{ scrollbarWidth: 'none' }}>
           {sets.map(set => {
             const isActive = activeSet === set;
             const isRenaming = renamingSet === set;
+            const isTokenDragSource = tokenDragState?.fromSet === set;
+            const isTokenDropTarget = tokenDragState && !isTokenDragSource;
+            const isTokenHovered = isTokenDropTarget && dragOverSetName === set;
             return (
               <div
                 key={set}
@@ -1770,7 +1773,7 @@ export function App() {
                 onDragLeave={handleSetDragLeave}
                 onDrop={e => handleSetDrop(e, set)}
                 onDragEnd={handleSetDragEnd}
-                className={`relative flex group/settab ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''} ${tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
+                className={`relative flex group/settab transition-opacity ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''} ${isTokenDragSource ? 'opacity-40' : ''} ${isTokenDropTarget ? isTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
               >
                 {isRenaming ? (
                   <div className="flex flex-col">
@@ -2057,11 +2060,13 @@ export function App() {
                 if (typeof item === 'string') {
                   // Root-level (unfoldered) set
                   const set = item;
-                  const isSidebarTokenDropTarget = tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set;
+                  const isSidebarTokenSource = tokenDragState?.fromSet === set;
+                  const isSidebarTokenDropTarget = tokenDragState && !isSidebarTokenSource;
+                  const isSidebarTokenHovered = isSidebarTokenDropTarget && dragOverSetName === set;
                   return (
                     <div
                       key={set}
-                      className={`group/sidebarset relative ${isSidebarTokenDropTarget ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
+                      className={`group/sidebarset relative transition-opacity ${isSidebarTokenSource ? 'opacity-40' : ''} ${isSidebarTokenDropTarget ? isSidebarTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                       onDragOver={e => handleSetDragOver(e, set)}
                       onDragLeave={handleSetDragLeave}
                       onDrop={e => handleSetDrop(e, set)}
@@ -2139,11 +2144,13 @@ export function App() {
                     </button>
                     {!isCollapsed && folder.sets.map(set => {
                       const leaf = set.slice(folder.path.length + 1);
-                      const isFolderSetTokenDropTarget = tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set;
+                      const isFolderSetTokenSource = tokenDragState?.fromSet === set;
+                      const isFolderSetTokenDropTarget = tokenDragState && !isFolderSetTokenSource;
+                      const isFolderSetTokenHovered = isFolderSetTokenDropTarget && dragOverSetName === set;
                       return (
                         <div
                           key={set}
-                          className={`group/sidebarset relative ${isFolderSetTokenDropTarget ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
+                          className={`group/sidebarset relative transition-opacity ${isFolderSetTokenSource ? 'opacity-40' : ''} ${isFolderSetTokenDropTarget ? isFolderSetTokenHovered ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : 'ring-1 ring-inset ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                           onDragOver={e => handleSetDragOver(e, set)}
                           onDragLeave={handleSetDragLeave}
                           onDrop={e => handleSetDrop(e, set)}

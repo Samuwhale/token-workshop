@@ -559,3 +559,12 @@
   - The "stable ref" pattern for callbacks that change each render: keep a `const fooRef = useRef(foo); fooRef.current = foo;` pair and read `fooRef.current` inside stable closures. This avoids re-registering effects or breaking `useCallback` dep arrays.
   - For import undo, a `force: true` batch-delete is the correct inverse — it skips dependent-alias checks that would block deletion of newly created tokens.
 ---
+
+## 2026-04-05 - No cross-set drag-and-drop for tokens
+- The backend infrastructure was already fully implemented: `tokenDragState` in App.tsx, `handleTokenDropOnSet` API call (single-token `/tokens/move` + batch `/batch-move`), `useSetTabs` handling `application/x-token-drag` dragover/drop events, and `TokenList` notifying the parent via `onTokenDragStart`/`onTokenDragEnd`. The missing piece was discoverability — no visual cue indicated set tabs were valid drop targets while dragging.
+- Added drag-in-progress visual feedback to all three set-selector surfaces (tab bar, sidebar unfoldered sets, sidebar foldered sets): source tab dims to `opacity-40`, all other tabs show a faint `ring-1 ring-[var(--color-figma-accent)]/40` ring; hovering a valid target upgrades to `ring-2 ring-[var(--color-figma-accent)]`; the tab bar container gets a subtle `bg-[var(--color-figma-accent)]/[0.03]` tint.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1759 (tab bar container), ~L1773 (tab items), ~L2060 (sidebar unfoldered), ~L2142 (sidebar foldered)
+- **Learnings for future iterations:**
+  - Three-state drag visual: source=dim, valid-target=faint-ring, hovered-target=strong-ring is the canonical DnD UX pattern. The `ring-1/40` → `ring-2` upgrade uses Tailwind ring utilities cleanly without opacity hacks.
+  - The cross-set token move was already wired up entirely — API endpoints, React state, drag event handlers, and drop handlers all existed. The item was on the backlog purely for discoverability.
+---
