@@ -61,6 +61,7 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
+import { Tooltip } from './shared/Tooltip';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
@@ -1459,120 +1460,124 @@ export function App() {
         ))}
 
         {/* Issues filter toggle */}
-        <button
-          onClick={() => { setShowIssuesOnly(v => !v); if (activeTopTab !== 'define' || activeSubTab !== 'tokens') navigateTo('define', 'tokens'); }}
-          className={`relative flex items-center justify-center w-7 h-7 ml-auto mr-0.5 my-1 rounded transition-colors ${
-            showIssuesOnly
-              ? 'bg-[var(--color-figma-accent)] text-white'
-              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-          }`}
-          title="Filter tokens with validation issues"
-          aria-label="Toggle validation issues filter"
-          aria-pressed={showIssuesOnly}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
-          </svg>
-          {lintViolations.length > 0 && !showIssuesOnly && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold leading-[14px] text-center">
-              {lintViolations.length > 99 ? '99+' : lintViolations.length}
-            </span>
-          )}
-        </button>
+        <Tooltip label="Validation issues filter" className="ml-auto mr-0.5 my-1">
+          <button
+            onClick={() => { setShowIssuesOnly(v => !v); if (activeTopTab !== 'define' || activeSubTab !== 'tokens') navigateTo('define', 'tokens'); }}
+            className={`relative flex items-center justify-center w-7 h-7 rounded transition-colors ${
+              showIssuesOnly
+                ? 'bg-[var(--color-figma-accent)] text-white'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-label="Toggle validation issues filter"
+            aria-pressed={showIssuesOnly}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+            </svg>
+            {lintViolations.length > 0 && !showIssuesOnly && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold leading-[14px] text-center">
+                {lintViolations.length > 99 ? '99+' : lintViolations.length}
+              </span>
+            )}
+          </button>
+        </Tooltip>
 
         {/* Preview split-view toggle */}
-        <button
-          onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
-          className={`flex items-center gap-1 px-2 py-1 mr-0.5 my-1 rounded transition-colors text-[10px] ${
-            showPreviewSplit
-              ? 'bg-[var(--color-figma-accent)] text-white'
-              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-          }`}
-          title={`Toggle preview panel (${adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)})`}
-          aria-label="Toggle preview split view"
-          aria-pressed={showPreviewSplit}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span className={showPreviewSplit ? 'opacity-80' : 'opacity-50'}>{adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)}</span>
-        </button>
+        <Tooltip label="Preview panel" shortcut={adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)} className="mr-0.5 my-1">
+          <button
+            onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
+            className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[10px] ${
+              showPreviewSplit
+                ? 'bg-[var(--color-figma-accent)] text-white'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-label="Toggle preview split view"
+            aria-pressed={showPreviewSplit}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span className={showPreviewSplit ? 'opacity-80' : 'opacity-50'}>{adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW)}</span>
+          </button>
+        </Tooltip>
 
         {/* Command palette trigger */}
-        <button
-          onClick={() => setShowCommandPalette(v => !v)}
-          className="flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
-          title={`Command palette (${adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)})`}
-          aria-label="Open command palette"
-        >
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="4.5" cy="4.5" r="3.5"/>
-            <path d="M8 8l2 2"/>
-          </svg>
-          <span className="opacity-50">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
-        </button>
+        <Tooltip label="Command palette" shortcut={adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)} className="mr-1 my-1">
+          <button
+            onClick={() => setShowCommandPalette(v => !v)}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
+            aria-label="Open command palette"
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="4.5" cy="4.5" r="3.5"/>
+              <path d="M8 8l2 2"/>
+            </svg>
+            <span className="opacity-50">{adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE)}</span>
+          </button>
+        </Tooltip>
 
         {/* Second screen / expand toggle */}
-        <button
-          onClick={toggleExpand}
-          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            isExpanded
-              ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-bg-hover)]'
-              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-          }`}
-          title={isExpanded ? 'Restore window size' : 'Expand to second screen'}
-          aria-label={isExpanded ? 'Restore window size' : 'Expand to second screen'}
-          aria-pressed={isExpanded}
-        >
-          {isExpanded ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-            </svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-            </svg>
-          )}
-        </button>
+        <Tooltip label={isExpanded ? 'Restore window' : 'Expand to second screen'} className="mr-0.5 my-1">
+          <button
+            onClick={toggleExpand}
+            className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+              isExpanded
+                ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-bg-hover)]'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-label={isExpanded ? 'Restore window size' : 'Expand to second screen'}
+            aria-pressed={isExpanded}
+          >
+            {isExpanded ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            )}
+          </button>
+        </Tooltip>
 
         {/* Canvas Coverage toggle */}
-        <button
-          onClick={() => {
-            if (activeTopTab === 'apply' && activeSubTab === 'canvas-analysis') {
-              navigateTo('apply', 'inspect');
-            } else {
-              navigateTo('apply', 'canvas-analysis');
-              triggerHeatmapScan();
-            }
-          }}
-          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'
-              ? 'bg-[var(--color-figma-accent)] text-white'
-              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-          }`}
-          title="Canvas analysis: coverage heatmap and consistency suggestions"
-          aria-label="Toggle canvas analysis"
-          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-        </button>
+        <Tooltip label="Canvas analysis" className="mr-0.5 my-1">
+          <button
+            onClick={() => {
+              if (activeTopTab === 'apply' && activeSubTab === 'canvas-analysis') {
+                navigateTo('apply', 'inspect');
+              } else {
+                navigateTo('apply', 'canvas-analysis');
+                triggerHeatmapScan();
+              }
+            }}
+            className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+              activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'
+                ? 'bg-[var(--color-figma-accent)] text-white'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+            }`}
+            aria-label="Toggle canvas analysis"
+            aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-analysis'}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </button>
+        </Tooltip>
 
         {/* Notification history */}
-        <div className="relative">
+        <div className="relative group/tooltip mr-0.5 my-1">
           <button
             onClick={() => setShowNotificationHistory(v => !v)}
-            className={`relative flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+            className={`relative flex items-center justify-center w-7 h-7 rounded transition-colors ${
               showNotificationHistory
                 ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
                 : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
             }`}
-            title="Notification history"
             aria-label="Notification history"
             aria-haspopup="true"
             aria-expanded={showNotificationHistory}
@@ -1585,6 +1590,19 @@ export function App() {
               <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
             )}
           </button>
+          {!showNotificationHistory && (
+            <div
+              role="tooltip"
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-[60] pointer-events-none
+                opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
+                transition-opacity duration-100
+                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
+                text-[var(--color-figma-text)] text-[10px] whitespace-nowrap
+                rounded px-1.5 py-0.5 shadow-md"
+            >
+              Notifications
+            </div>
+          )}
           {showNotificationHistory && (
             <NotificationHistory
               history={notificationHistory}
@@ -1595,28 +1613,31 @@ export function App() {
         </div>
 
         {/* Server connection indicator */}
-        <button
-          onClick={() => {
-            if (!connected) {
-              retryConnection();
-            } else {
-              setOverflowPanel('settings');
-              setConnectResult(null);
-            }
-          }}
-          className="flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          title={checking ? 'Connecting…' : connected ? `Connected to ${serverUrl}` : `Cannot reach ${serverUrl} — click to retry`}
-          aria-label={checking ? 'Connecting to server' : connected ? 'Server connected' : 'Server disconnected — click to retry'}
+        <Tooltip
+          label={checking ? 'Connecting…' : connected ? `Connected to ${serverUrl}` : `Cannot reach ${serverUrl}`}
+          className="mr-0.5 my-1"
         >
-          <span className={`w-2 h-2 rounded-full ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-green-500' : 'bg-[var(--color-figma-error)]'}`} />
-        </button>
+          <button
+            onClick={() => {
+              if (!connected) {
+                retryConnection();
+              } else {
+                setOverflowPanel('settings');
+                setConnectResult(null);
+              }
+            }}
+            className="flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            aria-label={checking ? 'Connecting to server' : connected ? 'Server connected' : 'Server disconnected — click to retry'}
+          >
+            <span className={`w-2 h-2 rounded-full ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-green-500' : 'bg-[var(--color-figma-error)]'}`} />
+          </button>
+        </Tooltip>
 
         {/* Overflow menu */}
-        <div className="relative" ref={menuRef}>
+        <div className="relative group/tooltip mr-1 my-1" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className={`relative flex items-center justify-center w-7 h-7 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
-            title={connected ? 'More actions' : 'More actions (server disconnected)'}
+            className={`relative flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
             aria-label="More actions"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
@@ -1630,6 +1651,19 @@ export function App() {
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--color-figma-error)] border border-[var(--color-figma-bg)]" aria-hidden="true" />
             )}
           </button>
+          {!menuOpen && (
+            <div
+              role="tooltip"
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-[60] pointer-events-none
+                opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
+                transition-opacity duration-100
+                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
+                text-[var(--color-figma-text)] text-[10px] whitespace-nowrap
+                rounded px-1.5 py-0.5 shadow-md"
+            >
+              More actions
+            </div>
+          )}
 
           {menuOpen && (
             <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50" role="menu">

@@ -567,3 +567,20 @@
   - `useEffect` for server-fetched state (like suppressions) should use `apiFetch(...).then(r => r.json())` rather than `await` syntax when the component doesn't need loading state beyond the initial fetch.
   - The HealthPanel comment "suppression is still available in the full validation view via the tokens tab filter" was aspirational documentation, not actual code — always verify referenced features exist before trusting comments.
 ---
+
+## 2026-04-05 - Tab bar icon buttons have no labels
+- Created `packages/figma-plugin/src/ui/shared/Tooltip.tsx` — a CSS-based tooltip component that shows on both hover AND keyboard focus (`group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100`). Accepts `label`, `shortcut`, `className`, and `hidden` props. The `hidden` prop suppresses the tooltip when a button's panel is already open (preventing overlap with dropdown menus).
+- Updated `packages/figma-plugin/src/ui/App.tsx` to wrap all 8 toolbar buttons:
+  - Issues filter, Expand window, Canvas analysis: wrapped with `<Tooltip>` component
+  - Preview split-view, Command palette: wrapped with `<Tooltip>` (tooltip shows shortcut; inline shortcut text retained)
+  - Notification history, Overflow menu: added `group/tooltip` to existing wrapper divs + inline tooltip divs (conditionally hidden when panel is open)
+  - Server connection: wrapped with `<Tooltip>` showing dynamic connection label
+  - Removed all `title=` attributes from the 8 buttons (tooltip supersedes them)
+  - Moved spacing classes (ml-auto, mr-*, my-*) from button to wrapper div where applicable
+- Files changed: `packages/figma-plugin/src/ui/shared/Tooltip.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L62,L1461,L1483,L1502,L1516,L1539,L1572,L1615,L1636
+- **Learnings for future iterations:**
+  - Use `group/tooltip` (named group) instead of plain `group` to avoid conflicts with parent or sibling group classes.
+  - For buttons that already have wrapper divs (popovers/menus), add `group/tooltip` directly to the existing wrapper and render the tooltip div as a conditional child (hidden when the popover is open) — this avoids adding yet another wrapper div.
+  - Spacing classes (ml-auto, mr-*, my-*) must move to the Tooltip wrapper div since it becomes the flex child; the inner button should only have its own sizing/appearance classes.
+  - `group-focus-within` fires when the named group OR any descendant has focus — so a tooltip on a button's wrapper appears while Tab focus is on that button.
+---
