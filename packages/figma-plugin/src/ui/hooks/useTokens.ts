@@ -18,7 +18,9 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
       const $type = value.$type ?? inheritedType ?? 'unknown';
       const rawScopes = value.$extensions?.['com.figma.scopes'];
       const $scopes = Array.isArray(rawScopes) ? rawScopes as string[] : undefined;
-      out.push([path, { $value: value.$value as TokenValue | TokenReference, $type, $name: key, ...($scopes ? { $scopes } : {}) }]);
+      const rawLifecycle = (value.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined)?.['lifecycle'];
+      const $lifecycle = (rawLifecycle === 'draft' || rawLifecycle === 'deprecated') ? rawLifecycle : undefined;
+      out.push([path, { $value: value.$value as TokenValue | TokenReference, $type, $name: key, ...($scopes ? { $scopes } : {}), ...($lifecycle ? { $lifecycle } : {}) }]);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       out.push(...flattenWithNames(value as DTCGGroup, path, inheritedType));
     }

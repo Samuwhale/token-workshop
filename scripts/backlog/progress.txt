@@ -623,3 +623,21 @@
 - **Learnings for future iterations:**
   - Straightforward one-file fix; no new patterns beyond what's already documented.
 ---
+
+## 2026-04-05 - Unused token detection has no auto-fix action
+- Added "Deprecate" as a softer alternative to deletion for unused tokens in HealthPanel
+- Per-row: two action buttons appear on hover — a circle-slash "Deprecate" icon and the existing trash "Delete" icon; confirmation modal for each
+- Bulk header: "Deprecate all" button alongside "Delete all"; confirmation flow with mutual exclusion (only one confirmation active at a time)
+- After deprecation, tokens are immediately excluded from the unused-tokens list (filter by `$lifecycle !== 'deprecated'`)
+- Added `$lifecycle` field to `TokenMapEntry` extracted from `$extensions.tokenmanager.lifecycle` in `flattenWithNames`; follows same pattern as existing `$scopes` extraction
+- `handleDeprecateUnusedToken` sends `PATCH /api/tokens/:set/:path` with `{ $extensions: { tokenmanager: { lifecycle: 'deprecated' } } }`
+- `handleDeprecateAllUnused` bulk-patches all unused tokens in parallel
+- Files changed:
+  - `packages/figma-plugin/src/shared/types.ts` ~L186 (added `$lifecycle` to `TokenMapEntry`)
+  - `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L17 (extract lifecycle in `flattenWithNames`)
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L220, ~L350, ~L538, ~L1125 (state, filter, handlers, UI)
+- **Learnings for future iterations:**
+  - `TokenMapEntry` intentionally omits `$extensions` — only promoted fields (`$scopes`, now `$lifecycle`) are extracted in `flattenWithNames`. Follow this pattern when needing any other extension field in flat-map consumers.
+  - `updateToken` in token-store.ts fully replaces `$extensions` when provided (`if ('$extensions' in token) existing.$extensions = token.$extensions`). Merging must happen client-side or via a GET+PATCH cycle. For unused tokens with no meaningful prior extensions, sending only the new extension is acceptable.
+  - Mutual-exclusion between "Deprecate all" confirm and "Delete all" confirm: render only one confirmation UI at a time in a single `else if` chain to avoid both showing simultaneously.
+---

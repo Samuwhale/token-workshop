@@ -190,6 +190,8 @@ export interface TokenMapEntry {
   $name?: string;
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];
+  /** Lifecycle stage from $extensions.tokenmanager.lifecycle. Undefined means 'published'. */
+  $lifecycle?: 'draft' | 'published' | 'deprecated';
 }
 
 // ─── Concrete value types used in the plugin sandbox ─────────────────────────
