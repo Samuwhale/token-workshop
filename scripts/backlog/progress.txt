@@ -362,3 +362,13 @@
   - `extractAliasPath` returns the path without braces; wrap in `{...}` before passing to `onSave`.
   - For fixed-position alias popovers inside narrow cells, use `getBoundingClientRect()` on a `ref` attached to the cell wrapper to get the anchor position.
 ---
+
+## 2026-04-05 - Publish sync compare pre-compare type filter
+- Added token type filter chips to SyncSubPanel. After a compare runs, a "Type:" row appears when there are multiple token types in the diff (e.g., color, dimension, string). Each chip shows the type name and count of matching diff rows. Clicking a chip toggles it; "All" resets to show everything. The type filter combines with the existing path text filter (diffFilter). Filter state resets automatically when a new compare runs (rows identity changes via useEffect + ref).
+- All filtering is post-compare (applied to sync.rows display), keeping the existing compare machinery unchanged. The type filter is local to each SyncSubPanel instance so Variables and Styles panels each have their own independent filters.
+- Files changed: `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` ~L1 (import), ~L46 (typeFilters state + hooks), ~L128 (type filter chip UI)
+- **Learnings for future iterations:**
+  - Post-compare filtering is the right approach here — Figma's API returns all variables in a batch anyway, so pre-filtering the fetch wouldn't help performance. Filtering the display rows is the UX win.
+  - The `useEffect` + `useRef` pattern (`if (sync.rows !== prevRowsRef.current)`) reliably detects when a new compare has run (rows identity changes) without triggering on every render.
+  - Showing counts on each chip (`{type} {count}`) is essential UX for a diff filter — users need to know how many tokens are in each type before deciding what to focus on.
+---

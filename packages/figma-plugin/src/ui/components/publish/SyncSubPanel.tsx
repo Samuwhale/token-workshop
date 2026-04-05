@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { useSyncEntity } from '../../hooks/useSyncEntity';
 import { VarDiffRowItem } from './PublishShared';
 
@@ -44,6 +44,52 @@ export function SyncSubPanel({
   getScopeOptions,
 }: SyncSubPanelProps) {
   const [revertPending, setRevertPending] = useState(false);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const prevRowsRef = useRef(sync.rows);
+
+  // Reset type filter when a new compare completes (rows identity changes)
+  useEffect(() => {
+    if (sync.rows !== prevRowsRef.current) {
+      prevRowsRef.current = sync.rows;
+      setTypeFilters([]);
+    }
+  }, [sync.rows]);
+
+  // Collect unique types from all rows
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    for (const row of sync.rows) {
+      const t = row.localType ?? row.figmaType;
+      if (t) types.add(t);
+    }
+    return [...types].sort();
+  }, [sync.rows]);
+
+  // Count tokens per type for badge display
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const row of sync.rows) {
+      const t = row.localType ?? row.figmaType;
+      if (t) counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return counts;
+  }, [sync.rows]);
+
+  // Combined path + type filtering (applied post-compare to the diff rows)
+  const filteredRows = useMemo(() => {
+    let rows = sync.rows;
+    const filterLower = diffFilter.toLowerCase();
+    if (filterLower) {
+      rows = rows.filter(r => r.path.toLowerCase().includes(filterLower));
+    }
+    if (typeFilters.length > 0) {
+      rows = rows.filter(r => {
+        const t = r.localType ?? r.figmaType;
+        return t !== undefined && typeFilters.includes(t);
+      });
+    }
+    return rows;
+  }, [sync.rows, diffFilter, typeFilters]);
 
   function handleRevertConfirm() {
     setRevertPending(false);
@@ -72,16 +118,49 @@ export function SyncSubPanel({
       )}
 
       {sync.rows.length > 0 && (() => {
-        const filterLower = diffFilter.toLowerCase();
-        const filteredRows = filterLower
-          ? sync.rows.filter(r => r.path.toLowerCase().includes(filterLower))
-          : sync.rows;
         const localOnly = filteredRows.filter(r => r.cat === 'local-only');
         const figmaOnly = filteredRows.filter(r => r.cat === 'figma-only');
         const conflicts = filteredRows.filter(r => r.cat === 'conflict');
+        const isFiltered = diffFilter.length > 0 || typeFilters.length > 0;
 
         return (
           <>
+            {/* ── Type filter chips (visible when multiple types exist) ── */}
+            {availableTypes.length > 1 && (
+              <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Type:</span>
+                <button
+                  onClick={() => setTypeFilters([])}
+                  className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                    typeFilters.length === 0
+                      ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
+                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  All
+                </button>
+                {availableTypes.map(type => {
+                  const active = typeFilters.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setTypeFilters(prev =>
+                        prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                      )}
+                      className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                        active
+                          ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
+                          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      {type}
+                      <span className="ml-1 opacity-60">{typeCounts[type] ?? 0}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
               {(['push', 'pull', 'skip'] as const).map(action => (
@@ -95,7 +174,7 @@ export function SyncSubPanel({
               ))}
             </div>
 
-            {filterLower && filteredRows.length !== sync.rows.length && (
+            {isFiltered && filteredRows.length !== sync.rows.length && (
               <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
                 {filteredRows.length} of {sync.rows.length} token{sync.rows.length !== 1 ? 's' : ''} match filter
               </div>
