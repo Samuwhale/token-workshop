@@ -645,3 +645,9 @@
   - When a backlog item is filed alongside a notification-channel refactor, the refactor may incidentally fix the item. Always check recent commits touching the same file before implementing.
   - `dispatchToast` in the success path of an async handler fires before `setSavePhase('idle')`, so the toast is dispatched while the modal is still technically "mounted" — React batches the state changes and renders the toast and modal-close together.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: ThemeManager (ThemeManager.tsx, ThemeManagerContext.tsx, ResolverPanel.tsx, useThemeBulkOps, useThemeAutoFill, useThemeCoverage, useThemeDimensions), ExportPanel (ExportPanel.tsx, preset management, Figma variables export, save-to-server flow), PublishPanel (PublishPanel.tsx, SyncSubPanel.tsx, GitSubPanel.tsx, PublishShared.tsx, publish-all orchestration), Token editing (CreatePanel.tsx, TokenEditor.tsx, ValueEditors.tsx, BatchEditor.tsx, InlineValuePopover.tsx, FormulaInput.tsx, TokenRefInput.tsx, AliasAutocomplete.tsx), Token tree interactions (TokenTreeNode.tsx MultiModeCell inline editing, context menus), Server API routes (tokens.ts, sets.ts, themes.ts, generators.ts, resolvers.ts, lint.ts, operations.ts, export.ts, sync.ts), App shell navigation (App.tsx TOP_TABS/sub-tabs, command palette, overflow menu), SettingsPanel.tsx
+- Found 12 items — written to backlog-inbox.md
+- Notable: ThemeManager's Preview/Compare/Coverage Matrix panels being mutually exclusive is a significant workflow friction — users managing multi-dimensional themes can't cross-reference information. The Resolver vs Theme conceptual split adds complexity without adding capability for most users.
+---
