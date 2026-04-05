@@ -346,3 +346,9 @@
   - A `getBarPos(clientX)` function closed over a `barRef` gives clean screen-to-normalized-position conversion shared between the bar's click handler and the marker's pointer-move handler.
   - `e.stopPropagation()` + `onClick={e => e.stopPropagation()}` both needed on markers to prevent the parent container's click handler from firing.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: All UI components (64 files, ~55K lines), server routes (12 modules) and services, all hooks (92), all contexts (6), TokenTreeNode interaction patterns, publish/export/history flows, SettingsPanel, undo system, command palette, drag-and-drop, multi-select, BatchEditor, ValueEditors, ThemeManager/ResolverPanel relationship, accessibility patterns, loading states, keyboard shortcut handling
+- Found 12 items — written to backlog-inbox.md
+- Notable: ValueEditors.tsx at 2,479 lines with 15+ editor components is a clear splitting target; import operations lack undo support; keyboard shortcuts are scattered across 19+ files with no central registry or conflict detection
+---
