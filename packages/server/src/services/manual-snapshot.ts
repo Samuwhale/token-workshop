@@ -95,7 +95,7 @@ export class ManualSnapshotStore {
 
   /** Capture the current state of all token sets. */
   save(label: string, tokenStore: TokenStore): Promise<ManualSnapshotEntry> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       await this.ensureLoaded();
 
       const sets = await tokenStore.getSets();
@@ -153,7 +153,7 @@ export class ManualSnapshotStore {
   }
 
   delete(id: string): Promise<boolean> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       await this.ensureLoaded();
       const before = this.snapshots.length;
       this.snapshots = this.snapshots.filter(s => s.id !== id);
@@ -244,7 +244,7 @@ export class ManualSnapshotStore {
 
   /** Restore a snapshot by overwriting current token files. */
   restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       await this.ensureLoaded();
       const snapshot = this.snapshots.find(s => s.id === id);
       if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);

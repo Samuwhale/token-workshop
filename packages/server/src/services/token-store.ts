@@ -15,7 +15,7 @@ import {
   COMPOSITE_TOKEN_TYPES,
 } from '@tokenmanager/core';
 import { NotFoundError, ConflictError, BadRequestError } from '../errors.js';
-import { TokenLock } from './token-lock.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 import {
   validateTokenPath,
   pathExistsAt,
@@ -37,7 +37,7 @@ export { isSafeRegex };
 
 export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
-  readonly lock = new TokenLock();
+  readonly lock = new PromiseChainLock();
   private dir: string;
   private sets: Map<string, TokenSet> = new Map();
   private flatTokens: Map<string, Array<{ token: Token; setName: string }>> = new Map();
@@ -1923,7 +1923,7 @@ export class TokenStore {
         throw err;
       }
     });
-    // Advance the chain regardless of success/failure (mirrors TokenLock behaviour).
+    // Advance the chain regardless of success/failure (mirrors PromiseChainLock behaviour).
     this._saveChains.set(name, next.catch(() => {}));
     return next;
   }

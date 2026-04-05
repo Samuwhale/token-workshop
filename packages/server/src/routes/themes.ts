@@ -59,7 +59,7 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
     },
 
     withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T> {
-      return lock.run(async () => {
+      return lock.withLock(async () => {
         const dims = await store.load();
         const { dims: updated, result } = await fn(dims);
         await store.save(updated);

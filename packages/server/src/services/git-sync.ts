@@ -244,7 +244,7 @@ export class GitSync {
   }
 
   async init(): Promise<void> {
-    return this.lock.run(() => this.git.init());
+    return this.lock.withLock(() => this.git.init());
   }
 
   async status() {
@@ -252,7 +252,7 @@ export class GitSync {
   }
 
   async commit(message: string, files?: string[]): Promise<string> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       if (files && files.length > 0) {
         this.validatePaths(files);
         await this.git.add(files);
@@ -265,11 +265,11 @@ export class GitSync {
   }
 
   async push(): Promise<void> {
-    return this.lock.run(() => wrapNetworkOp('push', this.git.push()));
+    return this.lock.withLock(() => wrapNetworkOp('push', this.git.push()));
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       try {
         await wrapNetworkOp('pull', this.git.pull());
         return { conflicts: [] };
@@ -318,7 +318,7 @@ export class GitSync {
 
   /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
   async resolveFileConflict(file: string, choices: Record<number, 'ours' | 'theirs'>): Promise<void> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       this.validatePaths([file]);
       const filePath = path.resolve(this.dir, file);
       const content = await fs.readFile(filePath, 'utf-8');
@@ -345,7 +345,7 @@ export class GitSync {
   async resolveAllConflicts(
     resolutions: Array<{ file: string; choices: Record<number, 'ours' | 'theirs'> }>,
   ): Promise<void> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       // --- 1. Validate structure of each resolution entry ---
       for (const res of resolutions) {
         if (!res || typeof res.file !== 'string' || !res.file) {
@@ -434,12 +434,12 @@ export class GitSync {
 
   /** Abort the current merge. */
   async abortMerge(): Promise<void> {
-    return this.lock.run(() => this.git.merge(['--abort']));
+    return this.lock.withLock(() => this.git.merge(['--abort']));
   }
 
   /** Finalize merge after all conflicts resolved — creates the merge commit. */
   async finalizeMerge(): Promise<void> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       // Check if any conflicts remain
       const remaining = await this.getConflictedFiles();
       if (remaining.length > 0) {
@@ -465,14 +465,14 @@ export class GitSync {
   }
 
   async checkout(branch: string): Promise<void> {
-    return this.lock.run(() => {
+    return this.lock.withLock(() => {
       this.validateBranchName(branch);
       return this.git.checkout(branch);
     });
   }
 
   async createBranch(branch: string): Promise<void> {
-    return this.lock.run(() => {
+    return this.lock.withLock(() => {
       this.validateBranchName(branch);
       return this.git.checkoutLocalBranch(branch);
     });
@@ -553,7 +553,7 @@ export class GitSync {
   }
 
   async setRemote(url: string): Promise<void> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       try {
         await this.git.addRemote('origin', url);
       } catch {
@@ -573,7 +573,7 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    return this.lock.run(() => wrapNetworkOp('fetch', this.git.fetch()));
+    return this.lock.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
@@ -747,7 +747,7 @@ export class GitSync {
     choices: Record<string, 'push' | 'pull' | 'skip'>,
     tokenStore?: TokenStore,
   ): Promise<ApplyDiffResult> {
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
       const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
       this.validatePaths([...toPull, ...toPush]);

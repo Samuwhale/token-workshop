@@ -26,7 +26,7 @@ import { resolverRoutes } from './routes/resolvers.js';
 import { ResolverStore } from './services/resolver-store.js';
 import { ManualSnapshotStore } from './services/manual-snapshot.js';
 import { snapshotRoutes } from './routes/snapshots.js';
-import { TokenLock } from './services/token-lock.js';
+import { PromiseChainLock } from './utils/promise-chain-lock.js';
 import { RateLimiter } from './services/rate-limiter.js';
 import { createDimensionsStore, type DimensionsStore } from './routes/themes.js';
 import { EventBus } from './services/event-bus.js';
@@ -181,8 +181,8 @@ export async function startServer(config: ServerConfig) {
 declare module 'fastify' {
   interface FastifyInstance {
     tokenStore: TokenStore;
-    tokenLock: TokenLock;
-    resolverLock: TokenLock;
+    tokenLock: PromiseChainLock;
+    resolverLock: PromiseChainLock;
     gitSync: GitSync;
     generatorService: GeneratorService;
     operationLog: OperationLog;

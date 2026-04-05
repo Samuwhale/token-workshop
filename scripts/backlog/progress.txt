@@ -518,3 +518,21 @@
   - The pre-import preview and the `ImportConflictResolver` (post-click) serve different purposes: the preview is read-only (no per-token decisions), while the resolver allows per-token accept/merge/reject. The correct guard is `conflictPaths === null` — hide the preview once the resolver takes over.
   - For the variables path, `setVarConflictDetailsExpanded(true)` inside the async block right after `setVarConflictDetails(details)` is the simplest auto-expand — no extra effect or ref needed, since the setter is stable and the block already runs exactly once per fetch.
 ---
+
+## 2026-04-05 - Consolidate duplicate lock classes: TokenLock and PromiseChainLock
+- Removed `packages/server/src/services/token-lock.ts` (the `TokenLock` class). Updated `PromiseChainLock` in `utils/promise-chain-lock.ts` to rename `run` → `withLock` and make it an arrow function (required for `const { withLock } = fastify.tokenLock` destructuring pattern used by route handlers). Migrated all 7 consumers to use the unified class.
+- Files changed:
+  - `packages/server/src/utils/promise-chain-lock.ts` (renamed `run` → `withLock`, arrow function)
+  - `packages/server/src/services/token-lock.ts` (deleted)
+  - `packages/server/src/services/token-store.ts` ~L18, ~L40 (import + instantiation)
+  - `packages/server/src/services/resolver-store.ts` ~L25, ~L54 (import + instantiation)
+  - `packages/server/src/index.ts` ~L29, ~L184-185 (import + type declarations)
+  - `packages/server/src/services/generator-service.ts` ~L112 (`.run` → `.withLock`)
+  - `packages/server/src/services/operation-log.ts` ~L152, ~L389 (`.run` → `.withLock`)
+  - `packages/server/src/services/git-sync.ts` ~L247+ (all `.lock.run` → `.lock.withLock`)
+  - `packages/server/src/services/manual-snapshot.ts` ~L98, ~L156, ~L247 (`.run` → `.withLock`)
+  - `packages/server/src/routes/themes.ts` ~L62 (`lock.run` → `lock.withLock`)
+- **Learnings for future iterations:**
+  - Arrow function vs regular method matters for destructuring: `const { withLock } = instance` only works correctly when `withLock` is defined as an arrow function (`fn = () => {}`) — a regular method loses `this` binding. When consolidating mutex classes used via destructuring, the surviving class must use arrow function syntax.
+  - The `ThemesStore.withLock` method in `themes.ts` is a *different* `withLock` with a different signature (takes `dims` param) — don't confuse it with the lock utility's `withLock`. Naming collision, but no actual conflict.
+---

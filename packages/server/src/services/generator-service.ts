@@ -109,7 +109,7 @@ export class GeneratorService {
   }
 
   private saveGenerators(): Promise<void> {
-    return this.saveLock.run(() => this._doSave());
+    return this.saveLock.withLock(() => this._doSave());
   }
 
   private async _doSave(): Promise<void> {

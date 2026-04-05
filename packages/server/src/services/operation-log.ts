@@ -149,7 +149,7 @@ export class OperationLog {
   /** Record a new operation entry. */
   async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
     await this.ensureLoaded();
-    return this.lock.run(() => this.pushAndPersist(entry));
+    return this.lock.withLock(() => this.pushAndPersist(entry));
   }
 
   /** Get recent entries (newest first) as lightweight summaries, with total count. */
@@ -386,7 +386,7 @@ export class OperationLog {
     // Acquire the lock for the entire rollback so that concurrent rollback requests
     // for the same operation cannot both pass the `rolledBack` check before either
     // sets it to true (TOCTOU race).
-    return this.lock.run(async () => {
+    return this.lock.withLock(async () => {
       const entry = this.entries.find(e => e.id === id);
       if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
       if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);

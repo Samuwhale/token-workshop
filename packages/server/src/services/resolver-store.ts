@@ -22,7 +22,7 @@ import {
   getDefaultResolverInput,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
-import { TokenLock } from './token-lock.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../errors.js';
 
 // ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ export interface ResolverMeta {
 
 export class ResolverStore {
   private dir: string;
-  readonly lock = new TokenLock();
+  readonly lock = new PromiseChainLock();
   private resolvers: Map<string, ResolverFile> = new Map();
   private loadErrors: Map<string, { message: string; at: string }> = new Map();
   private loadErrorListeners = new Set<(name: string, message: string) => void>();
