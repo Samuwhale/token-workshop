@@ -11,6 +11,7 @@ interface HeatmapNode {
   status: 'green' | 'yellow' | 'red';
   boundCount: number;
   totalCheckable: number;
+  missingProperties?: BindableProperty[];
 }
 
 export interface HeatmapResult {
@@ -432,7 +433,19 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
                     )}
                   </button>
                   {isExpanded && nodes.map(node => (
-                    <NodeRow key={node.id} node={node} onSelect={() => onSelectNodes([node.id])} />
+                    <NodeRow
+                      key={node.id}
+                      node={node}
+                      onSelect={() => onSelectNodes([node.id])}
+                      onBind={node.status !== 'green' && onBatchBind
+                        ? () => {
+                            onSelectNodes([node.id]);
+                            setQuickBind({ nodeIds: [node.id], statusLabel: node.name });
+                            setBindToken('');
+                            setBindProperty(node.missingProperties?.[0] ?? 'fill');
+                          }
+                        : undefined}
+                    />
                   ))}
                 </div>
               );
@@ -450,7 +463,19 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
                 </button>
               </div>
               {filteredNodes.map(node => (
-                <NodeRow key={node.id} node={node} onSelect={() => onSelectNodes([node.id])} />
+                <NodeRow
+                  key={node.id}
+                  node={node}
+                  onSelect={() => onSelectNodes([node.id])}
+                  onBind={node.status !== 'green' && onBatchBind
+                    ? () => {
+                        onSelectNodes([node.id]);
+                        setQuickBind({ nodeIds: [node.id], statusLabel: node.name });
+                        setBindToken('');
+                        setBindProperty(node.missingProperties?.[0] ?? 'fill');
+                      }
+                    : undefined}
+                />
               ))}
             </div>
           )}
@@ -466,7 +491,11 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
             </svg>
             <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Bind to token</span>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">· {quickBind.nodeIds.length} layer{quickBind.nodeIds.length !== 1 ? 's' : ''} selected</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              {quickBind.nodeIds.length === 1
+                ? `· ${quickBind.statusLabel}`
+                : `· ${quickBind.nodeIds.length} layers selected`}
+            </span>
             <button
               onClick={() => setQuickBind(null)}
               className="ml-auto text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
@@ -516,23 +545,43 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onScopeC
   );
 }
 
-function NodeRow({ node, onSelect }: { node: HeatmapNode; onSelect: () => void }) {
+function NodeRow({ node, onSelect, onBind }: { node: HeatmapNode; onSelect: () => void; onBind?: () => void }) {
   const cfg = STATUS_COLORS[node.status];
   const typeLabel = NODE_TYPE_LABELS[node.type] ?? node.type;
   return (
-    <button
-      onClick={onSelect}
-      className="w-full flex items-center gap-2 px-3 py-1.5 text-left border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+    <div
+      role="group"
+      className="relative flex items-stretch border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
     >
-      <StatusIcon status={node.status} size={8} />
-      <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
-      {node.totalCheckable > 0 && (
-        <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
+      <button
+        onClick={onSelect}
+        className="flex-1 flex items-center gap-2 px-3 py-1.5 text-left min-w-0"
+        aria-label={`Select ${node.name}`}
+      >
+        <StatusIcon status={node.status} size={8} />
+        <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
+        {node.totalCheckable > 0 && (
+          <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
+        )}
+        {!onBind && (
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-0 group-hover:opacity-60 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+            <path d="M1.5 5h7M5.5 2l3 3-3 3"/>
+          </svg>
+        )}
+      </button>
+      {onBind && (
+        <div className="absolute right-2 top-0 bottom-0 flex items-center opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+          <button
+            onClick={e => { e.stopPropagation(); onBind(); }}
+            className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
+            aria-label={`Bind ${node.name} to a token`}
+            title="Quick bind to token"
+          >
+            Bind
+          </button>
+        </div>
       )}
-      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-0 group-hover:opacity-60 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-        <path d="M1.5 5h7M5.5 2l3 3-3 3"/>
-      </svg>
-    </button>
+    </div>
   );
 }

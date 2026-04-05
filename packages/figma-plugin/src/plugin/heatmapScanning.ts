@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type BindableProperty, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
@@ -91,6 +91,25 @@ export function selectNextSibling() {
   figma.ui.postMessage({ type: 'select-next-sibling-result', found: true });
 }
 
+// Maps raw Figma node property names to BindableProperty equivalents.
+// Typography props all map to 'typography' and are deduplicated in the loop below.
+const CHECKABLE_TO_BINDABLE: Record<string, BindableProperty> = {
+  fills:         'fill',
+  strokes:       'stroke',
+  effects:       'shadow',
+  opacity:       'opacity',
+  fontSize:      'typography',
+  fontName:      'typography',
+  letterSpacing: 'typography',
+  lineHeight:    'typography',
+  cornerRadius:  'cornerRadius',
+  paddingTop:    'paddingTop',
+  paddingRight:  'paddingRight',
+  paddingBottom: 'paddingBottom',
+  paddingLeft:   'paddingLeft',
+  itemSpacing:   'itemSpacing',
+};
+
 // Scan visual nodes for token/variable binding coverage
 export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { aborted: boolean }) {
   // Abort if the user navigates to a different page mid-scan (only relevant for
@@ -130,7 +149,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
     }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';
-    const result: { id: string; name: string; type: string; status: HeatmapStatus; boundCount: number; totalCheckable: number }[] = [];
+    const result: { id: string; name: string; type: string; status: HeatmapStatus; boundCount: number; totalCheckable: number; missingProperties: BindableProperty[] }[] = [];
     let greenCount = 0, yellowCount = 0, redCount = 0;
 
     for (let i = 0; i < nodes.length; i++) {
@@ -187,7 +206,25 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
         redCount++;
       }
 
-      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable });
+      // Collect bindable properties that have values but no binding (figma variable or plugin data).
+      const missingProperties: BindableProperty[] = [];
+      const seenBindable = new Set<BindableProperty>();
+      for (const prop of CHECKABLE_FIGMA_PROPS) {
+        if (!(prop in node)) continue;
+        const val = (node as Record<string, unknown>)[prop];
+        const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
+        if (!hasValue) continue;
+        if (figmaBoundProps.has(prop)) continue;
+        const bindable = CHECKABLE_TO_BINDABLE[prop];
+        if (!bindable) continue;
+        if (seenBindable.has(bindable)) continue;
+        const pluginVal = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, bindable);
+        if (pluginVal && pluginVal.trim()) continue;
+        seenBindable.add(bindable);
+        missingProperties.push(bindable);
+      }
+
+      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable, missingProperties });
 
       // Yield between batches to prevent freezing
       if ((i + 1) % BATCH_SIZE === 0) {

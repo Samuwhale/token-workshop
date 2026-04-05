@@ -405,3 +405,16 @@
   - TypeScript does not catch missing hook imports at compile time — `useState` used in a nested component inside the same file is still in scope as a JS global in some bundler configs but will crash at runtime in strict mode. Always verify React hook imports when a component mysteriously fails to render.
   - The ConsistencyPanel already has a three-level snap hierarchy: per-suggestion "Snap all", per-category "Snap N in Category", and global "Snap all N" — all behind a confirmation modal for bulk operations.
 ---
+
+## 2026-04-05 - HeatmapPanel inline bind actions
+- Added per-node inline "Bind" button to HeatmapPanel for red/yellow nodes. Clicking pre-fills the Quick Bind panel at the bottom with just that single node and defaults the property selector to the first missing property.
+- Extended `scanCanvasHeatmap` to compute `missingProperties: BindableProperty[]` per node — unbound Figma props with values mapped to BindableProperty names via `CHECKABLE_TO_BINDABLE` mapping, deduplicated (multiple text props → single 'typography').
+- Restructured `NodeRow` from `<button>` (entire row) to `<div role="group">` + inner select `<button>` + absolutely-positioned "Bind" button — required because buttons can't be nested inside buttons (invalid HTML).
+- The "Bind" button uses the faint-always-visible pattern: `opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto`.
+- Updated Quick Bind header to show node name for single-node binds (`statusLabel: node.name`) vs "N layers selected" for group binds.
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L95 (CHECKABLE_TO_BINDABLE mapping, missingProperties computation), `packages/figma-plugin/src/shared/types.ts` ~L829 (CanvasHeatmapResultMessage nodes type), `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L7 (HeatmapNode), ~L434 (grouped view NodeRow), ~L452 (filtered view NodeRow), ~L469 (Quick Bind header), ~L519 (NodeRow component)
+- **Learnings for future iterations:**
+  - `NodeRow` as a pure `<button>` blocks adding action buttons inline — convert to `<div role="group">` + inner button(s) early when action buttons are anticipated.
+  - `missingProperties` deduplication using `seenBindable: Set<BindableProperty>` is needed because multiple Figma props (fontSize, fontName, letterSpacing, lineHeight) all map to the same 'typography' BindableProperty.
+  - The `statusLabel` field in `QuickBindState` doubles as a node name for single-node triggers — check `nodeIds.length === 1` to decide display format.
+---
