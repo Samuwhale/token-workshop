@@ -435,3 +435,11 @@
   - When a component exports a type that other hooks import (HeatmapPanel exported `HeatmapScope`), moving that type to `shared/types.ts` and importing directly avoids indirect import chains through component files.
   - `ScanScopeSelector` accepts `showLabel` prop to optionally prepend "Scope:" text — useful when the component sits in a toolbar with other controls vs. standalone use.
 ---
+
+## 2026-04-05 - Token path auto-complete should suggest sibling tokens when creating
+- Added a "sibling" category to `PathAutocomplete`. When the query contains a dot (e.g., `color.brand.ter`), the parent group is extracted (`color.brand`) and all existing tokens at that level that didn't match fuzzy scoring are injected as sibling suggestions. Siblings appear between fuzzy matches and ghost suggestions in the list. Rendered with dimmer opacity dot icon, italic muted text, and a "sibling" badge — visually distinct from both exact matches and ghost/new suggestions.
+- Files changed: `packages/figma-plugin/src/ui/components/PathAutocomplete.tsx` ~L57,L115-L132,L134-L141,L146,L199,L221,L224,L228
+- **Learnings for future iterations:**
+  - The fuzzy scorer already surfaces siblings that share a prefix with the typed leaf, but silently drops siblings that don't match any characters. The fix adds an explicit post-fuzzy pass using the already-built `groupChildren` map — no extra data structure needed.
+  - Sort tiers (normal > sibling > ghost) cleanly extend the existing sort without touching the ghost sort logic, just by adding a `rankA/rankB` pre-comparison.
+---
