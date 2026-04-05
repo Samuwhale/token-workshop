@@ -657,3 +657,17 @@
   - For group delete, collect all paths under the prefix first (across all sets in perSetFlat) before calling impact functions — the impact functions need a `Set<string>` of actual token paths, not a prefix string
   - Rename confirm with zero alias deps now shows the dialog when there are generator/theme impacts; the button adapts ("Update N aliases and rename" vs. "Rename")
 ---
+
+## 2026-04-05 - Export presets buried with no keyboard shortcut
+- Added `⌘⇧E` keyboard shortcut that opens the command palette pre-filtered to "Export with preset"
+- Added dynamic `exportPresetCommands` slice in App.tsx: one command per saved preset ("Export with preset: <name>"), under the 'Data' category
+- Commands stay in sync via `exportPresetRev` state + `exportPresetsChanged` custom event dispatched by ExportPanel whenever presets are saved
+- Command handler writes preset ID to `STORAGE_KEYS.EXPORT_PRESET_APPLY` in localStorage, navigates to the export panel, then fires `applyExportPreset` custom event
+- ExportPanel listens for `applyExportPreset` on mount (and checks for pending preset on mount), reads the ID, and calls `handleLoadPreset`; uses a callback ref to avoid stale closures
+- Added `⌘⇧E` kbd hint next to the "Presets" header in the ExportPanel UI
+- Added `EXPORT_WITH_PRESET` to shortcutRegistry.ts (`⌘⇧E`), registered in SHORTCUT_REGISTRY under 'Global'
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L34, `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L51, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L686, ~L725, ~L936, `packages/figma-plugin/src/ui/App.tsx` ~L715, ~L548, ~L1150
+- **Learnings for future iterations:**
+  - Custom event pair (`dispatchEvent(new CustomEvent('xyzChanged'))` in writer + `window.addEventListener('xyzChanged', ...)` in reader) is the lightest-weight sync mechanism for cross-component state that lives in localStorage. No context, no prop threading, no ref sharing required.
+  - When applying state from a command palette action that navigates to a new panel, the "pending action in localStorage + custom event on arrival" pattern works cleanly: write the action ID before `navigateTo`, fire the event after. The receiving component listens on mount AND on the event (handles both already-mounted and just-mounted cases).
+---

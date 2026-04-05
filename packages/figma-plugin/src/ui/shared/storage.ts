@@ -32,6 +32,7 @@ export const STORAGE_KEYS = {
   EXPORT_TYPES:          'exportPanel.selectedTypes',
   EXPORT_PATH_PREFIX:    'exportPanel.pathPrefix',
   EXPORT_PRESETS:        'exportPanel.presets',
+  EXPORT_PRESET_APPLY:   'exportPanel.presetApply',
   EXPORT_CHANGES_ONLY:   'exportPanel.changesOnly',
   UNDO_MAX_HISTORY:      'tm_undo_max_history',
   HIDE_DEPRECATED:       'tm_hide_deprecated',

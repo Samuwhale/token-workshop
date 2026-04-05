@@ -547,6 +547,12 @@ export function App() {
       e.preventDefault();
       jumpToNextIssue();
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'e') {
+      e.preventDefault();
+      // Open command palette pre-filtered to export preset commands
+      setCommandPaletteInitialQuery('Export with preset');
+      setShowCommandPalette(true);
+    }
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => keyboardShortcutRef.current(e);
@@ -710,6 +716,14 @@ export function App() {
   // Trigger delete confirm for a single token from the token search row
   const handlePaletteDeleteToken = useCallback((path: string) => {
     setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
+  }, []);
+
+  // Track export preset changes so the command palette stays in sync.
+  const [exportPresetRev, setExportPresetRev] = useState(0);
+  useEffect(() => {
+    const onChanged = () => setExportPresetRev(r => r + 1);
+    window.addEventListener('exportPresetsChanged', onChanged);
+    return () => window.removeEventListener('exportPresetsChanged', onChanged);
   }, []);
 
   // Split the command palette registry into focused sub-memos so that
@@ -1132,11 +1146,30 @@ export function App() {
     })),
   ], [recentOperations, handleRollback, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo]);
 
+  // Export preset commands — one entry per saved preset.
+  // Rebuilds only when presets change (exportPresetRev bumped by custom event from ExportPanel).
+  const exportPresetCommands = useMemo<Command[]>(() => {
+    const presets = lsGetJson<Array<{ id: string; name: string }>>(STORAGE_KEYS.EXPORT_PRESETS, []);
+    return presets.map(preset => ({
+      id: `export-preset-${preset.id}`,
+      label: `Export with preset: ${preset.name}`,
+      description: 'Apply export preset and open the Export panel',
+      category: 'Data' as const,
+      handler: () => {
+        lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
+        navigateTo('ship', 'export');
+        window.dispatchEvent(new CustomEvent('applyExportPreset'));
+      },
+    }));
+  // exportPresetRev is the only dep that changes when presets are added/removed/renamed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportPresetRev, navigateTo]);
+
   // Merge all command slices. Each slice has a stable reference until its own
   // deps change, so this array spread is the only work done on hover events.
   const commands: Command[] = useMemo(
-    () => [...baseCommands, ...themeCompareCommands, ...setCommands, ...contextualCommands, ...undoRedoCommands],
-    [baseCommands, themeCompareCommands, setCommands, contextualCommands, undoRedoCommands],
+    () => [...baseCommands, ...themeCompareCommands, ...setCommands, ...contextualCommands, ...undoRedoCommands, ...exportPresetCommands],
+    [baseCommands, themeCompareCommands, setCommands, contextualCommands, undoRedoCommands, exportPresetCommands],
   );
 
   // Flat token list for command palette — active set only (default mode)

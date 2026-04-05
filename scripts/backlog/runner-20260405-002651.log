@@ -968,3 +968,27 @@ Already up to date.
 
   Merging to main: No token dependency impact analysis before destructive operations
 Already up to date.
+[main 5fc60a6b] chore(backlog): done – No token dependency impact analysis before destructive operations
+ 11 files changed, 343 insertions(+), 49 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/tokenImpact.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - No token dependency impact analysis before destructive operations
+- Implemented full downstream impact analysis for token delete and rename confirmation dialogs
+- Added `GeneratorImpact` and `ThemeImpact` types to `tokenListTypes.ts`; extended `DeleteConfirm` union to always carry both new arrays
+- Created `packages/figma-plugin/src/ui/shared/tokenImpact.ts` with two pure functions: `computeGeneratorImpacts` (scans `sourceToken` + `$tokenRefs` config fields) and `computeThemeImpacts` (scans enabled/source sets per theme option)
+
+═══════════════════════════════════════════════════════════════
+  #40  ·  16 queued · 0
+0 in-progress · last took 12m16s
+═══════════════════════════════════════════════════════════════
+  → Export presets are buried in a collapsible section with no keyboard shortcut — ExportPanel.tsx has a working preset save/load system but it's hidden under a "Presets" collapsible below the main export config; for users who export multiple platforms regularly, presets should be the primary entry point with a command palette action ("Export with preset: iOS") and a keyboard shortcut
+  Worktree: /tmp/backlog-54964-tHnI4t
+  Running agent… (started 04:22:57)
+
+  ✓ done: Export presets are buried in a collapsible section with no keyboard shortcut
+    Added ⌘⇧E shortcut opening palette pre-filtered to "Export with preset: X" commands; each preset gets a dynamic command entry that navigates to export panel and applies the preset via localStorage+custom event
+    56 turns · 401s · $1.56
+
+  Merging to main: Export presets are buried in a collapsible section with no keyboard shortcut
+Already up to date.

@@ -682,9 +682,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [presetName, setPresetName] = useState('');
   const savePresetInputRef = useRef<HTMLInputElement>(null);
 
-  // Persist presets
+  // Persist presets and notify App.tsx command palette
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.EXPORT_PRESETS, presets);
+    window.dispatchEvent(new CustomEvent('exportPresetsChanged'));
   }, [presets]);
 
   const handleSavePreset = () => {
@@ -724,6 +725,23 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const handleDeletePreset = (id: string) => {
     setPresets(prev => prev.filter(p => p.id !== id));
   };
+
+  // Apply a preset dispatched from the command palette (⌘⇧E → palette → preset command)
+  const handleLoadPresetRef = useRef(handleLoadPreset);
+  handleLoadPresetRef.current = handleLoadPreset;
+  useEffect(() => {
+    const onApply = () => {
+      const id = localStorage.getItem(STORAGE_KEYS.EXPORT_PRESET_APPLY);
+      if (!id) return;
+      localStorage.removeItem(STORAGE_KEYS.EXPORT_PRESET_APPLY);
+      const preset = lsGetJson<ExportPreset[]>(STORAGE_KEYS.EXPORT_PRESETS, []).find(p => p.id === id);
+      if (preset) handleLoadPresetRef.current(preset);
+    };
+    window.addEventListener('applyExportPreset', onApply);
+    // Also check for a pending preset set before this component mounted
+    onApply();
+    return () => window.removeEventListener('applyExportPreset', onApply);
+  }, []);
 
   // Changes-only export mode
   const [changesOnly, setChangesOnly] = useState<boolean>(() =>
@@ -917,8 +935,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             {/* Export presets */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Presets
+                <div className="flex items-center gap-1.5">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                    Presets
+                  </div>
+                  <kbd className="text-[9px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 font-mono leading-none" title="Export with preset (command palette)">⌘⇧E</kbd>
                 </div>
                 <button
                   onClick={() => {
