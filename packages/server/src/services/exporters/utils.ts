@@ -1,5 +1,8 @@
+import StyleDictionary from 'style-dictionary';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 import { makeReferenceGlobalRegex, resolveRefValue, isReference } from '@tokenmanager/core';
-import type { FlatToken } from './types.js';
+import type { ExporterContext, FlatToken } from './types.js';
 
 /**
  * Build a flat path→rawValue lookup from a merged DTCG token object.
@@ -160,6 +163,60 @@ export function resolveGradientStopAliases(merged: Record<string, any>): Record<
   };
 
   return processObj(merged);
+}
+
+/**
+ * Shared helper for Style Dictionary-based exporters.
+ *
+ * Creates a StyleDictionary instance with a single platform, calls
+ * buildAllPlatforms, reads the output file, and returns it as a
+ * { path, content } pair.
+ *
+ * @param ctx          - Exporter context (tmpDir, flatTokens, cssOptions)
+ * @param platformKey  - SD platform key and output subdirectory name
+ * @param transformGroup - SD transform group (e.g. 'css', 'js', 'android')
+ * @param destination  - Output filename within the build directory
+ * @param format       - SD format name (e.g. 'css/variables', 'json/flat')
+ * @param sourceFile   - Token source filename in tmpDir (default: 'tokens.json')
+ * @param opts.buildDir       - Override build subdirectory (default: platformKey)
+ * @param opts.extraFileConfig - Extra properties merged into the SD file config
+ */
+export async function buildWithStyleDictionary(
+  ctx: ExporterContext,
+  platformKey: string,
+  transformGroup: string,
+  destination: string,
+  format: string,
+  sourceFile?: string,
+  opts?: { buildDir?: string; extraFileConfig?: Record<string, unknown> },
+): Promise<Array<{ path: string; content: string }>> {
+  const src = path.join(ctx.tmpDir, sourceFile ?? 'tokens.json');
+  const dir = opts?.buildDir ?? platformKey;
+  const buildPath = path.join(ctx.tmpDir, dir);
+  await fs.mkdir(buildPath, { recursive: true });
+
+  const fileConfig = { destination, format, ...(opts?.extraFileConfig ?? {}) };
+
+  const sd = new StyleDictionary({
+    source: [src],
+    platforms: {
+      [platformKey]: {
+        transformGroup,
+        buildPath: buildPath + '/',
+        files: [fileConfig],
+      },
+    },
+  });
+
+  await sd.buildAllPlatforms();
+
+  const filePath = path.join(buildPath, destination);
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return [{ path: destination, content }];
+  } catch {
+    return [];
+  }
 }
 
 /**

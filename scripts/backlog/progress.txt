@@ -536,3 +536,22 @@
   - Arrow function vs regular method matters for destructuring: `const { withLock } = instance` only works correctly when `withLock` is defined as an arrow function (`fn = () => {}`) — a regular method loses `this` binding. When consolidating mutex classes used via destructuring, the surviving class must use arrow function syntax.
   - The `ThemesStore.withLock` method in `themes.ts` is a *different* `withLock` with a different signature (takes `dims` param) — don't confuse it with the lock utility's `withLock`. Naming collision, but no actual conflict.
 ---
+
+## 2026-04-05 - Style Dictionary exporters boilerplate extraction
+- Extracted `buildWithStyleDictionary(ctx, platformKey, transformGroup, destination, format, sourceFile?, opts?)` helper into `exporters/utils.ts`. The helper creates a StyleDictionary instance, calls `buildAllPlatforms`, reads the output file, and returns `[{ path, content }]`. Accepts optional `opts.buildDir` (override build subdirectory; needed because typescript exporter uses `ts/` but `typescript` as the platform key) and `opts.extraFileConfig` (merged into the SD file config; used by ios-swift for `className: 'Tokens'` and css for `{ options: { selector } }`).
+- Reduced all 8 SD-based exporters (css, scss, less, dart, ios-swift, android, json, typescript) to single-line `format` functions.
+- Files changed:
+  - `packages/server/src/services/exporters/utils.ts` ~L1 (added SD/path/fs imports + `buildWithStyleDictionary`)
+  - `packages/server/src/services/exporters/css.ts` — replaced ~40 lines with 3
+  - `packages/server/src/services/exporters/scss.ts` — replaced ~40 lines with 2
+  - `packages/server/src/services/exporters/less.ts` — replaced ~40 lines with 2
+  - `packages/server/src/services/exporters/dart.ts` — replaced ~40 lines with 2
+  - `packages/server/src/services/exporters/ios-swift.ts` — replaced ~40 lines with 3
+  - `packages/server/src/services/exporters/android.ts` — replaced ~40 lines with 2
+  - `packages/server/src/services/exporters/json.ts` — replaced ~40 lines with 2
+  - `packages/server/src/services/exporters/typescript.ts` — replaced ~40 lines with 2
+- **Learnings for future iterations:**
+  - The `typescript` exporter uses `buildDir: 'ts'` (not `typescript`) — platformKey and build directory name can diverge; always check the original `buildPath` line before assuming they match.
+  - The `ios-swift` exporter needs both `buildDir: 'ios'` AND `extraFileConfig: { className: 'Tokens' }` — two divergences from the simple case; grouping them in a single `opts` object keeps the call site readable.
+  - The css `selector` option is conditional (`selector && selector !== ':root'`); passing `undefined` for `opts` when the condition is false is cleaner than always spreading an empty object.
+---
