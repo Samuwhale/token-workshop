@@ -192,6 +192,7 @@ export interface PanelRouterProps {
   setClearConfirmText: (v: string) => void;
   handleClearAll: () => void;
   clearing: boolean;
+  onRestartGuidedSetup: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -398,6 +399,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         setClearConfirmText={p.setClearConfirmText}
         onClearAll={p.handleClearAll}
         clearing={p.clearing}
+        onRestartGuidedSetup={p.onRestartGuidedSetup}
         onClose={() => setOverflowPanel(null)}
       />
     );

@@ -993,6 +993,13 @@ export function App() {
         handler: () => openOverflowPanel('settings'),
       },
       {
+        id: 'restart-guided-setup',
+        label: 'Restart guided setup',
+        description: 'Re-run the onboarding wizard — connect to the server, create a token set, and map semantic tokens',
+        category: 'Settings',
+        handler: () => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); },
+      },
+      {
         id: 'quick-apply',
         label: 'Quick apply token to selection',
         description: 'Contextual token picker — infers property, shows relevant tokens',
@@ -2615,6 +2622,7 @@ export function App() {
               onShowScaffoldWizard={() => setShowScaffoldWizard(true)}
               onShowColorScaleGen={() => setShowColorScaleGen(true)}
               onShowGuidedSetup={() => setShowGuidedSetup(true)}
+              onRestartGuidedSetup={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); }}
               serverUrlInput={serverUrlInput}
               setServerUrlInput={setServerUrlInput}
               connectResult={connectResult}

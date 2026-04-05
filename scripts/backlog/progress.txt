@@ -583,3 +583,11 @@
   - A prop named `setScanScope` in the context interface vs `setHeatmapScope` destructured in the consumer is not caught by TypeScript (only catches missing declaration, not naming mismatch when destructuring with rename). Always verify destructuring aliases match the interface exactly.
   - The controlled/uncontrolled `useScanScope` hook was pure overhead — scope is always provided by the parent when inside `CanvasAnalysisPanel`. If a panel is only ever embedded in one parent, prefer required props over the controlled/uncontrolled pattern.
 ---
+
+## 2026-04-05 - WelcomePrompt has no re-entry path
+- Added two re-entry paths for the guided setup: (1) "Restart guided setup" button in the Settings panel Advanced tab under a new "Guided Setup" section, (2) "Restart guided setup" command in the command palette (category: Settings). Both clear the `FIRST_RUN_DONE` localStorage key and set `showWelcome` to true, which re-shows the WelcomePrompt overlay. The Settings panel button also closes the settings panel via `setOverflowPanel(null)`.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L35 (SECTION_SEARCH_META), ~L173 (SettingsPanelProps), ~L252 (destructure prop), ~L871 (Guided Setup section JSX); `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L194 (PanelRouterProps), ~L401 (pass to SettingsPanel); `packages/figma-plugin/src/ui/App.tsx` ~L989 (command palette entry), ~L2618 (PanelRouter prop)
+- **Learnings for future iterations:**
+  - When adding an action that dismisses the settings panel, pass it through the prop chain from App.tsx (which owns `setOverflowPanel`) rather than trying to call it from SettingsPanel directly.
+  - Clearing FIRST_RUN_DONE with `lsSet(key, '')` (empty string) causes `lsGet(key)` to return falsy — same as removing the key — which is correct for the `!lsGet(STORAGE_KEYS.FIRST_RUN_DONE)` guard on `showWelcome` init.
+---

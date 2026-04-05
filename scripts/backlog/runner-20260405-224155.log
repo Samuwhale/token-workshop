@@ -177,3 +177,27 @@ Already up to date.
 
   Merging to main: Consolidate canvas analysis panels — HeatmapPanel, ConsistencyPanel, and ComponentCoveragePanel exist both as standalone imports and as tabs inside CanvasAnalysisPanel; the standalone versions are dead weight since the CanvasAnalysisPanel wrapper is the only one rendered in PanelRouter; remove the standalone routing paths and unify scope state management (currently three separate ScanScopeSelector instances)
 Already up to date.
+[main 191bc33e] chore(backlog): done – Consolidate canvas analysis panels — HeatmapPanel, ConsistencyPanel, and ComponentCoveragePanel exist both as standalone imports and as tabs inside CanvasAnalysisPanel; the standalone versions are dead weight since the CanvasAnalysisPanel wrapper is the only one rendered in PanelRouter; remove the standalone routing paths and unify scope state management (currently three separate ScanScopeSelector instances)
+ 8 files changed, 45 insertions(+), 65 deletions(-)
+ delete mode 100644 packages/figma-plugin/src/ui/hooks/useScanScope.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - Consolidate canvas analysis panels
+- Removed standalone scope management from HeatmapPanel and ConsistencyPanel; CanvasAnalysisPanel's single shared ScanScopeSelector (in the toolbar) is now the sole scope control point. Fixed a property name mismatch (`setHeatmapScope` → `setScanScope`) in CanvasAnalysisPanel that was silently broken. Deleted the `useScanScope` controlled/uncontrolled hook since scope is always provided by the parent.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L38 (fixed destructuring, removed `handleScopeChange`, removed `onScopeChange`/`hideScopeSelector` from HeatmapPanel usage, removed `onScopeChange` from ConsistencyPanel usage)
+
+═══════════════════════════════════════════════════════════════
+  #8  ·  15 queued · 0
+0 in-progress · last took 5m56s
+═══════════════════════════════════════════════════════════════
+  → WelcomePrompt has no re-entry path — once dismissed via "I'll explore on my own", the `FIRST_RUN_DONE` localStorage flag is set permanently with no way to re-trigger the guided setup from Settings or the command palette; add a "Restart guided setup" action somewhere discoverable
+  Worktree: /tmp/backlog-50286-nWXw2I
+  Running agent… (started 23:13:54)
+
+  ✓ done: WelcomePrompt has no re-entry path — once dismissed via "I'll explore on my own", the `FIRST_RUN_DONE` localStorage flag is set permanently with no way to re-trigger the guided setup from Settings or the command palette; add a "Restart guided setup" action somewhere discoverable
+    Added "Restart guided setup" button in Settings > Advanced > Guided Setup section, and a matching command palette entry under Settings category; both clear FIRST_RUN_DONE and re-show WelcomePrompt
+    37 turns · 250s · $0.99
+
+  Merging to main: WelcomePrompt has no re-entry path — once dismissed via "I'll explore on my own", the `FIRST_RUN_DONE` localStorage flag is set permanently with no way to re-trigger the guided setup from Settings or the command palette; add a "Restart guided setup" action somewhere discoverable
+Already up to date.

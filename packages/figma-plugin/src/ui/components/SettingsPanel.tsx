@@ -32,6 +32,7 @@ const SECTION_SEARCH_META: { id: string; tab: SettingsTab; title: string; keywor
   { id: 'connection', tab: 'connection', title: 'Server Connection', keywords: ['server', 'url', 'connect', 'localhost', 'port', 'disconnect', 'network'] },
   { id: 'export-defaults', tab: 'export', title: 'Export Defaults', keywords: ['platform', 'css', 'selector', 'tailwind', 'scss', 'json', 'export', 'root', 'format'] },
   { id: 'validation', tab: 'export', title: 'Validation', keywords: ['lint', 'rules', 'validate', 'check', 'errors', 'warnings', 'config'] },
+  { id: 'guided-setup', tab: 'advanced', title: 'Guided Setup', keywords: ['guided', 'setup', 'onboarding', 'wizard', 'welcome', 'restart', 'first run', 'quickstart'] },
   { id: 'undo', tab: 'advanced', title: 'Undo History', keywords: ['undo', 'history', 'steps', 'max', 'redo'] },
   { id: 'backup', tab: 'advanced', title: 'Backup & Restore', keywords: ['backup', 'restore', 'import', 'export', 'json', 'file', 'transfer'] },
   { id: 'danger', tab: 'advanced', title: 'Danger Zone', keywords: ['clear', 'delete', 'reset', 'danger', 'data', 'remove'] },
@@ -168,6 +169,8 @@ export interface SettingsPanelProps {
   setClearConfirmText: (v: string) => void;
   onClearAll: () => void;
   clearing: boolean;
+  // Guided setup
+  onRestartGuidedSetup: () => void;
   // Close
   onClose: () => void;
 }
@@ -250,6 +253,7 @@ export function SettingsPanel({
   setClearConfirmText,
   onClearAll,
   clearing,
+  onRestartGuidedSetup,
   onClose,
 }: SettingsPanelProps) {
   // ---- Lint / Validation config ----
@@ -865,6 +869,22 @@ export function SettingsPanel({
                 CSS selector wrapping exported custom properties (default: <code className="font-mono">:root</code>).
               </p>
             </div>
+          </Section>}
+
+          {/* ---- Guided Setup ---- */}
+          {showSection('guided-setup') && <Section title="Guided Setup" defaultOpen={false} tabBadge={searchQuery ? 'Advanced' : undefined}>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              Re-run the guided setup wizard to connect to the local server, create your first token set, and map semantic tokens.
+            </p>
+            <button
+              onClick={onRestartGuidedSetup}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              Restart guided setup
+            </button>
           </Section>}
 
           {/* ---- Undo History ---- */}
