@@ -108,6 +108,8 @@ export function TokenList({
   const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
   const [statsBarOpen, setStatsBarOpen] = useState(() => lsGet('tm_token_stats_bar_open') === 'true');
+  // Roving tabindex: tracks which row path currently has tabIndex=0
+  const [rovingFocusPath, setRovingFocusPath] = useState<string | null>(null);
 
   // Track editor saves: highlightedToken is set to saved path after TokenEditor save
   const prevHighlightRef = useRef<string | null>(null);
@@ -1996,6 +1998,10 @@ export function TokenList({
 
   const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), []);
 
+  // Effective roving focus path: if none has been set yet, default to the first visible row
+  // so Tab-into-tree always lands on a meaningful starting point.
+  const effectiveRovingPath = rovingFocusPath ?? pinnedDisplayedNodes[0]?.path ?? flatItems[0]?.node.path ?? null;
+
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
     density,
@@ -2075,6 +2081,8 @@ export function TokenList({
     pendingTabEdit,
     clearPendingTabEdit: handleClearPendingTabEdit,
     onTabToNext: handleTabToNext,
+    rovingFocusPath: effectiveRovingPath,
+    onRovingFocus: setRovingFocusPath,
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -2094,6 +2102,7 @@ export function TokenList({
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
     pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
+    effectiveRovingPath, setRovingFocusPath,
   ]);
 
   // Build modal context value — memoized so TokenListModals only re-renders when

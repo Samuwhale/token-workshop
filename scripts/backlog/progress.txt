@@ -985,3 +985,17 @@
   - `StyleSnapshotEntry.data` typed as `any` in the local definition needed explicit casts at use sites (`Paint[]`, typed text struct, `Effect[]`) once changed to `unknown` in the shared type — always add these casts at the actual Figma API call, not on the field definition itself
   - Replacing `as Parameters<typeof fn>[0]` casts with proper shared types is the right pattern when both sides of postMessage need to agree on a shape
 ---
+
+## 2026-04-05 - Token tree has no keyboard arrow-key navigation
+- Implemented roving tabindex for the token tree. The arrow key handlers (ArrowUp/ArrowDown/ArrowLeft/ArrowRight) were already implemented in `handleListKeyDown` on the container div. The missing piece was that ALL rows had `tabIndex={0}`, meaning Tab would cycle through every single row in the tree.
+- Added `rovingFocusPath: string | null` state to `TokenList.tsx`; computed `effectiveRovingPath` (defaults to first pinned or first main item when no row has been focused yet) so Tab-into-tree always lands somewhere; added both to `TokenTreeContext` as `rovingFocusPath` and `onRovingFocus`
+- Updated group row in `TokenTreeNode.tsx`: `tabIndex={groupRovingFocusPath === node.path ? 0 : -1}` plus `onFocus={() => onGroupRovingFocus(node.path)}`
+- Updated leaf row in `TokenTreeNode.tsx`: `tabIndex={rovingFocusPath === node.path ? 0 : -1}` plus `onFocus={() => onRovingFocus(node.path)}`
+- The existing `targetRow.focus()` calls in the arrow key handlers trigger the `onFocus` handlers, which update `rovingFocusPath` — no changes needed to the keyboard handlers themselves
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L282, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L110 (state), ~L2001 (effectiveRovingPath), ~L2080 (context), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L193 (group ctx), ~L265 (group tabIndex), ~L750 (leaf ctx), ~L1148 (leaf tabIndex)
+- **Learnings for future iterations:**
+  - Arrow key navigation was already fully implemented via a container `onKeyDown={handleListKeyDown}` — check this before reimplementing row-level handlers
+  - Roving tabindex via React context state re-renders ~30 virtual nodes per arrow keypress, but each re-render is cheap (just tabIndex attribute update); no need for imperative DOM mutation approach
+  - `effectiveRovingPath = rovingFocusPath ?? firstPinned?.path ?? flatItems[0]?.node.path ?? null` ensures the first visible row is always tabbable before the user interacts, without any explicit initialization useEffect
+  - The existing `.focus()` calls in arrow key handlers automatically trigger `onFocus` on the target row, which updates `rovingFocusPath` — no need to call `setRovingFocusPath` separately in each keyboard handler
+---

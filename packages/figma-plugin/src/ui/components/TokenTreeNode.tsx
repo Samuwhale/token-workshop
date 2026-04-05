@@ -192,6 +192,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     onDragOverGroup, onDropOnGroup,
     generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths,
     themeCoverage, onSelectGroupChildren,
+    rovingFocusPath: groupRovingFocusPath, onRovingFocus: onGroupRovingFocus,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -262,11 +263,12 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     <div>
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={groupRovingFocusPath === node.path ? 0 : -1}
         aria-expanded={isExpanded}
         aria-label={`Toggle group ${node.name}`}
         data-group-path={node.path}
         data-node-name={node.name}
+        onFocus={() => onGroupRovingFocus(node.path)}
         className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => !renamingGroup && onToggleExpand(node.path)}
@@ -746,6 +748,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
     onNavigateToGenerator,
+    rovingFocusPath, onRovingFocus,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -1142,9 +1145,10 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     <div
       className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${node.$extensions?.tokenmanager?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
-      tabIndex={0}
+      tabIndex={rovingFocusPath === node.path ? 0 : -1}
       data-token-path={node.path}
       data-node-name={node.name}
+      onFocus={() => onRovingFocus(node.path)}
       draggable={!selectMode || isSelected}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';

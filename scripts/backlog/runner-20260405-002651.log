@@ -498,3 +498,26 @@ Already up to date.
 
   Merging to main: Plugin sandbox revert handlers bypass type safety with `as any` casts and no runtime shape validation
 Already up to date.
+[main 043c614f] chore(backlog): done – Plugin sandbox revert handlers bypass type safety with `as any` casts and no runtime shape validation
+ 9 files changed, 135 insertions(+), 44 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Plugin sandbox revert handlers bypass type safety with `as any` casts
+- Added typed interfaces `VarSnapshotRecord`, `VarSnapshot`, `StyleSnapshotEntry`, `StyleSnapshot`, `RevertVariablesMessage`, `RevertStylesMessage`, `VariablesRevertedMessage`, `StylesRevertedMessage` to `shared/types.ts`
+- Added `varSnapshot?: VarSnapshot` to `VariablesAppliedMessage` and `styleSnapshot?: StyleSnapshot` to `StylesAppliedMessage` (these fields were sent from the plugin but missing from the type definitions)
+- Updated `PluginMessage` union to include `RevertVariablesMessage` and `RevertStylesMessage`
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  11 queued · 0
+0 in-progress · last took 5m50s
+═══════════════════════════════════════════════════════════════
+  → Token tree has no keyboard arrow-key navigation — TokenTreeNode.tsx rows have no onKeyDown handler for ArrowUp/ArrowDown traversal; keyboard-only users cannot navigate the token list without Tab-cycling through every interactive element in each row; implement roving tabindex with ArrowUp/ArrowDown to move between rows and ArrowLeft/ArrowRight to collapse/expand groups
+  Worktree: /tmp/backlog-54964-B1HyrJ
+  Running agent… (started 02:10:59)
+
+  ✓ done: Token tree has no keyboard arrow-key navigation
+    Implemented roving tabindex: rows now use tabIndex={rovingFocusPath === node.path ? 0 : -1} with onFocus updating the shared context state; arrow key navigation was already complete, only the Tab-cycling problem was missing
+    53 turns · 575s · $1.74
+
+  Merging to main: Token tree has no keyboard arrow-key navigation
+Already up to date.

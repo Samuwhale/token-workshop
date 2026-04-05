@@ -280,6 +280,10 @@ export interface TokenTreeContextType {
   dimensions?: ThemeDimension[];
   /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
   activeThemes?: Record<string, string>;
+  /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
+  rovingFocusPath: string | null;
+  /** Called when a row receives focus — updates the roving tabindex position */
+  onRovingFocus: (path: string) => void;
 }
 
 // ---------------------------------------------------------------------------
