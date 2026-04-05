@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
 import { useInspectContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
@@ -165,6 +166,8 @@ function SuggestionCard({
 }
 
 export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyPanelProps) {
+  const help = usePanelHelp('consistency');
+
   // Scope is local UI preference — doesn't need to persist across tab switches
   const [scope, setScope] = useState<ScanScope>('page');
   // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
@@ -305,6 +308,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
             </button>
           ))}
         </div>
+        <PanelHelpIcon panelKey="consistency" title="Consistency Scanner" expanded={help.expanded} onToggle={help.toggle} />
         {scanning ? (
           <button
             onClick={handleCancel}
@@ -322,6 +326,13 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
           </button>
         )}
       </div>
+      {help.expanded && (
+        <PanelHelpBanner
+          title="Consistency Scanner"
+          description="Scans Figma layers for hardcoded values (colors, dimensions, typography) that match your design tokens. Click a suggestion to snap that layer's value to the matching token."
+          onDismiss={help.dismiss}
+        />
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">

@@ -7,6 +7,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { isAlias } from '../../shared/resolveAlias';
+import { PanelHelpHint } from './PanelHelpHint';
 
 const typeValidator = new TokenValidator();
 
@@ -784,7 +785,16 @@ export function BatchEditor({
   }, []);
 
   return (
-    <div className="px-2 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] space-y-1.5">
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+      <div className="flex items-center justify-between px-2 pt-2 pb-1">
+        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Batch edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}</span>
+        <PanelHelpHint
+          panelKey="batch-editor"
+          title="Batch Editor"
+          description="Edit multiple tokens at once — set a shared description, change their type, update Figma variable scopes, or apply a new alias value across all selected tokens simultaneously."
+        />
+      </div>
+      <div className="px-2 pb-2 space-y-1.5">
       {/* Description */}
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Description</span>
@@ -1607,6 +1617,7 @@ export function BatchEditor({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

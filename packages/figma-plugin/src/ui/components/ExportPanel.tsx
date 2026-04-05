@@ -7,6 +7,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
 import { useTokenDataContext } from '../contexts/TokenDataContext';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -127,6 +128,7 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
 }
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
+  const help = usePanelHelp('export');
   const { sets, addSetToState } = useTokenDataContext();
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [selected, setSelected] = useState<Set<string>>(() => {
@@ -819,6 +821,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-end px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
+        <PanelHelpIcon panelKey="export" title="Export" expanded={help.expanded} onToggle={help.toggle} />
+      </div>
+      {help.expanded && (
+        <PanelHelpBanner
+          title="Export"
+          description="Generate platform-specific token files (CSS variables, Dart, Swift, Android, W3C JSON) from the server, or import variable values directly from Figma. Choose a platform preset, configure options, and download the output."
+          onDismiss={help.dismiss}
+        />
+      )}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
         {error && (
           <div role="alert" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">

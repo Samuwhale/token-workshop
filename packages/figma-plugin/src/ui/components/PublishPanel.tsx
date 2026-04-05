@@ -11,6 +11,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
 import { ApplyDiffConfirmModal } from './publish/PublishModals';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
@@ -171,6 +172,8 @@ const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
 export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey }: PublishPanelProps) {
+  const help = usePanelHelp('publish');
+
   // ── Section accordion state ──
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles', 'git']));
   const toggleSection = (id: string) => setOpenSections(prev => {
@@ -524,13 +527,16 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-700 font-medium" title="Tokens changed since last check">Outdated</span>
             )}
           </div>
-          <button
-            onClick={runReadinessChecks}
-            disabled={readinessLoading || !activeSet}
-            className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-          >
-            {readinessLoading ? 'Checking\u2026' : readinessChecks.length > 0 ? 'Re-check' : 'Run checks'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <PanelHelpIcon panelKey="publish" title="Publish" expanded={help.expanded} onToggle={help.toggle} />
+            <button
+              onClick={runReadinessChecks}
+              disabled={readinessLoading || !activeSet}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              {readinessLoading ? 'Checking\u2026' : readinessChecks.length > 0 ? 'Re-check' : 'Run checks'}
+            </button>
+          </div>
         </div>
 
         {readinessError && (
@@ -707,6 +713,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             </div>
           </div>
         </div>
+      )}
+
+      {help.expanded && (
+        <PanelHelpBanner
+          title="Publish"
+          description="Push your design tokens to Figma Variables, Figma Styles, or a Git repository. Run the readiness checks first — blocking issues must be fixed before publishing, optional issues can be skipped."
+          onDismiss={help.dismiss}
+        />
       )}
 
       {/* ── Sections ────────────────────────────────────────────────────── */}

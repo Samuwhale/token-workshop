@@ -494,3 +494,17 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: The most impactful finding is the inconsistent inline editing patterns — rename is implemented three different ways (no-buttons+blur-save, buttons+no-blur, buttons+validation) across TokenTreeNode, SetSwitcher, and ThemeManager, making the same conceptual action feel unpredictable. The HealthPanel silent error swallowing is the most technically clear-cut fix.
 ---
+
+## 2026-04-05 - PanelHelpHint is missing from several complex panels
+- Added `PanelHelpHint` dismissible help banner to four panels following the existing GraphPanel pattern:
+  - **PublishPanel**: `usePanelHelp('publish')` + `PanelHelpIcon` in readiness gate header (next to Re-check button) + `PanelHelpBanner` between readiness gate and sections
+  - **ExportPanel**: `usePanelHelp('export')` + thin non-scrolling header with `PanelHelpIcon` + `PanelHelpBanner` between header and scrollable content
+  - **BatchEditor**: standalone `PanelHelpHint` component in a new mini-header row (with token count label) prepended to the form
+  - **ConsistencyPanel**: `usePanelHelp('consistency')` + `PanelHelpIcon` in the scope/scan toolbar + `PanelHelpBanner` between toolbar and body
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1,L175,L531,L718; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1,L131,L821; `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1,L786; `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L1,L169,L291
+- **Learnings for future iterations:**
+  - For panels with existing toolbars (PublishPanel, ConsistencyPanel): use `usePanelHelp` + `PanelHelpIcon` in toolbar + `PanelHelpBanner` as a `shrink-0` sibling after the toolbar
+  - For panels with no non-scrolling header (ExportPanel): add a thin `flex items-center justify-end` header div before the `overflow-y-auto` content area; keeps the icon anchored even when content scrolls
+  - For sub-components without their own header (BatchEditor): use standalone `PanelHelpHint` in a new mini-header row alongside contextual metadata (e.g. selection count); this adds UX context while giving the hint a natural home
+  - The `PanelHelpBanner` component has `shrink-0` built in, which is important to prevent it from being squeezed in `flex flex-col h-full` layouts
+---

@@ -731,3 +731,29 @@ Already up to date.
   ✓ ux pass: ux-pass
     6 items written to inbox — inconsistent inline editing patterns, menu keyboard navigation gaps, modal dismiss inconsistencies, HealthPanel silent error swallowing, missing undo for set/resolver delete, token rename lacking inline validation feedback
 Already up to date.
+[main 6f71e7fb] chore(backlog): ux pass – ux-pass
+ 5 files changed, 27 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: TokenTreeNode.tsx (rename/context menu patterns), TokenList.tsx (filter menus), TokenListModals.tsx (modal patterns), SetSwitcher.tsx (set CRUD), ThemeManager.tsx (dimension/option rename), HealthPanel.tsx (fix actions, error handling, empty states), ResolverPanel.tsx (delete flow), PasteTokensModal.tsx (modal dismiss), SemanticMappingDialog.tsx (modal dismiss/a11y), ConfirmModal.tsx (reference pattern), CommandPalette.tsx (reference pattern), App.tsx (menus, keyboard shortcuts), GeneratorPipelineCard.tsx (error recovery), TokenEditor.tsx (save feedback), SettingsPanel.tsx (settings feedback)
+- Heuristics most relevant: consistency and standards, visibility of system status, error recovery, keyboard accessibility
+- Found 6 items — written to backlog-inbox.md
+
+═══════════════════════════════════════════════════════════════
+  #30  ·  26 queued · 0
+0 in-progress · last took 17m23s
+═══════════════════════════════════════════════════════════════
+  → PanelHelpHint is missing from several complex panels — PublishPanel, ExportPanel, BatchEditor, and ConsistencyPanel have no contextual help hint; these panels have non-obvious workflows (readiness gates, export platform options, batch transform modes, snap-to-token) that would benefit from the same dismissible help banner pattern used in GraphPanel and ThemeManager
+  Worktree: /tmp/backlog-54964-3EOPe7
+  Running agent… (started 03:10:33)
+
+  ✓ done: PanelHelpHint is missing from several complex panels — PublishPanel, ExportPanel, BatchEditor, and ConsistencyPanel have no contextual help hint
+    Added dismissible PanelHelpHint to all four panels: icon in toolbar for PublishPanel/ConsistencyPanel, thin fixed header for ExportPanel, mini-header row for BatchEditor; all gates pass
+    59 turns · 492s · $1.73
+
+  Merging to main: PanelHelpHint is missing from several complex panels — PublishPanel, ExportPanel, BatchEditor, and ConsistencyPanel have no contextual help hint
+Already up to date.
