@@ -704,3 +704,24 @@
   - `resolveThemeOption` with `themedSets` gives the correct foundation-layer + theme-override resolution; the resolved map includes alias-resolved hexes so the matrix can work on semantic tokens, not just primitives.
   - The `colorTokens` memo (non-alias only from `allTokensFlat`) is kept for single-theme mode; `multiThemeColorTokens` (union of resolved maps) is used in cross-theme mode — both modes coexist cleanly via `isMultiMode` branching.
 ---
+
+## 2026-04-05 - No cross-set token search on the server
+- Added `GET /api/tokens/where?path=X` endpoint to the server that returns all set definitions for an exact token path, with `isAlias` and `isDifferentFromFirst` annotation so designers can instantly see which sets define a token and which are overrides.
+- Added `getTokenDefinitions(tokenPath)` method to `TokenStore` — extracts all `{setName, token}` entries from the internal `flatTokens` map for a given path.
+- Added 4 tests for `getTokenDefinitions` in `token-store.test.ts` covering: missing path, single-set, multi-set, and full token field inclusion.
+- Added `onFindInAllSets?: (path: string) => void` to `TokenTreeContextValue` in `tokenListTypes.ts`.
+- Added "Find in all sets" to the token row right-click context menu in `TokenTreeNode.tsx` (only shown when the callback is defined and not in select mode).
+- Added `handleFindInAllSets` callback + `whereIsPath/whereIsResults/whereIsLoading` state + a full-panel overlay UI to `TokenList.tsx`: the overlay shows each set's value (with color swatch), a "base" badge on the first definition, an "override" badge when a value differs, and a "Go" button to navigate to that set/token.
+- The callback is wired into the tree context only when `sets.length > 1` (prevents unnecessary menu clutter on single-set projects).
+- Files changed:
+  - `packages/server/src/services/token-store.ts` ~L1122
+  - `packages/server/src/routes/tokens.ts` ~L114
+  - `packages/server/src/__tests__/token-store.test.ts` ~L1096
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L120, ~L272
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L741, ~L1922
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L329, ~L2001, ~L2093
+- **Learnings for future iterations:**
+  - The `/api/tokens/where` endpoint must be registered BEFORE the `/api/tokens/:set` wildcard — Fastify matches in registration order and `:set` would swallow `where` as a set name.
+  - Annotating `isDifferentFromFirst` (JSON.stringify comparison against the first definition's value) gives a simple, dependency-free way to flag overrides without requiring full theme configuration knowledge.
+  - The "where" overlay uses `absolute inset-0` within the TokenList's `relative` container to replace the token tree without navigating away — same pattern as other panels/overlays in the codebase.
+---

@@ -119,6 +119,8 @@ export interface TokenListActions {
   onOpenCrossThemeCompare?: (path: string) => void;
   /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
   onOpenCommandPaletteWithQuery?: (query: string) => void;
+  /** Open the cross-set "where is this token defined" overlay for the given path */
+  onFindInAllSets?: (path: string) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
@@ -269,6 +271,8 @@ export interface TokenTreeContextType {
   onShowReferences?: (path: string) => void;
   /** Open cross-theme comparison panel for this token */
   onCompareAcrossThemes?: (path: string) => void;
+  /** Open the cross-set "where is this token defined" overlay for the given path */
+  onFindInAllSets?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;

@@ -1119,6 +1119,11 @@ export class TokenStore {
     return this.flatTokens.has(tokenPath);
   }
 
+  /** Get all set definitions for an exact token path. Returns one entry per set that defines the path, in set-order. */
+  getTokenDefinitions(tokenPath: string): Array<{ setName: string; token: Token }> {
+    return (this.flatTokens.get(tokenPath) ?? []).map(e => ({ setName: e.setName, token: e.token }));
+  }
+
   /** Get all flat tokens across all sets (includes all set versions per path). */
   getAllFlatTokens(): Array<{ path: string; token: Token; setName: string }> {
     const result: Array<{ path: string; token: Token; setName: string }> = [];

@@ -327,6 +327,13 @@ export function TokenList({
   }, []);
 
   const [crossSetSearch, setCrossSetSearch] = useState(false);
+
+  // "Find in all sets" overlay — shows all set definitions for a specific token path
+  const [whereIsPath, setWhereIsPath] = useState<string | null>(null);
+  const [whereIsResults, setWhereIsResults] = useState<Array<{ setName: string; $type: string; $value: unknown; $description?: string; isAlias: boolean; isDifferentFromFirst: boolean }> | null>(null);
+  const [whereIsLoading, setWhereIsLoading] = useState(false);
+  const whereIsAbortRef = useRef<AbortController | null>(null);
+
   const [showQualifierHints, setShowQualifierHints] = useState(false);
   const [showQualifierHelp, setShowQualifierHelp] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
@@ -1999,6 +2006,27 @@ export function TokenList({
     }
   }, [onOpenCrossThemeCompare]);
 
+  const handleFindInAllSets = useCallback((path: string) => {
+    whereIsAbortRef.current?.abort();
+    setWhereIsPath(path);
+    setWhereIsResults(null);
+    setWhereIsLoading(true);
+    const ctrl = new AbortController();
+    whereIsAbortRef.current = ctrl;
+    apiFetch<{ path: string; definitions: Array<{ setName: string; $type: string; $value: unknown; $description?: string; isAlias: boolean; isDifferentFromFirst: boolean }> }>(
+      `${serverUrl}/api/tokens/where?path=${encodeURIComponent(path)}`,
+      { signal: ctrl.signal },
+    ).then(data => {
+      setWhereIsResults(data.definitions);
+      setWhereIsLoading(false);
+    }).catch(err => {
+      if (isAbortError(err)) return;
+      console.error('[TokenList] Find in all sets failed:', err);
+      setWhereIsLoading(false);
+      setWhereIsResults([]);
+    });
+  }, [serverUrl]);
+
   // Expose imperative actions to the parent via compareHandle ref
   useEffect(() => {
     if (!compareHandle) return;
@@ -2087,6 +2115,7 @@ export function TokenList({
     onViewTokenHistory,
     onShowReferences,
     onCompareAcrossThemes: dimensions.length > 0 ? handleCompareAcrossThemes : undefined,
+    onFindInAllSets: sets.length > 1 ? handleFindInAllSets : undefined,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
     onDragOverGroup: handleDragOverGroup,
@@ -2121,7 +2150,7 @@ export function TokenList({
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
-    handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
+    handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
@@ -4257,6 +4286,96 @@ export function TokenList({
       <TokenListModalsProvider value={modalContextValue}>
         <TokenListModals />
       </TokenListModalsProvider>
+
+      {/* "Find in all sets" overlay — shows all set definitions for a specific token path */}
+      {whereIsPath !== null && (
+        <div className="absolute inset-0 z-40 flex flex-col bg-[var(--color-figma-bg)]">
+          {/* Header */}
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+            <button
+              onClick={() => { setWhereIsPath(null); setWhereIsResults(null); whereIsAbortRef.current?.abort(); }}
+              className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+              title="Close"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+              </svg>
+            </button>
+            <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={whereIsPath}>{whereIsPath}</span>
+            {!whereIsLoading && whereIsResults !== null && (
+              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                {whereIsResults.length} set{whereIsResults.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto">
+            {whereIsLoading ? (
+              <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+                Searching…
+              </div>
+            ) : whereIsResults !== null && whereIsResults.length === 0 ? (
+              <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+                Token not found in any set
+              </div>
+            ) : whereIsResults !== null ? (
+              <div>
+                {whereIsResults.map((def, i) => {
+                  const isColor = def.$type === 'color' && typeof def.$value === 'string';
+                  const colorHex = isColor ? (def.$value as string).slice(0, 7) : null;
+                  const valueLabel = def.isAlias
+                    ? String(def.$value)
+                    : typeof def.$value === 'string'
+                      ? def.$value
+                      : JSON.stringify(def.$value);
+                  return (
+                    <div key={def.setName} className="flex items-center gap-2 px-2 py-2 border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] group">
+                      {/* Color swatch */}
+                      {colorHex ? (
+                        <span
+                          className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
+                          style={{ background: colorHex }}
+                        />
+                      ) : (
+                        <span className="shrink-0 w-3 h-3" />
+                      )}
+                      {/* Set name + value */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{def.setName}</span>
+                          {i === 0 && (
+                            <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] shrink-0">base</span>
+                          )}
+                          {def.isDifferentFromFirst && (
+                            <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0">override</span>
+                          )}
+                        </div>
+                        <div className="font-mono text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={valueLabel}>
+                          {valueLabel}
+                          {def.$description && (
+                            <span className="ml-1 text-[var(--color-figma-text-tertiary)] not-italic">{def.$description}</span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Type badge */}
+                      <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[def.$type] ?? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>{def.$type}</span>
+                      {/* Navigate button */}
+                      <button
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                        onClick={() => onNavigateToSet?.(def.setName, whereIsPath)}
+                        title={`Go to ${def.setName}`}
+                      >
+                        Go
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

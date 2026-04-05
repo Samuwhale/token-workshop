@@ -1038,3 +1038,26 @@ Already up to date.
 
   Merging to main: HealthPanel contrast matrix is limited to same-set tokens
 Already up to date.
+[main cd29da3a] chore(backlog): done – HealthPanel contrast matrix is limited to same-set tokens
+ 6 files changed, 273 insertions(+), 21 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - HealthPanel contrast matrix is limited to same-set tokens
+- Extended the contrast matrix with a "Cross-theme" mode toggle (shown when theme dimensions with 2+ options exist)
+- When enabled, `resolveThemeOption` is called for each selected theme option to produce a resolved flat token map per theme
+- Color tokens are sourced from the UNION of resolved-theme maps (so alias-based semantic tokens like `color.bg.primary` appear with their per-theme values), not just raw non-alias tokens from `allTokensFlat`
+
+═══════════════════════════════════════════════════════════════
+  #43  ·  13 queued · 0
+0 in-progress · last took 12m11s
+═══════════════════════════════════════════════════════════════
+  → No cross-set token search on the server — the /api/tokens/search endpoint searches the resolved flat map but there's no way to search for a token across all sets to find where it's defined vs. overridden; designers working with theme override sets need to answer "which sets define color.primary?" without clicking through each set tab
+  Worktree: /tmp/backlog-54964-zHW8jQ
+  Running agent… (started 04:47:00)
+
+  ✓ done: No cross-set token search on the server
+    Added GET /api/tokens/where?path=X endpoint + getTokenDefinitions() in TokenStore + "Find in all sets" context menu item + full overlay UI showing per-set values with base/override annotations and navigate buttons
+    68 turns · 603s · $2.07
+
+  Merging to main: No cross-set token search on the server
+Already up to date.

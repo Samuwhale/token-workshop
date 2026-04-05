@@ -111,6 +111,34 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // GET /api/tokens/where?path=X — find all set definitions for an exact token path
+  fastify.get<{ Querystring: { path?: string } }>('/tokens/where', async (request, reply) => {
+    try {
+      const { path: tokenPath } = request.query;
+      if (!tokenPath || typeof tokenPath !== 'string' || tokenPath.trim().length === 0) {
+        return reply.status(400).send({ error: '"path" query parameter is required' });
+      }
+      if (tokenPath.length > PATH_MAX_LEN) {
+        return reply.status(400).send({ error: `"path" must not exceed ${PATH_MAX_LEN} characters` });
+      }
+      const defs = fastify.tokenStore.getTokenDefinitions(tokenPath.trim());
+      const baseValue = defs.length > 0 ? JSON.stringify(defs[0].token.$value) : null;
+      return {
+        path: tokenPath.trim(),
+        definitions: defs.map(d => ({
+          setName: d.setName,
+          $type: d.token.$type || 'unknown',
+          $value: d.token.$value,
+          $description: d.token.$description,
+          isAlias: isReference(d.token.$value),
+          isDifferentFromFirst: baseValue !== null && JSON.stringify(d.token.$value) !== baseValue,
+        })),
+      };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to look up token definitions');
+    }
+  });
+
   // GET /api/tokens/:set — get all tokens in a set (flat list with paths)
   fastify.get<{ Params: { set: string } }>('/tokens/:set', async (request, reply) => {
     try {

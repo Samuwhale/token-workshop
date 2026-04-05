@@ -738,7 +738,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onSetGroupScopes: _onSetGroupScopes, onGenerateScaleFromGroup: _onGenerateScaleFromGroup,
     onFilterByType,
     onJumpToGroup: _onJumpToGroup, onZoomIntoGroup: _onZoomIntoGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
-    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes,
+    onToggleChain, onTogglePin, onCompareToken, onViewTokenHistory, onShowReferences, onCompareAcrossThemes, onFindInAllSets,
     onDragStart, onDragEnd,
     onDragOverGroup: _onDragOverGroup, onDropOnGroup: _onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
@@ -1929,6 +1929,18 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               }}
             >
               <span>Compare across themes</span>
+            </button>
+          )}
+          {onFindInAllSets && !selectMode && (
+            <button
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onFindInAllSets(node.path);
+              }}
+            >
+              <span>Find in all sets</span>
             </button>
           )}
           <div className="my-1 border-t border-[var(--color-figma-border)]" />

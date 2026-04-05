@@ -1094,6 +1094,61 @@ describe('TokenStore — searchTokens', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getTokenDefinitions
+// ---------------------------------------------------------------------------
+
+describe('TokenStore — getTokenDefinitions', () => {
+  let dir: string;
+  let store: TokenStore;
+
+  beforeEach(async () => {
+    dir = makeTmpDir();
+    store = await makeStore(dir);
+    await store.createSet('base', {
+      color: { primary: { $value: '#ff0000', $type: 'color' } },
+      spacing: { sm: { $value: '4px', $type: 'dimension' } },
+    });
+    await store.createSet('theme', {
+      color: { primary: { $value: '#0000ff', $type: 'color', $description: 'Brand override' } },
+    });
+  });
+
+  afterEach(async () => {
+    await store.shutdown();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('returns empty array for a path defined in no sets', () => {
+    const defs = store.getTokenDefinitions('color.nonexistent');
+    expect(defs).toEqual([]);
+  });
+
+  it('returns one entry when only one set defines the path', () => {
+    const defs = store.getTokenDefinitions('spacing.sm');
+    expect(defs.length).toBe(1);
+    expect(defs[0].setName).toBe('base');
+    expect(defs[0].token.$value).toBe('4px');
+  });
+
+  it('returns one entry per set that defines the path', () => {
+    const defs = store.getTokenDefinitions('color.primary');
+    expect(defs.length).toBe(2);
+    const setNames = defs.map(d => d.setName);
+    expect(setNames).toContain('base');
+    expect(setNames).toContain('theme');
+  });
+
+  it('includes all token fields in each definition', () => {
+    const defs = store.getTokenDefinitions('color.primary');
+    const themeDef = defs.find(d => d.setName === 'theme');
+    expect(themeDef).toBeDefined();
+    expect(themeDef!.token.$value).toBe('#0000ff');
+    expect(themeDef!.token.$type).toBe('color');
+    expect(themeDef!.token.$description).toBe('Brand override');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Generator ID helpers
 // ---------------------------------------------------------------------------
 
