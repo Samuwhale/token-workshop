@@ -412,7 +412,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   function renderDefineTokens(): ReactNode {
     // Show the compare panel in-place when triggered from the Tokens tab
-    if (p.tokensCompare.showCompare && dimensions.length > 0) {
+    if (p.tokensCompare.showCompare) {
       return (
         <UnifiedComparePanel
           mode={p.tokensCompare.mode}
@@ -424,6 +424,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           dimensions={dimensions}
+          sets={sets}
           themeOptionsKey={p.tokensCompare.themeKey}
           themeOptionsDefaultA={p.tokensCompare.defaultA}
           themeOptionsDefaultB={p.tokensCompare.defaultB}

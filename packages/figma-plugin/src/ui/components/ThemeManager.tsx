@@ -496,7 +496,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         </div>
       )}
 
-      {showCompare && dimensions.length > 0 ? (
+      {showCompare ? (
         <UnifiedComparePanel
           mode={compareMode}
           onModeChange={setCompareMode}
@@ -507,6 +507,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           dimensions={dimensions}
+          sets={sets}
           themeOptionsKey={compareThemeKey}
           themeOptionsDefaultA={compareThemeDefaultA}
           themeOptionsDefaultB={compareThemeDefaultB}

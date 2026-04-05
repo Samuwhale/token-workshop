@@ -363,3 +363,12 @@
   - Inline confirmation (expand-in-place card) is the right pattern for destructive actions in compact plugin panels where a full modal would be disruptive and disproportionate.
   - The confirmation card reuses the same `revertDescription` prop already passed to the component, so no new copy is needed from the parent — just append "This cannot be undone." to make it clearly destructive.
 ---
+
+## 2026-04-05 - Token set diff/comparison view
+- Added `SetDiffMode` component to `CompareView.tsx` as a new fourth mode (`'set-diff'`). The mode renders two set-selector dropdowns, fetches tokens for each via `/api/tokens/:set`, flattens using `flattenTokenGroup` from `@tokenmanager/core`, computes a diff (only-in-A, only-in-B, value-changed), and renders side-by-side rows with colored status badges. Includes: search filter, status filter pills (All / Only in A / Only in B / Different), type filters, copy-as-TSV, export-as-CSV, bulk "copy missing tokens" buttons, and per-row create/edit actions. Also removed the `dimensions.length > 0` guard in `PanelRouter` so the compare panel opens even without themes configured (the individual modes handle empty states gracefully). Same change applied in `ThemeManager.tsx` (also removed `dimensions.length > 0` guard). Propagated new `sets` prop through `UnifiedComparePanel` → `CompareView`.
+- Files changed: `packages/figma-plugin/src/ui/components/CompareView.tsx` ~L1, ~L1076, ~L1130, ~L1210; `packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx` ~L28; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L415; `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L499
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` from `@tokenmanager/core` returns `Map<string, DTCGToken>` and is the right tool for fetching-and-flattening per-set tokens without needing the private `flattenWithNames` from `useTokens.ts`.
+  - The `dimensions.length > 0` guard in PanelRouter previously blocked the entire compare panel from rendering when no themes existed — any new non-theme compare modes need that guard relaxed.
+  - Cleanup of `cancelled` flag pattern (returning `() => { cancelled = true; }`) is important for concurrent set fetches to avoid setting stale state.
+---

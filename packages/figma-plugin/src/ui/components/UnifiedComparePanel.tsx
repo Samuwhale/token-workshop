@@ -26,6 +26,7 @@ export interface UnifiedComparePanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   dimensions: ThemeDimension[];
+  sets: string[];
 
   themeOptionsKey: number;
   themeOptionsDefaultA: string;

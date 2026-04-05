@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
@@ -1074,10 +1075,438 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Mode 4 – Set diff (compare two token sets side-by-side)
+// ──────────────────────────────────────────────────────────────────────────────
+
+type SetDiffStatus = 'only-a' | 'only-b' | 'changed';
+
+interface SetDiffRow {
+  path: string;
+  name: string;
+  type: string;
+  status: SetDiffStatus;
+  valueA: unknown;
+  valueB: unknown;
+}
+
+interface SetDiffModeProps {
+  sets: string[];
+  serverUrl?: string;
+  onEditToken: (set: string, path: string) => void;
+  onCreateToken: (path: string, set: string, type: string, value?: string) => void;
+  onTokensCreated?: () => void;
+}
+
+function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCreated }: SetDiffModeProps) {
+  const [setA, setSetA] = useState<string>(sets[0] ?? '');
+  const [setB, setSetB] = useState<string>(sets[1] ?? '');
+  const [flatA, setFlatA] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
+  const [flatB, setFlatB] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
+  const [loadingA, setLoadingA] = useState(false);
+  const [loadingB, setLoadingB] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<SetDiffStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [bulkCreating, setBulkCreating] = useState<'A' | 'B' | null>(null);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
+
+  const handleCopyError = useCallback(() => {
+    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+  }, []);
+  const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
+
+  useEffect(() => {
+    if (!setA || !serverUrl) { setFlatA(null); return; }
+    let cancelled = false;
+    setLoadingA(true);
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setA)}`)
+      .then((data: { tokens?: object }) => {
+        if (cancelled) return;
+        const flat: Record<string, { $value: unknown; $type: string }> = {};
+        for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {
+          flat[path] = { $value: token.$value, $type: token.$type ?? 'unknown' };
+        }
+        setFlatA(flat);
+      })
+      .catch(() => { if (!cancelled) setFlatA(null); })
+      .finally(() => { if (!cancelled) setLoadingA(false); });
+    return () => { cancelled = true; };
+  }, [setA, serverUrl]);
+
+  useEffect(() => {
+    if (!setB || !serverUrl) { setFlatB(null); return; }
+    let cancelled = false;
+    setLoadingB(true);
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setB)}`)
+      .then((data: { tokens?: object }) => {
+        if (cancelled) return;
+        const flat: Record<string, { $value: unknown; $type: string }> = {};
+        for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {
+          flat[path] = { $value: token.$value, $type: token.$type ?? 'unknown' };
+        }
+        setFlatB(flat);
+      })
+      .catch(() => { if (!cancelled) setFlatB(null); })
+      .finally(() => { if (!cancelled) setLoadingB(false); });
+    return () => { cancelled = true; };
+  }, [setB, serverUrl]);
+
+  const diffs = useMemo((): SetDiffRow[] => {
+    if (!flatA || !flatB) return [];
+    const allPaths = new Set([...Object.keys(flatA), ...Object.keys(flatB)]);
+    const result: SetDiffRow[] = [];
+    for (const path of allPaths) {
+      const tA = flatA[path];
+      const tB = flatB[path];
+      const type = tA?.$type ?? tB?.$type ?? 'unknown';
+      const name = path.split('.').pop()!;
+      if (!tA) {
+        result.push({ path, name, type, status: 'only-b', valueA: undefined, valueB: tB!.$value });
+      } else if (!tB) {
+        result.push({ path, name, type, status: 'only-a', valueA: tA.$value, valueB: undefined });
+      } else if (stableStringify(tA.$value) !== stableStringify(tB.$value)) {
+        result.push({ path, name, type, status: 'changed', valueA: tA.$value, valueB: tB.$value });
+      }
+    }
+    return result.sort((a, b) => a.path.localeCompare(b.path));
+  }, [flatA, flatB]);
+
+  const availableTypes = useMemo(() => {
+    const types = new Set(diffs.map(d => d.type));
+    return Array.from(types).sort();
+  }, [diffs]);
+
+  const filteredDiffs = useMemo(() => {
+    let result = diffs;
+    if (statusFilter !== 'all') result = result.filter(d => d.status === statusFilter);
+    if (typeFilter !== 'all') result = result.filter(d => d.type === typeFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(d => d.path.toLowerCase().includes(q));
+    }
+    return result;
+  }, [diffs, statusFilter, typeFilter, searchQuery]);
+
+  const onlyInA = useMemo(() => diffs.filter(d => d.status === 'only-a'), [diffs]);
+  const onlyInB = useMemo(() => diffs.filter(d => d.status === 'only-b'), [diffs]);
+  const changed = useMemo(() => diffs.filter(d => d.status === 'changed'), [diffs]);
+
+  const canCompare = setA && setB && setA !== setB;
+
+  const buildTsv = useCallback((rows: SetDiffRow[]) => {
+    const header = ['Token Path', 'Type', 'Status', setA || 'A', setB || 'B'].join('\t');
+    const lines = rows.map(d =>
+      [d.path, d.type, d.status, formatTokenValueForDisplay(d.type, d.valueA), formatTokenValueForDisplay(d.type, d.valueB)].join('\t')
+    );
+    return [header, ...lines].join('\n');
+  }, [setA, setB]);
+
+  const handleCopy = useCallback(async () => {
+    await triggerCopy(buildTsv(filteredDiffs));
+  }, [buildTsv, filteredDiffs, triggerCopy]);
+
+  const handleExportCsv = useCallback(() => {
+    const header = [setA || 'A', setB || 'B', 'Token Path', 'Type', 'Status'];
+    const rows = filteredDiffs.map(d => [
+      formatTokenValueForDisplay(d.type, d.valueA),
+      formatTokenValueForDisplay(d.type, d.valueB),
+      d.path,
+      d.type,
+      d.status,
+    ]);
+    exportCsvFile(
+      `set-diff-${(setA || 'a').replace(/\W+/g, '_')}-vs-${(setB || 'b').replace(/\W+/g, '_')}.csv`,
+      [header, ...rows],
+    );
+  }, [filteredDiffs, setA, setB]);
+
+  const handleCopyMissing = useCallback(async (side: 'A' | 'B') => {
+    if (!serverUrl) return;
+    const targetSet = side === 'A' ? setA : setB;
+    const missing = side === 'A' ? onlyInB : onlyInA;
+    if (!targetSet || missing.length === 0) return;
+    setBulkCreating(side);
+    setBulkResult(null);
+    try {
+      const tokens = missing.map(d => ({
+        path: d.path,
+        $type: d.type,
+        $value: side === 'A' ? d.valueB : d.valueA,
+      }));
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens, strategy: 'overwrite' }),
+      });
+      setBulkResult(`Created ${tokens.length} token${tokens.length !== 1 ? 's' : ''}`);
+      setTimeout(() => setBulkResult(null), 3000);
+      onTokensCreated?.();
+    } catch {
+      setBulkResult('Failed');
+      setTimeout(() => setBulkResult(null), 3000);
+    } finally {
+      setBulkCreating(null);
+    }
+  }, [serverUrl, setA, setB, onlyInA, onlyInB, onTokensCreated]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Set selectors */}
+      <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
+          <select
+            value={setA}
+            onChange={e => setSetA(e.target.value)}
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+          >
+            <option value="">Select a token set…</option>
+            {sets.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          {loadingA && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
+          <select
+            value={setB}
+            onChange={e => setSetB(e.target.value)}
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+          >
+            <option value="">Select a token set…</option>
+            {sets.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          {loadingB && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+        </div>
+      </div>
+
+      {/* Results */}
+      {!canCompare ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
+            {sets.length < 2
+              ? 'You need at least two token sets to compare.'
+              : 'Select two different sets above to see how they differ.'}
+          </p>
+        </div>
+      ) : (loadingA || loadingB) ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">Loading…</p>
+        </div>
+      ) : diffs.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
+            These sets are identical — no differences found.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary + filter bar */}
+          <div className="shrink-0 px-3 pt-1.5 pb-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] space-y-1.5">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Filter by token path…"
+              aria-label="Filter by token path"
+              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none"
+            />
+            <div className="flex items-center gap-1 flex-wrap">
+              {/* Status filter pills */}
+              {([['all', `All (${diffs.length})`], ['only-a', `Only in A (${onlyInA.length})`], ['only-b', `Only in B (${onlyInB.length})`], ['changed', `Different (${changed.length})`]] as [SetDiffStatus | 'all', string][]).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setStatusFilter(id)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                    statusFilter === id
+                      ? 'bg-[var(--color-figma-accent)] text-white'
+                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="ml-auto flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handleCopy}
+                  title="Copy diff as tab-separated text"
+                  className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy'}</span>
+                </button>
+                <button
+                  onClick={handleExportCsv}
+                  title="Export diff as CSV"
+                  className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  CSV
+                </button>
+              </div>
+            </div>
+            {/* Type filter + bulk actions row */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <button
+                onClick={() => setTypeFilter('all')}
+                className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                  typeFilter === 'all'
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                All types
+              </button>
+              {availableTypes.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] capitalize transition-colors ${
+                    typeFilter === t
+                      ? 'bg-[var(--color-figma-accent)] text-white'
+                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+              {serverUrl && onlyInB.length > 0 && (
+                <button
+                  onClick={() => handleCopyMissing('A')}
+                  disabled={bulkCreating !== null}
+                  title={`Copy ${onlyInB.length} token${onlyInB.length !== 1 ? 's' : ''} from B into A`}
+                  className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+                >
+                  {bulkCreating === 'A' ? 'Copying…' : `+ ${onlyInB.length} missing in A`}
+                </button>
+              )}
+              {serverUrl && onlyInA.length > 0 && (
+                <button
+                  onClick={() => handleCopyMissing('B')}
+                  disabled={bulkCreating !== null}
+                  title={`Copy ${onlyInA.length} token${onlyInA.length !== 1 ? 's' : ''} from A into B`}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors ${!serverUrl || onlyInB.length > 0 ? '' : 'ml-auto'}`}
+                >
+                  {bulkCreating === 'B' ? 'Copying…' : `+ ${onlyInA.length} missing in B`}
+                </button>
+              )}
+              {bulkResult && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{bulkResult}</span>
+              )}
+            </div>
+            {filteredDiffs.length !== diffs.length && (
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Showing {filteredDiffs.length} of {diffs.length} differences
+              </p>
+            )}
+          </div>
+
+          {/* Diff list */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredDiffs.map(diff => {
+              const isColor = diff.type === 'color';
+              const hexA = isColor && typeof diff.valueA === 'string' ? diff.valueA : null;
+              const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
+              const fmtA = diff.valueA !== undefined ? formatTokenValueForDisplay(diff.type, diff.valueA) : null;
+              const fmtB = diff.valueB !== undefined ? formatTokenValueForDisplay(diff.type, diff.valueB) : null;
+              const par = nodeParentPath(diff.path, diff.name);
+              const statusColor = diff.status === 'only-a'
+                ? 'bg-blue-500/10 text-blue-400'
+                : diff.status === 'only-b'
+                ? 'bg-purple-500/10 text-purple-400'
+                : 'bg-yellow-500/10 text-yellow-400';
+              const statusLabel = diff.status === 'only-a' ? 'only A' : diff.status === 'only-b' ? 'only B' : 'changed';
+              return (
+                <div
+                  key={diff.path}
+                  className="group px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <div className="flex items-baseline gap-1 mb-1.5">
+                    {par && (
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
+                    )}
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{diff.name}</span>
+                    <span className={`ml-auto text-[8px] uppercase tracking-wide shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
+                      {statusLabel}
+                    </span>
+                    <span className="text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                      {diff.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-b' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      {hexA && <ColorSwatch value={hexA} />}
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                        {fmtA ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}
+                      </span>
+                    </div>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                    <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-a' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      {hexB && <ColorSwatch value={hexB} />}
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">
+                        {fmtB ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Hover actions */}
+                  <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {diff.status === 'only-b' && onCreateToken && (
+                      <button
+                        onClick={() => onCreateToken(diff.path, setA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        title={`Create token in ${setA} (copy B's value)`}
+                      >
+                        + Create in A
+                      </button>
+                    )}
+                    {diff.status === 'only-a' && onCreateToken && (
+                      <button
+                        onClick={() => onCreateToken(diff.path, setB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        title={`Create token in ${setB} (copy A's value)`}
+                      >
+                        + Create in B
+                      </button>
+                    )}
+                    {diff.status !== 'only-b' && onEditToken && (
+                      <button
+                        onClick={() => onEditToken(setA, diff.path)}
+                        className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        title={`Edit in ${setA}`}
+                      >
+                        Edit A
+                      </button>
+                    )}
+                    {diff.status !== 'only-a' && onEditToken && (
+                      <button
+                        onClick={() => onEditToken(setB, diff.path)}
+                        className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        title={`Edit in ${setB}`}
+                      >
+                        Edit B
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // CompareView – main export (mode selector + routing)
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type CompareMode = 'tokens' | 'cross-theme' | 'theme-options';
+export type CompareMode = 'tokens' | 'cross-theme' | 'theme-options' | 'set-diff';
 
 interface CompareViewProps {
   mode: CompareMode;
@@ -1092,6 +1521,7 @@ interface CompareViewProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   dimensions: ThemeDimension[];
+  sets: string[];
 
   themeOptionsKey: number;
   themeOptionsDefaultA: string;
@@ -1110,6 +1540,7 @@ const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
   { id: 'cross-theme', label: 'Token × themes' },
   { id: 'theme-options', label: 'Theme options' },
+  { id: 'set-diff', label: 'Set diff' },
 ];
 
 export function CompareView({
@@ -1122,6 +1553,7 @@ export function CompareView({
   allTokensFlat,
   pathToSet,
   dimensions,
+  sets,
   themeOptionsKey,
   themeOptionsDefaultA,
   themeOptionsDefaultB,
@@ -1218,6 +1650,16 @@ export function CompareView({
             onEditToken={onEditToken}
             onCreateToken={onCreateToken}
             serverUrl={serverUrl}
+            onTokensCreated={onTokensCreated}
+          />
+        )}
+
+        {mode === 'set-diff' && (
+          <SetDiffMode
+            sets={sets}
+            serverUrl={serverUrl}
+            onEditToken={onEditToken}
+            onCreateToken={onCreateToken}
             onTokensCreated={onTokensCreated}
           />
         )}
