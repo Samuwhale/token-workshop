@@ -2614,8 +2614,8 @@ export function TokenList({
                       {qualifierHints.map((hint, i) => (
                         <button
                           key={hint.qualifier}
-                          onMouseDown={e => {
-                            e.preventDefault();
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => {
                             const words = searchQuery.split(/\s+/);
                             words[words.length - 1] = hint.qualifier;
                             setSearchQuery(words.join(' ').trim());
@@ -2652,8 +2652,8 @@ export function TokenList({
                         {QUERY_QUALIFIERS.map(hint => (
                           <button
                             key={hint.qualifier}
-                            onMouseDown={e => {
-                              e.preventDefault();
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => {
                               const q = searchQuery ? searchQuery + ' ' + hint.qualifier : hint.qualifier;
                               setSearchQuery(q);
                               setShowQualifierHelp(false);

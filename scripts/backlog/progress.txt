@@ -732,3 +732,14 @@
   - Copy-feedback-before-close pattern: track `copiedLabel` state + timer ref, show in-palette indicator, defer `onClose()` so users see confirmation within the same UI context
   - `onKeyDown` to return focus to a parent input (Escape/ArrowUp/ArrowDown) is the right way to make satellite buttons feel like a natural extension of arrow-key navigation rather than a separate tab island
 ---
+
+## 2026-04-05 - Command palette qualifier help panel and autocomplete completions keyboard accessibility
+- Fixed all `onMouseDown`+`tabIndex={-1}` patterns in the command palette filter/qualifier UI:
+  - **CommandPalette.tsx**: `?` help button, "close" help button — removed `tabIndex={-1}` (buttons are natively tabbable). Filter syntax help rows (type/value/desc, path/name/group/generator, has: grid) and autocomplete completion chips — split action out of `onMouseDown` into `onClick`; `onMouseDown` retains only `e.preventDefault()` to prevent input blur on mouse click. Footer hint button — removed `tabIndex={-1}`.
+  - **TokenList.tsx**: Qualifier autocomplete hints dropdown buttons and qualifier help panel buttons — same pattern: `onMouseDown` kept for blur-prevention only, action moved to `onClick`.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L469, ~L531, ~L547, ~L567, ~L591, ~L616, ~L1019; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2617, ~L2655
+- **Learnings for future iterations:**
+  - The `onMouseDown={e => e.preventDefault()}` + `onClick={action}` split is the canonical pattern for toolbar/autocomplete buttons adjacent to a text input: mouse clicks don't blur the input, and keyboard Enter/Space still activates the action.
+  - `tabIndex={-1}` on a `<button>` that has an `onClick` handler is a common copy-paste mistake — the button is interactive but invisible to keyboard users. Always audit for this combination.
+  - When both `onMouseDown` (with action) and no `onClick` exist, keyboard users pressing Enter on the button get nothing because `onMouseDown` only fires from pointer events, not keyboard.
+---

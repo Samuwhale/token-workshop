@@ -466,7 +466,6 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               title="Filter syntax help (press ? when input is empty)"
               aria-label="Toggle filter syntax help"
               aria-pressed={showHelp}
-              tabIndex={-1}
             >
               ?
             </button>
@@ -528,7 +527,6 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               <button
                 className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
                 onClick={() => setShowHelp(false)}
-                tabIndex={-1}
               >
                 close
               </button>
@@ -544,8 +542,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 <button
                   key={qual}
                   className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
-                  onMouseDown={e => { e.preventDefault(); setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
-                  tabIndex={-1}
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
                   <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
@@ -564,8 +562,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 <button
                   key={qual}
                   className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
-                  onMouseDown={e => { e.preventDefault(); setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
-                  tabIndex={-1}
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
                   <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
@@ -588,8 +586,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   <button
                     key={val}
                     className="text-left flex items-center gap-1.5 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
-                    onMouseDown={e => { e.preventDefault(); setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
-                    tabIndex={-1}
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                   >
                     <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
                     <span className="text-[9px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)] truncate">{desc}</span>
@@ -613,7 +611,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               <button
                 key={val}
                 className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
-                onMouseDown={e => { e.preventDefault(); applyCompletion(val); }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => applyCompletion(val)}
                 title={`Filter: ${activeQualifier?.qualifier}:${val}`}
               >
                 {val}
@@ -1017,7 +1016,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               <span>↵ go to token/group</span>
               {searchAllSets
                 ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all sets</span>
-                : <button className="opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} tabIndex={-1} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
+                : <button className="opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
               <span>ESC close</span>
             </>
