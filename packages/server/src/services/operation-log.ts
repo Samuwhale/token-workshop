@@ -426,8 +426,20 @@ export class OperationLog {
         if (inverseSteps?.length) {
           try {
             await this.executeSteps(inverseSteps, ctx);
-          } catch {
-            // Revert failed — state may be inconsistent, but we still re-throw the original error.
+          } catch (revertErr) {
+            // Revert also failed — system is in an inconsistent state.
+            const revertMsg = revertErr instanceof Error ? revertErr.message : String(revertErr);
+            const origMsg = err instanceof Error ? err.message : String(err);
+            console.error(
+              `[operation-log] CRITICAL: rollback of operation "${id}" failed (${origMsg}) ` +
+              `and the structural revert also failed (${revertMsg}). ` +
+              `System may be in an inconsistent state.`
+            );
+            const combined = new Error(
+              `Rollback failed: ${origMsg}. Structural revert also failed: ${revertMsg}. System may be in an inconsistent state.`
+            );
+            (combined as NodeJS.ErrnoException & { statusCode?: number }).statusCode = 500;
+            throw combined;
           }
         }
         throw err;
