@@ -2,6 +2,7 @@ import { useImportPanel } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
 import { modeKey, defaultSetName } from './importPanelTypes';
 import { SET_NAME_RE } from '../shared/utils';
+import { Spinner } from './Spinner';
 
 const MAX_VISIBLE_CONFLICTS = 60;
 
@@ -45,7 +46,10 @@ export function ImportVariablesFooter() {
       {(checkingVarConflicts || varConflictPreview !== null) && (
         <div className="flex items-center gap-2 text-[10px] py-0.5">
           {checkingVarConflicts ? (
-            <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+            <>
+              <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
+              <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+            </>
           ) : varConflictPreview && (
             <>
               {varConflictPreview.newCount > 0 && (

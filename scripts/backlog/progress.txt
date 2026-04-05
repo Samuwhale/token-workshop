@@ -809,3 +809,11 @@
 - **Learnings for future iterations:**
   - When SVG icons are `aria-hidden`, the parent button must have an explicit `aria-label`; `tabIndex={-1}` only removes keyboard focus but doesn't affect touch/virtual-cursor accessibility.
 ---
+
+## 2026-04-05 - "Checking existing tokens..." in ImportVariablesFooter shows no spinner
+- Added `<Spinner size="xs">` alongside the "Checking existing tokens…" text in the `checkingVarConflicts` branch of `ImportVariablesFooter`. Imported `Spinner` from `./Spinner`. The text was already styled with `text-[var(--color-figma-text-secondary)]`; the spinner inherits that color via `currentColor`.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` ~L1, ~L47
+- **Learnings for future iterations:**
+  - `Spinner` uses `currentColor`, so adding `className="text-[var(--color-figma-text-secondary)]"` is the correct pattern for color inheritance — no need for a wrapping div.
+  - The existing `flex items-center gap-2` wrapper on the status row already handles spinner + text alignment without additional changes.
+---
