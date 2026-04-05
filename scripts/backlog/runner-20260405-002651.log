@@ -521,3 +521,10 @@ Already up to date.
 
   Merging to main: Token tree has no keyboard arrow-key navigation
 Already up to date.
+[main 1a660ea8] chore(backlog): done – Token tree has no keyboard arrow-key navigation
+ 7 files changed, 59 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+--- Cleanup: archiving completed items (≥40) ---
+  → Archived 40 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 73)
