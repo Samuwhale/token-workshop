@@ -443,3 +443,11 @@
   - The fuzzy scorer already surfaces siblings that share a prefix with the typed leaf, but silently drops siblings that don't match any characters. The fix adds an explicit post-fuzzy pass using the already-built `groupChildren` map — no extra data structure needed.
   - Sort tiers (normal > sibling > ghost) cleanly extend the existing sort without touching the ghost sort logic, just by adding a `rankA/rankB` pre-comparison.
 ---
+
+## 2026-04-05 - Git-sync conflict marker parsing deduplication
+- Extracted `parseConflictRegions` generator from the two duplicated line-iteration loops in `git-sync.ts`. Both `parseConflictMarkers` and `resolveConflictContent` now consume the generator; all loop logic lives in one place. The generator yields `{ beforeLines, region }` per chunk — non-conflict lines arrive in `beforeLines`, conflict regions in `region`.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L108-L195
+- **Learnings for future iterations:**
+  - The two callers had subtly different error handling for malformed regions (parseConflictMarkers skips the region; resolveConflictContent emits partial lines). The generator unifies this by yielding the partial lines and returning, which satisfies both behaviours via the `beforeLines` path.
+  - Generator-based iteration is a clean fit for "walk a flat array, yielding structured chunks" — callers get typed structs instead of managing loop indices themselves.
+---

@@ -101,44 +101,81 @@ export interface FileConflict {
   regions: ConflictRegion[];
 }
 
+/** A parsed conflict region yielded by parseConflictRegions. */
+interface ParsedRegion {
+  regionIndex: number;
+  oursLines: string[];
+  theirsLines: string[];
+}
+
+/**
+ * Iterate over all conflict regions in a split line array.
+ * Yields ParsedRegion for each well-formed <<<<<<< / ======= / >>>>>>> block.
+ * Malformed regions (missing ======= or >>>>>>>) are skipped.
+ * Between regions the callback receives the non-conflict lines via the
+ * `beforeLines` array that is mutated in place before each yield.
+ */
+function* parseConflictRegions(
+  lines: string[],
+): Generator<{ beforeLines: string[]; region: ParsedRegion | null }> {
+  let i = 0;
+  let regionIndex = 0;
+  let pendingBefore: string[] = [];
+
+  while (i < lines.length) {
+    if (lines[i].startsWith('<<<<<<<')) {
+      // Yield accumulated non-conflict lines before this region
+      yield { beforeLines: pendingBefore, region: null };
+      pendingBefore = [];
+
+      const oursLines: string[] = [];
+      const theirsLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('=======')) {
+        oursLines.push(lines[i]);
+        i++;
+      }
+      if (i >= lines.length) {
+        // Malformed: missing =======; yield what we have and stop
+        yield { beforeLines: oursLines, region: null };
+        return;
+      }
+      i++; // skip =======
+      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
+        theirsLines.push(lines[i]);
+        i++;
+      }
+      if (i >= lines.length) {
+        // Malformed: missing >>>>>>>; yield what we have and stop
+        yield { beforeLines: theirsLines, region: null };
+        return;
+      }
+      i++; // skip >>>>>>>
+      yield { beforeLines: [], region: { regionIndex: regionIndex++, oursLines, theirsLines } };
+    } else {
+      pendingBefore.push(lines[i]);
+      i++;
+    }
+  }
+  // Yield any trailing non-conflict lines
+  if (pendingBefore.length > 0) {
+    yield { beforeLines: pendingBefore, region: null };
+  }
+}
+
 /**
  * Parse git conflict markers from raw file content.
  * Returns the conflict regions found. If no markers are found, returns [].
  */
 export function parseConflictMarkers(content: string): ConflictRegion[] {
   const regions: ConflictRegion[] = [];
-  const lines = content.split('\n');
-  let i = 0;
-  let regionIndex = 0;
-
-  while (i < lines.length) {
-    if (lines[i].startsWith('<<<<<<<')) {
-      const oursLines: string[] = [];
-      const theirsLines: string[] = [];
-      i++;
-      // Collect "ours" lines until =======
-      while (i < lines.length && !lines[i].startsWith('=======')) {
-        oursLines.push(lines[i]);
-        i++;
-      }
-      // If ======= marker is missing, this region is malformed — skip it
-      if (i >= lines.length) break;
-      i++; // skip =======
-      // Collect "theirs" lines until >>>>>>>
-      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
-        theirsLines.push(lines[i]);
-        i++;
-      }
-      // If >>>>>>> marker is missing, this region is malformed — skip it
-      if (i >= lines.length) break;
-      i++; // skip >>>>>>>
+  for (const { region } of parseConflictRegions(content.split('\n'))) {
+    if (region) {
       regions.push({
-        index: regionIndex++,
-        ours: oursLines.join('\n'),
-        theirs: theirsLines.join('\n'),
+        index: region.regionIndex,
+        ours: region.oursLines.join('\n'),
+        theirs: region.theirsLines.join('\n'),
       });
-    } else {
-      i++;
     }
   }
   return regions;
@@ -152,43 +189,12 @@ export function resolveConflictContent(
   content: string,
   choices: Record<number, 'ours' | 'theirs'>,
 ): string {
-  const lines = content.split('\n');
   const result: string[] = [];
-  let i = 0;
-  let regionIndex = 0;
-
-  while (i < lines.length) {
-    if (lines[i].startsWith('<<<<<<<')) {
-      const oursLines: string[] = [];
-      const theirsLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].startsWith('=======')) {
-        oursLines.push(lines[i]);
-        i++;
-      }
-      // If ======= marker is missing, emit remaining lines as-is and stop
-      if (i >= lines.length) {
-        result.push(...oursLines);
-        break;
-      }
-      i++; // skip =======
-      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
-        theirsLines.push(lines[i]);
-        i++;
-      }
-      // If >>>>>>> marker is missing, emit remaining lines as-is and stop
-      if (i >= lines.length) {
-        result.push(...theirsLines);
-        break;
-      }
-      i++; // skip >>>>>>>
-      const choice = choices[regionIndex] ?? 'ours';
-      const chosen = choice === 'theirs' ? theirsLines : oursLines;
-      result.push(...chosen);
-      regionIndex++;
-    } else {
-      result.push(lines[i]);
-      i++;
+  for (const { beforeLines, region } of parseConflictRegions(content.split('\n'))) {
+    result.push(...beforeLines);
+    if (region) {
+      const choice = choices[region.regionIndex] ?? 'ours';
+      result.push(...(choice === 'theirs' ? region.theirsLines : region.oursLines));
     }
   }
   return result.join('\n');
