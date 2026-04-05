@@ -585,3 +585,13 @@
   - The "ref as synchronous guard" pattern (`const xRef = useRef(false); if (xRef.current) return; xRef.current = true; ... finally { xRef.current = false; }`) fixes click-race conditions that `useState` cannot because React batches state updates across event handlers. Always pair with the corresponding `useState` for UI visibility.
   - When extracting a function that was duplicated between success and failure paths, check that the two copies are truly byte-for-byte equivalent first — in this case L189-195 vs L207-213 were identical, confirming it was safe to extract without behavioural change.
 ---
+
+## 2026-04-05 - useThemeBulkOps.ts enqueueMutation refactor
+- Extracted shared `enqueueMutation(config)` helper inside `useThemeBulkOps` that handles the full optimistic-update/save-key/rollback/error/chain pattern. Eliminated ~100 lines of duplicated boilerplate across the four handlers (handleSetState, handleBulkSetState, handleBulkSetAllInOption, handleCopyAssignmentsFrom).
+- Each handler now computes its unique inputs (updatedSets, savingKeys, optimisticUpdate fn, apiCall fn, errorMsg, label) and delegates to `enqueueMutation`. Early-return guard checks (dim/opt find) moved outside the task for equivalent behavior with simpler code.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeBulkOps.ts` ~L72
+- **Learnings for future iterations:**
+  - When extracting a mutation queue pattern, capturing `previousDimensions = dimensions` in the helper (at the time `enqueueMutation` is called, not when the task runs) is safe and equivalent — the closure over `dimensions` from the current render is the same value regardless.
+  - Moving pre-condition checks (`dim.find(...)`) from inside the task to the outer handler body is functionally equivalent when those checks use only the closed-over render values, and makes each handler's guard logic explicit and testable.
+  - `Promise.all(...).then(() => undefined)` is the correct typing to convert `Promise<void[]>` → `Promise<void>` for a unified `apiCall: () => Promise<void>` signature.
+---
