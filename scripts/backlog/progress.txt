@@ -962,3 +962,10 @@
   - When a route calls `getById()` (returns undefined) followed by `run()` or other service methods (throw NotFoundError), the absence of an early 404 guard means any side effects between the two calls (snapshot capture, op-log writes) execute against missing data. The explicit guard prevents both the misleading log entry and the empty snapshot.
   - Service methods that throw NotFoundError provide correct HTTP 404 behavior via `handleRouteError`, but explicit guards are still preferred for routes that do pre-mutation work (snapshots, setup) before the throwing call.
 ---
+
+## 2026-04-05 - TokenList filter setters duplicate scroll-anchor computation
+- Extracted the 5-line scroll anchor block (reads virtualScrollTopRef/flatItemsRef/itemOffsetsRef, finds first visible item, writes scrollAnchorPathRef + isFilterChangeRef) into a `saveScrollAnchor` useCallback; all three filter setters (`setSearchQuery`, `setTypeFilter`, `setRefFilter`) now call it instead of duplicating the logic
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L285
+- **Learnings for future iterations:**
+  - When multiple useCallbacks in a component share a read-only side-effect block (reading refs, writing other refs), extracting it to its own useCallback with empty deps (or only ref deps) is always safe — refs are stable and excluded from dep arrays by convention
+---

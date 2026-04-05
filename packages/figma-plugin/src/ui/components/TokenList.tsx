@@ -282,7 +282,7 @@ export function TokenList({
     setTypeFilterState(lsGet(STORAGE_KEY.tokenTypeFilter(setName), ''));
   }, [setName]);
 
-  const setSearchQuery = useCallback((v: string) => {
+  const saveScrollAnchor = useCallback(() => {
     const top = virtualScrollTopRef.current;
     const items = flatItemsRef.current;
     const offsets = itemOffsetsRef.current;
@@ -290,31 +290,23 @@ export function TokenList({
     while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
     scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
     isFilterChangeRef.current = true;
+  }, []);
+
+  const setSearchQuery = useCallback((v: string) => {
+    saveScrollAnchor();
     setSearchQueryState(v);
     try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[TokenList] storage write search query:', e); }
-  }, []);
+  }, [saveScrollAnchor]);
   const setTypeFilter = useCallback((v: string) => {
-    const top = virtualScrollTopRef.current;
-    const items = flatItemsRef.current;
-    const offsets = itemOffsetsRef.current;
-    let firstIdx = 0;
-    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
-    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
-    isFilterChangeRef.current = true;
+    saveScrollAnchor();
     setTypeFilterState(v);
     lsSet(STORAGE_KEY.tokenTypeFilter(setName), v);
-  }, [setName]);
+  }, [saveScrollAnchor, setName]);
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
-    const top = virtualScrollTopRef.current;
-    const items = flatItemsRef.current;
-    const offsets = itemOffsetsRef.current;
-    let firstIdx = 0;
-    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
-    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
-    isFilterChangeRef.current = true;
+    saveScrollAnchor();
     setRefFilterState(v);
     try { sessionStorage.setItem('token-ref-filter', v); } catch (e) { console.debug('[TokenList] storage write ref filter:', e); }
-  }, []);
+  }, [saveScrollAnchor]);
 
   const [showDuplicates, setShowDuplicatesState] = useState(() => {
     try { return sessionStorage.getItem('token-duplicates') === '1'; } catch (e) { console.debug('[TokenList] storage read duplicates flag:', e); return false; }

@@ -452,3 +452,26 @@ Already up to date.
 
   Merging to main: Generator routes missing explicit 404 checks before mutations
 Already up to date.
+[main 1d5d9ef8] chore(backlog): done – Generator routes missing explicit 404 checks before mutations
+ 5 files changed, 46 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Generator routes missing explicit 404 checks before mutations
+- Added explicit `if (!gen) return reply.status(404).send(...)` guard in three generator routes:
+  1. `POST /generators/:id/run`: was using `gen?.targetSet ?? ''` optional chaining, allowing empty snapshot captures and a misleading op-log entry before `run()` threw; now returns 404 immediately
+  2. `PUT /generators/:id/steps/:stepName/override`: added `getById` + 404 guard before `setStepOverride` call (which already threw NotFoundError, but now fails explicitly before entering the lock)
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  13 queued · 0
+0 in-progress · last took 1m46s
+═══════════════════════════════════════════════════════════════
+  → TokenList filter setters duplicate the same scroll-anchor computation 3 times — `setSearchQuery` (line 283), `setTypeFilter` (line 294), and `setRefFilter` (line 305) each contain an identical 5-line block that finds the first visible item index from virtualScrollTopRef/flatItemsRef/itemOffsetsRef and saves it to scrollAnchorPathRef; extract a `saveScrollAnchor()` helper and call it from each setter
+  Worktree: /tmp/backlog-54964-xZYRGz
+  Running agent… (started 02:04:19)
+
+  ✓ done: TokenList filter setters duplicate the same scroll-anchor computation 3 times
+    Extracted repeated 5-line scroll-anchor block into saveScrollAnchor() useCallback; all three filter setters now call it
+    6 turns · 43s · $0.16
+
+  Merging to main: TokenList filter setters duplicate the same scroll-anchor computation 3 times
+Already up to date.
