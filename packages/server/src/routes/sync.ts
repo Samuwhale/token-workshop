@@ -205,6 +205,25 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       if (resolutions.length === 0) {
         return reply.status(400).send({ error: 'resolutions array must not be empty' });
       }
+      // Validate each resolution element has the required {file, choices} shape
+      for (let i = 0; i < resolutions.length; i++) {
+        const r = resolutions[i] as unknown;
+        if (typeof r !== 'object' || r === null || Array.isArray(r)) {
+          return reply.status(400).send({ error: `resolutions[${i}] must be an object` });
+        }
+        const res = r as Record<string, unknown>;
+        if (typeof res.file !== 'string' || res.file.trim() === '') {
+          return reply.status(400).send({ error: `resolutions[${i}].file must be a non-empty string` });
+        }
+        if (typeof res.choices !== 'object' || res.choices === null || Array.isArray(res.choices)) {
+          return reply.status(400).send({ error: `resolutions[${i}].choices must be an object` });
+        }
+        for (const [key, val] of Object.entries(res.choices as Record<string, unknown>)) {
+          if (val !== 'ours' && val !== 'theirs') {
+            return reply.status(400).send({ error: `resolutions[${i}].choices["${key}"] must be "ours" or "theirs"` });
+          }
+        }
+      }
       // Validate, resolve, and stage all files atomically (with rollback on failure).
       // resolveAllConflicts throws BadRequestError (400) for invalid inputs.
       await fastify.gitSync.resolveAllConflicts(resolutions);

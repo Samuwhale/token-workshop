@@ -8,7 +8,13 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/snapshots — save current state
   fastify.post<{ Body: { label?: string } }>('/snapshots', async (request, reply) => {
     try {
-      const label = (request.body as { label?: string })?.label?.trim()
+      const body = request.body;
+      const isObj = typeof body === 'object' && body !== null && !Array.isArray(body);
+      const rawLabel = isObj ? (body as Record<string, unknown>).label : undefined;
+      if (rawLabel !== undefined && typeof rawLabel !== 'string') {
+        return reply.status(400).send({ error: 'label must be a string' });
+      }
+      const label = (typeof rawLabel === 'string' ? rawLabel.trim() : '')
         || `Snapshot ${new Date().toLocaleString()}`;
       return await withLock(async () => {
         const entry = await fastify.manualSnapshots.save(label, fastify.tokenStore);

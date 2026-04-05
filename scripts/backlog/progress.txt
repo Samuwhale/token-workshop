@@ -615,3 +615,22 @@
   - Figma plugin API uses `figma.off(eventName, handler)` to remove event listeners — requires a named function reference, not an anonymous arrow. Always define Figma event handlers as named functions when they may need to be unregistered.
   - The `close` event is the correct place to clean up all `figma.on(...)` listeners registered during plugin lifetime.
 ---
+
+## 2026-04-05 - Server route request body validation
+- Added structural validation across three server route files:
+  1. **sync.ts** `POST /sync/conflicts/resolve` (~L199): Per-element validation loop checks each resolution item is an object with `file` (non-empty string) and `choices` (plain object with values only `'ours'|'theirs'`).
+  2. **snapshots.ts** `POST /snapshots` (~L11): Replaced unsafe `(request.body as {...})?.label?.trim()` cast with explicit object-check + string-type guard before accessing `label`.
+  3. **generators.ts** `validateGeneratorConfig` (~L156): Added value range checks across all generator types:
+     - `colorRamp`: `lightEnd`/`darkEnd` in [0,100]; `lightEnd > darkEnd` semantic check; `chromaBoost >= 0`; `lightnessCurve` bezier x control points in [0,1]; `steps` non-empty
+     - `typeScale`: `ratio > 0`; `roundTo >= 0`; `steps` non-empty
+     - `spacingScale`, `borderRadiusScale`, `zIndexScale`, `shadowScale`, `customScale`: `steps` non-empty
+     - `opacityScale`: step values in [0,1]; `steps` non-empty
+     - `shadowScale`: step `opacity` in [0,1]; step `blur >= 0`
+     - `darkModeInversion`: `chromaBoost >= 0`
+     - `customScale`: `roundTo >= 0`
+- Files changed: `packages/server/src/routes/sync.ts` ~L199; `packages/server/src/routes/snapshots.ts` ~L9; `packages/server/src/routes/generators.ts` ~L156-338
+- **Learnings for future iterations:**
+  - Fastify TypeScript generics set the expected body type but provide no runtime validation — always add explicit type + shape guards when handling user-controlled data.
+  - For bezier easing curves, only x control points need [0,1] clamping; y values can legitimately overshoot to create bounce effects — avoid over-constraining.
+  - `void varName` is a valid TypeScript no-op for silencing unused-variable warnings, but direct array indexing (`lc[0]`) is cleaner than destructuring + voiding when only some elements are needed.
+---
