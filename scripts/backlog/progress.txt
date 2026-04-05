@@ -508,3 +508,14 @@
   - For sub-components without their own header (BatchEditor): use standalone `PanelHelpHint` in a new mini-header row alongside contextual metadata (e.g. selection count); this adds UX context while giving the hint a natural home
   - The `PanelHelpBanner` component has `shrink-0` built in, which is important to prevent it from being squeezed in `flex flex-col h-full` layouts
 ---
+
+## 2026-04-05 - No "recent tokens" or "frequently edited" quick access
+- The command palette "Recently Edited" section and token list "recently touched" filter already existed but were backed by `useRecentlyTouched` which was in-memory only (reset on every plugin reload). `recentTokens.ts` had `addRecentToken`/`getRecentTokens` localStorage helpers that were defined but never called.
+- Extended `recentTokens.ts`: added `removeRecentToken` and `renameRecentToken` helpers; bumped `MAX_RECENT` from 10 to 15.
+- Modified `useRecentlyTouched.ts`: initialize `timestamps` from `getRecentTokens()` on mount (converting ordered paths to synthetic timestamps so sort order is preserved); call `addRecentToken/removeRecentToken/renameRecentToken` in `recordTouch`/`removePath`/`renamePath` to keep localStorage in sync.
+- No changes needed to App.tsx, CommandPalette, or TokenList — the "Recently Edited" command palette section and token list filter already consumed `useRecentlyTouched` correctly; they now automatically show persistent history across plugin reloads.
+- Files changed: `packages/figma-plugin/src/ui/shared/recentTokens.ts`, `packages/figma-plugin/src/ui/hooks/useRecentlyTouched.ts`
+- **Learnings for future iterations:**
+  - When a feature "already exists but doesn't persist", the fix is often just wiring the existing in-memory hook to an existing-but-unused persistence utility rather than building new UI.
+  - Initializing a Map from an ordered list (most-recent-first) using synthetic timestamps (`now - idx * 1000`) correctly preserves sort order without needing to store timestamps explicitly in localStorage.
+---

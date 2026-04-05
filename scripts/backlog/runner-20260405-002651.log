@@ -757,3 +757,26 @@ Already up to date.
 
   Merging to main: PanelHelpHint is missing from several complex panels — PublishPanel, ExportPanel, BatchEditor, and ConsistencyPanel have no contextual help hint
 Already up to date.
+[main cf313028] chore(backlog): done – PanelHelpHint is missing from several complex panels — PublishPanel, ExportPanel, BatchEditor, and ConsistencyPanel have no contextual help hint
+ 8 files changed, 104 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - PanelHelpHint is missing from several complex panels
+- Added `PanelHelpHint` dismissible help banner to four panels following the existing GraphPanel pattern:
+  - **PublishPanel**: `usePanelHelp('publish')` + `PanelHelpIcon` in readiness gate header (next to Re-check button) + `PanelHelpBanner` between readiness gate and sections
+  - **ExportPanel**: `usePanelHelp('export')` + thin non-scrolling header with `PanelHelpIcon` + `PanelHelpBanner` between header and scrollable content
+
+═══════════════════════════════════════════════════════════════
+  #31  ·  25 queued · 0
+0 in-progress · last took 8m19s
+═══════════════════════════════════════════════════════════════
+  → No "recent tokens" or "frequently edited" quick access — users managing hundreds of tokens must search or scroll to find tokens they edit repeatedly; add a "Recent" section at the top of the token list or a "Recent tokens" command palette category that tracks the last 10-15 edited tokens with one-click navigation
+  Worktree: /tmp/backlog-54964-Srxgvi
+  Running agent… (started 03:18:52)
+
+  ✓ done: No "recent tokens" or "frequently edited" quick access — users managing hundreds of tokens must search or scroll to find tokens they edit repeatedly; add a "Recent" section at the top of the token list or a "Recent tokens" command palette category that tracks the last 10-15 edited tokens with one-click navigation
+    The command palette "Recently Edited" section and token list filter already existed but were in-memory only. Wired useRecentlyTouched to localStorage (addRecentToken/removeRecentToken/renameRecentToken) so the last 15 edited tokens now persist across plugin reloads.
+    26 turns · 294s · $1.13
+
+  Merging to main: No "recent tokens" or "frequently edited" quick access — users managing hundreds of tokens must search or scroll to find tokens they edit repeatedly; add a "Recent" section at the top of the token list or a "Recent tokens" command palette category that tracks the last 10-15 edited tokens with one-click navigation
+Already up to date.

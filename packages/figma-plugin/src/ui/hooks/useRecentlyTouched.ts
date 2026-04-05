@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { addRecentToken, getRecentTokens, removeRecentToken, renameRecentToken } from '../shared/recentTokens';
 
 const MAX_ENTRIES = 500;
 
@@ -22,7 +23,18 @@ export interface RecentlyTouchedState {
 }
 
 export function useRecentlyTouched(): RecentlyTouchedState {
-  const [timestamps, setTimestamps] = useState<Map<string, number>>(() => new Map());
+  const [timestamps, setTimestamps] = useState<Map<string, number>>(() => {
+    // Initialize from persisted localStorage so recents survive plugin reloads.
+    // Paths are ordered most-recent-first; assign synthetic timestamps so the
+    // in-memory sort order matches the persisted order.
+    const saved = getRecentTokens();
+    const map = new Map<string, number>();
+    const now = Date.now();
+    saved.forEach((path, idx) => {
+      map.set(path, now - idx * 1000);
+    });
+    return map;
+  });
 
   const recordTouch = useCallback((path: string) => {
     setTimestamps(prev => {
@@ -39,6 +51,7 @@ export function useRecentlyTouched(): RecentlyTouchedState {
       }
       return next;
     });
+    addRecentToken(path);
   }, []);
 
   const recordTouches = useCallback((paths: string[]) => {
@@ -58,6 +71,7 @@ export function useRecentlyTouched(): RecentlyTouchedState {
       }
       return next;
     });
+    for (const p of paths) addRecentToken(p);
   }, []);
 
   const removePath = useCallback((path: string) => {
@@ -67,6 +81,7 @@ export function useRecentlyTouched(): RecentlyTouchedState {
       next.delete(path);
       return next;
     });
+    removeRecentToken(path);
   }, []);
 
   const renamePath = useCallback((oldPath: string, newPath: string) => {
@@ -78,6 +93,7 @@ export function useRecentlyTouched(): RecentlyTouchedState {
       next.set(newPath, ts);
       return next;
     });
+    renameRecentToken(oldPath, newPath);
   }, []);
 
   const clear = useCallback(() => {
