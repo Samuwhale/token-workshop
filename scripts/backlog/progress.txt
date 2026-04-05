@@ -612,3 +612,12 @@
   - The "bind setName at PanelRouter level" pattern (building callbacks that close over `activeSet`) cleanly solves set-scoped mutations for global state managed at App level — same pattern as pinned tokens but lifted to App level.
   - RecentsPanel "Recent" tab: groups by set, preserving most-recent-first order across sets gives the most useful scan pattern for power users.
 ---
+
+## 2026-04-05 - Keyboard shortcut for "Apply token to selection" is missing
+- Added `V` as a direct keyboard shortcut to apply the currently focused token to the Figma selection. When a token row has keyboard focus (via arrow keys or Tab), pressing `V` triggers the same apply logic as the context menu accelerator — auto-detects compatible properties from the selection, applies immediately if unambiguous, or opens the property picker if multiple bindings are valid. Added `TOKEN_APPLY_SELECTION: 'V'` to `SHORTCUT_KEYS` and a registry entry under the "Token List" group so it appears in the keyboard shortcuts help modal.
+- Files changed: `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L84 (SHORTCUT_KEYS), ~L139 (SHORTCUT_REGISTRY); `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1427 (handleRowKeyDown V handler)
+- **Learnings for future iterations:**
+  - `handleContextMenuApply` in TokenTreeNode is already fully self-contained: it closes any open context menu (no-op if none), reads the row rect from `nodeRef`, and falls through to the picker — calling it from a row keydown handler works without any changes to the function itself.
+  - The `handleRowKeyDown` deps array must include `handleContextMenuApply` or ESLint will warn; the hook is already stable via its own `useCallback` deps so this adds no re-render cost.
+  - Bare letter shortcuts in `handleRowKeyDown` must guard `!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey` to avoid conflicting with browser or OS shortcuts.
+---

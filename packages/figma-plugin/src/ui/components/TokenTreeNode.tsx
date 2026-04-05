@@ -1424,7 +1424,14 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       setRenamingToken(true);
       return;
     }
-  }, [canInlineEdit, activateInlineEdit, onEdit, node.path, node.name, selectMode, onToggleSelect, onDelete, onDuplicateToken]);
+
+    // V: apply focused token to current Figma selection (same as context menu accelerator)
+    if (e.key === 'v' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      handleContextMenuApply();
+      return;
+    }
+  }, [canInlineEdit, activateInlineEdit, onEdit, node.path, node.name, selectMode, onToggleSelect, onDelete, onDuplicateToken, handleContextMenuApply]);
 
   // Memoize quick bind targets for the apply button tooltip
   const quickBindTargets = useMemo(() => {

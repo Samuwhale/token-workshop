@@ -80,6 +80,7 @@ export const SHORTCUT_KEYS = {
   TOKEN_MULTI_SELECT:    'M',
   TOKEN_EXPAND_ALL:      '⌘→',
   TOKEN_COLLAPSE_ALL:    '⌘←',
+  TOKEN_APPLY_SELECTION: 'V',
   TOKEN_RENAME:          'F2',
   TOKEN_DELETE:          '⌫',
   TOKEN_DUPLICATE:       '⌘D',
@@ -136,6 +137,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
 
   // ── Token List ───────────────────────────────────────────────────────────
   { id: 'TOKEN_NEW',             group: 'Token List',      description: 'New token',                      mac: SHORTCUT_KEYS.TOKEN_NEW },
+  { id: 'TOKEN_APPLY_SELECTION', group: 'Token List',      description: 'Apply focused token to selection', mac: SHORTCUT_KEYS.TOKEN_APPLY_SELECTION },
   { id: 'TOKEN_DBLCLICK',        group: 'Token List',      description: 'Edit token',                     mac: 'Double-click', displayOnly: true },
   { id: 'TOKEN_SEARCH',          group: 'Token List',      description: 'Focus search',                   mac: SHORTCUT_KEYS.TOKEN_SEARCH },
   { id: 'TOKEN_MULTI_SELECT',    group: 'Token List',      description: 'Toggle multi-select mode',       mac: SHORTCUT_KEYS.TOKEN_MULTI_SELECT },
