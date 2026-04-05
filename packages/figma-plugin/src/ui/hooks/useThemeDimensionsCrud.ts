@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
 import type { UndoSlot } from './useUndo';
 
 function slugify(name: string): string {
@@ -237,6 +238,7 @@ export function useThemeDimensionsCrud({
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       setDimensions(prev => prev.filter(d => d.id !== id));
       debouncedFetchDimensions();
+      dispatchToast(`Deleted layer "${savedDim.name}"`, 'success');
       onPushUndo?.({
         description: `Deleted layer "${savedDim.name}"`,
         restore: async () => {

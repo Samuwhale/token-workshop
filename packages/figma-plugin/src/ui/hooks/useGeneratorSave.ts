@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
+import { dispatchToast } from '../shared/toastBus';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import type { UndoSlot } from './useUndo';
 import type {
@@ -171,6 +172,7 @@ export function useGeneratorSave({
         if (tokensForMapping.length > 0 && onInterceptSemanticMapping) {
           onInterceptSemanticMapping({ tokens: tokensForMapping, targetGroup: targetGroupAtSave, targetSet: targetSetAtSave, generatorType: selectedType });
           setSaving(false);
+          dispatchToast(`Generator "${name.trim()}" created`, 'success');
           onSaved({ targetGroup: targetGroupAtSave });
           return;
         }
@@ -199,6 +201,7 @@ export function useGeneratorSave({
       }
 
       setSaving(false);
+      dispatchToast(isEditing ? `Generator "${name.trim()}" updated` : `Generator "${name.trim()}" created`, 'success');
       onSaved({ targetGroup: targetGroupAtSave });
     } catch (err) {
       setSaveError(getErrorMessage(err));

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import type { ThemeDimension, ThemeOption } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
 import type { UndoSlot } from './useUndo';
 
 function makeErrorMsg(err: unknown, fallback: string): string {
@@ -246,6 +247,7 @@ export function useThemeOptions({
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
       debouncedFetchDimensions();
+      dispatchToast(`Deleted option "${optionName}"`, 'success');
       onPushUndo?.({
         description: `Deleted option "${optionName}" from "${dimName}"`,
         restore: async () => {

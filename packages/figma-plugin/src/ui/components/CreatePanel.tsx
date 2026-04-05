@@ -7,6 +7,7 @@ import { getDefaultValue } from './tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import {
@@ -519,6 +520,7 @@ function SingleCreateTab({
       clearCreateDraft();
       onRefresh();
       onTokenCreated?.(fullPath);
+      dispatchToast(`Token "${fullPath}" created`, 'success');
       // Reset for next creation — keep group pre-filled so user can type next sibling name
       setName('');
       setValue(getDefaultValue(tokenType));

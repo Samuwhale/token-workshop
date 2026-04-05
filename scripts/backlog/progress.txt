@@ -688,3 +688,21 @@
   - Token context menu buttons lacked both `role="menuitem"` and `tabIndex={-1}` while the group menu had them; adding `role="menu"` to the container div is also required for full ARIA compliance.
   - The `tokenMenuRef` replaces `document.querySelector('[data-context-menu="token"]')` in the keydown handler — ref-based lookup is faster and avoids querying the DOM on every key event.
 ---
+
+## 2026-04-05 - Inconsistent success feedback across operations
+- Added `dispatchToast` success notifications to four previously silent operations:
+  1. **Token creation** (CreatePanel.tsx): shows `Token "${fullPath}" created` after successful POST.
+  2. **Generator creation/editing** (useGeneratorSave.ts): shows `Generator "${name}" created` or `Generator "${name}" updated` at both the normal completion path and the intercept-semantic-mapping early-return path.
+  3. **Theme option deletion** (useThemeOptions.ts): shows `Deleted option "${optionName}"` after successful DELETE.
+  4. **Theme dimension deletion** (useThemeDimensionsCrud.ts): shows `Deleted layer "${name}"` after successful DELETE.
+- All four hooks/components already had `apiFetch`/`ApiError` imports; only `dispatchToast` from `toastBus.ts` was missing.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L9 (import), ~L521 (toast after create)
+  - `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L4 (import), ~L174 (toast on intercept path), ~L202 (toast on normal path)
+  - `packages/figma-plugin/src/ui/hooks/useThemeOptions.ts` ~L6 (import), ~L249 (toast after option delete)
+  - `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` ~L6 (import), ~L239 (toast after dimension delete)
+- **Learnings for future iterations:**
+  - `dispatchToast` is fire-and-forget — no props or context needed; import and call inline.
+  - Generator save has two exit paths that reach `onSaved`: the normal path at the end of `commitSave` and the early-return path when `onInterceptSemanticMapping` is set. Both need toasts.
+  - Deletion toasts use the `name` captured before the API call (from the snapshot), not from state, since state is already updated by the time the toast fires.
+---
