@@ -530,3 +530,10 @@
   - A two-click flow (first click → preview, second click → confirm) is achievable with zero new state by checking whether `previewDiff` is already set in the button's onClick handler.
   - "Preview output" retains its independent purpose (preview-only without run intent), while "Re-run" now implies preview-then-confirm.
 ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: Import flow (ImportPanel, ImportPanelContext, ImportSourceSelector, ImportConflictResolver, ImportTokenListView, ImportSuccessView, ImportVariablesView, ImportVariablesFooter, ImportStylesFooter), Value editors (ValueEditors, TokenEditor, ColorPicker, ColorModifiersEditor, FormulaInput, TokenRefInput, AliasAutocomplete, AliasPicker, MetadataEditor, CreatePanel), Selection inspector (SelectionInspector, PropertyRow, QuickApplyPicker, DeepInspectSection, TokenTableView, CompareView, HeatmapPanel, TokenFlowPanel, ExtractTokensPanel, PropertyPicker)
+- Heuristics most relevant: error prevention, consistency, accessibility, visibility of system status
+- Found 6 items — written to backlog-inbox.md
+- Notable: The import flow has no client-side set name validation at all — empty/invalid names are accepted silently until the server rejects them. The PropertyRow vs QuickApplyPicker ARIA inconsistency is notable because they implement the exact same interaction pattern (search + pick token) but with different semantic markup.
+---
