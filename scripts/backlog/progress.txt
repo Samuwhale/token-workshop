@@ -780,3 +780,10 @@
   - When a panel is named "HealthPanel" but its enclosing tab is named "Validation", the mismatch itself is a UX signal — rename the tab to match the component's scope
   - When a "summary card" in a dashboard strip has a CTA that navigates to the full view *in the same panel*, that's a sign the summary is redundant — remove it and let the full view stand alone
 ---
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` — strip restructure, header update
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` — PANEL_MAP and function rename
+  - `packages/figma-plugin/src/ui/App.tsx` — navigation calls and command palette labels
+- **Learnings for future iterations:**
+  - When a panel is named "HealthPanel" but its enclosing tab is named "Validation", the mismatch itself is a UX signal — rename the tab to match the component's scope
+  - When a "summary card" in a dashboard strip has a CTA that navigates to the full view *in the same panel*, that's a sign the summary is redundant — remove it and let the full view stand alone
+---

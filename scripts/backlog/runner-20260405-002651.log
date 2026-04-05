@@ -1177,3 +1177,26 @@ Already up to date.
 
   Merging to main: Consolidate Validation sub-tab into HealthPanel
 Already up to date.
+[main c5b54710] chore(backlog): done – Consolidate Validation sub-tab into HealthPanel
+ 8 files changed, 69 insertions(+), 98 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Consolidate Validation sub-tab into HealthPanel
+- Renamed the "Validation" sub-tab (Ship > Validation) to "Health" in `navigationTypes.ts` to match the HealthPanel component and its broader content (lint, generators, canvas, validation)
+- Removed the redundant "Cross-set validation" HealthSection from the health dashboard strip — this section duplicated the full validation report shown in the main body, creating two competing views of the same data
+- Changed health dashboard strip to expand by default (`useState(true)`) so the health overview is visible on first open rather than collapsed
+
+═══════════════════════════════════════════════════════════════
+  #49  ·  7 queued · 0
+0 in-progress · last took 8m12s
+═══════════════════════════════════════════════════════════════
+  → No bulk token type change — BatchEditor.tsx supports numeric transforms, color transforms, and find-replace on values, but there's no way to change the $type of multiple tokens at once; migrating a set of "string" tokens to "fontFamily" or converting "number" tokens to "dimension" requires editing each token individually in the token editor
+  Worktree: /tmp/backlog-54964-Tkc2JS
+  Running agent… (started 05:24:26)
+
+  ✓ done: No bulk token type change
+    stale — already done; BatchEditor.tsx has full $type bulk-change with validation, preview, and confirmation dialog (newType state L156, select UI L813, confirmation banner L1311)
+    16 turns · 160s · $0.76
+
+  Merging to main: No bulk token type change
+Already up to date.
