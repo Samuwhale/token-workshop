@@ -61,7 +61,7 @@ import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
-import { apiFetch } from './shared/apiFetch';
+import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType, findLeafByPath, collectAllGroupPaths } from './components/tokenListUtils';
 import { inferTypeFromValue } from './components/tokenListHelpers';
@@ -371,8 +371,37 @@ export function App() {
     && (tokens.length > 0 || createFromEmpty);
   const isNarrow = windowWidth <= 360;
 
+  // Token drag state: set when a drag from the token tree is in progress
+  const [tokenDragState, setTokenDragState] = useState<{ paths: string[]; fromSet: string } | null>(null);
+
+  // Move tokens to a different set after a drag-drop on a set tab
+  const handleTokenDropOnSet = useCallback(async (targetSet: string) => {
+    if (!tokenDragState) return;
+    const { paths, fromSet } = tokenDragState;
+    setTokenDragState(null);
+    try {
+      if (paths.length === 1) {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(fromSet)}/tokens/move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tokenPath: paths[0], targetSet }),
+        });
+      } else {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(fromSet)}/batch-move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths, targetSet }),
+        });
+      }
+      refreshTokens();
+      setSuccessToast(paths.length === 1 ? `Moved "${paths[0]}" to "${targetSet}"` : `Moved ${paths.length} tokens to "${targetSet}"`);
+    } catch (err) {
+      setErrorToast(err instanceof ApiError ? err.message : 'Move failed: network error');
+    }
+  }, [tokenDragState, serverUrl, refreshTokens, setSuccessToast, setErrorToast]);
+
   // Set tab management (drag, context menu, overflow, new-set form)
-  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes });
+  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragLeave, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupApplying, syncGroupProgress, syncGroupStylesPending, setSyncGroupStylesPending, syncGroupStylesApplying, syncGroupStylesProgress, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
@@ -1612,9 +1641,10 @@ export function App() {
                 draggable={!isRenaming}
                 onDragStart={e => handleSetDragStart(e, set)}
                 onDragOver={e => handleSetDragOver(e, set)}
+                onDragLeave={handleSetDragLeave}
                 onDrop={e => handleSetDrop(e, set)}
                 onDragEnd={handleSetDragEnd}
-                className={`relative flex group/settab ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''}`}
+                className={`relative flex group/settab ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''} ${tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
               >
                 {isRenaming ? (
                   <div className="flex flex-col">
@@ -1901,8 +1931,15 @@ export function App() {
                 if (typeof item === 'string') {
                   // Root-level (unfoldered) set
                   const set = item;
+                  const isSidebarTokenDropTarget = tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set;
                   return (
-                    <div key={set} className="group/sidebarset relative">
+                    <div
+                      key={set}
+                      className={`group/sidebarset relative ${isSidebarTokenDropTarget ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
+                      onDragOver={e => handleSetDragOver(e, set)}
+                      onDragLeave={handleSetDragLeave}
+                      onDrop={e => handleSetDrop(e, set)}
+                    >
                       {renamingSet === set ? (
                         <div className="px-1 py-0.5">
                           <input
@@ -1976,8 +2013,15 @@ export function App() {
                     </button>
                     {!isCollapsed && folder.sets.map(set => {
                       const leaf = set.slice(folder.path.length + 1);
+                      const isFolderSetTokenDropTarget = tokenDragState && dragOverSetName === set && tokenDragState.fromSet !== set;
                       return (
-                        <div key={set} className="group/sidebarset relative">
+                        <div
+                          key={set}
+                          className={`group/sidebarset relative ${isFolderSetTokenDropTarget ? 'ring-2 ring-inset ring-[var(--color-figma-accent)] rounded' : ''}`}
+                          onDragOver={e => handleSetDragOver(e, set)}
+                          onDragLeave={handleSetDragLeave}
+                          onDrop={e => handleSetDrop(e, set)}
+                        >
                           {renamingSet === set ? (
                             <div className="pl-4 pr-1 py-0.5">
                               <input
@@ -2351,6 +2395,8 @@ export function App() {
               focusGeneratorId={focusGeneratorId}
               setFocusGeneratorId={setFocusGeneratorId}
               themeManagerHandleRef={themeManagerHandleRef}
+              onTokenDragStart={(paths, fromSet) => setTokenDragState({ paths, fromSet })}
+              onTokenDragEnd={() => setTokenDragState(null)}
               refreshAll={refreshAll}
               pushUndo={pushUndo}
               setErrorToast={setErrorToast}

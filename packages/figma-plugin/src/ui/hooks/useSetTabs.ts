@@ -20,6 +20,10 @@ interface UseSetTabsParams {
   perSetFlat: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat: Record<string, TokenMapEntry>;
   activeThemes: Record<string, string>;
+  /** Source set when a token drag is in progress — enables drop zones on set tabs */
+  tokenDragFromSet?: string | null;
+  /** Called when tokens are dropped on a target set tab */
+  onTokenDropOnSet?: (targetSet: string) => void;
 }
 
 export function useSetTabs({
@@ -27,6 +31,7 @@ export function useSetTabs({
   sets, setSets, activeSet,
   addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected,
   perSetFlat, allTokensFlat, activeThemes,
+  tokenDragFromSet, onTokenDropOnSet,
 }: UseSetTabsParams) {
   // Drag state
   const [dragSetName, setDragSetName] = useState<string | null>(null);
@@ -162,10 +167,26 @@ export function useSetTabs({
   };
 
   const handleSetDragOver = (e: React.DragEvent, setName: string) => {
+    // Token drag from the token tree: highlight target set, prevent drop on source set
+    if (e.dataTransfer.types.includes('application/x-token-drag')) {
+      if (tokenDragFromSet && tokenDragFromSet !== setName) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverSetName(setName);
+      }
+      return;
+    }
+    // Set reorder drag
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (dragSetName && dragSetName !== setName) {
       setDragOverSetName(setName);
+    }
+  };
+
+  const handleSetDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setDragOverSetName(null);
     }
   };
 
@@ -214,6 +235,15 @@ export function useSetTabs({
 
   const handleSetDrop = async (e: React.DragEvent, targetSetName: string) => {
     e.preventDefault();
+    // Token drop from the token tree
+    if (e.dataTransfer.types.includes('application/x-token-drag')) {
+      setDragOverSetName(null);
+      if (tokenDragFromSet && tokenDragFromSet !== targetSetName) {
+        onTokenDropOnSet?.(targetSetName);
+      }
+      return;
+    }
+    // Set reorder drop
     if (!dragSetName || dragSetName === targetSetName) { handleSetDragEnd(); return; }
     const fromIdx = sets.indexOf(dragSetName);
     const toIdx = sets.indexOf(targetSetName);
@@ -282,6 +312,7 @@ export function useSetTabs({
     openSetMenu,
     handleSetDragStart,
     handleSetDragOver,
+    handleSetDragLeave,
     handleSetDragEnd,
     handleSetDrop,
     handleReorderSet,

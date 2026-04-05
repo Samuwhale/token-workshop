@@ -121,6 +121,10 @@ export interface TokenListActions {
   onOpenCommandPaletteWithQuery?: (query: string) => void;
   /** Open the cross-set "where is this token defined" overlay for the given path */
   onFindInAllSets?: (path: string) => void;
+  /** Called when a cross-set token drag starts — lets the parent expose drop zones on set tabs */
+  onTokenDragStart?: (paths: string[], fromSet: string) => void;
+  /** Called when a token drag ends (drop or cancel) — lets the parent hide drop zones */
+  onTokenDragEnd?: () => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */

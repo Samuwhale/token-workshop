@@ -66,7 +66,7 @@ const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery, onTokenDragStart, onTokenDragEnd },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -1038,6 +1038,17 @@ export function TokenList({
     handleDragOverToken, handleDragLeaveToken,
     handleDropOnGroup, handleDropReorder,
   } = dragDrop;
+
+  // Wrap drag callbacks to notify parent so it can expose set-tab drop zones
+  const handleDragStartNotify = useCallback((paths: string[], names: string[]) => {
+    handleDragStart(paths, names);
+    onTokenDragStart?.(paths, setName);
+  }, [handleDragStart, onTokenDragStart, setName]);
+
+  const handleDragEndNotify = useCallback(() => {
+    handleDragEnd();
+    onTokenDragEnd?.();
+  }, [handleDragEnd, onTokenDragEnd]);
 
   const groupOps = useGroupOperations({
     connected,
@@ -2132,8 +2143,8 @@ export function TokenList({
     onShowReferences,
     onCompareAcrossThemes: dimensions.length > 0 ? handleCompareAcrossThemes : undefined,
     onFindInAllSets: sets.length > 1 ? handleFindInAllSets : undefined,
-    onDragStart: handleDragStart,
-    onDragEnd: handleDragEnd,
+    onDragStart: handleDragStartNotify,
+    onDragEnd: handleDragEndNotify,
     onDragOverGroup: handleDragOverGroup,
     onDropOnGroup: handleDropOnGroup,
     onDragOverToken: handleDragOverToken,
@@ -2166,7 +2177,7 @@ export function TokenList({
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
-    handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
+    handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStartNotify, handleDragEndNotify, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,

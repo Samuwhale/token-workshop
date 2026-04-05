@@ -129,6 +129,10 @@ export interface PanelRouterProps {
   // Refs
   themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
 
+  // Token drag callbacks — notified by TokenList when a cross-set drag starts/ends
+  onTokenDragStart?: (paths: string[], fromSet: string) => void;
+  onTokenDragEnd?: () => void;
+
   // Action callbacks
   refreshAll: () => void;
   pushUndo: (slot: UndoSlot) => void;
@@ -259,6 +263,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onOpenCompare: p.handleOpenTokenCompare,
     onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
     onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
+    onTokenDragStart: p.onTokenDragStart,
+    onTokenDragEnd: p.onTokenDragEnd,
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants

@@ -894,3 +894,23 @@
   - Adding an early no-op return to `applyDiff` (when no rows match 'push' or 'pull') makes it safe to call unconditionally after compare — clean behavior even when an entity has zero diffs.
   - Git is safely excluded from "quick sync" patterns because git operations (push/pull/commit) have meaningful side effects that users should review explicitly; only Figma-bound variable/style syncs have sensible defaults for auto-apply.
 ---
+
+## 2026-04-05 - No drag-and-drop tokens between sets
+- Implemented direct drag-and-drop from the token tree onto set tabs/sidebar to move tokens cross-set.
+- When a token drag starts in `TokenList`, wrapped `handleDragStart`/`handleDragEnd` notify the parent via new `onTokenDragStart`/`onTokenDragEnd` callbacks in `TokenListActions`.
+- `App.tsx` tracks `tokenDragState: { paths, fromSet }` and passes it into `useSetTabs` via new `tokenDragFromSet` + `onTokenDropOnSet` params.
+- `useSetTabs.handleSetDragOver` now accepts token drags (checks `application/x-token-drag` MIME type) and highlights the hovered set tab. `handleSetDrop` calls `onTokenDropOnSet(targetSet)` for token drops. Added `handleSetDragLeave` to clear the hover highlight on leave.
+- `App.tsx` `handleTokenDropOnSet` calls `POST /api/tokens/:set/tokens/move` (single token) or `POST /api/tokens/:set/batch-move` (multi-select) with error/success toasts.
+- Both the horizontal tab bar (`!useSidebar`) and the vertical sidebar (`useSidebar`) have drop zones: highlighted with `ring-2 ring-inset ring-[var(--color-figma-accent)]` when a token is dragged over a valid target set.
+- The source set is excluded from drop targets (no self-move allowed).
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L124 (new callbacks)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1037 (wrap drag notifiers), ~L2135 (treeCtx), ~L2169 (deps)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L132 (props), ~L262 (tokenListActions)
+  - `packages/figma-plugin/src/ui/hooks/useSetTabs.ts` ~L8 (params), ~L164 (handleSetDragOver/Leave), ~L236 (handleSetDrop), ~L315 (return)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L374 (state + handleTokenDropOnSet + useSetTabs call), ~L1646 (tab bar drop zones), ~L1935 (sidebar root sets), ~L2017 (sidebar folder sets)
+- **Learnings for future iterations:**
+  - The MIME type `application/x-token-drag` is accessible in `dragover` (via `e.dataTransfer.types`) but not `getData()` — so you can gate the handler by MIME type in dragover without needing to read the drag value.
+  - To expose TokenList drag state to App.tsx without prop threading, add lightweight `onTokenDragStart`/`onTokenDragEnd` callbacks to `TokenListActions` and track the state at App level. App then passes the derived `tokenDragFromSet` down to `useSetTabs`.
+  - `handleSetDragLeave` must check `!e.currentTarget.contains(e.relatedTarget as Node | null)` to avoid false leaves when moving between child elements.
+---
