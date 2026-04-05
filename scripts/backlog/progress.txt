@@ -480,3 +480,11 @@
   - `tokenListHelpers.tsx` previously had no imports from `resolveAlias` — adding the import is fine since it's a shared module already used throughout the plugin.
   - The helper signature `(node: TokenNode, allTokensFlat: Record<string, TokenMapEntry>)` matches what both callers already had in scope, making the extraction zero-friction at each call site.
 ---
+
+## 2026-04-05 - Server resolver-store silently returns empty list on directory read errors
+- Added structured error logging to the `catch` block in `listResolverFiles()`. Changed `catch { return; }` to `catch (err) { console.error('[ResolverStore] Failed to read directory "...":' , err); return; }` so permission errors, missing directories, or filesystem failures are now logged with the directory path and error details.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L282
+- **Learnings for future iterations:**
+  - The project uses `console.warn`/`console.error` with a `[ServiceName]` prefix as the structured logging convention — no external logger library.
+  - Bare `catch { }` blocks that silently swallow errors are high-value targets for logging; always bind the error variable and log it.
+---

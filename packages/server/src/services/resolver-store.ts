@@ -279,7 +279,8 @@ export class ResolverStore {
       let entries: import('node:fs').Dirent[];
       try {
         entries = await fs.readdir(dir, { withFileTypes: true });
-      } catch {
+      } catch (err) {
+        console.error(`[ResolverStore] Failed to read directory "${dir}":`, err);
         return;
       }
       for (const entry of entries) {
