@@ -9,6 +9,7 @@ import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
 import { useTokenSetsContext } from '../contexts/TokenDataContext';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -732,6 +733,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [showSavePreset, setShowSavePreset] = useState(false);
   const [presetName, setPresetName] = useState('');
   const savePresetInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDeletePresetId, setPendingDeletePresetId] = useState<string | null>(null);
 
   // Persist presets and notify App.tsx command palette
   useEffect(() => {
@@ -774,7 +776,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   };
 
   const handleDeletePreset = (id: string) => {
-    setPresets(prev => prev.filter(p => p.id !== id));
+    setPendingDeletePresetId(id);
+  };
+
+  const handleConfirmDeletePreset = () => {
+    if (pendingDeletePresetId) {
+      setPresets(prev => prev.filter(p => p.id !== pendingDeletePresetId));
+      setPendingDeletePresetId(null);
+    }
   };
 
   // Apply a preset dispatched from the command palette (⌘⇧E → palette → preset command)
@@ -925,6 +934,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   }, [selected, cssSelector, selectedSets, selectedTypes, pathPrefix, changesOnly, diffPaths, connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
+    <>
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-end px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
         <PanelHelpIcon panelKey="export" title="Export" expanded={help.expanded} onToggle={help.toggle} />
@@ -2347,5 +2357,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         )}
       </div>
     </div>
+
+    {pendingDeletePresetId && presets.find(p => p.id === pendingDeletePresetId) && (
+      <ConfirmModal
+        title={`Delete preset "${presets.find(p => p.id === pendingDeletePresetId)!.name}"?`}
+        description="This preset and its platform configuration will be permanently removed."
+        confirmLabel="Delete"
+        danger
+        onConfirm={handleConfirmDeletePreset}
+        onCancel={() => setPendingDeletePresetId(null)}
+      />
+    )}
+    </>
   );
 }

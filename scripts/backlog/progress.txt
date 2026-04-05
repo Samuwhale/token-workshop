@@ -602,3 +602,12 @@
   - Using a window custom event bus (`dispatchToast`) is the cleanest solution when notifications need to flow from deeply nested hooks to a top-level React state manager — no prop drilling, no context, matches the existing `dispatchSettingsChanged` pattern already in the codebase.
   - Import-with-failures messages should use `error` variant (amber) even when some tokens imported successfully — partial failures are errors from a UX perspective.
 ---
+
+## 2026-04-05 - Export preset deletion has no confirmation
+- Added ConfirmModal before immediately deleting export presets. `handleDeletePreset` now sets `pendingDeletePresetId` state; `handleConfirmDeletePreset` performs the actual removal. A `ConfirmModal` with `danger` prop renders when a preset is pending deletion, showing the preset name in the title and a description about permanent removal.
+- Wrapped the `return (...)` in a React Fragment `<>...</>` to allow the modal to be a sibling of the root panel div (portal-style overlay).
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L12 (import), ~L733 (state), ~L776 (handlers), ~L936 (fragment wrap), ~L2360 (modal)
+- **Learnings for future iterations:**
+  - When adding a modal overlay to a component whose `return` has a single root element, wrap the return in `<>...</>` so the modal can be a sibling. Do NOT place it outside the JSX tree.
+  - IIFE patterns `{(() => { ... })()}` work inside JSX but are unnecessary complexity — prefer a memoized variable or just evaluate the expression inline with `&&`.
+---
