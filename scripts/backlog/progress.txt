@@ -591,3 +591,12 @@
   - When adding an action that dismisses the settings panel, pass it through the prop chain from App.tsx (which owns `setOverflowPanel`) rather than trying to call it from SettingsPanel directly.
   - Clearing FIRST_RUN_DONE with `lsSet(key, '')` (empty string) causes `lsGet(key)` to return falsy — same as removing the key — which is correct for the `!lsGet(STORAGE_KEYS.FIRST_RUN_DONE)` guard on `showWelcome` init.
 ---
+
+## 2026-04-05 - Token context menu missing "Go to definition" for aliases
+- Added a "Go to definition" menu item to the token context menu, visible only for non-broken alias tokens. Clicking it calls `onNavigateToAlias(aliasPath, node.path)` which triggers cross-set navigation with back-history support via the existing `useTokenNavigation` hook. Keyboard accelerator `G`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2266 (new conditional button after "Link to token…")
+- **Learnings for future iterations:**
+  - The alias path is stored as `"{some.token.path}"` — slice(1,-1) strips the curly braces. Don't use `extractAliasPath()` from resolveAlias.ts (it returns null for non-aliases which requires an extra check); slicing directly is cleaner when `isAlias()` is already checked.
+  - The `onNavigateToAlias` callback handles both same-set and cross-set navigation automatically (via pendingHighlight + set switch), so no special handling needed at the call site.
+  - Keyboard accelerator `G` is safe in the token context menu — the group menu also uses `G` but on a different `menuEl` ref, so there's no collision.
+---

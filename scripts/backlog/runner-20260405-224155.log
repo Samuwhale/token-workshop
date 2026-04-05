@@ -201,3 +201,26 @@ Already up to date.
 
   Merging to main: WelcomePrompt has no re-entry path — once dismissed via "I'll explore on my own", the `FIRST_RUN_DONE` localStorage flag is set permanently with no way to re-trigger the guided setup from Settings or the command palette; add a "Restart guided setup" action somewhere discoverable
 Already up to date.
+[main 53e3d01f] chore(backlog): done – WelcomePrompt has no re-entry path — once dismissed via "I'll explore on my own", the `FIRST_RUN_DONE` localStorage flag is set permanently with no way to re-trigger the guided setup from Settings or the command palette; add a "Restart guided setup" action somewhere discoverable
+ 7 files changed, 65 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - WelcomePrompt has no re-entry path
+- Added two re-entry paths for the guided setup: (1) "Restart guided setup" button in the Settings panel Advanced tab under a new "Guided Setup" section, (2) "Restart guided setup" command in the command palette (category: Settings). Both clear the `FIRST_RUN_DONE` localStorage key and set `showWelcome` to true, which re-shows the WelcomePrompt overlay. The Settings panel button also closes the settings panel via `setOverflowPanel(null)`.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L35 (SECTION_SEARCH_META), ~L173 (SettingsPanelProps), ~L252 (destructure prop), ~L871 (Guided Setup section JSX); `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L194 (PanelRouterProps), ~L401 (pass to SettingsPanel); `packages/figma-plugin/src/ui/App.tsx` ~L989 (command palette entry), ~L2618 (PanelRouter prop)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #9  ·  14 queued · 0
+0 in-progress · last took 4m17s
+═══════════════════════════════════════════════════════════════
+  → Token context menu missing "Go to definition" for aliases — right-clicking an alias token has 21 actions but no "Jump to referenced token" shortcut; users who want to navigate an alias chain must manually search for the target path; add a "Go to definition" action that selects and scrolls to the aliased token
+  Worktree: /tmp/backlog-50286-TudhJI
+  Running agent… (started 23:18:11)
+
+  ✓ done: Token context menu missing "Go to definition" for aliases
+    Added conditional "Go to definition" menu item (accel: G) to the token context menu; only shown for non-broken alias tokens; calls existing onNavigateToAlias with the extracted alias path and current path for back-navigation history
+    13 turns · 182s · $0.62
+
+  Merging to main: Token context menu missing "Go to definition" for aliases
+Already up to date.

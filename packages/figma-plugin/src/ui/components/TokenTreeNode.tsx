@@ -2263,6 +2263,22 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           >
             <span>Link to token…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">L</span>
           </button>
+          {isAlias(node.$value) && !isBrokenAlias && onNavigateToAlias && (
+            <button
+              data-accel="g"
+              role="menuitem"
+              tabIndex={-1}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                const aliasPath = (node.$value as string).slice(1, -1);
+                onNavigateToAlias(aliasPath, node.path);
+              }}
+            >
+              <span>Go to definition</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
+            </button>
+          )}
           <button
             data-accel="m"
             role="menuitem"
