@@ -372,3 +372,14 @@
   - The `useEffect` + `useRef` pattern (`if (sync.rows !== prevRowsRef.current)`) reliably detects when a new compare has run (rows identity changes) without triggering on every render.
   - Showing counts on each chip (`{type} {count}`) is essential UX for a diff filter — users need to know how many tokens are in each type before deciding what to focus on.
 ---
+
+## 2026-04-05 - Option tabs in ThemeManager overflow without scroll indicators
+- Added left/right scroll arrow buttons to the option tab strip for each dimension. When tabs overflow horizontally, chevron buttons appear at the left and/or right edges of the strip (hidden when no overflow exists). Clicking scrolls the strip by 120px with smooth animation. A gradient fade behind each button visually indicates more content exists. A `ResizeObserver` on each tab container updates arrow visibility on mount and whenever the container resizes (e.g. panel resize). Scroll listeners update arrow state as the user scrolls. The scrollbar is hidden via `scrollbarWidth: none` / `msOverflowStyle: none` since the arrows replace it.
+- Implementation: added `tabScrollRefs` (ref map from dimId to scrollable div) and `tabScrollState` (Record of left/right booleans per dimId) to component state. Added `updateTabScroll` callback and a `useEffect` that registers scroll + ResizeObserver per dimension. Wrapped the existing `overflow-x-auto` tab div in a `relative` container and added absolute-positioned left/right arrow buttons. The scroll container retains `flex items-center gap-0 px-2 pt-1 pb-0 overflow-x-auto` but the outer border is now on the new wrapper div.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L85 (state), ~L203 (updateTabScroll + useEffect), ~L1109 (tab strip JSX wrapper + arrows)
+- **Learnings for future iterations:**
+  - `ResizeObserver` on the scroll container is essential — without it, arrows don't appear on initial render (container not yet measured) or when the panel is resized.
+  - The `useEffect` must depend on `dimensions` (not just mount) so refs/observers are re-registered when dimensions are added/removed.
+  - Gradient fade (`from-[var(--color-figma-bg)] to-transparent`) behind arrow buttons creates a natural affordance for overflow without clipping visible tabs.
+  - Using `scrollbarWidth: none` on the inner div (inline style) is necessary since Tailwind doesn't have a `scrollbar-none` utility by default in the plugin's setup.
+---

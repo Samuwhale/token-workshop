@@ -82,6 +82,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
   const previewSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
+  // Tab strip scroll state — tracks whether each dimension's tab strip can scroll left/right
+  const tabScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [tabScrollState, setTabScrollState] = useState<Record<string, { left: boolean; right: boolean }>>({});
+
   // Upgrade-to-resolver flow
   const [upgradeConfirm, setUpgradeConfirm] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
@@ -195,6 +199,37 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     };
     return () => { themeManagerHandle.current = null; };
   }, [themeManagerHandle, dimensions, coverage, navigateToCompare]);
+
+  // Tab strip scroll helpers
+  const updateTabScroll = useCallback((dimId: string) => {
+    const el = tabScrollRefs.current[dimId];
+    if (!el) return;
+    setTabScrollState(prev => ({
+      ...prev,
+      [dimId]: {
+        left: el.scrollLeft > 0,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+      },
+    }));
+  }, []);
+
+  useEffect(() => {
+    const cleanup: (() => void)[] = [];
+    dimensions.forEach(dim => {
+      const el = tabScrollRefs.current[dim.id];
+      if (!el) return;
+      const onScroll = () => updateTabScroll(dim.id);
+      el.addEventListener('scroll', onScroll, { passive: true });
+      const ro = new ResizeObserver(() => updateTabScroll(dim.id));
+      ro.observe(el);
+      updateTabScroll(dim.id);
+      cleanup.push(() => {
+        el.removeEventListener('scroll', onScroll);
+        ro.disconnect();
+      });
+    });
+    return () => cleanup.forEach(fn => fn());
+  }, [dimensions, updateTabScroll]);
 
   // Upgrade dimensions → resolver
   const handleUpgradeToResolver = useCallback(async () => {
@@ -1065,7 +1100,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
                     {/* Option tabs */}
                     {dim.options.length > 0 && (
-                      <div className="flex items-center gap-0 px-2 pt-1 pb-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-x-auto">
+                      <div className="relative flex items-stretch border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                        {tabScrollState[dim.id]?.left && (
+                          <button
+                            onClick={() => {
+                              const el = tabScrollRefs.current[dim.id];
+                              if (el) el.scrollBy({ left: -120, behavior: 'smooth' });
+                            }}
+                            className="absolute left-0 top-0 bottom-0 z-10 flex items-center px-0.5 bg-gradient-to-r from-[var(--color-figma-bg)] to-transparent text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                            aria-label="Scroll tabs left"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M6 1L2 4l4 3V1z" /></svg>
+                          </button>
+                        )}
+                      <div
+                        ref={el => { tabScrollRefs.current[dim.id] = el; }}
+                        className="flex items-center gap-0 px-2 pt-1 pb-0 overflow-x-auto"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                      >
                         {dim.options.map((o, oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
                           const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
@@ -1128,6 +1180,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             title="Add option"
                           >
                             +
+                          </button>
+                        )}
+                      </div>
+                        {tabScrollState[dim.id]?.right && (
+                          <button
+                            onClick={() => {
+                              const el = tabScrollRefs.current[dim.id];
+                              if (el) el.scrollBy({ left: 120, behavior: 'smooth' });
+                            }}
+                            className="absolute right-0 top-0 bottom-0 z-10 flex items-center px-0.5 bg-gradient-to-l from-[var(--color-figma-bg)] to-transparent text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                            aria-label="Scroll tabs right"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                           </button>
                         )}
                       </div>
