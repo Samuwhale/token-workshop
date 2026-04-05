@@ -139,6 +139,7 @@ export interface PanelRouterProps {
   flowPanelInitialPath: string | null;
   handleOpenTokenCompare: (paths: Set<string>) => void;
   handleOpenCrossThemeCompare: (path: string) => void;
+  openCommandPaletteWithQuery: (query: string) => void;
   handleNavigateToGenerator: (id: string) => void;
   setThemeGapCount: (n: number) => void;
   triggerCreateToken: number;
@@ -248,6 +249,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onError: p.setErrorToast,
     onOpenCompare: p.handleOpenTokenCompare,
     onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
+    onOpenCommandPaletteWithQuery: p.openCommandPaletteWithQuery,
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants

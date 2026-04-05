@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ThemeDimension, ThemeSetStatus } from '@tokenmanager/core';
 import { SET_NAME_RE } from '../shared/utils';
+import { fuzzyScore } from '../shared/fuzzyMatch';
 
 interface FolderGroup {
   folder: string;
@@ -96,16 +97,6 @@ interface SetSwitcherProps {
   dimensions?: ThemeDimension[];
 }
 
-function fuzzyMatch(query: string, target: string): boolean {
-  if (!query) return true;
-  const q = query.toLowerCase();
-  const t = target.toLowerCase();
-  let qi = 0;
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) qi++;
-  }
-  return qi === q.length;
-}
 
 /** Render a set name with folder prefix dimmed. e.g. "brand/colors" → <dim>brand/</dim>colors */
 function SetNameDisplay({ name }: { name: string }) {
@@ -161,7 +152,11 @@ export function SetSwitcher({
   }, [creatingSet]);
 
   const filtered = query
-    ? sets.filter(s => fuzzyMatch(query, s))
+    ? sets
+        .map(s => ({ s, score: fuzzyScore(query, s) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ s }) => s)
     : sets;
 
   useEffect(() => {

@@ -65,7 +65,7 @@ const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError, onViewTokenHistory, onNavigateToGenerator, onShowReferences, onDisplayedLeafNodesChange, onSelectionChange, onOpenCompare, onOpenCrossThemeCompare, onOpenCommandPaletteWithQuery },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -295,10 +295,18 @@ export function TokenList({
   }, []);
 
   const setSearchQuery = useCallback((v: string) => {
+    // Delegate to command palette when the query contains structured qualifiers
+    if (v && hasStructuredQualifiers(v) && onOpenCommandPaletteWithQuery) {
+      onOpenCommandPaletteWithQuery(v);
+      // Clear in-tree search so the tree shows unfiltered
+      setSearchQueryState('');
+      try { sessionStorage.removeItem('token-search'); } catch (e) { console.debug('[TokenList] storage clear search query:', e); }
+      return;
+    }
     saveScrollAnchor();
     setSearchQueryState(v);
     try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[TokenList] storage write search query:', e); }
-  }, [saveScrollAnchor]);
+  }, [saveScrollAnchor, onOpenCommandPaletteWithQuery]);
   const setTypeFilter = useCallback((v: string) => {
     saveScrollAnchor();
     setTypeFilterState(v);

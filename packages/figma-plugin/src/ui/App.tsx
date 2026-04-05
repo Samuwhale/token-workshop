@@ -2292,6 +2292,10 @@ export function App() {
               flowPanelInitialPath={flowPanelInitialPath}
               handleOpenTokenCompare={handleOpenTokenCompare}
               handleOpenCrossThemeCompare={handleOpenCrossThemeCompare}
+              openCommandPaletteWithQuery={(query: string) => {
+                setCommandPaletteInitialQuery('>' + (query ? ' ' + query : ''));
+                setShowCommandPalette(true);
+              }}
               handleNavigateToGenerator={handleNavigateToGenerator}
               setThemeGapCount={setThemeGapCount}
               triggerCreateToken={triggerCreateToken}

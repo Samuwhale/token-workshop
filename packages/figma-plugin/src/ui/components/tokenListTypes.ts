@@ -117,6 +117,8 @@ export interface TokenListActions {
   onOpenCompare?: (paths: Set<string>) => void;
   /** Open the unified compare view in cross-theme mode for a specific token path */
   onOpenCrossThemeCompare?: (path: string) => void;
+  /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
+  onOpenCommandPaletteWithQuery?: (query: string) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */

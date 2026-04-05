@@ -803,3 +803,26 @@ Already up to date.
 
   Merging to main: Resolver store load errors are not exposed to the UI
 Already up to date.
+[main ef307810] chore(backlog): done – Resolver store load errors are not exposed to the UI
+ 9 files changed, 80 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Resolver store load errors not exposed to UI
+- Added `loadErrors` field to `GET /api/resolvers` response — iterates `resolverStore.getLoadErrors()` (already tracked internally) and serializes to a `Record<string, {message, at}>` object
+- Added `resolverLoadErrors` state to `useResolvers` hook; `fetchResolvers` now reads `data.loadErrors` from the response and stores it
+- Added `resolverLoadErrors` to `ResolverState` interface in `ThemeContext.tsx`
+
+═══════════════════════════════════════════════════════════════
+  #33  ·  23 queued · 0
+0 in-progress · last took 3m47s
+═══════════════════════════════════════════════════════════════
+  → Search input behavior is fragmented across three systems — in-tree search (TokenList "/" key), command palette (Cmd+K with ">" prefix), and set switcher each have different fuzzy matching algorithms, different qualifier support, and different keyboard behaviors; consolidate the search UX so the command palette serves as the single advanced search surface and in-tree search delegates to it for structured queries
+  Worktree: /tmp/backlog-54964-K3bNm5
+  Running agent… (started 03:27:43)
+
+  ✓ done: Search input behavior is fragmented across three systems — in-tree search (TokenList "/" key), command palette (Cmd+K with ">" prefix), and set switcher each have different fuzzy matching algorithms, different qualifier support, and different keyboard behaviors; consolidate the search UX so the command palette serves as the single advanced search surface and in-tree search delegates to it for structured queries
+    Unified fuzzyScore (CommandPalette now uses shared advanced scorer), in-tree search delegates structured qualifier queries to command palette (auto-opens in token mode), SetSwitcher upgraded to ranked matching
+    40 turns · 484s · $1.81
+
+  Merging to main: Search input behavior is fragmented across three systems — in-tree search (TokenList "/" key), command palette (Cmd+K with ">" prefix), and set switcher each have different fuzzy matching algorithms, different qualifier support, and different keyboard behaviors; consolidate the search UX so the command palette serves as the single advanced search surface and in-tree search delegates to it for structured queries
+Already up to date.

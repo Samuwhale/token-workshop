@@ -536,3 +536,20 @@
   - `getLoadErrors()` was already a public method on `ResolverStore` — the server just needed to call it and include the result in the API response; no server-side changes beyond the route handler
   - The empty state guard needs to include load errors in the "nothing to show" condition to avoid hiding error entries behind the empty state panel
 ---
+
+## 2026-04-05 - Search input behavior is fragmented across three systems — consolidate so command palette is the single advanced search surface
+- Unified fuzzy matching: replaced CommandPalette's private simpler `fuzzyScore` (consecutive bonus only, score 0 for non-match) with the shared `fuzzyScore` from `shared/fuzzyMatch.ts` (segment-boundary bonuses, camelCase bonuses, exact-prefix bonuses, -1 for non-match). All `score > 0` call-site guards handle -1 correctly.
+- In-tree → command palette delegation: added `onOpenCommandPaletteWithQuery?: (query: string) => void` to `TokenListActions`. When `setSearchQuery` is called with a value that passes `hasStructuredQualifiers()` (i.e., contains `type:x`, `has:x`, `value:x`, etc.), the in-tree search clears and the command palette opens in token mode (`">" + " " + query`) instead. Wired through `tokenListTypes.ts` → `PanelRouter.tsx` → `App.tsx` (inline callback that sets `commandPaletteInitialQuery` + `setShowCommandPalette(true)`).
+- SetSwitcher ranked matching: replaced boolean `fuzzyMatch` with `fuzzyScore` from the shared module; filtered results are now sorted by score (highest first) instead of insertion order, making large foldered set lists easier to navigate.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/CommandPalette.tsx` — removed local fuzzyScore, added import
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` — added `onOpenCommandPaletteWithQuery` to `TokenListActions`
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L68, ~L297 — destructured new prop, added delegation in `setSearchQuery`
+  - `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L99, ~L163 — removed boolean `fuzzyMatch`, replaced filter with scored sort
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L141, ~L250 — added prop to interface + `tokenListActions`
+  - `packages/figma-plugin/src/ui/App.tsx` ~L2294 — added `openCommandPaletteWithQuery` callback
+- **Learnings for future iterations:**
+  - The shared `fuzzyScore` returns `-1` for non-match vs `0` in the old CommandPalette version; all existing `score > 0` guards handle this correctly since `-1 > 0` is false.
+  - `hasStructuredQualifiers` uses `QUALIFIER_RE = /\b(type|has|...):\S+/gi` which requires at least one non-space char after the colon — so partial typing like `type:` alone doesn't trigger delegation; only `type:color` (with a value) does.
+  - For the delegation UX: clearing in-tree search before opening the palette prevents the tree from showing filtered results in the background while the palette is open.
+---
