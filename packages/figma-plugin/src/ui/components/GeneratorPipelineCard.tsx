@@ -902,11 +902,12 @@ export function GeneratorPipelineCard({
       {/* Actions */}
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--color-figma-border)]">
         <button
-          onClick={handleRerun}
+          onClick={() => previewDiff ? handleRerun() : handlePreviewOutput()}
           disabled={running || previewLoading}
           className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors disabled:opacity-50"
+          title={previewDiff ? 'Run generator (impact already reviewed)' : 'Preview impact then confirm to run'}
         >
-          {running ? 'Running…' : 'Re-run'}
+          {running ? 'Running…' : previewLoading ? 'Loading…' : 'Re-run'}
         </button>
         <button
           onClick={previewDiff ? () => setPreviewDiff(null) : handlePreviewOutput}

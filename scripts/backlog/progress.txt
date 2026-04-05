@@ -521,3 +521,12 @@
   - The `isCategoryHeader = depth === 0` pattern is clean and readable; worth using for any per-depth conditional styling in tree components.
   - Border-t on all depth-0 groups (including the first) is intentional: it separates the list content from the toolbar/filter bar above without needing `first:` selectors that don't work with virtual scroll slices.
 ---
+
+## 2026-04-05 - No way to see all tokens affected by a generator before running it
+- Changed the "Re-run" button in `GeneratorPipelineCard` to first fetch and display the dry-run impact summary before executing. When `previewDiff` is null, clicking "Re-run" now calls `handlePreviewOutput()` (showing the `DryRunPreview` with "+N new, ~M changed, -K removed, =J unchanged" pills and expandable detail lists). The user then confirms by clicking "Run (apply N changes)" inside the `DryRunPreview`. If the preview is already loaded, "Re-run" executes directly. The button also shows "Loading…" while fetching the preview.
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L904
+- **Learnings for future iterations:**
+  - The `DryRunPreview` component and `/api/generators/:id/dry-run` endpoint already handled full impact classification (created/updated/deleted/unchanged). The only missing piece was that the "Re-run" action bypassed this entirely.
+  - A two-click flow (first click → preview, second click → confirm) is achievable with zero new state by checking whether `previewDiff` is already set in the button's onClick handler.
+  - "Preview output" retains its independent purpose (preview-only without run intent), while "Re-run" now implies preview-then-confirm.
+---
