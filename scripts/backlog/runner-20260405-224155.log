@@ -316,3 +316,26 @@ Already up to date.
 
   Merging to main: No "duplicate set as theme override" workflow — duplicating a set copies all tokens verbatim, but when creating theme variants (e.g., dark mode from light mode) users want to create an override set pre-linked to a theme dimension option containing only the tokens they intend to change; add a "Create override set from…" flow that connects set creation with theme configuration
 Already up to date.
+[main de267a02] chore(backlog): done – No "duplicate set as theme override" workflow — duplicating a set copies all tokens verbatim, but when creating theme variants (e.g., dark mode from light mode) users want to create an override set pre-linked to a theme dimension option containing only the tokens they intend to change; add a "Create override set from…" flow that connects set creation with theme configuration
+ 7 files changed, 271 insertions(+), 10 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No "duplicate set as theme override" workflow
+- Implemented "Create override set from this…" flow in ThemeManager. Right-clicking any set row in a theme option (or using the ⋯ menu) now shows a "Create override set from this…" menu item below a separator. A modal lets the user: name the new set (auto-suggested as `[setName]-override`), pick which theme option to link it to as Override, and choose between starting empty (recommended for targeted overrides) or copying all tokens from the source. On confirm, the set is created via the API and the theme option is updated atomically. The new set is added to the sets list and the parent navigates to it.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx` — added `createOverrideSet` fields to `ThemeManagerModalsState`, new `CreateOverrideSetModal` component, "Create override set from this…" menu item with separator in the bulk menu
+
+═══════════════════════════════════════════════════════════════
+  #14  ·  9 queued · 0
+0 in-progress · last took 10m46s
+═══════════════════════════════════════════════════════════════
+  → TokenTableView is a second token view with significantly fewer capabilities than the tree view — it has no context menu, no inline popover editing for complex types, no drag-and-drop, no multi-select batch operations, and no pinning; either invest in making it feature-complete or remove it in favor of the tree view which already supports flat display via search/filter
+  Worktree: /tmp/backlog-50286-pgR9c7
+  Running agent… (started 23:36:40)
+
+  ✓ done: TokenTableView is a second token view with significantly fewer capabilities than the tree view — it has no context menu, no inline popover editing for complex types, no drag-and-drop, no multi-select batch operations, and no pinning; either invest in making it feature-complete or remove it in favor of the tree view which already supports flat display via search/filter
+    Removed TokenTableView.tsx and all references — the tree view already handles flat display via search/filter, making the table view redundant without its missing features (context menus, popovers, drag-and-drop, pinning, batch ops)
+    21 turns · 167s · $0.57
+
+  Merging to main: TokenTableView is a second token view with significantly fewer capabilities than the tree view — it has no context menu, no inline popover editing for complex types, no drag-and-drop, no multi-select batch operations, and no pinning; either invest in making it feature-complete or remove it in favor of the tree view which already supports flat display via search/filter
+Already up to date.

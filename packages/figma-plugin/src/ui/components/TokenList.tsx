@@ -34,7 +34,6 @@ import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { matchesShortcut } from '../shared/shortcutRegistry';
-import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
 import { useTokenCreate } from '../hooks/useTokenCreate';
@@ -295,14 +294,14 @@ export function TokenList({
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewModeState] = useState<'tree' | 'table' | 'json'>('tree');
+  const [viewMode, setViewModeState] = useState<'tree' | 'json'>('tree');
 
   useEffect(() => {
     const stored = lsGet(STORAGE_KEY.tokenViewMode(setName));
-    setViewModeState((stored === 'table' || stored === 'json') ? stored : 'tree');
+    setViewModeState(stored === 'json' ? 'json' : 'tree');
   }, [setName]);
 
-  const setViewMode = useCallback((mode: 'tree' | 'table' | 'json') => {
+  const setViewMode = useCallback((mode: 'tree' | 'json') => {
     setViewModeState(mode);
     lsSet(STORAGE_KEY.tokenViewMode(setName), mode);
   }, [setName]);
@@ -2239,12 +2238,12 @@ export function TokenList({
             <div className="flex items-center gap-0.5 px-2 py-1">
               {/* View mode segmented control */}
               <div className="flex items-center bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] p-0.5">
-                {(['tree', 'table', 'json'] as const).map(mode => (
+                {(['tree', 'json'] as const).map(mode => (
                   <button
                     key={mode}
                     onClick={() => setViewMode(mode)}
-                    title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'JSON editor'}
-                    aria-label={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'JSON editor'}
+                    title={mode === 'tree' ? 'Tree view' : 'JSON editor'}
+                    aria-label={mode === 'tree' ? 'Tree view' : 'JSON editor'}
                     aria-pressed={viewMode === mode}
                     className={`px-1.5 py-1 rounded text-[10px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
@@ -3358,22 +3357,6 @@ export function TokenList({
               </button>
             </div>
           </div>
-        ) : viewMode === 'table' ? (
-          <TokenTableView
-            leafNodes={displayedLeafNodes}
-            allTokensFlat={allTokensFlat}
-            onEdit={onEdit}
-            onInlineSave={handleInlineSave}
-            onDescriptionSave={handleDescriptionSave}
-            connected={connected}
-            highlightedToken={highlightedToken ?? null}
-            filtersActive={filtersActive}
-            onClearFilters={clearFilters}
-            selectMode={selectMode}
-            selectedPaths={selectedPaths}
-            onToggleSelect={handleTokenSelect}
-            density={density}
-          />
         ) : displayedTokens.length === 0 && filtersActive ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

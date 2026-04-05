@@ -636,3 +636,11 @@
   - For Empty start, `POST /api/sets` with no `tokens` field creates an empty set; for Copy start, use the duplicate endpoint with `newName`.
   - After creating a set inside ThemeManager, call `onSetCreated(name)` + `onTokensCreated()` + `debouncedFetchDimensions()` to keep set list, token data, and theme dimensions all in sync.
 ---
+
+## 2026-04-05 - TokenTableView removal in favor of tree view
+- Removed `TokenTableView.tsx` entirely and all references to it in `TokenList.tsx`. The table view offered flat display, sortable columns, and basic inline editing, but lacked context menus, complex type popover editors, drag-and-drop, pinning, batch operations, and keyboard shortcuts. Rather than duplicating all of this from the tree view, we removed the table view since the tree view already supports flat display when search/filters are applied.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` (deleted), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L37 (import), ~L298 (type), ~L300-303 (localStorage load), ~L305 (setViewMode type), ~L2242 (view mode toggle), ~L3361 (render block)
+- **Learnings for future iterations:**
+  - When removing a view mode, also update: (1) the type union, (2) the localStorage hydration guard, (3) the toggle button array, (4) the rendering conditional. All four must be updated in sync.
+  - `displayedLeafNodes` is shared infrastructure used for keyboard shortcuts, select-all, filter counts, and pinned tokens — it's not specific to the table view and should not be removed when the table view is removed.
+---
