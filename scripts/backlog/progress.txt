@@ -671,3 +671,11 @@
   - EDITOR_SAVE and PASTE_CONFIRM legitimately share ⌘↵ — they're active in mutually exclusive modal contexts. The conflict detector has a hardcoded `known` set for such intentional duplicates so it doesn't spam the console.
   - `⌘S` as an editor save alternative was NOT in the registry — kept as a raw `e.key === 's'` check with a comment noting it's undocumented, rather than polluting the registry with unlisted shortcuts.
 ---
+
+## 2026-04-05 - Token row hover action buttons are invisible to keyboard users
+- Added `group-focus-within:flex` to the token row hover actions div (line 1963), and `group-focus-within:hidden` to the three "always visible" status indicators (quickBound, isPinned, isStarred) at lines 1929, 1941, 1954. This makes action buttons (Edit, Pin, Copy, Move, More Actions) visible when the row or any descendant has keyboard focus, mirroring the group-row pattern at line 569 which already correctly used both `group-hover/group:flex group-focus-within/group:flex`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1929, ~L1941, ~L1954, ~L1963
+- **Learnings for future iterations:**
+  - The group row and token row use different named-group patterns: group rows use `/group` suffix (`group-hover/group:flex group-focus-within/group:flex`) while token rows use the default unnamed group (`group-hover:flex group-focus-within:flex`). Both are valid; the named variant avoids accidental cascade when groups are nested.
+  - Status indicators that are toggled by `group-hover:hidden` must also add `group-focus-within:hidden` to hide correctly when the action buttons are shown via keyboard focus — otherwise both the indicator and the action button for the same feature (pin/star) are visible simultaneously.
+---

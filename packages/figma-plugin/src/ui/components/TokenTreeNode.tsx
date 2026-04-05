@@ -1926,7 +1926,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
       {/* Quick-bound indicator — visible when not hovering */}
       {!selectMode && quickBound && (
-        <span className="p-1 text-[var(--color-figma-success)] shrink-0 group-hover:hidden" title={`Bound to ${quickBound}`}>
+        <span className="p-1 text-[var(--color-figma-success)] shrink-0 group-hover:hidden group-focus-within:hidden" title={`Bound to ${quickBound}`}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -1938,7 +1938,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
           title="Unpin token"
           aria-label="Unpin token"
-          className="p-1 rounded text-[var(--color-figma-accent)] shrink-0 group-hover:hidden"
+          className="p-1 rounded text-[var(--color-figma-accent)] shrink-0 group-hover:hidden group-focus-within:hidden"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -1951,7 +1951,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
           title="Unstar token"
           aria-label="Unstar token"
-          className="p-1 rounded text-amber-400 shrink-0 group-hover:hidden"
+          className="p-1 rounded text-amber-400 shrink-0 group-hover:hidden group-focus-within:hidden"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -1960,7 +1960,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       )}
       {/* Hover actions — in-flow to avoid overlapping status indicators */}
       {!selectMode && (
-        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0 ml-auto">
+        <div className="hidden group-hover:flex group-focus-within:flex items-center gap-0.5 shrink-0 ml-auto">
           {/* Pin toggle */}
           {onTogglePin && (
             <button
