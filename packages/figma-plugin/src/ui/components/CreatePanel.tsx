@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { flattenTokenGroup, COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
+import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { parseInlineValue, valuePlaceholderForType } from './tokenListHelpers';
@@ -222,7 +223,7 @@ function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, 
 // Types
 // ---------------------------------------------------------------------------
 
-export type CreateTab = 'single' | 'scale' | 'bulk';
+export type CreateTab = 'single' | 'scale' | 'bulk' | 'extract';
 
 export interface CreatePanelProps {
   serverUrl: string;
@@ -296,7 +297,7 @@ export function CreatePanel({
       {/* Header with tabs */}
       <div className="flex items-center gap-1 px-3 pt-3 pb-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
         <div className="flex-1 flex items-center gap-1">
-          {(['single', 'scale', 'bulk'] as const).map(tab => (
+          {(['single', 'scale', 'bulk', 'extract'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -306,7 +307,7 @@ export function CreatePanel({
                   : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
               }`}
             >
-              {tab === 'single' ? 'Single' : tab === 'scale' ? 'Scale' : 'Bulk'}
+              {tab === 'single' ? 'Single' : tab === 'scale' ? 'Scale' : tab === 'bulk' ? 'Bulk' : 'From Selection'}
             </button>
           ))}
         </div>
@@ -356,6 +357,16 @@ export function CreatePanel({
             connected={connected}
             onTokenCreated={onTokenCreated}
             onRefresh={onRefresh}
+          />
+        )}
+        {activeTab === 'extract' && (
+          <ExtractTokensPanel
+            connected={connected}
+            activeSet={activeSet}
+            serverUrl={serverUrl}
+            tokenMap={allTokensFlat}
+            onTokenCreated={() => { onRefresh(); }}
+            onClose={onClose}
           />
         )}
       </div>

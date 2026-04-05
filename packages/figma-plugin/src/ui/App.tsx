@@ -135,7 +135,7 @@ export function App() {
   const { editingToken, setEditingToken, previewingToken, setPreviewingToken, highlightedToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, handleNavigateBack, navHistoryLength, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
+  const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk' | 'extract'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
   const { gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useSyncContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
@@ -896,6 +896,13 @@ export function App() {
         description: 'Create multiple tokens at once in a table',
         category: 'Tokens',
         handler: () => { setShowCreatePanel({ tab: 'bulk' }); },
+      },
+      {
+        id: 'extract-from-selection',
+        label: 'Extract tokens from selection',
+        description: 'Scan selected Figma layers and create tokens from their design values',
+        category: 'Tokens',
+        handler: () => { setShowCreatePanel({ tab: 'extract' }); },
       },
       {
         id: 'switch-set',

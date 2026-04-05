@@ -821,3 +821,14 @@
   - The `onMutate` callback pattern is cleaner than passing `setReloadKey` down — the parent owns the trigger, sub-components just notify when mutations complete.
   - When extracting multi-theme contrast logic, all the derived memos (themedSetsForContrast, allThemeOptionKeys, perThemeResolved, multiThemeColorTokens) can live in ContrastMatrixPanel itself since they're exclusively consumed there.
 ---
+
+## 2026-04-05 - Extract tokens from Figma selection in CreatePanel
+- Added `'extract'` as a fourth tab ("From Selection") to `CreatePanel`, rendering the existing `ExtractTokensPanel` component directly. Users can now access the selection-scan flow from the token creation drawer, not just from `SelectionInspector`.
+- Added "Extract tokens from selection" command to the App.tsx command palette (`id: 'extract-from-selection'`) that opens the CreatePanel with `tab: 'extract'`.
+- Updated `showCreatePanel` state type in App.tsx to include `'extract'` in the tab union.
+- `ExtractTokensPanel` passes `allTokensFlat` as `tokenMap`, `onRefresh` as the `onTokenCreated` callback, and `onClose` to close the drawer.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1, ~L225, ~L299, ~L350 | `packages/figma-plugin/src/ui/App.tsx` ~L138, ~L899
+- **Learnings for future iterations:**
+  - `ExtractTokensPanel` manages its own height via `maxHeight: '60vh'` and internal `flex-1 overflow-y-auto` — no wrapper changes needed when embedding it in a new container with `overflow-y-auto`.
+  - `ExtractTokensPanel.onTokenCreated` takes no args; CreatePanel's `onTokenCreated` takes `(path: string)` — use `() => onRefresh()` as the adapter.
+---
