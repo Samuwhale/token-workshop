@@ -793,3 +793,12 @@
   - Descriptions belong under the buttons (not in tooltips) when there are only 2–3 options in a conflict-resolution UI — tooltips require discovery whereas inline text is always visible at the decision moment.
   - `&amp;` must be used in JSX for `&` in descriptive text to avoid lint warnings.
 ---
+
+## 2026-04-05 - ExtractTokensPanel creation loop continues after server errors
+- Moved the try/catch from wrapping the entire loop to inside each iteration so individual failures don't abort remaining tokens. Added `failures` state (`{ name, error }[]`) and `createdCount` state. After the loop: if all failed, stay on the form with an error message; if any succeeded, call `onTokenCreated()`, bind only successfully created tokens to layers, then show the done view. The done view now shows a warning triangle + "Created N of M tokens" summary when there are partial failures, with an expandable list of failed token names and their error messages. Full-success path unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` ~L51, ~L156, ~L230
+- **Learnings for future iterations:**
+  - When iterating a batch of server mutations, always place try/catch inside the loop and collect failures separately — never let a single error abort remaining operations in user-initiated batch flows.
+  - Track `succeededItems` as a separate array (not just a count) when downstream work (e.g. layer binding) needs to operate only on successfully created records.
+  - The "all failed" case should keep the user on the form so they can retry; the "some failed" case should advance to a partial-success done view with the failure list visible immediately (no extra click required).
+---

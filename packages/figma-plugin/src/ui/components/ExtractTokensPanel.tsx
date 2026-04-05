@@ -51,6 +51,8 @@ export function ExtractTokensPanel({
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [failures, setFailures] = useState<{ name: string; error: string }[]>([]);
+  const [createdCount, setCreatedCount] = useState(0);
   const listenerRef = useRef(false);
 
   const EXTRACT_TIMEOUT_MS = 8000;
@@ -155,73 +157,114 @@ export function ExtractTokensPanel({
 
     setCreating(true);
     setError('');
+    setFailures([]);
     setProgress({ current: 0, total: toCreate.length });
     let created = 0;
+    const itemFailures: { name: string; error: string }[] = [];
+    const succeededItems: typeof toCreate = [];
 
-    try {
-      for (const item of toCreate) {
-        const pathEncoded = tokenPathToUrlSegment(item.name);
-        const existing = tokenMap[item.name];
-        const method = existing ? 'PATCH' : 'POST';
+    for (const item of toCreate) {
+      const pathEncoded = tokenPathToUrlSegment(item.name);
+      const existing = tokenMap[item.name];
+      const method = existing ? 'PATCH' : 'POST';
+      try {
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: item.tokenType, $value: item.value }),
         });
         created++;
-        setProgress({ current: created, total: toCreate.length });
+        succeededItems.push(item);
+      } catch (err) {
+        itemFailures.push({ name: item.name, error: getErrorMessage(err) });
       }
-
-      // Bind the created tokens to their originating layers
-      if (bindToLayers) {
-        let totalBound = 0;
-        for (const item of toCreate) {
-          // 'border' tokens bind as 'stroke' (applyTokenValue handles border type in the stroke case)
-          const targetProperty = item.property === 'border' ? 'stroke' : item.property;
-          const nodeIds = item.layerIds ?? [item.layerId];
-          parent.postMessage({
-            pluginMessage: {
-              type: 'apply-to-nodes',
-              nodeIds,
-              tokenPath: item.name,
-              tokenType: item.tokenType,
-              targetProperty,
-              resolvedValue: item.value,
-            }
-          }, '*');
-          totalBound += nodeIds.length;
-        }
-        setBoundCount(totalBound);
-      }
-
-      setDone(true);
-      onTokenCreated();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setCreating(false);
-      setProgress(null);
+      setProgress({ current: created + itemFailures.length, total: toCreate.length });
     }
+
+    setCreating(false);
+    setProgress(null);
+    setCreatedCount(created);
+    setFailures(itemFailures);
+
+    if (created === 0 && itemFailures.length > 0) {
+      // All failed — stay on the form so the user can retry
+      setError(`All ${itemFailures.length} token${itemFailures.length !== 1 ? 's' : ''} failed to create.`);
+      return;
+    }
+
+    // At least some succeeded
+    if (created > 0) {
+      onTokenCreated();
+    }
+
+    // Bind the successfully created tokens to their originating layers
+    if (bindToLayers && succeededItems.length > 0) {
+      let totalBound = 0;
+      for (const item of succeededItems) {
+        // 'border' tokens bind as 'stroke' (applyTokenValue handles border type in the stroke case)
+        const targetProperty = item.property === 'border' ? 'stroke' : item.property;
+        const nodeIds = item.layerIds ?? [item.layerId];
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-to-nodes',
+            nodeIds,
+            tokenPath: item.name,
+            tokenType: item.tokenType,
+            targetProperty,
+            resolvedValue: item.value,
+          }
+        }, '*');
+        totalBound += nodeIds.length;
+      }
+      setBoundCount(totalBound);
+    }
+
+    setDone(true);
   };
 
   const selectedCount = selected.size;
   const conflictCount = tokens ? tokens.filter((_, i) => selected.has(i) && tokenMap[names[i] ?? tokens[i].suggestedName]).length : 0;
 
   if (done) {
+    const hasFailures = failures.length > 0;
     return (
       <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-4">
         <div className="flex items-center gap-2 mb-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
+          {hasFailures ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-warning,#f5a623)] shrink-0" aria-hidden="true">
+              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success,#18a058)] shrink-0" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          )}
           <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            Created {selectedCount} token{selectedCount !== 1 ? 's' : ''} from selection
+            {hasFailures
+              ? `Created ${createdCount} of ${createdCount + failures.length} token${createdCount + failures.length !== 1 ? 's' : ''}`
+              : `Created ${createdCount} token${createdCount !== 1 ? 's' : ''} from selection`}
           </span>
         </div>
         {bindToLayers && boundCount > 0 && (
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2 ml-5">
             Bound to {boundCount} layer{boundCount !== 1 ? 's' : ''}
           </p>
+        )}
+        {hasFailures && (
+          <div className="ml-5 mt-2 mb-2">
+            <p className="text-[10px] text-[var(--color-figma-error)] font-medium mb-1">
+              {failures.length} failed:
+            </p>
+            <ul className="space-y-0.5">
+              {failures.map((f, i) => (
+                <li key={i} className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="font-mono text-[var(--color-figma-text)]">{f.name}</span>
+                  {' — '}
+                  <span className="text-[var(--color-figma-error)]">{f.error}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <button
           onClick={onClose}
