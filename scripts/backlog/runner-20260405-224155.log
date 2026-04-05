@@ -247,3 +247,26 @@ Already up to date.
 
   Merging to main: Batch editor silently skips alias tokens during numeric transforms
 Already up to date.
+[main f3336767] chore(backlog): done – Batch editor silently skips alias tokens during numeric transforms
+ 4 files changed, 34 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Batch editor silently skips alias tokens during numeric transforms
+- Already implemented: BatchEditor.tsx has pre-apply warning banner (shows alias token names, lines ~1303-1339), edge-case message when all tokens are aliases ("Cannot transform — all selected tokens use reference values", line ~768), and post-apply feedback showing "Applied to N tokens (M reference values skipped)" with error styling (lines ~803-818). No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #11  ·  12 queued · 0
+0 in-progress · last took 1m55s
+═══════════════════════════════════════════════════════════════
+  → CreatePanel "token already exists" error has no navigation link — when creating a token with a path that already exists, the validation message says "edit it instead" but there's no clickable link or action to jump to that existing token in the editor; add a "Go to token" button inline with the error
+  Worktree: /tmp/backlog-50286-di1XAZ
+  Running agent… (started 23:23:15)
+
+  ✓ done: CreatePanel "token already exists" error has no navigation link
+    Added inline "Go to token" button next to the duplicate-path error that calls onCreateAndEdit(fullPath), opening the existing token in the editor
+    15 turns · 94s · $0.34
+
+  Merging to main: CreatePanel "token already exists" error has no navigation link
+Already up to date.

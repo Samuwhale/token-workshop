@@ -713,7 +713,20 @@ function SingleCreateTab({
           </div>
         )}
         {pathError && <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]">{pathError}</p>}
-        {pathExists && !pathError && <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]">Token already exists — edit it instead or choose a different name</p>}
+        {pathExists && !pathError && (
+          <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)] flex items-center gap-1.5 flex-wrap">
+            <span>Token already exists — edit it instead or choose a different name</span>
+            {onCreateAndEdit && (
+              <button
+                type="button"
+                onClick={() => onCreateAndEdit(fullPath)}
+                className="underline hover:no-underline text-[var(--color-figma-accent)] shrink-0"
+              >
+                Go to token
+              </button>
+            )}
+          </p>
+        )}
       </div>
 
 
