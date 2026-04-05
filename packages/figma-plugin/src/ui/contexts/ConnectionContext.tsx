@@ -1,9 +1,11 @@
 /**
- * ConnectionContext — owns server connectivity, sync-bindings, and git-status.
+ * ConnectionContext — stable server connectivity state (connected, serverUrl, checking,
+ * and connection-management callbacks). Changes only when the server connection
+ * itself changes.
  *
- * Extracts these hooks/effects from App.tsx so that connectivity state changes
- * (connect/disconnect, sync progress, git status polling) don't cascade through
- * unrelated domains. Consumers call `useConnectionContext()` to subscribe.
+ * SyncContext — frequently-changing sync state (syncing, syncProgress, syncResult,
+ * syncError, sync, gitHasChanges). Kept separate so the 20+ consumers that only
+ * need connection status don't re-render on every sync progress tick.
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -27,6 +29,9 @@ export interface ConnectionContextValue {
   markDisconnected: () => void;
   updateServerUrlAndConnect: (url: string) => Promise<boolean>;
   retryConnection: () => void;
+}
+
+export interface SyncContextValue {
   gitHasChanges: boolean;
   syncing: boolean;
   syncProgress: { processed: number; total: number } | null;
@@ -36,10 +41,17 @@ export interface ConnectionContextValue {
 }
 
 const ConnectionContext = createContext<ConnectionContextValue | null>(null);
+const SyncContext = createContext<SyncContextValue | null>(null);
 
 export function useConnectionContext(): ConnectionContextValue {
   const ctx = useContext(ConnectionContext);
   if (!ctx) throw new Error('useConnectionContext must be used inside ConnectionProvider');
+  return ctx;
+}
+
+export function useSyncContext(): SyncContextValue {
+  const ctx = useContext(SyncContext);
+  if (!ctx) throw new Error('useSyncContext must be used inside ConnectionProvider');
   return ctx;
 }
 
@@ -149,7 +161,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, serverUrl, getDisconnectSignal]);
 
-  const value = useMemo<ConnectionContextValue>(
+  const connectionValue = useMemo<ConnectionContextValue>(
     () => ({
       connected,
       checking,
@@ -158,6 +170,15 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       markDisconnected,
       updateServerUrlAndConnect,
       retryConnection,
+    }),
+    [
+      connected, checking, serverUrl, getDisconnectSignal, markDisconnected,
+      updateServerUrlAndConnect, retryConnection,
+    ],
+  );
+
+  const syncValue = useMemo<SyncContextValue>(
+    () => ({
       gitHasChanges,
       syncing,
       syncProgress,
@@ -165,16 +186,14 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       syncError,
       sync,
     }),
-    [
-      connected, checking, serverUrl, getDisconnectSignal, markDisconnected,
-      updateServerUrlAndConnect, retryConnection, gitHasChanges,
-      syncing, syncProgress, syncResult, syncError, sync,
-    ],
+    [gitHasChanges, syncing, syncProgress, syncResult, syncError, sync],
   );
 
   return (
-    <ConnectionContext.Provider value={value}>
-      {children}
+    <ConnectionContext.Provider value={connectionValue}>
+      <SyncContext.Provider value={syncValue}>
+        {children}
+      </SyncContext.Provider>
     </ConnectionContext.Provider>
   );
 }

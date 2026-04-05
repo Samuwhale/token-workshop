@@ -40,7 +40,7 @@ import { EmptyState } from '../components/EmptyState';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { RecentsPanel } from '../components/RecentsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { useConnectionContext } from '../contexts/ConnectionContext';
+import { useConnectionContext, useSyncContext } from '../contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
 import { useSelectionContext, useHeatmapContext, useUsageContext } from '../contexts/InspectContext';
@@ -210,9 +210,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
 
   // Read all four contexts — these cover ~40% of the data that panels need.
   const {
-    serverUrl, connected, checking, sync, syncing, syncProgress, syncResult, syncError,
+    serverUrl, connected, checking,
     updateServerUrlAndConnect,
   } = useConnectionContext();
+  const { sync, syncing, syncProgress, syncResult, syncError } = useSyncContext();
   const {
     sets, activeSet, setActiveSet, tokens,
     setCollectionNames, setModeNames,

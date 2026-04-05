@@ -35,7 +35,7 @@ import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { TopTab, SubTab, OverflowPanel } from './shared/navigationTypes';
 import { TOP_TABS } from './shared/navigationTypes';
-import { useConnectionContext } from './contexts/ConnectionContext';
+import { useConnectionContext, useSyncContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
 import { useSelectionContext, useHeatmapContext, useUsageContext } from './contexts/InspectContext';
@@ -136,7 +136,8 @@ export function App() {
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
-  const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection, gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useConnectionContext();
+  const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
+  const { gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useSyncContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
   const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError } = useTokenFlatMapContext();
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGeneratorContext();

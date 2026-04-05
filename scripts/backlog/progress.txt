@@ -555,3 +555,17 @@
   - The `ios-swift` exporter needs both `buildDir: 'ios'` AND `extraFileConfig: { className: 'Tokens' }` — two divergences from the simple case; grouping them in a single `opts` object keeps the call site readable.
   - The css `selector` option is conditional (`selector && selector !== ':root'`); passing `undefined` for `opts` when the condition is false is cleaner than always spreading an empty object.
 ---
+
+## 2026-04-05 - ConnectionContext bundles stable state with frequently-changing sync state
+- Split `ConnectionContext` into two separate contexts with independent `useMemo` deps:
+  - `ConnectionContext` (stable): `connected`, `checking`, `serverUrl`, `getDisconnectSignal`, `markDisconnected`, `updateServerUrlAndConnect`, `retryConnection`
+  - `SyncContext` (high-frequency): `gitHasChanges`, `syncing`, `syncProgress`, `syncResult`, `syncError`, `sync`
+- Both contexts are provided by the same `ConnectionProvider` (single component, two nested `<Context.Provider>` nodes) — no change to the provider hierarchy in `main.tsx`
+- Added `useSyncContext()` hook alongside `useConnectionContext()`
+- Updated consumers: `App.tsx` (destructures from both), `PanelRouter.tsx` (destructures from both)
+- `ThemeContext.tsx` and `TokenDataContext.tsx` were not changed — they only consume stable connection state
+- Files changed: `packages/figma-plugin/src/ui/contexts/ConnectionContext.tsx` (split types, two contexts, two useMemos), `packages/figma-plugin/src/ui/App.tsx` ~L38,L139`, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L43,L212
+- **Learnings for future iterations:**
+  - Splitting a single provider into two contexts is safe without changing the provider tree: nest `<SyncContext.Provider>` inside `<ConnectionContext.Provider>` in the same `ConnectionProvider` component. Consumers of the stable context are now immune to sync-progress re-renders.
+  - Keeping both contexts in the same file is preferable to splitting across files when they share internal implementation (like `useSyncBindings`) — avoids cross-file internal imports.
+---
