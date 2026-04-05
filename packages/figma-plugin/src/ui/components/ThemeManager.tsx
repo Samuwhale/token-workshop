@@ -8,8 +8,8 @@ import type { CoverageToken } from './themeManagerTypes';
 import { STATE_LABELS, STATE_DESCRIPTIONS } from './themeManagerTypes';
 import { useThemeDragDrop } from '../hooks/useThemeDragDrop';
 import { useThemeBulkOps } from '../hooks/useThemeBulkOps';
-import { CompareView } from './CompareView';
-import type { CompareMode } from './CompareView';
+import { UnifiedComparePanel } from './UnifiedComparePanel';
+import type { CompareMode } from './UnifiedComparePanel';
 import type { TokenMapEntry } from '../../shared/types';
 import { useThemeAutoFill } from '../hooks/useThemeAutoFill';
 import { useThemeDimensions } from '../hooks/useThemeDimensions';
@@ -497,41 +497,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       )}
 
       {showCompare && dimensions.length > 0 ? (
-        <>
-          {/* Back button bar */}
-          <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <button
-              onClick={() => setShowCompare(false)}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              <svg width="6" height="10" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 1L2 6l4 5" />
-              </svg>
-              Back to themes
-            </button>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <CompareView
-              mode={compareMode}
-              onModeChange={setCompareMode}
-              tokenPaths={compareTokenPaths}
-              onClearTokenPaths={() => setCompareTokenPaths(new Set())}
-              tokenPath={compareTokenPath}
-              onClearTokenPath={() => setCompareTokenPath('')}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              dimensions={dimensions}
-              themeOptionsKey={compareThemeKey}
-              themeOptionsDefaultA={compareThemeDefaultA}
-              themeOptionsDefaultB={compareThemeDefaultB}
-              onEditToken={(set, path) => onNavigateToToken?.(path, set)}
-              onCreateToken={(path, set) => onCreateToken?.(path, set)}
-              onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
-              serverUrl={serverUrl}
-              onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
-            />
-          </div>
-        </>
+        <UnifiedComparePanel
+          mode={compareMode}
+          onModeChange={setCompareMode}
+          tokenPaths={compareTokenPaths}
+          onClearTokenPaths={() => setCompareTokenPaths(new Set())}
+          tokenPath={compareTokenPath}
+          onClearTokenPath={() => setCompareTokenPath('')}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          dimensions={dimensions}
+          themeOptionsKey={compareThemeKey}
+          themeOptionsDefaultA={compareThemeDefaultA}
+          themeOptionsDefaultB={compareThemeDefaultB}
+          onEditToken={(set, path) => onNavigateToToken?.(path, set)}
+          onCreateToken={(path, set) => onCreateToken?.(path, set)}
+          onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
+          serverUrl={serverUrl}
+          onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
+          onBack={() => setShowCompare(false)}
+          backLabel="Back to themes"
+        />
       ) : (
         <>
       <div className="flex-1 overflow-y-auto">

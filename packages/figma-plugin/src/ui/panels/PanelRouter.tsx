@@ -18,6 +18,8 @@ import type {
   KeyboardEvent,
 } from 'react';
 import { TokenList } from '../components/TokenList';
+import { UnifiedComparePanel } from '../components/UnifiedComparePanel';
+import type { CompareMode } from '../components/UnifiedComparePanel';
 import type { TokenListImperativeHandle } from '../components/tokenListTypes';
 import { TokenEditor } from '../components/TokenEditor';
 import { TokenDetailPreview } from '../components/TokenDetailPreview';
@@ -145,6 +147,20 @@ export interface PanelRouterProps {
   flowPanelInitialPath: string | null;
   handleOpenTokenCompare: (paths: Set<string>) => void;
   handleOpenCrossThemeCompare: (path: string) => void;
+  /** Compare panel state for the Tokens tab — shown in-place without a tab switch. */
+  tokensCompare: {
+    showCompare: boolean;
+    onClose: () => void;
+    mode: CompareMode;
+    onModeChange: (mode: CompareMode) => void;
+    tokenPaths: Set<string>;
+    onClearTokenPaths: () => void;
+    tokenPath: string;
+    onClearTokenPath: () => void;
+    themeKey: number;
+    defaultA: string;
+    defaultB: string;
+  };
   openCommandPaletteWithQuery: (query: string) => void;
   handleNavigateToGenerator: (id: string) => void;
   setThemeGapCount: (n: number) => void;
@@ -393,6 +409,33 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   // ---------------------------------------------------------------------------
 
   function renderDefineTokens(): ReactNode {
+    // Show the compare panel in-place when triggered from the Tokens tab
+    if (p.tokensCompare.showCompare && dimensions.length > 0) {
+      return (
+        <UnifiedComparePanel
+          mode={p.tokensCompare.mode}
+          onModeChange={p.tokensCompare.onModeChange}
+          tokenPaths={p.tokensCompare.tokenPaths}
+          onClearTokenPaths={p.tokensCompare.onClearTokenPaths}
+          tokenPath={p.tokensCompare.tokenPath}
+          onClearTokenPath={p.tokensCompare.onClearTokenPath}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          dimensions={dimensions}
+          themeOptionsKey={p.tokensCompare.themeKey}
+          themeOptionsDefaultA={p.tokensCompare.defaultA}
+          themeOptionsDefaultB={p.tokensCompare.defaultB}
+          onEditToken={(set, path) => { p.handleNavigateToSet(set, path); }}
+          onCreateToken={(path, set) => { setEditingToken({ path, set, isCreate: true }); }}
+          onGoToTokens={p.tokensCompare.onClose}
+          serverUrl={serverUrl}
+          onTokensCreated={p.refreshAll}
+          onBack={p.tokensCompare.onClose}
+          backLabel="Back to tokens"
+        />
+      );
+    }
+
     return (
       <>
         {/* Fetch error banner */}

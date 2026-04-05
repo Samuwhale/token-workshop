@@ -55,6 +55,7 @@ import { usePinnedTokens } from './hooks/usePinnedTokens';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
+import { useCompareState } from './hooks/useCompareState';
 import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
@@ -285,16 +286,32 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const [themeGapCount, setThemeGapCount] = useState(0);
-  // Open compare view in ThemeManager in 'tokens' mode with the given paths pre-loaded
+  // Compare state for the Tokens tab — shown in-place without switching tabs
+  const {
+    compareMode: tokensCompareMode, setCompareMode: setTokensCompareMode,
+    compareTokenPaths: tokensComparePaths, setCompareTokenPaths: setTokensComparePaths,
+    compareTokenPath: tokensComparePath, setCompareTokenPath: setTokensComparePath,
+    compareThemeKey: tokensCompareThemeKey, setCompareThemeKey: setTokensCompareThemeKey,
+    compareThemeDefaultA: tokensCompareDefaultA,
+    compareThemeDefaultB: tokensCompareDefaultB,
+  } = useCompareState();
+  const [showTokensCompare, setShowTokensCompare] = useState(false);
+  // Open compare view within the Tokens tab in 'tokens' mode (multi-select comparison)
   const handleOpenTokenCompare = useCallback((paths: Set<string>) => {
-    themeManagerHandleRef.current?.navigateToCompare('tokens', undefined, paths);
-    navigateTo('define', 'themes');
-  }, [navigateTo]);
-  // Open compare view in ThemeManager in 'cross-theme' mode for a specific token
+    setTokensCompareMode('tokens');
+    setTokensComparePaths(paths);
+    setTokensCompareThemeKey(k => k + 1);
+    setShowTokensCompare(true);
+    navigateTo('define', 'tokens');
+  }, [navigateTo, setTokensCompareMode, setTokensComparePaths, setTokensCompareThemeKey]);
+  // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback((path: string) => {
-    themeManagerHandleRef.current?.navigateToCompare('cross-theme', path);
-    navigateTo('define', 'themes');
-  }, [navigateTo]);
+    setTokensCompareMode('cross-theme');
+    setTokensComparePath(path);
+    setTokensCompareThemeKey(k => k + 1);
+    setShowTokensCompare(true);
+    navigateTo('define', 'tokens');
+  }, [navigateTo, setTokensCompareMode, setTokensComparePath, setTokensCompareThemeKey]);
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback((direction: 1 | -1) => {
     if (!editingToken) return;
@@ -2466,6 +2483,19 @@ export function App() {
               flowPanelInitialPath={flowPanelInitialPath}
               handleOpenTokenCompare={handleOpenTokenCompare}
               handleOpenCrossThemeCompare={handleOpenCrossThemeCompare}
+              tokensCompare={{
+                showCompare: showTokensCompare,
+                onClose: () => setShowTokensCompare(false),
+                mode: tokensCompareMode,
+                onModeChange: setTokensCompareMode,
+                tokenPaths: tokensComparePaths,
+                onClearTokenPaths: () => setTokensComparePaths(new Set()),
+                tokenPath: tokensComparePath,
+                onClearTokenPath: () => setTokensComparePath(''),
+                themeKey: tokensCompareThemeKey,
+                defaultA: tokensCompareDefaultA,
+                defaultB: tokensCompareDefaultB,
+              }}
               openCommandPaletteWithQuery={(query: string) => {
                 setCommandPaletteInitialQuery('>' + (query ? ' ' + query : ''));
                 setShowCommandPalette(true);

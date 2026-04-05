@@ -711,3 +711,15 @@
   - The `data-accel` + `menuEl.querySelector('[data-accel="${key}"]')?.click()` pattern in the group menu keyboard handler means adding accelerators to new menu items is free — just set the attribute.
   - The group row's `n` keydown shortcut (line 325) also triggers `onCreateSibling` — it was already there but not discoverable. The context menu entry makes this capability visible.
 ---
+
+## 2026-04-05 - Consolidate CompareView and ThemeManager Compare mode into shared UnifiedComparePanel
+- Created `UnifiedComparePanel.tsx` — a shared wrapper that renders a "Back" button bar + `CompareView`. Exports `CompareMode` type (which `useThemeCompare.ts` and `useCompareState.ts` were already referencing from a non-existent file of this name).
+- Updated `ThemeManager.tsx` to import and render `UnifiedComparePanel` instead of the inline back-button + `CompareView` block (saved ~15 lines of duplicated chrome).
+- Added `useCompareState` hook usage in `App.tsx` for Tokens-tab compare state. Changed `handleOpenTokenCompare` and `handleOpenCrossThemeCompare` to show the compare panel within the Tokens tab itself (no longer switches to Themes tab).
+- Extended `PanelRouter.tsx` with a `tokensCompare` prop (typed state object) and added early-return logic in `renderDefineTokens()` to show `UnifiedComparePanel` when compare is active — users stay on the Tokens tab.
+- Files changed: `packages/figma-plugin/src/ui/components/UnifiedComparePanel.tsx` (new), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L11,L499, `packages/figma-plugin/src/ui/App.tsx` ~L57,L284, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L20,L148,L395
+- **Learnings for future iterations:**
+  - `useThemeCompare.ts` and `useCompareState.ts` already imported `CompareMode` from the non-existent `UnifiedComparePanel` — the hooks were stubbed out in advance. When Vite/esbuild builds, `import type` erasure means missing modules don't cause build failures; only tsc would catch it.
+  - When consolidating wrapper chrome, the minimal approach is: extract the wrapper into a new component that re-exports the inner component's public types, update consumers to import from the new file, then replace inline wrappers with the extracted component.
+  - Keeping ThemeManager's navigateToCompare working for 'theme-options' mode (command palette) while routing 'tokens' and 'cross-theme' modes to the Tokens tab is the right split — theme-options is a Themes-specific workflow.
+---
