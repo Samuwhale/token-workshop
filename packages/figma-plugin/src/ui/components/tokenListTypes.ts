@@ -151,10 +151,26 @@ export interface AffectedRef {
   setName: string;
 }
 
+export interface GeneratorImpact {
+  generatorId: string;
+  generatorName: string;
+  generatorType: string;
+  /** 'source' = sourceToken match; 'config-ref' = $tokenRefs match */
+  role: 'source' | 'config-ref';
+  /** The config field key that references the token (only when role === 'config-ref') */
+  configField?: string;
+}
+
+export interface ThemeImpact {
+  dimName: string;
+  optionName: string;
+  setName: string;
+}
+
 export type DeleteConfirm =
-  | { type: 'token'; path: string; orphanCount: number; affectedRefs: AffectedRef[] }
-  | { type: 'group'; path: string; name: string; tokenCount: number; orphanCount: number; affectedRefs: AffectedRef[] }
-  | { type: 'bulk'; paths: string[]; orphanCount: number; affectedRefs: AffectedRef[] };
+  | { type: 'token'; path: string; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] }
+  | { type: 'group'; path: string; name: string; tokenCount: number; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] }
+  | { type: 'bulk'; paths: string[]; orphanCount: number; affectedRefs: AffectedRef[]; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] };
 
 export interface PromoteRow {
   path: string;

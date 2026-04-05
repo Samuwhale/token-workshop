@@ -6,7 +6,7 @@ import { QuickStartDialog } from './QuickStartDialog';
 import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
-import type { DeleteConfirm, PromoteRow, AffectedRef } from './tokenListTypes';
+import type { DeleteConfirm, PromoteRow, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
 import { fieldBorderClass } from '../shared/editorClasses';
@@ -24,7 +24,7 @@ export interface TokenListModalsProps {
 
   // Delete confirmation modal
   deleteConfirm: DeleteConfirm | null;
-  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[] } | null;
+  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[]; generatorImpacts?: GeneratorImpact[]; themeImpacts?: ThemeImpact[] } | null;
   executeDelete: () => void;
   onSetDeleteConfirm: (v: DeleteConfirm | null) => void;
 
@@ -38,9 +38,9 @@ export interface TokenListModalsProps {
   onSetNewGroupDialogParent: (v: string | null) => void;
 
   // Rename token confirmation modal
-  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
+  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] } | null;
   executeTokenRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
+  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] } | null) => void;
 
   // Rename group confirmation modal
   renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
@@ -149,12 +149,14 @@ export interface TokenListModalsProps {
   handleBatchMoveToGroup: () => void;
 }
 
-function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm, onCancel }: {
+function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorImpacts, themeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
   oldPath: string;
   newPath: string;
   depCount: number;
   deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
+  generatorImpacts?: GeneratorImpact[];
+  themeImpacts?: ThemeImpact[];
   onConfirm: (updateAliases: boolean) => void;
   onCancel: () => void;
 }) {
@@ -169,6 +171,9 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
     return () => document.removeEventListener('keydown', handler);
   }, [onCancel]);
 
+  const hasGeneratorImpacts = generatorImpacts && generatorImpacts.length > 0;
+  const hasThemeImpacts = themeImpacts && themeImpacts.length > 0;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -179,11 +184,13 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
           <h3 id="rename-confirm-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
             Rename {kind} &ldquo;{label}&rdquo;?
           </h3>
-          <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-            {depCount} {noun} will be updated across all sets:
-          </p>
+          {depCount > 0 && (
+            <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              {depCount} {noun} will be updated across all sets:
+            </p>
+          )}
           {deps.length > 0 && (
-            <div className="mt-2 max-h-[180px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <div className="mt-2 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
               {deps.map((dep, i) => (
                 <div key={i} className="px-2 py-1.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0" title={`${dep.setName}: ${dep.tokenPath}`}>
                   <div className="text-[var(--color-figma-text-secondary)] truncate">
@@ -198,20 +205,69 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, onConfirm,
               ))}
             </div>
           )}
+          {hasGeneratorImpacts && (
+            <div className="mt-2">
+              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Affected generators ({generatorImpacts.length}) — references will not be auto-updated:
+              </div>
+              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {generatorImpacts.map((impact, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
+                    <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">
+                      ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasThemeImpacts && (
+            <div className="mt-2">
+              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Affected theme options ({themeImpacts.length}):
+              </div>
+              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {themeImpacts.map((impact, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.dimName} / ${impact.optionName} (${impact.setName})`}>
+                    <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
+                    <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {depCount === 0 && !hasGeneratorImpacts && !hasThemeImpacts && (
+            <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              No alias references found. The token will be renamed.
+            </p>
+          )}
         </div>
         <div className="px-4 pb-4 flex flex-col gap-2">
-          <button
-            onClick={() => onConfirm(true)}
-            className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-          >
-            Update {depCount} {noun} and rename
-          </button>
-          <button
-            onClick={() => onConfirm(false)}
-            className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            Rename only (break references)
-          </button>
+          {depCount > 0 ? (
+            <>
+              <button
+                onClick={() => onConfirm(true)}
+                className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+              >
+                Update {depCount} {noun} and rename
+              </button>
+              <button
+                onClick={() => onConfirm(false)}
+                className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Rename only (break references)
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => onConfirm(true)}
+              className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            >
+              Rename
+            </button>
+          )}
           <button
             onClick={onCancel}
             className="w-full px-3 py-1.5 rounded text-[11px] font-medium text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
@@ -489,7 +545,7 @@ export function TokenListModals() {
           description={modalProps.description}
           confirmLabel={modalProps.confirmLabel}
           danger
-          wide={!!(modalProps.pathList || modalProps.affectedRefs)}
+          wide={!!(modalProps.pathList || modalProps.affectedRefs || modalProps.generatorImpacts?.length || modalProps.themeImpacts?.length)}
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
         >
@@ -521,6 +577,39 @@ export function TokenListModals() {
                     and {modalProps.affectedRefs.length - 20} more…
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {modalProps.generatorImpacts && modalProps.generatorImpacts.length > 0 && (
+            <div className="mt-2">
+              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Affected generators ({modalProps.generatorImpacts.length}) — generator configs will need manual update:
+              </div>
+              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {modalProps.generatorImpacts.map((impact, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
+                    <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">
+                      ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {modalProps.themeImpacts && modalProps.themeImpacts.length > 0 && (
+            <div className="mt-2">
+              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Affected theme options ({modalProps.themeImpacts.length}):
+              </div>
+              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {modalProps.themeImpacts.map((impact, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.dimName} / ${impact.optionName} (${impact.setName})`}>
+                    <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
+                    <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
+                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -583,6 +672,8 @@ export function TokenListModals() {
           newPath={renameTokenConfirm.newPath}
           depCount={renameTokenConfirm.depCount}
           deps={renameTokenConfirm.deps}
+          generatorImpacts={renameTokenConfirm.generatorImpacts}
+          themeImpacts={renameTokenConfirm.themeImpacts}
           onConfirm={(updateAliases) => executeTokenRename(renameTokenConfirm.oldPath, renameTokenConfirm.newPath, updateAliases)}
           onCancel={() => onSetRenameTokenConfirm(null)}
         />

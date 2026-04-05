@@ -1,6 +1,8 @@
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
+import type { TokenGenerator } from './useGenerators';
+import type { ThemeDimension } from '@tokenmanager/core';
 import { useTokenRelocate } from './useTokenRelocate';
 import { useTokenRename } from './useTokenRename';
 import { useTokenDelete } from './useTokenDelete';
@@ -15,6 +17,8 @@ export interface UseTokenCrudParams {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  generators?: TokenGenerator[];
+  dimensions?: ThemeDimension[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshGenerators?: () => void;
@@ -29,6 +33,7 @@ export interface UseTokenCrudParams {
 export function useTokenCrud(params: UseTokenCrudParams) {
   const {
     connected, serverUrl, setName, sets, tokens, allTokensFlat, perSetFlat,
+    generators, dimensions,
     onRefresh, onPushUndo, onRefreshGenerators, onSetOperationLoading,
     onSetLocallyDeletedPaths, onRecordTouch, onRenamePath, onClearSelection, onError,
   } = params;
@@ -38,9 +43,9 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     copy: useTokenRelocate({ mode: 'copy', connected, serverUrl, setName, sets, perSetFlat, onRefresh, onError }),
   };
 
-  const rename = useTokenRename({ connected, serverUrl, setName, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
+  const rename = useTokenRename({ connected, serverUrl, setName, generators, dimensions, perSetFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
 
-  const del = useTokenDelete({ connected, serverUrl, setName, tokens, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
+  const del = useTokenDelete({ connected, serverUrl, setName, tokens, allTokensFlat, perSetFlat, generators, dimensions, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
 
   const dup = useTokenDuplicate({ connected, serverUrl, setName, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 

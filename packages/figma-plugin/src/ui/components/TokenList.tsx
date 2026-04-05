@@ -20,7 +20,7 @@ import {
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density, AffectedRef } from './tokenListTypes';
+import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
@@ -1051,6 +1051,8 @@ export function TokenList({
     tokens,
     allTokensFlat,
     perSetFlat,
+    generators,
+    dimensions,
     onRefresh,
     onPushUndo,
     onRefreshGenerators,
@@ -1820,43 +1822,57 @@ export function TokenList({
   };
 
 
-  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[] } | null => {
+  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[]; generatorImpacts?: GeneratorImpact[]; themeImpacts?: ThemeImpact[] } | null => {
     if (!deleteConfirm) return null;
+    const genImpacts = deleteConfirm.generatorImpacts.length > 0 ? deleteConfirm.generatorImpacts : undefined;
+    const thmImpacts = deleteConfirm.themeImpacts.length > 0 ? deleteConfirm.themeImpacts : undefined;
     if (deleteConfirm.type === 'token') {
       const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
       const { orphanCount, affectedRefs } = deleteConfirm;
       const setCount = new Set(affectedRefs.map(r => r.setName)).size;
+      const parts: string[] = [];
+      if (orphanCount > 0) parts.push(`break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}`);
+      if (genImpacts) parts.push(`affect ${genImpacts.length} generator${genImpacts.length !== 1 ? 's' : ''}`);
+      if (thmImpacts) parts.push(`affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? 's' : ''}`);
       return {
         title: `Delete "${name}"?`,
-        description: orphanCount > 0
-          ? `This will break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
-          : `Token path: ${deleteConfirm.path}`,
+        description: parts.length > 0 ? `This will ${parts.join(', ')}.` : `Token path: ${deleteConfirm.path}`,
         confirmLabel: 'Delete',
         affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
+        generatorImpacts: genImpacts,
+        themeImpacts: thmImpacts,
       };
     }
     if (deleteConfirm.type === 'group') {
       const { orphanCount, affectedRefs } = deleteConfirm;
       const setCount = new Set(affectedRefs.map(r => r.setName)).size;
+      const parts: string[] = [`delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''}`];
+      if (orphanCount > 0) parts.push(`break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}`);
+      if (genImpacts) parts.push(`affect ${genImpacts.length} generator${genImpacts.length !== 1 ? 's' : ''}`);
+      if (thmImpacts) parts.push(`affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? 's' : ''}`);
       return {
         title: `Delete group "${deleteConfirm.name}"?`,
-        description: orphanCount > 0
-          ? `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} and break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
-          : `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} in this group.`,
+        description: `This will ${parts.join(', ')}.`,
         confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''})`,
         affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
+        generatorImpacts: genImpacts,
+        themeImpacts: thmImpacts,
       };
     }
     const { paths, orphanCount, affectedRefs } = deleteConfirm;
     const setCount = new Set(affectedRefs.map(r => r.setName)).size;
+    const parts: string[] = [];
+    if (orphanCount > 0) parts.push(`break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}`);
+    if (genImpacts) parts.push(`affect ${genImpacts.length} generator${genImpacts.length !== 1 ? 's' : ''}`);
+    if (thmImpacts) parts.push(`affect ${thmImpacts.length} theme option${thmImpacts.length !== 1 ? 's' : ''}`);
     return {
       title: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}?`,
-      description: orphanCount > 0
-        ? `This will break ${orphanCount} alias reference${orphanCount !== 1 ? 's' : ''} in ${setCount} set${setCount !== 1 ? 's' : ''}.`
-        : undefined,
+      description: parts.length > 0 ? `This will ${parts.join(', ')}.` : undefined,
       confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}`,
       pathList: paths,
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
+      generatorImpacts: genImpacts,
+      themeImpacts: thmImpacts,
     };
   };
 

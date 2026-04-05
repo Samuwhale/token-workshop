@@ -3,10 +3,13 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
+import type { TokenGenerator } from './useGenerators';
+import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
+import { computeGeneratorImpacts, computeThemeImpacts } from '../shared/tokenImpact';
 
 export interface UseTokenDeleteParams {
   connected: boolean;
@@ -15,6 +18,8 @@ export interface UseTokenDeleteParams {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  generators?: TokenGenerator[];
+  dimensions?: ThemeDimension[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onSetOperationLoading: (msg: string | null) => void;
@@ -30,6 +35,8 @@ export function useTokenDelete({
   tokens,
   allTokensFlat,
   perSetFlat,
+  generators,
+  dimensions,
   onRefresh,
   onPushUndo,
   onSetOperationLoading,
@@ -57,14 +64,24 @@ export function useTokenDelete({
         }
       }
     }
-    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs });
-  }, [connected, allTokensFlat, perSetFlat]);
+    const targetPaths = new Set([path]);
+    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
+    const themeImpacts = computeThemeImpacts(targetPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
     const affectedRefs: AffectedRef[] = [];
     const prefix = `${path}.`;
     const source = perSetFlat ?? { '': allTokensFlat };
+    // Collect all token paths under this group
+    const groupPaths = new Set<string>();
+    for (const flatSet of Object.values(source)) {
+      for (const tokenPath of Object.keys(flatSet)) {
+        if (tokenPath === path || tokenPath.startsWith(prefix)) groupPaths.add(tokenPath);
+      }
+    }
     for (const [sName, flatSet] of Object.entries(source)) {
       for (const [tokenPath, token] of Object.entries(flatSet)) {
         if (tokenPath === path || tokenPath.startsWith(prefix)) continue;
@@ -76,8 +93,10 @@ export function useTokenDelete({
         }
       }
     }
-    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs });
-  }, [connected, allTokensFlat, perSetFlat]);
+    const generatorImpacts = computeGeneratorImpacts(groupPaths, generators ?? []);
+    const themeImpacts = computeThemeImpacts(groupPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
@@ -95,8 +114,10 @@ export function useTokenDelete({
         }
       }
     }
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs });
-  }, [connected, allTokensFlat, perSetFlat]);
+    const generatorImpacts = computeGeneratorImpacts(selectedPaths, generators ?? []);
+    const themeImpacts = computeThemeImpacts(selectedPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
 
   const executeDelete = useCallback(async () => {
     if (!deleteConfirm) return;

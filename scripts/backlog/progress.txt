@@ -641,3 +641,19 @@
   - `updateToken` in token-store.ts fully replaces `$extensions` when provided (`if ('$extensions' in token) existing.$extensions = token.$extensions`). Merging must happen client-side or via a GET+PATCH cycle. For unused tokens with no meaningful prior extensions, sending only the new extension is acceptable.
   - Mutual-exclusion between "Deprecate all" confirm and "Delete all" confirm: render only one confirmation UI at a time in a single `else if` chain to avoid both showing simultaneously.
 ---
+
+## 2026-04-05 - No token dependency impact analysis before destructive operations
+- Implemented full downstream impact analysis for token delete and rename confirmation dialogs
+- Added `GeneratorImpact` and `ThemeImpact` types to `tokenListTypes.ts`; extended `DeleteConfirm` union to always carry both new arrays
+- Created `packages/figma-plugin/src/ui/shared/tokenImpact.ts` with two pure functions: `computeGeneratorImpacts` (scans `sourceToken` + `$tokenRefs` config fields) and `computeThemeImpacts` (scans enabled/source sets per theme option)
+- Updated `useTokenDelete.ts` to accept `generators` and `dimensions` params and compute impacts for all three delete modes (single token, group, bulk); group delete first collects all leaf paths under the prefix before passing to impact functions
+- Updated `useTokenRename.ts` to accept `generators`/`dimensions`/`perSetFlat`/`allTokensFlat`, compute impacts after preview fetch, and show the confirmation dialog even when `depCount === 0` but generator/theme impacts exist
+- Updated `useTokenCrud.ts` to accept and forward `generators` and `dimensions` to both sub-hooks
+- Updated `TokenList.tsx` to pass `generators` and `dimensions` into `useTokenCrud`; refactored `getDeleteModalProps()` to build human-readable description listing all three impact counts and return `generatorImpacts`/`themeImpacts` fields
+- Updated `TokenListModals.tsx`: extended `modalProps` type, added generator/theme impact list sections after `affectedRefs` in delete modal, extended `RenameConfirmModal` to show generator/theme impact sections and handle the zero-alias-dep case with a clean "Rename" button
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L149, `packages/figma-plugin/src/ui/shared/tokenImpact.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenDelete.ts` ~L1, `packages/figma-plugin/src/ui/hooks/useTokenRename.ts` ~L1, `packages/figma-plugin/src/ui/hooks/useTokenCrud.ts` ~L10, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L23, ~L1046, ~L1823, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L9, ~L27, ~L41, ~L152, ~L487
+- **Learnings for future iterations:**
+  - `$tokenRefs` is on specific generator config subtypes (ColorRampConfig, TypeScaleConfig, ShadowScaleConfig, etc.) — access via cast to `{ $tokenRefs?: Record<string, string | undefined> }` rather than exhaustive type narrowing, which avoids brittle conditional chains
+  - For group delete, collect all paths under the prefix first (across all sets in perSetFlat) before calling impact functions — the impact functions need a `Set<string>` of actual token paths, not a prefix string
+  - Rename confirm with zero alias deps now shows the dialog when there are generator/theme impacts; the button adapts ("Update N aliases and rename" vs. "Rename")
+---

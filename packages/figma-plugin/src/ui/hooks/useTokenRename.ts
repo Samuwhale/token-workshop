@@ -1,11 +1,20 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
+import type { TokenGenerator } from './useGenerators';
+import type { ThemeDimension } from '@tokenmanager/core';
+import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { computeGeneratorImpacts, computeThemeImpacts } from '../shared/tokenImpact';
+import type { GeneratorImpact, ThemeImpact } from '../components/tokenListTypes';
 
 export interface UseTokenRenameParams {
   connected: boolean;
   serverUrl: string;
   setName: string;
+  generators?: TokenGenerator[];
+  dimensions?: ThemeDimension[];
+  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  allTokensFlat?: Record<string, TokenMapEntry>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRenamePath: (oldPath: string, newPath: string) => void;
@@ -17,6 +26,10 @@ export function useTokenRename({
   connected,
   serverUrl,
   setName,
+  generators,
+  dimensions,
+  perSetFlat,
+  allTokensFlat,
   onRefresh,
   onPushUndo,
   onRenamePath,
@@ -28,6 +41,8 @@ export function useTokenRename({
     newPath: string;
     depCount: number;
     deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
+    generatorImpacts: GeneratorImpact[];
+    themeImpacts: ThemeImpact[];
   } | null>(null);
   const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
 
@@ -109,17 +124,23 @@ export function useTokenRename({
       onError?.(err instanceof ApiError ? err.message : 'Failed to check rename dependencies — rename cancelled');
       return;
     }
-    if (data.count > 0) {
+    const targetPaths = new Set([oldPath]);
+    const source = perSetFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
+    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
+    const themeImpacts = computeThemeImpacts(targetPaths, dimensions ?? [], source);
+    if (data.count > 0 || generatorImpacts.length > 0 || themeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
         newPath,
         depCount: data.count,
         deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
+        generatorImpacts,
+        themeImpacts,
       });
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, setName, executeTokenRename, onError]);
+  }, [connected, serverUrl, setName, generators, dimensions, perSetFlat, allTokensFlat, executeTokenRename, onError]);
 
   return {
     renameTokenConfirm,

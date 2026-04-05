@@ -945,3 +945,26 @@ Already up to date.
 
   Merging to main: Unused token detection has no auto-fix action — HealthPanel.tsx shows unused tokens (zero canvas bindings) with individual delete buttons, but there's no "convert to alias" or "deprecate" action as a softer alternative to deletion; designers often want to mark tokens as deprecated before removing them, and the only options are delete-one or delete-all
 Already up to date.
+[main a48fa477] chore(backlog): done – Unused token detection has no auto-fix action — HealthPanel.tsx shows unused tokens (zero canvas bindings) with individual delete buttons, but there's no "convert to alias" or "deprecate" action as a softer alternative to deletion; designers often want to mark tokens as deprecated before removing them, and the only options are delete-one or delete-all
+ 7 files changed, 164 insertions(+), 32 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Unused token detection has no auto-fix action
+- Added "Deprecate" as a softer alternative to deletion for unused tokens in HealthPanel
+- Per-row: two action buttons appear on hover — a circle-slash "Deprecate" icon and the existing trash "Delete" icon; confirmation modal for each
+- Bulk header: "Deprecate all" button alongside "Delete all"; confirmation flow with mutual exclusion (only one confirmation active at a time)
+
+═══════════════════════════════════════════════════════════════
+  #39  ·  17 queued · 0
+0 in-progress · last took 7m34s
+═══════════════════════════════════════════════════════════════
+  → No token dependency impact analysis before destructive operations — deleting or renaming a token shows orphan alias counts, but doesn't show downstream impact through generators, themes, or resolvers; a designer renaming a core color token has no way to see which generators consume it, which theme overrides reference it, or which resolved outputs will change
+  Worktree: /tmp/backlog-54964-q4Lomx
+  Running agent… (started 04:10:42)
+
+  ✓ done: No token dependency impact analysis before destructive operations
+    Delete and rename confirmation dialogs now show generator impacts (sourceToken/config $tokenRefs references) and theme option impacts alongside existing alias orphan counts; zero-alias renames also show the dialog when generator/theme impacts exist
+    61 turns · 728s · $3.36
+
+  Merging to main: No token dependency impact analysis before destructive operations
+Already up to date.
