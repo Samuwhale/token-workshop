@@ -529,3 +529,16 @@
 - **Learnings for future iterations:**
   - BatchEditor's Find/Replace section is visually distinct from the "Alias replace" section below it — the two operate on different things (path names vs `$value` reference strings). When reviewing a backlog item about rename/find-replace, check both sections.
 ---
+
+## 2026-04-05 - Command palette qualifier syntax is undiscoverable
+- Added an inline filter syntax cheatsheet to CommandPalette (token mode):
+  1. `?` circle button in the search header (toggles cheatsheet; highlighted when active)
+  2. `?` keypress when input is empty also toggles the cheatsheet
+  3. Cheatsheet panel appears below the qualifier chips row — grouped into "Type & content", "Path & name", and "Presence filters (has:)" sections; each row is clickable to insert the qualifier into the search box
+  4. Empty state (no query typed yet) now shows 5 example qualifier chips + a "see all filters" link that opens the cheatsheet
+  5. Footer qualifier hint (`type: has: value:...`) is now a clickable button that toggles the cheatsheet; includes `(?)` visual cue
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L148 (state), ~L384 (? key handler), ~L449 (? button), ~L514 (cheatsheet panel), ~L624 (empty state), ~L982 (footer)
+- **Learnings for future iterations:**
+  - The QUERY_QUALIFIERS array in tokenListUtils.ts already has `desc` and `example` fields — a cheatsheet is essentially just rendering them with better formatting
+  - Three distinct discovery touchpoints (? button, empty state, footer) together create a low-friction discovery path without cluttering the UI when the user already knows the syntax
+---

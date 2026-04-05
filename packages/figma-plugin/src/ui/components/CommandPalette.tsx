@@ -147,6 +147,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   const [visibleCount, setVisibleCount] = useState(100);
   const [showAllQualifiers, setShowAllQualifiers] = useState(false);
   const [searchAllSets, setSearchAllSets] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -372,6 +373,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === '?' && !query) { e.preventDefault(); setShowHelp(v => !v); return; }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIdx(i => Math.min(i + 1, flatList.length - 1));
@@ -436,6 +438,18 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               TOKENS
             </span>
           )}
+          {isTokenMode && (
+            <button
+              className={`text-[10px] w-4 h-4 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
+              onClick={() => setShowHelp(v => !v)}
+              title="Filter syntax help (press ? when input is empty)"
+              aria-label="Toggle filter syntax help"
+              aria-pressed={showHelp}
+              tabIndex={-1}
+            >
+              ?
+            </button>
+          )}
           <kbd className="text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
             ESC
           </kbd>
@@ -478,6 +492,89 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
           </div>
         )}
 
+        {/* Filter syntax cheatsheet — toggled by ? button or ? key */}
+        {isTokenMode && showHelp && (
+          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: '220px' }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">Filter syntax</span>
+              <button
+                className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
+                onClick={() => setShowHelp(false)}
+                tabIndex={-1}
+              >
+                close
+              </button>
+            </div>
+            {/* Group: type & value */}
+            <div className="mb-2">
+              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Type &amp; content</div>
+              {[
+                { qual: 'type:color', desc: 'Filter by token type (color, dimension, number, string…)', insert: '>type:' },
+                { qual: 'value:#ff0000', desc: 'Tokens whose value contains the given string', insert: '>value:' },
+                { qual: 'desc:primary', desc: 'Tokens whose description contains the given string', insert: '>desc:' },
+              ].map(({ qual, desc, insert }) => (
+                <button
+                  key={qual}
+                  className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
+                  onMouseDown={e => { e.preventDefault(); setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
+                  tabIndex={-1}
+                >
+                  <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
+                </button>
+              ))}
+            </div>
+            {/* Group: path & name */}
+            <div className="mb-2">
+              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Path &amp; name</div>
+              {[
+                { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
+                { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
+                { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
+                { qual: 'generator:color-ramp', desc: 'Tokens produced by a specific generator', insert: '>generator:' },
+              ].map(({ qual, desc, insert }) => (
+                <button
+                  key={qual}
+                  className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
+                  onMouseDown={e => { e.preventDefault(); setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
+                  tabIndex={-1}
+                >
+                  <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
+                </button>
+              ))}
+            </div>
+            {/* Group: has: */}
+            <div className="mb-1.5">
+              <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] opacity-50 uppercase tracking-wider mb-1">Presence filters (has:)</div>
+              <div className="grid grid-cols-2 gap-x-3">
+                {[
+                  { val: 'alias', desc: 'Reference tokens only' },
+                  { val: 'direct', desc: 'Direct-value tokens only' },
+                  { val: 'duplicate', desc: 'Tokens sharing a value' },
+                  { val: 'description', desc: 'Tokens with a description' },
+                  { val: 'extension', desc: 'Tokens with extensions' },
+                  { val: 'generated', desc: 'Generator-produced tokens' },
+                  { val: 'unused', desc: 'No Figma usage or dependents' },
+                ].map(({ val, desc }) => (
+                  <button
+                    key={val}
+                    className="text-left flex items-center gap-1.5 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
+                    onMouseDown={e => { e.preventDefault(); setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
+                    tabIndex={-1}
+                  >
+                    <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)] truncate">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pt-1 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
+              Combine qualifiers: <code className="font-mono">type:color has:alias path:brand</code>
+            </div>
+          </div>
+        )}
+
         {/* Qualifier value autocomplete chips */}
         {qualifierCompletions.length > 0 && (
           <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
@@ -515,7 +612,29 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
                   {tokenQuery
                     ? `No tokens or groups match "${tokenQuery}"${!searchAllSets && allSetTokens ? ' in this set' : ''}`
-                    : `Type a token path to search${searchAllSets ? ' across all sets' : ''} (or group: for groups)`}
+                    : <>
+                        Type a token path to search{searchAllSets ? ' across all sets' : ''}
+                        <div className="mt-1.5 flex flex-col items-center gap-1">
+                          <div className="flex gap-1.5 flex-wrap justify-center">
+                            {['type:', 'has:alias', 'value:', 'path:', 'name:'].map(q => (
+                              <button
+                                key={q}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
+                                onClick={() => { setQuery('>' + q); setTimeout(() => inputRef.current?.focus(), 0); }}
+                              >
+                                {q}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            className="text-[10px] text-[var(--color-figma-accent)] hover:underline opacity-70 hover:opacity-100"
+                            onClick={() => setShowHelp(true)}
+                          >
+                            see all filters
+                          </button>
+                        </div>
+                      </>
+                  }
                   {tokenQuery && !searchAllSets && allSetTokens && (
                     <div className="mt-1.5">
                       <button
@@ -854,7 +973,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               <span>↵ go to token/group</span>
               {searchAllSets
                 ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all sets</span>
-                : <span className="opacity-60">type: has: value: path: name: group:</span>
+                : <button className="opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} tabIndex={-1} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
               <span>ESC close</span>
             </>
