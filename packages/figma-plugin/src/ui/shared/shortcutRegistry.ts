@@ -231,8 +231,8 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'PASTE_TOKENS',          group: 'Global',          description: 'Paste tokens',                   mac: SHORTCUT_KEYS.PASTE_TOKENS },
   { id: 'OPEN_SETTINGS',         group: 'Global',          description: 'Open settings',                  mac: SHORTCUT_KEYS.OPEN_SETTINGS },
   { id: 'TOGGLE_PREVIEW',        group: 'Global',          description: 'Toggle preview panel',           mac: SHORTCUT_KEYS.TOGGLE_PREVIEW },
-  { id: 'UNDO',                  group: 'Global',          description: 'Undo',                           mac: '⌘Z',                                  displayOnly: true },
-  { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y',                  displayOnly: true },
+  { id: 'UNDO',                  group: 'Global',          description: 'Undo',                           mac: '⌘Z' },
+  { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y' },
 
   // ── Navigation ──────────────────────────────────────────────────────────
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Define',                   mac: SHORTCUT_KEYS.GO_TO_DEFINE },

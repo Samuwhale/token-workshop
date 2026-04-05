@@ -672,3 +672,11 @@
   - `wizardCreatedSet` pattern (internal shadow of external prop) is useful whenever a wizard creates something the parent will update asynchronously — lets the component proceed without a round-trip.
   - WelcomePrompt's disabled-button approach was bad UX: it blocked users from entering the guided flow entirely. Better to let them in and handle the prerequisite inside the wizard.
 ---
+
+## 2026-04-05 - Undo/Redo keyboard shortcuts not wired up
+- Extended the existing server-redo keydown handler in App.tsx to also handle ⌘Z (undo) and the full redo flow. ⌘Z now calls `executeUndo` when `canUndo`; ⌘⇧Z/⌘Y now calls `executeRedo` first (local stack), then falls back to `serverRedoRef` when local redo stack is empty. Added mutable refs for `canUndo`, `executeUndo`, and `executeRedo` following the stable-callback-ref pattern. Also removed `displayOnly: true` from UNDO and REDO entries in shortcutRegistry.ts — they now render like active shortcuts.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L253, `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L234
+- **Learnings for future iterations:**
+  - The stable-callback-ref pattern (assign `ref.current = fn` every render, read inside the effect) avoids re-registering the listener on every state change — critical when the handler depends on many state booleans.
+  - When extending a keydown handler that already partially handles a shortcut (server redo only), read the full logic before adding — the new undo/redo check needed to use isUndo/isRedo booleans to avoid accidentally triggering both branches on ⌘⇧Z.
+---

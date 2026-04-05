@@ -250,22 +250,37 @@ export function App() {
   // Server-side operation log for undo/rollback
   const { recentOperations, total: totalOperations, hasMore: hasMoreOperations, loadMore: loadMoreOperations, handleRollback, handleServerRedo, canServerRedo, serverRedoDescription, redoableOpIds, redoableItems } = useRecentOperations({ serverUrl, connected, lintKey, refreshAll, setSuccessToast, setErrorToast });
 
-  // Keyboard shortcut for server redo (Cmd+Y / Cmd+Shift+Z) when no local redo is available
+  // Keyboard shortcuts for undo (⌘Z) and redo (⌘⇧Z / ⌘Y)
   const serverRedoRef = useRef(handleServerRedo);
   serverRedoRef.current = handleServerRedo;
   const canServerRedoRef = useRef(canServerRedo);
   canServerRedoRef.current = canServerRedo;
   const canRedoRef = useRef(canRedo);
   canRedoRef.current = canRedo;
+  const canUndoRef = useRef(canUndo);
+  canUndoRef.current = canUndo;
+  const executeUndoRef = useRef(executeUndo);
+  executeUndoRef.current = executeUndo;
+  const executeRedoRef = useRef(executeRedo);
+  executeRedoRef.current = executeRedo;
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const el = document.activeElement as HTMLElement | null;
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
-      if (((e.key === 'z' && e.shiftKey) || e.key === 'y') && canServerRedoRef.current && !canRedoRef.current) {
+      const isRedo = (e.key === 'z' && e.shiftKey) || e.key === 'y';
+      const isUndo = e.key === 'z' && !e.shiftKey;
+      if (isRedo) {
         e.preventDefault();
-        serverRedoRef.current();
+        if (canRedoRef.current) {
+          executeRedoRef.current();
+        } else if (canServerRedoRef.current) {
+          serverRedoRef.current();
+        }
+      } else if (isUndo && canUndoRef.current) {
+        e.preventDefault();
+        executeUndoRef.current();
       }
     };
     window.addEventListener('keydown', handler);
