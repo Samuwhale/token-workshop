@@ -508,3 +508,13 @@
   - When merging multiple extension namespaces (tokenmanager extends + com.figma.scopes), build a single `extensions` object and conditionally add each key, then assign once to `body.$extensions` — avoids overwriting one with the other
   - Draft storage interfaces need a `?? []` guard on restore (older drafts won't have the `scopes` key)
 ---
+
+## 2026-04-05 - No import merge preview
+- Added a collapsible pre-import conflict diff section to `ImportStylesFooter` that shows per-token current vs. incoming values (git-diff style: `−` / `+` lines with color swatches for color tokens) before the user clicks import. Computed from the pre-fetched `existingTokenMap` + `tokens` + `selectedTokens` already in context. Capped at 60 tokens with "and N more…" overflow, hidden while the `ImportConflictResolver` is active (after clicking import) so it doesn't duplicate.
+- Changed `useImportConflicts` to auto-expand `varConflictDetailsExpanded = true` when `varConflictDetails` is first populated with entries, so variables-import users see the diff immediately instead of having to discover the collapsed toggle.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportStylesFooter.tsx` ~L1 (imports), ~L20 (destructure existingTokenMap), ~L43 (previewConflictsExpanded state + conflictingPreviewTokens memo), ~L119 (new diff section); `packages/figma-plugin/src/ui/hooks/useImportConflicts.ts` ~L171 (auto-expand on first conflict load)
+- **Learnings for future iterations:**
+  - `existingTokenMap` is pre-fetched eagerly in `useImportConflicts` whenever tokens load, so all data needed for a pre-import diff is already available in context before the user clicks import.
+  - The pre-import preview and the `ImportConflictResolver` (post-click) serve different purposes: the preview is read-only (no per-token decisions), while the resolver allows per-token accept/merge/reject. The correct guard is `conflictPaths === null` — hide the preview once the resolver takes over.
+  - For the variables path, `setVarConflictDetailsExpanded(true)` inside the async block right after `setVarConflictDetails(details)` is the simplest auto-expand — no extra effect or ref needed, since the setter is stable and the block already runs exactly once per fetch.
+---

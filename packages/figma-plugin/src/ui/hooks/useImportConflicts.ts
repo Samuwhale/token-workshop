@@ -170,6 +170,8 @@ export function useImportConflicts({
         const totalTokens = allModes.reduce((acc, { mode }) => acc + mode.tokens.length, 0);
         setVarConflictPreview({ newCount: totalTokens - overwriteCount, overwriteCount });
         setVarConflictDetails(details);
+        // Auto-expand when conflicts are found so users see the diff immediately
+        if (details.length > 0) setVarConflictDetailsExpanded(true);
       } catch {
         if (fetchId === varConflictFetchIdRef.current) {
           setVarConflictPreview(null);
