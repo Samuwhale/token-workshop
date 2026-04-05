@@ -81,7 +81,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // --- Domain hooks ---
   const {
     dimensions, setDimensions,
-    loading, error, setError, fetchWarnings, setFetchWarnings,
+    loading, error, setError, fetchWarnings, clearFetchWarnings,
     coverage, missingOverrides,
     optionSetOrders, setOptionSetOrders,
     selectedOptions, setSelectedOptions,
@@ -89,12 +89,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     newlyCreatedDim,
     fetchDimensions, debouncedFetchDimensions,
     newDimName, setNewDimName,
-    showCreateDim, setShowCreateDim,
-    createDimError, setCreateDimError,
+    showCreateDim, openCreateDim, closeCreateDim,
+    createDimError,
     isCreatingDim, handleCreateDimension,
     renameDim, renameValue, setRenameValue, renameError, isRenamingDim,
     startRenameDim, cancelRenameDim, executeRenameDim,
-    dimensionDeleteConfirm, setDimensionDeleteConfirm, isDeletingDim,
+    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, isDeletingDim,
     executeDeleteDimension,
     isDuplicatingDim, handleDuplicateDimension,
   } = useThemeDimensions({ serverUrl, connected, sets, onPushUndo, onSuccess });
@@ -440,7 +440,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     dimensions,
     autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
     executeAutoFillAll, executeAutoFillAllOptions,
-    dimensionDeleteConfirm, setDimensionDeleteConfirm: (id) => setDimensionDeleteConfirm(id),
+    dimensionDeleteConfirm, setDimensionDeleteConfirm: openDeleteConfirm, closeDeleteConfirm,
     executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm: (v) => setOptionDeleteConfirm(v),
     executeDeleteOption,
@@ -448,7 +448,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleBulkSetState,
   }), [
     dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
-    dimensionDeleteConfirm, executeDeleteDimension,
+    dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, executeDeleteOption,
     bulkMenu, bulkMenuRef, handleBulkSetState,
   ]);
@@ -485,7 +485,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       {fetchWarnings && (
         <div role="status" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)] text-[10px] flex items-center justify-between">
           <span>{fetchWarnings}</span>
-          <button onClick={() => setFetchWarnings(null)} className="ml-2 text-[var(--color-figma-warning)] hover:opacity-70 flex-shrink-0">
+          <button onClick={clearFetchWarnings} className="ml-2 text-[var(--color-figma-warning)] hover:opacity-70 flex-shrink-0">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
@@ -597,7 +597,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               ] as const).map(([name, example]) => (
                 <button
                   key={name}
-                  onClick={() => { setNewDimName(name); setShowCreateDim(true); }}
+                  onClick={() => openCreateDim(name)}
                   className="flex items-center justify-between px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-left hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
                 >
                   <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)]">{name}</span>
@@ -607,7 +607,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             </div>
 
             <button
-              onClick={() => setShowCreateDim(true)}
+              onClick={() => openCreateDim()}
               className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               or create a custom layer
@@ -854,7 +854,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <input
                               type="text"
                               value={renameValue}
-                              onChange={e => { setRenameValue(e.target.value); setRenameError(null); }}
+                              onChange={e => setRenameValue(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') executeRenameDim(); else if (e.key === 'Escape') cancelRenameDim(); }}
                               className={`flex-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${renameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                               autoFocus
@@ -940,7 +940,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </svg>
                           </button>
                           <button
-                            onClick={() => setDimensionDeleteConfirm(dim.id)}
+                            onClick={() => openDeleteConfirm(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
                             title="Delete layer" aria-label="Delete layer"
                           >
@@ -1697,7 +1697,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             <input
               type="text"
               value={newDimName}
-              onChange={e => { setNewDimName(e.target.value); setCreateDimError(null); }}
+              onChange={e => setNewDimName(e.target.value)}
               placeholder="Layer name (e.g. Color Mode, Brand)"
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
@@ -1713,7 +1713,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 {isCreatingDim ? 'Creating…' : 'Create Layer'}
               </button>
               <button
-                onClick={() => { setShowCreateDim(false); setNewDimName(''); setCreateDimError(null); }}
+                onClick={closeCreateDim}
                 className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
@@ -1722,7 +1722,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </div>
         ) : (
           <button
-            onClick={() => setShowCreateDim(true)}
+            onClick={() => openCreateDim()}
             className="w-full px-3 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-text-secondary)] transition-colors text-left flex items-center gap-1.5"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

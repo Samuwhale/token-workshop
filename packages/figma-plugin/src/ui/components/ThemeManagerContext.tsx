@@ -15,7 +15,10 @@ export interface ThemeManagerModalsState {
   executeAutoFillAllOptions: (preview: AutoFillPreview & { mode: 'all-options' }, strategy: 'skip' | 'overwrite') => void;
   // Delete dimension
   dimensionDeleteConfirm: string | null;
-  setDimensionDeleteConfirm: (id: string | null) => void;
+  /** Open the delete-confirmation modal for the given dimension id. */
+  setDimensionDeleteConfirm: (id: string) => void;
+  /** Close the delete-confirmation modal without deleting. */
+  closeDeleteConfirm: () => void;
   executeDeleteDimension: (id: string) => Promise<void>;
   // Delete option
   optionDeleteConfirm: { dimId: string; optionName: string } | null;
@@ -55,7 +58,7 @@ export function ThemeManagerModals() {
     dimensions,
     autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy,
     executeAutoFillAll, executeAutoFillAllOptions,
-    dimensionDeleteConfirm, setDimensionDeleteConfirm, executeDeleteDimension,
+    dimensionDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
     optionDeleteConfirm, setOptionDeleteConfirm, executeDeleteOption,
     bulkMenu, setBulkMenu, bulkMenuRef, handleBulkSetState,
   } = useThemeManagerModals();
@@ -183,10 +186,10 @@ export function ThemeManagerModals() {
             confirmLabel="Delete layer"
             danger
             onConfirm={async () => {
-              setDimensionDeleteConfirm(null);
+              closeDeleteConfirm();
               await executeDeleteDimension(dim.id);
             }}
-            onCancel={() => setDimensionDeleteConfirm(null)}
+            onCancel={() => closeDeleteConfirm()}
           />
         );
       })()}

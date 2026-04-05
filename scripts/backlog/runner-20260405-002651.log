@@ -875,3 +875,26 @@ Already up to date.
 
   Merging to main: Context providers bundle 20–27 unrelated properties per context, causing cascade re-renders in all consumers
 Already up to date.
+[main 9cac5e3f] chore(backlog): done – Context providers bundle 20–27 unrelated properties per context, causing cascade re-renders in all consumers
+ 13 files changed, 440 insertions(+), 180 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Context providers bundle 20–27 unrelated properties per context causing cascade re-renders
+- Split all 3 large context providers into focused sub-contexts, each with its own useMemo value:
+  - **TokenDataContext** → `TokenSetsContextValue` (17 props, set management/mutations), `TokenFlatMapContextValue` (8 props, flat maps), `GeneratorContextValue` (5 props, generator polling). New hooks: `useTokenSetsContext`, `useTokenFlatMapContext`, `useGeneratorContext`. `TokenFlatMapProvider` internally calls `useTokenSetsContext()` to read `tokenRevision`.
+  - **ThemeContext** → `ThemeSwitcherContextValue` (15 props, theme UI + derived memos), `ResolverState` (15 props, resolver config/results). New hooks: `useThemeSwitcherContext`, `useResolverContext` (returns `ResolverState` directly so callers use `const resolverState = useResolverContext()`). `ThemeSwitcherProvider` reads both `TokenSetsContext` and `TokenFlatMapContext`, and `ResolverContext` for the resolver-overrides-themes logic.
+
+═══════════════════════════════════════════════════════════════
+  #36  ·  20 queued · 0
+0 in-progress · last took 9m27s
+═══════════════════════════════════════════════════════════════
+  → useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers — mixes dimension CRUD (create/rename/delete/duplicate), coverage computation, and transient UI form state (newDimName, renameDim, renameValue, showCreateDim, createDimError) in a single hook; split into `useThemeDimensionsCrud` and keep coverage as a separate concern, encapsulate form state behind action callbacks instead of exposing raw setters
+  Worktree: /tmp/backlog-54964-jwxdoF
+  Running agent… (started 03:53:26)
+
+  ✓ done: useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers — mixes dimension CRUD (create/rename/delete/duplicate), coverage computation, and transient UI form state (newDimName, renameDim, renameValue, showCreateDim, createDimError) in a single hook; split into `useThemeDimensionsCrud` and keep coverage as a separate concern, encapsulate form state behind action callbacks instead of exposing raw setters
+    Created useThemeDimensionsCrud.ts (CRUD mutations with encapsulated form state); rewrote useThemeDimensions.ts as a composition hook (fetch + coverage + calls CRUD hook); updated ThemeManager.tsx and ThemeManagerContext.tsx to use new action callbacks instead of raw React.Dispatch setters
+    51 turns · 510s · $2.08
+
+  Merging to main: useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers — mixes dimension CRUD (create/rename/delete/duplicate), coverage computation, and transient UI form state (newDimName, renameDim, renameValue, showCreateDim, createDimError) in a single hook; split into `useThemeDimensionsCrud` and keep coverage as a separate concern, encapsulate form state behind action callbacks instead of exposing raw setters
+Already up to date.

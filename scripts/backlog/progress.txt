@@ -596,3 +596,23 @@
   - For nested resolver+theme dependency: nest `ResolverProvider` outside `ThemeSwitcherProvider` so `ThemeSwitcherProvider` can call `useResolverContext()` to implement the resolver-overrides-themes logic cleanly.
   - `useResolverContext()` returning `ResolverState` directly (not `{ resolverState }`) means consumers that already accessed `resolverState.xxx` only need to change the destructure line, not all the property accesses.
 ---
+
+## 2026-04-05 - useThemeDimensions is a 520-line hook returning 54 properties including 10+ raw setState dispatchers
+- Created `useThemeDimensionsCrud.ts` (~240 lines): handles create/rename/delete/duplicate dimension operations. Takes `dimensions`, `setDimensions`, `fetchDimensions`, `debouncedFetchDimensions`, and `setError` as params (same pattern as `useThemeOptions`). Exposes encapsulated form state via action callbacks instead of raw `React.Dispatch` setters:
+  - Create form: `openCreateDim(name?)`, `closeCreateDim()`, `setNewDimName(name)` (auto-clears error) replace `setShowCreateDim`, `setNewDimName: Dispatch`, `setCreateDimError`
+  - Rename form: `setRenameValue(v)` (auto-clears error) replaces `setRenameValue: Dispatch`, `setRenameError` — `startRenameDim`/`cancelRenameDim`/`executeRenameDim` unchanged
+  - Delete: `openDeleteConfirm(id)`, `closeDeleteConfirm()` replace `setDimensionDeleteConfirm: Dispatch<string | null>`
+  - `setNewlyCreatedDim` removed from public interface (internal only)
+- Rewrote `useThemeDimensions.ts` (~225 lines): now a thin composition hook — owns the data lifecycle (fetch + token values + coverage/missing-overrides computation) and calls `useThemeDimensionsCrud` internally. Exposes `clearFetchWarnings()` replacing raw `setFetchWarnings`. Coverage computation remains here as a separate concern, not in the CRUD hook.
+- Updated `ThemeManager.tsx`: replaced all raw setter calls (`setShowCreateDim`, `setNewDimName`+`setCreateDimError` compound, `setDimensionDeleteConfirm`, `setFetchWarnings`) with new action callbacks. No behaviour changes.
+- Updated `ThemeManagerContext.tsx`: changed `setDimensionDeleteConfirm: (id: string | null) => void` to `setDimensionDeleteConfirm: (id: string) => void` + `closeDeleteConfirm: () => void` to match the new API; updated `ThemeManagerModals` render to call `closeDeleteConfirm()` instead of `setDimensionDeleteConfirm(null)`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useThemeDimensionsCrud.ts` (new, ~240 lines)
+  - `packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts` (rewritten, ~225 lines)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L82-100, ~L443, ~L488, ~L600, ~L610, ~L857, ~L943, ~L1700-1730
+  - `packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx` ~L17-19, ~L58, ~L186-189
+- **Learnings for future iterations:**
+  - The "CRUD hook receives fetch as a param" pattern (same as `useThemeOptions`) is the right decomposition when CRUD operations need to trigger a re-fetch but the fetch itself is owned by the parent (data) hook. The CRUD hook stays pure to mutations; the data hook owns the loading cycle.
+  - Auto-clearing sibling error state inside a setter callback (e.g. `setNewDimName` clearing `createDimError`) is a clean encapsulation: the component doesn't need to know which errors to clear on input change.
+  - When a context interface has `setX: (v: T | null) => void` but the new API separates it into `openX(v: T)` + `closeX()`, update the context interface to match — don't wrap with a union adapter, the separation is the point.
+---
