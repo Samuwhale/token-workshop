@@ -517,3 +517,15 @@
   - Quick-edit panel shows a live `LiveDiffPreview` that auto-updates as config changes via `useGeneratorPreview` hook.
 - No changes made.
 ---
+
+## 2026-04-05 - No batch find-and-replace for token names
+- **Stale — already done.** BatchEditor already has a complete Find/Replace section (lines ~1406-1479) with:
+  - `findText`/`replaceText`/`useRegex` state
+  - `renameChanges` dry-run preview computing `{from, to}` pairs (supports literal and regex with full error reporting)
+  - `handleRename` applying via `POST /api/tokens/:set/batch-rename-paths`
+  - Inline preview showing all affected paths before commit
+  - Regex toggle and error display
+- Files changed: none
+- **Learnings for future iterations:**
+  - BatchEditor's Find/Replace section is visually distinct from the "Alias replace" section below it — the two operate on different things (path names vs `$value` reference strings). When reviewing a backlog item about rename/find-replace, check both sections.
+---
