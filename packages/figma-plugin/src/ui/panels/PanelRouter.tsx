@@ -740,6 +740,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           lintViolations={p.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
+          dimensions={dimensions}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
           onNavigateTo={(topTab, subTab) => navigateTo(topTab as TopTab, subTab as SubTab | undefined)}

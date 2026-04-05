@@ -1015,3 +1015,26 @@ Already up to date.
 
   Merging to main: Publish readiness checks don't auto-rerun after fixing issues
 Already up to date.
+[main 0e81acba] chore(backlog): done – Publish readiness checks don't auto-rerun after fixing issues
+ 5 files changed, 64 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Publish readiness checks don't auto-rerun after fixing issues
+- Added two new auto-rerun triggers in `useReadinessChecks.ts`:
+  1. `useEffect` watching `checksStale` + `connected` + `activeSet`: when a sync/apply operation marks checks stale (varSync.applyDiff, styleSync.applyDiff, git.applyDiff), checks now auto-rerun instead of requiring a manual "Re-check" click
+  2. `useEffect` with a `window` `message` listener for `variables-applied`: when Figma confirms the "Push missing variables" fix completed, checks auto-rerun to reflect the new state
+
+═══════════════════════════════════════════════════════════════
+  #42  ·  14 queued · 0
+0 in-progress · last took 5m4s
+═══════════════════════════════════════════════════════════════
+  → HealthPanel contrast matrix is limited to same-set tokens — the contrast matrix in HealthPanel.tsx only evaluates color pairs within allTokensFlat (single resolved view); designers managing multi-theme systems need to verify contrast across theme options (e.g. does this foreground/background pair pass WCAG in both light and dark themes simultaneously?)
+  Worktree: /tmp/backlog-54964-3gnTnR
+  Running agent… (started 04:34:49)
+
+  ✓ done: HealthPanel contrast matrix is limited to same-set tokens
+    Added Cross-theme mode to the contrast matrix: resolves tokens per theme option via resolveThemeOption, shows worst-case ratio across themes with per-cell tooltip breakdown, amber highlight for pairs that pass overall but fail in some themes, and a Fails-in N/M column in failures view.
+    44 turns · 725s · $2.23
+
+  Merging to main: HealthPanel contrast matrix is limited to same-set tokens
+Already up to date.

@@ -684,3 +684,23 @@
   - When adding multiple auto-rerun paths, always add a concurrent-run guard (`isRunningRef`) to the underlying async function — without it, two triggers firing simultaneously would start two overlapping network requests
   - `variables-applied` is the plugin's response to `apply-variables`; listening for it in the readiness hook eliminates the need for a timeout/polling approach after the "Push missing" fix button
 ---
+
+## 2026-04-05 - HealthPanel contrast matrix is limited to same-set tokens
+- Extended the contrast matrix with a "Cross-theme" mode toggle (shown when theme dimensions with 2+ options exist)
+- When enabled, `resolveThemeOption` is called for each selected theme option to produce a resolved flat token map per theme
+- Color tokens are sourced from the UNION of resolved-theme maps (so alias-based semantic tokens like `color.bg.primary` appear with their per-theme values), not just raw non-alias tokens from `allTokensFlat`
+- Matrix cells show the WORST-CASE contrast ratio across all selected themes; tooltip shows per-theme breakdown (e.g. "Light: 7.2:1 | Dark: 3.1:1")
+- Cells that pass overall but fail in some themes are highlighted in amber with an N/M fail-count indicator below the ratio
+- Failures-only view adds a "Fails in" column showing how many themes (out of total) the pair fails in
+- CSV export in cross-theme mode adds a `theme` column per row
+- Theme option pills are individually toggleable; at least one must remain selected
+- Header shows active theme count: e.g. "48 tokens · 2 themes"
+- Added `dimensions?: ThemeDimension[]` to `HealthPanelProps`; PanelRouter passes `dimensions` through
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1–20 (imports), ~L145 (prop), ~L168 (destructure), ~L205 (state), ~L280 (multi-theme memos), ~L1381–1640 (matrix rendering)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L738 (pass dimensions)
+- **Learnings for future iterations:**
+  - When inside a JSX `{foo.map(x => { return (...); })}`, do NOT append `: null` after the closing `})` — that's a ternary fragment from an outer conditional and is invalid at that position. Keep the outer dim-level ternary (`dim.options.length >= 2 ? ... : null`) and the inner map separate.
+  - `resolveThemeOption` with `themedSets` gives the correct foundation-layer + theme-override resolution; the resolved map includes alias-resolved hexes so the matrix can work on semantic tokens, not just primitives.
+  - The `colorTokens` memo (non-alias only from `allTokensFlat`) is kept for single-theme mode; `multiThemeColorTokens` (union of resolved maps) is used in cross-theme mode — both modes coexist cleanly via `isMultiMode` branching.
+---
