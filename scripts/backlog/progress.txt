@@ -623,3 +623,17 @@
   - When adding a "create and navigate" action, close the source panel BEFORE calling setEditingToken — the editor visibility condition checks `overflowPanel === null` and both createPanel and editor share the same drawer slot.
   - Two-button pattern: secondary (outline/border) for "keep going" action, accent for the "primary next step" action. Wrap in `flex gap-2` to keep them equal width with `flex-1`.
 ---
+
+## 2026-04-05 - Merge Apply > Components into Apply > Canvas Analysis
+- Folded ComponentCoveragePanel into CanvasAnalysisPanel as a third internal tab ("Components") alongside "Coverage" and "Suggestions". Removed the top-level "components" sub-tab from the Apply nav bar.
+- Changes:
+  - `navigationTypes.ts`: removed `'components'` from `ApplySubTab` union and from `TOP_TABS` array
+  - `CanvasAnalysisPanel.tsx`: added `ComponentCoveragePanel` import, expanded `CanvasTab` type to include `'components'`, added "Components" button in the tab switcher, added a third panel div that renders `ComponentCoveragePanel`, hid `ScanScopeSelector` when components tab is active (scope is irrelevant there)
+  - `PanelRouter.tsx`: removed `ComponentCoveragePanel` import, removed `components` from PANEL_MAP, removed `renderApplyComponents()` function
+  - `App.tsx` ~L1035: updated command palette "Canvas Components" handler to navigate to `'canvas-analysis'` instead of removed `'components'`
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L11, `packages/figma-plugin/src/ui/components/CanvasAnalysisPanel.tsx` ~L1-L115, `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L32, ~L421, ~L743, `packages/figma-plugin/src/ui/App.tsx` ~L1035
+- **Learnings for future iterations:**
+  - When a panel's scope selector is shared but a new tab doesn't use it, conditional rendering (`{activeTab !== 'newTab' && <ScopeSelector />}`) is the right pattern — avoids confusing orphaned controls
+  - Panels mounted with `hidden` class (not conditionally rendered) preserve their scan state when switching tabs — good for expensive operations like coverage scans
+  - Always grep for command palette `navigateTo` calls when removing a sub-tab — they're easy to miss since they're not type-checked against the SubTab union at the call site
+---

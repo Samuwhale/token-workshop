@@ -1032,7 +1032,7 @@ export function App() {
         label: 'Canvas Components',
         description: 'Component token coverage report',
         category: 'Navigation',
-        handler: () => navigateTo('apply', 'components'),
+        handler: () => navigateTo('apply', 'canvas-analysis'),
       },
       {
         id: 'publish',

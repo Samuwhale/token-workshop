@@ -29,7 +29,6 @@ import { PublishPanel } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
 import { CanvasAnalysisPanel } from '../components/CanvasAnalysisPanel';
-import { ComponentCoveragePanel } from '../components/ComponentCoveragePanel';
 import { GraphPanel } from '../components/GraphPanel';
 import { TokenFlowPanel } from '../components/TokenFlowPanel';
 import { ExportPanel } from '../components/ExportPanel';
@@ -419,7 +418,6 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     apply: {
       inspect:          renderApplyInspect,
       'canvas-analysis': renderApplyCanvasAnalysis,
-      components:       renderApplyComponents,
       dependencies:     renderApplyDependencies,
     },
     ship: {
@@ -740,15 +738,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  function renderApplyComponents(): ReactNode {
-    return (
-      <ErrorBoundary panelName="Components" onReset={() => navigateTo('apply', 'inspect')}>
-        <ComponentCoveragePanel />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderApplyDependencies(): ReactNode {
+function renderApplyDependencies(): ReactNode {
     return (
       <ErrorBoundary panelName="Dependencies" onReset={() => navigateTo('apply', 'inspect')}>
         <TokenFlowPanel

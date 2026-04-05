@@ -3,10 +3,11 @@ import type { TokenMapEntry, BindableProperty, ScanScope } from '../../shared/ty
 import { HeatmapPanel } from './HeatmapPanel';
 import type { HeatmapResult } from './HeatmapPanel';
 import { ConsistencyPanel } from './ConsistencyPanel';
+import { ComponentCoveragePanel } from './ComponentCoveragePanel';
 import { ScanScopeSelector } from './ScanScopeSelector';
 import { useHeatmapContext } from '../contexts/InspectContext';
 
-type CanvasTab = 'coverage' | 'suggestions';
+type CanvasTab = 'coverage' | 'suggestions' | 'components';
 
 interface CanvasAnalysisPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
@@ -52,16 +53,19 @@ export function CanvasAnalysisPanel({
     <div className="flex flex-col h-full">
       {/* Shared toolbar: scope selector + tab switcher */}
       <div className="flex items-center gap-0 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        {/* Scope selector */}
-        <div className="mr-3">
-          <ScanScopeSelector value={heatmapScope} onChange={handleScopeChange} showLabel />
-        </div>
+        {/* Scope selector — only relevant for coverage/suggestions tabs */}
+        {activeTab !== 'components' && (
+          <div className="mr-3">
+            <ScanScopeSelector value={heatmapScope} onChange={handleScopeChange} showLabel />
+          </div>
+        )}
 
         {/* Tab switcher */}
         <div className="ml-auto flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px]">
           {([
             { id: 'coverage' as CanvasTab, label: 'Coverage' },
             { id: 'suggestions' as CanvasTab, label: 'Suggestions' },
+            { id: 'components' as CanvasTab, label: 'Components' },
           ]).map(tab => (
             <button
               key={tab.id}
@@ -104,6 +108,10 @@ export function CanvasAnalysisPanel({
           scope={heatmapScope}
           onScopeChange={handleScopeChange}
         />
+      </div>
+
+      <div className={`flex-1 flex flex-col overflow-hidden ${activeTab === 'components' ? '' : 'hidden'}`}>
+        <ComponentCoveragePanel />
       </div>
     </div>
   );
