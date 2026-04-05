@@ -732,3 +732,10 @@
   - The command palette entry for 'canvas-audit' was split into three separate entries (canvas-coverage, canvas-consistency, canvas-components) for finer-grained deep-linking.
   - The toolbar toggle button pointed at 'canvas-audit'; update it to the most primary sub-tab ('coverage') so the quick-access shortcut still works.
 ---
+
+## 2026-04-05 - No keyboard shortcut for "Apply token to selection"
+- Stale — already implemented. `Cmd+Shift+A` toggles `showQuickApply` in App.tsx (line 641-643). The shortcut is registered in `shortcutRegistry.ts` line 133 under the "Inspect" group (`TOGGLE_QUICK_APPLY: '⌘⇧A'`), so it appears in the keyboard shortcuts modal. It's also listed in the command palette with label "Quick apply token to selection".
+- Files changed: none
+- **Learnings for future iterations:**
+  - The shortcut registry in `shared/shortcutRegistry.ts` is the canonical source for what's shown in the shortcuts modal — check it first before assuming a shortcut is missing.
+---
