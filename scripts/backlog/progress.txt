@@ -555,3 +555,16 @@
   - `getQuickBindTargets` already handles the "smart default" logic (scope filtering + capability filtering), so reusing it gives correct property suggestions without reimplementing the logic.
   - `data-accel` on context menu buttons is automatically handled by the existing keydown effect — no extra code needed to wire up keyboard shortcuts.
 ---
+
+## 2026-04-05 - ExportPanel platform exporter extraction
+- Extracted all 10 platform formatters from the monolithic `style-dict.ts` (432 lines) into self-contained modules under `packages/server/src/services/exporters/`, each implementing the `PlatformExporter` interface: `{ id, label, fileExtension, usesCssTokens, format(ctx) }`.
+- New files: `exporters/types.ts` (shared interfaces), `exporters/utils.ts` (all utility functions: deepMergeInto, buildFlatTokenList, buildFlatValueMap, resolveGradientStopAliases, injectFormulaCalc, setNested, serializeJsValue), `exporters/css.ts`, `exporters/scss.ts`, `exporters/less.ts`, `exporters/dart.ts`, `exporters/ios-swift.ts`, `exporters/android.ts`, `exporters/json.ts`, `exporters/typescript.ts`, `exporters/tailwind.ts`, `exporters/css-in-js.ts`, `exporters/index.ts` (EXPORTERS Map + barrel).
+- `style-dict.ts` reduced from 432 lines to ~80 lines — now a thin orchestrator that merges token sets, writes shared temp files, and iterates EXPORTERS.
+- Optimisation: `tokens-css.json` (formula→calc) is only written when at least one requested platform has `usesCssTokens: true`, skipping the work for mobile/native-only exports.
+- The route file `routes/export.ts` required zero changes; it imports `exportTokens`, `ExportPlatform`, and `CssExportOptions` from `style-dict.ts` which re-exports them from the new modules.
+- Files changed: `packages/server/src/services/style-dict.ts` (rewritten ~L1); `packages/server/src/services/exporters/types.ts` (new); `packages/server/src/services/exporters/utils.ts` (new); `packages/server/src/services/exporters/css.ts` (new); `packages/server/src/services/exporters/scss.ts` (new); `packages/server/src/services/exporters/less.ts` (new); `packages/server/src/services/exporters/dart.ts` (new); `packages/server/src/services/exporters/ios-swift.ts` (new); `packages/server/src/services/exporters/android.ts` (new); `packages/server/src/services/exporters/json.ts` (new); `packages/server/src/services/exporters/typescript.ts` (new); `packages/server/src/services/exporters/tailwind.ts` (new); `packages/server/src/services/exporters/css-in-js.ts` (new); `packages/server/src/services/exporters/index.ts` (new)
+- **Learnings for future iterations:**
+  - The `usesCssTokens` boolean flag is the key to skipping the formula→calc injection for non-CSS platforms — cleaner than a tri-state enum or inline platform checks.
+  - Shared temp dir (owned by orchestrator, path in ExporterContext) is the right tradeoff: one mkdir/rm-rf, token JSON written once, but each SD exporter still builds into its own subdir to avoid filename collisions.
+  - Re-exporting public types from the original `style-dict.ts` means zero changes to callers (routes, tests) — always worth the one-liner re-export when refactoring a module that has stable external consumers.
+---
