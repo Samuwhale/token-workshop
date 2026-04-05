@@ -671,3 +671,16 @@
   - Custom event pair (`dispatchEvent(new CustomEvent('xyzChanged'))` in writer + `window.addEventListener('xyzChanged', ...)` in reader) is the lightest-weight sync mechanism for cross-component state that lives in localStorage. No context, no prop threading, no ref sharing required.
   - When applying state from a command palette action that navigates to a new panel, the "pending action in localStorage + custom event on arrival" pattern works cleanly: write the action ID before `navigateTo`, fire the event after. The receiving component listens on mount AND on the event (handles both already-mounted and just-mounted cases).
 ---
+
+## 2026-04-05 - Publish readiness checks don't auto-rerun after fixing issues
+- Added two new auto-rerun triggers in `useReadinessChecks.ts`:
+  1. `useEffect` watching `checksStale` + `connected` + `activeSet`: when a sync/apply operation marks checks stale (varSync.applyDiff, styleSync.applyDiff, git.applyDiff), checks now auto-rerun instead of requiring a manual "Re-check" click
+  2. `useEffect` with a `window` `message` listener for `variables-applied`: when Figma confirms the "Push missing variables" fix completed, checks auto-rerun to reflect the new state
+- Added `isRunningRef` guard in `runReadinessChecks` to prevent concurrent check runs when multiple auto-rerun triggers fire simultaneously (e.g. `checksStale` + `tokenChangeKey` both changing at once)
+- The `tokenChangeKey` auto-rerun (for token edits/broken alias fixes) was already implemented; no change needed there
+- Files changed: `packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts` ~L67, ~L177
+- **Learnings for future iterations:**
+  - The `checksStale` flag pattern (set by parent after mutations, cleared by the hook after recheck) is clean but was missing the auto-rerun leg; the fix is a simple `useEffect` watching the flag
+  - When adding multiple auto-rerun paths, always add a concurrent-run guard (`isRunningRef`) to the underlying async function — without it, two triggers firing simultaneously would start two overlapping network requests
+  - `variables-applied` is the plugin's response to `apply-variables`; listening for it in the readiness hook eliminates the need for a timeout/polling approach after the "Push missing" fix button
+---

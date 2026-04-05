@@ -64,8 +64,12 @@ export function useReadinessChecks({
   /** True when a sync/apply happened after checks ran, making results outdated */
   const [checksStale, setChecksStale] = useState(false);
 
+  /** Prevents concurrent check runs (e.g. when multiple auto-rerun triggers fire together) */
+  const isRunningRef = useRef(false);
+
   const runReadinessChecks = useCallback(async () => {
-    if (!activeSet) return;
+    if (!activeSet || isRunningRef.current) return;
+    isRunningRef.current = true;
     setReadinessLoading(true);
     setReadinessError(null);
     try {
@@ -142,6 +146,7 @@ export function useReadinessChecks({
       setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
       setReadinessLoading(false);
+      isRunningRef.current = false;
     }
   }, [serverUrl, activeSet, readFigmaTokens, collectionMap, modeMap, tokenChangeKey, setOrphanConfirm]);
 
@@ -168,6 +173,25 @@ export function useReadinessChecks({
     runReadinessChecksRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokenChangeKey]); // re-run when token data changes
+
+  // Auto-rerun when a sync/apply operation marks checks stale (e.g. after varSync.applyDiff)
+  useEffect(() => {
+    if (!checksStale || !connected || !activeSet) return;
+    runReadinessChecksRef.current();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checksStale, connected, activeSet]);
+
+  // Auto-rerun after Figma confirms variables were applied (from the "Push missing" fix button)
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const msg = (event.data as { pluginMessage?: { type: string } })?.pluginMessage;
+      if (msg?.type === 'variables-applied') {
+        runReadinessChecksRef.current();
+      }
+    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []); // stable — uses ref; runReadinessChecks guards activeSet
 
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;

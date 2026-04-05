@@ -992,3 +992,26 @@ Already up to date.
 
   Merging to main: Export presets are buried in a collapsible section with no keyboard shortcut
 Already up to date.
+[main a615f785] chore(backlog): done – Export presets are buried in a collapsible section with no keyboard shortcut
+ 8 files changed, 103 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Export presets buried with no keyboard shortcut
+- Added `⌘⇧E` keyboard shortcut that opens the command palette pre-filtered to "Export with preset"
+- Added dynamic `exportPresetCommands` slice in App.tsx: one command per saved preset ("Export with preset: <name>"), under the 'Data' category
+- Commands stay in sync via `exportPresetRev` state + `exportPresetsChanged` custom event dispatched by ExportPanel whenever presets are saved
+
+═══════════════════════════════════════════════════════════════
+  #41  ·  15 queued · 0
+0 in-progress · last took 6m48s
+═══════════════════════════════════════════════════════════════
+  → Publish readiness checks don't auto-rerun after fixing issues — PublishPanel.tsx detects when checks are "outdated" after token changes but only shows a manual "Re-check" button; after a user fixes a blocking issue (e.g. broken alias), they must remember to manually re-check before the publish button enables; auto-rerun checks after the fix action completes would eliminate this friction
+  Worktree: /tmp/backlog-54964-tpbqvk
+  Running agent… (started 04:29:45)
+
+  ✓ done: Publish readiness checks don't auto-rerun after fixing issues
+    Added two auto-rerun triggers in useReadinessChecks.ts: (1) useEffect on checksStale for post-sync auto-rerun, (2) window message listener for variables-applied to rerun after "Push missing" fix; also added isRunningRef to prevent concurrent check runs
+    13 turns · 296s · $0.71
+
+  Merging to main: Publish readiness checks don't auto-rerun after fixing issues
+Already up to date.
