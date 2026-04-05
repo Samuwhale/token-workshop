@@ -802,3 +802,22 @@
   - Filtering by `token.$value` catches alias reference strings like `{color.primary.500}` — users can search for alias dependencies by target name
   - The `TokenRow` export was a dead alias pointing to a function that was never actually used by the main component; the safe fix is to re-export the real component under that name
 ---
+
+## 2026-04-05 - Extract HealthPanel sub-components
+- Extracted 4 standalone sub-components from the 1813-line HealthPanel monolith:
+  - `UnusedTokensPanel.tsx` (~205 lines): manages show/hide state, delete/deprecate per-token and bulk, with ConfirmModal dialogs. Calls `onMutate()` to signal parent to increment reloadKey.
+  - `DuplicateDetectionPanel.tsx` (~180 lines): handles dedup groups with per-group and bulk deduplicate flows. Returns null when no groups. Calls `onMutate()` + `onRefreshValidation()`.
+  - `ContrastMatrixPanel.tsx` (~320 lines): owns all contrast matrix state (page, filters, multi-theme mode) and derived memos (themedSetsForContrast, allThemeOptionKeys, perThemeResolved, multiThemeColorTokens). Receives colorTokens, dimensions, allTokensFlat, pathToSet as props.
+  - `LightnessInspectorPanel.tsx` (~70 lines): renders SVG lightness graphs with anomaly dots. Receives pre-computed colorScales prop.
+- HealthPanel.tsx reduced from 1813 → ~670 lines. Shared derived data (allTokensUnified, resolveColorHex, colorTokens, allColorTokens, lintDuplicateGroups, colorScales, unusedTokens) remains in HealthPanel and is passed as props to sub-components.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/UnusedTokensPanel.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/DuplicateDetectionPanel.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/LightnessInspectorPanel.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` (rewritten, ~1813 → ~670 lines)
+- **Learnings for future iterations:**
+  - Never place an early `return null` before any `useMemo`/`useState` calls — hooks must be called unconditionally. Move the guard to just before the `return (JSX)` statement, after all hooks.
+  - The `onMutate` callback pattern is cleaner than passing `setReloadKey` down — the parent owns the trigger, sub-components just notify when mutations complete.
+  - When extracting multi-theme contrast logic, all the derived memos (themedSetsForContrast, allThemeOptionKeys, perThemeResolved, multiThemeColorTokens) can live in ContrastMatrixPanel itself since they're exclusively consumed there.
+---
