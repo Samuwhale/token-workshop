@@ -63,7 +63,7 @@ import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
-import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
+import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
 import { Tooltip } from './shared/Tooltip';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
@@ -613,26 +613,26 @@ export function App() {
   keyboardShortcutRef.current = (e: KeyboardEvent) => {
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+    if (matchesShortcut(e, 'PASTE_TOKENS')) {
       e.preventDefault();
       setShowPasteModal(true);
     }
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
+    if (matchesShortcut(e, 'OPEN_PALETTE')) {
       e.preventDefault();
       setCommandPaletteInitialQuery('');
       setShowCommandPalette(v => !v);
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
+    if (matchesShortcut(e, 'OPEN_TOKEN_SEARCH')) {
       e.preventDefault();
       setCommandPaletteInitialQuery('>');
       setShowCommandPalette(v => !v);
     }
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'p') {
+    if (matchesShortcut(e, 'TOGGLE_PREVIEW')) {
       e.preventDefault();
       setShowPreviewSplit(v => !v);
       setOverflowPanel(null);
     }
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
+    if (matchesShortcut(e, 'CREATE_FROM_SELECTION')) {
       e.preventDefault();
       navigateTo('apply', 'inspect');
       setTriggerCreateToken(n => n + 1);
@@ -641,38 +641,36 @@ export function App() {
       e.preventDefault();
       setShowCreatePanel(prev => prev ? null : { tab: 'single' });
     }
-    const tabIndex = ['1', '2', '3'].indexOf(e.key);
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TOP_TABS.length) {
-      e.preventDefault();
-      navigateTo(TOP_TABS[tabIndex].id);
-    }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+    if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); navigateTo(TOP_TABS[0].id); }
+    if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); navigateTo(TOP_TABS[1].id); }
+    if (matchesShortcut(e, 'GO_TO_SHIP'))   { e.preventDefault(); navigateTo(TOP_TABS[2].id); }
+    if (matchesShortcut(e, 'TOGGLE_QUICK_APPLY')) {
       e.preventDefault();
       setShowQuickApply(v => !v);
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
+    if (matchesShortcut(e, 'QUICK_SWITCH_SET')) {
       e.preventDefault();
       setShowManageSets(false);
       setShowSetSwitcher(v => !v);
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'r') {
+    if (matchesShortcut(e, 'GO_TO_RESOLVER')) {
       e.preventDefault();
       navigateTo('define', 'themes');
       setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50);
     }
-    if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+    if (matchesShortcut(e, 'SHOW_SHORTCUTS')) {
       e.preventDefault();
       setShowKeyboardShortcuts(v => !v);
     }
-    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+    if (matchesShortcut(e, 'OPEN_SETTINGS')) {
       e.preventDefault();
       openOverflowPanel('settings');
     }
-    if (e.key === 'F8' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (matchesShortcut(e, 'NEXT_LINT_ISSUE')) {
       e.preventDefault();
       jumpToNextIssue();
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'e') {
+    if (matchesShortcut(e, 'EXPORT_WITH_PRESET')) {
       e.preventDefault();
       // Open command palette pre-filtered to export preset commands
       setCommandPaletteInitialQuery('Export with preset');

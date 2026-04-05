@@ -33,6 +33,7 @@ import { TokenListModalsProvider } from './TokenListModalsContext';
 import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
+import { matchesShortcut } from '../shared/shortcutRegistry';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
@@ -967,7 +968,7 @@ export function TokenList({
     }
 
     // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
-    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+    if (matchesShortcut(e, 'TOKEN_COPY')) {
       if (selectMode && selectedPaths.size > 0) {
         e.preventDefault();
         const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
@@ -989,7 +990,7 @@ export function TokenList({
     }
 
     // Cmd/Ctrl+Shift+C: copy selected tokens in preferred format (configured in Settings)
-    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
+    if (matchesShortcut(e, 'TOKEN_COPY_CSS_VAR')) {
       if (selectMode && selectedPaths.size > 0) {
         e.preventDefault();
         const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
@@ -1033,12 +1034,12 @@ export function TokenList({
     }
 
     // Cmd/Ctrl+] / Cmd/Ctrl+[: navigate to next/previous token in the editor (works from list when side panel is visible)
-    if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && editingTokenPath) {
+    if ((matchesShortcut(e, 'EDITOR_NEXT_TOKEN') || matchesShortcut(e, 'EDITOR_PREV_TOKEN')) && editingTokenPath) {
       e.preventDefault();
       const nodes = displayedLeafNodesRef.current;
       const idx = nodes.findIndex(n => n.path === editingTokenPath);
       if (idx !== -1) {
-        const next = e.key === ']' ? nodes[idx + 1] : nodes[idx - 1];
+        const next = matchesShortcut(e, 'EDITOR_NEXT_TOKEN') ? nodes[idx + 1] : nodes[idx - 1];
         if (next) onEdit(next.path, next.name);
       }
       return;
@@ -1048,7 +1049,7 @@ export function TokenList({
     if (isTyping) return;
 
     // Cmd/Ctrl+A: select all visible leaf tokens (auto-enters select mode)
-    if (e.key === 'a' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a') {
       e.preventDefault();
       if (!selectMode) setSelectMode(true);
       setSelectedPaths(new Set(displayedLeafNodesRef.current.map(n => n.path)));
@@ -1056,7 +1057,7 @@ export function TokenList({
     }
 
     // m: toggle multi-select mode
-    if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (matchesShortcut(e, 'TOKEN_MULTI_SELECT')) {
       e.preventDefault();
       if (selectMode) {
         setSelectMode(false);
@@ -1078,7 +1079,7 @@ export function TokenList({
     }
 
     // n: open create form / drawer, pre-filling path from focused group or token's parent group
-    if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (matchesShortcut(e, 'TOKEN_NEW')) {
       e.preventDefault();
       const activeEl = document.activeElement as HTMLElement;
       const groupPath = activeEl?.dataset?.groupPath;
@@ -1106,7 +1107,7 @@ export function TokenList({
     }
 
     // /: focus search input
-    if (e.key === '/') {
+    if (matchesShortcut(e, 'TOKEN_SEARCH')) {
       e.preventDefault();
       searchRef.current?.focus();
       return;
@@ -1179,13 +1180,14 @@ export function TokenList({
     }
 
     // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    if (matchesShortcut(e, 'TOKEN_EXPAND_ALL')) {
       e.preventDefault();
-      if (e.key === 'ArrowRight') {
-        handleExpandAll();
-      } else {
-        handleCollapseAll();
-      }
+      handleExpandAll();
+      return;
+    }
+    if (matchesShortcut(e, 'TOKEN_COLLAPSE_ALL')) {
+      e.preventDefault();
+      handleCollapseAll();
       return;
     }
 

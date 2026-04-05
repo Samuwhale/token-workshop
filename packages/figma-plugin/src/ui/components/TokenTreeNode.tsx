@@ -23,6 +23,7 @@ import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
+import { matchesShortcut } from '../shared/shortcutRegistry';
 
 // Stable empty array to avoid creating new references when a node has no lint violations
 const EMPTY_LINT_VIOLATIONS: NonNullable<TokenTreeNodeProps['lintViolations']> = [];
@@ -1404,21 +1405,21 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     }
 
     // Delete or Backspace: delete token
-    if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (e.key === 'Delete' || matchesShortcut(e, 'TOKEN_DELETE')) {
       e.preventDefault();
       onDelete(node.path);
       return;
     }
 
     // Cmd+D / Ctrl+D: duplicate token
-    if (e.key === 'd' && (e.metaKey || e.ctrlKey)) {
+    if (matchesShortcut(e, 'TOKEN_DUPLICATE')) {
       e.preventDefault();
       onDuplicateToken?.(node.path);
       return;
     }
 
     // F2: rename token inline
-    if (e.key === 'F2') {
+    if (matchesShortcut(e, 'TOKEN_RENAME')) {
       e.preventDefault();
       setRenameTokenVal(node.name);
       setRenamingToken(true);
@@ -1426,7 +1427,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     }
 
     // V: apply focused token to current Figma selection (same as context menu accelerator)
-    if (e.key === 'v' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+    if (matchesShortcut(e, 'TOKEN_APPLY_SELECTION')) {
       e.preventDefault();
       handleContextMenuApply();
       return;

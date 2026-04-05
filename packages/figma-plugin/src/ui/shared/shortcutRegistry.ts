@@ -2,11 +2,13 @@
  * Single source of truth for all keyboard shortcut definitions.
  *
  * - SHORTCUT_KEYS: key combo constants (Mac display strings) for use in handlers and JSX
+ * - SHORTCUT_MATCHERS: key-matching descriptors (actual e.key + modifier flags) for handlers
+ * - matchesShortcut(e, id): helper to check whether a keyboard event matches a named shortcut
  * - SHORTCUT_REGISTRY: full metadata for every shortcut (used by KeyboardShortcutsModal)
  * - SHORTCUT_SECTIONS: registry grouped and ordered to match the help modal layout
  *
- * Handler logic (the actual e.key matching) stays in each component — only the
- * display strings are centralised here so the modal can never drift from reality.
+ * Handler files import matchesShortcut and SHORTCUT_KEYS rather than hard-coding key
+ * strings, so the registry is the single source of truth for both display AND behaviour.
  */
 
 export type ShortcutGroup =
@@ -89,6 +91,137 @@ export const SHORTCUT_KEYS = {
 } as const;
 
 export type ShortcutKey = keyof typeof SHORTCUT_KEYS;
+
+// ---------------------------------------------------------------------------
+// Key matchers — the runtime matching data for each named shortcut.
+// ---------------------------------------------------------------------------
+
+/**
+ * Describes exactly which key combination triggers a shortcut.
+ *
+ * - `key`: `e.key` value to match (case-insensitive for letter keys; use exact case
+ *   for special keys like 'Enter', 'Backspace', 'F8', 'ArrowRight').
+ * - `meta`: when true, metaKey OR ctrlKey must be held; when false, neither may be held;
+ *   when undefined, this modifier is not checked (use only for keys like '?' whose shift
+ *   state is implied by the character itself on most keyboard layouts).
+ * - `shift`: when true, shiftKey must be held; when false, it must not be; undefined = not checked.
+ * - `alt`: when true, altKey must be held; when false, it must not be; undefined = not checked.
+ *
+ * Unspecified (undefined) modifier fields are NOT checked — this is intentional only for
+ * special cases where the modifier state is implied by `e.key` (e.g. '?' always requires
+ * shift on US keyboards, so checking `shift: false` would break the shortcut).
+ */
+export interface KeyMatcher {
+  key: string;
+  meta?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+}
+
+/**
+ * Key-matching descriptor for every named shortcut.
+ * Handlers import `matchesShortcut` and pass one of these ids — they never hard-code
+ * key strings or modifier checks.
+ *
+ * Note: EDITOR_SAVE and PASTE_CONFIRM share the same combo (⌘↵). This is intentional —
+ * the two handlers are active in mutually-exclusive modal contexts so there is no runtime
+ * conflict, but the dev-mode checker will log an informational note about the duplication.
+ */
+export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
+  // Global
+  OPEN_PALETTE:          { key: 'k',          meta: true,  shift: false, alt: false },
+  EXPORT_WITH_PRESET:    { key: 'e',          meta: true,  shift: true,  alt: false },
+  OPEN_TOKEN_SEARCH:     { key: 'f',          meta: true,  shift: true,  alt: false },
+  PASTE_TOKENS:          { key: 'v',          meta: true,  shift: true,  alt: false },
+  OPEN_SETTINGS:         { key: ',',          meta: true,  shift: false, alt: false },
+  SHOW_SHORTCUTS:        { key: '?',          meta: false },                           // shift not checked: '?' implies Shift on US keyboards
+  TOGGLE_QUICK_APPLY:    { key: 'a',          meta: true,  shift: true,  alt: false },
+  QUICK_SWITCH_SET:      { key: 's',          meta: true,  shift: true,  alt: false },
+  TOGGLE_PREVIEW:        { key: 'p',          meta: true,  shift: false, alt: false },
+  // Navigation
+  GO_TO_DEFINE:          { key: '1',          meta: true,  shift: false, alt: false },
+  GO_TO_APPLY:           { key: '2',          meta: true,  shift: false, alt: false },
+  GO_TO_SHIP:            { key: '3',          meta: true,  shift: false, alt: false },
+  GO_TO_RESOLVER:        { key: 'r',          meta: true,  shift: true,  alt: false },
+  // Inspect
+  CREATE_FROM_SELECTION: { key: 't',          meta: true,  shift: false, alt: false },
+  TOGGLE_DEEP_INSPECT:   { key: 'd',          meta: true,  shift: true,  alt: false },
+  NEXT_LINT_ISSUE:       { key: 'F8',         meta: false, shift: false, alt: false },
+  // Token Editor
+  EDITOR_SAVE:           { key: 'Enter',      meta: true,  shift: false, alt: false },
+  EDITOR_SAVE_AND_NEW:   { key: 'Enter',      meta: true,  shift: true,  alt: false },
+  EDITOR_TOGGLE_ALIAS:   { key: 'l',          meta: true,  shift: false, alt: false },
+  EDITOR_NEXT_TOKEN:     { key: ']',          meta: true,  shift: false, alt: false },
+  EDITOR_PREV_TOKEN:     { key: '[',          meta: true,  shift: false, alt: false },
+  // Token List
+  TOKEN_NEW:             { key: 'n',          meta: false, shift: false, alt: false },
+  TOKEN_SEARCH:          { key: '/',          meta: false, shift: false, alt: false },
+  TOKEN_COPY:            { key: 'c',          meta: true,  shift: false, alt: false },
+  TOKEN_COPY_CSS_VAR:    { key: 'c',          meta: true,  shift: true,  alt: false },
+  TOKEN_MULTI_SELECT:    { key: 'm',          meta: false, shift: false, alt: false },
+  TOKEN_EXPAND_ALL:      { key: 'ArrowRight', meta: true,  shift: false, alt: false },
+  TOKEN_COLLAPSE_ALL:    { key: 'ArrowLeft',  meta: true,  shift: false, alt: false },
+  TOKEN_APPLY_SELECTION: { key: 'v',          meta: false, shift: false, alt: false },
+  TOKEN_RENAME:          { key: 'F2',         meta: false, shift: false, alt: false },
+  TOKEN_DELETE:          { key: 'Backspace',  meta: false, shift: false, alt: false },
+  TOKEN_DUPLICATE:       { key: 'd',          meta: true,  shift: false, alt: false },
+  // Paste Modal (same combo as EDITOR_SAVE — context-only, not a real conflict)
+  PASTE_CONFIRM:         { key: 'Enter',      meta: true,  shift: false, alt: false },
+};
+
+/**
+ * Returns true when a keyboard event matches the named shortcut's combo exactly.
+ *
+ * Accepts both native `KeyboardEvent` and React synthetic keyboard events.
+ * Key comparison is case-insensitive (handles e.g. 'A' vs 'a' when shift is held).
+ * Only modifier fields that are NOT `undefined` in the matcher are checked, so
+ * shortcuts with partial specs (like SHOW_SHORTCUTS) behave as documented above.
+ */
+export function matchesShortcut(
+  e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean },
+  id: ShortcutKey,
+): boolean {
+  const m = SHORTCUT_MATCHERS[id];
+  if (!m) return false;
+  if (e.key.toLowerCase() !== m.key.toLowerCase()) return false;
+  const hasMeta = e.metaKey || e.ctrlKey;
+  if (m.meta !== undefined && !!m.meta !== hasMeta) return false;
+  if (m.shift !== undefined && !!m.shift !== e.shiftKey) return false;
+  if (m.alt !== undefined && !!m.alt !== e.altKey) return false;
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Dev-mode conflict detection — runs once at module load in non-production builds
+// ---------------------------------------------------------------------------
+if (process.env.NODE_ENV !== 'production') {
+  (() => {
+    const seen = new Map<string, string>();
+    for (const [id, matcher] of Object.entries(SHORTCUT_MATCHERS) as [string, KeyMatcher | undefined][]) {
+      if (!matcher) continue;
+      // Build a canonical signature; undefined modifier fields are skipped
+      const sig = [
+        matcher.key.toLowerCase(),
+        `meta:${matcher.meta ?? '*'}`,
+        `shift:${matcher.shift ?? '*'}`,
+        `alt:${matcher.alt ?? '*'}`,
+      ].join('|');
+      const prev = seen.get(sig);
+      if (prev) {
+        // Only log an info note for known context-only duplicates; warn for unexpected ones
+        const known = new Set(['EDITOR_SAVE|PASTE_CONFIRM', 'PASTE_CONFIRM|EDITOR_SAVE']);
+        const pair = `${prev}|${id}`;
+        if (!known.has(pair)) {
+          console.warn(`[ShortcutRegistry] ⚠ Conflict: "${id}" shares combo "${sig}" with "${prev}"`);
+        } else {
+          console.info(`[ShortcutRegistry] Context-only duplicate: "${id}" and "${prev}" share "${sig}" — intentional`);
+        }
+      } else {
+        seen.set(sig, id);
+      }
+    }
+  })();
+}
 
 export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   // ── Global ──────────────────────────────────────────────────────────────

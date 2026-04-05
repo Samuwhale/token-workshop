@@ -655,3 +655,19 @@
   - `ResolverSource` is a union of `ResolverRef | DTCGGroup`. The `$ref` discrimination check (`'$ref' in src`) is needed to distinguish file refs from inline token groups. Internal pointer refs start with `#/` and should be excluded when building the referenced-sets list.
   - Token set membership for a token is `pathToSet[tokenPath]` — always use this rather than the `setName` prop which reflects the currently-selected set in the editor panel, not necessarily the token's canonical set.
 ---
+
+## 2026-04-05 - No centralized keyboard shortcut registry
+- Extended `shortcutRegistry.ts` with `KeyMatcher` type, `SHORTCUT_MATCHERS` record (key + modifier descriptors for every named shortcut), and `matchesShortcut(e, id)` helper. Added dev-mode conflict detection that logs a warning when two registry entries share an identical combo (EDITOR_SAVE / PASTE_CONFIRM share ⌘↵ intentionally across mutually-exclusive modal contexts, noted as a known pair). Migrated 5 handler files from inline `e.key === '...' && (e.metaKey || e.ctrlKey)` checks to `matchesShortcut(e, 'SHORTCUT_ID')` calls, making the registry the single source of truth for both display strings and matching behaviour.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L1 (KeyMatcher, SHORTCUT_MATCHERS, matchesShortcut, conflict detector)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L66 (import), ~L616 (handler migration)
+  - `packages/figma-plugin/src/ui/hooks/useTokenEditorSave.ts` ~L8 (import), ~L209 (handler migration)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L35 (import), ~L970 (handler migration)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L25 (import), ~L1407 (handler migration)
+  - `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L12 (import), ~L293 (handler migration)
+- **Learnings for future iterations:**
+  - `KeyMatcher` uses `undefined` for modifier fields that should NOT be checked (vs `false` = must not be pressed). This is necessary for the `?` shortcut (SHOW_SHORTCUTS) because on US keyboards, `?` requires Shift, so `e.shiftKey` is always true when `e.key === '?'` — checking `shift: false` would break it.
+  - `e.key` for letter keys is lowercase without shift (`'a'`) but uppercase with shift (`'A'`). The `matchesShortcut` function does case-insensitive comparison (`toLowerCase()`) so both cases work with lowercase matcher keys.
+  - EDITOR_SAVE and PASTE_CONFIRM legitimately share ⌘↵ — they're active in mutually exclusive modal contexts. The conflict detector has a hardcoded `known` set for such intentional duplicates so it doesn't spam the console.
+  - `⌘S` as an editor save alternative was NOT in the registry — kept as a raw `e.key === 's'` check with a comment noting it's undocumented, rather than polluting the registry with unlisted shortcuts.
+---

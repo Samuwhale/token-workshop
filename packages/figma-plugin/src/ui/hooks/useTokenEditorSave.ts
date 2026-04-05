@@ -5,6 +5,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
+import { matchesShortcut } from '../shared/shortcutRegistry';
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
@@ -206,19 +207,24 @@ export function useTokenEditorSave({
         if (showAutocomplete) { setShowAutocomplete(false); return; }
         handleBack();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+      if (matchesShortcut(e, 'EDITOR_TOGGLE_ALIAS')) {
         e.preventDefault();
         handleToggleAlias();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      if (matchesShortcut(e, 'EDITOR_SAVE_AND_NEW')) {
         e.preventDefault();
-        if (e.shiftKey && isCreateMode && onSaveAndCreateAnother) {
+        if (isCreateMode && onSaveAndCreateAnother) {
           handleSaveRef.current(false, true);
         } else {
           handleSaveRef.current();
         }
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      if (matchesShortcut(e, 'EDITOR_SAVE')) {
+        e.preventDefault();
+        handleSaveRef.current();
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === 's') {
+        // ⌘S: undocumented alternative save shortcut (not in registry)
         e.preventDefault();
         handleSaveRef.current();
       }

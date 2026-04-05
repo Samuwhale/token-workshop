@@ -9,7 +9,7 @@ import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { adaptShortcut, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
-import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
+import { SHORTCUT_KEYS, matchesShortcut } from '../shared/shortcutRegistry';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import {
   shouldShowGroup,
@@ -290,7 +290,7 @@ export function SelectionInspector({
   // Keyboard shortcut: Cmd+Shift+D to toggle deep inspect
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'd') {
+      if (matchesShortcut(e, 'TOGGLE_DEEP_INSPECT')) {
         e.preventDefault();
         setDeepInspect(prev => {
           const next = !prev;
