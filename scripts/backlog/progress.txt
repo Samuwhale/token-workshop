@@ -556,3 +556,11 @@
   - Alias references (`{path.to.token}`) are always valid regardless of `$type`, so the shape-check must short-circuit on them before the type-switch.
   - `validateDTCGValue` is exported so callers outside the resolver (e.g. token import pipelines) can reuse it at their own boundaries without duplicating logic.
 ---
+
+## 2026-04-05 - generator-engine.ts baseStep silent default
+- Added a descriptive `throw new Error(...)` in `runTypeScaleGenerator` when `baseStep` doesn't match any step name, replacing the silent `?? 0` fallback. Also added server-side validation in the `typeScale` config branch of `validateGeneratorConfig` to reject misconfigured generators at creation/edit time (HTTP 400) rather than silently producing wrong output.
+- Files changed: `packages/core/src/generator-engine.ts` ~L162; `packages/server/src/routes/generators.ts` ~L195
+- **Learnings for future iterations:**
+  - The server-side `validateGeneratorConfig` function is the right place to catch config errors early (returns `{ error }` for 400 responses). After steps are validated (non-empty, valid shape, no duplicates), a `baseStep` membership check fits naturally there.
+  - The generator engine should be the last line of defence — throwing in the engine catches cases where generators bypass the HTTP validation path (e.g., direct function calls in tests or scripts).
+---

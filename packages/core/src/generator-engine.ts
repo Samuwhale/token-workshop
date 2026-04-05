@@ -159,7 +159,13 @@ export function runTypeScaleGenerator(
   }
 
   const baseStepDef = steps.find(s => s.name === baseStep);
-  const baseExponent = baseStepDef?.exponent ?? 0;
+  if (!baseStepDef) {
+    throw new Error(
+      `Type scale generator: baseStep "${baseStep}" does not match any step name. ` +
+        `Available steps: ${steps.map(s => s.name).join(', ')}.`,
+    );
+  }
+  const baseExponent = baseStepDef.exponent;
 
   return steps.map(step => {
     const relativeExponent = step.exponent - baseExponent;

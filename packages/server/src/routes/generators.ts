@@ -193,6 +193,8 @@ function validateGeneratorConfig(
       if ((c.ratio as number) <= 0) return { error: 'typeScale config "ratio" must be > 0' };
       if (!DIMENSION_UNITS.includes(c.unit as DimensionUnit)) return { error: `typeScale config requires "unit" as a valid CSS dimension unit (e.g. "px", "rem", "em")` };
       if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
+      const stepNames = (c.steps as Array<{ name: string }>).map(s => s.name);
+      if (!stepNames.includes(c.baseStep as string)) return { error: `typeScale config "baseStep" ("${c.baseStep}") must match one of the defined step names: ${stepNames.join(', ')}` };
       if (!isFiniteNum(c.roundTo)) return { error: 'typeScale config requires "roundTo" as finite number' };
       if ((c.roundTo as number) < 0) return { error: 'typeScale config "roundTo" must be >= 0' };
       const tokenRefs = validateTokenRefs(c.$tokenRefs, ['ratio']);

@@ -107,3 +107,27 @@ Already up to date.
 
   Merging to main: dtcg-resolver.ts:205 casts $value without validation
 Already up to date.
+[main bd81d02a] chore(backlog): done – dtcg-resolver.ts:205 casts $value without validation
+ 6 files changed, 471 insertions(+), 6 deletions(-)
+ create mode 100644 packages/core/src/__tests__/dtcg-resolver-validation.test.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - dtcg-resolver.ts:205 casts $value without validation
+- Added `validateDTCGValue(value, type, path)` exported from `dtcg-resolver.ts`. Checks for: null/undefined (DTCG spec requires $value), NaN, non-finite numbers (Infinity/-Infinity), circular object references (ancestor-chain WeakSet traversal), and type-specific shape mismatches for all 25 DTCG token types. Alias reference strings (`{...}`) bypass type-shape checks since they're always valid regardless of type.
+- At the merge boundary in `resolveTokens` (was line 205), tokens that fail validation are skipped and a `severity: 'warning'` diagnostic is pushed instead of silently coercing the bad value into the output map.
+- Added test file `packages/core/src/__tests__/dtcg-resolver-validation.test.ts` with unit tests for `validateDTCGValue` and integration tests verifying that malformed tokens produce diagnostics and are excluded from the output.
+
+═══════════════════════════════════════════════════════════════
+  #5  ·  18 queued · 0
+0 in-progress · last took 2m59s
+═══════════════════════════════════════════════════════════════
+  → `packages/core/src/generator-engine.ts:162` silently defaults `baseExponent` to 0 when `baseStep` name doesn't match any step definition — a misconfigured generator (typo in step name) produces wrong scaling values with no warning or error; should throw a descriptive validation error so generator config problems are caught at creation/edit time, not at run time via wrong output
+  Worktree: /tmp/backlog-50286-T1pBIE
+  Running agent… (started 23:05:48)
+
+  ✓ done: generator-engine.ts baseStep silent default
+    Throws descriptive error when baseStep doesn't match any step; also added server-side validation to reject at creation time (HTTP 400)
+    15 turns · 62s · $0.26
+
+  Merging to main: generator-engine.ts baseStep silent default
+Already up to date.
