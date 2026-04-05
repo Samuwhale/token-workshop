@@ -2,10 +2,21 @@ import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { UndoSlot } from '../../hooks/useUndo';
 import type { TransformOp, PortDirection } from './nodeGraphTypes';
-import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType } from './nodeGraphTypes';
+import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType, computeDependencyEdges } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
 import { edgePath } from '../../shared/graphUtils';
+
+// ---------------------------------------------------------------------------
+// Dependency edge path — connects output node (right) to source node (left)
+// across rows, routing via the right side of the canvas.
+// ---------------------------------------------------------------------------
+
+function depEdgePath(x1: number, y1: number, x2: number, y2: number): string {
+  // Route right of the output column, then curve down-left to the source node
+  const rightX = Math.max(x1, x2) + 60;
+  return `M${x1},${y1} C${rightX},${y1} ${rightX},${y2} ${x2},${y2}`;
+}
 
 // ---------------------------------------------------------------------------
 // Context menu for adding transform nodes
@@ -187,6 +198,11 @@ export function NodeGraphCanvas({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; graphX: number; graphY: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 600, h: 400 });
   const addBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ---------------------------------------------------------------------------
+  // Dependency edges — cross-generator connections (computed from raw generators)
+  // ---------------------------------------------------------------------------
+  const dependencyEdges = useMemo(() => computeDependencyEdges(generators), [generators]);
 
   // ---------------------------------------------------------------------------
   // Search — compute matched node IDs
@@ -509,6 +525,73 @@ export function NodeGraphCanvas({
         style={{ zIndex: 1 }}
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+          {/* Cross-generator dependency edges — rendered below regular edges */}
+          {dependencyEdges.map(dep => {
+            const fromOutNode = graph.nodes.find(n => n.id === `out-${dep.fromGeneratorId}`);
+            const toSrcNode = graph.nodes.find(n => n.id === `src-${dep.toGeneratorId}`);
+            const toGenNode = graph.nodes.find(n => n.id === `gen-${dep.toGeneratorId}`);
+            const toNode = toSrcNode ?? toGenNode;
+            if (!fromOutNode || !toNode) return null;
+
+            const fromX = fromOutNode.x + fromOutNode.width;
+            const fromY = fromOutNode.y + (fromOutNode.height || nodeHeight(fromOutNode)) / 2;
+            const toX = toNode.x;
+            const toY = toNode.y + (toNode.height || nodeHeight(toNode)) / 2;
+            const path = depEdgePath(fromX, fromY, toX, toY);
+
+            return (
+              <g key={dep.id} style={{ pointerEvents: 'none' }} aria-hidden="true">
+                {/* Glow / hit area */}
+                <path d={path} fill="none" stroke="var(--color-figma-accent)" strokeWidth={6} strokeOpacity={0.08} />
+                {/* Dashed accent line */}
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="var(--color-figma-accent)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                  strokeOpacity={0.55}
+                />
+                {/* Arrow tip at destination */}
+                <circle cx={toX} cy={toY} r={3} fill="var(--color-figma-accent)" opacity={0.7} />
+                {/* Label near midpoint showing the token path */}
+                {dep.label && (() => {
+                  const rightX = Math.max(fromX, toX) + 60;
+                  const midX = (rightX + toX) / 2;
+                  const midY = (fromY + toY) / 2;
+                  const shortLabel = dep.label.length > 26 ? `…${dep.label.slice(-24)}` : dep.label;
+                  return (
+                    <g>
+                      <rect
+                        x={midX - shortLabel.length * 2.7}
+                        y={midY - 7}
+                        width={shortLabel.length * 5.4}
+                        height={13}
+                        rx={3}
+                        fill="var(--color-figma-bg)"
+                        stroke="var(--color-figma-accent)"
+                        strokeWidth={0.75}
+                        strokeOpacity={0.4}
+                        opacity={0.9}
+                      />
+                      <text
+                        x={midX}
+                        y={midY + 3.5}
+                        textAnchor="middle"
+                        fontFamily="ui-monospace,monospace"
+                        fontSize={8}
+                        fill="var(--color-figma-accent)"
+                        opacity={0.85}
+                      >
+                        {shortLabel}
+                      </text>
+                    </g>
+                  );
+                })()}
+              </g>
+            );
+          })}
+
           {/* Edges */}
           {graph.edges.map(edge => {
             const fromNode = graph.nodes.find(n => n.id === edge.fromNodeId);

@@ -73,6 +73,49 @@ export interface GraphEdge {
 }
 
 // ---------------------------------------------------------------------------
+// Cross-generator dependency edges
+// ---------------------------------------------------------------------------
+
+/**
+ * Represents a semantic dependency between two generators: the upstream generator
+ * produces tokens that are consumed as input by the downstream generator.
+ * These are rendered separately from port-based edges with distinct styling.
+ */
+export interface DependencyEdge {
+  id: string;
+  /** ID of the generator whose output feeds the downstream generator */
+  fromGeneratorId: string;
+  /** ID of the generator that consumes the upstream generator's output */
+  toGeneratorId: string;
+  /** The specific sourceToken path that creates this dependency */
+  label: string;
+}
+
+/**
+ * Compute inter-generator dependency edges for a list of generators.
+ * Generator B depends on generator A when B.sourceToken starts with A.targetGroup + '.'.
+ */
+export function computeDependencyEdges(generators: TokenGenerator[]): DependencyEdge[] {
+  const deps: DependencyEdge[] = [];
+  for (const downstream of generators) {
+    if (!downstream.sourceToken) continue;
+    for (const upstream of generators) {
+      if (upstream.id === downstream.id) continue;
+      if (downstream.sourceToken.startsWith(upstream.targetGroup + '.')) {
+        deps.push({
+          id: `dep-${upstream.id}-${downstream.id}`,
+          fromGeneratorId: upstream.id,
+          toGeneratorId: downstream.id,
+          label: downstream.sourceToken,
+        });
+        break; // One upstream per generator dependency
+      }
+    }
+  }
+  return deps;
+}
+
+// ---------------------------------------------------------------------------
 // Full graph state
 // ---------------------------------------------------------------------------
 
@@ -157,6 +200,56 @@ export function portPosition(
 // Generator → graph conversion
 // ---------------------------------------------------------------------------
 
+/**
+ * Topologically sort generators so that upstream producers come before
+ * downstream consumers in the layout. Cycles fall back to original order.
+ */
+function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
+  const n = generators.length;
+  if (n <= 1) return [...generators];
+
+  // adj[i] = indices of generators that i feeds into (i must appear before adj[i][j])
+  const adj: number[][] = Array.from({ length: n }, () => []);
+  const inDegree = new Array<number>(n).fill(0);
+
+  for (let j = 0; j < n; j++) {
+    const gen = generators[j];
+    if (!gen.sourceToken) continue;
+    for (let i = 0; i < n; i++) {
+      if (i === j) continue;
+      if (gen.sourceToken.startsWith(generators[i].targetGroup + '.')) {
+        adj[i].push(j);
+        inDegree[j]++;
+        break;
+      }
+    }
+  }
+
+  // Kahn's algorithm
+  const queue: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (inDegree[i] === 0) queue.push(i);
+  }
+
+  const sorted: number[] = [];
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    sorted.push(curr);
+    for (const next of adj[curr]) {
+      inDegree[next]--;
+      if (inDegree[next] === 0) queue.push(next);
+    }
+  }
+
+  // Append any remaining (cycle members) in original order
+  const inSortedSet = new Set(sorted);
+  for (let i = 0; i < n; i++) {
+    if (!inSortedSet.has(i)) sorted.push(i);
+  }
+
+  return sorted.map(i => generators[i]);
+}
+
 function getStepCount(gen: TokenGenerator): number {
   const cfg = gen.config as Record<string, unknown>;
   if (Array.isArray(cfg.steps)) return (cfg.steps as unknown[]).length;
@@ -173,7 +266,10 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
   const ROW_H = 120;
   const TOP_PAD = 40;
 
-  generators.forEach((gen, i) => {
+  // Sort generators topologically so upstream producers appear above downstream consumers
+  const sortedGenerators = topoSortGenerators(generators);
+
+  sortedGenerators.forEach((gen, i) => {
     const rowY = TOP_PAD + i * ROW_H;
     const srcId = `src-${gen.id}`;
     const genId = `gen-${gen.id}`;
