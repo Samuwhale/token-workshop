@@ -2095,6 +2095,19 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           >
             <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">F2</span>
           </button>
+          {!isAlias(node.$value) && onExtractToAlias && (
+            <button
+              data-accel="e"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onExtractToAlias(node.path, node.$type, node.$value);
+              }}
+            >
+              <span>Extract to alias…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
+            </button>
+          )}
           <button
             data-accel="l"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

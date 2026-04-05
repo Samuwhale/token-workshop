@@ -383,3 +383,11 @@
   - Gradient fade (`from-[var(--color-figma-bg)] to-transparent`) behind arrow buttons creates a natural affordance for overflow without clipping visible tabs.
   - Using `scrollbarWidth: none` on the inner div (inline style) is necessary since Tailwind doesn't have a `scrollbar-none` utility by default in the plugin's setup.
 ---
+
+## 2026-04-05 - No "extract to alias" action in token context menu
+- Added "Extract to alias…" context menu item to the token right-click menu in `TokenTreeNode.tsx`. The item is conditionally shown only for tokens with literal (non-alias) values (`!isAlias(node.$value)`). It calls the already-existing `onExtractToAlias(node.path, node.$type, node.$value)` callback which opens the `ExtractToAliasModal` — a two-tab dialog letting users either create a new primitive token (with a suggested path) or link to an existing token. The full hook (`useExtractToAlias`) and modal (`ExtractToAliasModal`) were already implemented but never wired to the context menu. Keyboard shortcut `E` is assigned.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2098 (new button inserted before "Link to token…")
+- **Learnings for future iterations:**
+  - The "Extract to alias" infrastructure (hook + modal + context type + TokenList wiring) was fully implemented but the context menu button was simply missing — the feature existed only for lint-violation suggested fixes (`onExtractToAliasForLint`), not as a general user action.
+  - When adding a context-menu item that should be conditionally shown, wrapping in `{condition && (...)}` is the right pattern used throughout this file.
+---
