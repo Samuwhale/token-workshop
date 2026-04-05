@@ -372,3 +372,15 @@
   - The `dimensions.length > 0` guard in PanelRouter previously blocked the entire compare panel from rendering when no themes existed — any new non-theme compare modes need that guard relaxed.
   - Cleanup of `cancelled` flag pattern (returning `() => { cancelled = true; }`) is important for concurrent set fetches to avoid setting stale state.
 ---
+
+## 2026-04-05 - No variable scope editing in the publish flow
+- Added inline scope editing to the Figma Variables sync diff UI. Each push row in the variable diff now shows its current scopes as pills, with an "Edit" toggle that expands a checkbox grid filtered by token type. Scope conflicts between local and Figma are highlighted as a "scope conflict" warning. The `buildApplyPayload` now includes `$extensions['com.figma.scopes']` from scope overrides (user-edited) or the row's original local scopes. Scopes are extracted from both local tokens (`$extensions['com.figma.scopes']` or legacy `$scopes`) and Figma variables during the diff computation, and scope differences now trigger "conflict" classification even when values match.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L19 (DiffRow), ~L54 (SyncBuildersSpec/TokenEntry), ~L65 (createSyncBuilders scopesEqual), ~L108 (VAR_SYNC_SPEC), ~L200 (scopeOverrides state), ~L207 (buildApplyPayload), ~L575 (SyncSubPanel scope props)
+  - `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` ~L7 (props), ~L37 (destructure), ~L103 (VarDiffRowItem calls with scope props)
+  - `packages/figma-plugin/src/ui/components/publish/PublishShared.tsx` ~L5 (VarDiffRow scopes fields), ~L343 (ScopesPill), ~L352 (ScopesEditor), ~L388 (VarDiffRowItem scope props + UI)
+- **Learnings for future iterations:**
+  - Figma variable scopes from the sandbox come back as `$scopes` (top-level), not `$extensions['com.figma.scopes']` — always check both paths when reading from Figma read responses.
+  - `SyncBuildersSpec.fromFigmaToken` / `fromLocalToken` returning an extended `TokenEntry` type (with optional `scopes`) is the right extensibility point for adding per-row metadata without breaking the generic factory pattern.
+  - `isConflict` needs to consider scopes, otherwise tokens that match in value but differ in scope show as "in sync" and users can't push scope changes without re-importing.
+---

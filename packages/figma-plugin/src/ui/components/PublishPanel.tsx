@@ -13,6 +13,7 @@ import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import { usePublishAll, type ConfirmAction } from '../hooks/usePublishAll';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
+import { FIGMA_SCOPES } from './MetadataEditor';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
 
@@ -26,6 +27,10 @@ interface DiffRow {
   figmaRaw?: any;        // raw $value
   localType?: string;
   figmaType?: string;
+  /** Scopes from the local token's $extensions['com.figma.scopes'] */
+  localScopes?: string[];
+  /** Scopes currently on the matching Figma variable */
+  figmaScopes?: string[];
 }
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
@@ -51,15 +56,27 @@ const STYLE_MESSAGES: SyncMessages<StyleSnapshot> = {
 // in field names (value vs raw), type filtering, conflict comparison, and
 // value summarization.
 
+interface TokenEntry {
+  raw: any;
+  type: string;
+  scopes?: string[];
+}
+
 interface SyncBuildersSpec {
-  /** Extract a raw value + type from a Figma token */
-  fromFigmaToken: (token: any) => { raw: any; type: string };
-  /** Extract a raw value + type from a local token; return null to exclude */
-  fromLocalToken: (token: any) => { raw: any; type: string } | null;
+  /** Extract a raw value + type (+ optional scopes) from a Figma token */
+  fromFigmaToken: (token: any) => TokenEntry;
+  /** Extract a raw value + type (+ optional scopes) from a local token; return null to exclude */
+  fromLocalToken: (token: any) => TokenEntry | null;
   /** Are two raw values equal? */
   isEqual: (a: any, b: any) => boolean;
   /** Convert raw value to a display string for the UI */
   displayValue: (raw: any, type: string) => string;
+}
+
+function scopesEqual(a: string[] | undefined, b: string[] | undefined): boolean {
+  const aArr = a?.length ? [...a].sort() : [];
+  const bArr = b?.length ? [...b].sort() : [];
+  return aArr.length === bArr.length && aArr.every((s, i) => s === bArr[i]);
 }
 
 function createSyncBuilders(spec: SyncBuildersSpec) {
@@ -68,7 +85,7 @@ function createSyncBuilders(spec: SyncBuildersSpec) {
       new Map(tokens.map(t => [t.path, spec.fromFigmaToken(t)])),
 
     buildLocalMap: (tokens: Map<string, any>) => {
-      const m = new Map<string, { raw: any; type: string }>();
+      const m = new Map<string, TokenEntry>();
       for (const [path, token] of tokens) {
         const entry = spec.fromLocalToken(token);
         if (entry !== null) m.set(path, entry);
@@ -76,25 +93,30 @@ function createSyncBuilders(spec: SyncBuildersSpec) {
       return m;
     },
 
-    buildLocalOnlyRow: (path: string, local: { raw: any; type: string }): DiffRow => ({
+    buildLocalOnlyRow: (path: string, local: TokenEntry): DiffRow => ({
       path, cat: 'local-only',
       localRaw: local.raw, localValue: spec.displayValue(local.raw, local.type), localType: local.type,
+      localScopes: local.scopes,
     }),
 
-    buildFigmaOnlyRow: (path: string, figma: { raw: any; type: string }): DiffRow => ({
+    buildFigmaOnlyRow: (path: string, figma: TokenEntry): DiffRow => ({
       path, cat: 'figma-only',
       figmaRaw: figma.raw, figmaValue: spec.displayValue(figma.raw, figma.type), figmaType: figma.type,
+      figmaScopes: figma.scopes,
     }),
 
-    buildConflictRow: (path: string, local: { raw: any; type: string }, figma: { raw: any; type: string }): DiffRow => ({
+    buildConflictRow: (path: string, local: TokenEntry, figma: TokenEntry): DiffRow => ({
       path, cat: 'conflict',
       localRaw: local.raw, figmaRaw: figma.raw,
       localValue: spec.displayValue(local.raw, local.type),
       figmaValue: spec.displayValue(figma.raw, figma.type),
       localType: local.type, figmaType: figma.type,
+      localScopes: local.scopes,
+      figmaScopes: figma.scopes,
     }),
 
-    isConflict: (local: { raw: any }, figma: { raw: any }) => !spec.isEqual(local.raw, figma.raw),
+    isConflict: (local: TokenEntry, figma: TokenEntry) =>
+      !spec.isEqual(local.raw, figma.raw) || !scopesEqual(local.scopes, figma.scopes),
 
     buildPullPayload: (row: DiffRow) => ({ $type: row.figmaType ?? 'string', $value: row.figmaRaw }),
   };
@@ -103,8 +125,18 @@ function createSyncBuilders(spec: SyncBuildersSpec) {
 // ── Builder specs ─────────────────────────────────────────────────────────
 
 const VAR_SYNC_SPEC: SyncBuildersSpec = {
-  fromFigmaToken: (t) => ({ raw: String(t.$value ?? ''), type: String(t.$type ?? 'string') }),
-  fromLocalToken: (t) => ({ raw: String(t.$value), type: String(t.$type ?? 'string') }),
+  fromFigmaToken: (t) => ({
+    raw: String(t.$value ?? ''),
+    type: String(t.$type ?? 'string'),
+    scopes: Array.isArray(t.$scopes) ? t.$scopes : undefined,
+  }),
+  fromLocalToken: (t) => {
+    const scopes: string[] | undefined =
+      Array.isArray(t.$extensions?.['com.figma.scopes']) ? t.$extensions['com.figma.scopes'] :
+      Array.isArray(t.$scopes) ? t.$scopes :
+      undefined;
+    return { raw: String(t.$value), type: String(t.$type ?? 'string'), scopes };
+  },
   isEqual: (a, b) => a === b,
   displayValue: (raw) => raw,
 };
@@ -164,12 +196,25 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     return next;
   });
 
+  // ── Scope overrides: user-edited scopes for variable push rows ──
+  const [scopeOverrides, setScopeOverrides] = useState<Record<string, string[]>>({});
+
   // ── Extracted hooks ──
   const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
     ...varBuilders,
     buildApplyPayload: (rows) => ({
-      tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw ?? '', setName: activeSet })),
+      tokens: rows.map(r => {
+        const scopes = scopeOverrides[r.path] ?? r.localScopes;
+        const extensions = scopes?.length ? { 'com.figma.scopes': scopes } : {};
+        return {
+          path: r.path,
+          $type: r.localType ?? 'string',
+          $value: r.localRaw ?? '',
+          $extensions: extensions,
+          setName: activeSet,
+        };
+      }),
       collectionMap, modeMap,
     }),
     buildRevertPayload: (snapshot) => ({ varSnapshot: snapshot }),
@@ -537,6 +582,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           inSyncMessage="Local tokens match Figma variables."
           notCheckedMessage={<>Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.</>}
           revertDescription="Restore Figma variables to their pre-sync state"
+          scopeOverrides={scopeOverrides}
+          onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
+          getScopeOptions={(type) => FIGMA_SCOPES[type ?? ''] ?? []}
         />
       </Section>
 

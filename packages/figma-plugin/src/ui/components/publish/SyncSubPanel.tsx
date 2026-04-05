@@ -19,6 +19,11 @@ interface SyncSubPanelProps {
   inSyncMessage: string;
   notCheckedMessage: React.ReactNode;
   revertDescription: string;
+
+  // Optional scope editing (variable sync only)
+  scopeOverrides?: Record<string, string[]>;
+  onScopesChange?: (path: string, scopes: string[]) => void;
+  getScopeOptions?: (type: string | undefined) => { label: string; value: string }[];
 }
 
 export function SyncSubPanel({
@@ -34,6 +39,9 @@ export function SyncSubPanel({
   inSyncMessage,
   notCheckedMessage,
   revertDescription,
+  scopeOverrides,
+  onScopesChange,
+  getScopeOptions,
 }: SyncSubPanelProps) {
   const [revertPending, setRevertPending] = useState(false);
 
@@ -100,7 +108,15 @@ export function SyncSubPanel({
                 </div>
               )}
               {localOnly.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'push'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem
+                  key={row.path}
+                  row={row}
+                  dir={sync.dirs[row.path] ?? 'push'}
+                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                  scopeOptions={getScopeOptions?.(row.localType)}
+                  scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
+                  onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
+                />
               ))}
               {figmaOnly.length > 0 && (
                 <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -108,7 +124,14 @@ export function SyncSubPanel({
                 </div>
               )}
               {figmaOnly.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'pull'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem
+                  key={row.path}
+                  row={row}
+                  dir={sync.dirs[row.path] ?? 'pull'}
+                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                  scopeOptions={getScopeOptions?.(row.figmaType)}
+                  scopeValue={row.figmaScopes}
+                />
               ))}
               {conflicts.length > 0 && (
                 <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
@@ -133,7 +156,16 @@ export function SyncSubPanel({
                 </div>
               )}
               {conflicts.map(row => (
-                <VarDiffRowItem key={row.path} row={row} dir={sync.dirs[row.path] ?? 'push'} onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))} />
+                <VarDiffRowItem
+                  key={row.path}
+                  row={row}
+                  dir={sync.dirs[row.path] ?? 'push'}
+                  onChange={d => sync.setDirs(prev => ({ ...prev, [row.path]: d }))}
+                  scopeOptions={getScopeOptions?.(row.localType ?? row.figmaType)}
+                  scopeValue={scopeOverrides?.[row.path] ?? row.localScopes}
+                  onScopesChange={onScopesChange ? (s) => onScopesChange(row.path, s) : undefined}
+                  figmaScopeValue={row.figmaScopes}
+                />
               ))}
             </div>
 
