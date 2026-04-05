@@ -41,7 +41,7 @@ interface QuickStartWizardProps {
 const STEPS: { step: WizardStep; label: string; description: string }[] = [
   { step: 1, label: 'Generate Primitives', description: 'Create a color ramp, spacing scale, or type scale from a template' },
   { step: 2, label: 'Map Semantics', description: 'Create reference tokens that give meaning to your primitives' },
-  { step: 3, label: 'Set Up Theme', description: 'Create a color mode dimension with light and dark options' },
+  { step: 3, label: 'Set Up Theme', description: 'Create a theme axis (e.g. Mode: light, dark) to switch token sets' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
         <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Theme dimension created</p>
+          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Theme axis created</p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             "{dimName}" with "{lightName}" and "{darkName}" options
           </p>
@@ -161,7 +161,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
       </div>
       <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)]">
         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          This will create a <span className="font-medium text-[var(--color-figma-text)]">{dimName || 'Color Mode'}</span> dimension with:
+          This will create a <span className="font-medium text-[var(--color-figma-text)]">{dimName || 'Color Mode'}</span> axis with:
         </p>
         <ul className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] list-disc pl-4">
           <li><span className="font-medium text-[var(--color-figma-text)]">{lightName || 'Light'}</span> — uses <span className="font-mono text-[var(--color-figma-accent)]">{activeSet}</span> as base</li>
@@ -507,7 +507,7 @@ export function QuickStartWizard({
                 <div>
                   <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Set Up Theme</p>
                   <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                    Create a theme dimension to support light and dark modes (or any variants you need).
+                    Create a theme axis (e.g. Mode: light, dark) to support switching token sets.
                   </p>
                 </div>
               </div>

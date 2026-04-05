@@ -444,3 +444,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: The most impactful finding is the divergent hex color handling across three core files (color-math.ts, color-parse.ts, color-modifier.ts) — `hexToRgb` and `parseHexStr` disagree on alpha representation and shorthand expansion, and `reapplyAlpha` hardcodes 6-char hex assumptions that will break with wide-gamut colors. The useImportApply monolith (12 useState, 5 workflows, duplicated token-building code, retry race condition) is the largest structural issue.
 ---
+
+## 2026-04-05 - Theme dimension terminology is opaque for first-time users
+- Renamed all user-facing "dimension" / "layer" terminology to "axis" / "axes" across ThemeManager and related components. Added inline examples ("Each axis has options — e.g. Mode: light, dark · Brand: default, premium") as helper text below the create-axis input. Updated the add button label from "New layer" to "Add theme axis", "Create Layer" → "Create axis", "Layer Stack" → "Theme Axes", and all filter/confirmation/tooltip text. Also updated QuickStartWizard step descriptions.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L549,L566,L616,L629,L727,L757,L824,L886,L921,L935,L943,L974,L984,L1646,L1735,L1752,L1771; `packages/figma-plugin/src/ui/components/ThemeManagerContext.tsx` ~L184,L204; `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` ~L44,L113,L164,L510; `packages/figma-plugin/src/ui/App.tsx` ~L2283
+- **Learnings for future iterations:**
+  - The word "dimension" was used consistently in code (variable names, function names, API paths) but inconsistently in the UI — safe to rename UI text without touching code symbols.
+  - Adding inline examples as helper text below a name input (not just placeholder text) is more discoverable since placeholder disappears when the user starts typing.
+---

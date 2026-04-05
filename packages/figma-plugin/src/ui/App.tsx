@@ -2280,8 +2280,8 @@ export function App() {
                   <button
                     onClick={() => navigateTo('define', 'themes')}
                     className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
-                    title="Manage theme dimensions"
-                    aria-label="Manage theme dimensions"
+                    title="Manage theme axes"
+                    aria-label="Manage theme axes"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                       <circle cx="5" cy="2" r="1"/>

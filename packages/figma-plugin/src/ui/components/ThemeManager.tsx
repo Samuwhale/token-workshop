@@ -546,7 +546,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             {/* Heading + description */}
             <div className="flex flex-col gap-1">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No theme layers yet</p>
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No theme axes yet</p>
               <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
                 Themes let you switch entire sets of tokens at once — light/dark mode, brand variants, or density levels — without duplicating values.
               </p>
@@ -563,8 +563,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       <path d="M2 17l10 5 10-5" />
                     </svg>
                   </div>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Add layers</p>
-                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Dimensions</p>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Add axes</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Theme axes</p>
                 </div>
                 <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
                 <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
@@ -613,7 +613,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               onClick={() => openCreateDim()}
               className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              or create a custom layer
+              or add a custom axis
             </button>
           </div>
         ) : (
@@ -626,7 +626,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   <path d="M2 17l10 5 10-5" />
                   <path d="M2 12l10 5 10-5" />
                 </svg>
-                Layer Stack
+                Theme Axes
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -724,7 +724,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     value={dimSearch}
                     onChange={e => setDimSearch(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Escape') { setDimSearch(''); dimSearchRef.current?.blur(); } }}
-                    placeholder="Filter dimensions / options…"
+                    placeholder="Filter axes / options…"
                     className="w-full pl-6 pr-6 py-1 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                   {dimSearch && (
@@ -747,14 +747,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30'
                       : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
-                  title="Show only dimensions that have unresolved token gaps"
+                  title="Show only axes that have unresolved token gaps"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                     <line x1="12" y1="9" x2="12" y2="13" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
-                  Show only dimensions with gaps
+                  Show only axes with gaps
                 </button>
               </div>
             )}
@@ -821,8 +821,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               {filteredDimensions.length === 0 && (dimSearch || showOnlyWithGaps) && (
                 <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
                   {showOnlyWithGaps && !dimSearch
-                    ? 'No dimensions have coverage gaps'
-                    : 'No dimensions match your filter'}
+                    ? 'No axes have coverage gaps'
+                    : 'No axes match your filter'}
                 </div>
               )}
               {filteredDimensions.map((dim) => {
@@ -872,7 +872,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       {dimensions.length > 1 && (
                         <span
                           className="cursor-grab active:cursor-grabbing text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-60 hover:!opacity-100 flex-shrink-0 select-none"
-                          title="Drag to reorder layer"
+                          title="Drag to reorder axis"
                           aria-hidden="true"
                         >
                           <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
@@ -883,7 +883,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         </span>
                       )}
                       {/* Layer number badge */}
-                      <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[10px] font-bold flex-shrink-0" title={`Layer ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
+                      <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[10px] font-bold flex-shrink-0" title={`Axis ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
                         {layerNum}
                       </span>
 
@@ -918,7 +918,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <button
                               onClick={() => startRenameDim(dim.id, dim.name)}
                               className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
-                              title="Rename layer" aria-label="Rename layer"
+                              title="Rename axis" aria-label="Rename axis"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -932,7 +932,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 onClick={() => handleMoveDimension(dim.id, 'up')}
                                 disabled={dimIdx === 0}
                                 className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none"
-                                title="Move layer up (higher priority)" aria-label="Move layer up"
+                                title="Move axis up (higher priority)" aria-label="Move axis up"
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6" /></svg>
                               </button>
@@ -940,7 +940,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 onClick={() => handleMoveDimension(dim.id, 'down')}
                                 disabled={dimIdx === dimensions.length - 1}
                                 className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none"
-                                title="Move layer down (lower priority)" aria-label="Move layer down"
+                                title="Move axis down (lower priority)" aria-label="Move axis down"
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
                               </button>
@@ -971,7 +971,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             onClick={() => handleDuplicateDimension(dim.id)}
                             disabled={isDuplicatingDim}
                             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-25 disabled:pointer-events-none"
-                            title="Duplicate layer" aria-label="Duplicate layer"
+                            title="Duplicate axis" aria-label="Duplicate axis"
                           >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -981,7 +981,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           <button
                             onClick={() => openDeleteConfirm(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
-                            title="Delete layer" aria-label="Delete layer"
+                            title="Delete axis" aria-label="Delete axis"
                           >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -1643,7 +1643,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               )}
               {dimSearch && filteredDimensions.length > 0 && filteredDimensions.length < dimensions.length && (
                 <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] text-center">
-                  Showing {filteredDimensions.length} of {dimensions.length} layers
+                  Showing {filteredDimensions.length} of {dimensions.length} axes
                 </div>
               )}
             </div>}
@@ -1733,15 +1733,23 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         {showCreateDim ? (
           <div className="flex flex-col gap-2">
-            <input
-              type="text"
-              value={newDimName}
-              onChange={e => setNewDimName(e.target.value)}
-              placeholder="Layer name (e.g. Color Mode, Brand)"
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-              onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
-              autoFocus
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                Axis name
+              </label>
+              <input
+                type="text"
+                value={newDimName}
+                onChange={e => setNewDimName(e.target.value)}
+                placeholder="e.g. Mode, Brand, Density"
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
+                autoFocus
+              />
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug">
+                Each axis has options — e.g. <span className="font-medium">Mode:</span> light, dark &nbsp;·&nbsp; <span className="font-medium">Brand:</span> default, premium
+              </p>
+            </div>
             {createDimError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{createDimError}</p>}
             <div className="flex gap-2">
               <button
@@ -1749,7 +1757,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 disabled={!newDimName || isCreatingDim}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                {isCreatingDim ? 'Creating…' : 'Create Layer'}
+                {isCreatingDim ? 'Creating…' : 'Create axis'}
               </button>
               <button
                 onClick={closeCreateDim}
@@ -1768,7 +1776,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               <rect x="3" y="3" width="18" height="6" rx="1.5" />
               <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
             </svg>
-            New layer
+            Add theme axis
           </button>
         )}
       </div>

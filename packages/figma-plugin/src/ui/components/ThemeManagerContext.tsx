@@ -181,9 +181,9 @@ export function ThemeManagerModals() {
         if (!dim) return null;
         return (
           <ConfirmModal
-            title={`Delete layer "${dim.name}"?`}
-            description={`This will permanently delete the layer and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''} it contains. Token resolution across all sets that use this layer will be affected.`}
-            confirmLabel="Delete layer"
+            title={`Delete axis "${dim.name}"?`}
+            description={`This will permanently delete the axis and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''} it contains. Token resolution across all sets that use this axis will be affected.`}
+            confirmLabel="Delete axis"
             danger
             onConfirm={async () => {
               closeDeleteConfirm();
@@ -201,7 +201,7 @@ export function ThemeManagerModals() {
         return (
           <ConfirmModal
             title={`Delete option "${optionDeleteConfirm.optionName}"?`}
-            description={`This will permanently delete the option from layer "${dim.name}". Any token assignments specific to this option will be lost.`}
+            description={`This will permanently delete the option from axis "${dim.name}". Any token assignments specific to this option will be lost.`}
             confirmLabel="Delete option"
             danger
             onConfirm={async () => {
