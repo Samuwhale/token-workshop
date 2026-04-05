@@ -616,3 +616,10 @@
   - The `onCreateAndEdit` callback already handles "navigate to token in editor" — it's not just for post-create; reuse it for navigation from any context where you have a token path.
   - The button is conditionally rendered (`{onCreateAndEdit && ...}`) so it degrades gracefully if the callback isn't provided (e.g. future standalone usage).
 ---
+## 2026-04-05 - CreatePanel "token already exists" error has no navigation link
+- Added a "Go to token" inline button next to the "Token already exists" error message in `SingleCreateTab`. The button calls `onCreateAndEdit(fullPath)` which closes the create panel, highlights the token, opens its editor, and navigates to the define/tokens tab — the exact same action as "Create & Edit" on a new token.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L716
+- **Learnings for future iterations:**
+  - The `onCreateAndEdit` callback already handles "navigate to token in editor" — it's not just for post-create; reuse it for navigation from any context where you have a token path.
+  - The button is conditionally rendered (`{onCreateAndEdit && ...}`) so it degrades gracefully if the callback isn't provided (e.g. future standalone usage).
+---

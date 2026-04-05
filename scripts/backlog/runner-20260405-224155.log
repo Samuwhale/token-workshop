@@ -270,3 +270,26 @@ Already up to date.
 
   Merging to main: CreatePanel "token already exists" error has no navigation link
 Already up to date.
+[main 2bd6fe80] chore(backlog): done – CreatePanel "token already exists" error has no navigation link
+ 5 files changed, 48 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - CreatePanel "token already exists" error has no navigation link
+- Added a "Go to token" inline button next to the "Token already exists" error message in `SingleCreateTab`. The button calls `onCreateAndEdit(fullPath)` which closes the create panel, highlights the token, opens its editor, and navigates to the define/tokens tab — the exact same action as "Create & Edit" on a new token.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L716
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #12  ·  11 queued · 0
+0 in-progress · last took 1m41s
+═══════════════════════════════════════════════════════════════
+  → PasteTokensModal lacks "overwrite all conflicts" shortcut — when pasting 50+ tokens where many conflict with existing tokens, each conflict must be toggled individually; add a "Select all conflicting" / "Deselect all conflicting" toggle to reduce clicks
+  Worktree: /tmp/backlog-50286-fp5uRy
+  Running agent… (started 23:24:56)
+
+  ✓ done: PasteTokensModal lacks "overwrite all conflicts" shortcut
+    stale — already done: "overwrite all" checkbox already exists in the summary bar (PasteTokensModal.tsx ~L337) with full two-way sync between the master checkbox and individual row checkboxes
+    7 turns · 51s · $0.23
+
+  Merging to main: PasteTokensModal lacks "overwrite all conflicts" shortcut
+Already up to date.
