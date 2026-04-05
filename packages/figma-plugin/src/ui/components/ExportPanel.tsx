@@ -62,7 +62,10 @@ interface ExportPreset {
   changesOnly?: boolean;
 }
 
-function buildZipBlob(files: { path: string; content: string }[]): Blob {
+async function buildZipBlobAsync(
+  files: { path: string; content: string }[],
+  onProgress?: (pct: number) => void,
+): Promise<Blob> {
   const crcTable = (() => {
     const t = new Uint32Array(256);
     for (let i = 0; i < 256; i++) {
@@ -88,7 +91,12 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
   const centralDir: Uint8Array[] = [];
   let offset = 0;
 
-  for (const file of files) {
+  // Yield control every N files to keep the UI responsive
+  const CHUNK_SIZE = 20;
+  const yield_ = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     const name = enc.encode(file.path);
     const data = enc.encode(file.content);
     const crc = crc32(data);
@@ -115,6 +123,12 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
     parts.push(lhBytes, data);
     centralDir.push(new Uint8Array(cd));
     offset += lhBytes.length + sz;
+
+    // Report progress and yield every CHUNK_SIZE files
+    if ((i + 1) % CHUNK_SIZE === 0 || i === files.length - 1) {
+      onProgress?.(Math.round(((i + 1) / files.length) * 100));
+      await yield_();
+    }
   }
 
   const cdSize = centralDir.reduce((s, e) => s + e.length, 0);
@@ -178,6 +192,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  // ZIP build progress: null = idle, 0–100 = building
+  const [zipProgress, setZipProgress] = useState<number | null>(null);
 
   // Save-to-server preview state
   const [savePhase, setSavePhase] = useState<SavePhase>('idle');
@@ -450,22 +467,28 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     tailwind: 'tailwind', 'css-in-js': 'css-in-js',
   };
 
-  const handleDownloadZip = () => {
+  const handleDownloadZip = async () => {
+    if (zipProgress !== null) return; // already building
     const zipFiles = nestByPlatform
       ? results.map(f => ({
           path: `${PLATFORM_FOLDERS[f.platform] || f.platform}/${f.path}`,
           content: f.content,
         }))
       : results;
-    const blob = buildZipBlob(zipFiles);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const safeName = zipFilename.trim().replace(/\.zip$/i, '') || 'tokens';
-    a.download = `${safeName}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: `Downloaded ${results.length} file(s) as ZIP` } }, '*');
+    setZipProgress(0);
+    try {
+      const blob = await buildZipBlobAsync(zipFiles, pct => setZipProgress(pct));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = zipFilename.trim().replace(/\.zip$/i, '') || 'tokens';
+      a.download = `${safeName}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Downloaded ${results.length} file(s) as ZIP` } }, '*');
+    } finally {
+      setZipProgress(null);
+    }
   };
 
   const handleDownloadFile = (file: { path: string; content: string }) => {
@@ -1979,15 +2002,32 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               </button>
               <button
                 onClick={handleDownloadZip}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-                title={`Download all ${results.length} file${results.length !== 1 ? 's' : ''} as a ZIP archive`}
+                disabled={zipProgress !== null}
+                className="flex-1 relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 disabled:opacity-60 transition-colors overflow-hidden"
+                title={zipProgress !== null ? `Building ZIP… ${zipProgress}%` : `Download all ${results.length} file${results.length !== 1 ? 's' : ''} as a ZIP archive`}
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download ZIP
+                {zipProgress !== null && (
+                  <span
+                    className="absolute inset-0 bg-[var(--color-figma-accent)]/10 transition-all duration-150"
+                    style={{ width: `${zipProgress}%` }}
+                    aria-hidden="true"
+                  />
+                )}
+                {zipProgress !== null ? (
+                  <>
+                    <Spinner />
+                    {zipProgress < 100 ? `Building… ${zipProgress}%` : 'Finalizing…'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download ZIP
+                  </>
+                )}
               </button>
             </div>
             <button
