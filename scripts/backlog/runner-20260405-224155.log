@@ -30,3 +30,27 @@
 
   Merging to main: Color contrast matrix in HealthPanel does not surface actionable fixes
 Already up to date.
+[main 88409340] chore(backlog): done – Color contrast matrix in HealthPanel does not surface actionable fixes
+ 5 files changed, 108 insertions(+), 14 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260405-224155.log
+  ✓ Merged and marked done
+
+## 2026-04-05 - Color contrast matrix suggested fix column
+- Added a "Suggested fg" column to the "Failures only" view in ContrastMatrixPanel. For each failing pair the column shows the nearest existing color token (by CIE ΔE / Lab distance) that would pass AA (≥4.5:1) against the same background, along with its swatch, name, and passing ratio. In multi-theme mode the suggestion must pass AA in every active theme. When no token in the palette can serve as a passing replacement, the cell shows "—".
+- Files changed: `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L4 (import hexToLab), ~L154 (findNearestPassingFg helper + updated FailPair type + suggestedFix field), ~L297 (new table column header), ~L308 (suggested fix cell with swatch + name + ratio)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #2  ·  21 queued · 0
+0 in-progress · last took 2m53s
+═══════════════════════════════════════════════════════════════
+  → ExportPanel.tsx is 2423 lines combining format selection, platform configuration, preset management, CSV/ZIP generation, and diff/changes-only filtering into a single component — extract platform-specific config editors, preset CRUD, and export format logic into sub-components/hooks (similar to the HealthPanel extraction that went from 1813→670 lines)
+  Worktree: /tmp/backlog-50286-vHWFvI
+  Running agent… (started 22:44:48)
+
+  ✓ done: ExportPanel.tsx is 2423 lines combining format selection, platform configuration, preset management, CSV/ZIP generation, and diff/changes-only filtering into a single component — extract platform-specific config editors, preset CRUD, and export format logic into sub-components/hooks
+    ExportPanel.tsx reduced from 2423 → 460 lines (81%) by extracting into 7 files: useExportResults hook, useFigmaVariables hook, PlatformExportConfig component, FigmaVariablesPanel component, ExportFooter component, ExportPreviewModal component, and zipUtils utility
+    25 turns · 998s · $2.73
+
+  Merging to main: ExportPanel.tsx is 2423 lines combining format selection, platform configuration, preset management, CSV/ZIP generation, and diff/changes-only filtering into a single component — extract platform-specific config editors, preset CRUD, and export format logic into sub-components/hooks
+Already up to date.

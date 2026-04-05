@@ -518,3 +518,22 @@
   - In multi-theme mode the fix suggestion checks every active theme key in perThemeResolved, ensuring the replacement truly passes everywhere.
   - The fix ratio displayed in the cell uses wcagContrast on the single-mode hex values; in multi-theme mode the tooltip suffix could show per-theme ratios but the single-mode hex is sufficient for a quick scan.
 ---
+
+## 2026-04-05 - ExportPanel.tsx refactor — extract sub-components and hooks
+- Extracted ExportPanel.tsx from 2423 → 460 lines (81% reduction) by splitting into 7 focused files:
+  - `src/ui/shared/zipUtils.ts` (76 lines) — pure ZIP builder utility
+  - `src/ui/components/ExportPreviewModal.tsx` (188 lines) — self-contained modal
+  - `src/ui/hooks/useExportResults.ts` (267 lines) — platform export state + logic (handleExport, handleDownloadZip, handleCopyFile, etc.)
+  - `src/ui/hooks/useFigmaVariables.ts` (404 lines) — Figma variables state + logic (export, buildDTCGJson, handlePreviewSave, handleConfirmSave, etc.)
+  - `src/ui/components/PlatformExportConfig.tsx` (865 lines) — full platforms mode JSX
+  - `src/ui/components/FigmaVariablesPanel.tsx` (220 lines) — Figma variables mode JSX
+  - `src/ui/components/ExportFooter.tsx` (324 lines) — sticky action footer (both modes)
+- ExportPanel now owns only: mode toggle, error display, preset CRUD cross-hook callbacks, auto-switch effect, live preview debounce, and confirm modals
+- `ExportMode` type exported from ExportPanel for use by ExportFooter
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx`, plus 7 new files listed above
+- **Learnings for future iterations:**
+  - The `handleSavePreset`/`handleLoadPreset` callbacks genuinely cross hook boundaries (usePlatformConfig + useExportPresets + useDiffState) — keep them in the orchestrating component rather than forcing into any single hook
+  - Passing entire hook return objects (`platformConfig`, `diffState`, `presetsState`) as props to sub-components avoids repeating dozens of individual prop declarations while keeping types precise
+  - `ExportMode` type must be exported from its defining component when other components need it — avoids creating a separate types file for a 2-value union
+  - `useExportResults` receives a `Pick<DiffState, ...>` slice to document exactly which diff setters it mutates, preventing future maintainers from accidentally passing unrelated setters
+---
