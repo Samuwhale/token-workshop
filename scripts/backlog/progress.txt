@@ -383,3 +383,9 @@
   - The Figma gradient type map (GRADIENT_LINEAR → 'linear' etc.) needs to be defined in both directions in styleSync.ts for lossless round-trips.
   - `STYLE_TYPES` gate in PublishPanel was the invisible blocker preventing gradient tokens from ever appearing in the style sync UI — adding a type to the plugin also requires adding it here.
 ---
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L321 (ReadGradientToken interface), ~L363 (ReadStyleToken union), ~L234 (applyGradientPaintStyle overhaul), ~L380 (readFigmaStyles paint loop), `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L145 (STYLE_TYPES + summarizeStyleValue)
+- **Learnings for future iterations:**
+  - `GradientEditor.tsx` stores values as `{ type: string, stops: GradientStop[] }` not the flat `GradientStop[]` that `GradientValue = GradientStop[]` in core declares. The plugin code must handle both formats. The core type definition is stale.
+  - The Figma gradient type map (GRADIENT_LINEAR → 'linear' etc.) needs to be defined in both directions in styleSync.ts for lossless round-trips.
+  - `STYLE_TYPES` gate in PublishPanel was the invisible blocker preventing gradient tokens from ever appearing in the style sync UI — adding a type to the plugin also requires adding it here.
+---
