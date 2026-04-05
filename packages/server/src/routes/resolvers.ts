@@ -30,6 +30,8 @@ function isValidResolverBody(body: unknown): body is ResolverFile {
 }
 
 export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
+  const { withLock } = fastify.resolverLock;
+
   // -----------------------------------------------------------------------
   // List all resolvers
   // -----------------------------------------------------------------------
@@ -45,17 +47,19 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
     if (!isValidResolverName(name)) return reply.status(400).send({ error: 'name must be a non-empty string with no null bytes or path traversal' });
     if (!isValidResolverBody(file)) return reply.status(400).send({ error: 'version ("2025.10") and resolutionOrder (array) are required' });
     try {
-      await fastify.resolverStore.create(name, file);
-      await fastify.operationLog.record({
-        type: 'resolver-create',
-        description: `Create resolver "${name}"`,
-        setName: name,
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: [{ action: 'delete-resolver', name }],
+      return await withLock(async () => {
+        await fastify.resolverStore.create(name, file);
+        await fastify.operationLog.record({
+          type: 'resolver-create',
+          description: `Create resolver "${name}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: [{ action: 'delete-resolver', name }],
+        });
+        return reply.status(201).send({ ok: true, name });
       });
-      return reply.status(201).send({ ok: true, name });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to create resolver');
     }
@@ -90,17 +94,19 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       const setNames = await fastify.tokenStore.getSets();
       const resolverFile = convertThemesToResolver(dimensions, setNames);
 
-      await fastify.resolverStore.create(resolverName, resolverFile);
-      await fastify.operationLog.record({
-        type: 'resolver-create',
-        description: `Create resolver "${resolverName}" from themes`,
-        setName: resolverName,
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
+      return await withLock(async () => {
+        await fastify.resolverStore.create(resolverName, resolverFile);
+        await fastify.operationLog.record({
+          type: 'resolver-create',
+          description: `Create resolver "${resolverName}" from themes`,
+          setName: resolverName,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
+        });
+        return reply.status(201).send({ ok: true, name: resolverName, resolver: resolverFile });
       });
-      return reply.status(201).send({ ok: true, name: resolverName, resolver: resolverFile });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to convert themes to resolver');
     }
@@ -123,20 +129,22 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'version ("2025.10") and resolutionOrder (array) are required' });
     }
     try {
-      const beforeFile = fastify.resolverStore.get(req.params.name);
-      await fastify.resolverStore.update(req.params.name, req.body as ResolverFile);
-      await fastify.operationLog.record({
-        type: 'resolver-update',
-        description: `Update resolver "${req.params.name}"`,
-        setName: req.params.name,
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: beforeFile
-          ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
-          : [],
+      return await withLock(async () => {
+        const beforeFile = fastify.resolverStore.get(req.params.name);
+        await fastify.resolverStore.update(req.params.name, req.body as ResolverFile);
+        await fastify.operationLog.record({
+          type: 'resolver-update',
+          description: `Update resolver "${req.params.name}"`,
+          setName: req.params.name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: beforeFile
+            ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
+            : [],
+        });
+        return { ok: true };
       });
-      return { ok: true };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to update resolver');
     }
@@ -147,21 +155,23 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.delete<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
     try {
-      const beforeFile = fastify.resolverStore.get(req.params.name);
-      const deleted = await fastify.resolverStore.delete(req.params.name);
-      if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
-      await fastify.operationLog.record({
-        type: 'resolver-delete',
-        description: `Delete resolver "${req.params.name}"`,
-        setName: req.params.name,
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: beforeFile
-          ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
-          : [],
+      return await withLock(async () => {
+        const beforeFile = fastify.resolverStore.get(req.params.name);
+        const deleted = await fastify.resolverStore.delete(req.params.name);
+        if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
+        await fastify.operationLog.record({
+          type: 'resolver-delete',
+          description: `Delete resolver "${req.params.name}"`,
+          setName: req.params.name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: beforeFile
+            ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
+            : [],
+        });
+        return { ok: true };
       });
-      return { ok: true };
     } catch (err) {
       return handleRouteError(reply, err);
     }

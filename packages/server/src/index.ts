@@ -78,6 +78,7 @@ export async function startServer(config: ServerConfig) {
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('tokenLock', tokenLock);
+  fastify.decorate('resolverLock', resolverStore.lock);
   fastify.decorate('dimensionsStore', dimensionsStore);
   fastify.decorate('gitSync', gitSync);
   fastify.decorate('generatorService', generatorService);
@@ -160,6 +161,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     tokenStore: TokenStore;
     tokenLock: TokenLock;
+    resolverLock: TokenLock;
     gitSync: GitSync;
     generatorService: GeneratorService;
     operationLog: OperationLog;

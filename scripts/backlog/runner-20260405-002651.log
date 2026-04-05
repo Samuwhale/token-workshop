@@ -539,3 +539,30 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to inbox: resolver routes missing mutex (HIGH), PublishPanel 2128-line monolith, context providers 20-27 props causing cascade re-renders, useThemeDimensions 54-property return, docs routes missing try-catch
 Already up to date.
+[main 513a1938] chore(backlog): code pass – code-pass
+ 3 files changed, 23 insertions(+)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-05 - code-pass
+- Areas explored: packages/server/src/routes/resolvers.ts (mutex, operation log), packages/server/src/routes/docs.ts (error handling), packages/server/src/routes/lint.ts (mutex, op log), packages/server/src/routes/export.ts (validation), packages/server/src/routes/sse.ts (hijack), packages/server/src/services/resolver-store.ts (no lock), packages/figma-plugin/src/ui/contexts/ (all 4 contexts — TokenDataContext, ThemeContext, InspectContext, ConnectionContext value sizes), packages/figma-plugin/src/ui/components/PublishPanel.tsx (2128 lines, monolith), packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts (520 lines, 54-property return), packages/core/src/generator-engine.ts (validation gaps), packages/figma-plugin/src/plugin/controller.ts (scan signal management)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Resolver routes are the only server mutation routes that bypass `withLock()` — the resolver-store service has no lock mechanism at all, unlike token-store, themes, snapshots, and generators. Context providers with 20-27 properties each are the next structural domino — splitting them would reduce re-render cascades across the entire UI.
+
+═══════════════════════════════════════════════════════════════
+  #23  ·  15 queued · 0
+0 in-progress · last took 14m37s
+═══════════════════════════════════════════════════════════════
+  → [HIGH] Resolver mutation routes bypass the server-wide `withLock()` mutex and resolver-store.ts has no lock at all — all 4 resolver mutations in `packages/server/src/routes/resolvers.ts` (create L47, update L125, delete L149, from-themes L74) write to disk without serialization, while every other mutation route (tokens, sets, snapshots, generators, themes) goes through `tokenLock.withLock()`; concurrent resolver edits can produce lost writes to `*.resolver.json` files
+  Worktree: /tmp/backlog-54964-bjgui7
+  Running agent… (started 02:25:36)
+
+  ✓ done: Resolver mutation routes bypass the server-wide withLock() mutex
+    Added TokenLock to ResolverStore, exposed as resolverLock fastify decoration, and wrapped all 4 mutation routes (create, update, delete, from-themes) in withLock()
+    23 turns · 149s · $0.57
+
+  Merging to main: Resolver mutation routes bypass the server-wide withLock() mutex
+Already up to date.

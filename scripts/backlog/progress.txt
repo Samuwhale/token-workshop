@@ -407,3 +407,18 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: Resolver routes are the only server mutation routes that bypass `withLock()` — the resolver-store service has no lock mechanism at all, unlike token-store, themes, snapshots, and generators. Context providers with 20-27 properties each are the next structural domino — splitting them would reduce re-render cascades across the entire UI.
 ---
+
+## 2026-04-05 - Resolver mutation routes bypass server-wide withLock() mutex
+- Added `readonly lock = new TokenLock()` to `ResolverStore` (imported `TokenLock` from `./token-lock.js`)
+- Decorated fastify with `resolverLock: TokenLock` (mapped to `resolverStore.lock`) in `index.ts`
+- Added `resolverLock: TokenLock` to the `FastifyInstance` type augmentation in `index.ts`
+- Wrapped all 4 mutation routes in `resolvers.ts` with `withLock()`: create (L47), from-themes (L74), update (L125), delete (L149)
+- Read-only routes (GET list, GET single, GET modifiers, POST resolve) are not wrapped — they only read in-memory state
+- Files changed:
+  - `packages/server/src/services/resolver-store.ts` ~L49 (lock field), ~L26 (import)
+  - `packages/server/src/index.ts` ~L81 (decorate), ~L163 (type)
+  - `packages/server/src/routes/resolvers.ts` ~L33 (withLock destructure), ~L47, ~L74, ~L125, ~L149 (mutation wraps)
+- **Learnings for future iterations:**
+  - Each store needing serialization should own a `readonly lock = new TokenLock()` instance. The route plugin destructures `const { withLock } = fastify.resolverLock` at the top of `resolverRoutes`, matching the pattern of tokenLock in tokens/sets/generators routes.
+  - The `from-themes` route does pre-flight I/O (reading `$themes.json`) outside the lock and only acquires the lock for the actual `create` + `operationLog.record()` — this is correct: the pre-flight reads are idempotent and the lock only needs to protect the read-modify-write of the resolver store state.
+---
