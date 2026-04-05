@@ -2005,16 +2005,22 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             const dtcgRef = `{${node.path}}`;
             const scssVar = `$${node.path.replace(/\./g, '-')}`;
             const rawVal = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
-            const jsonEntry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
-            if (node.$description) jsonEntry.$description = node.$description;
-            const jsonText = JSON.stringify(jsonEntry, null, 2);
+            // Build nested DTCG JSON object for this token (W3C DTCG format, compatible with Tokens Studio / Style Dictionary / Specify)
+            const dtcgLeaf: Record<string, unknown> = { $value: node.$value, $type: node.$type };
+            if (node.$description) dtcgLeaf.$description = node.$description;
+            const dtcgSegments = node.path.split('.');
+            let dtcgObj: Record<string, unknown> = dtcgLeaf;
+            for (let _i = dtcgSegments.length - 1; _i >= 0; _i--) {
+              dtcgObj = { [dtcgSegments[_i]]: dtcgObj };
+            }
+            const dtcgJsonText = JSON.stringify(dtcgObj, null, 2);
             const preferredFmt = lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ?? 'css-var';
             const formats: Array<{ label: string; value: string; title: string; accel?: string; fmtKey: string }> = [
               { label: 'CSS var', value: cssVar, title: cssVar, fmtKey: 'css-var' },
               { label: '{ref}', value: dtcgRef, title: `${dtcgRef} · alias reference (⌘⌥C)`, fmtKey: 'dtcg-ref' },
               { label: '$scss', value: scssVar, title: scssVar, fmtKey: 'scss' },
               { label: 'value', value: rawVal, title: 'Copy raw value', accel: 'v', fmtKey: 'raw' },
-              { label: 'JSON', value: jsonText, title: 'Copy as JSON snippet', accel: 'j', fmtKey: 'json' },
+              { label: 'DTCG', value: dtcgJsonText, title: 'Copy as DTCG JSON (W3C format — paste into Tokens Studio, Style Dictionary, Specify)', accel: 'j', fmtKey: 'json' },
             ];
             return (
               <div className="px-3 py-1.5">

@@ -482,3 +482,14 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: The most impactful finding is the inconsistent undo coverage — Cmd+Z works for some operations (delete, merge) but not others (value edits, renames, generator changes), creating unpredictable behavior for users who expect undo to always work. The generator disable/enable toggle gap is the most commonly-needed missing feature (users currently must delete and recreate generators to temporarily pause them). The CompareView vs ThemeManager Compare duplication is the strongest consolidation candidate.
 ---
+
+## 2026-04-05 - No token clipboard format interop with other design token tools
+- Added proper W3C DTCG JSON interop for copy/paste:
+  1. **Copy**: In `TokenTreeNode.tsx`, the per-token context menu "JSON" button now generates a fully nested DTCG JSON structure (`{"segment1":{"segment2":{"$value":"...","$type":"..."}}}`) instead of a flat `{$value,  $type}` snippet. Label renamed "JSON" → "DTCG" with a tooltip mentioning Tokens Studio, Style Dictionary, Specify. The preferred copy format `'json'` (in `TokenList.tsx`'s batch copy via ⌘⇧C) already built nested DTCG structure — no change needed there.
+  2. **SettingsPanel**: Renamed "JSON" label to "DTCG" in the Preferred Copy Format segmented control to clarify the format.
+  3. **Paste**: Already fully supported — `parseInput()` detects nested DTCG JSON and calls `flattenDTCG()` to import tokens. No changes needed.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2008; `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L553
+- **Learnings for future iterations:**
+  - The batch copy (Cmd+C in TokenList.tsx) already built nested DTCG — only the single-token context menu used a flat snippet. When adding format improvements, check both paths.
+  - `fmtKey: 'json'` in the context menu maps to the `'json'` PreferredCopyFormat key in SettingsPanel — renaming the UI label is safe without changing the storage key.
+---

@@ -550,7 +550,7 @@ export function SettingsPanel({
                   { value: 'dtcg-ref' as PreferredCopyFormat, label: '{ref}' },
                   { value: 'scss' as PreferredCopyFormat, label: '$scss' },
                   { value: 'raw' as PreferredCopyFormat, label: 'Value' },
-                  { value: 'json' as PreferredCopyFormat, label: 'JSON' },
+                  { value: 'json' as PreferredCopyFormat, label: 'DTCG' },
                 ]}
                 value={preferredCopyFormat}
                 onChange={handlePreferredCopyFormatChange}
