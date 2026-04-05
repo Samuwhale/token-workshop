@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import {
@@ -149,7 +150,7 @@ export function useVariablesImport({
           failedCount > 0
             ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedCount} failed)`
             : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
-        parent.postMessage({ pluginMessage: { type: 'notify', message: notifyMsg } }, '*');
+        dispatchToast(notifyMsg, failedCount > 0 ? 'error' : 'success');
 
         onImported();
         const firstSet = allModes[0]?.setName ?? '';
@@ -231,23 +232,12 @@ export function useVariablesImport({
             ? `${prev} (${retried} recovered on retry)`
             : `Recovered ${retried} token${retried !== 1 ? 's' : ''} on retry`,
         );
-        parent.postMessage(
-          { pluginMessage: { type: 'notify', message: `Retried: ${retried} tokens imported` } },
-          '*',
-        );
+        dispatchToast(`Retried: ${retried} tokens imported`, 'success');
       } else {
         setFailedImportPaths(stillFailed);
         setFailedImportBatches(stillFailedBatches);
         setSucceededImportCount(prev => prev + retried);
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: 'notify',
-              message: `Retry: ${retried} recovered, ${stillFailed.length} still failed`,
-            },
-          },
-          '*',
-        );
+        dispatchToast(`Retry: ${retried} recovered, ${stillFailed.length} still failed`, 'error');
       }
       onImported();
     } catch (err) {

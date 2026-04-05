@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { lsGet, STORAGE_KEYS } from '../shared/storage';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
@@ -1033,7 +1034,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const applyWithProperty = useCallback((property: BindableProperty) => {
     const resolved = resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat);
     if (resolved.error) {
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Cannot apply: ${resolved.error}` } }, '*');
+      dispatchToast(`Cannot apply: ${resolved.error}`, 'error');
       return;
     }
     parent.postMessage({

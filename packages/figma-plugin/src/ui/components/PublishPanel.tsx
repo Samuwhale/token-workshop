@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
@@ -222,7 +223,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       if ((result.overwritten ?? 0) > 0) {
         const skippedCount = result.skipped?.length ?? 0;
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}` } }, '*');
+        dispatchToast(`Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
       }
     },
     successMessage: 'Variable sync applied', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Apply variable sync',

@@ -593,3 +593,12 @@
   - The "advance baseline after export" pattern (set timestamp = now after successful export) is analogous to git commit: once exported, those changes are "committed" from the plugin's perspective.
   - When `fetchDiff` calls `await fetchDiffSince(...)` in the catch branch, the outer `finally { setDiffLoading(false) }` runs after `fetchDiffSince` completes (since it's awaited), so there's no race condition despite both functions managing the same loading state.
 ---
+
+## 2026-04-05 - Dual notification channels create inconsistent feedback
+- Created `packages/figma-plugin/src/ui/shared/toastBus.ts` with `dispatchToast(message, variant)` and `useToastBusListener(pushSuccess, pushError)` using the window custom event pattern (consistent with existing `dispatchSettingsChanged`). Added `useToastBusListener` call in App.tsx after `useToastStack()`. Replaced all 24 `parent.postMessage({ pluginMessage: { type: 'notify', ... } }, '*')` calls across 14 files (5 components + 9 hooks) with `dispatchToast(...)`. Error-variant used for "Clipboard access denied", "Cannot apply: ...", "Retry: N recovered, M still failed", import-with-failures. All others use 'success'.
+- Files changed: `packages/figma-plugin/src/ui/shared/toastBus.ts` (new), `App.tsx` ~L10,L171, `ExportPanel.tsx` ~L1,L387,L515,L536,L539,L549,L552,L560,L563,L711`, `PublishPanel.tsx` ~L1,L225`, `CompareView.tsx` ~L1,L771,L1114`, `PropertyRow.tsx` ~L1,L205,L241`, `TokenTreeNode.tsx` ~L1,L1036`, `hooks/useTokenSyncBase.ts` ~L1,L285`, `hooks/useVariablesImport.ts` ~L1,L152,L235,L242`, `hooks/useGitSync.ts` ~L1,L113,L115`, `hooks/useTokensImport.ts` ~L1,L122`, `hooks/useGitConflicts.ts` ~L1,L89,L105`, `hooks/useFigmaSync.ts` ~L1,L124`, `hooks/useSyncEntity.ts` ~L1,L173`, `hooks/useImportApply.ts` ~L1,L110`, `hooks/useTokenEditorSave.ts` ~L1,L149`
+- **Learnings for future iterations:**
+  - The `postMessage notify` pattern was used in 9 hooks too (not just the 5 panels mentioned in the item) — always grep both `.tsx` and `.ts` when mapping notification calls.
+  - Using a window custom event bus (`dispatchToast`) is the cleanest solution when notifications need to flow from deeply nested hooks to a top-level React state manager — no prop drilling, no context, matches the existing `dispatchSettingsChanged` pattern already in the codebase.
+  - Import-with-failures messages should use `error` variant (amber) even when some tokens imported successfully — partial failures are errors from a UX perspective.
+---

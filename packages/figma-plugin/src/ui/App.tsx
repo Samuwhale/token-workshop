@@ -8,6 +8,7 @@ import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ToastStack } from './components/ToastStack';
 import { NotificationHistory } from './components/NotificationHistory';
 import { useToastStack } from './hooks/useToastStack';
+import { useToastBusListener } from './shared/toastBus';
 import { ConfirmModal } from './components/ConfirmModal';
 import { PasteTokensModal } from './components/PasteTokensModal';
 import { QuickStartDialog } from './components/QuickStartDialog';
@@ -167,6 +168,8 @@ export function App() {
   // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
+  // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
+  useToastBusListener(setSuccessToast, setErrorToast);
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount, undoDescriptions } = useUndo(undoMaxHistory, setErrorToast);
   // Wire pushUndo into the resolver context so deleteResolver can push undo slots

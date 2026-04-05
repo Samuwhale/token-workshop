@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { useGitStatus } from './useGitStatus';
 import { useGitConflicts } from './useGitConflicts';
 import { useGitDiff } from './useGitDiff';
@@ -110,9 +111,9 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
       const result = await doActionRaw(action, body);
       if (action === 'pull' && result.conflicts && result.conflicts.length > 0) {
         await fetchConflicts();
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `Pull completed with ${result.conflicts.length} conflict(s)` } }, '*');
+        dispatchToast(`Pull completed with ${result.conflicts.length} conflict(s)`, 'success');
       } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
+        dispatchToast(`Git ${action} completed`, 'success');
       }
     } catch (err) {
       console.warn('[useGitSync] git action failed:', err);

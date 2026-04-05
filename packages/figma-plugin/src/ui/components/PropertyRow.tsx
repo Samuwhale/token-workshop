@@ -1,4 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -202,7 +203,7 @@ export function PropertyRow({
           $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
         }),
       });
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" created` } }, '*');
+      dispatchToast(`Token "${tokenPath}" created`, 'success');
       onTokenCreated(tokenPath, prop, tokenType, tokenValue);
       setCreateError('');
       setConflictExists(false);
@@ -238,7 +239,7 @@ export function PropertyRow({
           $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
         }),
       });
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" overwritten` } }, '*');
+      dispatchToast(`Token "${tokenPath}" overwritten`, 'success');
       onTokenCreated(tokenPath, prop, tokenType, tokenValue);
       setCreateError('');
       setConflictExists(false);

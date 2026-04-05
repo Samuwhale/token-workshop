@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -86,7 +87,7 @@ export function useGitConflicts({
       });
       setMergeConflicts([]);
       setConflictChoices({});
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge conflicts resolved' } }, '*');
+      dispatchToast('Merge conflicts resolved', 'success');
       fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Resolve conflicts'));
@@ -102,7 +103,7 @@ export function useGitConflicts({
       await apiFetch(`${serverUrl}/api/sync/conflicts/abort`, { method: 'POST' });
       setMergeConflicts([]);
       setConflictChoices({});
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge aborted' } }, '*');
+      dispatchToast('Merge aborted', 'success');
       fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Abort merge'));

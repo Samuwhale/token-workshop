@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -768,7 +769,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
   const labelB = flatOptions.find(o => o.key === optionKeyB)?.label ?? 'B';
 
   const handleCopyError = useCallback(() => {
-    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    dispatchToast('Clipboard access denied', 'error');
   }, []);
   const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
 
@@ -1111,7 +1112,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
   const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   const handleCopyError = useCallback(() => {
-    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    dispatchToast('Clipboard access denied', 'error');
   }, []);
   const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
 

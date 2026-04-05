@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
@@ -146,7 +147,7 @@ export function useTokenEditorSave({
         body: JSON.stringify(body),
       });
       const label = isCreateMode ? 'created' : 'saved';
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
+      dispatchToast(`Token "${targetPath}" ${label}`, 'success');
       clearEditorDraft(setName, targetPath);
 
       if (pushUndo) {

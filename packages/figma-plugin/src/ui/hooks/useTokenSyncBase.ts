@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
@@ -282,7 +283,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
       } else {
         setRows([]);
         setDirs({});
-        parent.postMessage({ pluginMessage: { type: 'notify', message: cfg.successMessage } }, '*');
+        dispatchToast(cfg.successMessage, 'success');
       }
     } catch (err) {
       if (!signal.aborted) setError(describeError(err, cfg.applyErrorLabel));

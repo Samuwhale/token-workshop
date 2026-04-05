@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
 import { Spinner } from './Spinner';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
@@ -384,7 +385,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setResults(flatFiles);
       if (flatFiles.length > 0) setPreviewFileIndex(0);
       const changesLabel = changesOnly && resolvedDiffPaths ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})` : '';
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)${changesLabel}` } }, '*');
+      dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success');
       // Advance the baseline timestamp after a successful changes-only export in non-git mode
       if (changesOnly && isGitRepo === false) {
         const now = Date.now();
@@ -512,7 +513,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       a.download = `${safeName}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Downloaded ${results.length} file(s) as ZIP` } }, '*');
+      dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success');
     } finally {
       setZipProgress(null);
     }
@@ -533,10 +534,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       await navigator.clipboard.writeText(file.content);
       setCopiedFile(file.path);
       setTimeout(() => setCopiedFile(null), 1500);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
+      dispatchToast('Copied to clipboard', 'success');
     } catch (err) {
       console.warn('[ExportPanel] clipboard write failed for file copy:', err);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+      dispatchToast('Clipboard access denied', 'error');
     }
   };
 
@@ -546,10 +547,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       await navigator.clipboard.writeText(json);
       setCopiedAll(true);
       setTimeout(() => setCopiedAll(false), 1500);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
+      dispatchToast('Copied all variables as DTCG JSON', 'success');
     } catch (err) {
       console.warn('[ExportPanel] clipboard write failed for copy all:', err);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+      dispatchToast('Clipboard access denied', 'error');
     }
   };
 
@@ -557,10 +558,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     const allContent = results.map(f => `/* ${f.platform}: ${f.path} */\n${f.content}`).join('\n\n');
     try {
       await navigator.clipboard.writeText(allContent);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${results.length} file(s) to clipboard` } }, '*');
+      dispatchToast(`Copied ${results.length} file(s) to clipboard`, 'success');
     } catch (err) {
       console.warn('[ExportPanel] clipboard write failed for copy all platform results:', err);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+      dispatchToast('Clipboard access denied', 'error');
     }
   };
 
@@ -708,7 +709,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         }
       }
 
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} to server` } }, '*');
+      dispatchToast(`Saved ${totalVarsSaved} variable${totalVarsSaved !== 1 ? 's' : ''} to server`, 'success');
       setSavePhase('idle');
       setSavePreviewItems([]);
       setSlugRenames({});

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -119,15 +120,7 @@ export function useTokensImport({
 
         progress.setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
 
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: 'notify',
-              message: `Imported ${imported} tokens to "${targetSet}"`,
-            },
-          },
-          '*',
-        );
+        dispatchToast(`Imported ${imported} tokens to "${targetSet}"`, 'success');
         onImported();
         onImportComplete(targetSet);
         onResetExistingPathsCache();

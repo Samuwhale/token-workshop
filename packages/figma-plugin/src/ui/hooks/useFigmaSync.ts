@@ -1,4 +1,5 @@
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError } from '../shared/utils';
+import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
@@ -121,7 +122,7 @@ export function useFigmaSync(
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
         setError(`${result.count}/${result.total} ${entityName} synced. Failed: ${failedPaths}${skippedNote}`);
       } else {
-        parent.postMessage({ pluginMessage: { type: 'notify', message: successMsg(result.count, skippedCount) } }, '*');
+        dispatchToast(successMsg(result.count, skippedCount), 'success');
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;

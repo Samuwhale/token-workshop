@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { useFigmaMessage } from './useFigmaMessage';
 import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
 import type { DTCGToken } from '@tokenmanager/core';
@@ -169,10 +170,7 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
         );
       } else {
         setSnapshot(null);
-        parent.postMessage(
-          { pluginMessage: { type: 'notify', message: configRef.current.revertSuccessMessage } },
-          '*',
-        );
+        dispatchToast(configRef.current.revertSuccessMessage, 'success');
       }
     } catch (err) {
       setRevertError(

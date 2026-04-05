@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import type { ImportToken, CollectionData } from '../components/importPanelTypes';
@@ -107,7 +108,7 @@ export function useImportApply({
           body: JSON.stringify({ paths: entry.paths, force: true }),
         });
       }
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Import undone' } }, '*');
+      dispatchToast('Import undone', 'success');
       onImported();
       setLastImport(null);
       setSuccessMessage(null);
