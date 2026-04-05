@@ -1009,6 +1009,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [renameTokenVal, setRenameTokenVal] = useState('');
   const [renameTokenError, setRenameTokenError] = useState('');
   const renameTokenInputRef = useRef<HTMLInputElement>(null);
+  const tokenMenuRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (renamingToken && renameTokenInputRef.current) {
@@ -1039,16 +1040,22 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     clearPendingTabEditRef.current();
   }, [pendingTabEdit]);
 
-  // Close context menu on outside click + letter-key accelerators
+  // Close context menu on outside click + arrow-key navigation + letter-key accelerators
   useEffect(() => {
     if (!contextMenuPos) return;
+    // Auto-focus first enabled menu item when menu opens
+    requestAnimationFrame(() => {
+      if (tokenMenuRef.current) getMenuItems(tokenMenuRef.current)[0]?.focus();
+    });
     const close = () => setContextMenuPos(null);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { close(); return; }
+      const menuEl = tokenMenuRef.current;
+      if (!menuEl) return;
+      // Arrow-key navigation takes priority over letter shortcuts
+      if (handleMenuArrowKeys(e, menuEl)) return;
       // Normalize Backspace → delete so both keys trigger the delete action
       const key = e.key === 'Backspace' ? 'delete' : e.key.toLowerCase();
-      const menuEl = document.querySelector('[data-context-menu="token"]');
-      if (!menuEl) return;
       const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
       if (btn) { e.preventDefault(); btn.click(); }
     };
@@ -2110,7 +2117,9 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       {/* Right-click context menu */}
       {contextMenuPos && (
         <div
+          ref={tokenMenuRef}
           data-context-menu="token"
+          role="menu"
           className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[160px]"
           style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
           onClick={e => e.stopPropagation()}
@@ -2128,6 +2137,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             ) : (
               <button
                 data-accel="v"
+                role="menuitem"
+                tabIndex={-1}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 onMouseDown={e => e.preventDefault()}
                 onClick={handleContextMenuApply}
@@ -2144,6 +2155,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           <button
             data-accel="n"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2155,6 +2168,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           </button>
           <button
             data-accel="d"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2166,6 +2181,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           </button>
           <button
             data-accel="a"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2178,6 +2195,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           </button>
           <button
             data-accel="r"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2191,6 +2210,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           {!isAlias(node.$value) && onExtractToAlias && (
             <button
               data-accel="e"
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2203,6 +2224,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           <button
             data-accel="l"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2220,6 +2243,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           </button>
           <button
             data-accel="m"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2230,6 +2255,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             <span>Move to set...</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
           </button>
           <button
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2242,6 +2269,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           {onTogglePin && (
             <button
               data-accel="p"
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => { setContextMenuPos(null); onTogglePin(node.path); }}
@@ -2252,6 +2281,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onToggleStar && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => { setContextMenuPos(null); onToggleStar(node.path); }}
@@ -2261,6 +2292,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onDetachFromGenerator && derivedTokenPaths?.has(node.path) && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2273,6 +2306,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onCompareToken && !selectMode && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2285,6 +2320,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onViewTokenHistory && !selectMode && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2297,6 +2334,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onShowReferences && !selectMode && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2309,6 +2348,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onCompareAcrossThemes && !selectMode && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2321,6 +2362,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {onFindInAllSets && !selectMode && (
             <button
+              role="menuitem"
+              tabIndex={-1}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -2334,6 +2377,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           <div className="my-1 border-t border-[var(--color-figma-border)]" />
           <button
             data-accel="c"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -2416,6 +2461,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           })()}
           <button
             data-accel="delete"
+            role="menuitem"
+            tabIndex={-1}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {

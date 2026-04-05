@@ -679,3 +679,12 @@
   - The group row and token row use different named-group patterns: group rows use `/group` suffix (`group-hover/group:flex group-focus-within/group:flex`) while token rows use the default unnamed group (`group-hover:flex group-focus-within:flex`). Both are valid; the named variant avoids accidental cascade when groups are nested.
   - Status indicators that are toggled by `group-hover:hidden` must also add `group-focus-within:hidden` to hide correctly when the action buttons are shown via keyboard focus — otherwise both the indicator and the action button for the same feature (pin/star) are visible simultaneously.
 ---
+
+## 2026-04-05 - Token context menu lacks arrow-key navigation
+- Added arrow-key navigation (Up/Down/Home/End) to the token-level context menu in `TokenTreeNode.tsx`. Added `tokenMenuRef` and attached it to the context menu div. Updated the `useEffect` keydown handler to call `handleMenuArrowKeys(e, menuEl)` before letter-key accelerators (matching the group-level menu pattern). Added auto-focus of the first menu item via `requestAnimationFrame`. Added `role="menuitem"` and `tabIndex={-1}` to all 19 interactive buttons in the token context menu so `getMenuItems` can find them. Also added `role="menu"` to the context menu container for ARIA correctness.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1013 (tokenMenuRef), ~L1042 (useEffect update), ~L2120 (ref + role="menu" on container), ~L2138-2452 (role/tabIndex on all menu items)
+- **Learnings for future iterations:**
+  - For `getMenuItems` to work, menu items must have `role="menuitem"` — it's not enough to just add the arrow-key handler; all interactive buttons in the menu need the ARIA role.
+  - Token context menu buttons lacked both `role="menuitem"` and `tabIndex={-1}` while the group menu had them; adding `role="menu"` to the container div is also required for full ARIA compliance.
+  - The `tokenMenuRef` replaces `document.querySelector('[data-context-menu="token"]')` in the keydown handler — ref-based lookup is faster and avoids querying the DOM on every key event.
+---
