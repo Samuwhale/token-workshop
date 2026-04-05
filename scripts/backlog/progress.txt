@@ -659,3 +659,13 @@
   - When a component was designed as a full-page replacement (with onBack/backLabel), it can be converted to an inline panel by removing the outer ternary and keeping the onBack handler as a "close" action. No changes needed inside the child component.
   - The `!showX && <content>` pattern that hides sibling content when a panel is active is a common mutual-exclusion antipattern. Replacing it with showing both and stacking the panel below is the minimal fix.
 ---
+
+## 2026-04-05 - Merge ResolverPanel into ThemeManager as an "Advanced" mode
+- The basic merger was already implemented: ThemeManager has a 'simple'|'advanced' mode toggle ("Theme Layers" / "DTCG Resolvers"), and ResolverContent is rendered in advanced mode. What was missing was the "Upgrade to Resolver" migration path from the dimensions view itself.
+- Added three things: (1) "Upgrade" button in the "Theme Axes" header toolbar (visible when resolverState is available and dimensions exist) — clicking it shows an inline confirmation strip; (2) inline confirmation strip with a "Convert & switch" primary action that calls `resolverState.convertFromThemes()` and automatically switches to advanced mode on success; (3) a "Switch to DTCG Resolvers" link in the empty state for users who haven't created any dimensions yet.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1,L85,L214,L706,L617
+- **Learnings for future iterations:**
+  - The merger was already structurally complete — the gap was purely the discoverability of the upgrade path from within the simple mode. Always check if a "merge" backlog item is asking for the merge itself or just the missing connective tissue.
+  - Inline confirmation strips (show/hide via boolean state, no modal) are appropriate for destructive-but-reversible operations like "convert theme layers to resolver" where the user should see a brief explanation before committing.
+  - When adding a new button to an existing toolbar, match the pattern exactly (same className structure, same icon size conventions).
+---

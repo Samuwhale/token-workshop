@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Spinner } from './Spinner';
 import type { ThemeDimension, ThemeOption } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -82,6 +82,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const dimSearchRef = useRef<HTMLInputElement | null>(null);
   const previewSearchRef = useRef<HTMLInputElement | null>(null);
   const [showOnlyWithGaps, setShowOnlyWithGaps] = useState(false);
+  // Upgrade-to-resolver flow
+  const [upgradeConfirm, setUpgradeConfirm] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   // --- Domain hooks ---
   const {
@@ -191,6 +195,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     };
     return () => { themeManagerHandle.current = null; };
   }, [themeManagerHandle, dimensions, coverage, navigateToCompare]);
+
+  // Upgrade dimensions → resolver
+  const handleUpgradeToResolver = useCallback(async () => {
+    if (!resolverState) return;
+    setUpgrading(true);
+    setUpgradeError(null);
+    try {
+      await resolverState.convertFromThemes();
+      setUpgradeConfirm(false);
+      setThemeMode('advanced');
+    } catch (err) {
+      setUpgradeError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUpgrading(false);
+    }
+  }, [resolverState]);
 
   // --- Live preview: compute resolved token values for current selections ---
 
@@ -599,6 +619,23 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             >
               or add a custom axis
             </button>
+
+            {resolverState && (
+              <div className="w-full max-w-[260px] pt-3 mt-1 border-t border-[var(--color-figma-border)] flex flex-col gap-1">
+                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug text-left">
+                  Need cross-dimensional token merging?
+                </p>
+                <button
+                  onClick={() => setThemeMode('advanced')}
+                  className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                  Switch to DTCG Resolvers
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col">
@@ -683,8 +720,64 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   </svg>
                   Matrix
                 </button>
+                {resolverState && (
+                  <button
+                    onClick={() => { setUpgradeConfirm(p => !p); setUpgradeError(null); }}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                      upgradeConfirm
+                        ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                        : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                    title="Convert theme axes to a DTCG resolver"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                    Upgrade
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Upgrade-to-resolver confirmation strip */}
+            {upgradeConfirm && resolverState && (
+              <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 flex flex-col gap-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug">Upgrade to DTCG Resolver</p>
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug mt-0.5">
+                      Your theme axes will be converted to a resolver config. The existing dimensions stay in place — you can switch back any time.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setUpgradeConfirm(false); setUpgradeError(null); }}
+                    className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] mt-0.5"
+                    aria-label="Dismiss"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                {upgradeError && (
+                  <p className="text-[10px] text-red-500 leading-snug">{upgradeError}</p>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleUpgradeToResolver}
+                    disabled={upgrading || !connected}
+                    className="px-2.5 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1"
+                  >
+                    {upgrading && <Spinner size="xs" />}
+                    {upgrading ? 'Converting…' : 'Convert & switch'}
+                  </button>
+                  <button
+                    onClick={() => { setUpgradeConfirm(false); setUpgradeError(null); }}
+                    className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Dimension search filter + gaps toggle */}
             {dimensions.length > 1 && (
