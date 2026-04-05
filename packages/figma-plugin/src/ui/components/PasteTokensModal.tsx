@@ -160,7 +160,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onKeyDown={handleKeyDown}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl flex flex-col"

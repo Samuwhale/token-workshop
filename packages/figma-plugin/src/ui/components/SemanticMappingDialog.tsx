@@ -1,8 +1,9 @@
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
 import { apiFetch } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -53,6 +54,17 @@ export function SemanticMappingDialog({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handlePatternSelect = (patternId: string) => {
     const pattern = SEMANTIC_PATTERNS.find(p => p.id === patternId);
@@ -121,8 +133,14 @@ export function SemanticMappingDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-      <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div
+        ref={dialogRef}
+        className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create Semantic Tokens"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">

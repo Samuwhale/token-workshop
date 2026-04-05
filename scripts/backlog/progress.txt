@@ -828,3 +828,13 @@
   - Auto-focus with `requestAnimationFrame` is safe even when the menu div is conditionally rendered — by the time useEffect runs the DOM is ready, but rAF avoids fighting any scroll/layout adjustments
   - `tabIndex={-1}` on menu items removes them from Tab order; arrow keys become the ONLY way to navigate within the menu (correct ARIA menu pattern)
 ---
+
+## 2026-04-05 - SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
+- Added full modal dismiss behaviors to SemanticMappingDialog: `useRef` + `useFocusTrap`, Escape key handler via `document.addEventListener`, backdrop click via `onMouseDown` on outer div, and `role="dialog"` / `aria-modal="true"` / `aria-label` ARIA attributes on the inner dialog div
+- Added backdrop click dismiss to PasteTokensModal: `onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}` on the outer backdrop div (Escape and focus trap were already present)
+- Files changed: `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L1, ~L54, ~L135; `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L163
+- **Learnings for future iterations:**
+  - Modal ARIA checklist: `role="dialog"`, `aria-modal="true"`, `aria-label` (or `aria-labelledby`), `useFocusTrap`, Escape via `document.addEventListener('keydown', ...)` in `useEffect`, backdrop `onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}`
+  - `useFocusTrap` handles both initial focus and Tab cycling — just pass `containerRef` and optionally `initialFocusRef`
+  - Backdrop click uses `onMouseDown` (not `onClick`) so dragging text inside the dialog doesn't accidentally close it
+---

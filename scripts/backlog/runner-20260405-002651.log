@@ -1246,3 +1246,27 @@ Already up to date.
 
   Merging to main: Context menus and dropdown menus lack arrow-key navigation
 Already up to date.
+[main db464f7e] chore(backlog): done – Context menus and dropdown menus lack arrow-key navigation
+ 10 files changed, 210 insertions(+), 38 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useMenuKeyboard.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - Context menus and dropdown menus lack arrow-key navigation
+- Added ArrowUp/ArrowDown/Home/End navigation + auto-focus to all 4 menus: TokenTreeNode group context menu, TokenList filter menu, App.tsx set context menu, App.tsx main overflow menu
+- Created shared utility `useMenuKeyboard.ts` with `getMenuItems(container)` and `handleMenuArrowKeys(e, container)` — used by all 4 menus
+- All menu items have `tabIndex={-1}` so they're managed by arrow-key roving focus, not Tab
+
+═══════════════════════════════════════════════════════════════
+  #52  ·  4 queued · 0
+0 in-progress · last took 12m24s
+═══════════════════════════════════════════════════════════════
+  → SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors — SemanticMappingDialog (post-generator semantic token creation) has no Escape key handler, no backdrop click handler, no focus trap, and no `role="dialog"` ARIA attributes despite every other modal in the codebase using `useFocusTrap` + document keydown + `onMouseDown` backdrop dismiss; PasteTokensModal has focus trap and Escape but no backdrop click dismiss (violates: consistency, error prevention)
+  Worktree: /tmp/backlog-54964-a29N5q
+  Running agent… (started 05:45:14)
+
+  ✓ done: SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
+    Added useFocusTrap, Escape handler, backdrop click dismiss, and role="dialog" ARIA attrs to SemanticMappingDialog; added backdrop click dismiss to PasteTokensModal
+    14 turns · 89s · $0.36
+
+  Merging to main: SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
+Already up to date.
