@@ -849,3 +849,29 @@ Already up to date.
 
   Merging to main: PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
 Already up to date.
+[main 93bf75c4] chore(backlog): done – PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
+ 8 files changed, 519 insertions(+), 284 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useOrphanCleanup.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/usePublishAll.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useReadinessChecks.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - PublishPanel.tsx is a 2128-line monolith — extract useReadinessChecks, usePublishAll, and useOrphanCleanup hooks
+- Extracted three domain-specific hooks from `PublishPanel.tsx` following the `useSyncEntity` decomposition pattern:
+  1. **`useOrphanCleanup.ts`** — orphan deletion state (`orphansDeleting`, `orphanConfirm`), message handler effect, and `executeOrphanDeletion` async callback (~85 lines)
+  2. **`useReadinessChecks.ts`** — readiness check state (5 useState), `runReadinessChecks` callback, auto-run effects, and derived counts (`readinessFails`, `readinessPasses`, etc.) (~170 lines); also exports `ReadinessCheck` interface and `LAST_READINESS_CHANGE_KEY`
+
+═══════════════════════════════════════════════════════════════
+  #35  ·  21 queued · 0
+0 in-progress · last took 8m5s
+═══════════════════════════════════════════════════════════════
+  → Context providers bundle 20–27 unrelated properties per context, causing cascade re-renders in all consumers — TokenDataContext (27 props, L114-139) mixes token set state with generator state; ThemeContext (23 props) mixes theme switching with resolver config; InspectContext (20 props) mixes heatmap, consistency, and usage scans; any single state change triggers re-render of every consumer regardless of which property it reads
+  Worktree: /tmp/backlog-54964-X0rLv6
+  Running agent… (started 03:43:59)
+
+  ✓ done: Context providers bundle 20–27 unrelated properties per context, causing cascade re-renders in all consumers
+    Split TokenDataContext (3 sub-contexts), ThemeContext (2), and InspectContext (3) — 8 total focused contexts replacing 3 monolithic ones; all gates pass
+    62 turns · 560s · $2.16
+
+  Merging to main: Context providers bundle 20–27 unrelated properties per context, causing cascade re-renders in all consumers
+Already up to date.

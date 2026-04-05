@@ -572,3 +572,27 @@
   - Types that span hook/component boundaries should move to the hook file and be exported from there — avoids component→hook imports which feel antipattern.
   - Destructuring all hook return values at the call site keeps JSX unchanged, making the refactor a clean drop-in with zero JSX diffs.
 ---
+
+## 2026-04-05 - Context providers bundle 20–27 unrelated properties per context causing cascade re-renders
+- Split all 3 large context providers into focused sub-contexts, each with its own useMemo value:
+  - **TokenDataContext** → `TokenSetsContextValue` (17 props, set management/mutations), `TokenFlatMapContextValue` (8 props, flat maps), `GeneratorContextValue` (5 props, generator polling). New hooks: `useTokenSetsContext`, `useTokenFlatMapContext`, `useGeneratorContext`. `TokenFlatMapProvider` internally calls `useTokenSetsContext()` to read `tokenRevision`.
+  - **ThemeContext** → `ThemeSwitcherContextValue` (15 props, theme UI + derived memos), `ResolverState` (15 props, resolver config/results). New hooks: `useThemeSwitcherContext`, `useResolverContext` (returns `ResolverState` directly so callers use `const resolverState = useResolverContext()`). `ThemeSwitcherProvider` reads both `TokenSetsContext` and `TokenFlatMapContext`, and `ResolverContext` for the resolver-overrides-themes logic.
+  - **InspectContext** → `SelectionContextValue` (1 prop, Figma selection), `HeatmapContextValue` (8 props, heatmap scan), `UsageContextValue` (10 props, usage counts + consistency scan). New hooks: `useSelectionContext`, `useHeatmapContext`, `useUsageContext`. Consistency scan progress ticks now only re-render ConsistencyPanel.
+- Each old provider (`TokenDataProvider`, `ThemeProvider`, `InspectProvider`) stays as a thin wrapper that stacks sub-providers — `main.tsx` needed no changes.
+- Consumers updated: `App.tsx` (8 hook calls replacing 3), `PanelRouter.tsx` (7 replacing 3), `EditorContext.tsx`, `ResolverPanel.tsx`, `ExportPanel.tsx`, `ConsistencyPanel.tsx`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/contexts/TokenDataContext.tsx` (rewritten)
+  - `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx` (rewritten)
+  - `packages/figma-plugin/src/ui/contexts/InspectContext.tsx` (rewritten)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L38, ~L134
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L40, ~L188
+  - `packages/figma-plugin/src/ui/contexts/EditorContext.tsx` ~L13, ~L69
+  - `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L19, ~L309
+  - `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L9, ~L132
+  - `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L3, ~L188
+- **Learnings for future iterations:**
+  - "Thin wrapper" pattern keeps `main.tsx` stable: each old public provider name becomes a wrapper that stacks sub-providers. The named export stays the same, only the implementation changes.
+  - When a sub-provider needs sibling sub-context data (e.g. `TokenFlatMapProvider` needs `tokenRevision` from `TokenSetsContext`), nest inner providers as children of the outer ones — the inner provider can then call the outer hook.
+  - For nested resolver+theme dependency: nest `ResolverProvider` outside `ThemeSwitcherProvider` so `ThemeSwitcherProvider` can call `useResolverContext()` to implement the resolver-overrides-themes logic cleanly.
+  - `useResolverContext()` returning `ResolverState` directly (not `{ resolverState }`) means consumers that already accessed `resolverState.xxx` only need to change the destructure line, not all the property accesses.
+---

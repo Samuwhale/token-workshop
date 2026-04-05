@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion } from '../../shared/types';
-import { useInspectContext } from '../contexts/InspectContext';
+import { useUsageContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
@@ -185,7 +185,7 @@ export function ConsistencyPanel({ availableTokens, onSelectNode }: ConsistencyP
     setConsistencySnappedKeys: setSnappedKeys,
     triggerConsistencyScan,
     cancelConsistencyScan,
-  } = useInspectContext();
+  } = useUsageContext();
 
   const handleCancel = useCallback(() => {
     cancelConsistencyScan();

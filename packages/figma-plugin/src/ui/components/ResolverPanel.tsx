@@ -16,7 +16,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
-import { useTokenDataContext } from '../contexts/TokenDataContext';
+import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
 
@@ -306,7 +306,7 @@ function ResolverInner({
 
   const resolvedCount = resolvedTokens ? Object.keys(resolvedTokens).length : 0;
 
-  const { allTokensFlat } = useTokenDataContext();
+  const { allTokensFlat } = useTokenFlatMapContext();
 
   /** Up to 8 sample tokens from the resolved output for live preview. Colors first. */
   const previewEntries = useMemo(() => {

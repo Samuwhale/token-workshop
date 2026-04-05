@@ -10,7 +10,7 @@
 
 import { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
-import { useTokenDataContext } from './TokenDataContext';
+import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 
 // ---------------------------------------------------------------------------
@@ -66,7 +66,8 @@ export function useEditorContext(): EditorContextValue {
 // ---------------------------------------------------------------------------
 
 export function EditorProvider({ children }: { children: ReactNode }) {
-  const { pathToSet, activeSet, setActiveSet, tokens } = useTokenDataContext();
+  const { activeSet, setActiveSet, tokens } = useTokenSetsContext();
+  const { pathToSet } = useTokenFlatMapContext();
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);

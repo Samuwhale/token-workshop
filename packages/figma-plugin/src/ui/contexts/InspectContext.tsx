@@ -1,13 +1,21 @@
 /**
- * InspectContext — owns canvas selection, heatmap, token-usage counts, and
- * consistency scan results.
+ * InspectContext — split into three focused sub-contexts to minimise cascade
+ * re-renders from high-frequency events:
  *
- * Extracts useSelection, useHeatmap, and the tokenUsageCounts/consistencyScan
- * state from App.tsx so that frequent Figma selection changes and scan progress
- * events don't cascade through the token-data or theme domains. Consumers call
- * `useInspectContext()` to subscribe.
+ *   SelectionContext  — Figma canvas selection (fires on every click in Figma)
+ *   HeatmapContext    — heatmap scan state and progress
+ *                       (progress events fire frequently during a scan)
+ *   UsageContext      — token usage counts + consistency scan state
+ *                       (consistency progress fires frequently during a scan)
  *
- * Note: The effect that triggers `scan-token-usage` based on the active tab
+ * After the split, a heatmap progress tick only re-renders HeatmapPanel;
+ * a consistency progress tick only re-renders ConsistencyPanel; and a
+ * Figma canvas selection change only re-renders components that read
+ * `selectedNodes`.
+ *
+ * `InspectProvider` is a thin wrapper that stacks all three providers.
+ *
+ * Note: The effect that triggers `scan-token-usage` based on active tab
  * and current token count stays in App.tsx because it depends on navigation
  * state. Call `inspect.triggerUsageScan()` from that effect.
  */
@@ -26,11 +34,11 @@ import type { HeatmapProgress } from '../hooks/useHeatmap';
 
 const CONSISTENCY_SCAN_TIMEOUT_MS = 60_000;
 
-export interface InspectContextValue {
-  // ---- useSelection -------------------------------------------------------
+export interface SelectionContextValue {
   selectedNodes: SelectionNodeInfo[];
+}
 
-  // ---- useHeatmap ---------------------------------------------------------
+export interface HeatmapContextValue {
   heatmapResult: HeatmapResult | null;
   heatmapLoading: boolean;
   heatmapError: string | null;
@@ -39,14 +47,13 @@ export interface InspectContextValue {
   setHeatmapScope: (scope: HeatmapScope) => void;
   triggerHeatmapScan: (scope?: HeatmapScope) => void;
   cancelHeatmapScan: () => void;
+}
 
-  // ---- Token usage counts -------------------------------------------------
+export interface UsageContextValue {
   tokenUsageCounts: Record<string, number>;
   /** Imperatively trigger a scan-token-usage postMessage. Called from App.tsx
    *  when the active tab/token state indicates a scan is needed. */
   triggerUsageScan: () => void;
-
-  // ---- Consistency scan ---------------------------------------------------
   consistencyResult: ConsistencySuggestion[] | null;
   consistencyLoading: boolean;
   consistencyError: string | null;
@@ -61,38 +68,75 @@ export interface InspectContextValue {
   cancelConsistencyScan: () => void;
 }
 
-const InspectContext = createContext<InspectContextValue | null>(null);
+// ---------------------------------------------------------------------------
+// Contexts and hooks
+// ---------------------------------------------------------------------------
 
-export function useInspectContext(): InspectContextValue {
-  const ctx = useContext(InspectContext);
-  if (!ctx) throw new Error('useInspectContext must be used inside InspectProvider');
+const SelectionContext = createContext<SelectionContextValue | null>(null);
+const HeatmapContext = createContext<HeatmapContextValue | null>(null);
+const UsageContext = createContext<UsageContextValue | null>(null);
+
+export function useSelectionContext(): SelectionContextValue {
+  const ctx = useContext(SelectionContext);
+  if (!ctx) throw new Error('useSelectionContext must be used inside InspectProvider');
+  return ctx;
+}
+
+export function useHeatmapContext(): HeatmapContextValue {
+  const ctx = useContext(HeatmapContext);
+  if (!ctx) throw new Error('useHeatmapContext must be used inside InspectProvider');
+  return ctx;
+}
+
+export function useUsageContext(): UsageContextValue {
+  const ctx = useContext(UsageContext);
+  if (!ctx) throw new Error('useUsageContext must be used inside InspectProvider');
   return ctx;
 }
 
 // ---------------------------------------------------------------------------
-// Provider
+// Providers
 // ---------------------------------------------------------------------------
 
-export function InspectProvider({ children }: { children: ReactNode }) {
+function SelectionProvider({ children }: { children: ReactNode }) {
   const { selectedNodes } = useSelection();
+  const value = useMemo<SelectionContextValue>(() => ({ selectedNodes }), [selectedNodes]);
+  return (
+    <SelectionContext.Provider value={value}>
+      {children}
+    </SelectionContext.Provider>
+  );
+}
 
+function HeatmapProvider({ children }: { children: ReactNode }) {
   const {
-    heatmapResult,
-    heatmapLoading,
-    heatmapError,
-    heatmapProgress,
-    heatmapScope,
-    setHeatmapScope,
-    triggerHeatmapScan,
-    cancelHeatmapScan,
+    heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
+    heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
   } = useHeatmap();
 
-  // Token usage counts — updated by the plugin sandbox after each scan
+  const value = useMemo<HeatmapContextValue>(
+    () => ({
+      heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
+      heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+    }),
+    [
+      heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
+      heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+    ],
+  );
+
+  return (
+    <HeatmapContext.Provider value={value}>
+      {children}
+    </HeatmapContext.Provider>
+  );
+}
+
+function UsageProvider({ children }: { children: ReactNode }) {
   const [tokenUsageCounts, setTokenUsageCounts] = useState<Record<string, number>>({});
 
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Consistency scan state — persisted here so results survive tab switches
   const [consistencyResult, setConsistencyResult] = useState<ConsistencySuggestion[] | null>(null);
   const [consistencyLoading, setConsistencyLoading] = useState(false);
   const [consistencyError, setConsistencyError] = useState<string | null>(null);
@@ -109,8 +153,6 @@ export function InspectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes.
-  // Debounce the re-scan trigger to avoid flooding the plugin during rapid
-  // operations (e.g. batch token applies that fire multiple sync-complete events).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const msg = e.data?.pluginMessage;
@@ -201,33 +243,14 @@ export function InspectProvider({ children }: { children: ReactNode }) {
     setConsistencyProgress(null);
   }, [clearConsistencyTimeout]);
 
-  const value = useMemo<InspectContextValue>(
+  const value = useMemo<UsageContextValue>(
     () => ({
-      selectedNodes,
-      heatmapResult,
-      heatmapLoading,
-      heatmapError,
-      heatmapProgress,
-      heatmapScope,
-      setHeatmapScope,
-      triggerHeatmapScan,
-      cancelHeatmapScan,
-      tokenUsageCounts,
-      triggerUsageScan,
-      consistencyResult,
-      consistencyLoading,
-      consistencyError,
-      consistencyProgress,
-      consistencyTotalNodes,
-      consistencySnappedKeys,
-      setConsistencySnappedKeys,
-      triggerConsistencyScan,
-      cancelConsistencyScan,
+      tokenUsageCounts, triggerUsageScan,
+      consistencyResult, consistencyLoading, consistencyError, consistencyProgress,
+      consistencyTotalNodes, consistencySnappedKeys, setConsistencySnappedKeys,
+      triggerConsistencyScan, cancelConsistencyScan,
     }),
     [
-      selectedNodes,
-      heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-      heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
       tokenUsageCounts, triggerUsageScan,
       consistencyResult, consistencyLoading, consistencyError, consistencyProgress,
       consistencyTotalNodes, consistencySnappedKeys,
@@ -236,8 +259,24 @@ export function InspectProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <InspectContext.Provider value={value}>
+    <UsageContext.Provider value={value}>
       {children}
-    </InspectContext.Provider>
+    </UsageContext.Provider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public wrapper — stacks the three providers
+// ---------------------------------------------------------------------------
+
+export function InspectProvider({ children }: { children: ReactNode }) {
+  return (
+    <SelectionProvider>
+      <HeatmapProvider>
+        <UsageProvider>
+          {children}
+        </UsageProvider>
+      </HeatmapProvider>
+    </SelectionProvider>
   );
 }

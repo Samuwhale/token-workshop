@@ -37,9 +37,9 @@ import { EmptyState } from '../components/EmptyState';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useConnectionContext } from '../contexts/ConnectionContext';
-import { useTokenDataContext } from '../contexts/TokenDataContext';
-import { useThemeContext } from '../contexts/ThemeContext';
-import { useInspectContext } from '../contexts/InspectContext';
+import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
+import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
+import { useSelectionContext, useHeatmapContext, useUsageContext } from '../contexts/InspectContext';
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useEditorContext } from '../contexts/EditorContext';
 import type { TokenNode } from '../hooks/useTokens';
@@ -186,18 +186,27 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     updateServerUrlAndConnect,
   } = useConnectionContext();
   const {
-    sets, activeSet, setActiveSet, tokens, allTokensFlat, pathToSet, generators,
-    derivedTokenPaths, perSetFlat, setCollectionNames, setModeNames, syncSnapshot,
-    fetchError, tokensError, tokensLoading, refreshTokens, setFilteredSetCount,
-    generatorsLoading, refreshGenerators,
-  } = useTokenDataContext();
+    sets, activeSet, setActiveSet, tokens,
+    setCollectionNames, setModeNames,
+    fetchError, refreshTokens,
+  } = useTokenSetsContext();
   const {
-    dimensions, setDimensions, activeThemes, setActiveThemes, resolverState, themedAllTokensFlat,
-  } = useThemeContext();
+    allTokensFlat, pathToSet, perSetFlat, syncSnapshot,
+    tokensError, tokensLoading, setFilteredSetCount,
+  } = useTokenFlatMapContext();
   const {
-    selectedNodes, heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-    heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan, tokenUsageCounts,
-  } = useInspectContext();
+    generators, derivedTokenPaths, generatorsLoading, refreshGenerators,
+  } = useGeneratorContext();
+  const {
+    dimensions, setDimensions, activeThemes, setActiveThemes, themedAllTokensFlat,
+  } = useThemeSwitcherContext();
+  const resolverState = useResolverContext();
+  const { selectedNodes } = useSelectionContext();
+  const {
+    heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
+    heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan,
+  } = useHeatmapContext();
+  const { tokenUsageCounts } = useUsageContext();
 
   // Build the common TokenList `actions` object once — it's identical across the
   // three TokenList render variants (side-panel, no-split, preview-split).

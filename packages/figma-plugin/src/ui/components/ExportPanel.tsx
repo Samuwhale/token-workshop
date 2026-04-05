@@ -6,7 +6,7 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
-import { useTokenDataContext } from '../contexts/TokenDataContext';
+import { useTokenSetsContext } from '../contexts/TokenDataContext';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 interface ExportPanelProps {
@@ -129,7 +129,7 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
-  const { sets, addSetToState } = useTokenDataContext();
+  const { sets, addSetToState } = useTokenSetsContext();
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [selected, setSelected] = useState<Set<string>>(() => {
     const parsed = lsGetJson<string[]>(STORAGE_KEYS.EXPORT_PLATFORMS, []);
