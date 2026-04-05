@@ -25,6 +25,7 @@ export interface TokenFlowPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   onNavigateToToken?: (path: string) => void;
+  onEditToken?: (path: string) => void;
   /** When set, the panel auto-selects this token path on mount / change */
   initialPath?: string | null;
   /** True while tokens are being fetched from the server */
@@ -208,17 +209,22 @@ function FlowNodeCard({
   y,
   isCenter,
   onClick,
+  onEdit,
+  onGoToTree,
 }: {
   node: FlowNode;
   x: number;
   y: number;
   isCenter: boolean;
   onClick: () => void;
+  onEdit?: () => void;
+  onGoToTree?: () => void;
 }) {
   const cyclic = node.isCyclic;
+  const hasActions = !!(onEdit || onGoToTree);
   return (
     <div
-      className={`absolute rounded border text-xs select-none transition-shadow ${
+      className={`group/card absolute rounded border text-xs select-none transition-shadow ${
         cyclic
           ? 'border-red-500/60 bg-red-500/5'
           : isCenter
@@ -257,11 +263,46 @@ function FlowNodeCard({
         <span className={`font-medium truncate ${cyclic ? 'text-red-500' : ''}`}>
           {node.path.split('.').pop()}
         </span>
-        <span className="ml-auto opacity-40 flex-shrink-0">{node.$type}</span>
+        <span className="ml-auto opacity-40 flex-shrink-0 group-hover/card:opacity-0 transition-opacity">{node.$type}</span>
       </div>
       <div className="px-2 pt-0.5 truncate opacity-60" title={formatValue(node.$value)}>
         {formatValue(node.$value)}
       </div>
+      {/* Action buttons — visible on hover */}
+      {hasActions && (
+        <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 pointer-events-none group-hover/card:pointer-events-auto transition-opacity">
+          {onGoToTree && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              onClick={(e) => { e.stopPropagation(); onGoToTree(); }}
+              title="Go to in tree (Define tab)"
+              aria-label="Go to in tree"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+          )}
+          {onEdit && (
+            <button
+              className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              title="Edit token"
+              aria-label="Edit token"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -333,6 +374,7 @@ export function TokenFlowPanel({
   allTokensFlat,
   pathToSet,
   onNavigateToToken,
+  onEditToken,
   initialPath,
   loading = false,
 }: TokenFlowPanelProps) {
@@ -642,6 +684,10 @@ export function TokenFlowPanel({
     onNavigateToToken?.(path);
   }, [onNavigateToToken]);
 
+  const handleEdit = useCallback((path: string) => {
+    onEditToken?.(path);
+  }, [onEditToken]);
+
   // Stats
   const stats = useMemo(() => {
     const totalTokens = Object.keys(allTokensFlat).length;
@@ -777,6 +823,8 @@ export function TokenFlowPanel({
                     y={layout.srcPositions[i].y + 20}
                     isCenter={false}
                     onClick={() => handleNodeClick(node.path)}
+                    onGoToTree={onNavigateToToken ? () => handleNavigate(node.path) : undefined}
+                    onEdit={onEditToken ? () => handleEdit(node.path) : undefined}
                   />
                 </div>
               ))}
@@ -806,6 +854,8 @@ export function TokenFlowPanel({
                   y={layout.centerPos.y + 20}
                   isCenter={true}
                   onClick={() => {}}
+                  onGoToTree={onNavigateToToken ? () => handleNavigate(layout.centerNode.path) : undefined}
+                  onEdit={onEditToken ? () => handleEdit(layout.centerNode.path) : undefined}
                 />
               </div>
 
@@ -818,6 +868,8 @@ export function TokenFlowPanel({
                     y={layout.depPositions[i].y + 20}
                     isCenter={false}
                     onClick={() => handleNodeClick(node.path)}
+                    onGoToTree={onNavigateToToken ? () => handleNavigate(node.path) : undefined}
+                    onEdit={onEditToken ? () => handleEdit(node.path) : undefined}
                   />
                 </div>
               ))}

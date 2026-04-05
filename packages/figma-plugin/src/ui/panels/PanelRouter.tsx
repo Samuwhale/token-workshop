@@ -690,6 +690,17 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               setHighlightedToken(path);
             }
           }}
+          onEditToken={(path) => {
+            const targetSet = pathToSet[path];
+            navigateTo('define', 'tokens');
+            setEditingToken({ path, set: targetSet ?? activeSet });
+            if (targetSet && targetSet !== activeSet) {
+              setActiveSet(targetSet);
+              setPendingHighlight(path);
+            } else {
+              setHighlightedToken(path);
+            }
+          }}
         />
       </ErrorBoundary>
     );

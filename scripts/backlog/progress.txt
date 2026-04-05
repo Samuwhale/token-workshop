@@ -689,3 +689,16 @@
   - `useGeneratorDialog` has its own internal config undo/redo stack (for within-dialog changes) — this is separate from the global app undo stack we're extending here. They coexist cleanly.
   - The `?deleteTokens=false` query param on generator DELETE is important for undo: we don't want generated tokens removed when undoing a generator creation (they should persist).
 ---
+
+## 2026-04-05 - Dependencies sub-tab disconnected from token editing — add Edit and Go to in tree actions on flow nodes
+- Added `onEditToken?: (path: string) => void` prop to `TokenFlowPanelProps`
+- Updated `FlowNodeCard` to accept `onEdit?` and `onGoToTree?` callbacks, adding a hover-reveal action button row (absolute positioned, `group-hover/card:opacity-100`) with a list icon ("Go to in tree") and pencil icon ("Edit token") on all nodes (source, center, dependent)
+- The type label fades out on hover to make space for the action buttons using `group-hover/card:opacity-0`
+- In `PanelRouter.tsx`, wired `onEditToken` to navigate to Define > Tokens, open the token editor with `setEditingToken`, and highlight the token in the tree (with cross-set support)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L24, ~L205, ~L332, ~L641, ~L772, ~L802, ~L813; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L693
+- **Learnings for future iterations:**
+  - The `group/card` named group pattern (`group/card` + `group-hover/card:`) is the right approach when the component is inside another element that also uses `group`, preventing hover conflicts
+  - Fading the type label on hover with `group-hover/card:opacity-0` creates space for action buttons without layout shift in tight 56px nodes
+  - `e.stopPropagation()` on action button clicks prevents the card's own `onClick` (re-center graph) from firing when editing/navigating
+  - The "Edit" action in PanelRouter needs both `setEditingToken` AND `setHighlightedToken`/`setPendingHighlight` so the token is visible and selected in the tree when the editor opens
+---
