@@ -401,3 +401,9 @@
   - `effectiveRovingPath = rovingFocusPath ?? firstPinned?.path ?? flatItems[0]?.node.path ?? null` ensures the first visible row is always tabbable before the user interacts, without any explicit initialization useEffect
   - The existing `.focus()` calls in arrow key handlers automatically trigger `onFocus` on the target row, which updates `rovingFocusPath` — no need to call `setRovingFocusPath` separately in each keyboard handler
 ---
+
+## 2026-04-05 - code-pass
+- Areas explored: packages/server/src/routes/resolvers.ts (mutex, operation log), packages/server/src/routes/docs.ts (error handling), packages/server/src/routes/lint.ts (mutex, op log), packages/server/src/routes/export.ts (validation), packages/server/src/routes/sse.ts (hijack), packages/server/src/services/resolver-store.ts (no lock), packages/figma-plugin/src/ui/contexts/ (all 4 contexts — TokenDataContext, ThemeContext, InspectContext, ConnectionContext value sizes), packages/figma-plugin/src/ui/components/PublishPanel.tsx (2128 lines, monolith), packages/figma-plugin/src/ui/hooks/useThemeDimensions.ts (520 lines, 54-property return), packages/core/src/generator-engine.ts (validation gaps), packages/figma-plugin/src/plugin/controller.ts (scan signal management)
+- Found 5 items — written to backlog-inbox.md
+- Notable: Resolver routes are the only server mutation routes that bypass `withLock()` — the resolver-store service has no lock mechanism at all, unlike token-store, themes, snapshots, and generators. Context providers with 20-27 properties each are the next structural domino — splitting them would reduce re-render cascades across the entire UI.
+---

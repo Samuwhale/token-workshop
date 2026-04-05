@@ -528,3 +528,14 @@ Already up to date.
 --- Cleanup: archiving completed items (≥40) ---
   → Archived 40 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 73)
+[main 31b1e554] chore(backlog): archive 40 completed items + trim progress
+ 5 files changed, 50 insertions(+), 644 deletions(-)
+
+  Milestone: 1435 items done — running code discovery pass
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================
+  ✓ code pass: code-pass
+    5 items written to inbox: resolver routes missing mutex (HIGH), PublishPanel 2128-line monolith, context providers 20-27 props causing cascade re-renders, useThemeDimensions 54-property return, docs routes missing try-catch
+Already up to date.
