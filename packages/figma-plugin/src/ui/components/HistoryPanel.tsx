@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Spinner } from './Spinner';
+import { SkeletonTimelineRow } from './Skeleton';
 import { ConfirmModal } from './ConfirmModal';
 import { OpIcon } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
@@ -578,9 +579,12 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       {/* Timeline */}
       <div className="flex-1 overflow-y-auto">
         {timelineLoading && allEntries.length === 0 && (
-          <div className="flex items-center justify-center py-8 gap-2">
-            <Spinner size="md" className="text-[var(--color-figma-accent)]" />
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading history…</p>
+          <div aria-label="Loading history…" aria-busy="true">
+            {[
+              'w-3/4', 'w-1/2', 'w-2/3', 'w-5/8', 'w-3/5',
+            ].map((w, i) => (
+              <SkeletonTimelineRow key={i} titleWidth={w} />
+            ))}
           </div>
         )}
 

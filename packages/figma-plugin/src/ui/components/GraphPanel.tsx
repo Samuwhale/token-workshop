@@ -11,6 +11,7 @@ import type { GraphTemplate } from './graph-templates';
 import { TemplatePicker } from './TemplatePicker';
 import { GeneratorPipelineCard, getGeneratorTypeLabel } from './GeneratorPipelineCard';
 import { Spinner } from './Spinner';
+import { SkeletonGeneratorCard } from './Skeleton';
 
 // ---------------------------------------------------------------------------
 // SVG export
@@ -633,9 +634,10 @@ export function GraphPanel({
   // Loading state — generators haven't loaded yet
   if (loading && setGenerators.length === 0) {
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
-        <Spinner size="md" />
-        <span className="text-[11px]">Loading generators…</span>
+      <div className="flex flex-col gap-2 p-3 overflow-y-auto" aria-label="Loading generators…" aria-busy="true">
+        <SkeletonGeneratorCard />
+        <SkeletonGeneratorCard />
+        <SkeletonGeneratorCard />
       </div>
     );
   }

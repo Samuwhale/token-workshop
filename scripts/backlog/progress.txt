@@ -523,3 +523,24 @@
   - Keeping the `title` attribute on the name div is still worthwhile for accessibility even when a custom tooltip is added — native tooltips are delayed enough (1-2s browser default) that they don't visually conflict.
   - A 400ms delay (slightly longer than the 300ms complex-preview delay) prevents tooltip flicker on quick mouse-over traversals.
 ---
+
+## 2026-04-05 - Add skeleton/shimmer loading states for panels during initial data fetch
+- Created `Skeleton.tsx` with five reusable shimmer primitives: `Skeleton` (base block), `SkeletonLine` (text-height strip), `SkeletonTimelineRow` (dot + title + timestamp), `SkeletonGeneratorCard` (badge + name + toggle + pipeline row), `SkeletonImportRow` (icon + name + type badge), `SkeletonFlowRow` (node block + arrow + node block). All use Tailwind's built-in `animate-pulse` with `bg-[var(--color-figma-border)]`.
+- Replaced spinners/empty divs in four panels:
+  - **HistoryPanel**: spinner replaced with 5 `SkeletonTimelineRow` entries at varying widths — mimics real timeline layout
+  - **GraphPanel**: full-height spinner replaced with 3 `SkeletonGeneratorCard` blocks
+  - **ImportPanel**: centered spinner replaced with 6 `SkeletonImportRow` entries; removed now-unused `Spinner` import
+  - **TokenFlowPanel**: full-height spinner replaced with 4 `SkeletonFlowRow` entries; removed now-unused `Spinner` import
+- All loading states include `aria-label` + `aria-busy="true"` on the wrapper for screen reader accessibility.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/Skeleton.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L2, ~L582
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L14, ~L636
+  - `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L2, ~L91
+  - `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L8, ~L740
+- **Learnings for future iterations:**
+  - `animate-pulse` from Tailwind v4 (no config needed) with `bg-[var(--color-figma-border)]` is the right shimmer color — it's visible against both `--color-figma-bg` and `--color-figma-bg-secondary` backgrounds.
+  - Skeleton shapes should mirror the real content layout at the same dimensions (heights, widths) so the transition to real content is spatially smooth.
+  - When replacing a spinner that is the only use of `Spinner` in a file, remove the import to avoid unused-import lint warnings.
+  - Add `aria-label` + `aria-busy="true"` on the skeleton wrapper (not on individual bones) so screen readers announce a single loading state.
+---

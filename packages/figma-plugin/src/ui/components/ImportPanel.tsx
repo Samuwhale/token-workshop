@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Spinner } from './Spinner';
+import { SkeletonImportRow } from './Skeleton';
 import { ImportPanelProvider, useImportPanel, type ImportPanelProps } from './ImportPanelContext';
 import { ImportSourceSelector } from './ImportSourceSelector';
 import { ImportSuccessView } from './ImportSuccessView';
@@ -89,9 +89,15 @@ function ImportPanelRoot() {
         {showSuccess && <ImportSuccessView />}
 
         {loading && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
-            <Spinner size="md" />
-            {source === 'variables' ? 'Reading variables from Figma…' : 'Reading styles from Figma…'}
+          <div
+            aria-label={source === 'variables' ? 'Reading variables from Figma…' : 'Reading styles from Figma…'}
+            aria-busy="true"
+          >
+            {[
+              'w-1/2', 'w-2/3', 'w-5/12', 'w-3/5', 'w-7/12', 'w-1/2',
+            ].map((w, i) => (
+              <SkeletonImportRow key={i} nameWidth={w} />
+            ))}
           </div>
         )}
 
