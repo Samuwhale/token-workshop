@@ -243,6 +243,8 @@ export interface CreatePanelProps {
   onOpenGenerator?: (template: GraphTemplate) => void;
   /** Called when a token is successfully created */
   onTokenCreated?: (path: string) => void;
+  /** Called when a token is created and the editor should open immediately */
+  onCreateAndEdit?: (path: string) => void;
   /** Called to refresh data after creation */
   onRefresh: () => void;
   /** Close the panel */
@@ -281,6 +283,7 @@ export function CreatePanel({
   graphTemplates = [],
   onOpenGenerator,
   onTokenCreated,
+  onCreateAndEdit,
   onRefresh,
   onClose,
   availableFonts,
@@ -331,6 +334,7 @@ export function CreatePanel({
             initialType={initialType}
             initialValue={initialValue}
             onTokenCreated={onTokenCreated}
+            onCreateAndEdit={onCreateAndEdit}
             onRefresh={onRefresh}
             availableFonts={availableFonts}
             fontWeightsByFamily={fontWeightsByFamily}
@@ -375,6 +379,7 @@ function SingleCreateTab({
   initialType,
   initialValue,
   onTokenCreated,
+  onCreateAndEdit,
   onRefresh,
   availableFonts,
   fontWeightsByFamily,
@@ -390,6 +395,7 @@ function SingleCreateTab({
   initialType?: string;
   initialValue?: string;
   onTokenCreated?: (path: string) => void;
+  onCreateAndEdit?: (path: string) => void;
   onRefresh: () => void;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
@@ -509,7 +515,7 @@ function SingleCreateTab({
     return null;
   }, [name, pathError, pathExists, aliasHasCycle, tokenType, refMode, value]);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (openEditor?: boolean) => {
     if (saveBlockReason || !connected || saving) return;
     setSaving(true);
     setError('');
@@ -527,23 +533,27 @@ function SingleCreateTab({
       });
       clearCreateDraft();
       onRefresh();
-      onTokenCreated?.(fullPath);
-      dispatchToast(`Token "${fullPath}" created`, 'success');
-      // Reset for next creation — keep group pre-filled so user can type next sibling name
-      setName('');
-      setValue(getDefaultValue(tokenType));
-      setDescription('');
-      setScopes([]);
-      setRefMode(false);
-      setRefQuery('');
-      setExtendsPath('');
-      setTimeout(() => nameInputRef.current?.focus(), 0);
+      if (openEditor) {
+        onCreateAndEdit?.(fullPath);
+      } else {
+        onTokenCreated?.(fullPath);
+        dispatchToast(`Token "${fullPath}" created`, 'success');
+        // Reset for next creation — keep group pre-filled so user can type next sibling name
+        setName('');
+        setValue(getDefaultValue(tokenType));
+        setDescription('');
+        setScopes([]);
+        setRefMode(false);
+        setRefQuery('');
+        setExtendsPath('');
+        setTimeout(() => nameInputRef.current?.focus(), 0);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setSaving(false);
     }
-  }, [saveBlockReason, connected, saving, tokenType, value, description, scopes, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated]);
+  }, [saveBlockReason, connected, saving, tokenType, value, description, scopes, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated, onCreateAndEdit]);
 
   const handleTypeChange = (type: string) => {
     typeSetManually.current = true;
@@ -919,14 +929,26 @@ function SingleCreateTab({
       {error && <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>}
 
       <div className="flex flex-col gap-1.5 pt-1">
-        <button
-          onClick={handleCreate}
-          disabled={!!saveBlockReason || !connected || saving}
-          title={saveBlockReason ?? 'Create token (⌘↵ or ⌘S)'}
-          className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-        >
-          {saving ? 'Creating...' : 'Create Token'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleCreate(false)}
+            disabled={!!saveBlockReason || !connected || saving}
+            title={saveBlockReason ?? 'Create token (⌘↵ or ⌘S)'}
+            className="flex-1 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+          >
+            {saving ? 'Creating...' : 'Create'}
+          </button>
+          {onCreateAndEdit && (
+            <button
+              onClick={() => handleCreate(true)}
+              disabled={!!saveBlockReason || !connected || saving}
+              title={saveBlockReason ?? 'Create token and open editor'}
+              className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+            >
+              {saving ? 'Creating...' : 'Create & Edit'}
+            </button>
+          )}
+        </div>
         {saveBlockReason && !pathError && !pathExists && !aliasHasCycle && (
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">{saveBlockReason}</p>
         )}

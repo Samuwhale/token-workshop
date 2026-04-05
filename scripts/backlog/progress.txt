@@ -615,3 +615,11 @@
   - When partial success occurs, don't reset the form — keep failing rows so users can correct them without re-typing everything.
   - Per-row error indicators need both a visual cue (border color) and text explaining what went wrong, since the generic error message at the bottom of the form doesn't identify which row failed.
 ---
+
+## 2026-04-05 - No "Create & Open in Editor" action
+- Added `onCreateAndEdit?: (path: string) => void` prop to `CreatePanelProps` and `SingleCreateTab`. Modified `handleCreate` to accept an `openEditor?: boolean` parameter — when true, calls `onCreateAndEdit` instead of resetting the form. Split the single "Create Token" button into two side-by-side buttons: "Create" (secondary style, resets form as before) and "Create & Edit" (primary/accent, only shown when `onCreateAndEdit` is provided). Wired `onCreateAndEdit` in App.tsx to close the create panel, set the highlighted token, open the editor via `setEditingToken`, and navigate to `define/tokens`.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L245 (prop), ~L283 (destructure), ~L333 (pass-through to SingleCreateTab), ~L381 (SingleCreateTab props), ~L392 (type), ~L518 (handleCreate signature), ~L536 (openEditor branch), ~L552 (deps), ~L921 (button UI); `packages/figma-plugin/src/ui/App.tsx` ~L2700 (onCreateAndEdit callback)
+- **Learnings for future iterations:**
+  - When adding a "create and navigate" action, close the source panel BEFORE calling setEditingToken — the editor visibility condition checks `overflowPanel === null` and both createPanel and editor share the same drawer slot.
+  - Two-button pattern: secondary (outline/border) for "keep going" action, accent for the "primary next step" action. Wrap in `flex gap-2` to keep them equal width with `flex-1`.
+---

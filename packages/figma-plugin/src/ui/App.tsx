@@ -2698,6 +2698,13 @@ export function App() {
                   setHighlightedToken(path);
                   setSuccessToast(`Created ${path}`);
                 }}
+                onCreateAndEdit={(path) => {
+                  setShowCreatePanel(null);
+                  setHighlightedToken(path);
+                  const name = path.includes('.') ? path.split('.').pop()! : path;
+                  setEditingToken({ path, name, set: activeSet });
+                  navigateTo('define', 'tokens');
+                }}
                 onRefresh={refreshAll}
                 onClose={() => setShowCreatePanel(null)}
                 availableFonts={availableFonts}
