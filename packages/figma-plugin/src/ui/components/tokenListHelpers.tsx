@@ -1,6 +1,39 @@
 import type { TokenNode } from '../hooks/useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import { stableStringify } from '../shared/utils';
+import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+
+// ---------------------------------------------------------------------------
+// Composition token helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a composition token's sub-properties to raw (non-alias) values,
+ * ready to be sent via postMessage to the plugin controller.
+ *
+ * Follows aliases one level for the top-level value, then resolves each
+ * property value if it is itself an alias. Falls back to the original value
+ * on broken aliases so the controller always receives a complete object.
+ */
+export function resolveCompositeForApply(
+  node: TokenNode,
+  allTokensFlat: Record<string, TokenMapEntry>,
+): Record<string, any> {
+  const rawVal = isAlias(node.$value)
+    ? resolveTokenValue(node.$value as string, 'composition', allTokensFlat).value
+    : node.$value;
+  const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
+  const resolvedComp: Record<string, any> = {};
+  for (const [prop, propVal] of Object.entries(compObj)) {
+    if (isAlias(propVal)) {
+      const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
+      resolvedComp[prop] = r.error ? propVal : r.value;
+    } else {
+      resolvedComp[prop] = propVal;
+    }
+  }
+  return resolvedComp;
+}
 
 // ---------------------------------------------------------------------------
 // Color matching helpers for "Promote to Semantic" (US-026)

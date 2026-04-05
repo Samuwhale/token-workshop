@@ -472,3 +472,11 @@
   - To correlate `Promise.allSettled` results with their input varIds, build tasks from a named array (`varSnapshotEntries`) rather than calling `Array.from(map.entries())` twice — even though Map iteration order is deterministic, using the same array reference makes the index correlation explicit and safe.
   - In `revertVariables`, failures accumulate inline via `failures.push()` rather than being thrown, so tracking per-variable failure requires a `varFailed` local flag per async task rather than checking `r.status === 'rejected'`.
 ---
+
+## 2026-04-05 - Extract duplicate composition-token resolution to resolveCompositeForApply helper
+- Extracted the 24-line duplicate composition-token resolution block (present identically in `handleApplyToSelection` and `handleContextMenuApply`) into `resolveCompositeForApply(node, allTokensFlat)` in `tokenListHelpers.tsx`. Both call sites now delegate to the helper and pass its return value directly as `resolvedValue` in the postMessage payload.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L1 (new import), ~L6 (new function), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L12 (import update), ~L1148 (handleApplyToSelection), ~L1252 (handleContextMenuApply)
+- **Learnings for future iterations:**
+  - `tokenListHelpers.tsx` previously had no imports from `resolveAlias` — adding the import is fine since it's a shared module already used throughout the plugin.
+  - The helper signature `(node: TokenNode, allTokensFlat: Record<string, TokenMapEntry>)` matches what both callers already had in scope, making the extraction zero-friction at each call site.
+---

@@ -9,7 +9,7 @@ import { isAlias, extractAliasPath, resolveTokenValue, buildResolutionChain, bui
 import type { ResolutionStep } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
-import { getEditableString, parseInlineValue, inferGroupTokenType, highlightMatch } from './tokenListHelpers';
+import { getEditableString, parseInlineValue, inferGroupTokenType, highlightMatch, resolveCompositeForApply } from './tokenListHelpers';
 import { INLINE_SIMPLE_TYPES, INLINE_POPOVER_TYPES } from './tokenListTypes';
 import { InlineValuePopover } from './InlineValuePopover';
 import { PropertyPicker } from './PropertyPicker';
@@ -1146,27 +1146,13 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
     // Composition tokens apply all their properties at once
     if (node.$type === 'composition') {
-      const rawVal = isAlias(node.$value)
-        ? resolveTokenValue(node.$value, 'composition', allTokensFlat).value
-        : node.$value;
-      const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
-      // Resolve each property value so the controller receives raw values, not references
-      const resolvedComp: Record<string, any> = {};
-      for (const [prop, propVal] of Object.entries(compObj)) {
-        if (isAlias(propVal)) {
-          const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
-          resolvedComp[prop] = r.error ? propVal : r.value;
-        } else {
-          resolvedComp[prop] = propVal;
-        }
-      }
       parent.postMessage({
         pluginMessage: {
           type: 'apply-to-selection',
           tokenPath: node.path,
           tokenType: 'composition',
           targetProperty: 'composition',
-          resolvedValue: resolvedComp,
+          resolvedValue: resolveCompositeForApply(node, allTokensFlat),
         },
       }, '*');
       return;
@@ -1250,26 +1236,13 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
     // Composition tokens apply all their sub-properties at once
     if (node.$type === 'composition') {
-      const rawVal = isAlias(node.$value)
-        ? resolveTokenValue(node.$value, 'composition', allTokensFlat).value
-        : node.$value;
-      const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
-      const resolvedComp: Record<string, any> = {};
-      for (const [prop, propVal] of Object.entries(compObj)) {
-        if (isAlias(propVal)) {
-          const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
-          resolvedComp[prop] = r.error ? propVal : r.value;
-        } else {
-          resolvedComp[prop] = propVal;
-        }
-      }
       parent.postMessage({
         pluginMessage: {
           type: 'apply-to-selection',
           tokenPath: node.path,
           tokenType: 'composition',
           targetProperty: 'composition',
-          resolvedValue: resolvedComp,
+          resolvedValue: resolveCompositeForApply(node, allTokensFlat),
         },
       }, '*');
       return;
