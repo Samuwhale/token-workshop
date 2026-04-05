@@ -216,9 +216,13 @@ export function SelectionInspector({
   const [extractUnboundResult, setExtractUnboundResult] = useState<{ created: number; bound: number } | null>(null);
   const [extractUnboundError, setExtractUnboundError] = useState<string | null>(null);
 
-  // Property filter state
-  const [propFilter, setPropFilter] = useState('');
-  const [propFilterMode, setPropFilterMode] = useState<'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions'>('all');
+  // Property filter state — persisted across selection changes
+  const [propFilter, setPropFilterState] = useState(() => lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER) ?? '');
+  const [propFilterMode, setPropFilterModeState] = useState<'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions'>(
+    () => (lsGet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE) as 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions') ?? 'all'
+  );
+  const setPropFilter = (v: string) => { lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER, v); setPropFilterState(v); };
+  const setPropFilterMode = (v: 'all' | 'bound' | 'unbound' | 'mixed' | 'colors' | 'dimensions') => { lsSet(STORAGE_KEYS.INSPECT_PROP_FILTER_MODE, v); setPropFilterModeState(v); };
 
   // Persistent peer suggestion — survives until dismissed or selection changes
   const [peerSuggestion, setPeerSuggestion] = useState<{
@@ -372,8 +376,6 @@ export function SelectionInspector({
       setBindingErrors({});
       setPeerSuggestion(null);
       setPropTypeSuggestion(null);
-      setPropFilter('');
-      setPropFilterMode('all');
       setExtractingUnbound(false);
       setExtractUnboundResult(null);
       setExtractUnboundError(null);

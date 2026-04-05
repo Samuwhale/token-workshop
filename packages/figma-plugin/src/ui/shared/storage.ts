@@ -49,6 +49,8 @@ export const STORAGE_KEYS = {
   STARRED_TOKENS:        'tm_starred_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
   CONDENSED_VIEW:        'tm_condensed_view',
+  INSPECT_PROP_FILTER:      'tm_inspect_prop_filter',
+  INSPECT_PROP_FILTER_MODE: 'tm_inspect_prop_filter_mode',
 } as const;
 
 /** Per-set dynamic key builders */
