@@ -164,6 +164,7 @@ export interface HealthPanelProps {
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
   onRefreshValidation: () => void;
+  onError: (msg: string) => void;
 }
 
 export function HealthPanel({
@@ -187,6 +188,7 @@ export function HealthPanel({
   validationLastRefreshed,
   validationIsStale,
   onRefreshValidation,
+  onError,
 }: HealthPanelProps) {
   const validationIssues = validationIssuesProp ?? [];
   const validating = validationLoading;
@@ -491,7 +493,7 @@ export function HealthPanel({
       }
       onRefreshValidation();
     } catch {
-      // silently ignore; re-validate remains
+      onError('Fix failed — check your connection and try again.');
     } finally {
       setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
@@ -510,7 +512,7 @@ export function HealthPanel({
       }
       onRefreshValidation();
     } catch {
-      // silently ignore
+      onError('Fix failed — check your connection and try again.');
     } finally {
       setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
@@ -535,7 +537,7 @@ export function HealthPanel({
       }
       await runValidation();
     } catch {
-      // silently leave result stale
+      onError('Fix failed — check your connection and try again.');
     } finally {
       setFixingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
@@ -556,6 +558,7 @@ export function HealthPanel({
       runValidation();
     } catch (err) {
       console.warn('[HealthPanel] deduplicate failed:', err);
+      onError('Deduplicate failed — check your connection and try again.');
       setDeduplicating(null);
     }
   };
@@ -583,6 +586,7 @@ export function HealthPanel({
       runValidation();
     } catch (err) {
       console.warn('[HealthPanel] bulk deduplicate failed:', err);
+      onError('Bulk deduplicate failed — some tokens may not have been updated.');
       setBulkDeduplicating(false);
     }
   };
@@ -595,6 +599,7 @@ export function HealthPanel({
       setReloadKey(k => k + 1);
     } catch (err) {
       console.warn('[HealthPanel] delete unused token failed:', err);
+      onError('Delete failed — check your connection and try again.');
     } finally {
       setDeletingUnused(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
@@ -610,6 +615,7 @@ export function HealthPanel({
       setReloadKey(k => k + 1);
     } catch (err) {
       console.warn('[HealthPanel] delete all unused tokens failed:', err);
+      onError('Delete failed — some tokens may not have been removed.');
     } finally {
       setDeletingUnused(new Set());
     }
@@ -627,6 +633,7 @@ export function HealthPanel({
       setReloadKey(k => k + 1);
     } catch (err) {
       console.warn('[HealthPanel] deprecate unused token failed:', err);
+      onError('Deprecate failed — check your connection and try again.');
     } finally {
       setDeprecatingUnused(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
@@ -646,6 +653,7 @@ export function HealthPanel({
       setReloadKey(k => k + 1);
     } catch (err) {
       console.warn('[HealthPanel] deprecate all unused tokens failed:', err);
+      onError('Deprecate failed — some tokens may not have been updated.');
     } finally {
       setDeprecatingUnused(new Set());
     }

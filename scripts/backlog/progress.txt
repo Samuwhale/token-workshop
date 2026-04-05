@@ -838,3 +838,14 @@
   - `useFocusTrap` handles both initial focus and Tab cycling — just pass `containerRef` and optionally `initialFocusRef`
   - Backdrop click uses `onMouseDown` (not `onClick`) so dragging text inside the dialog doesn't accidentally close it
 ---
+
+## 2026-04-05 - HealthPanel fix actions silently swallow errors
+- Added `onError: (msg: string) => void` prop to `HealthPanelProps`; destructured it in the component function
+- Replaced all silent catch blocks (9 handlers) with `onError(...)` calls: `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeduplicate`, `handleBulkDeduplicate`, `handleDeleteUnusedToken`, `handleDeleteAllUnused`, `handleDeprecateUnusedToken`, `handleDeprecateAllUnused`
+- Wired `onError={p.setErrorToast}` in `PanelRouter.tsx`'s `renderShipHealth()` — `setErrorToast` was already available in PanelRouter props
+- Kept `console.warn` calls alongside `onError` for the handlers that had them (deduplicate/delete/deprecate), removed only the bare `// silently ignore` comments
+- Files changed: `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L166, ~L493, ~L512, ~L537, ~L557, ~L584, ~L597, ~L611, ~L628, ~L648; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L760
+- **Learnings for future iterations:**
+  - `setErrorToast` is already present in `PanelRouterProps` (line 135) and is available to pass to any panel rendered in `PanelRouter`; never need to thread it through App.tsx again
+  - For bulk operations that show a confirmation dialog, `setConfirmXxx(false)` was already correctly in the try block (success path only) — the spinner clears via `finally`, but the dialog stays open on error; the only missing piece was the user-visible error toast
+---

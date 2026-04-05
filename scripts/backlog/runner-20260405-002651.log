@@ -1270,3 +1270,26 @@ Already up to date.
 
   Merging to main: SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
 Already up to date.
+[main eb905149] chore(backlog): done – SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
+ 6 files changed, 59 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - SemanticMappingDialog and PasteTokensModal missing standard modal dismiss behaviors
+- Added full modal dismiss behaviors to SemanticMappingDialog: `useRef` + `useFocusTrap`, Escape key handler via `document.addEventListener`, backdrop click via `onMouseDown` on outer div, and `role="dialog"` / `aria-modal="true"` / `aria-label` ARIA attributes on the inner dialog div
+- Added backdrop click dismiss to PasteTokensModal: `onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}` on the outer backdrop div (Escape and focus trap were already present)
+- Files changed: `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L1, ~L54, ~L135; `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L163
+
+═══════════════════════════════════════════════════════════════
+  #53  ·  3 queued · 0
+0 in-progress · last took 1m37s
+═══════════════════════════════════════════════════════════════
+  → HealthPanel fix actions silently swallow errors — `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeleteUnusedToken`, and `handleDeleteAllUnused` all catch errors with `// silently ignore` or `console.warn` only; the user clicks "Fix" or "Delete", the spinner appears and disappears, but if the operation fails the item remains with no error message explaining why — the user cannot distinguish between "still processing" and "failed" (violates: visibility of system status, error recovery)
+  Worktree: /tmp/backlog-54964-uBkpyG
+  Running agent… (started 05:46:51)
+
+  ✓ done: HealthPanel fix actions silently swallow errors — `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeleteUnusedToken`, and `handleDeleteAllUnused` all catch errors with `// silently ignore` or `console.warn` only
+    Added `onError` prop to HealthPanelProps and wired `setErrorToast` through PanelRouter; replaced all 9 silent catch blocks with descriptive error toast messages
+    24 turns · 202s · $0.79
+
+  Merging to main: HealthPanel fix actions silently swallow errors — `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeleteUnusedToken`, and `handleDeleteAllUnused` all catch errors with `// silently ignore` or `console.warn` only
+Already up to date.
