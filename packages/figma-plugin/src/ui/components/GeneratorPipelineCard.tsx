@@ -681,6 +681,10 @@ export function GeneratorPipelineCard({
   const [running, setRunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [showClonePanel, setShowClonePanel] = useState(false);
+  const [cloneName, setCloneName] = useState('');
+  const [cloneTargetGroup, setCloneTargetGroup] = useState('');
+  const [cloneSourceToken, setCloneSourceToken] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTokensOnDelete, setDeleteTokensOnDelete] = useState(false);
   const [showQuickEdit, setShowQuickEdit] = useState(false);
@@ -744,17 +748,20 @@ export function GeneratorPipelineCard({
     }
   };
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = async (overrides?: { name?: string; targetGroup?: string; sourceToken?: string }) => {
     setDuplicating(true);
     setActionError(null);
     try {
+      const newName = overrides?.name ?? `${generator.name} (copy)`;
+      const newTargetGroup = overrides?.targetGroup ?? (generator.targetGroup ? `${generator.targetGroup}_copy` : `${generator.name}_copy`);
+      const newSourceToken = overrides?.sourceToken !== undefined ? (overrides.sourceToken.trim() || undefined) : generator.sourceToken;
       const body = {
         type: generator.type,
-        name: `${generator.name} (copy)`,
-        sourceToken: generator.sourceToken,
+        name: newName,
+        sourceToken: newSourceToken,
         inlineValue: generator.inlineValue,
         targetSet: generator.targetSet,
-        targetGroup: generator.targetGroup ? `${generator.targetGroup}_copy` : `${generator.name}_copy`,
+        targetGroup: newTargetGroup,
         config: generator.config,
         overrides: generator.overrides,
       };
@@ -763,6 +770,7 @@ export function GeneratorPipelineCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      setShowClonePanel(false);
       onRefresh();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Duplicate failed');
@@ -983,12 +991,21 @@ export function GeneratorPipelineCard({
           Edit config
         </button>
         <button
-          onClick={handleDuplicate}
-          disabled={duplicating}
-          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
-          title="Duplicate this generator as a starting point"
+          onClick={() => {
+            if (showClonePanel) {
+              setShowClonePanel(false);
+            } else {
+              setCloneName(`${generator.name} (copy)`);
+              setCloneTargetGroup(generator.targetGroup ?? '');
+              setCloneSourceToken(generator.sourceToken ?? '');
+              setShowQuickEdit(false);
+              setShowClonePanel(true);
+            }
+          }}
+          className={`text-[10px] transition-colors ${showClonePanel ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+          title="Clone this generator with a new name, target group, or source token"
         >
-          {duplicating ? 'Duplicating…' : 'Duplicate'}
+          Clone…
         </button>
         <button
           onClick={() => { setDeleteTokensOnDelete(false); setShowDeleteConfirm(true); }}
@@ -1070,6 +1087,61 @@ export function GeneratorPipelineCard({
           onSaved={() => { setShowQuickEdit(false); onRefresh(); }}
           onOpenFullDialog={() => { setShowQuickEdit(false); setShowEditDialog(true); }}
         />
+      )}
+
+      {showClonePanel && (
+        <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)] flex flex-col gap-2">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Clone generator</span>
+          <div className="flex gap-1.5">
+            <div className="flex-1">
+              <label className={QE_LABEL}>Name</label>
+              <input
+                type="text"
+                value={cloneName}
+                onChange={e => setCloneName(e.target.value)}
+                className={QE_INPUT}
+                autoFocus
+              />
+            </div>
+            <div className="flex-1">
+              <label className={QE_LABEL}>Target group</label>
+              <input
+                type="text"
+                value={cloneTargetGroup}
+                onChange={e => setCloneTargetGroup(e.target.value)}
+                className={`${QE_INPUT} font-mono`}
+                placeholder="e.g. brand-dark"
+              />
+            </div>
+          </div>
+          {generator.sourceToken !== undefined && (
+            <div>
+              <label className={QE_LABEL}>Source token</label>
+              <input
+                type="text"
+                value={cloneSourceToken}
+                onChange={e => setCloneSourceToken(e.target.value)}
+                className={`${QE_INPUT} font-mono`}
+                placeholder="e.g. colors.brand.primary"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleDuplicate({ name: cloneName.trim(), targetGroup: cloneTargetGroup.trim(), sourceToken: generator.sourceToken !== undefined ? cloneSourceToken : undefined })}
+              disabled={duplicating || !cloneName.trim()}
+              className="flex-1 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+            >
+              {duplicating ? 'Cloning…' : 'Clone'}
+            </button>
+            <button
+              onClick={() => setShowClonePanel(false)}
+              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {showEditDialog && (
