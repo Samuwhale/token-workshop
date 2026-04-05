@@ -774,3 +774,14 @@
   - Inline validation on change should clear errors immediately when input becomes valid but only show "cannot be empty" on submit (not on every keystroke), to avoid alarming users who are still typing. Only format errors (invalid chars) are shown proactively.
   - When a disabled button has multiple possible reasons, use `title` for tooltip-on-hover AND inline helper text below the button so the reason is visible without hover.
 ---
+
+## 2026-04-05 - PropertyRow inline bind list lacks ARIA listbox semantics
+- Added `role="listbox"` and `aria-label="Token candidates"` to the scrollable container divs in both PropertyRow.tsx (line 514) and DeepInspectSection.tsx (line 87).
+- Added `role="option"` and `aria-selected={isSelected}` to all candidate `<button>` elements in both components (recently-used buttons and main-candidates buttons in PropertyRow; single list buttons in DeepInspectSection).
+- Added `aria-autocomplete="list"` and `aria-label="Search token candidates"` to the search inputs in both components, matching QuickApplyPicker's pattern.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L507,L514,L538,L595; `packages/figma-plugin/src/ui/components/DeepInspectSection.tsx` ~L80,L87,L99
+- **Learnings for future iterations:**
+  - When the same interaction pattern appears in multiple components (e.g. a filterable token picker), ARIA semantics must be applied consistently to all instances — a screen reader regression in one place is as bad as having it in all.
+  - `role="option"` must be a descendant of `role="listbox"` — the div wrapper satisfies this; individual section headers (non-interactive) within the listbox don't need ARIA roles.
+  - `aria-autocomplete="list"` on the search input is the correct attribute for "typing filters the associated listbox" — it communicates the combobox-like relationship without requiring the full combobox role pattern.
+---

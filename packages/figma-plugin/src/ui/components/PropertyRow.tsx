@@ -504,6 +504,8 @@ export function PropertyRow({
                 }
               }}
               placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
+              aria-autocomplete="list"
+              aria-label="Search token candidates"
               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
@@ -511,7 +513,7 @@ export function PropertyRow({
                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
               </div>
             ) : (
-              <div className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
+              <div role="listbox" aria-label="Token candidates" className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
                 {/* Recently used section */}
                 {recentBindCandidates.length > 0 && (
                   <>
@@ -535,6 +537,8 @@ export function PropertyRow({
                       return (
                         <button
                           key={path}
+                          role="option"
+                          aria-selected={isSelected}
                           onClick={() => handleBindToken(path)}
                           className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
                         >
@@ -591,6 +595,8 @@ export function PropertyRow({
                         </div>
                       )}
                       <button
+                        role="option"
+                        aria-selected={isSelected}
                         onClick={() => handleBindToken(path)}
                         className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
                       >

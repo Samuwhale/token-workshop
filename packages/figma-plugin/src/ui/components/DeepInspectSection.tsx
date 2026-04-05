@@ -77,6 +77,8 @@ function DeepBindPanel({
             }
           }}
           placeholder={`Search ${compatibleTypes.join(' / ')} tokens…`}
+          aria-autocomplete="list"
+          aria-label="Search token candidates"
           className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
         />
         {candidates.length === 0 ? (
@@ -84,7 +86,7 @@ function DeepBindPanel({
             {query ? 'No matching tokens' : `No ${compatibleTypes.join(' or ')} tokens`}
           </div>
         ) : (
-          <div className="max-h-[120px] overflow-y-auto flex flex-col gap-px">
+          <div role="listbox" aria-label="Token candidates" className="max-h-[120px] overflow-y-auto flex flex-col gap-px">
             {candidates.map(([path, entry], idx) => {
               let swatchColor: string | null = null;
               if (entry.$type === 'color') {
@@ -96,6 +98,8 @@ function DeepBindPanel({
               return (
                 <button
                   key={path}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => onBind(childNode.id, prop, path)}
                   className={`w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-left transition-colors ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
                 >
