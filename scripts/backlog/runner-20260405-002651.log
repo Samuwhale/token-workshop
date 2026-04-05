@@ -1107,3 +1107,27 @@ Already up to date.
 
   Merging to main: ThemeManager coverage visualization shows only gap counts, not a visual matrix
 Already up to date.
+[main c93d7e4b] chore(backlog): done – ThemeManager coverage visualization shows only gap counts, not a visual matrix
+ 6 files changed, 442 insertions(+), 5 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ThemeCoverageMatrix.tsx
+  ✓ Merged and marked done
+
+## 2026-04-05 - ThemeManager coverage visualization shows only gap counts, not a visual matrix
+- Created `ThemeCoverageMatrix.tsx` (new component, ~270 lines): per-dimension matrix showing token groups × theme options with fill status. Each cell shows ✓ (complete), an orange count (unresolved aliases), a violet count (missing overrides), or "–" (option has no tokens in that group). Clicking any cell navigates back to the list view with that dimension+option selected.
+- Added a "Matrix" toggle button in the `ThemeManager.tsx` toolbar (alongside existing "Preview" and "Compare" buttons). When active, replaces the dimension card list with the coverage matrix. Clicking any cell or "Back" closes the matrix and selects the relevant option.
+- Matrix groups tokens by top-level path segment (before first "." or "/"). Each dimension renders its own sub-table; the "Show all groups" toggle reveals gap-free groups which are hidden by default.
+
+═══════════════════════════════════════════════════════════════
+  #46  ·  10 queued · 0
+0 in-progress · last took 7m31s
+═══════════════════════════════════════════════════════════════
+  → No way to duplicate a theme dimension with all its options — useThemeDimensions.ts supports create/rename/delete/reorder for dimensions but has no duplicate action; when adding a new dimension (e.g. "density") that has a similar structure to an existing one (e.g. "size"), users must recreate all options and set assignments from scratch
+  Worktree: /tmp/backlog-54964-PhRCPB
+  Running agent… (started 05:06:40)
+
+  ✓ done: No way to duplicate a theme dimension with all its options
+    stale — already done. handleDuplicateDimension is fully implemented in useThemeDimensionsCrud.ts and a Duplicate button is wired in ThemeManager.tsx.
+    5 turns · 80s · $0.35
+
+  Merging to main: No way to duplicate a theme dimension with all its options
+Already up to date.

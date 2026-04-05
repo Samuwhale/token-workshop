@@ -744,3 +744,9 @@
   - The conditional `{!flag && <div>...</div>}` pattern for wrapping existing JSX blocks requires changing both the opening tag and the closing `</div>` to `</div>}`. Easy to miss the closing side.
   - For matrix-style data derived from token paths, `firstSegment(path)` (splitting on the minimum of the first "/" and first ".") provides a good grouping heuristic that handles both slash-organized sets and dot-notated tokens.
 ---
+## 2026-04-05 - No way to duplicate a theme dimension with all its options
+- Stale — already done. `handleDuplicateDimension` is fully implemented in `useThemeDimensionsCrud.ts` (L257-328) and a Duplicate button is wired in `ThemeManager.tsx` (L971). The function creates a new dimension with a unique "Copy" name, then copies all options and their set assignments via sequential API calls.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing, verify with Grep whether the feature may already exist. The backlog item described a missing feature but it had already been built.
+---
