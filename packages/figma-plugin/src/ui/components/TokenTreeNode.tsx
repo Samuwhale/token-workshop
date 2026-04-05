@@ -1116,9 +1116,76 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     e.preventDefault();
     setContextMenuPos({
       x: Math.min(e.clientX, window.innerWidth - 168),
-      y: Math.min(e.clientY, window.innerHeight - 280),
+      y: Math.min(e.clientY, window.innerHeight - 320),
     });
   }, []);
+
+  /**
+   * Apply this token to the current Figma selection from the context menu.
+   * Uses the same logic as the hover apply button, but anchors the property
+   * picker to the node row instead of the button.
+   */
+  const handleContextMenuApply = useCallback(() => {
+    setContextMenuPos(null);
+    if (!node.$type) return;
+
+    const rect = nodeRef.current?.getBoundingClientRect();
+    const anchorTop = rect ? rect.bottom + 2 : 100;
+    const anchorLeft = rect ? rect.left : 0;
+
+    // Composition tokens apply all their sub-properties at once
+    if (node.$type === 'composition') {
+      const rawVal = isAlias(node.$value)
+        ? resolveTokenValue(node.$value, 'composition', allTokensFlat).value
+        : node.$value;
+      const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
+      const resolvedComp: Record<string, any> = {};
+      for (const [prop, propVal] of Object.entries(compObj)) {
+        if (isAlias(propVal)) {
+          const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
+          resolvedComp[prop] = r.error ? propVal : r.value;
+        } else {
+          resolvedComp[prop] = propVal;
+        }
+      }
+      parent.postMessage({
+        pluginMessage: {
+          type: 'apply-to-selection',
+          tokenPath: node.path,
+          tokenType: 'composition',
+          targetProperty: 'composition',
+          resolvedValue: resolvedComp,
+        },
+      }, '*');
+      return;
+    }
+
+    const validProps = TOKEN_PROPERTY_MAP[node.$type];
+    if (!validProps || validProps.length === 0) return;
+
+    const entry = allTokensFlat[node.path];
+    const targets = getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
+
+    if (targets.length === 1) {
+      applyWithProperty(targets[0]);
+      setQuickBound(PROPERTY_LABELS[targets[0]]);
+      setTimeout(() => setQuickBound(null), 1500);
+      return;
+    }
+    if (targets.length > 1 && targets.length < validProps.length) {
+      setPickerAnchor({ top: anchorTop, left: anchorLeft });
+      setPickerProps(targets);
+      setShowPicker(true);
+      return;
+    }
+    if (validProps.length === 1) {
+      applyWithProperty(validProps[0]);
+    } else {
+      setPickerAnchor({ top: anchorTop, left: anchorLeft });
+      setPickerProps(null);
+      setShowPicker(true);
+    }
+  }, [node.$type, node.$value, node.path, allTokensFlat, selectedNodes, applyWithProperty]);
 
   // Activate inline editing for simple types (keyboard or double-click)
   const activateInlineEdit = useCallback(() => {
@@ -1828,6 +1895,33 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
           onClick={e => e.stopPropagation()}
         >
+          {/* Apply to selection — primary Figma action */}
+          {node.$type && (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 || node.$type === 'composition') && (
+            selectedNodes.length === 0 ? (
+              <button
+                disabled
+                className="w-full flex items-center px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] cursor-not-allowed"
+                title="Select a Figma layer first"
+              >
+                Apply to selection
+              </button>
+            ) : (
+              <button
+                data-accel="v"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                onMouseDown={e => e.preventDefault()}
+                onClick={handleContextMenuApply}
+              >
+                <span>Apply to selection</span>
+                {quickBindTargets?.length === 1 && (
+                  <span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">{PROPERTY_LABELS[quickBindTargets[0]]}</span>
+                )}
+              </button>
+            )
+          )}
+          {node.$type && (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 || node.$type === 'composition') && (
+            <div className="my-1 border-t border-[var(--color-figma-border)]" />
+          )}
           <button
             data-accel="n"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

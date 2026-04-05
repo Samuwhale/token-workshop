@@ -545,3 +545,13 @@
   - The full `ColorPicker` popup already had the eyedropper — this item was purely about surfacing it as a standalone button in the inline editor row. Always check if feature logic exists elsewhere in the component tree before implementing from scratch.
   - The eyedropper result message (`eyedropper-result`) is broadcast to all registered window listeners — having two listeners (one in ColorPicker, one in ColorEditor) is safe since each listener updates its own state independently.
 ---
+
+## 2026-04-05 - No "apply token to selection" from the token list context menu
+- Added "Apply to selection" as the first item in the right-click context menu for any token with bindable properties (color, dimension, typography, shadow, border, number, boolean, composition). The action appears highlighted in accent color with a property hint when only one target is available (e.g., "Fill" for a color token bound to fill). When no Figma layer is selected, the item is shown disabled with a tooltip explaining why. Keyboard shortcut `V` activates it via the existing `data-accel` mechanism.
+- Implementation: added `handleContextMenuApply` callback that reuses the existing `applyWithProperty` and `getQuickBindTargets` logic. If exactly 1 compatible property → direct apply with "Bound" flash. If multiple → opens the existing `PropertyPicker` popup anchored to the token row. Composition tokens apply all sub-properties atomically. Updated the context menu Y-constraint from `innerHeight - 280` to `innerHeight - 320` to account for the new entry.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1115 (handleContextMenu constraint), ~L1122 (handleContextMenuApply), ~L1890 (context menu entry)
+- **Learnings for future iterations:**
+  - `handleApplyToSelection` uses `e.currentTarget` for picker positioning, which doesn't work from a context menu. For context menu triggers, use `nodeRef.current?.getBoundingClientRect()` to get the anchor position.
+  - `getQuickBindTargets` already handles the "smart default" logic (scope filtering + capability filtering), so reusing it gives correct property suggestions without reimplementing the logic.
+  - `data-accel` on context menu buttons is automatically handled by the existing keydown effect — no extra code needed to wire up keyboard shortcuts.
+---
