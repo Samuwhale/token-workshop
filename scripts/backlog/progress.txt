@@ -352,3 +352,13 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: ValueEditors.tsx at 2,479 lines with 15+ editor components is a clear splitting target; import operations lack undo support; keyboard shortcuts are scattered across 19+ files with no central registry or conflict detection
 ---
+
+## 2026-04-05 - No inline alias editing for simple token types
+- Added inline alias redirect editing to `MultiModeCell` in the multi-mode theme view. Alias-valued tokens (e.g. `{color.blue.500}`) now show as clickable monospace text. Clicking opens a fixed-positioned popover with a search input + `AliasAutocomplete` dropdown pre-filled with the current alias path (without braces). Selecting a new path saves `{new.path}` via `onSave`. The popover positions below the cell using `getBoundingClientRect`. Escape key closes without saving.
+- Also fixed `isColor` to exclude alias-valued color tokens, which previously tried to render an `<input type="color">` for `{alias}` strings.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L8 (added `extractAliasPath` import), ~L30-174 (MultiModeCell: added `useTokenTree`, alias state, `canEditAlias`, `openAliasEditor`, popover render)
+- **Learnings for future iterations:**
+  - `isColor` in `MultiModeCell` must also check `!isAliasValue` — a color alias has `$type === 'color'` but `$value === '{some.path}'`, and the color input path would try to use it as a hex string.
+  - `extractAliasPath` returns the path without braces; wrap in `{...}` before passing to `onSave`.
+  - For fixed-position alias popovers inside narrow cells, use `getBoundingClientRect()` on a `ref` attached to the cell wrapper to get the anchor position.
+---

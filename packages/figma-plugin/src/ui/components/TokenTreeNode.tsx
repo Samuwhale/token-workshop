@@ -5,7 +5,7 @@ import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tok
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
 import type { BindableProperty } from '../../shared/types';
-import { isAlias, resolveTokenValue, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
+import { isAlias, extractAliasPath, resolveTokenValue, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
 import type { ResolutionStep } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
@@ -44,12 +44,21 @@ function MultiModeCell({
   onTabActivated?: () => void;
   onTab?: (direction: 1 | -1) => void;
 }) {
+  const { allTokensFlat, pathToSet } = useTokenTree();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const escapedRef = useRef(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const cellRef = useRef<HTMLDivElement>(null);
 
-  const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAlias(value?.$value);
+  // Alias editing state
+  const [aliasEditing, setAliasEditing] = useState(false);
+  const [aliasQuery, setAliasQuery] = useState('');
+  const [aliasPopoverPos, setAliasPopoverPos] = useState({ x: 0, y: 0 });
+
+  const isAliasValue = isAlias(value?.$value);
+  const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAliasValue;
+  const canEditAlias = isAliasValue && !!targetSet && !!onSave;
 
   // Stable refs so the tab-activation effect always reads fresh values without
   // adding them as trigger dependencies (which would cause spurious re-activations
@@ -81,8 +90,23 @@ function MultiModeCell({
     onSave(tokenPath, tokenType, parsed, targetSet);
   }, [editing, editValue, tokenType, targetSet, tokenPath, onSave]);
 
+  const openAliasEditor = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = cellRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const currentPath = extractAliasPath(value?.$value) ?? '';
+    setAliasQuery(currentPath);
+    setAliasPopoverPos({ x: rect.left, y: rect.bottom + 4 });
+    setAliasEditing(true);
+  }, [value]);
+
+  const closeAliasEditor = useCallback(() => {
+    setAliasEditing(false);
+    setAliasQuery('');
+  }, []);
+
   const displayVal = value ? formatValue(value.$type, value.$value) : '—';
-  const isColor = tokenType === 'color' && value && typeof value.$value === 'string';
+  const isColor = tokenType === 'color' && value && typeof value.$value === 'string' && !isAliasValue;
 
   // For <input type="color">, extract 6-char hex and preserve any alpha suffix
   const colorHex = isColor ? (value!.$value as string) : '';
@@ -91,6 +115,7 @@ function MultiModeCell({
 
   return (
     <div
+      ref={cellRef}
       className="w-[80px] shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
       title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ''}`}
     >
@@ -157,6 +182,51 @@ function MultiModeCell({
           autoFocus
           className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
         />
+      ) : isAliasValue ? (
+        <>
+          <span
+            className={`text-[10px] truncate max-w-full font-mono ${canEditAlias ? 'cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}
+            onClick={canEditAlias ? openAliasEditor : undefined}
+            title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ''}\nClick to redirect alias`}
+          >
+            {displayVal}
+          </span>
+          {aliasEditing && (
+            <div
+              className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 w-64"
+              style={{ top: aliasPopoverPos.y, left: aliasPopoverPos.x }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-1.5 uppercase tracking-wide">
+                Redirect alias · <span className="font-mono normal-case text-[var(--color-figma-text)]">{optionName}</span>
+              </div>
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  value={aliasQuery}
+                  onChange={e => setAliasQuery(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') { e.stopPropagation(); closeAliasEditor(); }
+                  }}
+                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  placeholder="Search tokens…"
+                />
+                <AliasAutocomplete
+                  query={aliasQuery}
+                  allTokensFlat={allTokensFlat}
+                  pathToSet={pathToSet}
+                  filterType={tokenType}
+                  onSelect={path => {
+                    onSave!(tokenPath, tokenType || value.$type || 'color', `{${path}}`, targetSet!);
+                    closeAliasEditor();
+                  }}
+                  onClose={closeAliasEditor}
+                />
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <span
           className={`text-[10px] truncate max-w-full ${canEdit ? 'cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}
