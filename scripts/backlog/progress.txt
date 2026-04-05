@@ -732,3 +732,15 @@
 - **Learnings for future iterations:**
   - Both names and values have parity in find-replace preview UX; no gap exists.
 ---
+
+## 2026-04-05 - ThemeManager coverage visualization shows only gap counts, not a visual matrix
+- Created `ThemeCoverageMatrix.tsx` (new component, ~270 lines): per-dimension matrix showing token groups × theme options with fill status. Each cell shows ✓ (complete), an orange count (unresolved aliases), a violet count (missing overrides), or "–" (option has no tokens in that group). Clicking any cell navigates back to the list view with that dimension+option selected.
+- Added a "Matrix" toggle button in the `ThemeManager.tsx` toolbar (alongside existing "Preview" and "Compare" buttons). When active, replaces the dimension card list with the coverage matrix. Clicking any cell or "Back" closes the matrix and selects the relevant option.
+- Matrix groups tokens by top-level path segment (before first "." or "/"). Each dimension renders its own sub-table; the "Show all groups" toggle reveals gap-free groups which are hidden by default.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/ThemeCoverageMatrix.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L21, ~L71, ~L685, ~L805
+- **Learnings for future iterations:**
+  - The conditional `{!flag && <div>...</div>}` pattern for wrapping existing JSX blocks requires changing both the opening tag and the closing `</div>` to `</div>}`. Easy to miss the closing side.
+  - For matrix-style data derived from token paths, `firstSegment(path)` (splitting on the minimum of the first "/" and first ".") provides a good grouping heuristic that handles both slash-organized sets and dot-notated tokens.
+---

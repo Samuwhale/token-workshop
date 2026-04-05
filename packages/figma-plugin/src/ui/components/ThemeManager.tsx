@@ -18,6 +18,7 @@ import { useThemeCoverage } from '../hooks/useThemeCoverage';
 import { useThemeCompare } from '../hooks/useThemeCompare';
 import { ThemeManagerModalsProvider, ThemeManagerModals } from './ThemeManagerContext';
 import type { ThemeManagerModalsState } from './ThemeManagerContext';
+import { ThemeCoverageMatrix } from './ThemeCoverageMatrix';
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -70,6 +71,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
+  // Coverage matrix view
+  const [showCoverageMatrix, setShowCoverageMatrix] = useState(false);
   // Collapsed "Excluded" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
   // Dimension/option search filter
@@ -682,6 +685,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   </svg>
                   Compare
                 </button>
+                <button
+                  onClick={() => {
+                    setShowCoverageMatrix(prev => {
+                      if (!prev) { setShowPreview(false); setShowCompare(false); }
+                      return !prev;
+                    });
+                  }}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                    showCoverageMatrix
+                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                      : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                  title="Coverage matrix — token groups × theme options"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                  </svg>
+                  Matrix
+                </button>
               </div>
             </div>
 
@@ -777,8 +802,22 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             )}
 
+            {/* Coverage matrix view */}
+            {showCoverageMatrix && (
+              <ThemeCoverageMatrix
+                dimensions={filteredDimensions.length > 0 ? filteredDimensions : dimensions}
+                coverage={coverage}
+                missingOverrides={missingOverrides}
+                setTokenValues={setTokenValues}
+                onSelectOption={(dimId, optionName) => {
+                  setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
+                  setShowCoverageMatrix(false);
+                }}
+              />
+            )}
+
             {/* Dimension layer cards */}
-            <div className="flex flex-col">
+            {!showCoverageMatrix && <div className="flex flex-col">
               {filteredDimensions.length === 0 && (dimSearch || showOnlyWithGaps) && (
                 <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
                   {showOnlyWithGaps && !dimSearch
@@ -1607,7 +1646,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   Showing {filteredDimensions.length} of {dimensions.length} layers
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Live Token Resolution Preview */}
             {showPreview && dimensions.length > 0 && (

@@ -1084,3 +1084,26 @@ Already up to date.
 
   Merging to main: Find-and-replace has no dry-run mode for value replacements
 Already up to date.
+[main 5b3f4db9] chore(backlog): done – Find-and-replace has no dry-run mode for value replacements
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Find-and-replace has no dry-run mode for value replacements
+- Stale — already implemented. `frValuePreview` useMemo in `useFindReplace.ts` (lines 217-250) computes old/new value pairs before any mutation. `TokenListModals.tsx` (lines 926-1000) renders a full diff table with old value (struck-through, red highlight on match) and new value (green highlight on replacement), grouped by set in all-sets mode. The "Update N" button (line 1050) is disabled when `frValuePreview.length === 0`, so nothing applies immediately — explicit click required. Behaviour is identical to the name-rename preview.
+- Files changed: none
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #45  ·  11 queued · 0
+0 in-progress · last took 1m56s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager coverage visualization shows only gap counts, not a visual matrix — useThemeCoverage.ts computes "totalFillableGaps" but the UI only shows a count badge and an auto-fill button; a matrix view showing dimensions x token groups with fill status would let maintainers see at a glance where their theme coverage is incomplete
+  Worktree: /tmp/backlog-54964-6RERzE
+  Running agent… (started 04:59:09)
+
+  ✓ done: ThemeManager coverage visualization shows only gap counts, not a visual matrix
+    Added ThemeCoverageMatrix component (token groups × options matrix per dimension) and a Matrix toggle button in the ThemeManager toolbar; cells show ✓/count/– and clicking navigates to the selected option in list view
+    39 turns · 444s · $1.61
+
+  Merging to main: ThemeManager coverage visualization shows only gap counts, not a visual matrix
+Already up to date.
