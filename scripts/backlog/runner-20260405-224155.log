@@ -478,3 +478,26 @@ Already up to date.
 
   Merging to main: Inconsistent success feedback across mutation operations — CreatePanel and ExportPanel dispatch toasts on success, but ThemeManager dimension/option CRUD and ResolverPanel create/edit/delete show no success indication; users must infer success from list UI updates, creating uncertainty about whether the server operation completed (violates: system status visibility, consistency)
 Already up to date.
+[main 24fbad14] chore(backlog): done – Inconsistent success feedback across mutation operations — CreatePanel and ExportPanel dispatch toasts on success, but ThemeManager dimension/option CRUD and ResolverPanel create/edit/delete show no success indication; users must infer success from list UI updates, creating uncertainty about whether the server operation completed (violates: system status visibility, consistency)
+ 6 files changed, 47 insertions(+), 7 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Inconsistent success feedback across mutation operations
+- Added success toasts to all missing mutation handlers. `handleDuplicateOption` in `useThemeOptions.ts` got `onSuccess?.()`. `ResolverPanel.tsx` got `onSuccess` calls for `handleCreate`, `handleCreateFromTemplate`, `handleDelete`, and `handleMigrate`. All routes the `onSuccess` callback through the existing chain: `PanelRouter.tsx` → `ThemeManager.tsx` → hooks → `dispatchToast` via `useToastBusListener` in App.tsx.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeOptions.ts` ~L160, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L115, ~L148, ~L212, ~L219
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  2 queued · 0
+0 in-progress · last took 4m55s
+═══════════════════════════════════════════════════════════════
+  → Hover-only action buttons are invisible to keyboard users across many panels — ResolverPanel, ThemeManager, HistoryPanel, ExportPanel, SetSwitcher, CompareView, and others use `opacity-0 group-hover:opacity-100` without the `group-focus-within:opacity-100` variant that TokenTreeNode and TokenList correctly use; keyboard-only users cannot see edit/delete/action buttons at all (violates: keyboard accessibility, consistency)
+  Worktree: /tmp/backlog-50286-VFlh1F
+  Running agent… (started 00:04:48)
+
+  ✓ done: Hover-only action buttons are invisible to keyboard users across many panels
+    Added group-focus-within:opacity-100 (and named-group variants) to all hover-only opacity patterns in ResolverPanel, ThemeManager, HistoryPanel, SetSwitcher, and CompareView; also added group-focus-within/mo:pointer-events-auto in ThemeManager so the button is clickable when focused
+    25 turns · 179s · $0.63
+
+  Merging to main: Hover-only action buttons are invisible to keyboard users across many panels
+Already up to date.

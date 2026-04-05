@@ -1026,7 +1026,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
                     </div>
                   </div>
                   {(onEditToken || onCreateToken) && (
-                    <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                       {absentInA && onCreateToken && targetA && (
                         <button
                           onClick={() => onCreateToken(diff.path, targetA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}

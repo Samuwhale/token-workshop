@@ -1801,7 +1801,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                               });
                                             }}
                                             disabled={isItemCreating || isCreating}
-                                            className="flex-shrink-0 opacity-0 group-hover/mo:opacity-100 pointer-events-none group-hover/mo:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-violet-600/80 text-white hover:bg-violet-600 disabled:opacity-40 transition-opacity"
+                                            className="flex-shrink-0 opacity-0 group-hover/mo:opacity-100 group-focus-within/mo:opacity-100 pointer-events-none group-hover/mo:pointer-events-auto group-focus-within/mo:pointer-events-auto px-1 py-0.5 rounded text-[9px] font-medium bg-violet-600/80 text-white hover:bg-violet-600 disabled:opacity-40 transition-opacity"
                                             title={`Copy "${item.path}" from Base into "${targetSet}"`}
                                           >
                                             {isItemCreating ? '…' : 'Copy'}

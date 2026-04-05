@@ -704,3 +704,12 @@
   - The `onSuccess` chain: PanelRouter passes `p.setSuccessToast` → ThemeManager passes it to hooks → hooks call `onSuccess?.()`. This works correctly; gaps were just missing call sites.
   - When capturing a value (like `newName`) before clearing state, extract it as a `const` at the top of the success block to avoid relying on stale closure state.
 ---
+
+## 2026-04-06 - Hover-only action buttons are invisible to keyboard users
+- Added `group-focus-within:opacity-100` (and `group-focus-within/mo:opacity-100` for named groups) to all `opacity-0 group-hover:opacity-100` patterns in ResolverPanel, ThemeManager, HistoryPanel, SetSwitcher, and CompareView. Also added `group-focus-within/mo:pointer-events-auto` alongside the ThemeManager `group-hover/mo:pointer-events-auto` to unblock click events when focused. The drag handle in SetSwitcher got `group-focus-within:opacity-60` to match its hover opacity.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L643, ~L655; `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1804; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L683, ~L731, ~L743, ~L845, ~L848, ~L880; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L805, ~L836; `packages/figma-plugin/src/ui/components/CompareView.tsx` ~L1029, ~L1458
+- **Learnings for future iterations:**
+  - For named group variants (e.g., `group/mo`), the focus-within variant must use the same name: `group-focus-within/mo:opacity-100`, not `group-focus-within:opacity-100`.
+  - When `pointer-events-none`/`pointer-events-auto` is toggled by hover, also toggle it by `group-focus-within` so keyboard users can click the now-visible button.
+  - Purely decorative elements (commit hash text, chevron arrows on navigation rows) should also get `group-focus-within` so keyboard users see supplemental context when they focus the row.
+---

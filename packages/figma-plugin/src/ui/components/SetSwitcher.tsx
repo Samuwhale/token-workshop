@@ -802,7 +802,7 @@ function ManageView({
 
                 {/* Drag handle — hidden when bulk ops are available */}
                 {canDrag && !hasBulkOps && (
-                  <span className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing" aria-hidden="true">
+                  <span className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-60 group-focus-within:opacity-60 cursor-grab active:cursor-grabbing" aria-hidden="true">
                     <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
                       <circle cx="2" cy="2" r="1" /><circle cx="6" cy="2" r="1" />
                       <circle cx="2" cy="6" r="1" /><circle cx="6" cy="6" r="1" />
@@ -833,7 +833,7 @@ function ManageView({
                 )}
 
                 {/* Action buttons */}
-                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                   {/* Move up/down buttons — only shown when drag-and-drop is not available */}
                   {onReorder && !canDrag && (
                     <button

@@ -640,7 +640,7 @@ function ResolverInner({
                   {getResolverFile && updateResolver && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEditClick(resolver.name); }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
+                      className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
                       title="Edit resolver"
                       aria-label="Edit resolver"
                     >
@@ -652,7 +652,7 @@ function ResolverInner({
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(resolver.name); }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
                     title="Delete resolver"
                     aria-label="Delete resolver"
                   >
