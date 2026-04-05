@@ -706,3 +706,11 @@
   - Generator save has two exit paths that reach `onSaved`: the normal path at the end of `commitSave` and the early-return path when `onInterceptSemanticMapping` is set. Both need toasts.
   - Deletion toasts use the `name` captured before the API call (from the snapshot), not from state, since state is already updated by the time the toast fires.
 ---
+
+## 2026-04-05 - PreviewPanel color swatches and value labels are clickable divs/spans without button semantics
+- Added `role="button"`, `tabIndex={0}`, `aria-label`, and `onKeyDown` (Enter/Space) handlers to the swatch `<div>` and label `<span>` elements in both `SwatchCell` and `GradientSwatch` components. Keyboard users can now tab to and activate both elements; screen readers announce them as interactive buttons with descriptive labels.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L610-614 (ColorSwatch div), ~L634-637 (ColorSwatch span), ~L659-663 (GradientSwatch div), ~L683-686 (GradientSwatch span)
+- **Learnings for future iterations:**
+  - `<div onClick>` and `<span onClick>` need `role="button"`, `tabIndex={0}`, and `onKeyDown` with Enter/Space handling to be accessible — this is the standard pattern for interactive non-button elements.
+  - `aria-label` on these elements should describe the *action* (e.g., "Copy CSS variable --foo-bar"), not just the element identity, so screen reader users understand what activating it does.
+---

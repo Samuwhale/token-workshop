@@ -608,10 +608,14 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
   return (
     <div className="flex flex-col items-center gap-1 w-10 group relative">
       <div
+        role="button"
+        tabIndex={0}
         className="w-10 h-10 rounded-md border border-black/10 shadow-sm cursor-pointer relative"
         style={{ backgroundColor: `var(${cssVar}, ${value})` }}
         title={`Click to copy CSS variable\n${cssVar}: ${value}`}
+        aria-label={`Copy CSS variable ${cssVar}`}
         onClick={() => handleCopy(`var(${cssVar})`, 'var')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(`var(${cssVar})`, 'var'); } }}
       >
         {copied && (
           <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
@@ -632,9 +636,13 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
         )}
       </div>
       <span
+        role="button"
+        tabIndex={0}
         className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
+        aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(value, 'value'); } }}
       >
         {leafName}
       </span>
@@ -657,10 +665,14 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
   return (
     <div className="flex flex-col items-center gap-1 w-16 group relative">
       <div
+        role="button"
+        tabIndex={0}
         className="w-16 h-10 rounded-md border border-black/10 shadow-sm cursor-pointer relative"
         style={{ background: `var(${cssVar}, ${value})` }}
         title={`Click to copy CSS variable\n${cssVar}: ${value}`}
+        aria-label={`Copy CSS variable ${cssVar}`}
         onClick={() => handleCopy(`var(${cssVar})`, 'var')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(`var(${cssVar})`, 'var'); } }}
       >
         {copied && (
           <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
@@ -681,9 +693,13 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
         )}
       </div>
       <span
+        role="button"
+        tabIndex={0}
         className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
+        aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(value, 'value'); } }}
       >
         {leafName}
       </span>
