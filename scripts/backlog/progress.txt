@@ -745,3 +745,19 @@
   - Fit-to-view effects should key on the *selection identity* (path), not layout dimensions, so topology-identical tokens still trigger re-centering.
   - Expand/collapse and zoom-reset are different user intents; using selectedPath as the key naturally separates them.
 ---
+
+## 2026-04-05 - No preview before snapshot restore or operation rollback
+- Added diff previews for both rollback and restore actions.
+- **Rollback (HistoryPanel)**: Replaced the simple ConfirmModal (which only showed affected path count) with a new `RollbackPreviewModal` component. The modal fetches `GET /api/operations/:id/diff` on open, displays the full before/after token diff using `ChangesBySetList`, shows a `ChangeSummaryBadges` bar, then requires explicit "Roll Back" confirmation.
+- **Snapshot restore (SnapshotsSource)**: Added a `showRestoreConfirm` gate on the "Revert to saved" button. Clicking it opens a `ConfirmModal` with a generated summary string (e.g. "12 token changes (5 added, 6 modified, 1 removed)") computed from the already-loaded `displayChanges` array — no extra fetch needed since the diff is already visible on screen.
+- **Server**: Added `GET /api/operations/:id/diff` to `packages/server/src/routes/operations.ts`. Uses `operationLog.getById` (already existed), iterates all paths in `afterSnapshot` and `beforeSnapshot`, and emits `added`/`modified`/`removed` diffs showing current→restored value (matching the `SnapshotDiff` shape).
+- Files changed:
+  - `packages/server/src/routes/operations.ts` ~L39 (new diff route, before rollback route)
+  - `packages/figma-plugin/src/ui/components/history/RollbackPreviewModal.tsx` (new file)
+  - `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L15 (import), ~L298 (modal swap)
+  - `packages/figma-plugin/src/ui/components/history/SnapshotsSource.tsx` ~L26 (state), ~L400 (button gate), ~L414 (confirm modal)
+- **Learnings for future iterations:**
+  - Rollback diff direction: `afterSnapshot` = current state (what we're rolling back FROM), `beforeSnapshot` = restored state (what we're rolling back TO). Both are stored on the OperationEntry.
+  - For snapshot restore, the diff is already loaded in the compare view — no need to re-fetch. Compute the confirmation summary inline from `displayChanges` before calling `handleRevert()`.
+  - `GET /api/operations/:id/diff` must be registered BEFORE `/operations/:id/rollback` in Fastify to prevent the path segment "diff" being captured as `:id` (same ordering rule as `token-history` vs `:id/rollback`).
+---

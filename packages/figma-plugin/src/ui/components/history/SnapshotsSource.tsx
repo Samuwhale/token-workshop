@@ -23,6 +23,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
   const [changes, setChanges] = useState<TokenChange[] | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [reverting, setReverting] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   // Bug fix: split the shared error state into three isolated pieces to prevent
   // cross-contamination between list, single-compare, and pair-compare views.
@@ -397,8 +398,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
           </button>
           <button
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-            onClick={handleRevert}
-            disabled={reverting}
+            onClick={() => setShowRestoreConfirm(true)}
+            disabled={reverting || diffLoading}
           >
             {reverting ? 'Reverting…' : 'Revert to saved'}
           </button>
@@ -409,6 +410,34 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             <p className="text-[10px] text-[var(--color-figma-error)]">{singleCompareError}</p>
           </div>
         )}
+
+        {/* Restore confirmation — shown after reviewing the diff */}
+        {showRestoreConfirm && (() => {
+          const snap = snapshots.find(s => s.id === comparing);
+          const label = snap?.label ?? initialComparingLabel ?? 'this snapshot';
+          const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
+          const total = summary.added + summary.modified + summary.removed;
+          const summaryText = total > 0
+            ? `${total} token change${total !== 1 ? 's' : ''} (${[
+                summary.added ? `${summary.added} added` : '',
+                summary.modified ? `${summary.modified} modified` : '',
+                summary.removed ? `${summary.removed} removed` : '',
+              ].filter(Boolean).join(', ')})`
+            : 'No token differences from current state';
+          return (
+            <ConfirmModal
+              title={`Restore to "${label}"?`}
+              description={`${summaryText}. This replaces your current token state and cannot be undone without another snapshot.`}
+              confirmLabel="Restore"
+              danger
+              onConfirm={async () => {
+                setShowRestoreConfirm(false);
+                await handleRevert();
+              }}
+              onCancel={() => setShowRestoreConfirm(false)}
+            />
+          );
+        })()}
       </div>
     );
   }

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Spinner } from './Spinner';
 import { SkeletonTimelineRow } from './Skeleton';
-import { ConfirmModal } from './ConfirmModal';
 import { OpIcon } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
 import {
@@ -17,6 +16,7 @@ import { defaultSnapshotLabel } from './history/types';
 import { GitCommitsSource } from './history/GitCommitsSource';
 import { CommitCompareView } from './history/CommitCompareView';
 import { SnapshotsSource } from './history/SnapshotsSource';
+import { RollbackPreviewModal } from './history/RollbackPreviewModal';
 
 function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }) {
   const styles: Record<string, string> = {
@@ -294,13 +294,12 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Rollback confirm modal */}
+      {/* Rollback preview modal — shows diff before executing */}
       {confirmOp && (
-        <ConfirmModal
-          title="Roll back operation?"
-          description={`"${confirmOp.description}" affected ${confirmOp.affectedPaths.length} path${confirmOp.affectedPaths.length !== 1 ? 's' : ''}. This will restore tokens to their state before this operation.`}
-          confirmLabel="Roll Back"
-          danger
+        <RollbackPreviewModal
+          serverUrl={serverUrl}
+          opId={confirmOp.id}
+          opDescription={confirmOp.description}
           onConfirm={() => handleRollback(confirmOp.id)}
           onCancel={() => setConfirmOp(null)}
         />
