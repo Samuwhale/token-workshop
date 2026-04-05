@@ -488,3 +488,29 @@
   - The project uses `console.warn`/`console.error` with a `[ServiceName]` prefix as the structured logging convention — no external logger library.
   - Bare `catch { }` blocks that silently swallow errors are high-value targets for logging; always bind the error variable and log it.
 ---
+
+## 2026-04-05 - Split ValueEditors.tsx into individual files
+- Split 2,479-line monolith into 18 individual files in `valueEditors/` subdirectory. Created:
+  - `valueEditorShared.tsx` — shared utilities: VALUE_FORMAT_HINTS, InheritedBadge, RevertBadge, resolveFormulaPreview, SubPropInput, DimensionSubProp, FontFamilySubProp, resolveTypographyValue, FONT_WEIGHTS
+  - `ColorEditor.tsx` — ColorSwatchButton + ColorEditor
+  - `DimensionEditor.tsx` — StepperInput + DimensionEditor
+  - `TypographyEditor.tsx` — TypographyEditor
+  - `ShadowEditor.tsx` — ShadowEditor
+  - `BorderEditor.tsx` — BorderEditor
+  - `NumberEditor.tsx` — NumberEditor
+  - `StringEditor.tsx`, `BooleanEditor.tsx`, `AssetEditor.tsx`
+  - `FontEditors.tsx` — FontFamilyEditor + FontWeightEditor
+  - `StrokeStyleEditor.tsx`, `DurationEditor.tsx`
+  - `GradientEditor.tsx` — GradientEditor + all sub-components (GradientStopMarker, GradientBar, GradientStopRow)
+  - `CompositionEditor.tsx` — CompositionEditor + all sub-components (CompositionPropertyEditor, CompositionPreview)
+  - `TextStyleEditors.tsx` — FontStyleEditor + TextDecorationEditor + TextTransformEditor
+  - `PercentageEditor.tsx`, `LinkEditor.tsx`, `LetterSpacingEditor.tsx`, `LineHeightEditor.tsx`
+  - `CubicBezierEditor.tsx`, `TransitionEditor.tsx`, `CustomEditor.tsx`
+  - `ValueEditors.tsx` converted to a thin barrel re-export — all 4 existing importers continue to work unchanged
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` (replaced with barrel), `packages/figma-plugin/src/ui/components/valueEditors/` (18 new files)
+- **Learnings for future iterations:**
+  - The barrel re-export pattern (keeping ValueEditors.tsx as a re-export hub) avoids changing all existing importers while achieving the goal of individual navigable files. All 4 importers (CreatePanel, TokenEditor, InlineValuePopover, ColorModifiersEditor) continued to work without modification.
+  - Shared sub-components used by multiple editors (SubPropInput, DimensionSubProp, FontFamilySubProp) go into a `valueEditorShared.tsx` file. Complex components with private sub-components (GradientEditor, CompositionEditor) keep their internals in the same file.
+  - Cross-import between split files works fine: DimensionEditor exports StepperInput, which NumberEditor and GradientEditor import; CubicBezierEditor is imported by TransitionEditor.
+  - The `isAlias` import name-clash (local variable named `isAlias` conflicting with the imported `isAlias` from resolveAlias) only appeared in valueEditorShared.tsx — renamed the local check inline rather than aliasing the import.
+---
