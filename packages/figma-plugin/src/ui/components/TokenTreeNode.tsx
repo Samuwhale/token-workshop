@@ -962,12 +962,15 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onMultiModeInlineSave,
     showResolvedValues,
     condensedView = false,
+    onToggleStar, starredPaths,
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
     onNavigateToGenerator,
     rovingFocusPath, onRovingFocus,
   } = ctx;
+
+  const isStarred = starredPaths?.has(node.path) ?? false;
 
   const pyClass = DENSITY_PY_CLASS[density];
   const swatchSize = DENSITY_SWATCH_SIZE[density];
@@ -1934,10 +1937,23 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           </svg>
         </button>
       )}
+      {/* Starred indicator — visible when not hovering */}
+      {!selectMode && isStarred && onToggleStar && (
+        <button
+          onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
+          title="Unstar token"
+          aria-label="Unstar token"
+          className="p-1 rounded text-amber-400 shrink-0 group-hover:hidden"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+      )}
       {/* Hover actions — in-flow to avoid overlapping status indicators */}
       {!selectMode && (
         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0 ml-auto">
-          {/* Pin/star toggle */}
+          {/* Pin toggle */}
           {onTogglePin && (
             <button
               onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
@@ -1947,6 +1963,19 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
+          )}
+          {/* Star toggle (cross-set favorites) */}
+          {onToggleStar && (
+            <button
+              onClick={e => { e.stopPropagation(); onToggleStar(node.path); }}
+              title={isStarred ? 'Unstar token' : 'Star token (add to favorites)'}
+              aria-label={isStarred ? 'Unstar token' : 'Star token'}
+              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] ${isStarred ? 'text-amber-400' : 'text-[var(--color-figma-text-secondary)]'}`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill={isStarred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
             </button>
           )}
@@ -2211,6 +2240,15 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             >
               <span>{isPinned ? 'Unpin token' : 'Pin token'}</span>
               <span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">P</span>
+            </button>
+          )}
+          {onToggleStar && (
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { setContextMenuPos(null); onToggleStar(node.path); }}
+            >
+              {isStarred ? 'Unstar token' : 'Star token'}
             </button>
           )}
           {onDetachFromGenerator && derivedTokenPaths?.has(node.path) && (

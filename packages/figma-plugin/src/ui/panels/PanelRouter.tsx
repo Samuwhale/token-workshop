@@ -38,6 +38,7 @@ import { HealthPanel } from '../components/HealthPanel';
 import { PreviewPanel } from '../components/PreviewPanel';
 import { EmptyState } from '../components/EmptyState';
 import { SettingsPanel } from '../components/SettingsPanel';
+import { RecentsPanel } from '../components/RecentsPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from '../contexts/TokenDataContext';
@@ -51,6 +52,8 @@ import type { ValidationIssue, ValidationSummary } from '../hooks/useValidationC
 import type { UndoSlot } from '../hooks/useUndo';
 import type { OperationEntry } from '../hooks/useRecentOperations';
 import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
+import type { CrossSetRecentsState } from '../hooks/useCrossSetRecents';
+import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { TopTab, SubTab, OverflowPanel } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
@@ -167,6 +170,8 @@ export interface PanelRouterProps {
   setThemeGapCount: (n: number) => void;
   triggerCreateToken: number;
   paletteRecentlyTouched: Pick<RecentlyTouchedState, 'recordTouch'>;
+  crossSetRecents: CrossSetRecentsState;
+  starredTokens: StarredTokensState;
   // Modal openers (for EmptyState + other panels that trigger global modals)
   onShowPasteModal: () => void;
   onShowScaffoldWizard: () => void;
@@ -277,7 +282,12 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       navigateTo('apply', 'dependencies');
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => { p.displayedLeafNodesRef.current = nodes; },
-    onTokenTouched: p.paletteRecentlyTouched.recordTouch,
+    onTokenTouched: (path: string) => {
+      p.paletteRecentlyTouched.recordTouch(path);
+      p.crossSetRecents.recordTouch(path, activeSet);
+    },
+    onToggleStar: (path: string) => p.starredTokens.toggleStar(path, activeSet),
+    starredPaths: new Set(p.starredTokens.tokens.filter(t => t.setName === activeSet).map(t => t.path)),
     onError: p.setErrorToast,
     onOpenCompare: p.handleOpenTokenCompare,
     onOpenCrossThemeCompare: p.handleOpenCrossThemeCompare,
@@ -349,6 +359,21 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           />
         </ErrorBoundary>
       </>
+    );
+  }
+
+  if (overflowPanel === 'recents') {
+    return (
+      <RecentsPanel
+        crossSetRecents={p.crossSetRecents}
+        starredTokens={p.starredTokens}
+        perSetFlat={perSetFlat}
+        onNavigateToSet={(setName, path) => {
+          p.handleNavigateToSet(setName, path);
+          setOverflowPanel(null);
+        }}
+        onClose={() => setOverflowPanel(null)}
+      />
     );
   }
 

@@ -584,3 +584,31 @@
   - `condensedView = false` default destructuring in node components makes the prop optional in `TokenTreeContextType` so existing call sites don't need updating.
   - The breadcrumb pill uses `parts.slice(CONDENSED_MAX_DEPTH, parts.length - nodeName.split('.').length)` to correctly handle token names that contain dots (e.g. `"1.5"`).
 ---
+
+## 2026-04-05 - No "recently used tokens" list or quick-access favorites
+- Implemented cross-set "recently used tokens" tracking and a starred/favorites system for tokens across all sets.
+- **Storage layer**: Added `CROSS_SET_RECENTS` and `STARRED_TOKENS` keys to `storage.ts`. Created `crossSetRecents.ts` storing `{path, setName, ts}[]` (max 50, deduped) and `starredTokens.ts` storing `{path, setName}[]` with `toggleStarredToken` returning new starred state.
+- **Hooks**: `useCrossSetRecents.ts` and `useStarredTokens.ts` wrap storage with React state, exposing `recordTouch`, `toggleStar`, rename/remove/set-level mutations.
+- **RecentsPanel**: New `RecentsPanel.tsx` with "Recent" and "Starred" two-tab UI. Each tab groups tokens by set with sticky set-name headers. Recents show relative timestamps ("2h ago"); starred rows show an inline unstar button on hover. Empty states guide users to start editing or starring.
+- **Star button on rows**: Added star (★) button to `TokenTreeNode.tsx` hover action bar (alongside pin), plus "Star/Unstar" in the right-click context menu. Starred indicator (amber star) visible when not hovering. Uses `starredPaths: Set<string>` from context for O(1) lookup.
+- **Data flow**: `onToggleStar(path)` and `starredPaths` added to `TokenListActions` and `TokenTreeContextType`. `PanelRouter.tsx` builds `starredPaths` filtered for the active set, binds `setName` in the toggle callback, and wraps `onTokenTouched` to also call `crossSetRecents.recordTouch(path, activeSet)`.
+- **Navigation**: Added `'recents'` to `OverflowPanel` type. RecentsPanel accessible via "More actions" menu → "Recents & Favorites" and command palette. Navigating to a token from RecentsPanel closes the panel and jumps to the set.
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L47
+  - `packages/figma-plugin/src/ui/shared/crossSetRecents.ts` (new)
+  - `packages/figma-plugin/src/ui/shared/starredTokens.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useCrossSetRecents.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useStarredTokens.ts` (new)
+  - `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L14
+  - `packages/figma-plugin/src/ui/components/RecentsPanel.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L130, ~L300
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L75, ~L1798
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L958, ~L1925, ~L2205
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L53, ~L169, ~L280, ~L323
+  - `packages/figma-plugin/src/ui/App.tsx` ~L54, ~L154, ~L940, ~L1713, ~L2568
+- **Learnings for future iterations:**
+  - Cross-set token identity requires storing both `path` and `setName` together — token paths are not unique across sets.
+  - `starredPaths: Set<string>` (pre-filtered for the current set) in context is cleaner than a callback `isStarred(path)` — avoids localStorage reads on every row render and gives O(1) lookups.
+  - The "bind setName at PanelRouter level" pattern (building callbacks that close over `activeSet`) cleanly solves set-scoped mutations for global state managed at App level — same pattern as pinned tokens but lifted to App level.
+  - RecentsPanel "Recent" tab: groups by set, preserving most-recent-first order across sets gives the most useful scan pattern for power users.
+---

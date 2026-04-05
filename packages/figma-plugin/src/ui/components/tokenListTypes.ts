@@ -127,6 +127,9 @@ export interface TokenListActions {
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
   onTokenTouched?: (path: string) => void;
+  onToggleStar?: (path: string) => void;
+  /** Pre-filtered set of starred token paths for the current active set */
+  starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
@@ -298,6 +301,10 @@ export interface TokenTreeContextType {
   onDetachFromGenerator?: (path: string) => void;
   onToggleChain?: (path: string) => void;
   onTogglePin?: (path: string) => void;
+  /** Toggle starred (cross-set favorites) for the current token */
+  onToggleStar?: (path: string) => void;
+  /** Set of starred token paths in the current set — for fast O(1) lookup */
+  starredPaths?: Set<string>;
   /** Enter select mode with this token pre-selected and open ComparePanel */
   onCompareToken?: (path: string) => void;
   /** Navigate to History panel filtered to this token path */

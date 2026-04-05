@@ -52,6 +52,8 @@ import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
 import { useLintConfig } from './hooks/useLintConfig';
 import { useRecentlyTouched } from './hooks/useRecentlyTouched';
+import { useCrossSetRecents } from './hooks/useCrossSetRecents';
+import { useStarredTokens } from './hooks/useStarredTokens';
 import { usePinnedTokens } from './hooks/usePinnedTokens';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
@@ -150,6 +152,8 @@ export function App() {
   const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const paletteRecentlyTouched = useRecentlyTouched();
+  const crossSetRecents = useCrossSetRecents();
+  const starredTokens = useStarredTokens();
   const palettePinnedTokens = usePinnedTokens(activeSet);
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
   const [clearConfirmText, setClearConfirmText] = useState('');
@@ -932,6 +936,13 @@ export function App() {
         handler: goToTokens,
       },
       {
+        id: 'recents-favorites',
+        label: 'Recents & Favorites',
+        description: 'View recently edited tokens and starred favorites across all sets',
+        category: 'View',
+        handler: () => openOverflowPanel('recents'),
+      },
+      {
         id: 'import',
         label: 'Import Tokens',
         description: 'Import tokens from a file',
@@ -1703,6 +1714,19 @@ export function App() {
                 Health
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
+              <button
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => { setMenuOpen(false); openOverflowPanel('recents'); }}
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
+              >
+                <span className="flex-1">Recents &amp; Favorites</span>
+                {(crossSetRecents.count > 0 || starredTokens.count > 0) && (
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {starredTokens.count > 0 ? `★ ${starredTokens.count}` : ''}
+                  </span>
+                )}
+              </button>
               <button
                 role="menuitem"
                 tabIndex={-1}
@@ -2562,6 +2586,8 @@ export function App() {
               setThemeGapCount={setThemeGapCount}
               triggerCreateToken={triggerCreateToken}
               paletteRecentlyTouched={paletteRecentlyTouched}
+              crossSetRecents={crossSetRecents}
+              starredTokens={starredTokens}
               onShowPasteModal={() => setShowPasteModal(true)}
               onShowScaffoldWizard={() => setShowScaffoldWizard(true)}
               onShowColorScaleGen={() => setShowColorScaleGen(true)}

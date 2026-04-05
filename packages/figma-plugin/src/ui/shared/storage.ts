@@ -45,6 +45,8 @@ export const STORAGE_KEYS = {
   FIRST_RUN_DONE:        'tm_first_run_done',
   DEEP_INSPECT:          'tm_deep_inspect',
   RECENT_TOKENS:         'tm_recent_tokens',
+  CROSS_SET_RECENTS:     'tm_cross_set_recents',
+  STARRED_TOKENS:        'tm_starred_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
   CONDENSED_VIEW:        'tm_condensed_view',
 } as const;

@@ -11,7 +11,7 @@ type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'canvas-analysis' | 'components' | 'dependencies';
 type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
-export type OverflowPanel = 'import' | 'settings' | null;
+export type OverflowPanel = 'import' | 'settings' | 'recents' | null;
 
 export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: string }[] }[] = [
   { id: 'define', label: 'Define', subTabs: [
