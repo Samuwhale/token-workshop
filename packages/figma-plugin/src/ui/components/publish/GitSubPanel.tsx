@@ -1,7 +1,75 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import type { useGitSync } from '../../hooks/useGitSync';
 import { FileTokenDiffList } from './PublishShared';
+
+interface DiffLine {
+  text: string;
+  changed: boolean;
+}
+
+function computeLineDiff(a: string, b: string): { aLines: DiffLine[]; bLines: DiffLine[] } {
+  if (a === b) {
+    const lines = a.split('\n');
+    const neutral = lines.map(text => ({ text, changed: false }));
+    return { aLines: neutral, bLines: neutral.map(l => ({ ...l })) };
+  }
+  const aArr = a.split('\n');
+  const bArr = b.split('\n');
+  // Cap to prevent quadratic blowup on very large regions
+  if (aArr.length > 300 || bArr.length > 300) {
+    return {
+      aLines: aArr.map(text => ({ text, changed: true })),
+      bLines: bArr.map(text => ({ text, changed: true })),
+    };
+  }
+  const m = aArr.length, n = bArr.length;
+  // LCS DP
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = aArr[i - 1] === bArr[j - 1]
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  // Backtrack
+  const aChanged = new Array(m).fill(true);
+  const bChanged = new Array(n).fill(true);
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (aArr[i - 1] === bArr[j - 1]) {
+      aChanged[i - 1] = false;
+      bChanged[j - 1] = false;
+      i--; j--;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  return {
+    aLines: aArr.map((text, idx) => ({ text, changed: aChanged[idx] })),
+    bLines: bArr.map((text, idx) => ({ text, changed: bChanged[idx] })),
+  };
+}
+
+function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' | 'theirs'; isExpanded: boolean }) {
+  const addedBg = side === 'ours' ? 'bg-[var(--color-figma-success)]/25' : 'bg-[var(--color-figma-accent)]/25';
+  const addedText = side === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-accent)]';
+  return (
+    <pre className={`text-[10px] font-mono whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>
+      {lines.map((line, idx) => (
+        <span
+          key={idx}
+          className={`block px-1 -mx-1${line.changed ? ` ${addedBg} ${addedText}` : ' text-[var(--color-figma-text)]'}`}
+        >
+          {line.text || '\u00a0'}
+        </span>
+      ))}
+    </pre>
+  );
+}
 
 type GitSync = ReturnType<typeof useGitSync>;
 
@@ -14,6 +82,17 @@ interface GitSubPanelProps {
 export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelProps) {
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [conflictHelpOpen, setConflictHelpOpen] = useState(false);
+
+  const regionDiffs = useMemo(() => {
+    const map = new Map<string, { aLines: DiffLine[]; bLines: DiffLine[] }>();
+    for (const conflict of git.mergeConflicts) {
+      for (const region of conflict.regions) {
+        const key = `${conflict.file}:${region.index}`;
+        map.set(key, computeLineDiff(region.ours, region.theirs));
+      }
+    }
+    return map;
+  }, [git.mergeConflicts]);
 
   const toggleRegionExpand = (key: string) => {
     setExpandedRegions(prev => {
@@ -215,9 +294,20 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
                       const regionKey = `${conflict.file}:${region.index}`;
                       const isExpanded = expandedRegions.has(regionKey);
-                      const preClass = `text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`;
+                      const diff = regionDiffs.get(regionKey);
+                      const changedCount = diff ? diff.aLines.filter(l => l.changed).length + diff.bLines.filter(l => l.changed).length : 0;
                       return (
                         <div key={region.index} className="border-t border-[var(--color-figma-border)]">
+                          {changedCount > 0 && (
+                            <div className="px-2 py-0.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-1">
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                                {diff ? diff.aLines.filter(l => l.changed).length : 0} line{diff && diff.aLines.filter(l => l.changed).length !== 1 ? 's' : ''} changed in yours · {diff ? diff.bLines.filter(l => l.changed).length : 0} in server&rsquo;s
+                              </span>
+                            </div>
+                          )}
                           <div className="flex">
                             <button
                               onClick={() => git.setConflictChoices(prev => ({
@@ -236,7 +326,13 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
                               </div>
-                              <pre className={preClass}>{region.ours || '(empty)'}</pre>
+                              {diff ? (
+                                region.ours
+                                  ? <DiffPre lines={diff.aLines} side="ours" isExpanded={isExpanded} />
+                                  : <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
+                              ) : (
+                                <pre className={`text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.ours || '(empty)'}</pre>
+                              )}
                             </button>
                             <button
                               onClick={() => git.setConflictChoices(prev => ({
@@ -255,7 +351,13 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
                               </div>
-                              <pre className={preClass}>{region.theirs || '(empty)'}</pre>
+                              {diff ? (
+                                region.theirs
+                                  ? <DiffPre lines={diff.bLines} side="theirs" isExpanded={isExpanded} />
+                                  : <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
+                              ) : (
+                                <pre className={`text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.theirs || '(empty)'}</pre>
+                              )}
                             </button>
                           </div>
                           <div className="border-t border-[var(--color-figma-border)] flex justify-center">

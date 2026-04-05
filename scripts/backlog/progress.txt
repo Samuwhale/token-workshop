@@ -542,3 +542,12 @@
   - The QUERY_QUALIFIERS array in tokenListUtils.ts already has `desc` and `example` fields — a cheatsheet is essentially just rendering them with better formatting
   - Three distinct discovery touchpoints (? button, empty state, footer) together create a low-friction discovery path without cluttering the UI when the user already knows the syntax
 ---
+
+## 2026-04-05 - Merge conflict resolver in GitSubPanel lacks diff highlighting
+- Added LCS-based line-level diff highlighting to the conflict resolver in `GitSubPanel.tsx`. Each conflict region now computes a diff between `ours` and `theirs` using a standard LCS DP algorithm (capped at 300 lines per side to prevent quadratic blowup). Changed lines are highlighted: green tint for your-version changes, accent/blue tint for server-version changes. Unchanged lines remain neutral. Also added a summary banner per region showing "N lines changed in yours · M in server's". A new `DiffPre` component renders diff-annotated `<pre>` content line-by-line. The `useMemo` on `regionDiffs` ensures diffs are computed once per conflict set, not on every render.
+- Files changed: `packages/figma-plugin/src/ui/components/publish/GitSubPanel.tsx` ~L1 (imports), ~L8 (DiffLine interface), ~L12 (computeLineDiff), ~L58 (DiffPre), ~L86 (regionDiffs memo), ~L285 (conflict region rendering)
+- **Learnings for future iterations:**
+  - LCS-based line diff is the right primitive for text regions in merge conflicts — it correctly identifies unchanged anchor lines and marks diverging lines as changed, without needing to split by words or characters.
+  - For two-column side-by-side diffs without alignment, computing independent changed-line sets per side is sufficient and much simpler than aligned diffs. Alignment would require inserting blank spacer rows which adds complexity for a narrow plugin panel.
+  - The `useMemo` pattern (computing all diffs in a single pass over `git.mergeConflicts`) keeps the rendering path clean — no computation in JSX.
+---
