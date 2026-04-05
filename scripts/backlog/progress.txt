@@ -849,3 +849,20 @@
   - `setErrorToast` is already present in `PanelRouterProps` (line 135) and is available to pass to any panel rendered in `PanelRouter`; never need to thread it through App.tsx again
   - For bulk operations that show a confirmation dialog, `setConfirmXxx(false)` was already correctly in the try block (success path only) — the spinner clears via `finally`, but the dialog stays open on error; the only missing piece was the user-visible error toast
 ---
+
+## 2026-04-05 - Resolver and set deletion have no undo support unlike other destructive actions
+- Added undo slots for both set deletion and resolver deletion, making them consistent with token/dimension/option deletion
+- **Server changes:**
+  - `packages/server/src/routes/sets.ts` ~L259: capture `const entry = await operationLog.record(...)` and return `operationId: entry.id` in DELETE response
+  - `packages/server/src/routes/resolvers.ts` ~L167: same pattern for resolver DELETE
+- **Client changes:**
+  - `packages/figma-plugin/src/ui/hooks/useSetDelete.ts`: added `onPushUndo?` and `refreshTokens` params; after delete, push undo slot that calls `POST /api/operations/:id/rollback` + `refreshTokens()`
+  - `packages/figma-plugin/src/ui/App.tsx` ~L383: pass `pushUndo` as `onPushUndo` and `refreshTokens` to `useSetDelete`
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts`: added `pushUndoRef` (late-bound ref pattern) + stable `setPushUndo` callback; `deleteResolver` captures `operationId` from server and pushes undo slot using the ref
+  - `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx`: added `setPushUndo` to `ResolverState` interface and passed it through `ResolverProvider`
+  - `packages/figma-plugin/src/ui/App.tsx` ~L163: added `useEffect` to wire `resolverState.setPushUndo(pushUndo)` after mount
+- **Learnings for future iterations:**
+  - The server's `operationLog.record()` already returns the full `OperationEntry` including `id` — just capture the return value to get the ID without any additional infrastructure
+  - For hooks called from context providers that are mounted above App.tsx (and thus can't receive `pushUndo` as a prop), the late-bound callback ref pattern (`useRef` + stable `useCallback` setter exposed via context) is the right tool — App.tsx calls `setPushUndo(pushUndo)` in a `useEffect` after the hook's context is available
+  - The rollback endpoint (`POST /api/operations/:id/rollback`) already handles all structural restoration (create-set, write-resolver) plus token snapshots — no need to duplicate the restoration logic client-side
+---

@@ -164,7 +164,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         const beforeFile = fastify.resolverStore.get(req.params.name);
         const deleted = await fastify.resolverStore.delete(req.params.name);
         if (!deleted) return reply.status(404).send({ error: 'Resolver not found' });
-        await fastify.operationLog.record({
+        const entry = await fastify.operationLog.record({
           type: 'resolver-delete',
           description: `Delete resolver "${req.params.name}"`,
           setName: req.params.name,
@@ -175,7 +175,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
             ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
             : [],
         });
-        return { ok: true };
+        return { ok: true, operationId: entry.id };
       });
     } catch (err) {
       return handleRouteError(reply, err);

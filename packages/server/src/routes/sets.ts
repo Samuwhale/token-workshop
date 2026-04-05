@@ -256,7 +256,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         if (!deleted) {
           return reply.status(404).send({ error: `Token set "${name}" not found` });
         }
-        await fastify.operationLog.record({
+        const entry = await fastify.operationLog.record({
           type: 'set-delete',
           description: `Delete set "${name}"`,
           setName: name,
@@ -265,7 +265,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           afterSnapshot: {},
           rollbackSteps: [{ action: 'create-set', name }],
         });
-        return { ok: true, name };
+        return { ok: true, name, operationId: entry.id };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to delete set');
       }

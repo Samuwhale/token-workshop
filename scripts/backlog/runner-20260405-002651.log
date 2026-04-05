@@ -1293,3 +1293,26 @@ Already up to date.
 
   Merging to main: HealthPanel fix actions silently swallow errors — `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeleteUnusedToken`, and `handleDeleteAllUnused` all catch errors with `// silently ignore` or `console.warn` only
 Already up to date.
+[main b0f1e6e3] chore(backlog): done – HealthPanel fix actions silently swallow errors — `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeleteUnusedToken`, and `handleDeleteAllUnused` all catch errors with `// silently ignore` or `console.warn` only
+ 6 files changed, 49 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - HealthPanel fix actions silently swallow errors
+- Added `onError: (msg: string) => void` prop to `HealthPanelProps`; destructured it in the component function
+- Replaced all silent catch blocks (9 handlers) with `onError(...)` calls: `applyValidationFix`, `applyLintFix`, `applyIssueFix`, `handleDeduplicate`, `handleBulkDeduplicate`, `handleDeleteUnusedToken`, `handleDeleteAllUnused`, `handleDeprecateUnusedToken`, `handleDeprecateAllUnused`
+- Wired `onError={p.setErrorToast}` in `PanelRouter.tsx`'s `renderShipHealth()` — `setErrorToast` was already available in PanelRouter props
+
+═══════════════════════════════════════════════════════════════
+  #54  ·  2 queued · 0
+0 in-progress · last took 3m29s
+═══════════════════════════════════════════════════════════════
+  → Resolver and set deletion have no undo support unlike other destructive actions — token deletion, dimension deletion, and option deletion all capture before-snapshots and push undo slots, but set deletion (useSetDelete.ts) and resolver deletion (ResolverPanel.tsx) perform permanent DELETE requests with no undo; this creates inconsistent safety behavior where some deletes are recoverable and others are not, with no visual distinction (violates: consistency, error recovery)
+  Worktree: /tmp/backlog-54964-UvtHrH
+  Running agent… (started 05:50:20)
+
+  ✓ done: Resolver and set deletion have no undo support unlike other destructive actions
+    Added undo slots for both set and resolver deletion using server operationId + rollback endpoint; set deletion wired via new onPushUndo param in useSetDelete; resolver deletion wired via late-bound setPushUndo ref pattern through ThemeContext
+    58 turns · 509s · $1.94
+
+  Merging to main: Resolver and set deletion have no undo support unlike other destructive actions
+Already up to date.

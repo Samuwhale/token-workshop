@@ -12,6 +12,7 @@ import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
+import type { UndoSlot } from './useUndo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +49,12 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   const [resolversLoading, setResolversLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  // Late-bound ref for undo — set by the consumer (App.tsx) after mount
+  const pushUndoRef = useRef<((slot: UndoSlot) => void) | undefined>(undefined);
+  const setPushUndo = useCallback((fn: ((slot: UndoSlot) => void) | undefined) => {
+    pushUndoRef.current = fn;
+  }, []);
   // Aborted on component unmount to prevent state updates on stale instances.
   const unmountAbortRef = useRef<AbortController>(new AbortController());
 
@@ -193,14 +200,27 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // Delete resolver
   // -----------------------------------------------------------------------
   const deleteResolver = useCallback(async (name: string) => {
-    await apiFetch(`${serverUrl}/api/resolvers/${encodeURIComponent(name)}`, {
-      method: 'DELETE',
-    });
+    const result = await apiFetch<{ ok: true; operationId?: string }>(
+      `${serverUrl}/api/resolvers/${encodeURIComponent(name)}`,
+      { method: 'DELETE' },
+    );
     if (activeResolver === name) {
       setActiveResolverState(null);
       setResolvedTokens(null);
     }
     fetchResolvers();
+
+    if (pushUndoRef.current && result.operationId) {
+      const opId = result.operationId;
+      const url = serverUrl;
+      pushUndoRef.current({
+        description: `Deleted resolver "${name}"`,
+        restore: async () => {
+          await apiFetch(`${url}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: 'POST' });
+          fetchResolvers();
+        },
+      });
+    }
   }, [serverUrl, activeResolver, fetchResolvers]);
 
   // -----------------------------------------------------------------------
@@ -245,6 +265,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     deleteResolver,
     getResolverFile,
     updateResolver,
+    setPushUndo,
   }), [
     resolvers,
     resolverLoadErrors,
@@ -262,5 +283,6 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     deleteResolver,
     getResolverFile,
     updateResolver,
+    setPushUndo,
   ]);
 }

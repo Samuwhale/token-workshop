@@ -160,6 +160,13 @@ export function App() {
   useEffect(() => { setAliasNotFoundHandler((p) => setErrorToast(`Alias target not found: ${p}`)); }, []);
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount, undoDescriptions } = useUndo(undoMaxHistory, setErrorToast);
+  // Wire pushUndo into the resolver context so deleteResolver can push undo slots
+  useEffect(() => {
+    resolverState.setPushUndo(pushUndo);
+    return () => { resolverState.setPushUndo(undefined); };
+  // resolverState.setPushUndo is stable (useCallback with no deps); pushUndo is stable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
@@ -380,7 +387,7 @@ export function App() {
 
   // Set management hooks
   const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, updateSetMetadataInState, setTabMenuOpen, onError: setErrorToast });
-  const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen });
+  const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, activeSet, setActiveSet, removeSetFromState, fetchTokensForSet, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen, onPushUndo: pushUndo });
   const { renamingSet, renameValue, setRenameValue, renameError, setRenameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, renameSetInState, setSuccessToast, markDisconnected, setTabMenuOpen });
   const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, tokenCounts: setTokenCounts, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, pushUndo, setTabMenuOpen });
   const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen });

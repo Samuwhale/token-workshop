@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiFetch, ApiError, isNetworkError } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
+import type { UndoSlot } from './useUndo';
 
 interface UseSetDeleteParams {
   serverUrl: string;
@@ -11,17 +12,21 @@ interface UseSetDeleteParams {
   setActiveSet: (set: string) => void;
   removeSetFromState: (name: string) => void;
   fetchTokensForSet: (name: string) => Promise<void>;
+  refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
   setTabMenuOpen: (v: string | null) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 export function useSetDelete({
   serverUrl, connected, getDisconnectSignal,
   sets, activeSet, setActiveSet,
   removeSetFromState, fetchTokensForSet,
+  refreshTokens,
   setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen,
+  onPushUndo,
 }: UseSetDeleteParams) {
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
@@ -37,10 +42,13 @@ export function useSetDelete({
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
     try {
-      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
-      });
+      const result = await apiFetch<{ ok: true; name: string; operationId?: string }>(
+        `${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`,
+        {
+          method: 'DELETE',
+          signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+        },
+      );
       const wasActive = activeSet === deletingSet;
       const remaining = sets.filter(s => s !== deletingSet);
       const newActive = wasActive ? (remaining[0] ?? '') : activeSet;
@@ -54,6 +62,18 @@ export function useSetDelete({
       const name = deletingSet;
       setDeletingSet(null);
       setSuccessToast(`Deleted set "${name}"`);
+
+      if (onPushUndo && result.operationId) {
+        const opId = result.operationId;
+        const url = serverUrl;
+        onPushUndo({
+          description: `Deleted set "${name}"`,
+          restore: async () => {
+            await apiFetch(`${url}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: 'POST' });
+            refreshTokens();
+          },
+        });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorToast(`Delete failed: ${err.message}`);

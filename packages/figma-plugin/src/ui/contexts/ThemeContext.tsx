@@ -25,6 +25,7 @@ import { useResolvers } from '../hooks/useResolvers';
 import type { ResolverMeta } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
+import type { UndoSlot } from '../hooks/useUndo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +49,8 @@ export interface ResolverState {
   deleteResolver: (name: string) => Promise<void>;
   getResolverFile: (name: string) => Promise<string>;
   updateResolver: (name: string, yaml: string) => Promise<void>;
+  /** Register the undo push handler — call from App.tsx after mount. */
+  setPushUndo: (fn: ((slot: UndoSlot) => void) | undefined) => void;
 }
 
 export interface ThemeSwitcherContextValue {
@@ -124,6 +127,7 @@ function ResolverProvider({ children, serverUrl, connected }: {
       deleteResolver: resolverState.deleteResolver,
       getResolverFile: resolverState.getResolverFile,
       updateResolver: resolverState.updateResolver,
+      setPushUndo: resolverState.setPushUndo,
     }),
     [
       resolverState.resolvers,
@@ -142,6 +146,7 @@ function ResolverProvider({ children, serverUrl, connected }: {
       resolverState.deleteResolver,
       resolverState.getResolverFile,
       resolverState.updateResolver,
+      resolverState.setPushUndo,
     ],
   );
 
