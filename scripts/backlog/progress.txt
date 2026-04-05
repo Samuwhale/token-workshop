@@ -398,3 +398,19 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: Token-level hover action buttons use `hidden group-hover:flex` without `group-focus-within` while group-level buttons correctly include it — a copy-paste inconsistency that makes the entire token row action bar invisible to keyboard users. Also, the token context menu is missing `handleMenuArrowKeys` that the group context menu has, creating two different keyboard experiences for visually identical menus.
 ---
+
+## 2026-04-05 - BatchEditor lacks sub-property targeting for composite tokens
+- Added a "Sub-property" selector row to BatchEditor that appears when composite tokens (shadow, typography, border, transition) are in the selection. The dropdown lists all targetable sub-properties grouped by composite type (e.g. "shadow: color", "shadow: blur", "typography: fontSize"). When a sub-property is selected:
+  - Color sub-props (shadow.color, border.color): the existing opacity and color adjust controls (lighten/darken/saturate/desaturate/hue) are activated/shown and apply to that sub-property on all matching tokens.
+  - Numeric sub-props (shadow.blur, typography.fontSize, border.width, etc.): the existing numeric transform control (×/÷/+/−) is activated/shown and applies to that sub-property.
+  - Preview rows render color swatches (for color sub-props) or before→after values (for numeric sub-props), one per token.
+  - Array-valued shadows (multiple shadow instances) are handled by transforming each instance's sub-property.
+- `hasColorTarget` and `hasNumericTarget` derived consts unify regular token targets with composite sub-prop targets so `opacityActive`, `colorAdjustActive`, and `numericTransformActive` gate on both.
+- Skip counters (`skippedNotColor`/`skippedNotNumeric`) were updated to not double-count composite tokens when a sub-prop is selected — they're handled by the dedicated composite apply loop.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L131 (COMPOSITE_SUB_PROPS_BY_TYPE), ~L207 (compositeSubPropKey state), ~L358 (composite memos block), ~L419 (hasColorTarget/hasNumericTarget), ~L567 (composite apply loop in handleApply), ~L700 (cleanup reset), ~L1148 (composite sub-prop UI section), visibility updates at ~L1118, ~L1136, ~L1163 (hasColors/hasScalable → hasColorTarget/hasNumericTarget)
+- **Learnings for future iterations:**
+  - Declaration order matters for TDZ: composite memos must be placed BEFORE `hasColorTarget`/`hasNumericTarget` (which reference `compositeSubPropKind`/`compositeSubPropTargets`). The safest rule: any derived const that feeds another derived const must appear first in the function body.
+  - `hasColorTarget = hasColors || (compositeSubPropKind === 'color' && compositeSubPropTargets.length > 0)` is the correct pattern for extending an existing "active" check to include composite sub-prop targets — keep a single `opacityActive`/`colorAdjustActive` that covers both.
+  - For array-valued composite tokens (e.g. multiple shadows), apply the transform to every element of the array that has the targeted sub-property — use `.map()` with a changed flag.
+  - The "N non-color skipped" notes should gate on `hasColors && !allColors` (not just `!allColors`) so they don't show misleading copy when the section is shown solely because of a composite sub-prop target.
+---

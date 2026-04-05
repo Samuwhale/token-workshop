@@ -128,6 +128,34 @@ function applyColorAdjust(colorValue: unknown, op: ColorAdjustOp, amount: number
   return `#${toHex2(nr)}${toHex2(ng)}${toHex2(nb)}${alphaHex}`;
 }
 
+// Sub-property definitions for composite token types (shadow, typography, border, transition).
+// Each entry declares which sub-properties can be targeted by batch transforms.
+const COMPOSITE_SUB_PROPS_BY_TYPE: Record<string, Array<{ key: string; kind: 'color' | 'numeric'; label: string }>> = {
+  shadow: [
+    { key: 'color', kind: 'color', label: 'color' },
+    { key: 'offsetX', kind: 'numeric', label: 'offsetX' },
+    { key: 'offsetY', kind: 'numeric', label: 'offsetY' },
+    { key: 'blur', kind: 'numeric', label: 'blur' },
+    { key: 'spread', kind: 'numeric', label: 'spread' },
+  ],
+  typography: [
+    { key: 'fontSize', kind: 'numeric', label: 'fontSize' },
+    { key: 'fontWeight', kind: 'numeric', label: 'fontWeight' },
+    { key: 'lineHeight', kind: 'numeric', label: 'lineHeight' },
+    { key: 'letterSpacing', kind: 'numeric', label: 'letterSpacing' },
+  ],
+  border: [
+    { key: 'color', kind: 'color', label: 'color' },
+    { key: 'width', kind: 'numeric', label: 'width' },
+  ],
+  transition: [
+    { key: 'duration', kind: 'numeric', label: 'duration' },
+    { key: 'delay', kind: 'numeric', label: 'delay' },
+  ],
+};
+
+const COMPOSITE_TOKEN_TYPES = new Set(Object.keys(COMPOSITE_SUB_PROPS_BY_TYPE));
+
 const PREVIEW_MAX = 8;
 
 function formatBatchValue(v: unknown): string {
@@ -177,6 +205,7 @@ export function BatchEditor({
   const [setValueInput, setSetValueInput] = useState('');
   const [setValueMode, setSetValueMode] = useState<'literal' | 'json'>('literal');
   const [expandedPreviews, setExpandedPreviews] = useState<Record<string, boolean>>({});
+  const [compositeSubPropKey, setCompositeSubPropKey] = useState('');
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
   const aliasInputRef = useRef<HTMLInputElement>(null);
@@ -330,18 +359,70 @@ export function BatchEditor({
 
   const setValueActive = setValueInput.trim() !== '';
 
-  const opacityActive = hasColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
+  // Composite sub-property targeting — declared before hasColorTarget/hasNumericTarget to avoid TDZ
+  const compositeEntries = useMemo(() =>
+    selectedEntries.filter(({ entry }) => COMPOSITE_TOKEN_TYPES.has(entry.$type ?? '')),
+    [selectedEntries]
+  );
+  const hasComposite = compositeEntries.length > 0;
+
+  const compositeTypeGroups = useMemo(() => {
+    const groups = new Map<string, typeof compositeEntries>();
+    for (const e of compositeEntries) {
+      const type = e.entry.$type ?? '';
+      if (!groups.has(type)) groups.set(type, []);
+      groups.get(type)!.push(e);
+    }
+    return groups;
+  }, [compositeEntries]);
+
+  // Parse the selected composite sub-property key (format: "typeName.subPropName")
+  const compositeSubPropType = compositeSubPropKey ? compositeSubPropKey.split('.')[0] : '';
+  const compositeSubPropName = compositeSubPropKey ? compositeSubPropKey.split('.').slice(1).join('.') : '';
+  const compositeSubPropDef = useMemo(() =>
+    compositeSubPropType && compositeSubPropName
+      ? (COMPOSITE_SUB_PROPS_BY_TYPE[compositeSubPropType]?.find(d => d.key === compositeSubPropName) ?? null)
+      : null,
+    [compositeSubPropType, compositeSubPropName]
+  );
+  const compositeSubPropKind = compositeSubPropDef?.kind ?? null;
+
+  // Tokens that will actually be targeted by the composite sub-prop transform
+  const compositeSubPropTargets = useMemo(() => {
+    if (!compositeSubPropType || !compositeSubPropName) return [];
+    return selectedEntries.filter(({ entry }) => {
+      if (entry.$type !== compositeSubPropType) return false;
+      const v = entry.$value;
+      if (Array.isArray(v)) return v.some(item => typeof item === 'object' && item !== null && compositeSubPropName in (item as object));
+      return typeof v === 'object' && v !== null && compositeSubPropName in (v as Record<string, unknown>);
+    });
+  }, [compositeSubPropType, compositeSubPropName, selectedEntries]);
+
+  const compositeSubPropActive = compositeSubPropKey !== '' && compositeSubPropTargets.length > 0 && compositeSubPropKind !== null;
+
+  // Color/numeric targets include both plain tokens and composite sub-property targets
+  const hasColorTarget = hasColors || (compositeSubPropKind === 'color' && compositeSubPropTargets.length > 0);
+  const opacityActive = hasColorTarget && opacityPct !== '' && !isNaN(parseFloat(opacityPct));
 
   // For multiply/divide the operand must be non-zero; for add/subtract any number is valid.
+  const hasNumericTarget = hasScalable || (compositeSubPropKind === 'numeric' && compositeSubPropTargets.length > 0);
   const numericTransformActive = useMemo(() => {
-    if (!hasScalable || scaleFactor === '') return false;
+    if (!hasNumericTarget || scaleFactor === '') return false;
     const n = parseFloat(scaleFactor);
     if (isNaN(n)) return false;
     if (numericOpMode === 'multiply' || numericOpMode === 'divide') return n !== 0;
     return true;
-  }, [hasScalable, scaleFactor, numericOpMode]);
+  }, [hasNumericTarget, scaleFactor, numericOpMode]);
 
-  const colorAdjustActive = hasColors && colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+  const colorAdjustActive = hasColorTarget && colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+
+  // Whether a composite transform will actually run (raw input checks, not gated on hasColors/hasScalable)
+  const compositeTransformActive = compositeSubPropActive && (
+    compositeSubPropKind === 'color'
+      ? (opacityPct !== '' && !isNaN(parseFloat(opacityPct))) || (colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt)))
+      : scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) &&
+          (numericOpMode !== 'multiply' && numericOpMode !== 'divide' || parseFloat(scaleFactor) !== 0)
+  );
 
   // Alias mode is mutually exclusive with value-modifying operations (opacity, scale, color adjust).
   // If both are active simultaneously, the alias would be silently overwritten.
@@ -356,7 +437,8 @@ export function BatchEditor({
     opacityActive ||
     numericTransformActive ||
     colorAdjustActive ||
-    setValueActive
+    setValueActive ||
+    compositeTransformActive
   );
 
   const canMove = targetSet !== '' && !moving && !copying;
@@ -451,6 +533,51 @@ export function BatchEditor({
     return selectedEntries.map(({ path, entry }) => ({ path, from: entry.$value, to: aliasRef }));
   }, [aliasActive, aliasConflict, aliasRef, selectedEntries]);
 
+  // Dry-run: compute composite sub-property transform preview
+  const compositeSubPropPreview = useMemo(() => {
+    if (!compositeSubPropActive || !compositeSubPropName || !compositeSubPropKind) return null;
+    const hasOpacityInput = opacityPct !== '' && !isNaN(parseFloat(opacityPct));
+    const hasColorAdjustInput = colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+    const numericOperand = parseFloat(scaleFactor);
+    const hasNumericInput = scaleFactor !== '' && !isNaN(numericOperand) &&
+      (numericOpMode !== 'multiply' && numericOpMode !== 'divide' || numericOperand !== 0);
+    if (compositeSubPropKind === 'color' && !hasOpacityInput && !hasColorAdjustInput) return null;
+    if (compositeSubPropKind === 'numeric' && !hasNumericInput) return null;
+
+    const transformSubVal = (subVal: unknown): unknown => {
+      let v = subVal;
+      if (compositeSubPropKind === 'color') {
+        if (hasOpacityInput) { const nc = applyColorOpacity(v, parseFloat(opacityPct)); if (nc !== null) v = nc; }
+        if (hasColorAdjustInput) { const nc = applyColorAdjust(v, colorAdjustOp, parseFloat(colorAdjustAmt)); if (nc !== null) v = nc; }
+      } else {
+        const result = applyNumericTransform(v, numericOpMode, numericOperand);
+        if (result !== null) v = result;
+      }
+      return v;
+    };
+
+    return compositeSubPropTargets.map(({ path, entry }) => {
+      const v = entry.$value;
+      // For arrays (e.g. multiple shadows), show first element's sub-prop
+      const getFirstObj = (): Record<string, unknown> | null => {
+        if (Array.isArray(v)) {
+          return (v.find(item => typeof item === 'object' && item !== null && compositeSubPropName in (item as object)) as Record<string, unknown> | undefined) ?? null;
+        }
+        if (typeof v === 'object' && v !== null && compositeSubPropName in (v as object)) return v as Record<string, unknown>;
+        return null;
+      };
+      const obj = getFirstObj();
+      if (!obj) return null;
+      const from = obj[compositeSubPropName];
+      const to = transformSubVal(from);
+      if (to === from) return null;
+      return { path, from, to, arrayLen: Array.isArray(v) ? v.length : 0 };
+    }).filter((x): x is { path: string; from: unknown; to: unknown; arrayLen: number } => x !== null);
+  }, [
+    compositeSubPropActive, compositeSubPropName, compositeSubPropKind, compositeSubPropTargets,
+    opacityPct, colorAdjustAmt, colorAdjustOp, scaleFactor, numericOpMode,
+  ]);
+
   // Find/replace: count tokens whose paths would change
   const renamePreview = useMemo(() => {
     if (!findText) return 0;
@@ -541,7 +668,8 @@ export function BatchEditor({
             patch.$value = cv;
             patch.$type = entry.$type;
           }
-        } else {
+        } else if (!compositeSubPropType || entry.$type !== compositeSubPropType) {
+          // Don't count composite-type tokens as "skipped" — they're handled by the sub-prop path below
           skippedNotColor++;
         }
       }
@@ -556,7 +684,7 @@ export function BatchEditor({
               patch.$type = entry.$type;
             }
           }
-        } else {
+        } else if (!compositeSubPropType || entry.$type !== compositeSubPropType) {
           skippedNotNumeric++;
         }
       }
@@ -577,6 +705,61 @@ export function BatchEditor({
 
       if (Object.keys(patch).length > 0) {
         ops.push({ path, patch, oldEntry: entry });
+      }
+    }
+
+    // Apply composite sub-property transforms (e.g., lighten the .color of shadow tokens)
+    if (compositeSubPropActive && compositeSubPropDef && compositeSubPropName) {
+      const { kind } = compositeSubPropDef;
+      const hasOpacityInput = opacityPct !== '' && !isNaN(parseFloat(opacityPct));
+      const hasColorInput = colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+      const numericOperand = parseFloat(scaleFactor);
+      const hasNumericInput = scaleFactor !== '' && !isNaN(numericOperand) &&
+        (numericOpMode !== 'multiply' && numericOpMode !== 'divide' || numericOperand !== 0);
+
+      const transformSubVal = (subVal: unknown): unknown | null => {
+        let v = subVal;
+        let changed = false;
+        if (kind === 'color') {
+          if (hasOpacityInput) { const nc = applyColorOpacity(v, parseFloat(opacityPct)); if (nc !== null) { v = nc; changed = true; } }
+          if (hasColorInput) { const nc = applyColorAdjust(v, colorAdjustOp, parseFloat(colorAdjustAmt)); if (nc !== null) { v = nc; changed = true; } }
+        } else {
+          if (hasNumericInput) { const result = applyNumericTransform(v, numericOpMode, numericOperand); if (result !== null) { v = result; changed = true; } }
+        }
+        return changed ? v : null;
+      };
+
+      const transformObj = (obj: Record<string, unknown>): Record<string, unknown> | null => {
+        const newSubVal = transformSubVal(obj[compositeSubPropName]);
+        return newSubVal !== null ? { ...obj, [compositeSubPropName]: newSubVal } : null;
+      };
+
+      for (const { path, entry } of compositeSubPropTargets) {
+        const v = entry.$value;
+        let newValue: unknown = null;
+
+        if (Array.isArray(v)) {
+          let arrChanged = false;
+          const newArr = v.map(item => {
+            if (typeof item !== 'object' || item === null || !(compositeSubPropName in (item as object))) return item;
+            const result = transformObj(item as Record<string, unknown>);
+            if (result !== null) { arrChanged = true; return result; }
+            return item;
+          });
+          if (arrChanged) newValue = newArr;
+        } else if (typeof v === 'object' && v !== null) {
+          newValue = transformObj(v as Record<string, unknown>);
+        }
+
+        if (newValue !== null) {
+          // Merge with any existing patch for this path (e.g., description was also set)
+          const existingOp = ops.find(o => o.path === path);
+          if (existingOp) {
+            existingOp.patch.$value = newValue;
+          } else {
+            ops.push({ path, patch: { $value: newValue, $type: entry.$type }, oldEntry: entry });
+          }
+        }
       }
     }
 
@@ -642,6 +825,7 @@ export function BatchEditor({
       setNewType('');
       setBatchExtensions([]);
       setSetValueInput('');
+      setCompositeSubPropKey('');
       setTimeout(() => descriptionRef.current?.focus(), 0);
     } catch (err) {
       console.warn('[BatchEditor] batch apply failed:', err);
@@ -934,8 +1118,8 @@ export function BatchEditor({
         )}
       </div>
 
-      {/* Opacity — when any selected token is a color */}
-      {hasColors && (
+      {/* Opacity — when any selected token is a color, or a composite color sub-prop is targeted */}
+      {(hasColors || compositeSubPropKind === 'color') && (
         <>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Opacity %</span>
@@ -998,7 +1182,7 @@ export function BatchEditor({
               )}
             </div>
           )}
-          {!allColors && (
+          {hasColors && !allColors && (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
@@ -1006,8 +1190,8 @@ export function BatchEditor({
         </>
       )}
 
-      {/* Color adjust — lighten/darken/saturate/desaturate/hue shift — when any selected token is color */}
-      {hasColors && (
+      {/* Color adjust — lighten/darken/saturate/desaturate/hue shift — when any selected token is color, or composite color sub-prop targeted */}
+      {(hasColors || compositeSubPropKind === 'color') && (
         <>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Color adjust</span>
@@ -1064,7 +1248,7 @@ export function BatchEditor({
               )}
             </div>
           )}
-          {!allColors && colorAdjustAmt !== '' && (
+          {hasColors && !allColors && colorAdjustAmt !== '' && (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
@@ -1072,8 +1256,8 @@ export function BatchEditor({
         </>
       )}
 
-      {/* Numeric transform — when any selected token is dimension or number */}
-      {hasScalable && (
+      {/* Numeric transform — when any selected token is dimension/number, or composite numeric sub-prop targeted */}
+      {(hasScalable || compositeSubPropKind === 'numeric') && (
         <>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Transform</span>
@@ -1153,9 +1337,84 @@ export function BatchEditor({
               )}
             </div>
           )}
-          {!allScalable && (
+          {hasScalable && !allScalable && (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {scalableCount} numeric token{scalableCount === 1 ? '' : 's'} — {selectedEntries.length - scalableCount} non-numeric skipped
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Composite sub-property targeting — lets color/numeric ops apply to a sub-property of composite tokens */}
+      {hasComposite && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Sub-property</span>
+            <select
+              value={compositeSubPropKey}
+              onChange={e => setCompositeSubPropKey(e.target.value)}
+              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              aria-label="Composite sub-property to target"
+            >
+              <option value="">— target composite sub-property —</option>
+              {[...compositeTypeGroups.entries()].flatMap(([type, typeEntries]) => {
+                const defs = COMPOSITE_SUB_PROPS_BY_TYPE[type];
+                if (!defs) return [];
+                return defs.map(def => (
+                  <option key={`${type}.${def.key}`} value={`${type}.${def.key}`}>
+                    {type}: {def.label} ({typeEntries.length} token{typeEntries.length !== 1 ? 's' : ''})
+                  </option>
+                ));
+              })}
+            </select>
+            {compositeSubPropKey && (
+              <button
+                type="button"
+                onClick={() => setCompositeSubPropKey('')}
+                aria-label="Clear sub-property selection"
+                className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+                  <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+          {compositeSubPropKey && compositeSubPropTargets.length > 0 && (
+            <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              {compositeSubPropKind === 'color'
+                ? <>Opacity &amp; color adjust will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
+                : <>Transform will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
+              }
+            </div>
+          )}
+          {compositeSubPropPreview && compositeSubPropPreview.length > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {(expandedPreviews['compositeSub'] ? compositeSubPropPreview : compositeSubPropPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to, arrayLen }) => (
+                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                  {arrayLen > 1 && <span className="text-[var(--color-figma-text-tertiary)] shrink-0 font-mono">[{arrayLen}]</span>}
+                  {compositeSubPropKind === 'color' ? (
+                    <>
+                      <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(from) }} title={String(from)} />
+                      <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                      <span className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]" style={{ backgroundColor: String(to) }} title={String(to)} />
+                      <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatBatchValue(from)}</span>
+                      <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                      <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatBatchValue(to)}</span>
+                    </>
+                  )}
+                </div>
+              ))}
+              {compositeSubPropPreview.length > PREVIEW_MAX && (
+                <button type="button" onClick={() => togglePreview('compositeSub')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  {expandedPreviews['compositeSub'] ? 'Show less' : `and ${compositeSubPropPreview.length - PREVIEW_MAX} more…`}
+                </button>
+              )}
             </div>
           )}
         </>
@@ -1384,7 +1643,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {!connected
               ? 'Not connected to server'
-              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColors ? ', opacity or color adjust' : ''}${hasScalable ? ', transform' : ''}, value, or alias to apply`}
+              : `Set a description${newType === '' ? ', type' : ''}${availableScopes.length > 0 ? ', scopes' : ''}, extensions${hasColorTarget ? ', opacity or color adjust' : ''}${hasNumericTarget ? ', transform' : ''}${hasComposite ? ', sub-property' : ''}, value, or alias to apply`}
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
