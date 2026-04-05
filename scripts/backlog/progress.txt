@@ -312,3 +312,9 @@
   - The simplest solution to "can't apply a subset of a preset" is a secondary hover-action on the existing preset item, not a separate storage structure. Existing presets double as filter profiles once you can apply them selectively.
   - Funnel SVG icon: `<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />` on viewBox 0 0 24 24 — universally recognized filter symbol.
 ---
+
+## 2026-04-05 - code-pass
+- Areas explored: server services (token-store, generator-service, resolver-store, operation-log, git-sync, manual-snapshot, style-dict, sse routes, theme routes), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, selectionHandling.ts, heatmapScanning.ts), UI hooks (93 hook files — useTokenEditorLoad/Save, useFigmaSync, useTokenDataLoading, useServerConnection, useGeneratorDialog, useThemeOptions, useTokenSearch), UI components (ExportPanel.tsx, TokenTreeNode.tsx, App.tsx), core package (resolver.ts, validator.ts, color-math.ts, dtcg-types.ts, generator-engine.ts)
+- Found 6 items — written to backlog-inbox.md
+- Notable: TokenGroupNode's memo comparator at TokenTreeNode.tsx:759 only checks 5 of 11+ props — isSelected, lintViolations, showFullPath, skipChildren, chainExpanded, multiModeValues are all unchecked, meaning React.memo never prevents re-renders for group nodes. Combined with lintViolations.filter() creating new arrays every render at line 754, this makes the entire tree's memoization ineffective for group nodes.
+---
