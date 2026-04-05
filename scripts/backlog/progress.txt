@@ -467,3 +467,12 @@
   - `handleCollapseBelow` and `handleZoomIntoGroup` straddle expansion state + scroll state — keep these as composition points in the component body calling into both hooks' returned setters rather than trying to move them into either hook.
   - The `availableTypes` memo inside `useTokenSearch` MUST be declared before `qualifierHints` to avoid TDZ (there's an existing code comment about this — preserve the order).
 ---
+
+## 2026-04-05 - Git-sync applyDiffChoices continues after partial checkout failures
+- The server-side `applyDiffChoices` already correctly tracks `pullFailedFiles`, only commits successfully-checked-out files, and returns failure details in `ApplyDiffResult`. The bug was entirely in the UI: `useGitDiff.ts:applyDiff` called `apiFetch` but ignored the returned data, treating every HTTP 200 as full success even when `pullFailedFiles.length > 0`. Fixed by: (1) adding `ApplyDiffResponse` interface mirroring `ApplyDiffResult`; (2) reading the response and building descriptive error messages for pull failures, commit failures, and push failures; (3) when any failures exist, showing the error via `setGitError` and calling `computeDiff()` to refresh the diff view to show remaining work; (4) only closing the diff view on full success.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitDiff.ts` ~L33 (ApplyDiffResponse interface), ~L110 (applyDiff callback)
+- **Learnings for future iterations:**
+  - The server side of `applyDiffChoices` was already correct — it committed only successful checkouts and surfaced `pullFailedFiles`. The gap was purely UI-side.
+  - `apiFetch` only throws on HTTP 4xx/5xx; a partial-success 200 response with failure details in the body is silently treated as success unless the caller inspects the returned data.
+  - After partial apply, calling `computeDiff()` (not just `fetchStatus()`) is the right refresh — it updates the diff view so the user sees which files remain outstanding.
+---

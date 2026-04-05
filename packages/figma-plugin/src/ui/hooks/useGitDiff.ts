@@ -30,6 +30,18 @@ export interface GitPreview {
   fileCount: number;
 }
 
+interface ApplyDiffResponse {
+  ok: boolean;
+  applied: boolean;
+  pullFailedFiles: string[];
+  pullCommitFailed: boolean;
+  pullCommitError?: string;
+  pushCommitFailed: boolean;
+  pushCommitError?: string;
+  pushFailed: boolean;
+  pushError?: string;
+}
+
 export interface UseGitDiffReturn {
   diffView: { localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null;
   diffLoading: boolean;
@@ -99,19 +111,38 @@ export function useGitDiff({
     setApplyingDiff(true);
     setGitError(null);
     try {
-      await apiFetch(`${serverUrl}/api/sync/apply-diff`, {
+      const result = await apiFetch<ApplyDiffResponse>(`${serverUrl}/api/sync/apply-diff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choices: diffChoices }),
       });
-      setDiffView(null);
-      fetchStatus();
+      const errors: string[] = [];
+      if (result.pullFailedFiles.length > 0) {
+        errors.push(`Failed to pull ${result.pullFailedFiles.length} file(s): ${result.pullFailedFiles.join(', ')}`);
+      }
+      if (result.pullCommitFailed) {
+        errors.push('Pull commit failed' + (result.pullCommitError ? `: ${result.pullCommitError}` : ''));
+      }
+      if (result.pushCommitFailed) {
+        errors.push('Push commit failed' + (result.pushCommitError ? `: ${result.pushCommitError}` : ''));
+      }
+      if (result.pushFailed) {
+        errors.push('Push to remote failed' + (result.pushError ? `: ${result.pushError}` : ''));
+      }
+      if (errors.length > 0) {
+        setGitError(errors.join('; '));
+        // Refresh the diff view to reflect what was actually applied vs what remains
+        computeDiff();
+      } else {
+        setDiffView(null);
+        fetchStatus();
+      }
     } catch (err) {
       setGitError(describeError(err, 'Apply diff'));
     } finally {
       setApplyingDiff(false);
     }
-  }, [serverUrl, diffChoices, fetchStatus, setGitError]);
+  }, [serverUrl, diffChoices, fetchStatus, setGitError, computeDiff]);
 
   const fetchTokenPreview = useCallback(async () => {
     setTokenPreviewLoading(true);
