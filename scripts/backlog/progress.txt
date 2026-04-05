@@ -545,3 +545,14 @@
   - When two render paths share identical JSX structure, extract to a local function component in the same file — no new file needed for small components.
   - `MODE_LABELS` needed to move from inside the function body to module scope so the new component can access it without prop drilling.
 ---
+
+## 2026-04-05 - dtcg-resolver.ts:205 casts $value without validation
+- Added `validateDTCGValue(value, type, path)` exported from `dtcg-resolver.ts`. Checks for: null/undefined (DTCG spec requires $value), NaN, non-finite numbers (Infinity/-Infinity), circular object references (ancestor-chain WeakSet traversal), and type-specific shape mismatches for all 25 DTCG token types. Alias reference strings (`{...}`) bypass type-shape checks since they're always valid regardless of type.
+- At the merge boundary in `resolveTokens` (was line 205), tokens that fail validation are skipped and a `severity: 'warning'` diagnostic is pushed instead of silently coercing the bad value into the output map.
+- Added test file `packages/core/src/__tests__/dtcg-resolver-validation.test.ts` with unit tests for `validateDTCGValue` and integration tests verifying that malformed tokens produce diagnostics and are excluded from the output.
+- Files changed: `packages/core/src/dtcg-resolver.ts` ~L238 (validateDTCGValue + helpers), ~L351 (use at merge boundary); `packages/core/src/__tests__/dtcg-resolver-validation.test.ts` (new)
+- **Learnings for future iterations:**
+  - The circular-reference check must track the ancestor chain (not a flat visited set) so that DAG sharing (two fields pointing to the same object) is permitted — only actual cycles are rejected.
+  - Alias references (`{path.to.token}`) are always valid regardless of `$type`, so the shape-check must short-circuit on them before the type-switch.
+  - `validateDTCGValue` is exported so callers outside the resolver (e.g. token import pipelines) can reuse it at their own boundaries without duplicating logic.
+---

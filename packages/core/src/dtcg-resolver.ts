@@ -199,13 +199,22 @@ export async function resolveTokens(
   }
 
   // Step 3: Convert to Token records and resolve aliases
+  // Validate each token's $value before letting it into the system.
   const tokens: Record<string, Token> = {};
   for (const [path, dtcgToken] of merged) {
+    const resolvedType = (typeof dtcgToken.$type === 'string' && TOKEN_TYPE_VALUES.has(dtcgToken.$type))
+      ? (dtcgToken.$type as TokenType)
+      : undefined;
+
+    const valueError = validateDTCGValue(dtcgToken.$value, resolvedType, path);
+    if (valueError) {
+      diagnostics.push({ severity: 'warning', message: `Skipping malformed token: ${valueError}` });
+      continue;
+    }
+
     tokens[path] = {
       $value: dtcgToken.$value as Token['$value'],
-      $type: (typeof dtcgToken.$type === 'string' && TOKEN_TYPE_VALUES.has(dtcgToken.$type))
-        ? (dtcgToken.$type as TokenType)
-        : undefined,
+      $type: resolvedType,
       ...(dtcgToken.$description ? { $description: dtcgToken.$description } : {}),
       ...(dtcgToken.$extensions ? { $extensions: dtcgToken.$extensions } : {}),
     };
@@ -230,6 +239,164 @@ export async function resolveTokensFull(
   const resolver = new TokenResolver(tokens, 'resolver');
   const resolved = resolver.resolveAll();
   return { resolved, diagnostics };
+}
+
+// ---------------------------------------------------------------------------
+// Value Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect circular references in an object graph.
+ * Tracks the current ancestor chain (not just visited nodes) so that
+ * DAG sharing is permitted while true cycles are rejected.
+ */
+function hasCircularReference(value: unknown, ancestors = new Set<object>()): boolean {
+  if (value === null || typeof value !== 'object') return false;
+  const obj = value as object;
+  if (ancestors.has(obj)) return true;
+  ancestors.add(obj);
+  const children = Array.isArray(obj) ? obj : Object.values(obj);
+  const found = children.some(child => hasCircularReference(child, ancestors));
+  ancestors.delete(obj);
+  return found;
+}
+
+/**
+ * Validate type-specific shape of a token value.
+ * Returns an error string, or null if the value is acceptable.
+ * Alias references (`{path.to.token}`) are always valid regardless of type.
+ */
+function validateTypedShape(value: unknown, type: string, path: string): string | null {
+  // Alias reference — valid for any type
+  if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+    return null;
+  }
+
+  switch (type) {
+    case 'color':
+    case 'string':
+    case 'fontStyle':
+    case 'textDecoration':
+    case 'textTransform':
+    case 'link':
+    case 'asset':
+      if (typeof value !== 'string') {
+        return `token "${path}": type "${type}" requires a string $value (got ${typeof value})`;
+      }
+      break;
+
+    case 'number':
+    case 'percentage':
+    case 'lineHeight':
+    case 'letterSpacing':
+    case 'fontWeight':
+      if (typeof value !== 'number' && typeof value !== 'string') {
+        return `token "${path}": type "${type}" requires a number or string $value (got ${typeof value})`;
+      }
+      break;
+
+    case 'boolean':
+      if (typeof value !== 'boolean') {
+        return `token "${path}": type "boolean" requires a boolean $value (got ${typeof value})`;
+      }
+      break;
+
+    case 'cubicBezier':
+      if (
+        !Array.isArray(value) ||
+        value.length !== 4 ||
+        !value.every(v => typeof v === 'number' && isFinite(v))
+      ) {
+        return `token "${path}": type "cubicBezier" requires an array of exactly 4 finite numbers`;
+      }
+      break;
+
+    case 'fontFamily':
+      if (typeof value !== 'string' && !Array.isArray(value)) {
+        return `token "${path}": type "fontFamily" requires a string or string[] $value (got ${typeof value})`;
+      }
+      break;
+
+    case 'dimension':
+    case 'duration':
+      if (typeof value !== 'string' && typeof value !== 'number') {
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+          return `token "${path}": type "${type}" requires a {value, unit} object, number, or string`;
+        }
+        const obj = value as Record<string, unknown>;
+        if (typeof obj.value !== 'number' || !isFinite(obj.value)) {
+          return `token "${path}": type "${type}" $value.value must be a finite number`;
+        }
+        if (typeof obj.unit !== 'string') {
+          return `token "${path}": type "${type}" $value.unit must be a string`;
+        }
+      }
+      break;
+
+    case 'gradient':
+      if (!Array.isArray(value)) {
+        return `token "${path}": type "gradient" requires an array $value (got ${typeof value})`;
+      }
+      break;
+
+    case 'strokeStyle':
+      if (typeof value !== 'string' && (typeof value !== 'object' || value === null || Array.isArray(value))) {
+        return `token "${path}": type "strokeStyle" requires a string or {dashArray, lineCap} object`;
+      }
+      break;
+
+    case 'shadow':
+    case 'typography':
+    case 'border':
+    case 'transition':
+    case 'composition':
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return `token "${path}": type "${type}" requires an object $value (got ${Array.isArray(value) ? 'array' : typeof value})`;
+      }
+      break;
+  }
+
+  return null;
+}
+
+/**
+ * Validate a DTCGToken's $value at the merge boundary.
+ *
+ * Checks for null/undefined, NaN, non-finite numbers, circular structures,
+ * and type-specific shape mismatches. Returns an error string on failure,
+ * or null if the value is acceptable.
+ */
+export function validateDTCGValue(
+  value: unknown,
+  type: string | undefined,
+  path: string,
+): string | null {
+  // Reject null and undefined — $value must be present per DTCG spec
+  if (value === null || value === undefined) {
+    return `token "${path}": $value is ${value === null ? 'null' : 'undefined'}`;
+  }
+
+  // Reject NaN
+  if (typeof value === 'number' && isNaN(value)) {
+    return `token "${path}": $value is NaN`;
+  }
+
+  // Reject Infinity / -Infinity
+  if (typeof value === 'number' && !isFinite(value)) {
+    return `token "${path}": $value is non-finite (${value})`;
+  }
+
+  // Reject circular structures
+  if (typeof value === 'object' && hasCircularReference(value)) {
+    return `token "${path}": $value contains a circular reference`;
+  }
+
+  // Type-specific shape validation (only when type is known)
+  if (type && TOKEN_TYPE_VALUES.has(type)) {
+    return validateTypedShape(value, type, path);
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------

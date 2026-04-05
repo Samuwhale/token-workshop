@@ -84,3 +84,26 @@ Already up to date.
 
   Merging to main: ThemeManager.tsx has two near-identical toggle bar blocks (~L503 and ~L554) for switching between simple/advanced mode — the blocks share the same structure (label, shortcut badge, chevron) but are maintained separately; extract a shared `ModeToggleBar` component to eliminate the duplication and prevent future drift
 Already up to date.
+[main b78b6874] chore(backlog): done – ThemeManager.tsx has two near-identical toggle bar blocks (~L503 and ~L554) for switching between simple/advanced mode — the blocks share the same structure (label, shortcut badge, chevron) but are maintained separately; extract a shared `ModeToggleBar` component to eliminate the duplication and prevent future drift
+ 5 files changed, 75 insertions(+), 55 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - ThemeManager.tsx ModeToggleBar extraction
+- Extracted shared `ModeToggleBar` component (before `slugify`) from two near-identical toggle bar JSX blocks (~L503 and ~L554). Moved `MODE_LABELS` to module scope (shared by both). Both call sites now use `<ModeToggleBar themeMode={themeMode} onModeChange={setThemeMode} />`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L64 (new component + MODE_LABELS), ~L530 (advanced-mode return), ~L580 (main return)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #4  ·  19 queued · 0
+0 in-progress · last took 1m16s
+═══════════════════════════════════════════════════════════════
+  → `packages/core/src/dtcg-resolver.ts:205` casts `dtcgToken.$value` to `Token['$value']` without any validation — malformed values (wrong shape for type, circular structures, NaN) silently propagate through the resolver and surface as cryptic errors in downstream consumers like generators or the UI; add validation at the merge boundary where external DTCG files enter the system
+  Worktree: /tmp/backlog-50286-BIX6vf
+  Running agent… (started 23:02:50)
+
+  ✓ done: dtcg-resolver.ts:205 casts $value without validation
+    Added validateDTCGValue() at the merge boundary — rejects null/undefined, NaN, Infinity, circular structures, and type-shape mismatches; bad tokens emit a warning diagnostic and are skipped instead of silently propagating
+    14 turns · 171s · $0.48
+
+  Merging to main: dtcg-resolver.ts:205 casts $value without validation
+Already up to date.
