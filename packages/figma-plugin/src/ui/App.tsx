@@ -918,14 +918,14 @@ export function App() {
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
-        handler: () => { navigateTo('ship', 'validation'); refreshValidation(); },
+        handler: () => { navigateTo('ship', 'health'); refreshValidation(); },
       },
       {
         id: 'health-dashboard',
-        label: 'Token Validation',
+        label: 'Token Health',
         description: 'Validation report, lint summary, generator health, canvas coverage, and unused tokens',
         category: 'Navigation',
-        handler: () => navigateTo('ship', 'validation'),
+        handler: () => navigateTo('ship', 'health'),
       },
       {
         id: 'generate-color-scale',
@@ -1522,10 +1522,10 @@ export function App() {
               </button>
               <button
                 role="menuitem"
-                onClick={() => { setMenuOpen(false); navigateTo('ship', 'validation'); }}
+                onClick={() => { setMenuOpen(false); navigateTo('ship', 'health'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Validation
+                Health
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button

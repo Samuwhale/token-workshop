@@ -195,8 +195,8 @@ export function HealthPanel({
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
 
-  // Dashboard strip (health summary cards) — collapsed by default so validation report is primary
-  const [dashboardExpanded, setDashboardExpanded] = useState(false);
+  // Dashboard strip (health summary cards) — expanded by default so health overview is primary
+  const [dashboardExpanded, setDashboardExpanded] = useState(true);
 
   // ── Analytics section state ─────────────────────────────────────────────────
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
@@ -658,10 +658,6 @@ export function HealthPanel({
   const validationErrors = validationSummary?.errors ?? 0;
   const validationWarnings = validationSummary?.warnings ?? 0;
 
-  const brokenAliases = validationIssues.filter(i => i.rule === 'broken-alias');
-  const circularRefs = validationIssues.filter(i => i.rule === 'circular-reference');
-  const criticalValidation = brokenAliases.length + circularRefs.length;
-
   const staleGenerators = generators.filter(g => g.isStale);
   const errorGenerators = generators.filter(g => g.lastRunError && !g.lastRunError.blockedBy);
   const blockedGenerators = generators.filter(g => g.lastRunError?.blockedBy);
@@ -677,15 +673,13 @@ export function HealthPanel({
     : lintWarnings > 0 || validationWarnings > 0 || staleGenerators.length > 0 ? 'warning'
     : 'healthy';
 
+  // Issues shown in the health dashboard strip (lint + generators; validation is in the full report below)
   const totalIssues =
-    lintErrors + lintWarnings + validationErrors + validationWarnings +
+    lintErrors + lintWarnings +
     staleGenerators.length + errorGenerators.length;
 
   const lintStatus: HealthStatus | null =
     lintErrors > 0 ? 'critical' : lintWarnings > 0 ? 'warning' : 'healthy';
-
-  const validationStatus: HealthStatus | null =
-    validationErrors > 0 ? 'critical' : validationWarnings > 0 ? 'warning' : 'healthy';
 
   const generatorStatus: HealthStatus | null =
     errorGenerators.length > 0 ? 'critical' : staleGenerators.length > 0 ? 'warning' : 'healthy';
@@ -712,22 +706,22 @@ export function HealthPanel({
   return (
     <>
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header — validation-focused */}
-      <div className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b border-[var(--color-figma-border)] ${validationIssuesProp !== null ? statusBg(validationStatus) : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+      {/* Header — health-focused */}
+      <div className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b border-[var(--color-figma-border)] ${validationIssuesProp !== null ? statusBg(overallStatus) : 'bg-[var(--color-figma-bg-secondary)]'}`}>
         {validationIssuesProp !== null && (
-          <span className={statusColor(validationStatus)}>
-            <StatusIcon status={validationStatus} />
+          <span className={statusColor(overallStatus)}>
+            <StatusIcon status={overallStatus} />
           </span>
         )}
         <div className="flex-1 min-w-0">
-          <p className={`text-[12px] font-bold ${validationIssuesProp !== null ? statusColor(validationStatus) : 'text-[var(--color-figma-text)]'}`}>
+          <p className={`text-[12px] font-bold ${validationIssuesProp !== null ? statusColor(overallStatus) : 'text-[var(--color-figma-text)]'}`}>
             {validationIssuesProp === null
-              ? 'Token Validation'
-              : validationStatus === 'healthy'
-                ? 'Validation passed'
-                : validationErrors > 0
-                  ? `${validationErrors} error${validationErrors !== 1 ? 's' : ''}${validationWarnings > 0 ? `, ${validationWarnings} warning${validationWarnings !== 1 ? 's' : ''}` : ''}`
-                  : `${validationWarnings} warning${validationWarnings !== 1 ? 's' : ''}`
+              ? 'Token Health'
+              : overallStatus === 'healthy'
+                ? 'All checks passed'
+                : totalIssues > 0
+                  ? `${totalIssues} issue${totalIssues !== 1 ? 's' : ''} found`
+                  : 'Token Health'
             }
           </p>
           {lastRefreshed && (
@@ -824,70 +818,6 @@ export function HealthPanel({
                     </li>
                   )}
                 </ul>
-              </HealthSection>
-
-              {/* Cross-set validation */}
-              <HealthSection
-                title="Cross-set validation"
-                status={validationError ? 'warning' : validationStatus}
-                count={criticalValidation + validationWarnings}
-                detail={
-                  validationError ? validationError
-                  : validating ? 'Running validation…'
-                  : criticalValidation === 0 && validationWarnings === 0
-                    ? `${validationIssues.length === 0 ? 'No issues' : 'No critical issues'} across all sets`
-                    : `${brokenAliases.length > 0 ? `${brokenAliases.length} broken alias${brokenAliases.length !== 1 ? 'es' : ''}` : ''}${brokenAliases.length > 0 && circularRefs.length > 0 ? ', ' : ''}${circularRefs.length > 0 ? `${circularRefs.length} circular ref${circularRefs.length !== 1 ? 's' : ''}` : ''}${validationWarnings > 0 ? `, ${validationWarnings} warning${validationWarnings !== 1 ? 's' : ''}` : ''}`
-                }
-                ctaLabel="Full report"
-                onCta={() => setDashboardExpanded(false)}
-              >
-                {brokenAliases.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-[10px] font-semibold text-[var(--color-figma-error)] mb-1">Broken aliases</p>
-                    <ul className="space-y-0.5">
-                      {brokenAliases.slice(0, 4).map((issue, i) => {
-                        const fixKey = `${issue.rule}:${issue.setName}:${issue.path}`;
-                        return (
-                          <li key={i} className="group flex items-center gap-1.5">
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed flex-1 min-w-0">
-                              {issue.setName}/{issue.path}
-                            </span>
-                            <button
-                              onClick={() => applyValidationFix(issue)}
-                              disabled={fixingKeys.has(fixKey)}
-                              className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0 disabled:opacity-40 disabled:cursor-wait"
-                              title="Delete this token (the alias target no longer exists)"
-                            >
-                              {fixingKeys.has(fixKey) ? '…' : 'Delete'}
-                            </button>
-                          </li>
-                        );
-                      })}
-                      {brokenAliases.length > 4 && (
-                        <li className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
-                          +{brokenAliases.length - 4} more
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-                {circularRefs.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-amber-500 mb-1">Circular references</p>
-                    <ul className="space-y-0.5">
-                      {circularRefs.slice(0, 3).map((issue, i) => (
-                        <li key={i} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all leading-relaxed">
-                          {issue.setName}/{issue.path}
-                        </li>
-                      ))}
-                      {circularRefs.length > 3 && (
-                        <li className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
-                          +{circularRefs.length - 3} more
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
               </HealthSection>
 
               {/* Generator health */}

@@ -373,7 +373,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       publish:    renderShipPublish,
       export:     renderShipExport,
       history:    renderShipHistory,
-      validation: renderShipValidation,
+      health: renderShipHealth,
     },
   };
 
@@ -729,9 +729,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  function renderShipValidation(): ReactNode {
+  function renderShipHealth(): ReactNode {
     return (
-      <ErrorBoundary panelName="Validation" onReset={() => navigateTo('ship', 'publish')}>
+      <ErrorBoundary panelName="Health" onReset={() => navigateTo('ship', 'publish')}>
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}

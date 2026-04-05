@@ -9,7 +9,7 @@ import { STORAGE_KEYS } from './storage';
 export type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators';
 type ApplySubTab = 'inspect' | 'canvas-audit' | 'dependencies';
-type ShipSubTab = 'publish' | 'export' | 'history' | 'validation';
+type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type OverflowPanel = 'import' | 'settings' | null;
 
@@ -28,7 +28,7 @@ export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label
     { id: 'publish', label: 'Publish' },
     { id: 'export', label: 'Export' },
     { id: 'history', label: 'History' },
-    { id: 'validation', label: 'Validation' },
+    { id: 'health', label: 'Health' },
   ]},
 ];
 

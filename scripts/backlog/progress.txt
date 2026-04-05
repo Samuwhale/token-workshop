@@ -762,3 +762,21 @@
   - The "deleted" tokens category requires knowing which tokens are managed by the generator. Filtering `existingSetTokens` by `targetGroup` prefix is a good heuristic — generators own their target group. Tokens without a `targetGroup` prefix (empty string) are skipped for deletion detection to avoid false positives.
   - Multi-brand generators skip live diff entirely (preview panel is hidden for them) because each brand writes to a different set — per-brand diff would require fetching multiple sets.
 ---
+
+## 2026-04-05 - Consolidate Validation sub-tab into HealthPanel
+- Renamed the "Validation" sub-tab (Ship > Validation) to "Health" in `navigationTypes.ts` to match the HealthPanel component and its broader content (lint, generators, canvas, validation)
+- Removed the redundant "Cross-set validation" HealthSection from the health dashboard strip — this section duplicated the full validation report shown in the main body, creating two competing views of the same data
+- Changed health dashboard strip to expand by default (`useState(true)`) so the health overview is visible on first open rather than collapsed
+- Updated header title from "Token Validation" / "Validation passed" to "Token Health" / "All checks passed" and switched status color from validation-only to overall health status
+- Cleaned up unused `brokenAliases`, `circularRefs`, `criticalValidation`, and `validationStatus` variables after removing the cross-set section from the strip
+- Updated `totalIssues` counter to only include issues visible in the dashboard strip (lint + generators), since validation is now exclusively in the full report below
+- Updated all navigation call sites: `navigateTo('ship', 'validation')` → `navigateTo('ship', 'health')`, command palette labels updated
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/navigationTypes.ts` — renamed sub-tab type and label
+  - `packages/figma-plugin/src/ui/components/HealthPanel.tsx` — strip restructure, header update
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` — PANEL_MAP and function rename
+  - `packages/figma-plugin/src/ui/App.tsx` — navigation calls and command palette labels
+- **Learnings for future iterations:**
+  - When a panel is named "HealthPanel" but its enclosing tab is named "Validation", the mismatch itself is a UX signal — rename the tab to match the component's scope
+  - When a "summary card" in a dashboard strip has a CTA that navigates to the full view *in the same panel*, that's a sign the summary is redundant — remove it and let the full view stand alone
+---
