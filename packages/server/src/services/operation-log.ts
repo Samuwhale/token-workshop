@@ -23,9 +23,24 @@ export type RollbackStep =
   | { action: 'create-generator'; generator: unknown }
   | { action: 'delete-generator'; id: string };
 
+/**
+ * Minimal interface for serialized access to the $themes.json file.
+ * Structurally compatible with DimensionsStore from routes/themes.ts.
+ */
+export interface ThemesWriteLock {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  withLock<T>(fn: (dims: any[]) => Promise<{ dims: any[]; result: T }>): Promise<T>;
+}
+
 /** Context required for rollback — provides access to all services that may need restoration. */
 export interface RollbackContext {
   tokenStore: TokenStore;
+  /**
+   * Provides serialized read/write access to $themes.json.
+   * Must be passed so that rollback does not bypass the DimensionsStore lock chain,
+   * which would race with concurrent theme mutations and corrupt the file.
+   */
+  themesStore?: ThemesWriteLock;
   resolverStore?: {
     get(name: string): unknown;
     create(name: string, file: any): Promise<void>;
@@ -229,7 +244,18 @@ export class OperationLog {
           break;
         }
         case 'write-themes': {
-          const currentDims = await this.readThemesFile();
+          // Read current themes state while holding the DimensionsStore lock so that
+          // an in-flight theme mutation cannot complete its save between our read and
+          // the inverse-step computation, which would produce a stale snapshot.
+          let currentDims: unknown;
+          if (ctx.themesStore) {
+            currentDims = await ctx.themesStore.withLock(async (dims) => ({
+              dims, // no-op: don't modify dims
+              result: structuredClone(dims),
+            }));
+          } else {
+            currentDims = await this.readThemesFile();
+          }
           inverse.push({ action: 'write-themes', dimensions: currentDims });
           break;
         }
@@ -291,7 +317,16 @@ export class OperationLog {
           await ctx.tokenStore.reorderSets(step.order as string[]);
           break;
         case 'write-themes':
-          await this.writeThemesFile(step.dimensions);
+          // Write through the DimensionsStore lock so that concurrent theme mutations
+          // serialise behind this rollback write and don't overwrite it.
+          if (ctx.themesStore) {
+            await ctx.themesStore.withLock(async () => ({
+              dims: step.dimensions as any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+              result: undefined,
+            }));
+          } else {
+            await this.writeThemesFile(step.dimensions);
+          }
           break;
         case 'write-resolver': {
           if (ctx.resolverStore) {

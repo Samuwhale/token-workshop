@@ -42,6 +42,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const result = await fastify.operationLog.rollback(request.params.id, {
           tokenStore: fastify.tokenStore,
+          themesStore: fastify.dimensionsStore,
           resolverStore: fastify.resolverStore,
           generatorService: fastify.generatorService,
         });
