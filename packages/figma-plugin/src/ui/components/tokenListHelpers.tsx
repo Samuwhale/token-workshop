@@ -97,6 +97,12 @@ export function parseInlineValue(type: string, str: string): any {
   return str;
 }
 
+/** Returns a human-readable error message for an invalid inline value of the given type. */
+export function getInlineValueError(type: string): string {
+  if (type === 'boolean') return "Enter 'true' or 'false'";
+  return 'Invalid value';
+}
+
 /** Infer token type from a raw value string. Returns null if no pattern matches. */
 export function inferTypeFromValue(value: string): string | null {
   const v = value.trim();

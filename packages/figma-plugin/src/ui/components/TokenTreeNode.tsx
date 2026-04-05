@@ -9,7 +9,7 @@ import { isAlias, extractAliasPath, resolveTokenValue, buildResolutionChain, bui
 import type { ResolutionStep } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
-import { getEditableString, parseInlineValue, inferGroupTokenType, highlightMatch, resolveCompositeForApply } from './tokenListHelpers';
+import { getEditableString, parseInlineValue, getInlineValueError, inferGroupTokenType, highlightMatch, resolveCompositeForApply } from './tokenListHelpers';
 import { INLINE_SIMPLE_TYPES, INLINE_POPOVER_TYPES } from './tokenListTypes';
 import { InlineValuePopover } from './InlineValuePopover';
 import { PropertyPicker } from './PropertyPicker';
@@ -989,6 +989,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const chainExpanded = chainExpandedProp;
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
+  const [inlineEditError, setInlineEditError] = useState<string | null>(null);
   const inlineEditEscapedRef = useRef(false);
   const [inlineNudgeVisible, setInlineNudgeVisible] = useState(false);
   const [quickBound, setQuickBound] = useState<string | null>(null);
@@ -1035,6 +1036,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     if (!pendingTabEdit || pendingTabEdit.path !== n.path || pendingTabEdit.columnId !== null) return;
     if (canInlineEditRef.current && n.$type && n.$type !== 'color' && n.$type !== 'boolean') {
       setInlineEditValue(getEditableString(n.$type, n.$value));
+      setInlineEditError(null);
       setInlineEditActive(true);
     }
     clearPendingTabEditRef.current();
@@ -1152,7 +1154,11 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     const raw = inlineEditValue.trim();
     if (!raw || raw === getEditableString(node.$type, node.$value)) { setInlineEditActive(false); return; }
     const parsed = parseInlineValue(node.$type!, raw);
-    if (parsed === null) return; // invalid value — keep editor open
+    if (parsed === null) {
+      setInlineEditError(getInlineValueError(node.$type!));
+      return;
+    }
+    setInlineEditError(null);
     setInlineEditActive(false);
     onInlineSave?.(node.path, node.$type!, parsed);
     // Show nudge after saving a raw value — matches will be computed by the hook
@@ -1161,14 +1167,20 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   // Tab from an inline-edit cell: save current value (if valid) then navigate to next/prev token
   const handleInlineTabToNext = useCallback((shiftKey: boolean) => {
-    inlineEditEscapedRef.current = true; // block onBlur from double-saving
     if (inlineEditActive && node.$type) {
       const raw = inlineEditValue.trim();
       if (raw && raw !== getEditableString(node.$type, node.$value)) {
         const parsed = parseInlineValue(node.$type, raw);
-        if (parsed !== null) onInlineSave?.(node.path, node.$type, parsed);
+        if (parsed === null) {
+          // Invalid value — show error and stay in this editor instead of silently dropping the edit
+          setInlineEditError(getInlineValueError(node.$type));
+          return;
+        }
+        onInlineSave?.(node.path, node.$type, parsed);
       }
     }
+    setInlineEditError(null);
+    inlineEditEscapedRef.current = true; // block onBlur from double-saving
     setInlineEditActive(false);
     onTabToNext(node.path, null, shiftKey ? -1 : 1);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave, onTabToNext]);
@@ -1377,6 +1389,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       setColorPickerOpen(true);
     } else {
       setInlineEditValue(getEditableString(node.$type, node.$value));
+      setInlineEditError(null);
       setInlineEditActive(true);
       setInlineNudgeVisible(false);
     }
@@ -1783,6 +1796,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               type="number"
               value={node.$type === 'dimension' ? (dimParts ? dimParts[1] : inlineEditValue) : inlineEditValue}
               onChange={e => {
+                setInlineEditError(null);
                 if (node.$type === 'dimension') {
                   const unit = dimParts ? (dimParts[2] || 'px') : 'px';
                   setInlineEditValue(`${e.target.value}${unit}`);
@@ -1796,7 +1810,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
-                if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
+                if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditError(null); setInlineEditActive(false); }
                 if (e.key === 'Tab') { e.preventDefault(); handleInlineTabToNext(e.shiftKey); return; }
                 e.stopPropagation();
               }}
@@ -1815,25 +1829,32 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             >+</button>
           </div>
         ) : (
-          <input
-            type="text"
-            value={inlineEditValue}
-            onChange={e => setInlineEditValue(e.target.value)}
-            onBlur={() => {
-              if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
-              handleInlineSubmit();
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
-              if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
-              if (e.key === 'Tab') { e.preventDefault(); handleInlineTabToNext(e.shiftKey); return; }
-              e.stopPropagation();
-            }}
-            onClick={e => e.stopPropagation()}
-            aria-label="Token value"
-            autoFocus
-            className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
-          />
+          <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
+            <input
+              type="text"
+              value={inlineEditValue}
+              onChange={e => { setInlineEditValue(e.target.value); setInlineEditError(null); }}
+              onBlur={() => {
+                if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
+                handleInlineSubmit();
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
+                if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditError(null); setInlineEditActive(false); }
+                if (e.key === 'Tab') { e.preventDefault(); handleInlineTabToNext(e.shiftKey); return; }
+                e.stopPropagation();
+              }}
+              aria-label="Token value"
+              aria-invalid={inlineEditError ? 'true' : undefined}
+              autoFocus
+              className={`text-[11px] text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? 'border-red-400 focus:border-red-400' : 'border-[var(--color-figma-accent)]'}`}
+            />
+            {inlineEditError && (
+              <div role="alert" className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-red-400 rounded px-1.5 py-0.5 text-[10px] text-red-400 whitespace-nowrap shadow-sm pointer-events-none">
+                {inlineEditError}
+              </div>
+            )}
+          </div>
         )
       ) : isAlias(node.$value) && !isBrokenAlias && !showResolvedValues ? (
         <span
@@ -1849,6 +1870,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           onClick={e => {
             e.stopPropagation();
             setInlineEditValue(getEditableString(node.$type, node.$value));
+            setInlineEditError(null);
             setInlineEditActive(true);
             setInlineNudgeVisible(false);
           }}

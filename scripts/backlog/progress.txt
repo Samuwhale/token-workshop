@@ -481,3 +481,13 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: Inline token editing has no validation feedback at all — `parseInlineValue` returning null causes Enter to silently keep the editor open and Tab to silently drop the edit. Also, `opacity-0 group-hover:opacity-100` without `group-focus-within:opacity-100` is endemic across ~15+ components (ResolverPanel, ThemeManager, HistoryPanel, ExportPanel, etc.) while TokenTreeNode already has the correct pattern — a systemic consistency gap.
 ---
+
+## 2026-04-05 - Inline token edit silently discards invalid values
+- Added `inlineEditError` state to `TokenTreeNode`. When `parseInlineValue` returns null (only happens for `boolean` type with non-true/false input): Enter now shows a red-bordered input with an absolute-positioned error tooltip ("Enter 'true' or 'false'") instead of silently keeping the editor open; Tab now shows the same error and keeps the editor open instead of silently navigating away and dropping the edit. Error clears on any keystroke or when a new edit session begins.
+- Added `getInlineValueError(type)` helper to `tokenListHelpers.tsx` for type-specific error messages.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L991 (state), ~L1155 (handleInlineSubmit), ~L1163 (handleInlineTabToNext), ~L1039/1391/1872 (clear on activate), ~L1800/1831 (input UI); `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L100 (getInlineValueError)
+- **Learnings for future iterations:**
+  - `parseInlineValue` only returns null for boolean type — all other types return the raw string on parse failure. The fix is still correct for any future types added.
+  - In `handleInlineTabToNext`, the `inlineEditEscapedRef.current = true` guard (which blocks onBlur double-saving) must only be set when actually navigating away, not when blocking navigation due to an error.
+  - Error tooltips in compact inline editors should use `absolute top-full` positioning so they don't affect the row height — the token row has a fixed height and content should not push against it.
+---
