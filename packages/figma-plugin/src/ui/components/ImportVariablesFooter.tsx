@@ -133,31 +133,46 @@ export function ImportVariablesFooter() {
 
       {/* Import button(s) */}
       {varConflictPreview !== null && varConflictPreview.overwriteCount > 0 && !importing ? (
-        <div className="flex flex-col gap-1.5">
-          <button
-            onClick={() => handleImportVariables('overwrite')}
-            disabled={totalEnabledSets === 0 || hasInvalidSetNames}
-            title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
-            Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
-          </button>
-          <button
-            onClick={() => handleImportVariables('merge')}
-            disabled={totalEnabledSets === 0 || hasInvalidSetNames}
-            title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
-            className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-          >
-            Import & merge ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} value updates)
-          </button>
-          <button
-            onClick={() => handleImportVariables('skip')}
-            disabled={totalEnabledSets === 0 || hasInvalidSetNames}
-            title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
-            className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-          >
-            Import & keep existing ({varConflictPreview.newCount} new only)
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={() => handleImportVariables('overwrite')}
+              disabled={totalEnabledSets === 0 || hasInvalidSetNames}
+              title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
+              className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              Import & overwrite ({totalEnabledTokens} token{totalEnabledTokens !== 1 ? 's' : ''})
+            </button>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
+              Replaces all conflicting values with incoming ones
+            </p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={() => handleImportVariables('merge')}
+              disabled={totalEnabledSets === 0 || hasInvalidSetNames}
+              title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
+              className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              Import & merge ({varConflictPreview.newCount} new + {varConflictPreview.overwriteCount} value updates)
+            </button>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
+              Adds new tokens and updates conflicting values; keeps descriptions &amp; extensions
+            </p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={() => handleImportVariables('skip')}
+              disabled={totalEnabledSets === 0 || hasInvalidSetNames}
+              title={hasInvalidSetNames ? 'Fix invalid set names above before importing' : totalEnabledSets === 0 ? 'Enable at least one mode to import' : undefined}
+              className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              Import & keep existing ({varConflictPreview.newCount} new only)
+            </button>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-1">
+              Adds only new tokens; leaves all conflicting tokens unchanged
+            </p>
+          </div>
           {hasInvalidSetNames && (
             <p className="text-[10px] text-[var(--color-figma-error,#e53935)] text-center">Fix invalid set names above before importing</p>
           )}

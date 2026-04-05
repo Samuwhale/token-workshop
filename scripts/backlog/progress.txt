@@ -785,3 +785,11 @@
   - `role="option"` must be a descendant of `role="listbox"` — the div wrapper satisfies this; individual section headers (non-interactive) within the listbox don't need ARIA roles.
   - `aria-autocomplete="list"` on the search input is the correct attribute for "typing filters the associated listbox" — it communicates the combobox-like relationship without requiring the full combobox role pattern.
 ---
+
+## 2026-04-05 - Import conflict strategy buttons lack inline descriptions
+- Added a one-line description below each of the three conflict strategy buttons in `ImportVariablesFooter.tsx`. The descriptions explain in plain terms what each strategy does: overwrite replaces all conflicting values, merge updates values while keeping descriptions & extensions, keep existing adds only new tokens and leaves conflicts unchanged. Each button is now wrapped in a `flex flex-col gap-0.5` div with a `<p>` description in tertiary text below it.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportVariablesFooter.tsx` ~L135
+- **Learnings for future iterations:**
+  - Descriptions belong under the buttons (not in tooltips) when there are only 2–3 options in a conflict-resolution UI — tooltips require discovery whereas inline text is always visible at the decision moment.
+  - `&amp;` must be used in JSX for `&` in descriptive text to avoid lint warnings.
+---
