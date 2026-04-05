@@ -651,3 +651,11 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: ThemeManager's Preview/Compare/Coverage Matrix panels being mutually exclusive is a significant workflow friction — users managing multi-dimensional themes can't cross-reference information. The Resolver vs Theme conceptual split adds complexity without adding capability for most users.
 ---
+
+## 2026-04-05 - Theme Preview/Compare/Coverage Matrix mutually exclusive panels
+- Converted the three mutually-exclusive panel buttons (Preview, Compare, Matrix) in ThemeManager into independently togglable views that stack below the dimension list. Removed all `setShowX(false)` cross-calls from button click handlers. Moved `UnifiedComparePanel` from a full-page ternary replacement (wrapping the entire content) to an inline `{showCompare && <UnifiedComparePanel />}` block. Moved `ThemeCoverageMatrix` from before the dimension list (replacing it) to after the dimension list. The order of stacked panels is: dimension cards → coverage matrix → compare → preview. Changed `backLabel` from "Back to themes" to "Close compare" since it no longer navigates away from the page.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L518, ~L641, ~L663, ~L697, ~L781, ~L1628
+- **Learnings for future iterations:**
+  - When a component was designed as a full-page replacement (with onBack/backLabel), it can be converted to an inline panel by removing the outer ternary and keeping the onBack handler as a "close" action. No changes needed inside the child component.
+  - The `!showX && <content>` pattern that hides sibling content when a panel is active is a common mutual-exclusion antipattern. Replacing it with showing both and stacking the panel below is the minimal fix.
+---

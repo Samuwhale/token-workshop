@@ -515,31 +515,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         </div>
       )}
 
-      {showCompare ? (
-        <UnifiedComparePanel
-          mode={compareMode}
-          onModeChange={setCompareMode}
-          tokenPaths={compareTokenPaths}
-          onClearTokenPaths={() => setCompareTokenPaths(new Set())}
-          tokenPath={compareTokenPath}
-          onClearTokenPath={() => setCompareTokenPath('')}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          dimensions={dimensions}
-          sets={sets}
-          themeOptionsKey={compareThemeKey}
-          themeOptionsDefaultA={compareThemeDefaultA}
-          themeOptionsDefaultB={compareThemeDefaultB}
-          onEditToken={(set, path) => onNavigateToToken?.(path, set)}
-          onCreateToken={(path, set) => onCreateToken?.(path, set)}
-          onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
-          serverUrl={serverUrl}
-          onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
-          onBack={() => setShowCompare(false)}
-          backLabel="Back to themes"
-        />
-      ) : (
-        <>
+      <>
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
           /* Empty state */
@@ -639,11 +615,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
-                    setShowPreview(p => {
-                      const next = !p;
-                      if (next) setShowCompare(false);
-                      return next;
-                    });
+                    setShowPreview(p => !p);
                   }}
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                     showPreview
@@ -663,7 +635,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     setShowCompare(prev => {
                       const next = !prev;
                       if (next) {
-                        setShowPreview(false);
                         setCompareMode('theme-options');
                         // Auto-select defaults on open
                         const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
@@ -695,10 +666,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </button>
                 <button
                   onClick={() => {
-                    setShowCoverageMatrix(prev => {
-                      if (!prev) { setShowPreview(false); setShowCompare(false); }
-                      return !prev;
-                    });
+                    setShowCoverageMatrix(prev => !prev);
                   }}
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                     showCoverageMatrix
@@ -810,22 +778,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               </div>
             )}
 
-            {/* Coverage matrix view */}
-            {showCoverageMatrix && (
-              <ThemeCoverageMatrix
-                dimensions={filteredDimensions.length > 0 ? filteredDimensions : dimensions}
-                coverage={coverage}
-                missingOverrides={missingOverrides}
-                setTokenValues={setTokenValues}
-                onSelectOption={(dimId, optionName) => {
-                  setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
-                  setShowCoverageMatrix(false);
-                }}
-              />
-            )}
-
             {/* Dimension layer cards */}
-            {!showCoverageMatrix && <div className="flex flex-col">
+            <div className="flex flex-col">
               {filteredDimensions.length === 0 && (dimSearch || showOnlyWithGaps) && (
                 <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
                   {showOnlyWithGaps && !dimSearch
@@ -1671,7 +1625,47 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   Showing {filteredDimensions.length} of {dimensions.length} axes
                 </div>
               )}
-            </div>}
+            </div>
+
+            {/* Coverage matrix view — stacked below dimension cards */}
+            {showCoverageMatrix && (
+              <ThemeCoverageMatrix
+                dimensions={filteredDimensions.length > 0 ? filteredDimensions : dimensions}
+                coverage={coverage}
+                missingOverrides={missingOverrides}
+                setTokenValues={setTokenValues}
+                onSelectOption={(dimId, optionName) => {
+                  setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
+                  setShowCoverageMatrix(false);
+                }}
+              />
+            )}
+
+            {/* Compare panel — stacked below coverage matrix */}
+            {showCompare && (
+              <UnifiedComparePanel
+                mode={compareMode}
+                onModeChange={setCompareMode}
+                tokenPaths={compareTokenPaths}
+                onClearTokenPaths={() => setCompareTokenPaths(new Set())}
+                tokenPath={compareTokenPath}
+                onClearTokenPath={() => setCompareTokenPath('')}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                dimensions={dimensions}
+                sets={sets}
+                themeOptionsKey={compareThemeKey}
+                themeOptionsDefaultA={compareThemeDefaultA}
+                themeOptionsDefaultB={compareThemeDefaultB}
+                onEditToken={(set, path) => onNavigateToToken?.(path, set)}
+                onCreateToken={(path, set) => onCreateToken?.(path, set)}
+                onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
+                serverUrl={serverUrl}
+                onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
+                onBack={() => setShowCompare(false)}
+                backLabel="Close compare"
+              />
+            )}
 
             {/* Live Token Resolution Preview */}
             {showPreview && dimensions.length > 0 && (
@@ -1805,8 +1799,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </button>
         )}
       </div>
-        </>
-      )}
+      </>
 
       <ThemeManagerModals />
     </div>
