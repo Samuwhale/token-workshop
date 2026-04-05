@@ -1200,3 +1200,26 @@ Already up to date.
 
   Merging to main: No bulk token type change
 Already up to date.
+[main a0a526b5] chore(backlog): done – No bulk token type change
+ 4 files changed, 33 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Consolidate Validation sub-tab into HealthPanel
+- Renamed the "Validation" sub-tab (Ship > Validation) to "Health" in `navigationTypes.ts` to match the HealthPanel component and its broader content (lint, generators, canvas, validation)
+- Removed the redundant "Cross-set validation" HealthSection from the health dashboard strip — this section duplicated the full validation report shown in the main body, creating two competing views of the same data
+- Changed health dashboard strip to expand by default (`useState(true)`) so the health overview is visible on first open rather than collapsed
+
+═══════════════════════════════════════════════════════════════
+  #50  ·  6 queued · 0
+0 in-progress · last took 2m47s
+═══════════════════════════════════════════════════════════════
+  → Inconsistent inline editing patterns across panels — TokenTreeNode rename uses blur-to-save with no buttons and no inline validation errors, SetSwitcher create uses explicit Save/Cancel buttons with inline validation, ThemeManager rename uses Save/Cancel buttons with inline validation; the same conceptual action (rename an entity) has three different interaction paradigms depending on where you are, making behavior unpredictable (violates: consistency and standards)
+  Worktree: /tmp/backlog-54964-mMVyQL
+  Running agent… (started 05:27:14)
+
+  ✓ done: Inconsistent inline editing patterns across panels
+    Standardized TokenTreeNode group and token rename to match ThemeManager/SetSwitcher: added Save/Cancel buttons, removed blur-to-save, added inline validation error display with red border
+    29 turns · 330s · $1.04
+
+  Merging to main: Inconsistent inline editing patterns across panels
+Already up to date.

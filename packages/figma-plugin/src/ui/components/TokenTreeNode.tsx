@@ -203,8 +203,8 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [renamingGroup, setRenamingGroup] = useState(false);
   const [renameGroupVal, setRenameGroupVal] = useState('');
+  const [renameGroupError, setRenameGroupError] = useState('');
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
-  const renameGroupEscapedRef = useRef(false);
   const [editingGroupMeta, setEditingGroupMeta] = useState(false);
   const [groupMetaType, setGroupMetaType] = useState('');
   const [groupMetaDescription, setGroupMetaDescription] = useState('');
@@ -237,12 +237,19 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
 
   const confirmGroupRename = useCallback(() => {
     const newName = renameGroupVal.trim();
-    setRenamingGroup(false);
-    if (!newName || newName === node.name) return;
+    if (!newName) { setRenameGroupError('Name cannot be empty'); return; }
+    if (newName === node.name) { setRenamingGroup(false); setRenameGroupError(''); return; }
     const parentPath = nodeParentPath(node.path, node.name);
     const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
+    setRenamingGroup(false);
+    setRenameGroupError('');
     onRenameGroup?.(node.path, newGroupPath);
   }, [renameGroupVal, node.name, node.path, onRenameGroup]);
+
+  const cancelGroupRename = useCallback(() => {
+    setRenamingGroup(false);
+    setRenameGroupError('');
+  }, []);
 
   const handleSaveGroupMeta = useCallback(async () => {
     setGroupMetaSaving(true);
@@ -322,22 +329,24 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
         {renamingGroup ? (
-          <input
-            ref={renameGroupInputRef}
-            value={renameGroupVal}
-            onChange={e => setRenameGroupVal(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') confirmGroupRename();
-              if (e.key === 'Escape') { renameGroupEscapedRef.current = true; setRenamingGroup(false); }
-            }}
-            onBlur={() => {
-              if (!renameGroupEscapedRef.current) confirmGroupRename();
-              renameGroupEscapedRef.current = false;
-            }}
-            onClick={e => e.stopPropagation()}
-            aria-label="Rename group"
-            className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
-          />
+          <div className="flex flex-col flex-1 min-w-0 gap-0.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1">
+              <input
+                ref={renameGroupInputRef}
+                value={renameGroupVal}
+                onChange={e => { setRenameGroupVal(e.target.value); setRenameGroupError(''); }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.stopPropagation(); confirmGroupRename(); }
+                  if (e.key === 'Escape') { e.stopPropagation(); cancelGroupRename(); }
+                }}
+                aria-label="Rename group"
+                className={`flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              />
+              <button onClick={confirmGroupRename} disabled={!renameGroupVal.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0">Save</button>
+              <button onClick={cancelGroupRename} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0">Cancel</button>
+            </div>
+            {renameGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameGroupError}</p>}
+          </div>
         ) : (
           <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
         )}
@@ -782,8 +791,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   // Token rename state
   const [renamingToken, setRenamingToken] = useState(false);
   const [renameTokenVal, setRenameTokenVal] = useState('');
+  const [renameTokenError, setRenameTokenError] = useState('');
   const renameTokenInputRef = useRef<HTMLInputElement>(null);
-  const renameTokenEscapedRef = useRef(false);
 
   useLayoutEffect(() => {
     if (renamingToken && renameTokenInputRef.current) {
@@ -1055,12 +1064,19 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
 
   const confirmTokenRename = useCallback(() => {
     const newName = renameTokenVal.trim();
-    setRenamingToken(false);
-    if (!newName || newName === node.name) return;
+    if (!newName) { setRenameTokenError('Name cannot be empty'); return; }
+    if (newName === node.name) { setRenamingToken(false); setRenameTokenError(''); return; }
     const parentPath = nodeParentPath(node.path, node.name);
     const newPath = parentPath ? `${parentPath}.${newName}` : newName;
+    setRenamingToken(false);
+    setRenameTokenError('');
     onRenameToken?.(node.path, newPath);
   }, [renameTokenVal, node.name, node.path, onRenameToken]);
+
+  const cancelTokenRename = useCallback(() => {
+    setRenamingToken(false);
+    setRenameTokenError('');
+  }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -1291,22 +1307,24 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             />
           )}
           {renamingToken ? (
-            <input
-              ref={renameTokenInputRef}
-              value={renameTokenVal}
-              onChange={e => setRenameTokenVal(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.stopPropagation(); confirmTokenRename(); }
-                if (e.key === 'Escape') { e.stopPropagation(); renameTokenEscapedRef.current = true; setRenamingToken(false); }
-              }}
-              onBlur={() => {
-                if (!renameTokenEscapedRef.current) confirmTokenRename();
-                renameTokenEscapedRef.current = false;
-              }}
-              onClick={e => e.stopPropagation()}
-              aria-label="Rename token"
-              className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
-            />
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-1">
+                <input
+                  ref={renameTokenInputRef}
+                  value={renameTokenVal}
+                  onChange={e => { setRenameTokenVal(e.target.value); setRenameTokenError(''); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { e.stopPropagation(); confirmTokenRename(); }
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelTokenRename(); }
+                  }}
+                  aria-label="Rename token"
+                  className={`flex-1 text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameTokenError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                />
+                <button onClick={confirmTokenRename} disabled={!renameTokenVal.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0">Save</button>
+                <button onClick={cancelTokenRename} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0">Cancel</button>
+              </div>
+              {renameTokenError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameTokenError}</p>}
+            </div>
           ) : (
             <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}

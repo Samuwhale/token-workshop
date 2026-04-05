@@ -787,3 +787,22 @@
   - When a panel is named "HealthPanel" but its enclosing tab is named "Validation", the mismatch itself is a UX signal — rename the tab to match the component's scope
   - When a "summary card" in a dashboard strip has a CTA that navigates to the full view *in the same panel*, that's a sign the summary is redundant — remove it and let the full view stand alone
 ---
+
+## 2026-04-05 - Inconsistent inline editing patterns across panels
+- Standardized the rename interaction in `TokenTreeNode.tsx` (both group rename and token rename) to match the Save/Cancel + inline validation pattern used by `ThemeManager.tsx` and `SetSwitcher.tsx`.
+- Changes for both group rename and token rename:
+  - Removed `renameGroupEscapedRef` / `renameTokenEscapedRef` (no longer needed)
+  - Added `renameGroupError` / `renameTokenError` state
+  - Removed `onBlur`-to-save: edits now only submit on explicit Save button click or Enter key
+  - Added Save (accent bg, disabled when empty) and Cancel buttons inline with the input
+  - Wrapped input+buttons in a `flex flex-col` container to allow the error paragraph below
+  - Added red border on input when error is present (`border-[var(--color-figma-error)]`)
+  - Added `<p role="alert">` error text below the input row
+  - `onChange` clears the error as the user types
+  - "Name cannot be empty" error shown on Save attempt with blank input; unchanged name cancels silently
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L204, ~L238, ~L324, ~L795, ~L1068, ~L1305
+- **Learnings for future iterations:**
+  - Blur-to-save is convenient but breaks consistency when other panels in the same app use explicit Save/Cancel. Prefer explicit buttons for rename operations.
+  - Removing the escaped-ref pattern simplifies state: just call the cancel function directly from Escape keydown.
+  - Wrapping the inline input in `flex flex-col` gives space for an error row without changing the surrounding row structure.
+---
