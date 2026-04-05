@@ -250,6 +250,8 @@ export function SettingsPanel({
 
   // Pending import diff — set after parsing file, cleared on apply/cancel
   const [pendingImport, setPendingImport] = useState<{ data: Record<string, string>; diff: ImportDiffEntry[] } | null>(null);
+  // Two-step confirmation: first click reveals warning, second click applies
+  const [confirmingReload, setConfirmingReload] = useState(false);
 
   const handleExportSettings = useCallback(() => {
     // Keys that represent user-configurable preferences (not navigation or ephemeral state)
@@ -374,16 +376,22 @@ export function SettingsPanel({
 
   const handleApplyImport = useCallback(() => {
     if (!pendingImport) return;
+    if (!confirmingReload) {
+      // First click: show the warning and ask user to confirm
+      setConfirmingReload(true);
+      return;
+    }
+    // Second click: confirmed — apply and reload
     let applied = 0;
     for (const [key, value] of Object.entries(pendingImport.data)) {
       if (!isAllowedImportKey(key)) continue; // defense-in-depth: skip any non-whitelisted keys
       try { localStorage.setItem(key, value); applied++; } catch { /* quota */ }
     }
-    if (applied === 0) { setImportError('Failed to write settings'); return; }
+    if (applied === 0) { setImportError('Failed to write settings'); setConfirmingReload(false); return; }
     setPendingImport(null);
     setImportSuccess(true);
     setTimeout(() => { window.location.reload(); }, 800);
-  }, [pendingImport]);
+  }, [pendingImport, confirmingReload]);
 
   // ---- Export defaults (local state from localStorage) ----
   const [exportPlatforms, setExportPlatforms] = useState<Set<string>>(() => {
@@ -827,7 +835,7 @@ export function SettingsPanel({
                     Preview changes ({pendingImport.diff.length} setting{pendingImport.diff.length !== 1 ? 's' : ''})
                   </span>
                   <button
-                    onClick={() => setPendingImport(null)}
+                    onClick={() => { setPendingImport(null); setConfirmingReload(false); }}
                     className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
                     aria-label="Dismiss preview"
                   >
@@ -854,18 +862,29 @@ export function SettingsPanel({
                     </div>
                   ))}
                 </div>
+                {confirmingReload && (
+                  <div className="px-2 py-2 border-t border-[var(--color-figma-border)] bg-[#FFF3CD]/30 dark:bg-amber-900/20 flex items-start gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-amber-500" aria-hidden="true">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                      The plugin will reload immediately. Any unsaved token edits, in-progress theme changes, or expanded panel state will be lost.
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-2 p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                   <button
-                    onClick={() => setPendingImport(null)}
+                    onClick={() => { if (confirmingReload) { setConfirmingReload(false); } else { setPendingImport(null); } }}
                     className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
                   >
-                    Cancel
+                    {confirmingReload ? 'Back' : 'Cancel'}
                   </button>
                   <button
                     onClick={handleApplyImport}
-                    className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                    className={`flex-1 px-3 py-1.5 rounded text-white text-[11px] font-medium transition-colors ${confirmingReload ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent-hover)]'}`}
                   >
-                    Apply & reload
+                    {confirmingReload ? 'Confirm & reload' : 'Apply & reload'}
                   </button>
                 </div>
               </div>

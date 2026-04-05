@@ -620,3 +620,12 @@
   - The `confirmDisabled` prop pattern is useful whenever the modal's confirm action depends on user-correctable validation state (e.g., conflict resolution). Add it as an optional prop rather than special-casing in callers.
   - Removing a `'saving'` phase enum value is safe when ConfirmModal's `busy` state replaces it — the modal shows a spinner automatically during async `onConfirm` execution.
 ---
+
+## 2026-04-05 - Settings import "Apply & reload" triggers an immediate page reload with no undo path
+- Added two-step confirmation to the import apply flow. First click on "Apply & reload" now sets `confirmingReload = true`, revealing an amber warning banner ("The plugin will reload immediately. Any unsaved token edits, in-progress theme changes, or expanded panel state will be lost.") and changing the buttons to "Back" / "Confirm & reload" (amber styling). Only the second click actually applies settings and schedules the reload. Clicking "Back" returns to the preview without any changes. The dismiss (✕) button also resets the confirmation state.
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` ~L252 (new state), ~L375 (handleApplyImport two-step), ~L830 (dismiss resets confirmingReload), ~L857 (warning banner + dynamic button row)
+- **Learnings for future iterations:**
+  - Two-step confirmation is the right pattern for irreversible actions in inline UI (no modal needed). First click reveals consequences; second click commits.
+  - The warning banner color (`bg-[#FFF3CD]/30` + amber-500 icon) is visually distinct from the neutral footer without being alarming.
+  - When a panel-level state (like `confirmingReload`) needs to reset when the parent flow is cancelled, wire it into all cancel/dismiss paths — there were two dismiss paths here (✕ header button, Cancel footer button).
+---
