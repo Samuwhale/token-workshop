@@ -607,3 +607,11 @@
   - All existing callers of `hexToRgb` only used `.r`, `.g`, `.b` — none checked `.a === undefined` — so the type change to always-present `a: number` was backward compatible.
   - `normalizeHex` returns `#` + lowercase hex regardless of input length; `.slice(0, 7)` reliably gives `#rrggbb` even for 8-char `#rrggbbaa` inputs.
 ---
+
+## 2026-04-05 - Plugin sandbox controller.ts selectionchange listener never unregistered
+- Stored the selectionchange handler as a named function `_onSelectionChange` so it can be passed to `figma.off()`. Added `figma.off('selectionchange', _onSelectionChange)` to the existing `figma.on('close', ...)` handler. The `_activeScanSignal` cleanup was already correct via `cancelActiveScan()` (sets `aborted = true` and nulls the signal).
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L653
+- **Learnings for future iterations:**
+  - Figma plugin API uses `figma.off(eventName, handler)` to remove event listeners — requires a named function reference, not an anonymous arrow. Always define Figma event handlers as named functions when they may need to be unregistered.
+  - The `close` event is the correct place to clean up all `figma.on(...)` listeners registered during plugin lifetime.
+---

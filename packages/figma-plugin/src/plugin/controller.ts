@@ -650,12 +650,14 @@ function sampleSelectionColor() {
   figma.ui.postMessage({ type: 'eyedropper-result', hex });
 }
 
-// Cancel any in-flight scan when the plugin UI is closed
+// Listen for selection changes — store the handler so it can be removed on close
+function _onSelectionChange() {
+  getSelection(deepInspectEnabled);
+}
+figma.on('selectionchange', _onSelectionChange);
+
+// Cancel any in-flight scan and remove event listeners when the plugin UI is closed
 figma.on('close', () => {
   cancelActiveScan();
-});
-
-// Listen for selection changes
-figma.on('selectionchange', () => {
-  getSelection(deepInspectEnabled);
+  figma.off('selectionchange', _onSelectionChange);
 });
