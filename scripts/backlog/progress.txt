@@ -568,3 +568,20 @@
   - Shared temp dir (owned by orchestrator, path in ExporterContext) is the right tradeoff: one mkdir/rm-rf, token JSON written once, but each SD exporter still builds into its own subdir to avoid filename collisions.
   - Re-exporting public types from the original `style-dict.ts` means zero changes to callers (routes, tests) — always worth the one-liner re-export when refactoring a module that has stable external consumers.
 ---
+
+## 2026-04-05 - useImportApply monolith decomposition + retry race-condition fix
+- Decomposed the 360-line `useImportApply.ts` into three layered hooks:
+  1. `useImportProgress.ts` — base hook owning shared state (`importing`, `importProgress`, `successMessage`). Exports `ProgressSetters` type.
+  2. `useVariablesImport.ts` — variables/tokens-studio workflow. Extracted duplicated `buildVariableToken` helper (was copy-pasted verbatim between the success path L189-195 and the failure/retry-batch path L207-213). Fixed the retry race condition: added `retryingRef = useRef(false)` as a synchronous guard checked before `retryingRef.current = true`; `setRetrying(true)` is still called for React UI state but is no longer the guard.
+  3. `useTokensImport.ts` — JSON/CSS/Tailwind/Styles workflow (`executeImport` + `handleImportStyles`).
+  4. `useImportApply.ts` — orchestrator; owns cross-cutting `lastImport`/`undoing` state (both workflows can write a rollback); applied the same ref guard to `handleUndoImport` (`undoingRef`); `clearSuccessState` delegates to `variablesWorkflow.clearFailedState()` and resets `lastImport`. Public API unchanged — `ImportPanelContext.tsx` required no modifications.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useImportProgress.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useVariablesImport.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useTokensImport.ts` (new)
+  - `packages/figma-plugin/src/ui/hooks/useImportApply.ts` (rewritten)
+- **Learnings for future iterations:**
+  - Cross-cutting state (like `lastImport` that both variable and token workflows write) should live at the orchestrator level; sub-hooks receive a `setLastImport` callback parameter rather than owning the state themselves.
+  - The "ref as synchronous guard" pattern (`const xRef = useRef(false); if (xRef.current) return; xRef.current = true; ... finally { xRef.current = false; }`) fixes click-race conditions that `useState` cannot because React batches state updates across event handlers. Always pair with the corresponding `useState` for UI visibility.
+  - When extracting a function that was duplicated between success and failure paths, check that the two copies are truly byte-for-byte equivalent first — in this case L189-195 vs L207-213 were identical, confirming it was safe to extract without behavioural change.
+---
