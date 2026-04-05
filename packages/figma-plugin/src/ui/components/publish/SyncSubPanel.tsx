@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { useSyncEntity } from '../../hooks/useSyncEntity';
 import { VarDiffRowItem } from './PublishShared';
 
@@ -34,6 +35,13 @@ export function SyncSubPanel({
   notCheckedMessage,
   revertDescription,
 }: SyncSubPanelProps) {
+  const [revertPending, setRevertPending] = useState(false);
+
+  function handleRevertConfirm() {
+    setRevertPending(false);
+    onRevert?.();
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="p-3 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -175,16 +183,39 @@ export function SyncSubPanel({
             </div>
             {sync.snapshot && (
               <div className="mt-2 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={onRevert}
-                    disabled={sync.reverting}
-                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                  >
-                    {sync.reverting ? 'Reverting\u2026' : 'Revert last sync'}
-                  </button>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
-                </div>
+                {revertPending ? (
+                  <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Revert last sync?</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription} This cannot be undone.</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <button
+                        onClick={handleRevertConfirm}
+                        disabled={sync.reverting}
+                        className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-figma-error)] text-white font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+                      >
+                        {sync.reverting ? 'Reverting\u2026' : 'Yes, revert'}
+                      </button>
+                      <button
+                        onClick={() => setRevertPending(false)}
+                        disabled={sync.reverting}
+                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setRevertPending(true)}
+                      disabled={sync.reverting}
+                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {sync.reverting ? 'Reverting\u2026' : 'Revert last sync'}
+                    </button>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
+                  </div>
+                )}
                 {sync.revertError && (
                   <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{sync.revertError}</div>
                 )}

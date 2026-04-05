@@ -355,3 +355,11 @@
 - Found 10 items — written to backlog-inbox.md
 - Notable: The revert-sync button in SyncSubPanel fires instantly with no confirmation — a single misclick can undo a reviewed publish. Generator workflow has no dry-run/preview, forcing users to commit before seeing results. The command palette's structured query syntax is powerful but completely undiscoverable.
 ---
+
+## 2026-04-05 - Revert sync has no confirmation dialog
+- Added inline confirmation UI to the "Revert last sync" button in `SyncSubPanel.tsx`. Clicking the button now expands a compact confirmation card showing the revert description, a "Yes, revert" button (styled in error red), and a "Cancel" button. Actual `onRevert` is only called after the user confirms. Used local `revertPending` state — no new external dependencies or shared components needed.
+- Files changed: `packages/figma-plugin/src/ui/components/publish/SyncSubPanel.tsx` ~L1,L37,L196
+- **Learnings for future iterations:**
+  - Inline confirmation (expand-in-place card) is the right pattern for destructive actions in compact plugin panels where a full modal would be disruptive and disproportionate.
+  - The confirmation card reuses the same `revertDescription` prop already passed to the component, so no new copy is needed from the parent — just append "This cannot be undone." to make it clearly destructive.
+---
