@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 import { swatchBgColor } from '../shared/colorUtils';
-import { parseStructuredQuery, QUERY_QUALIFIERS } from './tokenListUtils';
+import { parseStructuredQuery, QUERY_QUALIFIERS, getQualifierCompletions } from './tokenListUtils';
 import type { ParsedQuery } from './tokenListUtils';
 
 // ---------------------------------------------------------------------------
@@ -107,6 +107,16 @@ function leafName(path: string): string {
   return i < 0 ? path : path.slice(i + 1);
 }
 
+// Matches the last qualifier:partial at the end of the query (no trailing space)
+const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generator|gen|group):(\S*)$/i;
+
+/** If the query ends with a qualifier:partial pattern, return it for autocomplete. */
+function detectActiveQualifier(q: string): { qualifier: string; partial: string } | null {
+  const m = q.match(ACTIVE_QUALIFIER_RE);
+  if (!m) return null;
+  return { qualifier: m[1].toLowerCase(), partial: m[2] };
+}
+
 /** Apply parsed structured qualifiers to a flat token list. Returns matching tokens. */
 function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): TokenEntry[] {
   return tokens.filter(t => {
@@ -203,6 +213,14 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
     || parsedTokenQuery.generators.length > 0;
+
+  // Qualifier value autocomplete — detect qualifier:partial at end of query
+  const activeQualifier = useMemo(() => (isTokenMode ? detectActiveQualifier(query) : null), [isTokenMode, query]);
+
+  const qualifierCompletions = useMemo(() => {
+    if (!activeQualifier || !isTokenMode) return [];
+    return getQualifierCompletions(activeQualifier.qualifier, activeQualifier.partial, activeTokenList, groups);
+  }, [activeQualifier, isTokenMode, activeTokenList, groups]);
 
   // Check if query uses a group: qualifier
   const isGroupQuery = tokenQuery.toLowerCase().startsWith('group:');
@@ -347,6 +365,15 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
     setActiveIdx(0);
   }, [query]);
 
+  const applyCompletion = (value: string) => {
+    if (!activeQualifier) return;
+    const qPrefix = activeQualifier.qualifier + ':';
+    const insertAt = query.lastIndexOf(qPrefix + activeQualifier.partial);
+    const before = query.slice(0, insertAt);
+    setQuery(before + qPrefix + value + ' ');
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   const executeCommand = (cmd: Command) => {
     saveRecent({ id: cmd.id, label: cmd.label });
     cmd.handler();
@@ -468,6 +495,25 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 {searchAllSets ? 'All sets' : 'All sets'}
               </button>
             )}
+          </div>
+        )}
+
+        {/* Qualifier value autocomplete chips */}
+        {qualifierCompletions.length > 0 && (
+          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
+              {activeQualifier?.qualifier}:
+            </span>
+            {qualifierCompletions.map(val => (
+              <button
+                key={val}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
+                onMouseDown={e => { e.preventDefault(); applyCompletion(val); }}
+                title={`Filter: ${activeQualifier?.qualifier}:${val}`}
+              >
+                {val}
+              </button>
+            ))}
           </div>
         )}
 

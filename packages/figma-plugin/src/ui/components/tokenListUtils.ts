@@ -67,6 +67,83 @@ export function hasStructuredQualifiers(raw: string): boolean {
   return QUALIFIER_RE.test(raw);
 }
 
+/** Canonical has: values shown in completions (no aliases like 'ref', 'dup', etc.) */
+const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'extension', 'generated', 'unused'];
+
+/**
+ * Returns dynamic value completions for a qualifier:partial suffix.
+ * Used by CommandPalette to suggest values after typing e.g. "type:" or "has:al".
+ */
+export function getQualifierCompletions(
+  qualifier: string,
+  partial: string,
+  tokens: Array<{ path: string; type: string; isAlias?: boolean; description?: string; generatorName?: string; value?: string }>,
+  groups?: Array<{ path: string }>,
+): string[] {
+  const p = partial.toLowerCase();
+  let candidates: string[];
+
+  switch (qualifier.toLowerCase()) {
+    case 'type': {
+      const types = new Set<string>();
+      for (const t of tokens) if (t.type) types.add(t.type.toLowerCase());
+      candidates = Array.from(types).sort();
+      break;
+    }
+    case 'has':
+      candidates = HAS_CANONICAL;
+      break;
+    case 'generator':
+    case 'gen': {
+      const gens = new Set<string>();
+      for (const t of tokens) if (t.generatorName) gens.add(t.generatorName.toLowerCase());
+      candidates = Array.from(gens).sort();
+      break;
+    }
+    case 'path': {
+      const segs = new Set<string>();
+      for (const t of tokens) {
+        const dot = t.path.indexOf('.');
+        segs.add(dot >= 0 ? t.path.slice(0, dot) : t.path);
+      }
+      candidates = Array.from(segs).sort();
+      break;
+    }
+    case 'name': {
+      const names = new Set<string>();
+      for (const t of tokens) {
+        const i = t.path.lastIndexOf('.');
+        names.add(i >= 0 ? t.path.slice(i + 1) : t.path);
+      }
+      candidates = Array.from(names).sort().slice(0, 30);
+      break;
+    }
+    case 'group': {
+      candidates = groups ? groups.map(g => g.path).sort() : [];
+      break;
+    }
+    case 'value': {
+      const freq = new Map<string, number>();
+      for (const t of tokens) {
+        if (t.value) {
+          const v = t.value.toLowerCase();
+          freq.set(v, (freq.get(v) ?? 0) + 1);
+        }
+      }
+      candidates = Array.from(freq.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([v]) => v)
+        .slice(0, 20);
+      break;
+    }
+    default:
+      return [];
+  }
+
+  const filtered = p ? candidates.filter(c => c.startsWith(p)) : candidates;
+  return filtered.slice(0, 10);
+}
+
 /** Available qualifier suggestions for the autocomplete hint. */
 export const QUERY_QUALIFIERS = [
   { qualifier: 'type:', desc: 'Filter by token type', example: 'type:color' },

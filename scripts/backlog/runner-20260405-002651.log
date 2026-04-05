@@ -624,3 +624,29 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox — highlights: cross-cutting token impact analysis, multi-theme contrast matrix, validation tab consolidation, export preset discoverability, auto-rerun readiness checks, bulk type change, cross-set search
 Already up to date.
+[main 030cee9a] chore(backlog): product pass – product-pass
+ 5 files changed, 33 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-04-05 - Generator edit reopens full 3-step dialog for minor tweaks
+- Added "Edit config" button to `GeneratorPipelineCard` action bar that directly opens `TokenGeneratorDialog` with `existingGenerator`, bypassing the quick-edit panel intermediary. The dialog already starts at step 2 (What/Configure) when `existingGenerator` is provided (`dialog.isEditing = Boolean(existingGenerator)` → `useState('what')`), so no changes to `TokenGeneratorDialog` were needed.
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L791
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #26  ·  24 queued · 0
+0 in-progress · last took 7m36s
+═══════════════════════════════════════════════════════════════
+  → Command palette qualifier autocomplete is static — CommandPalette.tsx shows qualifier chip buttons (type:, has:, value:, etc.) but typing a qualifier like "type:" doesn't offer completions for available values (e.g. "color", "dimension"); add dynamic suggestions after the colon that enumerate actual values from the current token data
+  Worktree: /tmp/backlog-54964-Latmic
+  Running agent… (started 02:41:49)
+
+  ✓ done: Command palette qualifier autocomplete is static — CommandPalette.tsx shows qualifier chip buttons (type:, has:, value:, etc.) but typing a qualifier like "type:" doesn't offer completions for available values (e.g. "color", "dimension"); add dynamic suggestions after the colon that enumerate actual values from the current token data
+    Added dynamic completion chips that appear when typing qualifier:partial in token mode, enumerating actual values (types, has values, generator names, path segments, leaf names, group paths, value frequencies) from current token data
+    21 turns · 353s · $0.93
+
+  Merging to main: Command palette qualifier autocomplete is static — CommandPalette.tsx shows qualifier chip buttons (type:, has:, value:, etc.) but typing a qualifier like "type:" doesn't offer completions for available values (e.g. "color", "dimension"); add dynamic suggestions after the colon that enumerate actual values from the current token data
+Already up to date.

@@ -450,3 +450,14 @@
   - `TokenGeneratorDialog` already had the correct step-2 initialization for edits (`dialog.isEditing ? 'what' : 'where'`). The only missing piece was a direct entry point on the card that skipped the quick-edit panel.
   - The "Edit config" button calls `setShowQuickEdit(false)` before `setShowEditDialog(true)` to close any open inline panel — prevents two edit UIs being open simultaneously.
 ---
+
+## 2026-04-05 - Command palette qualifier autocomplete is static
+- Added dynamic value completions after qualifier colons in CommandPalette token mode. When the query ends with e.g. `type:`, `has:`, `generator:`, `path:`, `name:`, `group:`, or `value:`, a completion chip row appears showing actual values from the current token data (e.g. "color", "dimension" for `type:`). Partial values are supported: `type:col` narrows to matching types. Clicking a chip inserts the full qualifier:value into the query and re-focuses the input. Uses `onMouseDown` + `e.preventDefault()` so the input doesn't lose focus before the click fires.
+- Added `getQualifierCompletions(qualifier, partial, tokens, groups?)` to `tokenListUtils.ts` — returns up to 10 completions filtered by partial prefix. Handles `type` (distinct token types), `has` (canonical has values), `generator`/`gen` (distinct generator names), `path` (top-level segments), `name` (leaf names, capped at 30), `group` (all group paths), `value` (top-20 by frequency). `desc` and unknown qualifiers return [].
+- Added `ACTIVE_QUALIFIER_RE` regex and `detectActiveQualifier()` helper to detect `qualifier:partial` at end of query string.
+- Added `applyCompletion()` handler that replaces the partial suffix using `lastIndexOf` to safely handle repeated qualifiers in the same query.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L70, `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L5, ~L110, ~L218, ~L380, ~L500
+- **Learnings for future iterations:**
+  - `onMouseDown` + `e.preventDefault()` on completion chips prevents the input from losing focus before the click fires — never use `onClick` for inline completions that need to keep the input focused.
+  - `lastIndexOf(qualifier + ':' + partial)` correctly handles repeated qualifiers in the same query string by always targeting the rightmost match.
+---
