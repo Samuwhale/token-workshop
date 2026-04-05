@@ -669,3 +669,10 @@
   - Inline confirmation strips (show/hide via boolean state, no modal) are appropriate for destructive-but-reversible operations like "convert theme layers to resolver" where the user should see a brief explanation before committing.
   - When adding a new button to an existing toolbar, match the pattern exactly (same className structure, same icon size conventions).
 ---
+
+## 2026-04-05 - No "Copy assignments from" after theme option creation
+- Stale — already implemented. ThemeManager.tsx L1284-1319 already renders a "Copy assignments from another option" icon button in the option actions bar for any dimension with >1 option. Clicking it shows a dropdown menu listing all other options; selecting one calls `handleCopyAssignmentsFrom` (useThemeBulkOps.ts L190) which copies the source option's set-state map onto the target option via the API.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item says a feature "only appears during creation", verify the rendered option actions bar before assuming it's missing — it may have been added as a toolbar icon rather than an inline selector.
+---
