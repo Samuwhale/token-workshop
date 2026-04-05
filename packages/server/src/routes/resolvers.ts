@@ -36,7 +36,12 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // List all resolvers
   // -----------------------------------------------------------------------
   fastify.get('/resolvers', async () => {
-    return { resolvers: fastify.resolverStore.list() };
+    const loadErrors = fastify.resolverStore.getLoadErrors();
+    const loadErrorsRecord: Record<string, { message: string; at: string }> = {};
+    for (const [name, err] of loadErrors) {
+      loadErrorsRecord[name] = err;
+    }
+    return { resolvers: fastify.resolverStore.list(), loadErrors: loadErrorsRecord };
   });
 
   // -----------------------------------------------------------------------

@@ -23,6 +23,7 @@ import type { ThemeDimension } from '@tokenmanager/core';
 
 export interface ResolverState {
   resolvers: ResolverMeta[];
+  resolverLoadErrors: Record<string, { message: string; at: string }>;
   activeResolver: string | null;
   setActiveResolver: (name: string | null) => void;
   resolverInput: Record<string, string>;

@@ -35,6 +35,7 @@ export interface ResolverModifierMeta {
 
 export function useResolvers(serverUrl: string, connected: boolean) {
   const [resolvers, setResolvers] = useState<ResolverMeta[]>([]);
+  const [resolverLoadErrors, setResolverLoadErrors] = useState<Record<string, { message: string; at: string }>>({});
   const [activeResolver, setActiveResolverState] = useState<string | null>(
     () => lsGet(STORAGE_KEYS.ACTIVE_RESOLVER) ?? null,
   );
@@ -77,10 +78,11 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     if (!connected) return;
     const signal = createFetchSignal(unmountAbortRef.current.signal);
     setResolversLoading(true);
-    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`, { signal })
+    apiFetch<{ resolvers: ResolverMeta[]; loadErrors?: Record<string, { message: string; at: string }> }>(`${serverUrl}/api/resolvers`, { signal })
       .then(data => {
         if (unmountAbortRef.current.signal.aborted) return;
         setResolvers(data.resolvers ?? []);
+        setResolverLoadErrors(data.loadErrors ?? {});
       })
       .catch(err => {
         if (isAbortError(err)) return;
@@ -228,6 +230,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
 
   return useMemo(() => ({
     resolvers,
+    resolverLoadErrors,
     activeResolver,
     setActiveResolver,
     resolverInput,
@@ -244,6 +247,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     updateResolver,
   }), [
     resolvers,
+    resolverLoadErrors,
     activeResolver,
     setActiveResolver,
     resolverInput,

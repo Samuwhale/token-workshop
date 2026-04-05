@@ -780,3 +780,26 @@ Already up to date.
 
   Merging to main: No "recent tokens" or "frequently edited" quick access — users managing hundreds of tokens must search or scroll to find tokens they edit repeatedly; add a "Recent" section at the top of the token list or a "Recent tokens" command palette category that tracks the last 10-15 edited tokens with one-click navigation
 Already up to date.
+[main 8e4a7369] chore(backlog): done – No "recent tokens" or "frequently edited" quick access — users managing hundreds of tokens must search or scroll to find tokens they edit repeatedly; add a "Recent" section at the top of the token list or a "Recent tokens" command palette category that tracks the last 10-15 edited tokens with one-click navigation
+ 6 files changed, 74 insertions(+), 6 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No "recent tokens" or "frequently edited" quick access
+- The command palette "Recently Edited" section and token list "recently touched" filter already existed but were backed by `useRecentlyTouched` which was in-memory only (reset on every plugin reload). `recentTokens.ts` had `addRecentToken`/`getRecentTokens` localStorage helpers that were defined but never called.
+- Extended `recentTokens.ts`: added `removeRecentToken` and `renameRecentToken` helpers; bumped `MAX_RECENT` from 10 to 15.
+- Modified `useRecentlyTouched.ts`: initialize `timestamps` from `getRecentTokens()` on mount (converting ordered paths to synthetic timestamps so sort order is preserved); call `addRecentToken/removeRecentToken/renameRecentToken` in `recordTouch`/`removePath`/`renamePath` to keep localStorage in sync.
+
+═══════════════════════════════════════════════════════════════
+  #32  ·  24 queued · 0
+0 in-progress · last took 5m4s
+═══════════════════════════════════════════════════════════════
+  → Resolver store load errors are not exposed to the UI — resolver-store.ts tracks loadErrors internally but no API endpoint exposes them; when a resolver JSON file has syntax errors or invalid structure, the UI shows no indication that a resolver failed to load; add errors to the GET /api/resolvers response and surface them as warnings in the ThemeManager resolver section
+  Worktree: /tmp/backlog-54964-AHx3nR
+  Running agent… (started 03:23:56)
+
+  ✓ done: Resolver store load errors are not exposed to the UI
+    Added loadErrors to GET /api/resolvers response; useResolvers tracks them as resolverLoadErrors state; ResolverPanel shows amber warning rows for each failed resolver file above the resolver list
+    27 turns · 221s · $0.84
+
+  Merging to main: Resolver store load errors are not exposed to the UI
+Already up to date.

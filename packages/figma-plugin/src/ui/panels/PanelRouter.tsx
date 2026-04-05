@@ -570,6 +570,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 connected,
                 sets,
                 resolvers: resolverState.resolvers,
+                resolverLoadErrors: resolverState.resolverLoadErrors,
                 activeResolver: resolverState.activeResolver,
                 setActiveResolver: resolverState.setActiveResolver,
                 resolverInput: resolverState.resolverInput,

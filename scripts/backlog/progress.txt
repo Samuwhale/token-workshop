@@ -519,3 +519,20 @@
   - When a feature "already exists but doesn't persist", the fix is often just wiring the existing in-memory hook to an existing-but-unused persistence utility rather than building new UI.
   - Initializing a Map from an ordered list (most-recent-first) using synthetic timestamps (`now - idx * 1000`) correctly preserves sort order without needing to store timestamps explicitly in localStorage.
 ---
+
+## 2026-04-05 - Resolver store load errors not exposed to UI
+- Added `loadErrors` field to `GET /api/resolvers` response — iterates `resolverStore.getLoadErrors()` (already tracked internally) and serializes to a `Record<string, {message, at}>` object
+- Added `resolverLoadErrors` state to `useResolvers` hook; `fetchResolvers` now reads `data.loadErrors` from the response and stores it
+- Added `resolverLoadErrors` to `ResolverState` interface in `ThemeContext.tsx`
+- Added `resolverLoadErrors?` prop to `ResolverContentProps` in `ResolverPanel.tsx`; `ResolverInner` renders amber warning rows above the resolver list for each failed file, showing the resolver name, error message, and a hint to fix the file
+- Empty state now only shows when both `resolvers.length === 0` AND `Object.keys(resolverLoadErrors).length === 0`
+- Files changed:
+  - `packages/server/src/routes/resolvers.ts` ~L38
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts` ~L37, ~L80, ~L229
+  - `packages/figma-plugin/src/ui/contexts/ThemeContext.tsx` ~L25
+  - `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L24, ~L67, ~L458, ~L573
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L572
+- **Learnings for future iterations:**
+  - `getLoadErrors()` was already a public method on `ResolverStore` — the server just needed to call it and include the result in the API response; no server-side changes beyond the route handler
+  - The empty state guard needs to include load errors in the "nothing to show" condition to avoid hiding error entries behind the empty state panel
+---

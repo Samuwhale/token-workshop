@@ -25,6 +25,7 @@ export interface ResolverContentProps {
   connected: boolean;
   sets: string[];
   resolvers: ResolverMeta[];
+  resolverLoadErrors?: Record<string, { message: string; at: string }>;
   activeResolver: string | null;
   setActiveResolver: (name: string | null) => void;
   resolverInput: Record<string, string>;
@@ -69,6 +70,7 @@ function ResolverInner({
   connected,
   sets,
   resolvers,
+  resolverLoadErrors = {},
   activeResolver,
   setActiveResolver,
   resolverInput,
@@ -453,7 +455,7 @@ function ResolverInner({
             <span className="text-[11px]">Loading resolvers…</span>
           </div>
         )}
-        {!resolversLoading && resolvers.length === 0 && !creating && !creatingFromTemplate && (
+        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && !creatingFromTemplate && (
           <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
             {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
@@ -569,6 +571,27 @@ function ResolverInner({
             </div>
           </div>
         )}
+
+        {Object.entries(resolverLoadErrors).map(([name, err]) => (
+          <div
+            key={`err:${name}`}
+            className="border-b border-[var(--color-figma-border)] px-3 py-2"
+            title={`Failed at ${err.at}`}
+          >
+            <div className="flex items-start gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-amber-500" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{name}</div>
+                <div className="text-[10px] text-amber-600 mt-0.5 leading-snug">{err.message}</div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Failed to load — fix the file to use this resolver</div>
+              </div>
+            </div>
+          </div>
+        ))}
 
         {resolvers.map(resolver => {
           const isActive = activeResolver === resolver.name;
