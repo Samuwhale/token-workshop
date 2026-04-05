@@ -806,3 +806,25 @@
   - Removing the escaped-ref pattern simplifies state: just call the cancel function directly from Escape keydown.
   - Wrapping the inline input in `flex flex-col` gives space for an error row without changing the surrounding row structure.
 ---
+
+## 2026-04-05 - Context menus and dropdown menus lack arrow-key navigation
+- Added ArrowUp/ArrowDown/Home/End navigation + auto-focus to all 4 menus: TokenTreeNode group context menu, TokenList filter menu, App.tsx set context menu, App.tsx main overflow menu
+- Created shared utility `useMenuKeyboard.ts` with `getMenuItems(container)` and `handleMenuArrowKeys(e, container)` — used by all 4 menus
+- All menu items have `tabIndex={-1}` so they're managed by arrow-key roving focus, not Tab
+- Menus auto-focus first non-disabled item on open via `requestAnimationFrame(() => getMenuItems(el)[0]?.focus())`
+- Group context menu: added `m` keyboard shortcut on the group row (`onKeyDown`) to open the menu positioned below the row — makes it reachable without right-click; also added `aria-haspopup="menu"` + `aria-expanded` to trigger button; changed hover-only action buttons to also appear on `group-focus-within/group:flex`
+- TokenList filter menu: updated existing mousedown handler to also listen for `keydown` with Escape + arrow nav; added `filterMenuRef` pointing at the menu div
+- App.tsx set menu (useSetTabs.ts): updated outside-click handler to also handle Escape + arrow nav; used existing `tabMenuRef` (already on menu div)
+- App.tsx main menu: updated existing Escape-only handler to also handle arrow nav + auto-focus; `menuRef` (on wrapper) passes to `getMenuItems`
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useMenuKeyboard.ts` (new)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L22 (import), ~L208 (groupMenuRef), ~L221-234 (handler), ~L307-315 (M shortcut), ~L432 (aria attrs), ~L461 (ref+aria), ~L383 (focus-within class)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L35 (import), ~L142 (filterMenuRef), ~L243-262 (handler), ~L2722-2740 (ref+tabIndex)
+  - `packages/figma-plugin/src/ui/hooks/useSetTabs.ts` ~L6 (import), ~L78-100 (handler)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L63 (import), ~L475-488 (handler), ~L1502-1539 (tabIndex), ~L1690-1769 (tabIndex)
+- **Learnings for future iterations:**
+  - `handleMenuArrowKeys` should be called BEFORE letter-key shortcuts in the keydown handler — arrow keys take priority to avoid conflicts
+  - `group-focus-within/group:flex` on a hidden buttons div (inside a `group/group` row) makes them visible when the row OR any of its children has focus — the right pattern for keyboard-accessible hover-only actions
+  - Auto-focus with `requestAnimationFrame` is safe even when the menu div is conditionally rendered — by the time useEffect runs the DOM is ready, but rAF avoids fighting any scroll/layout adjustments
+  - `tabIndex={-1}` on menu items removes them from Tab order; arrow keys become the ONLY way to navigate within the menu (correct ARIA menu pattern)
+---

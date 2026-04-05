@@ -32,6 +32,7 @@ import { TokenListModals } from './TokenListModals';
 import { TokenListModalsProvider } from './TokenListModalsContext';
 import type { TokenListModalsState } from './TokenListModalsContext';
 import { useExtractToAlias } from '../hooks/useExtractToAlias';
+import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
@@ -140,6 +141,7 @@ export function TokenList({
   const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
@@ -241,13 +243,27 @@ export function TokenList({
 
   useEffect(() => {
     if (!moreFiltersOpen) return;
-    const handler = (e: MouseEvent) => {
+    // Auto-focus first menu item when the menu opens
+    const frame = requestAnimationFrame(() => {
+      if (filterMenuRef.current) getMenuItems(filterMenuRef.current)[0]?.focus();
+    });
+    const onMouseDown = (e: MouseEvent) => {
       if (moreFiltersRef.current && !moreFiltersRef.current.contains(e.target as Node)) {
         setMoreFiltersOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onKey = (e: KeyboardEvent) => {
+      if (!filterMenuRef.current) return;
+      if (e.key === 'Escape') { setMoreFiltersOpen(false); return; }
+      handleMenuArrowKeys(e, filterMenuRef.current);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [moreFiltersOpen]);
 
   // Sort order — persisted in localStorage per-set so each set remembers its own order
@@ -2719,21 +2735,21 @@ export function TokenList({
                   </svg>
                 </button>
                 {moreFiltersOpen && (
-                  <div role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[160px]">
-                    <button role="menuitem" onClick={() => { setShowScaffold(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Use preset…</button>
-                    <button role="menuitem" onClick={() => { setShowFindReplace(true); setMoreFiltersOpen(false); }} disabled={!connected} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Find &amp; Replace…</button>
+                  <div ref={filterMenuRef} role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[160px]">
+                    <button role="menuitem" tabIndex={-1} onClick={() => { setShowScaffold(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Use preset…</button>
+                    <button role="menuitem" tabIndex={-1} onClick={() => { setShowFindReplace(true); setMoreFiltersOpen(false); }} disabled={!connected} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Find &amp; Replace…</button>
                     <div className="border-t border-[var(--color-figma-border)] my-1" />
-                    <button role="menuitem" onClick={() => { setMoreFiltersOpen(false); handleApplyVariables(); }} disabled={applying || varDiffLoading || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">{varDiffLoading ? 'Comparing…' : 'Apply as Variables'}</button>
-                    <button role="menuitem" onClick={() => { handleApplyStyles(); setMoreFiltersOpen(false); }} disabled={applying || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Apply as Styles</button>
+                    <button role="menuitem" tabIndex={-1} onClick={() => { setMoreFiltersOpen(false); handleApplyVariables(); }} disabled={applying || varDiffLoading || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">{varDiffLoading ? 'Comparing…' : 'Apply as Variables'}</button>
+                    <button role="menuitem" tabIndex={-1} onClick={() => { handleApplyStyles(); setMoreFiltersOpen(false); }} disabled={applying || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Apply as Styles</button>
                     <div className="border-t border-[var(--color-figma-border)] my-1" />
                     {refFilter === 'all' && (
                       <>
-                        <button role="menuitem" onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show references only</button>
-                        <button role="menuitem" onClick={() => { setRefFilter('direct'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show direct values only</button>
+                        <button role="menuitem" tabIndex={-1} onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show references only</button>
+                        <button role="menuitem" tabIndex={-1} onClick={() => { setRefFilter('direct'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show direct values only</button>
                       </>
                     )}
                     {!showDuplicates && (
-                      <button role="menuitem" onClick={() => { setShowDuplicates(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
+                      <button role="menuitem" tabIndex={-1} onClick={() => { setShowDuplicates(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
                     )}
                   </div>
                 )}

@@ -3,6 +3,7 @@ import { apiFetch, isNetworkError } from '../shared/apiFetch';
 import { stableStringify, SET_NAME_RE } from '../shared/utils';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
+import { getMenuItems, handleMenuArrowKeys } from './useMenuKeyboard';
 
 interface UseSetTabsParams {
   serverUrl: string;
@@ -74,16 +75,30 @@ export function useSetTabs({
     return Object.keys(diff).length > 0 ? diff : null;
   }, [dragSetName, dragOverSetName, sets, perSetFlat, allTokensFlat, activeThemes]);
 
-  // Close set context menu on outside click
+  // Close set context menu on outside click; keyboard: Escape + arrow-key navigation
   useEffect(() => {
     if (!tabMenuOpen) return;
-    const handler = (e: MouseEvent) => {
+    // Auto-focus first menu item when menu opens
+    const frame = requestAnimationFrame(() => {
+      if (tabMenuRef.current) getMenuItems(tabMenuRef.current)[0]?.focus();
+    });
+    const onMouseDown = (e: MouseEvent) => {
       if (tabMenuRef.current && !tabMenuRef.current.contains(e.target as Node)) {
         setTabMenuOpen(null);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onKey = (e: KeyboardEvent) => {
+      if (!tabMenuRef.current) return;
+      if (e.key === 'Escape') { setTabMenuOpen(null); return; }
+      handleMenuArrowKeys(e, tabMenuRef.current);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [tabMenuOpen]);
 
   // Focus new set input when it appears

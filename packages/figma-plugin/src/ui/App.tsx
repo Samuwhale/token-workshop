@@ -60,6 +60,7 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
 import { adaptShortcut, tokenPathToUrlSegment } from './shared/utils';
 import { SHORTCUT_KEYS } from './shared/shortcutRegistry';
+import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType, findLeafByPath, collectAllGroupPaths } from './components/tokenListUtils';
@@ -471,14 +472,22 @@ export function App() {
     }
   }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
 
-  // Close overflow menu on Escape key (not on outside click — accidental mis-clicks dismiss it)
+  // Close overflow menu on Escape key; arrow keys navigate between items
   useEffect(() => {
     if (!menuOpen) return;
+    // Auto-focus first menu item when menu opens
+    const frame = requestAnimationFrame(() => {
+      if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
+    });
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') { setMenuOpen(false); return; }
+      if (menuRef.current) handleMenuArrowKeys(e, menuRef.current);
     };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handler);
+    };
   }, [menuOpen]);
 
 
@@ -1501,6 +1510,7 @@ export function App() {
             <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50" role="menu">
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -1508,6 +1518,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onClick={() => openOverflowPanel('import')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -1515,6 +1526,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onClick={() => { setMenuOpen(false); navigateTo('ship', 'export'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -1522,6 +1534,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onClick={() => { setMenuOpen(false); navigateTo('ship', 'health'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -1530,6 +1543,7 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onClick={() => openOverflowPanel('settings')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
               >
@@ -1689,6 +1703,7 @@ export function App() {
             >
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => guardEditorAction(() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); })}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1698,6 +1713,7 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => openSetMetadata(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1707,6 +1723,7 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => startRename(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1715,6 +1732,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => handleDuplicateSet(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1723,6 +1741,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => handleReorderSet(tabMenuOpen!, 'left')}
                 disabled={sets.indexOf(tabMenuOpen!) === 0}
@@ -1732,6 +1751,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => handleReorderSet(tabMenuOpen!, 'right')}
                 disabled={sets.indexOf(tabMenuOpen!) === sets.length - 1}
@@ -1742,6 +1762,7 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => openMergeDialog(tabMenuOpen)}
                 disabled={sets.filter(s => s !== tabMenuOpen).length === 0}
@@ -1751,6 +1772,7 @@ export function App() {
               </button>
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => openSplitDialog(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1760,6 +1782,7 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 role="menuitem"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => { startDelete(tabMenuOpen!); }}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

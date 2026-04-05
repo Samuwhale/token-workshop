@@ -20,6 +20,7 @@ import { formatHexAs, type ColorFormat } from '../shared/colorUtils';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -205,6 +206,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   const [renameGroupVal, setRenameGroupVal] = useState('');
   const [renameGroupError, setRenameGroupError] = useState('');
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
   const [editingGroupMeta, setEditingGroupMeta] = useState(false);
   const [groupMetaType, setGroupMetaType] = useState('');
   const [groupMetaDescription, setGroupMetaDescription] = useState('');
@@ -219,12 +221,18 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
 
   useEffect(() => {
     if (!groupMenuPos) return;
+    // Auto-focus first enabled menu item when menu opens
+    requestAnimationFrame(() => {
+      if (groupMenuRef.current) getMenuItems(groupMenuRef.current)[0]?.focus();
+    });
     const close = () => setGroupMenuPos(null);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { close(); return; }
-      const key = e.key.toLowerCase();
-      const menuEl = document.querySelector('[data-context-menu="group"]');
+      const menuEl = groupMenuRef.current;
       if (!menuEl) return;
+      // Arrow-key navigation takes priority over letter shortcuts
+      if (handleMenuArrowKeys(e, menuEl)) return;
+      const key = e.key.toLowerCase();
       const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
       if (btn) { e.preventDefault(); btn.click(); }
     };
@@ -309,6 +317,15 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             e.stopPropagation();
             onCreateSibling?.(node.path, inferGroupTokenType(node.children));
           }
+          if (e.key === 'm' && !renamingGroup && !selectMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setGroupMenuPos({
+              x: Math.min(rect.left, window.innerWidth - 168),
+              y: Math.min(rect.bottom + 2, window.innerHeight - 220),
+            });
+          }
         }}
         onContextMenu={e => {
           e.preventDefault();
@@ -380,7 +397,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
         )}
         {!selectMode && !renamingGroup && (
-          <div className="hidden group-hover/group:flex items-center gap-0.5 shrink-0 ml-auto">
+          <div className="hidden group-hover/group:flex group-focus-within/group:flex items-center gap-0.5 shrink-0 ml-auto">
             {onMoveUp && (
               <button
                 onClick={e => { e.stopPropagation(); onMoveUp(); }}
@@ -427,8 +444,10 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
                   y: Math.min(rect.bottom + 2, window.innerHeight - 220),
                 });
               }}
-              title="Group actions"
+              title="Group actions (M)"
               aria-label="Group actions"
+              aria-haspopup="menu"
+              aria-expanded={!!groupMenuPos}
               className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -442,6 +461,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
       {/* Group context menu */}
       {groupMenuPos && (
         <div
+          ref={groupMenuRef}
           role="menu"
           data-context-menu="group"
           className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
@@ -449,7 +469,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
         >
           {onCreateGroup && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="n"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -462,7 +482,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             </button>
           )}
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             data-accel="r"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -475,7 +495,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             <span>Rename group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
           </button>
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             data-accel="e"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -489,7 +509,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             <span>Edit type &amp; description…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
           </button>
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             data-accel="m"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -501,7 +521,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             <span>Move group to set…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
           </button>
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setGroupMenuPos(null);
@@ -512,7 +532,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             <span>Copy group to set…</span>
           </button>
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             data-accel="d"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -525,7 +545,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           </button>
           {onSelectGroupChildren && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="a"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -539,7 +559,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           )}
           {onZoomIntoGroup && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="f"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -553,7 +573,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           )}
           {onSetGroupScopes && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="s"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -567,7 +587,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           )}
           {onSyncGroup && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="v"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -582,7 +602,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           )}
           {onSyncGroupStyles && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="y"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -597,7 +617,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           )}
           {onGenerateScaleFromGroup && (
             <button
-              role="menuitem"
+              role="menuitem" tabIndex={-1}
               data-accel="g"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
@@ -620,7 +640,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
             </button>
           )}
           <button
-            role="menuitem"
+            role="menuitem" tabIndex={-1}
             data-accel="x"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {

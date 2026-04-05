@@ -1223,3 +1223,26 @@ Already up to date.
 
   Merging to main: Inconsistent inline editing patterns across panels
 Already up to date.
+[main 741c13ae] chore(backlog): done – Inconsistent inline editing patterns across panels
+ 5 files changed, 101 insertions(+), 41 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Inconsistent inline editing patterns across panels
+- Standardized the rename interaction in `TokenTreeNode.tsx` (both group rename and token rename) to match the Save/Cancel + inline validation pattern used by `ThemeManager.tsx` and `SetSwitcher.tsx`.
+- Changes for both group rename and token rename:
+  - Removed `renameGroupEscapedRef` / `renameTokenEscapedRef` (no longer needed)
+
+═══════════════════════════════════════════════════════════════
+  #51  ·  5 queued · 0
+0 in-progress · last took 5m37s
+═══════════════════════════════════════════════════════════════
+  → Context menus and dropdown menus lack arrow-key navigation — all 4 menus (TokenTreeNode group context menu, TokenList filter menu, App.tsx set menu, App.tsx main menu) have `role="menu"` and `role="menuitem"` but none support ArrowUp/ArrowDown to move between items; the group context menu is also only reachable via right-click with no keyboard-accessible trigger, making it unusable for keyboard-only users (violates: keyboard accessibility)
+  Worktree: /tmp/backlog-54964-1U4G8x
+  Running agent… (started 05:32:50)
+
+  ✓ done: Context menus and dropdown menus lack arrow-key navigation
+    Added ArrowUp/Down/Home/End navigation + auto-focus to all 4 menus via shared useMenuKeyboard.ts utility; group context menu gains `m` keyboard shortcut + focus-within visibility for action buttons; all menu items get tabIndex={-1}
+    67 turns · 736s · $2.61
+
+  Merging to main: Context menus and dropdown menus lack arrow-key navigation
+Already up to date.
