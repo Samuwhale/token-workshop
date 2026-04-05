@@ -817,3 +817,9 @@
   - `Spinner` uses `currentColor`, so adding `className="text-[var(--color-figma-text-secondary)]"` is the correct pattern for color inheritance — no need for a wrapping div.
   - The existing `flex items-center gap-2` wrapper on the status row already handles spinner + text alignment without additional changes.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: All server routes and services (token CRUD, batch ops, generators, sync, git, themes, resolvers, operations, export, docs, lint), all UI panels (PanelRouter, TokenList, TokenEditor, ThemeManager, GraphPanel, PublishPanel, ExportPanel, ImportPanel, HealthPanel, ConsistencyPanel, HeatmapPanel, SettingsPanel, CanvasAuditPanel, TokenFlowPanel, ComponentCoveragePanel, BatchEditor, SelectionInspector), App.tsx navigation and command palette, all context providers, plugin sandbox controller.ts and variableSync.ts, onboarding/QuickStartWizard, drag-and-drop across all surfaces
+- Found 11 items — written to backlog-inbox.md
+- Notable: The strongest consolidation opportunity is merging Consistency and Heatmap panels — they scan the same Figma layers for the same class of problem (unbound/misbound tokens) with separate scope selectors and scan triggers, forcing users to context-switch between two panels for a single workflow. The most impactful missing feature is batch token upsert API — every import, generation, and multi-edit hits the server once per token with no atomicity guarantee. Smart type inference from token path is the highest-ROI small fix (saves a manual step on every single token creation).
+---
