@@ -569,3 +569,17 @@
   - Splitting a single provider into two contexts is safe without changing the provider tree: nest `<SyncContext.Provider>` inside `<ConnectionContext.Provider>` in the same `ConnectionProvider` component. Consumers of the stable context are now immune to sync-progress re-renders.
   - Keeping both contexts in the same file is preferable to splitting across files when they share internal implementation (like `useSyncBindings`) — avoids cross-file internal imports.
 ---
+
+## 2026-04-05 - Server routes inconsistent top-level error handling
+- Added a global `fastify.setErrorHandler` in `packages/server/src/index.ts` as the primary safety net — catches any unhandled rejection from route handlers that lack their own try-catch, returning a consistent JSON `{ error }` envelope with the correct HTTP status code instead of crashing.
+- Wrapped all 12 individual handlers that were missing try-catch + handleRouteError:
+  - `sets.ts` GET /sets (was calling async `getSets()` without guard)
+  - `lint.ts` GET /lint/config, PUT /lint/config (update call), GET /lint/suppressions, PUT /lint/suppressions (setSuppressions call), GET /lint/config/default
+  - `generators.ts` GET /generators/orphaned-tokens, DELETE /generators/orphaned-tokens, GET /generators/:id/tokens
+  - `resolvers.ts` GET /resolvers, GET /resolvers/:name, GET /resolvers/:name/modifiers
+- Files changed: `packages/server/src/index.ts` ~L11 (import), ~L44 (setErrorHandler); `packages/server/src/routes/sets.ts` ~L10; `packages/server/src/routes/lint.ts` ~L17, ~L82, ~L100, ~L118, ~L123; `packages/server/src/routes/generators.ts` ~L424, ~L433, ~L645; `packages/server/src/routes/resolvers.ts` ~L38, ~L123, ~L188
+- **Learnings for future iterations:**
+  - A Fastify `setErrorHandler` should be registered before routes — it's the idiomatic global safety net and covers future handlers as well. Import `getHttpStatusCode`/`getErrorMessage` from errors.ts rather than duplicating the logic.
+  - The `setErrorHandler` in Fastify receives `(err, request, reply)` — do NOT call `return reply.send(...)`, just call `reply.status(...).send(...)` without returning (Fastify manages the lifecycle). But returning is also fine.
+  - Handlers that only call synchronous in-memory methods (resolver store list/get) still benefit from try-catch because unexpected type errors or undefined property access would otherwise bubble unhandled.
+---

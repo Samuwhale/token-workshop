@@ -7,13 +7,17 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
   // GET /api/sets — list all sets (with optional descriptions)
-  fastify.get('/sets', async () => {
-    const sets = await fastify.tokenStore.getSets();
-    const descriptions = fastify.tokenStore.getSetDescriptions();
-    const counts = fastify.tokenStore.getSetCounts();
-    const collectionNames = fastify.tokenStore.getSetCollectionNames();
-    const modeNames = fastify.tokenStore.getSetModeNames();
-    return { sets, descriptions, counts, collectionNames, modeNames };
+  fastify.get('/sets', async (_request, reply) => {
+    try {
+      const sets = await fastify.tokenStore.getSets();
+      const descriptions = fastify.tokenStore.getSetDescriptions();
+      const counts = fastify.tokenStore.getSetCounts();
+      const collectionNames = fastify.tokenStore.getSetCollectionNames();
+      const modeNames = fastify.tokenStore.getSetModeNames();
+      return { sets, descriptions, counts, collectionNames, modeNames };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to list sets');
+    }
   });
 
   // GET /api/sets/:name — get a set

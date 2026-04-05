@@ -421,29 +421,37 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/generators/orphaned-tokens — find tokens whose generator no longer exists
-  fastify.get('/generators/orphaned-tokens', async () => {
-    const allGenerators = await fastify.generatorService.getAll();
-    const activeIds = new Set(allGenerators.map((g) => g.id));
-    const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
-    const orphaned = allTagged.filter((t) => !activeIds.has(t.generatorId));
-    return { count: orphaned.length, tokens: orphaned };
-  });
-
-  // DELETE /api/generators/orphaned-tokens — delete all orphaned generator tokens
-  fastify.delete('/generators/orphaned-tokens', async () => {
-    return withLock(async () => {
+  fastify.get('/generators/orphaned-tokens', async (_request, reply) => {
+    try {
       const allGenerators = await fastify.generatorService.getAll();
       const activeIds = new Set(allGenerators.map((g) => g.id));
       const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
-      const orphanIds = new Set(
-        allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
-      );
-      let totalDeleted = 0;
-      for (const gid of orphanIds) {
-        totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
-      }
-      return { ok: true, deleted: totalDeleted };
-    });
+      const orphaned = allTagged.filter((t) => !activeIds.has(t.generatorId));
+      return { count: orphaned.length, tokens: orphaned };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to list orphaned tokens');
+    }
+  });
+
+  // DELETE /api/generators/orphaned-tokens — delete all orphaned generator tokens
+  fastify.delete('/generators/orphaned-tokens', async (_request, reply) => {
+    try {
+      return await withLock(async () => {
+        const allGenerators = await fastify.generatorService.getAll();
+        const activeIds = new Set(allGenerators.map((g) => g.id));
+        const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
+        const orphanIds = new Set(
+          allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
+        );
+        let totalDeleted = 0;
+        for (const gid of orphanIds) {
+          totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
+        }
+        return { ok: true, deleted: totalDeleted };
+      });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to delete orphaned tokens');
+    }
   });
 
   // POST /api/generators — create a new generator and run it immediately
@@ -642,9 +650,13 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/generators/:id/tokens — list tokens created by a generator
-  fastify.get<{ Params: { id: string } }>('/generators/:id/tokens', async (request) => {
-    const tokens = fastify.tokenStore.findTokensByGeneratorId(request.params.id);
-    return { generatorId: request.params.id, count: tokens.length, tokens };
+  fastify.get<{ Params: { id: string } }>('/generators/:id/tokens', async (request, reply) => {
+    try {
+      const tokens = fastify.tokenStore.findTokensByGeneratorId(request.params.id);
+      return { generatorId: request.params.id, count: tokens.length, tokens };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to list generator tokens');
+    }
   });
 
   // DELETE /api/generators/:id — delete generator, optionally delete derived tokens

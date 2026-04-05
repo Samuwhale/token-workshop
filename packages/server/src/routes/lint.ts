@@ -14,8 +14,12 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
   fastify.decorate('lintConfigStore', lintConfigStore);
 
   // GET /api/lint/config — get current lint configuration
-  fastify.get('/lint/config', async () => {
-    return lintConfigStore.get();
+  fastify.get('/lint/config', async (_request, reply) => {
+    try {
+      return await lintConfigStore.get();
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get lint config');
+    }
   });
 
   // PUT /api/lint/config — update lint configuration
@@ -79,8 +83,12 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
         }
       }
     }
-    const cfg = await lintConfigStore.update(b as Partial<LintConfig>);
-    return { ok: true, ...cfg };
+    try {
+      const cfg = await lintConfigStore.update(b as Partial<LintConfig>);
+      return { ok: true, ...cfg };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to update lint config');
+    }
   });
 
   // POST /api/tokens/validate — validate all tokens across all sets
@@ -97,9 +105,13 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
   });
 
   // GET /api/lint/suppressions — get current server-persisted suppression keys
-  fastify.get('/lint/suppressions', async () => {
-    const suppressions = await lintConfigStore.getSuppressions();
-    return { suppressions };
+  fastify.get('/lint/suppressions', async (_request, reply) => {
+    try {
+      const suppressions = await lintConfigStore.getSuppressions();
+      return { suppressions };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get suppressions');
+    }
   });
 
   // PUT /api/lint/suppressions — replace the full set of suppression keys
@@ -115,13 +127,21 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
     if (!(b.suppressions as unknown[]).every(s => typeof s === 'string')) {
       return reply.status(400).send({ error: '"suppressions" must be an array of strings' });
     }
-    await lintConfigStore.setSuppressions(b.suppressions as string[]);
-    return { ok: true, suppressions: b.suppressions };
+    try {
+      await lintConfigStore.setSuppressions(b.suppressions as string[]);
+      return { ok: true, suppressions: b.suppressions };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to update suppressions');
+    }
   });
 
   // GET /api/lint/config/default — get default lint configuration
-  fastify.get('/lint/config/default', async () => {
-    return DEFAULT_LINT_CONFIG;
+  fastify.get('/lint/config/default', async (_request, reply) => {
+    try {
+      return DEFAULT_LINT_CONFIG;
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get default lint config');
+    }
   });
 
   // POST /api/tokens/lint — lint a set and return violations

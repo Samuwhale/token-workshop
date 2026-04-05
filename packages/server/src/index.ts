@@ -7,6 +7,7 @@ import path from 'node:path';
 const _require = createRequire(import.meta.url);
 const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
 const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
+import { getHttpStatusCode, getErrorMessage } from './errors.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { setRoutes } from './routes/sets.js';
 import { themeRoutes } from './routes/themes.js';
@@ -46,6 +47,18 @@ export async function startServer(config: ServerConfig) {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
+
+  // Global error handler — catches unhandled rejections from any route handler
+  // that lacks its own try-catch, ensuring a consistent JSON error envelope
+  // instead of an empty 500 or an unhandled rejection crash.
+  fastify.setErrorHandler((err, _request, reply) => {
+    const statusCode = getHttpStatusCode(err) ?? 500;
+    const msg = getErrorMessage(err);
+    if (statusCode >= 500) {
+      fastify.log.error(err);
+    }
+    reply.status(statusCode).send({ error: msg });
+  });
 
   // Rate-limit mutation endpoints (POST/PUT/PATCH/DELETE) to prevent runaway UI
   // loops or external scripts from overwhelming the file system with rapid writes.

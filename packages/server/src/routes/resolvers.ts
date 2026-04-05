@@ -35,13 +35,17 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   // List all resolvers
   // -----------------------------------------------------------------------
-  fastify.get('/resolvers', async () => {
-    const loadErrors = fastify.resolverStore.getLoadErrors();
-    const loadErrorsRecord: Record<string, { message: string; at: string }> = {};
-    for (const [name, err] of loadErrors) {
-      loadErrorsRecord[name] = err;
+  fastify.get('/resolvers', async (_request, reply) => {
+    try {
+      const loadErrors = fastify.resolverStore.getLoadErrors();
+      const loadErrorsRecord: Record<string, { message: string; at: string }> = {};
+      for (const [name, err] of loadErrors) {
+        loadErrorsRecord[name] = err;
+      }
+      return { resolvers: fastify.resolverStore.list(), loadErrors: loadErrorsRecord };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to list resolvers');
     }
-    return { resolvers: fastify.resolverStore.list(), loadErrors: loadErrorsRecord };
   });
 
   // -----------------------------------------------------------------------
@@ -121,9 +125,13 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // Get a single resolver
   // -----------------------------------------------------------------------
   fastify.get<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
-    const file = fastify.resolverStore.get(req.params.name);
-    if (!file) return reply.status(404).send({ error: 'Resolver not found' });
-    return { name: req.params.name, ...file };
+    try {
+      const file = fastify.resolverStore.get(req.params.name);
+      if (!file) return reply.status(404).send({ error: 'Resolver not found' });
+      return { name: req.params.name, ...file };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get resolver');
+    }
   });
 
   // -----------------------------------------------------------------------
@@ -186,20 +194,24 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // Get modifier metadata for building UI controls
   // -----------------------------------------------------------------------
   fastify.get<{ Params: { name: string } }>('/resolvers/:name/modifiers', async (req, reply) => {
-    const file = fastify.resolverStore.get(req.params.name);
-    if (!file) return reply.status(404).send({ error: 'Resolver not found' });
+    try {
+      const file = fastify.resolverStore.get(req.params.name);
+      if (!file) return reply.status(404).send({ error: 'Resolver not found' });
 
-    const modifiers: Record<string, { description?: string; contexts: string[]; default?: string }> = {};
-    if (file.modifiers) {
-      for (const [modName, mod] of Object.entries(file.modifiers)) {
-        modifiers[modName] = {
-          description: mod.description,
-          contexts: Object.keys(mod.contexts),
-          default: mod.default,
-        };
+      const modifiers: Record<string, { description?: string; contexts: string[]; default?: string }> = {};
+      if (file.modifiers) {
+        for (const [modName, mod] of Object.entries(file.modifiers)) {
+          modifiers[modName] = {
+            description: mod.description,
+            contexts: Object.keys(mod.contexts),
+            default: mod.default,
+          };
+        }
       }
+      return { modifiers };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get resolver modifiers');
     }
-    return { modifiers };
   });
 
   // -----------------------------------------------------------------------
