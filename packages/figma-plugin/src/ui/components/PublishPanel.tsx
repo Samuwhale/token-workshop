@@ -11,11 +11,9 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { SyncSubPanel } from './publish/SyncSubPanel';
 import { GitSubPanel } from './publish/GitSubPanel';
 import { ApplyDiffConfirmModal } from './publish/PublishModals';
+import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 
 /* ── Sync entity types ───────────────────────────────────────────────────── */
-
-type VarSyncSnapshot = { records: Record<string, any>; createdIds: string[] };
-type StyleSyncSnapshot = { snapshots: Array<{ id: string; type: 'paint' | 'text' | 'effect'; data: any }>; createdIds: string[] };
 
 // Unified row type — superset of what both variable and style sync need.
 interface DiffRow {
@@ -31,19 +29,19 @@ interface DiffRow {
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
-const VAR_MESSAGES: SyncMessages<VarSyncSnapshot> = {
+const VAR_MESSAGES: SyncMessages<VarSnapshot> = {
   readSendType: 'read-variables', readResponseType: 'variables-read', readTimeout: 10000,
-  extractReadResponse: (msg: any) => msg.collections ?? [],
+  extractReadResponse: (msg: VariablesReadMessage) => msg.collections ?? [],
   applySendType: 'apply-variables', applyResponseType: 'variables-applied', applyErrorType: 'apply-variables-error', applyTimeout: 30000,
-  extractApplySnapshot: (msg: any) => msg.varSnapshot ?? undefined,
+  extractApplySnapshot: (msg: VariablesAppliedMessage) => msg.varSnapshot ?? undefined,
   revertSendType: 'revert-variables', revertResponseType: 'variables-reverted', revertTimeout: 30000,
 };
 
-const STYLE_MESSAGES: SyncMessages<StyleSyncSnapshot> = {
+const STYLE_MESSAGES: SyncMessages<StyleSnapshot> = {
   readSendType: 'read-styles', readResponseType: 'styles-read', readErrorType: 'styles-read-error', readTimeout: 10000,
-  extractReadResponse: (msg: any) => msg.tokens ?? [],
+  extractReadResponse: (msg: StylesReadMessage) => msg.tokens ?? [],
   applySendType: 'apply-styles', applyResponseType: 'styles-applied', applyErrorType: 'styles-apply-error', applyTimeout: 15000,
-  extractApplySnapshot: (msg: any) => msg.styleSnapshot ?? undefined,
+  extractApplySnapshot: (msg: StylesAppliedMessage) => msg.styleSnapshot ?? undefined,
   revertSendType: 'revert-styles', revertResponseType: 'styles-reverted', revertTimeout: 30000,
 };
 
@@ -182,7 +180,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   });
 
   // ── Extracted hooks ──
-  const varSync = useSyncEntity<DiffRow, VarSyncSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
+  const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
     ...varBuilders,
     buildApplyPayload: (rows) => ({
@@ -202,7 +200,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     autoComputeOnConnect: true,
   });
 
-  const styleSync = useSyncEntity<DiffRow, StyleSyncSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
+  const styleSync = useSyncEntity<DiffRow, StyleSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
     progressEventType: 'style-sync-progress',
     ...styleBuilders,
     buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),

@@ -319,7 +319,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         break;
       }
       try {
-        await withSyncLock(() => revertVariables(msg.varSnapshot as Parameters<typeof revertVariables>[0], msg.correlationId));
+        await withSyncLock(() => revertVariables(msg.varSnapshot, msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'variables-reverted',
@@ -341,7 +341,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         break;
       }
       try {
-        await withSyncLock(() => revertStyles(msg.styleSnapshot as Parameters<typeof revertStyles>[0], msg.correlationId));
+        await withSyncLock(() => revertStyles(msg.styleSnapshot, msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-reverted',

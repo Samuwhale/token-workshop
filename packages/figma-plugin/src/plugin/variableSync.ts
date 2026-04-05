@@ -1,7 +1,7 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaValue, convertFromFigmaValue, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
-import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, ExportedVariableModeValue, ExportedVariableEntry, ExportedVariableCollection } from '../shared/types.js';
+import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, ExportedVariableModeValue, ExportedVariableEntry, ExportedVariableCollection, VarSnapshot } from '../shared/types.js';
 
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
@@ -236,17 +236,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
 /** Restore Figma variables to the state captured in a prior applyVariables() call. */
 export async function revertVariables(
-  data: {
-    records: Record<string, {
-      valuesByMode: Record<string, VariableValue>;
-      name: string;
-      description: string;
-      hiddenFromPublishing: boolean;
-      scopes: string[];
-      pluginData: { tokenPath: string; tokenSet: string };
-    }>;
-    createdIds: string[];
-  },
+  data: VarSnapshot,
   correlationId?: string,
 ) {
   const failures: string[] = [];

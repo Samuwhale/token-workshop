@@ -603,6 +603,64 @@ export interface CancelScanMessage {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Revert snapshot shapes — shared between plugin sandbox and UI
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Per-variable state captured before an applyVariables() call, used for revert. */
+export interface VarSnapshotRecord {
+  valuesByMode: Record<string, unknown>;
+  name: string;
+  description: string;
+  hiddenFromPublishing: boolean;
+  scopes: string[];
+  pluginData: { tokenPath: string; tokenSet: string };
+}
+
+/** Full variable snapshot sent from plugin → UI after a successful apply. */
+export interface VarSnapshot {
+  records: Record<string, VarSnapshotRecord>;
+  createdIds: string[];
+}
+
+/** Per-style state captured before an applyStyles() call, used for revert. */
+export interface StyleSnapshotEntry {
+  id: string;
+  type: 'paint' | 'text' | 'effect';
+  /** Serialisable style data: Paint[], text style fields, or Effect[]. */
+  data: unknown;
+}
+
+/** Full style snapshot sent from plugin → UI after a successful apply. */
+export interface StyleSnapshot {
+  snapshots: StyleSnapshotEntry[];
+  createdIds: string[];
+}
+
+export interface RevertVariablesMessage {
+  type: 'revert-variables';
+  varSnapshot: VarSnapshot;
+  correlationId?: string;
+}
+
+export interface RevertStylesMessage {
+  type: 'revert-styles';
+  styleSnapshot: StyleSnapshot;
+  correlationId?: string;
+}
+
+export interface VariablesRevertedMessage {
+  type: 'variables-reverted';
+  failures: string[];
+  correlationId?: string;
+}
+
+export interface StylesRevertedMessage {
+  type: 'styles-reverted';
+  failures: string[];
+  correlationId?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Controller → UI (plugin sandbox → iframe) message types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -645,6 +703,8 @@ export interface VariablesAppliedMessage {
   failures?: { path: string; error: string }[];
   /** Tokens that had no Figma variable equivalent or whose value could not be converted. */
   skipped?: Array<{ path: string; $type: string }>;
+  /** Pre-sync snapshot for revert support. */
+  varSnapshot?: VarSnapshot;
   correlationId?: string;
 }
 
@@ -674,6 +734,8 @@ export interface StylesAppliedMessage {
   count: number;
   total: number;
   failures: { path: string; error: string }[];
+  /** Pre-sync snapshot for revert support. */
+  styleSnapshot?: StyleSnapshot;
   correlationId?: string;
 }
 
@@ -920,7 +982,9 @@ export type ControllerMessage =
   | TokenUsageResultMessage
   | ConsistencyScanProgressMessage
   | ConsistencyScanResultMessage
-  | ConsistencyScanErrorMessage;
+  | ConsistencyScanErrorMessage
+  | VariablesRevertedMessage
+  | StylesRevertedMessage;
 
 /** Runtime set of all known Controller→UI message type strings.
  *  Keep in sync with the `ControllerMessage` union above. */
@@ -966,6 +1030,8 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'consistency-scan-progress',
   'consistency-scan-result',
   'consistency-scan-error',
+  'variables-reverted',
+  'styles-reverted',
 ]);
 
 /** Discriminated union of all UI→Controller messages */
@@ -1005,4 +1071,6 @@ export type PluginMessage =
   | ApplyToNodesMessage
   | RemoveBindingFromNodeMessage
   | SearchLayersMessage
-  | CancelScanMessage;
+  | CancelScanMessage
+  | RevertVariablesMessage
+  | RevertStylesMessage;

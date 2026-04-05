@@ -969,3 +969,19 @@
 - **Learnings for future iterations:**
   - When multiple useCallbacks in a component share a read-only side-effect block (reading refs, writing other refs), extracting it to its own useCallback with empty deps (or only ref deps) is always safe — refs are stable and excluded from dep arrays by convention
 ---
+
+## 2026-04-05 - Plugin sandbox revert handlers bypass type safety with `as any` casts
+- Added typed interfaces `VarSnapshotRecord`, `VarSnapshot`, `StyleSnapshotEntry`, `StyleSnapshot`, `RevertVariablesMessage`, `RevertStylesMessage`, `VariablesRevertedMessage`, `StylesRevertedMessage` to `shared/types.ts`
+- Added `varSnapshot?: VarSnapshot` to `VariablesAppliedMessage` and `styleSnapshot?: StyleSnapshot` to `StylesAppliedMessage` (these fields were sent from the plugin but missing from the type definitions)
+- Updated `PluginMessage` union to include `RevertVariablesMessage` and `RevertStylesMessage`
+- Updated `ControllerMessage` union and `KNOWN_CONTROLLER_MESSAGE_TYPES` to include the new reverted message types
+- Updated `variableSync.ts`: imported `VarSnapshot` from shared types; replaced inline struct type with `VarSnapshot` for `revertVariables` parameter
+- Updated `styleSync.ts`: imported `StyleSnapshotEntry` and `StyleSnapshot` from shared types; removed local `interface StyleSnapshotEntry { data: any }` definition; replaced `revertStyles` parameter type with `StyleSnapshot`; added explicit casts for `snap.data` at Figma API call sites (`Paint[]`, typed text struct, `Effect[]`)
+- Updated `controller.ts`: removed `as Parameters<typeof revertVariables>[0]` and `as Parameters<typeof revertStyles>[0]` casts — now inferred via the discriminated union
+- Updated `PublishPanel.tsx`: removed local `VarSyncSnapshot`/`StyleSyncSnapshot` type aliases (both used `any`); imported `VarSnapshot`, `StyleSnapshot`, and the relevant applied/read message types from shared types; typed `extractReadResponse` and `extractApplySnapshot` callbacks with specific message types instead of `msg: any`
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L601 (new interfaces), ~L649 (VariablesAppliedMessage), ~L682 (StylesAppliedMessage), ~L924 (ControllerMessage), ~L970 (KNOWN_CONTROLLER_MESSAGE_TYPES), ~L1011 (PluginMessage); `packages/figma-plugin/src/plugin/variableSync.ts` ~L4 (import), ~L238 (revertVariables signature); `packages/figma-plugin/src/plugin/styleSync.ts` ~L4 (import), ~L52 (removed local interface), ~L140 (revertStyles signature), ~L152 (snap.data casts); `packages/figma-plugin/src/plugin/controller.ts` ~L322, ~L344 (casts removed); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1 (imports), ~L14 (removed local types), ~L34 (typed message configs)
+- **Learnings for future iterations:**
+  - When plugin sends a field in postMessage (e.g. `varSnapshot` on `variables-applied`), that field must be added to the corresponding interface in `shared/types.ts` — otherwise the UI side can only access it via `msg: any` casts
+  - `StyleSnapshotEntry.data` typed as `any` in the local definition needed explicit casts at use sites (`Paint[]`, typed text struct, `Effect[]`) once changed to `unknown` in the shared type — always add these casts at the actual Figma API call, not on the field definition itself
+  - Replacing `as Parameters<typeof fn>[0]` casts with proper shared types is the right pattern when both sides of postMessage need to agree on a shape
+---

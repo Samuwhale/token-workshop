@@ -475,3 +475,26 @@ Already up to date.
 
   Merging to main: TokenList filter setters duplicate the same scroll-anchor computation 3 times
 Already up to date.
+[main 4582eda1] chore(backlog): done – TokenList filter setters duplicate the same scroll-anchor computation 3 times
+ 5 files changed, 43 insertions(+), 21 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - TokenList filter setters duplicate scroll-anchor computation
+- Extracted the 5-line scroll anchor block (reads virtualScrollTopRef/flatItemsRef/itemOffsetsRef, finds first visible item, writes scrollAnchorPathRef + isFilterChangeRef) into a `saveScrollAnchor` useCallback; all three filter setters (`setSearchQuery`, `setTypeFilter`, `setRefFilter`) now call it instead of duplicating the logic
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L285
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #21  ·  12 queued · 0
+0 in-progress · last took 50s
+═══════════════════════════════════════════════════════════════
+  → Plugin sandbox revert handlers bypass type safety with `as any` casts and no runtime shape validation — controller.ts lines 213 and 224 pass `msg.varSnapshot as any` and `msg.styleSnapshot as any` to `revertVariables`/`revertStyles`; if the UI sends a malformed or stale snapshot (missing `records`, `createdIds`, or `modeMap` fields), the plugin crashes with an uncaught TypeError deep in Figma API calls with no error sent back to the UI; add typed interfaces for the snapshot shapes and validate the incoming message before passing to revert functions
+  Worktree: /tmp/backlog-54964-sYVwoX
+  Running agent… (started 02:05:09)
+
+  ✓ done: Plugin sandbox revert handlers bypass type safety with `as any` casts and no runtime shape validation
+    Added VarSnapshot/StyleSnapshot/RevertVariablesMessage/RevertStylesMessage interfaces to shared/types.ts; updated PluginMessage and ControllerMessage unions; removed as Parameters<> casts in controller.ts; removed local any-typed snapshot aliases in PublishPanel.tsx
+    67 turns · 343s · $1.71
+
+  Merging to main: Plugin sandbox revert handlers bypass type safety with `as any` casts and no runtime shape validation
+Already up to date.

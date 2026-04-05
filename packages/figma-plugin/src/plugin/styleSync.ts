@@ -2,6 +2,7 @@ import type { ColorValue, GradientValue, TypographyValue, ShadowValue, Dimension
 import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
 import { getErrorMessage } from '../shared/utils.js';
+import type { StyleSnapshotEntry, StyleSnapshot } from '../shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Token shapes flowing into applyStyles — these carry a `path` field added by
@@ -48,12 +49,6 @@ interface StyleCache {
 // Public entry point
 // ---------------------------------------------------------------------------
 
-// Serializable snapshot of a single Figma style's pre-sync state.
-interface StyleSnapshotEntry {
-  id: string;
-  type: 'paint' | 'text' | 'effect';
-  data: any; // serializable: Paint[], text style fields, or Effect[]
-}
 
 export async function applyStyles(tokens: StyleToken[], correlationId?: string) {
   // Fetch all local styles once upfront instead of per-token.
@@ -144,7 +139,7 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
 
 /** Restore Figma styles to the state captured in a prior applyStyles() call. */
 export async function revertStyles(
-  data: { snapshots: StyleSnapshotEntry[]; createdIds: string[] },
+  data: StyleSnapshot,
   correlationId?: string,
 ) {
   const failures: string[] = [];
@@ -155,16 +150,17 @@ export async function revertStyles(
     if (!style) { failures.push(`style ${snap.id} no longer exists`); return; }
     try {
       if (snap.type === 'paint') {
-        (style as PaintStyle).paints = snap.data;
+        (style as PaintStyle).paints = snap.data as Paint[];
       } else if (snap.type === 'text') {
         const ts = style as TextStyle;
-        await figma.loadFontAsync(snap.data.fontName);
-        ts.fontName = snap.data.fontName;
-        if (snap.data.fontSize !== undefined) ts.fontSize = snap.data.fontSize;
-        if (snap.data.lineHeight !== undefined) ts.lineHeight = snap.data.lineHeight;
-        if (snap.data.letterSpacing !== undefined) ts.letterSpacing = snap.data.letterSpacing;
+        const td = snap.data as { fontName: FontName; fontSize?: number; lineHeight?: LineHeight; letterSpacing?: LetterSpacing };
+        await figma.loadFontAsync(td.fontName);
+        ts.fontName = td.fontName;
+        if (td.fontSize !== undefined) ts.fontSize = td.fontSize;
+        if (td.lineHeight !== undefined) ts.lineHeight = td.lineHeight;
+        if (td.letterSpacing !== undefined) ts.letterSpacing = td.letterSpacing;
       } else if (snap.type === 'effect') {
-        (style as EffectStyle).effects = snap.data;
+        (style as EffectStyle).effects = snap.data as Effect[];
       }
     } catch (e) {
       failures.push(`restore(${snap.id}): ${getErrorMessage(e)}`);
