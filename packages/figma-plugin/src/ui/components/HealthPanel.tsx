@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { HeatmapResult } from './HeatmapPanel';
@@ -196,6 +196,66 @@ export function HealthPanel({
   const runValidation = onRefreshValidation;
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
+
+  // Suppressions
+  const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(new Set());
+  const [suppressingKey, setSuppressingKey] = useState<string | null>(null);
+  const [showSuppressed, setShowSuppressed] = useState(false);
+
+  // Load suppressions from server on mount / reconnect
+  useEffect(() => {
+    if (!connected || !serverUrl) return;
+    apiFetch(`${serverUrl}/api/lint/suppressions`)
+      .then(r => r.json())
+      .then((data: { suppressions: string[] }) => {
+        if (Array.isArray(data.suppressions)) {
+          setSuppressedKeys(new Set(data.suppressions));
+        }
+      })
+      .catch(() => {/* suppressions are best-effort */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, serverUrl]);
+
+  const handleSuppress = async (issue: ValidationIssue) => {
+    const key = suppressKey(issue);
+    if (suppressedKeys.has(key)) return;
+    setSuppressingKey(key);
+    const next = new Set(suppressedKeys);
+    next.add(key);
+    setSuppressedKeys(next);
+    try {
+      await apiFetch(`${serverUrl}/api/lint/suppressions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suppressions: [...next] }),
+      });
+    } catch {
+      // Revert optimistic update
+      setSuppressedKeys(prev => { const r = new Set(prev); r.delete(key); return r; });
+      onError('Failed to save suppression');
+    } finally {
+      setSuppressingKey(null);
+    }
+  };
+
+  const handleUnsuppress = async (key: string) => {
+    setSuppressingKey(key);
+    const next = new Set(suppressedKeys);
+    next.delete(key);
+    setSuppressedKeys(next);
+    try {
+      await apiFetch(`${serverUrl}/api/lint/suppressions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suppressions: [...next] }),
+      });
+    } catch {
+      setSuppressedKeys(prev => { const r = new Set(prev); r.add(key); return r; });
+      onError('Failed to remove suppression');
+    } finally {
+      setSuppressingKey(null);
+    }
+  };
 
   // Dashboard strip (health summary cards) — expanded by default so health overview is primary
   const [dashboardExpanded, setDashboardExpanded] = useState(true);
@@ -439,10 +499,8 @@ export function HealthPanel({
 
   const suppressKey = (issue: ValidationIssue) => `${issue.rule}:${issue.setName}:${issue.path}`;
 
-  // For simplicity in HealthPanel, we show all issues without suppression management
-  // (suppression is still available in the full validation view via the tokens tab filter)
   const activeIssues = validationIssuesProp
-    ? validationIssuesProp.filter(i => i.rule !== 'no-duplicate-values')
+    ? validationIssuesProp.filter(i => i.rule !== 'no-duplicate-values' && !suppressedKeys.has(suppressKey(i)))
     : null;
 
   const filteredIssues = activeIssues
@@ -1092,6 +1150,14 @@ export function HealthPanel({
                                     'Fix type'}
                                 </button>
                               )}
+                              <button
+                                onClick={() => handleSuppress(issue)}
+                                disabled={suppressedKeys.has(suppressKey(issue)) || suppressingKey === suppressKey(issue)}
+                                title="Suppress this violation — hide it from the report"
+                                className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                              >
+                                {suppressingKey === suppressKey(issue) ? '…' : 'Suppress'}
+                              </button>
                               {onNavigateToToken && (
                                 <button
                                   onClick={() => onNavigateToToken(issue.path, issue.setName)}
@@ -1105,6 +1171,54 @@ export function HealthPanel({
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Suppressed Issues */}
+            {suppressedKeys.size > 0 && (
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+                <button
+                  onClick={() => setShowSuppressed(v => !v)}
+                  className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+                >
+                  <span className="flex items-center gap-1.5">
+                    Suppressed Issues
+                    <span className="ml-1 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">{suppressedKeys.size}</span>
+                  </span>
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showSuppressed ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                </button>
+                {showSuppressed && (
+                  <div>
+                    <div className="px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                      These violations are hidden from the report. Click <strong>Unsuppress</strong> to re-enable.
+                    </div>
+                    <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                      {[...suppressedKeys].map(key => {
+                        const [rule, setName, ...pathParts] = key.split(':');
+                        const path = pathParts.join(':');
+                        return (
+                          <div key={key} className="group flex items-center gap-2 px-3 py-1.5">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
+                                <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{setName}</span>
+                              </div>
+                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-70">{rule}</div>
+                            </div>
+                            <button
+                              onClick={() => handleUnsuppress(key)}
+                              disabled={suppressingKey === key}
+                              className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] shrink-0 disabled:opacity-40 disabled:cursor-wait"
+                              title="Remove suppression — show this violation again"
+                            >
+                              {suppressingKey === key ? '…' : 'Unsuppress'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

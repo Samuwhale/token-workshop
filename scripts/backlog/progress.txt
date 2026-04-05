@@ -551,3 +551,19 @@
   - For two-column side-by-side diffs without alignment, computing independent changed-line sets per side is sufficient and much simpler than aligned diffs. Alignment would require inserting blank spacer rows which adds complexity for a narrow plugin panel.
   - The `useMemo` pattern (computing all diffs in a single pass over `git.mergeConflicts`) keeps the rendering path clean — no computation in JSX.
 ---
+
+## 2026-04-05 - No lint suppression management UI
+- Implemented full lint suppression management in two layers:
+  1. **Server**: `validateAllTokens` in `packages/server/src/services/lint.ts` now filters out issues whose key (`rule:setName:tokenPath`) appears in `config.suppressions`. The config was already passed through but suppressions were never applied.
+  2. **UI**: `HealthPanel.tsx` gains:
+     - `suppressedKeys` state loaded from `GET /api/lint/suppressions` on mount/reconnect
+     - `handleSuppress`/`handleUnsuppress` handlers that optimistically update state and PUT to `/api/lint/suppressions`
+     - `activeIssues` now filters out suppressed violations before display
+     - "Suppress" button on each issue row (hover-only, next to Fix and Go)
+     - "Suppressed Issues" collapsible section showing all suppressed keys with per-row "Unsuppress" button, visible only when suppressedKeys.size > 0
+- Files changed: `packages/server/src/services/lint.ts` ~L607, `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L1,L198,L444,L1155,L1179
+- **Learnings for future iterations:**
+  - The suppression key format `rule:setName:tokenPath` means parsing it back (for display) requires splitting on `:` with awareness that paths can't contain `:` but the split needs to handle the rule and setName first: `const [rule, setName, ...pathParts] = key.split(':'); const path = pathParts.join(':')`.
+  - `useEffect` for server-fetched state (like suppressions) should use `apiFetch(...).then(r => r.json())` rather than `await` syntax when the component doesn't need loading state beyond the initial fetch.
+  - The HealthPanel comment "suppression is still available in the full validation view via the tokens tab filter" was aspirational documentation, not actual code — always verify referenced features exist before trusting comments.
+---

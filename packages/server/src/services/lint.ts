@@ -604,5 +604,8 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
     }
   }
 
-  return issues;
+  // Filter out server-persisted suppressions. Format: "rule:setName:tokenPath"
+  const suppressionSet = new Set(cfg.suppressions ?? []);
+  if (suppressionSet.size === 0) return issues;
+  return issues.filter(i => !suppressionSet.has(`${i.rule}:${i.setName}:${i.path}`));
 }
