@@ -314,6 +314,7 @@ export function StepperInput({
         <button
           type="button"
           tabIndex={-1}
+          aria-label="Increment"
           onMouseDown={e => { e.preventDefault(); step(1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] leading-none"
         >
@@ -322,6 +323,7 @@ export function StepperInput({
         <button
           type="button"
           tabIndex={-1}
+          aria-label="Decrement"
           onMouseDown={e => { e.preventDefault(); step(-1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)] leading-none"
         >

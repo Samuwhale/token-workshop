@@ -802,3 +802,10 @@
   - Track `succeededItems` as a separate array (not just a count) when downstream work (e.g. layer binding) needs to operate only on successfully created records.
   - The "all failed" case should keep the user on the form so they can retry; the "some failed" case should advance to a partial-success done view with the failure list visible immediately (no extra click required).
 ---
+
+## 2026-04-05 - Stepper number input buttons missing aria-label
+- Added `aria-label="Increment"` and `aria-label="Decrement"` to the two stepper buttons in `StepperInput` in ValueEditors.tsx. The SVG icons already had `aria-hidden="true"`, so without labels screen readers encountered nameless buttons on touch exploration.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L314, ~L322
+- **Learnings for future iterations:**
+  - When SVG icons are `aria-hidden`, the parent button must have an explicit `aria-label`; `tabIndex={-1}` only removes keyboard focus but doesn't affect touch/virtual-cursor accessibility.
+---
