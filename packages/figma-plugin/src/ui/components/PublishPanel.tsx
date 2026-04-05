@@ -142,10 +142,15 @@ const VAR_SYNC_SPEC: SyncBuildersSpec = {
   displayValue: (raw) => raw,
 };
 
-const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
+const STYLE_TYPES = new Set(['color', 'gradient', 'typography', 'shadow']);
 
 function summarizeStyleValue(value: any, type: string): string {
   if (type === 'color') return String(value);
+  if (type === 'gradient' && value && typeof value === 'object' && Array.isArray(value.stops)) {
+    const gradType = value.type ?? 'linear';
+    const stopColors = (value.stops as Array<{ color?: string }>).map(s => s?.color ?? '').filter(Boolean).join(' → ');
+    return `${gradType}: ${stopColors}`.slice(0, 48);
+  }
   if (type === 'typography' && value && typeof value === 'object') {
     const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily;
     const size = typeof value.fontSize === 'object' ? `${value.fontSize.value}${value.fontSize.unit}` : String(value.fontSize ?? '');

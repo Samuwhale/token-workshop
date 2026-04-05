@@ -231,21 +231,39 @@ function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
   style.setPluginData('tokenPath', token.path);
 }
 
+const TOKEN_TO_FIGMA_GRADIENT: Record<string, GradientPaint['type']> = {
+  linear: 'GRADIENT_LINEAR',
+  radial: 'GRADIENT_RADIAL',
+  angular: 'GRADIENT_ANGULAR',
+  diamond: 'GRADIENT_DIAMOND',
+};
+
 function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): void {
-  const stops = Array.isArray(token.$value) ? token.$value : [];
+  // Support both { type, stops } object format (from GradientEditor) and legacy flat GradientStop[]
+  const rawValue = token.$value as any;
+  const stops = Array.isArray(rawValue)
+    ? rawValue
+    : (rawValue && typeof rawValue === 'object' && Array.isArray(rawValue.stops))
+      ? rawValue.stops
+      : [];
+  const gradientTypeName: string = (!Array.isArray(rawValue) && rawValue && typeof rawValue === 'object' && rawValue.type)
+    ? String(rawValue.type)
+    : 'linear';
+
   if (stops.length < 2) {
     throw new Error(`Gradient requires at least 2 stops, got ${stops.length}`);
   }
-  const parseResults = stops.map((stop, i) => ({ stop, color: parseColor(stop.color as string), index: i }));
-  const failedStops = parseResults.filter(r => !r.color);
+  const parseResults = stops.map((stop: { color: string; position: number }, i: number) => ({ stop, color: parseColor(stop.color as string), index: i }));
+  const failedStops = parseResults.filter((r: { color: ReturnType<typeof parseColor> }) => !r.color);
   if (failedStops.length > 0) {
-    const indices = failedStops.map(r => `stop ${r.index} ("${r.stop.color}")`).join(', ');
+    const indices = (failedStops as Array<{ index: number; stop: { color: string } }>).map(r => `stop ${r.index} ("${r.stop.color}")`).join(', ');
     throw new Error(`${failedStops.length} of ${stops.length} gradient stop${failedStops.length > 1 ? 's' : ''} could not be parsed: ${indices}`);
   }
-  const gradientStops: ColorStop[] = parseResults.map(r => ({
+  const gradientStops: ColorStop[] = (parseResults as Array<{ stop: { position: number }; color: NonNullable<ReturnType<typeof parseColor>> }>).map(r => ({
     position: r.stop.position,
-    color: { ...r.color!.rgb, a: r.color!.a },
+    color: { ...r.color.rgb, a: r.color.a },
   } as ColorStop));
+  const figmaGradientType: GradientPaint['type'] = TOKEN_TO_FIGMA_GRADIENT[gradientTypeName] ?? 'GRADIENT_LINEAR';
   const name = tokenPathToStyleName(token.path);
   let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
@@ -254,7 +272,7 @@ function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): 
     cache.paintStyles.push(style);
   }
   style.paints = [{
-    type: 'GRADIENT_LINEAR',
+    type: figmaGradientType,
     gradientTransform: [[1, 0, 0], [0, 1, 0]],
     gradientStops,
     opacity: 1,
@@ -325,6 +343,13 @@ interface ReadColorToken {
   _warning?: string;
 }
 
+interface ReadGradientToken {
+  path: string;
+  $type: 'gradient';
+  $value: { type: string; stops: Array<{ color: string; position: number }> };
+  _warning?: string;
+}
+
 interface ReadTypographyToken {
   path: string;
   $type: 'typography';
@@ -351,10 +376,17 @@ interface ReadShadowToken {
   }>;
 }
 
-type ReadStyleToken = ReadColorToken | ReadTypographyToken | ReadShadowToken;
+type ReadStyleToken = ReadColorToken | ReadGradientToken | ReadTypographyToken | ReadShadowToken;
 
 export async function readFigmaStyles(correlationId?: string) {
   const tokens: ReadStyleToken[] = [];
+
+  const FIGMA_GRADIENT_TYPE: Record<string, string> = {
+    GRADIENT_LINEAR: 'linear',
+    GRADIENT_RADIAL: 'radial',
+    GRADIENT_ANGULAR: 'angular',
+    GRADIENT_DIAMOND: 'diamond',
+  };
 
   const paintStyles = await figma.getLocalPaintStylesAsync();
   for (const style of paintStyles) {
@@ -362,57 +394,53 @@ export async function readFigmaStyles(correlationId?: string) {
     const visiblePaints = style.paints.filter(p => p.visible !== false);
     if (visiblePaints.length === 0) continue;
 
-    const warnings: string[] = [];
-    let hex: string | null = null;
-
-    // Try to find a solid paint first
     const solidPaint = visiblePaints.find(p => p.type === 'SOLID') as SolidPaint | undefined;
-    if (solidPaint) {
-      hex = rgbToHex(solidPaint.color, solidPaint.opacity ?? 1);
-    } else {
-      // Fall back to first gradient stop
-      const gradPaint = visiblePaints.find(p =>
-        p.type === 'GRADIENT_LINEAR' || p.type === 'GRADIENT_RADIAL' ||
-        p.type === 'GRADIENT_ANGULAR' || p.type === 'GRADIENT_DIAMOND'
-      ) as GradientPaint | undefined;
-      if (gradPaint && gradPaint.gradientStops.length > 0) {
-        const stop = gradPaint.gradientStops[0];
-        hex = rgbToHex(stop.color, stop.color.a ?? 1);
-        warnings.push('Gradient converted to first stop color');
-      }
-    }
-
-    if (!hex) continue;
-
-    // Check for skipped paints
-    const solidCount = visiblePaints.filter(p => p.type === 'SOLID').length;
-    const gradientCount = visiblePaints.filter(p =>
+    const gradientPaints = visiblePaints.filter(p =>
       p.type === 'GRADIENT_LINEAR' || p.type === 'GRADIENT_RADIAL' ||
       p.type === 'GRADIENT_ANGULAR' || p.type === 'GRADIENT_DIAMOND'
-    ).length;
-
-    if (solidCount > 1) {
-      warnings.push(`${solidCount - 1} additional solid fill(s) skipped`);
-    }
-    if (solidPaint && gradientCount > 0) {
-      warnings.push(`${gradientCount} gradient fill(s) skipped`);
-    } else if (!solidPaint && gradientCount > 1) {
-      warnings.push(`${gradientCount - 1} additional gradient fill(s) skipped`);
-    }
+    ) as GradientPaint[];
     const imgCount = visiblePaints.filter(p => p.type === 'IMAGE').length;
-    if (imgCount > 0) {
-      warnings.push(`${imgCount} image fill(s) skipped`);
-    }
 
-    const token: ReadColorToken = {
-      path: style.name.replace(/\//g, '.'),
-      $type: 'color',
-      $value: hex,
-    };
-    if (warnings.length > 0) {
-      token._warning = warnings.join('; ');
+    if (solidPaint) {
+      // Solid paint wins — emit color token, warn about skipped layers
+      const warnings: string[] = [];
+      const solidCount = visiblePaints.filter(p => p.type === 'SOLID').length;
+      if (solidCount > 1) warnings.push(`${solidCount - 1} additional solid fill(s) skipped`);
+      if (gradientPaints.length > 0) warnings.push(`${gradientPaints.length} gradient fill(s) skipped`);
+      if (imgCount > 0) warnings.push(`${imgCount} image fill(s) skipped`);
+
+      const hex = rgbToHex(solidPaint.color, solidPaint.opacity ?? 1);
+      const token: ReadColorToken = {
+        path: style.name.replace(/\//g, '.'),
+        $type: 'color',
+        $value: hex,
+      };
+      if (warnings.length > 0) token._warning = warnings.join('; ');
+      tokens.push(token);
+    } else if (gradientPaints.length > 0) {
+      // No solid — emit gradient token preserving all stops
+      const gradPaint = gradientPaints[0];
+      if (gradPaint.gradientStops.length < 2) continue; // degenerate gradient, skip
+
+      const gradientType = FIGMA_GRADIENT_TYPE[gradPaint.type] ?? 'linear';
+      const stops = gradPaint.gradientStops.map(s => ({
+        color: rgbToHex(s.color, s.color.a ?? 1),
+        position: s.position,
+      }));
+
+      const warnings: string[] = [];
+      if (gradientPaints.length > 1) warnings.push(`${gradientPaints.length - 1} additional gradient fill(s) skipped`);
+      if (imgCount > 0) warnings.push(`${imgCount} image fill(s) skipped`);
+
+      const token: ReadGradientToken = {
+        path: style.name.replace(/\//g, '.'),
+        $type: 'gradient',
+        $value: { type: gradientType, stops },
+      };
+      if (warnings.length > 0) token._warning = warnings.join('; ');
+      tokens.push(token);
     }
-    tokens.push(token);
+    // else: no solid or gradient paints (e.g. image-only) — skip this style
   }
 
   const textStyles = await figma.getLocalTextStylesAsync();
