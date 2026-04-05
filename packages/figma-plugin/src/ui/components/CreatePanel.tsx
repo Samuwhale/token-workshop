@@ -1142,8 +1142,10 @@ function BulkTab({
   onTokenCreated?: (path: string) => void;
   onRefresh: () => void;
 }) {
+  type BulkRow = { id: string; name: string; type: string; value: string; rawValue?: unknown; typeSetManually?: boolean };
+
   const [group, setGroup] = useState('');
-  const [rows, setRows] = useState<Array<{ id: string; name: string; type: string; value: string; rawValue?: unknown }>>([
+  const [rows, setRows] = useState<BulkRow[]>([
     { id: '1', name: '', type: 'color', value: '' },
     { id: '2', name: '', type: 'color', value: '' },
     { id: '3', name: '', type: 'color', value: '' },
@@ -1158,14 +1160,48 @@ function BulkTab({
     setRows(r => [...r, { id: String(nextId.current++), name: '', type: lastType, value: '' }]);
   };
 
+  const handleGroupChange = (newGroup: string) => {
+    setGroup(newGroup);
+    // Re-infer types for rows that haven't been manually overridden
+    setRows(r => r.map(row => {
+      if (row.typeSetManually || !row.name.trim()) return row;
+      const inferred = inferTypeFromPath(newGroup, row.name);
+      if (inferred && inferred !== row.type) {
+        return { ...row, type: inferred, value: getDefaultValue(inferred) };
+      }
+      return row;
+    }));
+  };
+
   const updateRow = (id: string, field: string, value: string) => {
     // Clear per-row error when user edits the row
     setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
     setRows(r => r.map(row => {
       if (row.id !== id) return row;
       // Clear rawValue when user manually edits the value field so parseInlineValue is used
-      const update: typeof row = { ...row, [field]: value };
+      const update: BulkRow = { ...row, [field]: value };
       if (field === 'value') delete update.rawValue;
+
+      // Type inference when name changes
+      if (field === 'name') {
+        if (!value.trim()) {
+          // Clear manual override when name is emptied so inference resumes
+          update.typeSetManually = false;
+        } else if (!row.typeSetManually) {
+          const inferred = inferTypeFromPath(group, value);
+          if (inferred && inferred !== row.type) {
+            update.type = inferred;
+            update.value = getDefaultValue(inferred);
+            delete update.rawValue;
+          }
+        }
+      }
+
+      // Mark as manually set when user explicitly changes the type dropdown
+      if (field === 'type') {
+        update.typeSetManually = true;
+      }
+
       return update;
     }));
   };
@@ -1274,9 +1310,12 @@ function BulkTab({
       return {
         id: String(nextId.current++),
         name: (parts[0] || '').trim(),
-        type: (['color', 'dimension', 'number', 'string', 'boolean', 'duration'].includes((parts[1] || '').trim().toLowerCase())
-          ? (parts[1] || '').trim().toLowerCase()
-          : 'color'),
+        type: (() => {
+          const explicit = (parts[1] || '').trim().toLowerCase();
+          if (['color', 'dimension', 'number', 'string', 'boolean', 'duration', 'typography', 'shadow', 'border', 'gradient', 'transition', 'fontfamily', 'fontweight', 'fontstyle', 'letterspacing', 'lineheight', 'cubicbezier'].includes(explicit)) return explicit;
+          return inferTypeFromPath(group, (parts[0] || '').trim()) || 'color';
+        })(),
+        typeSetManually: ['color', 'dimension', 'number', 'string', 'boolean', 'duration', 'typography', 'shadow', 'border', 'gradient', 'transition', 'fontfamily', 'fontweight', 'fontstyle', 'letterspacing', 'lineheight', 'cubicbezier'].includes((parts[1] || '').trim().toLowerCase()),
         value: (parts[2] || parts[1] || '').trim(),
       };
     }).filter(r => r.name);
@@ -1292,7 +1331,7 @@ function BulkTab({
             type="text"
             placeholder="Root (none)"
             value={group}
-            onChange={e => setGroup(e.target.value)}
+            onChange={e => handleGroupChange(e.target.value)}
             list="bulk-groups"
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
           />

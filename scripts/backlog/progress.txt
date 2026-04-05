@@ -414,3 +414,15 @@
   - The `setSearchQuery` callback in `useTokenSearch` already handles structured qualifier delegation to the command palette, so `applyFilterPreset` simply calls `setSearchQuery` and the routing logic is preserved for free.
   - The `onBlur` + `setTimeout(..., 150)` pattern (same as qualifier help) prevents the dropdown from closing when the user clicks an item inside it — `onMouseDown` `e.preventDefault()` on interactive items prevents blur before click fires.
 ---
+
+## 2026-04-05 - Bulk create tab does not infer token type per row
+- Added per-row path-based type inference to BulkTab: when a row's name changes, `inferTypeFromPath(group, name)` runs and updates the type + resets the value to the default for the new type, mirroring SingleCreateTab behaviour.
+- Per-row `typeSetManually` flag prevents inference from overriding the user's explicit type choice; selecting a type from the dropdown sets this flag and name-clearing resets it.
+- Group prefix changes re-infer types for all non-manually-set rows via `handleGroupChange`.
+- Tab-separated paste fallback now uses `inferTypeFromPath` instead of hardcoding `'color'` when the pasted type column is unrecognised; explicit recognized types mark `typeSetManually: true`.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L1145 (BulkRow type, handleGroupChange, updateRow inference logic, group onChange handler, paste handler fallback)
+- **Learnings for future iterations:**
+  - The `updateRow` closure already has access to `group` state so inference works without passing group as a parameter.
+  - `typeSetManually` belongs on the row object (not a separate Map/Set) because it needs to survive row reorders and partial resets.
+  - Clearing name (empty string) should reset `typeSetManually` so the next name entry gets fresh inference — matches the single-create tab's `typeSetManually.current = false` pattern.
+---
