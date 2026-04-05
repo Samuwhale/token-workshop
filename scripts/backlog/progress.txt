@@ -391,3 +391,10 @@
   - The "Extract to alias" infrastructure (hook + modal + context type + TokenList wiring) was fully implemented but the context menu button was simply missing — the feature existed only for lint-violation suggested fixes (`onExtractToAliasForLint`), not as a general user action.
   - When adding a context-menu item that should be conditionally shown, wrapping in `{condition && (...)}` is the right pattern used throughout this file.
 ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: TokenTreeNode.tsx (context menus, hover actions, keyboard nav), PreviewPanel.tsx (interactive elements, a11y), TokenEditor.tsx (save feedback), CreatePanel.tsx (create feedback), ThemeManager.tsx (CRUD feedback, empty states, form validation), ResolverPanel.tsx (feedback patterns), SettingsPanel.tsx (import/export feedback), ExportPanel.tsx (reference gold standard), all modal/dialog components (ConfirmModal, TokenListModals, PublishModals, etc.), useFocusTrap, useMenuKeyboard
+- Heuristics most relevant: keyboard accessibility, consistency, system status visibility
+- Found 6 items — written to backlog-inbox.md
+- Notable: Token-level hover action buttons use `hidden group-hover:flex` without `group-focus-within` while group-level buttons correctly include it — a copy-paste inconsistency that makes the entire token row action bar invisible to keyboard users. Also, the token context menu is missing `handleMenuArrowKeys` that the group context menu has, creating two different keyboard experiences for visually identical menus.
+---
