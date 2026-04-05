@@ -708,3 +708,15 @@
   - The two toggle bar blocks in ThemeManager are nearly identical — when editing one, always check for the sibling block. A shared helper component would eliminate the duplication but wasn't necessary for this focused fix.
   - `adaptShortcut(SHORTCUT_KEYS.X)` is the correct pattern for displaying shortcuts in UI labels — never hardcode Mac-specific symbols.
 ---
+
+## 2026-04-05 - Dependencies sub-tab is only useful for a specific token but has no token pre-selected
+- Stale — already done. Full end-to-end wiring was already in place:
+  1. TokenTreeNode.tsx ~L2335: context menu has "Open in dependency graph" action calling `onShowReferences(node.path)`
+  2. TokenEditor.tsx ~L985, ~L1108, ~L1382: editor has `onShowReferences` buttons in toolbar and References section
+  3. PanelRouter.tsx ~L280-282, ~L324: both wired to `setFlowPanelInitialPath(path)` + `navigateTo('apply', 'dependencies')`
+  4. TokenFlowPanel.tsx ~L384-389: `initialPath` useEffect auto-selects the pre-selected token
+  5. TokenList.tsx ~L1870: `onShowReferences` passed through context to all tree nodes
+- Files changed: none (no changes needed)
+- **Learnings for future iterations:**
+  - When a backlog item describes a missing feature that may have been implemented in a prior session's collateral work, check the context menu, editor, and wiring before assuming it's still missing.
+---
