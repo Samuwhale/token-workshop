@@ -739,3 +739,10 @@
 - **Learnings for future iterations:**
   - The shortcut registry in `shared/shortcutRegistry.ts` is the canonical source for what's shown in the shortcuts modal — check it first before assuming a shortcut is missing.
 ---
+
+## 2026-04-05 - History panel unified timeline
+- Item is stale — already implemented. The HistoryPanel.tsx contains a fully unified timeline merging all 4 entry types (local, action/operation, commit, snapshot) sorted by timestamp, with TypePill indicators and interactive type filter buttons. This was completed in commit `befd3ea4` ("Merge the HistoryPanel's three sub-tabs into a unified change timeline") and subsequently enhanced in multiple follow-up commits.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check git log for the specific file before planning — prior backlog sessions may have already implemented the requested feature.
+---
