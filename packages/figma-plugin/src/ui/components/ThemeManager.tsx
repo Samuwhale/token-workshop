@@ -327,7 +327,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             empty
           </span>
         )}
-        <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px] font-medium">
+        <div
+          role="group"
+          aria-label={`Status for ${setName}`}
+          className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px] font-medium"
+        >
           {(['disabled', 'source', 'enabled'] as const).map(s => (
             <button
               key={s}
@@ -341,13 +345,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text-secondary)]'
                   : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
-              title={STATE_DESCRIPTIONS[s]}
+              aria-label={`${STATE_LABELS[s]} "${setName}": ${STATE_DESCRIPTIONS[s]}`}
               aria-pressed={status === s}
             >
               {STATE_LABELS[s]}
             </button>
           ))}
         </div>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const x = Math.min(rect.right + 4, window.innerWidth - 180);
+            const y = Math.min(rect.bottom, window.innerHeight - 120);
+            setBulkMenu({ x, y, dimId: dim.id, setName });
+          }}
+          className="opacity-40 group-hover/setrow:opacity-100 focus:opacity-100 transition-opacity px-1 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          aria-label={`Set "${setName}" status in all options`}
+          aria-haspopup="menu"
+          title={`Set "${setName}" in all options`}
+        >
+          ⋯
+        </button>
       </div>
     );
   };

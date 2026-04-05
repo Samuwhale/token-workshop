@@ -629,3 +629,11 @@
   - The warning banner color (`bg-[#FFF3CD]/30` + amber-500 icon) is visually distinct from the neutral footer without being alarming.
   - When a panel-level state (like `confirmingReload`) needs to reset when the parent flow is cancelled, wire it into all cancel/dismiss paths — there were two dismiss paths here (✕ header button, Cancel footer button).
 ---
+
+## 2026-04-05 - ThemeManager set-row status toggle buttons have no keyboard-accessible labels
+- Added `role="group" aria-label="Status for {setName}"` wrapper to the toggle button group in `renderSetRow`. Updated each button's `aria-label` to include the set name and full description (e.g., `Excluded "globals": Tokens from this set are not used in this option`), replacing the ambiguous short label as the only accessible name. Added a keyboard-accessible "⋯" more-options button at the end of each set row that opens the bulk status context menu (positioned from the button's bounding rect). The button is faint (opacity-40) but always visible and becomes full opacity on hover or keyboard focus. The bulk menu already had Escape/ArrowDown/ArrowUp keyboard navigation and auto-focus of the first item via `useThemeBulkOps`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L330-370
+- **Learnings for future iterations:**
+  - Check `useThemeBulkOps.ts` first before adding menu keyboard logic — it already handled Escape + arrow navigation + first-item auto-focus for the bulk menu. Only the trigger button was missing.
+  - For toggle button groups, `role="group" aria-label="[what is being controlled]"` plus per-button `aria-label` including the item name and description gives screen readers complete context without redundancy.
+---
