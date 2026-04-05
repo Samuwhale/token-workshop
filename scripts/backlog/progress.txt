@@ -424,3 +424,16 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: InlineValuePopover edits (shadow, typography, border, gradient) bypass the undo stack entirely — onSave is called directly without pushUndo, making composite token quick-edits irreversible. Also, ⌘Z/⌘⇧Z shortcuts are listed in the help modal but marked displayOnly with no handlers, so users see them documented but pressing them does nothing.
 ---
+
+## 2026-04-05 - Inline popover edits bypass undo stack
+- Fixed `handleInlineSave` and `handleDescriptionSave` in `useTokenSave.ts` to use `perSetFlat?.[setName]?.[path]` as the primary source for capturing old values before a save, falling back to `allTokensFlat[path]`. This fixes two related bugs:
+  1. **Undo skipped for theme-disabled tokens**: When a token lives in a set that's "disabled" by the active theme, `allTokensFlat` (= `themedAllTokensFlat`) doesn't contain it. The `oldEntry` would be `undefined`, silently skipping `pushUndo`.
+  2. **Undo restores resolved values**: `allTokensFlat` has alias-resolved values. For composite tokens (shadow, typography, etc.) with aliased sub-properties (e.g. `color: "{color.primary}"`), undo would restore the resolved hex value (`#FF0000`) instead of the alias reference, permanently destroying the alias.
+  Using `perSetFlat[setName][path]` captures the raw, unresolved per-set value, so undo correctly restores the original file content.
+- Also updated the `useCallback` dependency arrays for both handlers to include `perSetFlat`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenSave.ts` ~L37, ~L45, ~L90, ~L95, ~L140
+- **Learnings for future iterations:**
+  - `allTokensFlat` in TokenList's context is `themedAllTokensFlat` (cross-set, alias-resolved). It is NOT the per-set raw value map. Always use `perSetFlat[setName][path]` when you need the raw pre-save value for undo of an inline edit.
+  - `perSetFlat` is built from `fetchAllTokensFlatWithSets` without `resolveAllAliases`, so its values preserve alias references intact. `allTokensFlat` runs `resolveAllAliases` on top.
+  - The condition `if (onPushUndo && oldEntry)` silently skips undo when `oldEntry` is falsy — dangerous when `allTokensFlat` is the themed view which may exclude some sets.
+---

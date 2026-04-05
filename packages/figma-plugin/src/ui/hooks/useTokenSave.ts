@@ -36,7 +36,13 @@ export function useTokenSave({
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: unknown) => {
     if (!connected) return;
-    const oldEntry = allTokensFlat[path];
+    // Prefer the raw per-set entry (alias refs intact) over the resolved cross-set
+    // entry from allTokensFlat. For composite tokens (shadow, typography, etc.) whose
+    // sub-properties may be aliases, restoring the resolved value on undo would bake
+    // the resolved values into the file and destroy the alias references. Using the
+    // per-set entry also ensures undo is captured when the token lives in a theme-
+    // disabled set that's absent from allTokensFlat.
+    const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
     const encodedPath = tokenPathToUrlSegment(path);
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
@@ -81,12 +87,12 @@ export function useTokenSave({
     }
     onRefresh();
     onRecordTouch(path);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
     const encodedPath = tokenPathToUrlSegment(path);
-    const oldEntry = allTokensFlat[path];
+    const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
         method: 'PATCH',
@@ -131,7 +137,7 @@ export function useTokenSave({
     }
     onRefresh();
     onRecordTouch(path);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: unknown, targetSet: string) => {
     if (!connected) return;
