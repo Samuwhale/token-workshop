@@ -406,6 +406,13 @@ export interface ApplyVariablesMessage {
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
   correlationId?: string;
+  /**
+   * Token path rename pairs recorded since the last sync.
+   * When provided, the plugin renames existing Figma variables to their new
+   * paths instead of creating new ones — preserving variable IDs and all
+   * node bindings that reference the old variable.
+   */
+  renames?: Array<{ oldPath: string; newPath: string }>;
 }
 
 export interface ApplyStylesMessage {

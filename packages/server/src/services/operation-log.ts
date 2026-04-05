@@ -68,6 +68,12 @@ export interface OperationEntry {
   rolledBack: boolean;
   /** Steps to execute during rollback, before token snapshot restoration. */
   rollbackSteps?: RollbackStep[];
+  /**
+   * Explicit old→new token path pairs for rename operations.
+   * Used by the Figma plugin to rename existing variables instead of
+   * creating orphans when tokens are renamed on the server.
+   */
+  pathRenames?: Array<{ oldPath: string; newPath: string }>;
 }
 
 /** Lightweight version returned by the list endpoint (no snapshot data). */
@@ -192,6 +198,21 @@ export class OperationLog {
       after: e.afterSnapshot[tokenPath]?.token ?? null,
     }));
     return { entries, total };
+  }
+
+  /**
+   * Return all recorded path rename pairs from non-rolled-back rename operations.
+   * Used by the Figma plugin to rename existing variables when tokens are renamed.
+   */
+  async getPathRenames(): Promise<Array<{ oldPath: string; newPath: string }>> {
+    await this.ensureLoaded();
+    const RENAME_TYPES = new Set(['token-rename', 'group-rename', 'batch-rename']);
+    const renames: Array<{ oldPath: string; newPath: string }> = [];
+    for (const entry of this.entries) {
+      if (entry.rolledBack || !RENAME_TYPES.has(entry.type) || !entry.pathRenames) continue;
+      renames.push(...entry.pathRenames);
+    }
+    return renames;
   }
 
   // ---------------------------------------------------------------------------

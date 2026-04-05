@@ -287,7 +287,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
       try {
-        await withSyncLock(() => applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId));
+        await withSyncLock(() => applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.renames, msg.correlationId));
       } catch (e) {
         figma.ui.postMessage({
           type: 'apply-variables-error',

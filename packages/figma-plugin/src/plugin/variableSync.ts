@@ -3,7 +3,7 @@ import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaV
 import { getErrorMessage } from '../shared/utils.js';
 import type { VariableSyncToken, ReadVariableCollection, ReadVariableMode, ReadVariableToken, ExportedVariableModeValue, ExportedVariableEntry, ExportedVariableCollection, VarSnapshot } from '../shared/types.js';
 
-export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
+export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
   interface VariableSnapshot {
     valuesByMode: Record<string, VariableValue>;
@@ -46,6 +46,51 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
     // Load all local variables once to avoid redundant async calls per token
     const localVariables = await figma.variables.getLocalVariablesAsync();
+
+    // Pre-process renames: find variables with old names and rename them to their new names
+    // before the main token loop. This preserves variable IDs (and all Figma node bindings
+    // that reference them) when tokens are renamed on the server between syncs.
+    if (renames && renames.length > 0) {
+      for (const { oldPath, newPath } of renames) {
+        const oldFigmaName = oldPath.replace(/\./g, '/');
+        const newFigmaName = newPath.replace(/\./g, '/');
+        if (oldFigmaName === newFigmaName) continue;
+
+        // Only rename TokenManager-managed variables (identified by tokenPath plugin data)
+        const oldVar = localVariables.find(
+          v => v.name === oldFigmaName && v.getPluginData('tokenPath') === oldPath
+        );
+        if (!oldVar) continue;
+
+        // Skip if the target name already exists in the same collection (would create a duplicate)
+        const targetExists = localVariables.some(
+          v => v.variableCollectionId === oldVar.variableCollectionId && v.name === newFigmaName
+        );
+        if (targetExists) continue;
+
+        // Snapshot before modifying so rollback can restore the original name
+        if (!variableSnapshots.has(oldVar.id)) {
+          variableSnapshots.set(oldVar.id, {
+            valuesByMode: structuredClone(oldVar.valuesByMode),
+            name: oldVar.name,
+            description: oldVar.description,
+            hiddenFromPublishing: oldVar.hiddenFromPublishing,
+            scopes: [...oldVar.scopes],
+            pluginData: {
+              tokenPath: oldVar.getPluginData('tokenPath'),
+              tokenSet: oldVar.getPluginData('tokenSet'),
+            },
+          });
+        }
+
+        try {
+          oldVar.name = newFigmaName;
+          oldVar.setPluginData('tokenPath', newPath);
+        } catch (renameErr) {
+          console.warn(`[applyVariables] Failed to rename variable ${oldFigmaName} → ${newFigmaName}:`, renameErr);
+        }
+      }
+    }
 
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];

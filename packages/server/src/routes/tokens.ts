@@ -169,6 +169,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
           const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
           const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
+          const groupPathRenames = Object.keys(before).map(oldPath => ({
+            oldPath,
+            newPath: newGroupPath + oldPath.slice(oldGroupPath.length),
+          }));
           await fastify.operationLog.record({
             type: 'group-rename',
             description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${set}`,
@@ -176,6 +180,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths: [...Object.keys(before), ...Object.keys(after)],
             beforeSnapshot: before,
             afterSnapshot: after,
+            pathRenames: groupPathRenames,
           });
           await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
           return { ok: true, ...result };
@@ -523,6 +528,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           affectedPaths: [...allOldPaths, ...allNewPaths],
           beforeSnapshot: before,
           afterSnapshot: after,
+          pathRenames: renames,
         });
         await fastify.generatorService.updateTokenPaths(pathMap);
         return { ok: true, renamed: result.renamed, operationId: entry.id };
@@ -776,6 +782,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths: [oldPath, newPath],
             beforeSnapshot: before,
             afterSnapshot: after,
+            pathRenames: [{ oldPath, newPath }],
           });
           await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
           return { ok: true, ...result };

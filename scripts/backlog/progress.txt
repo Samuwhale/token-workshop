@@ -460,3 +460,21 @@
   - Tab badge shown only when `searchQuery` is non-empty lets the same Section component serve both modes without duplicating content.
   - `shadow-[inset_0_-2px_0_var(--color-figma-accent)]` is a clean way to render an active tab underline without a negative margin hack.
 ---
+
+## 2026-04-05 - Token rename does not propagate to Figma variable names
+- Implemented rename propagation: when tokens are renamed on the server, the next variable sync in Figma renames the existing Figma variable to the new name instead of creating a new one and orphaning the old one. This preserves the Figma variable ID and all node bindings referencing it.
+- Flow: rename routes record `pathRenames` in the operation log → server exposes `/api/operations/path-renames` → UI fetches renames eagerly on connect/token change → renames passed in the `apply-variables` message → plugin renames variables before the main sync loop (only TokenManager-managed variables, checked via `tokenPath` plugin data, only if target name doesn't already exist).
+- Files changed:
+  - `packages/server/src/services/operation-log.ts` ~L59 (added `pathRenames?` to `OperationEntry`, `getPathRenames()` method)
+  - `packages/server/src/routes/tokens.ts` ~L172 (group-rename), ~L772 (token-rename), ~L519 (batch-rename) — populate `pathRenames`
+  - `packages/server/src/routes/operations.ts` ~L19 (new `GET /api/operations/path-renames` endpoint)
+  - `packages/figma-plugin/src/shared/types.ts` ~L403 (added `renames?` to `ApplyVariablesMessage`)
+  - `packages/figma-plugin/src/plugin/variableSync.ts` ~L6 (signature), ~L55 (rename pre-processing loop)
+  - `packages/figma-plugin/src/plugin/controller.ts` ~L290 (pass `msg.renames`)
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L197 (renamesRef + fetch effect), ~L224 (include in payload)
+- **Learnings for future iterations:**
+  - Token rename→Figma variable rename requires knowing the old→new path pair; there's no way to infer it from the current Figma state alone. The operation log is the right source of truth.
+  - The rename pre-pass must guard against: (a) non-TokenManager variables (check `tokenPath` plugin data), (b) target name already existing in the same collection, (c) same-name renames (no-op).
+  - After renaming `oldVar.name = newFigmaName` in the pre-pass, `localVariables` already reflects the new name (JS objects are by reference), so `findVariableInList` in the main loop correctly finds the newly-renamed variable and updates its value without creating a duplicate.
+  - Snapshot must be taken before renaming in the pre-pass (same snapshot map used for error rollback).
+---

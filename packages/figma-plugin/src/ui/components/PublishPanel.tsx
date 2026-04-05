@@ -194,6 +194,20 @@ interface PublishPanelProps {
 export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {}, tokenChangeKey }: PublishPanelProps) {
   const help = usePanelHelp('publish');
 
+  // ── Rename history for variable name propagation ──
+  // Eagerly fetched from the server so applyVariables can rename existing Figma
+  // variables instead of creating orphans when tokens are renamed between syncs.
+  const renamesRef = useRef<Array<{ oldPath: string; newPath: string }>>([]);
+  useEffect(() => {
+    if (!connected || !serverUrl) { renamesRef.current = []; return; }
+    fetch(`${serverUrl}/api/operations/path-renames`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { renames?: Array<{ oldPath: string; newPath: string }> } | null) => {
+        renamesRef.current = data?.renames ?? [];
+      })
+      .catch(() => { renamesRef.current = []; });
+  }, [connected, serverUrl, tokenChangeKey]);
+
   // ── Section accordion state ──
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['figma-variables', 'figma-styles', 'git']));
   const toggleSection = (id: string) => setOpenSections(prev => {
@@ -222,6 +236,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         };
       }),
       collectionMap, modeMap,
+      renames: renamesRef.current.length > 0 ? renamesRef.current : undefined,
     }),
     buildRevertPayload: (snapshot) => ({ varSnapshot: snapshot }),
     onApplySuccess: (result) => {

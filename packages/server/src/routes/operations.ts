@@ -16,6 +16,17 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/operations/path-renames — all recorded token path rename pairs (for Figma variable rename propagation)
+  // Must be registered before /operations/:id/rollback to avoid :id capturing "path-renames"
+  fastify.get('/operations/path-renames', async (_request, reply) => {
+    try {
+      const renames = await fastify.operationLog.getPathRenames();
+      return { renames };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to get path renames');
+    }
+  });
+
   // GET /api/operations/token-history — value timeline for a specific token path
   // Must be registered before /operations/:id/rollback to avoid :id capturing "token-history"
   fastify.get<{
