@@ -319,6 +319,13 @@ export function TokenList({
   const rowHeight = DENSITY_ROW_HEIGHT[density];
   const [showScopesCol, setShowScopesCol] = useState(false);
 
+  // Condensed view — caps indentation at CONDENSED_MAX_DEPTH to prevent deep nesting from pushing content off-screen
+  const [condensedView, setCondensedViewState] = useState<boolean>(() => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === '1');
+  const setCondensedView = useCallback((v: boolean) => {
+    setCondensedViewState(v);
+    lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? '1' : '0');
+  }, []);
+
   // Multi-mode column view — show resolved values per theme option side-by-side
   const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
     try { return localStorage.getItem('tm_multi_mode') === '1'; } catch (e) { console.debug('[TokenList] storage read multi-mode:', e); return false; }
@@ -1803,6 +1810,7 @@ export function TokenList({
     onDropOnToken: handleDropReorder,
     onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
     showResolvedValues,
+    condensedView,
     themeCoverage,
     pathToSet,
     dimensions,
@@ -1830,7 +1838,7 @@ export function TokenList({
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
     handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStartNotify, handleDragEndNotify, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
+    multiModeData, handleMultiModeInlineSave, showResolvedValues, condensedView, themeCoverage,
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
     pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
     effectiveRovingPath, setRovingFocusPath,
@@ -2249,6 +2257,27 @@ export function TokenList({
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Resolved
+                  </button>
+                </>
+              )}
+
+              {/* Condensed view toggle — caps indent at CONDENSED_MAX_DEPTH levels for deeply nested trees */}
+              {viewMode === 'tree' && (
+                <>
+                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
+                  <button
+                    onClick={() => setCondensedView(!condensedView)}
+                    title={condensedView ? 'Condensed view: on — indentation capped at 3 levels. Click to restore full indentation.' : 'Condense deep nesting — caps indentation at 3 levels and shows ancestor path inline. Useful when tokens are nested 5+ levels deep.'}
+                    aria-pressed={condensedView}
+                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${condensedView ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+                      <line x1="4" y1="2" x2="9" y2="2" />
+                      <line x1="4" y1="5" x2="9" y2="5" />
+                      <line x1="4" y1="8" x2="9" y2="8" />
+                      <polyline points="1,3.5 2.5,2 1,0.5" />
+                    </svg>
+                    Condense
                   </button>
                 </>
               )}

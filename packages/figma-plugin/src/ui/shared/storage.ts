@@ -46,6 +46,7 @@ export const STORAGE_KEYS = {
   DEEP_INSPECT:          'tm_deep_inspect',
   RECENT_TOKENS:         'tm_recent_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
+  CONDENSED_VIEW:        'tm_condensed_view',
 } as const;
 
 /** Per-set dynamic key builders */

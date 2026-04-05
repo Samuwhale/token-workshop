@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment, memo } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { lsGet, STORAGE_KEYS } from '../shared/storage';
-import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
+import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE, INDENT_PER_LEVEL, CONDENSED_MAX_DEPTH, DEPTH_COLORS } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
 import type { BindableProperty } from '../../shared/types';
@@ -26,6 +26,72 @@ import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 
 // Stable empty array to avoid creating new references when a node has no lint violations
 const EMPTY_LINT_VIOLATIONS: NonNullable<TokenTreeNodeProps['lintViolations']> = [];
+
+// ---------------------------------------------------------------------------
+// Depth utilities — shared by TokenGroupNode and TokenLeafNode
+// ---------------------------------------------------------------------------
+
+/**
+ * Computes paddingLeft for a row at the given depth.
+ * In condensed mode the visual depth is capped at CONDENSED_MAX_DEPTH so
+ * indentation never exceeds ~3 levels.
+ */
+function computePaddingLeft(depth: number, condensedView: boolean, base: number): number {
+  const effectiveDepth = condensedView ? Math.min(depth, CONDENSED_MAX_DEPTH) : depth;
+  return effectiveDepth * INDENT_PER_LEVEL + base;
+}
+
+/**
+ * A 2px colored vertical guide bar absolutely positioned at the left edge of a row.
+ * Color cycles through DEPTH_COLORS based on the node's true depth (not capped),
+ * so the color communicates actual nesting level even when indentation is condensed.
+ */
+function DepthBar({ depth }: { depth: number }) {
+  if (depth === 0) return null;
+  const color = DEPTH_COLORS[depth % DEPTH_COLORS.length] ?? DEPTH_COLORS[1];
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute top-0 bottom-0 pointer-events-none"
+      style={{ left: 4, width: 2, background: color, borderRadius: 1 }}
+    />
+  );
+}
+
+/**
+ * When condensed view is on and a node's true depth exceeds CONDENSED_MAX_DEPTH,
+ * renders a small pill showing the hidden ancestor path segment(s) so users can
+ * still understand where a token lives without full indentation.
+ */
+function CondensedAncestorBreadcrumb({
+  nodePath, nodeName, depth, condensedView,
+}: {
+  nodePath: string;
+  nodeName: string;
+  depth: number;
+  condensedView: boolean;
+}) {
+  if (!condensedView || depth <= CONDENSED_MAX_DEPTH) return null;
+  // Segments of the path (split by '.') — length equals depth + 1
+  const parts = nodePath.split('.');
+  // Hidden segments: those between the last visible ancestor and the node itself
+  // e.g. path "a.b.c.d.e.name", depth=5, CONDENSED_MAX_DEPTH=3 → hide parts[3]="d" and parts[4]="e"
+  const hiddenSegments = parts.slice(CONDENSED_MAX_DEPTH, parts.length - (nodeName.split('.').length));
+  if (hiddenSegments.length === 0) return null;
+  const label = hiddenSegments.length === 1
+    ? hiddenSegments[0]
+    : `…${hiddenSegments[hiddenSegments.length - 1]}`;
+  const tooltip = `Hidden ancestors: ${hiddenSegments.join(' › ')}`;
+  return (
+    <span
+      className="shrink-0 text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none"
+      title={tooltip}
+      aria-label={`In: ${hiddenSegments.join(' › ')}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -268,6 +334,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     onDragOverGroup, onDropOnGroup,
     generatorsBySource: _generatorsBySource, derivedTokenPaths: _derivedTokenPaths,
     themeCoverage, onSelectGroupChildren,
+    condensedView = false,
     rovingFocusPath: groupRovingFocusPath, onRovingFocus: onGroupRovingFocus,
   } = ctx;
 
@@ -379,7 +446,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
         data-node-name={node.name}
         onFocus={() => onGroupRovingFocus(node.path)}
         className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 8)}px` }}
         onClick={() => !renamingGroup && onToggleExpand(node.path)}
         onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
         onDragOver={(e) => {
@@ -429,6 +496,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           });
         }}
       >
+        <DepthBar depth={depth} />
         <svg
           width="8"
           height="8"
@@ -771,7 +839,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
       {editingGroupMeta && (
         <div
           className="mx-2 mb-1 p-2 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
-          style={{ marginLeft: `${depth * 16 + 8}px` }}
+          style={{ marginLeft: `${computePaddingLeft(depth, condensedView, 8)}px` }}
           onClick={e => e.stopPropagation()}
         >
           <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
@@ -893,6 +961,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
     showResolvedValues,
+    condensedView = false,
     pathToSet, dimensions, activeThemes,
     pendingRenameToken, clearPendingRename,
     pendingTabEdit, clearPendingTabEdit, onTabToNext,
@@ -1367,7 +1436,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     <div ref={nodeRef}>
     <div
       className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${node.$extensions?.tokenmanager?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
-      style={{ paddingLeft: `${depth * 16 + 20}px` }}
+      style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px` }}
       tabIndex={rovingFocusPath === node.path ? 0 : -1}
       data-token-path={node.path}
       data-node-name={node.name}
@@ -1421,6 +1490,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       onContextMenu={handleContextMenu}
       onKeyDown={handleRowKeyDown}
     >
+      <DepthBar depth={depth} />
       {/* Drag reorder indicator line */}
       {reorderPos && (
         <div
@@ -1513,6 +1583,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
         <div className="flex items-center gap-1.5">
+          <CondensedAncestorBreadcrumb nodePath={node.path} nodeName={node.name} depth={depth} condensedView={condensedView} />
           {syncChanged && (
             <span
               title="Changed locally since last sync"
@@ -2435,7 +2506,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     {inlineNudgeVisible && nearbyMatches.length > 0 && (
       <div
         className="flex items-center border-t border-[var(--color-figma-border)]"
-        style={{ paddingLeft: `${depth * 16 + 12}px` }}
+        style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 12)}px` }}
       >
         <TokenNudge
           matches={nearbyMatches}
@@ -2453,7 +2524,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (
       <div
         className="flex flex-col bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]"
-        style={{ paddingLeft: `${depth * 16 + 12}px` }}
+        style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 12)}px` }}
       >
         {resolutionSteps.map((step, i) => {
           const isFirst = i === 0;

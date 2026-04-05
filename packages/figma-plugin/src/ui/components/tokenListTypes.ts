@@ -42,6 +42,29 @@ export const DENSITY_PY_CLASS: Record<Density, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Depth indicator & condensed view
+// ---------------------------------------------------------------------------
+
+/** Single source of truth for indentation per nesting level (px) */
+export const INDENT_PER_LEVEL = 16;
+
+/** Maximum depth shown as distinct indent levels when condensed view is on */
+export const CONDENSED_MAX_DEPTH = 3;
+
+/**
+ * Colors for the per-depth guide bar. Cycles for depth >= length.
+ * depth 0 → transparent (category headers get no bar).
+ */
+export const DEPTH_COLORS: readonly string[] = [
+  'transparent',
+  'rgba(24,160,251,0.55)',   // depth 1 — accent blue
+  'rgba(90,210,140,0.55)',   // depth 2 — green
+  'rgba(255,180,50,0.55)',   // depth 3 — amber
+  'rgba(230,100,80,0.55)',   // depth 4 — coral
+  'rgba(170,100,240,0.55)',  // depth 5 — purple
+];
+
+// ---------------------------------------------------------------------------
 // Virtual scroll constants
 // ---------------------------------------------------------------------------
 export const VIRTUAL_ITEM_HEIGHT = 28; // px per row base height (default density — overridden at runtime)
@@ -296,6 +319,8 @@ export interface TokenTreeContextType {
   onNavigateToGenerator?: (generatorId: string) => void;
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
+  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
+  condensedView?: boolean;
   /** Path of a token that should enter inline rename mode as soon as it renders */
   pendingRenameToken: string | null;
   /** Clear the pending rename (called by the node once it activates rename mode) */

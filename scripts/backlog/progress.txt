@@ -568,3 +568,19 @@
   - Three-state drag visual: source=dim, valid-target=faint-ring, hovered-target=strong-ring is the canonical DnD UX pattern. The `ring-1/40` → `ring-2` upgrade uses Tailwind ring utilities cleanly without opacity hacks.
   - The cross-set token move was already wired up entirely — API endpoints, React state, drag event handlers, and drop handlers all existed. The item was on the backlog purely for discoverability.
 ---
+
+## 2026-04-05 - Token tree has no depth indicator or condensed view for deeply nested groups
+- Added two complementary features to address deep nesting: (1) a colored depth guide bar and (2) a condensed view mode.
+- **Depth guide bar**: A 2px vertical bar at the left edge of every group and leaf row, color-coded by depth level (blue/green/amber/coral/purple, cycling). Returns null at depth 0 (category headers). Always shows the true depth color even in condensed mode, giving visual cues even when indentation is suppressed.
+- **Condensed view**: A toolbar toggle button (tree mode only, persisted to localStorage as `tm_condensed_view`) caps visual indentation at 3 levels. When a token is deeper than 3 levels, an ancestor breadcrumb pill appears before the token name showing the hidden parent path segments. The pill shows the innermost hidden ancestor with `…` prefix for multi-level suppression.
+- **Single source of truth**: Replaced all 5 inline `depth * 16 + base` calculations with `computePaddingLeft(depth, condensedView, base)` using a shared `INDENT_PER_LEVEL = 16` constant from `tokenListTypes.ts`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L44 (INDENT_PER_LEVEL, CONDENSED_MAX_DEPTH, DEPTH_COLORS, condensedView in TokenTreeContextType)
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L49 (CONDENSED_VIEW key)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L320 (condensedView state), ~L1806 (treeCtx), ~L2257 (toolbar button)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L30 (computePaddingLeft, DepthBar, CondensedAncestorBreadcrumb helpers + updated depth calculations throughout)
+- **Learnings for future iterations:**
+  - Placing depth-related constants in `tokenListTypes.ts` (not in `TokenTreeNode.tsx`) allows both the context type and the node renderer to share them without circular imports.
+  - `condensedView = false` default destructuring in node components makes the prop optional in `TokenTreeContextType` so existing call sites don't need updating.
+  - The breadcrumb pill uses `parts.slice(CONDENSED_MAX_DEPTH, parts.length - nodeName.split('.').length)` to correctly handle token names that contain dots (e.g. `"1.5"`).
+---
