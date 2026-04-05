@@ -634,3 +634,11 @@
   - For bezier easing curves, only x control points need [0,1] clamping; y values can legitimately overshoot to create bounce effects — avoid over-constraining.
   - `void varName` is a valid TypeScript no-op for silencing unused-variable warnings, but direct array indexing (`lc[0]`) is cleaner than destructuring + voiding when only some elements are needed.
 ---
+
+## 2026-04-05 - Type sync.ts buildTokenDiff Maps as DTCGToken instead of any
+- Imported `DTCGToken` from `@tokenmanager/core`; typed `beforeTokens`/`afterTokens` Maps in `buildTokenDiff` as `Map<string, DTCGToken>`; changed `TokenChange.before` and `TokenChange.after` from `any` to `unknown` (they hold `token.$value` which is already typed `unknown` on `DTCGToken`).
+- Files changed: `packages/server/src/routes/sync.ts` ~L2, ~L13-14, ~L29-30
+- **Learnings for future iterations:**
+  - `DTCGToken.$value` is already `unknown` by design, so changing the change-record fields to `unknown` is a zero-friction improvement — callers serialise via `stableStringify` or pass straight to JSON responses, neither of which needs narrower types.
+  - The restore handler lower in the same file correctly used `Map<string, Token>` (the internal token type) rather than `DTCGToken`; these are different types for different purposes — `DTCGToken` for raw file format, `Token` for in-memory store entries.
+---

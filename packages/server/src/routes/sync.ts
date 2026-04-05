@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { Token } from '@tokenmanager/core';
+import type { Token, DTCGToken } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { snapshotPaths } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
@@ -10,8 +10,8 @@ interface TokenChange {
   set: string;
   type: string;
   status: 'added' | 'modified' | 'removed';
-  before?: any;
-  after?: any;
+  before?: unknown;
+  after?: unknown;
 }
 
 interface FileDiff {
@@ -26,8 +26,8 @@ function buildTokenDiff(fileDiffs: FileDiff[]): TokenChange[] {
 
   for (const diff of fileDiffs) {
     const setName = diff.file.replace('.tokens.json', '');
-    const beforeTokens = new Map<string, any>();
-    const afterTokens = new Map<string, any>();
+    const beforeTokens = new Map<string, DTCGToken>();
+    const afterTokens = new Map<string, DTCGToken>();
 
     if (diff.before) {
       try {
