@@ -593,3 +593,16 @@
   - `parseInt(str, 10) || fallback` is incorrect for numeric query params because `0` is a valid value but falsy — always use `isNaN` to distinguish "parse failed" from "value is zero"
   - The tokens.ts variant had an additional outer `limit ? ... : 200` guard (truthy check on the raw string) which was also wrong for `?limit=0` since `'0'` is a truthy string — the fix simplifies it to a single `isNaN` check
 ---
+
+## 2026-04-05 - generator-service.ts silently swallows token resolution and set-fetch errors
+- Removed 6 dead `.catch` handlers that silently swallowed errors in generator-service.ts:
+  - L652: Removed `.catch(() => null)` on `resolveToken()` for `lastRunSourceValue` tracking; fixed the `!== null` check (which was logically wrong since `resolveToken` returns `undefined` for not-found, meaning `undefined !== null` would have accessed `.undefined.$value` causing a TypeError) to `if (resolved)`
+  - L702/L773: Removed `.catch(() => ({}))` on `getFlatTokensForSet()` pre-run snapshot captures (single-brand and multi-brand paths). The function is pure in-memory and cannot throw; the catch created false expectations and would have resulted in an empty snapshot, meaning rollback after failure would delete all tokens in the set
+  - L732/L822: Removed `.catch(() => ({}))` on `getFlatTokensForSet()` in rollback paths (same reasoning — dead code)
+  - L965: Removed try-catch block around `resolveToken()` in `resolveConfigTokenRefs()` since `resolveToken` handles errors internally and always returns `undefined` for both not-found and resolution errors; replaced with direct `if (resolved)` check with an explanatory comment
+- Files changed: `packages/server/src/services/generator-service.ts` ~L652, ~L702, ~L732, ~L773, ~L822, ~L965
+- **Learnings for future iterations:**
+  - `TokenStore.resolveToken()` and `getFlatTokensForSet()` both handle errors internally and never throw — any `.catch()` on them in calling code is dead code that can mask real errors in future
+  - The `!== null` pattern for checking "token not found" is dangerous when the function returns `undefined` (not `null`) for not-found — always use a truthy check or `!== undefined` when the contract returns `undefined`
+  - Pre-run snapshot captures should never silently fall back to `{}` — an empty snapshot means all pre-existing tokens would be deleted on rollback, which is worse than the original error
+---

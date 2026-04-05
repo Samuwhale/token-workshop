@@ -649,8 +649,8 @@ export class GeneratorService {
     const runAt = new Date().toISOString();
     let lastRunSourceValue: unknown;
     if (generator.sourceToken) {
-      const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(() => null);
-      if (resolved !== null) lastRunSourceValue = resolved.$value;
+      const resolved = await tokenStore.resolveToken(generator.sourceToken);
+      if (resolved) lastRunSourceValue = resolved.$value;
     }
     // Re-read after all awaits — prevents overwriting concurrent update() mutations.
     // Also clears any prior lastRunError since all async operations succeeded.
@@ -698,8 +698,9 @@ export class GeneratorService {
     await this.clearNonLockedOverrides(generator);
 
     // Capture pre-run state so a mid-loop failure can be fully rolled back.
+    // getFlatTokensForSet is a pure in-memory operation and will not throw.
     const preSnapshot = structuredClone(
-      await tokenStore.getFlatTokensForSet(effectiveTargetSet).catch(() => ({})),
+      await tokenStore.getFlatTokensForSet(effectiveTargetSet),
     ) as Record<string, Token>;
 
     const extensions = {
@@ -729,7 +730,7 @@ export class GeneratorService {
       tokenStore.endBatch();
       if (!succeeded) {
         // Roll back: restore tokens that existed before + delete tokens created during the run.
-        const currentTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet).catch(() => ({}));
+        const currentTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet);
         const restoreItems: Array<{ path: string; token: Token | null }> = [];
         for (const [p, t] of Object.entries(preSnapshot)) {
           restoreItems.push({ path: p, token: t });
@@ -770,7 +771,8 @@ export class GeneratorService {
     // Capture pre-run state for each affected set so partial failures can be rolled back.
     const preRunSnapshots = new Map<string, Record<string, Token>>();
     for (const setName of affectedSets) {
-      const flatTokens = await tokenStore.getFlatTokensForSet(setName).catch(() => ({}));
+      // getFlatTokensForSet is a pure in-memory operation and will not throw.
+      const flatTokens = await tokenStore.getFlatTokensForSet(setName);
       preRunSnapshots.set(setName, structuredClone(flatTokens) as Record<string, Token>);
     }
 
@@ -819,7 +821,7 @@ export class GeneratorService {
       // Roll back all affected sets to their pre-run state.
       // Build restore items: original tokens to restore + tokens created during the run to delete.
       for (const [setName, preSnapshot] of preRunSnapshots) {
-        const currentTokens = await tokenStore.getFlatTokensForSet(setName).catch(() => ({}));
+        const currentTokens = await tokenStore.getFlatTokensForSet(setName);
         const restoreItems: Array<{ path: string; token: Token | null }> = [];
         for (const [p, t] of Object.entries(preSnapshot)) {
           restoreItems.push({ path: p, token: t });
@@ -959,12 +961,10 @@ export class GeneratorService {
     const overrides: Record<string, unknown> = {};
     for (const [field, tokenPath] of Object.entries(refs as Record<string, string>)) {
       if (!tokenPath) continue;
-      try {
-        const resolved = await tokenStore.resolveToken(tokenPath);
-        if (resolved) overrides[field] = resolved.$value;
-      } catch {
-        // Resolution failure: keep the stored literal value for this field
-      }
+      // resolveToken returns undefined for both "not found" and resolution errors (handled
+      // internally by TokenStore). When undefined, keep the stored literal config value.
+      const resolved = await tokenStore.resolveToken(tokenPath);
+      if (resolved) overrides[field] = resolved.$value;
     }
 
     if (Object.keys(overrides).length === 0) return config;
