@@ -9,7 +9,8 @@ import type { ResolutionStep } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
 import { getEditableString, parseInlineValue, inferGroupTokenType, highlightMatch } from './tokenListHelpers';
-import { INLINE_SIMPLE_TYPES } from './tokenListTypes';
+import { INLINE_SIMPLE_TYPES, INLINE_POPOVER_TYPES } from './tokenListTypes';
+import { InlineValuePopover } from './InlineValuePopover';
 import { PropertyPicker } from './PropertyPicker';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
@@ -814,6 +815,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const [aliasPickerOpen, setAliasPickerOpen] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
   const [aliasPickerPos, setAliasPickerPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [inlinePopoverOpen, setInlinePopoverOpen] = useState(false);
+  const [inlinePopoverAnchor, setInlinePopoverAnchor] = useState<DOMRect | null>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
   // Stable refs for the tab-edit effect (see useEffect near pendingTabEdit)
   const nodeDataRef = useRef(node);
@@ -928,6 +931,11 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   // Inline quick-edit eligibility
   const canInlineEdit = !isAlias(node.$value) && !!node.$type
     && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
+
+  // Complex type or alias — eligible for the inline value popover
+  const canInlinePopover = !!onInlineSave && !!node.$type
+    && (INLINE_POPOVER_TYPES.has(node.$type) || isAlias(node.$value))
+    && !canInlineEdit;
 
   // Keep stable refs up-to-date for the tab-edit effect
   nodeDataRef.current = node;
@@ -1203,11 +1211,17 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   }, [canInlineEdit, node, onInlineSave]);
 
   const handleRowKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Enter or e: inline edit for simple types, full editor for complex
+    // Enter or e: inline edit for simple types, inline popover for complex, full editor otherwise
     if (e.key === 'Enter' || (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey)) {
       e.preventDefault();
       if (canInlineEdit) {
         activateInlineEdit();
+      } else if (canInlinePopover) {
+        const rect = nodeRef.current?.getBoundingClientRect();
+        if (rect) {
+          setInlinePopoverAnchor(rect);
+          setInlinePopoverOpen(true);
+        }
       } else {
         onEdit(node.path, node.name);
       }
@@ -1394,6 +1408,12 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           e.stopPropagation();
           if (canInlineEdit) {
             activateInlineEdit();
+          } else if (canInlinePopover) {
+            const rect = nodeRef.current?.getBoundingClientRect();
+            if (rect) {
+              setInlinePopoverAnchor(rect);
+              setInlinePopoverOpen(true);
+            }
           } else {
             onEdit(node.path, node.name);
           }
@@ -2221,6 +2241,28 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
             />
           </div>
         </div>
+      )}
+
+      {/* Inline value popover — for complex types and alias-valued tokens */}
+      {inlinePopoverOpen && inlinePopoverAnchor && node.$type && (
+        <InlineValuePopover
+          tokenPath={node.path}
+          tokenName={node.name}
+          tokenType={node.$type}
+          currentValue={node.$value}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          anchorRect={inlinePopoverAnchor}
+          onSave={(newVal) => {
+            onInlineSave?.(node.path, node.$type!, newVal);
+            setInlinePopoverOpen(false);
+          }}
+          onOpenFullEditor={() => {
+            setInlinePopoverOpen(false);
+            onEdit(node.path, node.name);
+          }}
+          onClose={() => setInlinePopoverOpen(false)}
+        />
       )}
 
       {/* Complex type hover preview card */}

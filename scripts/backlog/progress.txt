@@ -665,3 +665,13 @@
   - Inline delete confirmation (turning the delete button into "confirm delete" strip) works cleanly without adding external state to the parent component
   - `leafName(set)` extraction (after last `/`) is the right unit for move-to-folder: preserves naming within the set regardless of current folder depth
 ---
+
+## 2026-04-05 - Inline token value popover for complex types
+- Double-clicking a complex token (shadow, border, typography, gradient, composition, cubicBezier, transition, strokeStyle, and 8 more types) or any alias-valued token now opens a lightweight `InlineValuePopover` positioned below the row instead of opening the full side panel. The popover embeds the existing ValueEditors sub-components (e.g. ShadowEditor, TypographyEditor) with Save/Cancel/Open full editor controls. Alias-valued tokens open directly in alias-autocomplete mode; a toggle button switches between alias and direct-value editing. The Enter/e keyboard shortcut was also updated to open the popover for eligible types. Full editor is reserved for metadata, description, scopes, and extensions.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L191; `packages/figma-plugin/src/ui/components/InlineValuePopover.tsx` (new); `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L12, ~L816, ~L936, ~L1207, ~L1401, ~L2226
+- **Learnings for future iterations:**
+  - The `canInlinePopover` guard must be mutually exclusive with `canInlineEdit` — adding `&& !canInlineEdit` is essential to avoid double-triggering.
+  - Popover close-on-outside-click needs a `setTimeout(..., 100)` delay to avoid the triggering double-click from immediately closing the popover before it renders.
+  - The alias-mode toggle inside the popover reuses `AliasAutocomplete` which already handles onSelect; calling `onSave(\`{\${path}}\`)` directly closes the popover in one step.
+  - All existing ValueEditors sub-components accept `(value, onChange, allTokensFlat, pathToSet)` — they work as-is inside the popover with zero prop-API changes.
+---

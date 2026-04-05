@@ -190,6 +190,14 @@ export interface PromoteRow {
 /** Types that can be edited inline in the list row (without opening the drawer). */
 export const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration', 'asset']);
 
+/** Types that open the inline value popover on double-click (not handled by INLINE_SIMPLE_TYPES). */
+export const INLINE_POPOVER_TYPES = new Set([
+  'shadow', 'border', 'typography', 'gradient',
+  'transition', 'cubicBezier', 'composition', 'strokeStyle',
+  'fontStyle', 'lineHeight', 'letterSpacing', 'textDecoration', 'textTransform',
+  'percentage', 'link', 'custom',
+]);
+
 // ---------------------------------------------------------------------------
 // Table view sort types
 // ---------------------------------------------------------------------------
