@@ -737,3 +737,11 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: TokenFlowPanel's non-interactive dependency nodes are the biggest workflow friction — tracing alias chains requires manually searching for each token instead of clicking through the graph. Also, gradient style sync silently discards multi-stop data, which is data loss.
 ---
+
+## 2026-04-05 - TokenFlowPanel dependency nodes are not navigable
+- Fixed: clicking an upstream or downstream node now reliably re-centers the graph on that token. Root cause was the fit-to-view trigger using a layout-dimension key (`totalWidth × totalHeight × srcCount × depCount`) — if the clicked token had the same topology as the current center, the key was unchanged and `fitToView` was never called. Fix: switched the key to `selectedPath`, so every distinct token navigation triggers a fit-to-view, while expand/collapse of the same token (same selectedPath, different layout) does not reset the view.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L603
+- **Learnings for future iterations:**
+  - Fit-to-view effects should key on the *selection identity* (path), not layout dimensions, so topology-identical tokens still trigger re-centering.
+  - Expand/collapse and zoom-reset are different user intents; using selectedPath as the key naturally separates them.
+---

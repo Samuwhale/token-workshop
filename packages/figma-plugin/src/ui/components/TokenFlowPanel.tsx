@@ -599,16 +599,18 @@ export function TokenFlowPanel({
     setZoom(newZoom);
   }, [layout]);
 
-  // Auto fit-to-view when layout changes (new token selected)
-  const prevLayoutKeyRef = useRef<string | null>(null);
+  // Auto fit-to-view when the selected token changes (node navigation).
+  // Uses selectedPath as the key so that every navigation triggers a re-fit,
+  // even when the new token has the same source/dep count as the previous one.
+  // Expand/collapse of the same token does NOT reset the view.
+  const prevFitPathRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!layout) return;
-    const key = `${layout.totalWidth}x${layout.totalHeight}x${layout.sourceNodes.length}x${layout.depNodes.length}`;
-    if (key !== prevLayoutKeyRef.current) {
-      prevLayoutKeyRef.current = key;
+    if (!layout || !selectedPath) return;
+    if (selectedPath !== prevFitPathRef.current) {
+      prevFitPathRef.current = selectedPath;
       fitToView();
     }
-  }, [layout, fitToView]);
+  }, [layout, fitToView, selectedPath]);
 
   // Track container size
   useEffect(() => {
