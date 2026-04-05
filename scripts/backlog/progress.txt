@@ -478,3 +478,10 @@
   - After renaming `oldVar.name = newFigmaName` in the pre-pass, `localVariables` already reflects the new name (JS objects are by reference), so `findVariableInList` in the main loop correctly finds the newly-renamed variable and updates its value without creating a duplicate.
   - Snapshot must be taken before renaming in the pre-pass (same snapshot map used for error rollback).
 ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: CommandPalette.tsx (token search, qualifier autocomplete, action buttons, keyboard nav), ImportPanel.tsx + ImportConflictResolver.tsx + ImportTokenListView.tsx + ImportVariablesFooter.tsx + ImportStylesFooter.tsx + ImportSuccessView.tsx (full import flow), HistoryPanel.tsx (timeline, snapshots, rollback, compare mode), GraphPanel.tsx (generator list/graph, run results, toasts), PublishPanel.tsx + SyncSubPanel.tsx (variable/style sync, readiness checks, git section)
+- Heuristics most relevant: keyboard accessibility, system status visibility, recognition over recall
+- Found 6 items — written to backlog-inbox.md
+- Notable: The command palette's entire structured token search feature (qualifier chips, autocomplete values, help syntax examples) uses onMouseDown + tabIndex={-1} exclusively, making it fully mouse-only despite being a keyboard power-user feature. Also, HistoryPanel's handleSaveSnapshot has try/finally with no catch — a failed save silently resets the UI identically to a successful save.
+---
