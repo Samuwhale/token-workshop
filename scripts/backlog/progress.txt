@@ -950,3 +950,15 @@
   - `DTCGGroup` is the correct type for nested API response bodies; `DTCGToken` (from `flattenTokenGroup`) is the correct type for flattened path-to-token maps
   - `modeValues` are per-mode token values with polymorphic shapes — `Record<string, unknown>` is correct; avoid `Record<string, any>` for these
 ---
+
+## 2026-04-05 - Generator routes missing explicit 404 checks before mutations
+- Added explicit `if (!gen) return reply.status(404).send(...)` guard in three generator routes:
+  1. `POST /generators/:id/run`: was using `gen?.targetSet ?? ''` optional chaining, allowing empty snapshot captures and a misleading op-log entry before `run()` threw; now returns 404 immediately
+  2. `PUT /generators/:id/steps/:stepName/override`: added `getById` + 404 guard before `setStepOverride` call (which already threw NotFoundError, but now fails explicitly before entering the lock)
+  3. `DELETE /generators/:id/steps/:stepName/override`: same as PUT
+- Also removed the `gen?.name ?? request.params.id` fallback in the `description` field — no longer needed after the 404 guard
+- Files changed: `packages/server/src/routes/generators.ts` ~L695
+- **Learnings for future iterations:**
+  - When a route calls `getById()` (returns undefined) followed by `run()` or other service methods (throw NotFoundError), the absence of an early 404 guard means any side effects between the two calls (snapshot capture, op-log writes) execute against missing data. The explicit guard prevents both the misleading log entry and the empty snapshot.
+  - Service methods that throw NotFoundError provide correct HTTP 404 behavior via `handleRouteError`, but explicit guards are still preferred for routes that do pre-mutation work (snapshots, setup) before the throwing call.
+---

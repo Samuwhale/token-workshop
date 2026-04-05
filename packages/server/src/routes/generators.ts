@@ -693,8 +693,9 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const gen = await fastify.generatorService.getById(request.params.id);
-        const targetSet = gen?.targetSet ?? '';
-        const targetGroup = gen?.targetGroup ?? '';
+        if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+        const targetSet = gen.targetSet;
+        const targetGroup = gen.targetGroup;
         const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
         const results = await fastify.generatorService.run(
           request.params.id,
@@ -703,7 +704,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const after = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
         await fastify.operationLog.record({
           type: 'generator-run',
-          description: `Run generator "${gen?.name ?? request.params.id}"`,
+          description: `Run generator "${gen.name}"`,
           setName: targetSet,
           affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
           beforeSnapshot: before,
@@ -739,6 +740,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
+        const gen = await fastify.generatorService.getById(request.params.id);
+        if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
         const generator = await fastify.generatorService.setStepOverride(
           request.params.id,
           request.params.stepName,
@@ -758,6 +761,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/generators/:id/steps/:stepName/override', async (request, reply) => {
     return withLock(async () => {
       try {
+        const gen = await fastify.generatorService.getById(request.params.id);
+        if (!gen) return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
         const generator = await fastify.generatorService.setStepOverride(
           request.params.id,
           request.params.stepName,

@@ -429,3 +429,26 @@ Already up to date.
 
   Merging to main: Replace Record<string, any> with proper types across UI hooks
 Already up to date.
+[main 02edf7e8] chore(backlog): done – Replace Record<string, any> with proper types across UI hooks
+ 10 files changed, 77 insertions(+), 28 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Replace Record<string, any> with proper types across UI hooks
+- Replaced all `Record<string, any>` / `as any` API response and state typings with proper DTCG types:
+  1. `useTokens.ts`: Three `apiFetch<{ tokens: Record<string, any> }>` → `{ tokens: DTCGGroup }`; `buildTree` parameter `Record<string, any>` → `DTCGGroup`
+  2. `useSetMergeSplit.ts`: Added `DTCGToken` import; `flattenTokensObj` return type → `Record<string, DTCGToken>`; `mergeSrcFlat` state → `Record<string, DTCGToken>`; all API fetches → `DTCGGroup`; conflict array `sourceValue/targetValue: any` → `unknown`; split cast `val as Record<string, any>` → `val as DTCGGroup`
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  14 queued · 0
+0 in-progress · last took 4m57s
+═══════════════════════════════════════════════════════════════
+  → Generator routes in generators.ts are missing explicit 404 checks before mutations — `POST /generators/:id/run` (line 695) uses `gen?.targetSet ?? ''` optional chaining instead of an early 404 return, causing empty snapshot captures and a misleading operation log entry when the generator doesn't exist; the same pattern appears in `PUT /generators/:id/steps/:stepName/override` (line 738) and `DELETE /generators/:id/steps/:stepName/override` (line 757); all three should add the explicit `if (!gen) return reply.status(404)` guard already used by GET/PUT/DELETE at lines 523, 545, 629
+  Worktree: /tmp/backlog-54964-6XZp1M
+  Running agent… (started 02:02:33)
+
+  ✓ done: Generator routes missing explicit 404 checks before mutations
+    Added explicit if (!gen) 404 guards in POST /run, PUT /override, and DELETE /override routes — prevents empty snapshot captures and misleading op-log entries for non-existent generators
+    15 turns · 98s · $0.34
+
+  Merging to main: Generator routes missing explicit 404 checks before mutations
+Already up to date.
