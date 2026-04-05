@@ -327,3 +327,12 @@
   - `.filter()` in JSX props is a common silent performance killer: it creates a new array reference every render, defeating memo. Precompute a `Map<path, T[]>` via `useMemo` and look up with `?? EMPTY_STABLE_ARRAY` for O(1) stable references.
   - Module-level `const EMPTY_FOO: T[] = []` is the correct pattern for stable empty arrays — not `useRef([])`/`useMemo(() => [], [])`, which still creates component-instance references.
 ---
+
+## 2026-04-05 - No "Publish only variables" or "Publish only styles" in the Publish All flow
+- Added per-section checkboxes to the `PublishAllPreviewModal`. Each section (Variables, Styles, Git) now has a checkbox in its header, initialized to checked when that section has pending changes. The overall section is faded with `opacity-50` when unchecked. The confirm button is disabled and shows "Nothing selected" when no sections are checked. The `onConfirm` callback passes a `PublishAllSections` object to `runPublishAll`. `runPublishAll` in `usePublishAll.ts` now accepts an optional `sections` param that gates each step independently.
+- Files changed: `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` ~L6 (PublishAllSections type), ~L50 (runPublishAll signature), ~L109 (sections gating in runPublishAll); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L15 (import PublishAllSections), ~L813 (onConfirm with sections), ~L1546 (modal state + onConfirm type), ~L1602 (checkboxes in section headers), ~L1706 (anySelected in button)
+- **Learnings for future iterations:**
+  - The cleanest approach was to let the modal own the selection state (initialized from `hasVarChanges` etc.) and pass the result through `onConfirm`. This keeps `usePublishAll` stateless with respect to selections.
+  - `opacity-50` on the section wrapper (not just the checkbox) gives good visual feedback that the section is excluded without hiding the content — the user can still review what they're skipping.
+  - The confirm button label needed a third state: "Publish" (default), "Publish without Git" (merge conflicts), "Nothing selected" (nothing checked) — handled with a simple ternary chain.
+---

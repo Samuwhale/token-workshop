@@ -5,6 +5,12 @@ export type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'pr
 
 export type PublishAllStep = 'variables' | 'styles' | 'git' | null;
 
+export interface PublishAllSections {
+  vars: boolean;
+  styles: boolean;
+  git: boolean;
+}
+
 interface SyncLike {
   checked: boolean;
   loading: boolean;
@@ -47,7 +53,7 @@ export interface UsePublishAllReturn {
   publishAllBusy: boolean;
   gitDiffPendingCount: number;
   handleOpenPublishAll: () => Promise<void>;
-  runPublishAll: () => Promise<void>;
+  runPublishAll: (sections?: PublishAllSections) => Promise<void>;
   /** One-click sync: auto-compare variables + styles then apply immediately, no preview modal. */
   quickSync: () => Promise<void>;
   quickSyncing: boolean;
@@ -103,24 +109,24 @@ export function usePublishAll({
     setConfirmAction('publish-all');
   }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff, setConfirmAction]);
 
-  const runPublishAll = useCallback(async () => {
+  const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true, git: true }) => {
     setPublishAllError(null);
     setPublishAllGitSkipped(false);
 
     try {
-      if (hasVarChanges) {
+      if (sections.vars && hasVarChanges) {
         setPublishAllStep('variables');
         await varSync.applyDiff();
       }
-      if (hasStyleChanges) {
+      if (sections.styles && hasStyleChanges) {
         setPublishAllStep('styles');
         await styleSync.applyDiff();
       }
       // Skip git when merge conflicts exist — partial publish (Variables + Styles only)
-      if (hasGitDiffChanges && !hasMergeConflicts) {
+      if (sections.git && hasGitDiffChanges && !hasMergeConflicts) {
         setPublishAllStep('git');
         await git.applyDiff();
-      } else if (hasMergeConflicts && hasGitDiffChanges) {
+      } else if (sections.git && hasMergeConflicts && hasGitDiffChanges) {
         setPublishAllGitSkipped(true);
       }
       markChecksStale();

@@ -12,7 +12,7 @@ import { ApplyDiffConfirmModal } from './publish/PublishModals';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
-import { usePublishAll, type ConfirmAction } from '../hooks/usePublishAll';
+import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import type { VarSnapshot, StyleSnapshot, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
 
@@ -810,9 +810,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         gitDiffChoices={git.diffChoices}
         mergeConflictCount={git.mergeConflicts.length}
         onCancel={() => setConfirmAction(null)}
-        onConfirm={async () => {
+        onConfirm={async (sections) => {
           setConfirmAction(null);
-          await runPublishAll();
+          await runPublishAll(sections);
         }}
       />
     )}
@@ -1541,10 +1541,13 @@ function PublishAllPreviewModal({
   gitDiffChoices: Record<string, 'push' | 'pull' | 'skip'>;
   mergeConflictCount: number;
   onCancel: () => void;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: (sections: PublishAllSections) => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [includeVars, setIncludeVars] = useState(hasVarChanges);
+  const [includeStyles, setIncludeStyles] = useState(hasStyleChanges);
+  const [includeGit, setIncludeGit] = useState(hasGitDiffChanges);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
 
@@ -1557,11 +1560,12 @@ function PublishAllPreviewModal({
   const gitPushCount = Object.values(gitDiffChoices).filter(c => c === 'push').length;
   const gitPullCount = Object.values(gitDiffChoices).filter(c => c === 'pull').length;
   const hasAnyChanges = hasVarChanges || hasStyleChanges || hasGitDiffChanges;
+  const anySelected = (includeVars && hasVarChanges) || (includeStyles && hasStyleChanges) || (includeGit && hasGitDiffChanges);
 
   const handleConfirm = async () => {
     setBusy(true);
     setConfirmError(null);
-    try { await onConfirm(); } catch (err) { setConfirmError(describeError(err)); setBusy(false); }
+    try { await onConfirm({ vars: includeVars, styles: includeStyles, git: includeGit }); } catch (err) { setConfirmError(describeError(err)); setBusy(false); }
   };
 
   return (
@@ -1600,8 +1604,14 @@ function PublishAllPreviewModal({
 
           {/* Variables section */}
           {hasVarChanges && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
+            <div className={includeVars ? '' : 'opacity-50'}>
+              <label className="flex items-center gap-1.5 mb-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeVars}
+                  onChange={e => setIncludeVars(e.target.checked)}
+                  className="w-3 h-3 accent-[var(--color-figma-accent)]"
+                />
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Variables</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
@@ -1609,15 +1619,21 @@ function PublishAllPreviewModal({
                     varPullCount > 0 ? `\u2193 ${varPullCount} to local` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
-              </div>
+              </label>
               <SyncDiffSummary rows={varRows} dirs={varDirs} />
             </div>
           )}
 
           {/* Styles section */}
           {hasStyleChanges && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
+            <div className={includeStyles ? '' : 'opacity-50'}>
+              <label className="flex items-center gap-1.5 mb-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeStyles}
+                  onChange={e => setIncludeStyles(e.target.checked)}
+                  className="w-3 h-3 accent-[var(--color-figma-accent)]"
+                />
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Styles</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
@@ -1625,15 +1641,21 @@ function PublishAllPreviewModal({
                     stylePullCount > 0 ? `\u2193 ${stylePullCount} to local` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
-              </div>
+              </label>
               <SyncDiffSummary rows={styleRows} dirs={styleDirs} />
             </div>
           )}
 
           {/* Git section */}
           {hasGitDiffChanges && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
+            <div className={includeGit ? '' : 'opacity-50'}>
+              <label className="flex items-center gap-1.5 mb-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeGit}
+                  onChange={e => setIncludeGit(e.target.checked)}
+                  className="w-3 h-3 accent-[var(--color-figma-accent)]"
+                />
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Git</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
@@ -1641,7 +1663,7 @@ function PublishAllPreviewModal({
                     gitPullCount > 0 ? `\u2193 ${gitPullCount} file${gitPullCount !== 1 ? 's' : ''} to local` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
-              </div>
+              </label>
               {(() => {
                 const pushFiles = Object.entries(gitDiffChoices).filter(([, c]) => c === 'push').map(([f]) => f);
                 const pullFiles = Object.entries(gitDiffChoices).filter(([, c]) => c === 'pull').map(([f]) => f);
@@ -1681,11 +1703,12 @@ function PublishAllPreviewModal({
           {hasAnyChanges ? (
             <button
               onClick={handleConfirm}
-              disabled={busy}
+              disabled={busy || !anySelected}
+              title={!anySelected ? 'Select at least one section to publish' : undefined}
               className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Publishing\u2026' : mergeConflictCount > 0 ? 'Publish without Git' : 'Publish all'}
+              {busy ? 'Publishing\u2026' : !anySelected ? 'Nothing selected' : mergeConflictCount > 0 ? 'Publish without Git' : 'Publish'}
             </button>
           ) : (
             <button
