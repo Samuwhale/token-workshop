@@ -385,3 +385,9 @@
 - **Learnings for future iterations:**
   - When a backlog item's premise ("there is no X") contradicts what the codebase actually contains, check canInlineEdit gating (requires onInlineSave in context) before assuming it's broken
 ---
+
+## 2026-04-05 - code-pass
+- Areas explored: server routes (tokens.ts), server services (token-store.ts, generator-service.ts, manual-snapshot.ts, operation-log.ts, resolver-store.ts, git-sync.ts), plugin sandbox (controller.ts, variableSync.ts, styleSync.ts, heatmapScanning.ts), UI hooks (useTokenNavigation, useServerConnection, useTokenDataLoading, useFigmaMessage, toastBus), core package (color-math.ts, dtcg-resolver.ts, generator-engine.ts, resolver.ts), large component survey (App.tsx 3347L, TokenList.tsx 4190L, ExportPanel.tsx 2423L, TokenTreeNode.tsx 2701L, ThemeManager.tsx 1982L, PublishPanel.tsx 2047L)
+- Found 6 items — written to backlog-inbox.md
+- Notable: generator-service.ts has two different rollback strategies for single-brand vs multi-brand generator execution, and both are broken in different ways — single-brand silently swallows rollback errors, multi-brand throws inside a `.catch()` that exits the loop early leaving remaining sets un-rolled-back. Also, manual-snapshot.ts quarantined sets are never marked as completed, causing infinite recovery loops on every server restart.
+---
