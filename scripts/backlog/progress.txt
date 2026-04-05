@@ -680,3 +680,23 @@
   - The stable-callback-ref pattern (assign `ref.current = fn` every render, read inside the effect) avoids re-registering the listener on every state change — critical when the handler depends on many state booleans.
   - When extending a keydown handler that already partially handles a shortcut (server redo only), read the full logic before adding — the new undo/redo check needed to use isUndo/isRedo booleans to avoid accidentally triggering both branches on ⌘⇧Z.
 ---
+
+## 2026-04-05 - No batch keyboard shortcuts for multi-selected tokens
+- Added three keyboard shortcuts for batch actions on multi-selected tokens in select mode:
+  - `⌫` (Backspace/Delete): bulk delete all selected tokens — wired directly in `handleListKeyDown`, replacing the no-op state where only single-row delete worked
+  - `⌘⇧M`: batch move selected tokens to another set — opens a set-picker modal using the existing `/api/tokens/:set/batch-move` endpoint
+  - `⌘⇧Y`: batch copy selected tokens to another set — opens a set-picker modal using `/api/tokens/:set/batch-copy`
+- Added "Move to set…" and "Copy to set…" buttons to the select-mode toolbar (only shown when `sets.length > 1`)
+- Fixed `TokenTreeNode.tsx` row-level delete handler: now skips when `selectMode` is active so the container handler handles bulk delete without double-firing
+- Added `TOKEN_BATCH_MOVE_TO_SET` and `TOKEN_BATCH_COPY_TO_SET` to shortcut registry (keys, matchers, and SHORTCUT_REGISTRY display entries); updated `TOKEN_DELETE` to remove `displayOnly: true` (now fully active at container level)
+- Added batch move/copy to set modal UIs in `TokenListModals.tsx` with set dropdown (filtered to exclude current set)
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/shortcutRegistry.ts` ~L87 (new shortcut keys), ~L165 (matchers), ~L285 (registry entries)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L103 (state), ~L1051 (keyboard handlers), ~L1268 (dep array), ~L1402 (batch move/copy handlers), ~L2107 (toolbar buttons), ~L2022 (context value), ~L2030 (useMemo deps)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1415 (delete guard)
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L141 (interface), ~L539 (destructuring), ~L1453 (modal UIs)
+- **Learnings for future iterations:**
+  - TDZ: `handleListKeyDown` is declared at line ~944; any variable added to its dep array MUST be declared before line 944. `requestBulkDelete` (line ~1339) caused a TDZ crash. Fix: call `requestBulkDeleteFromHook(selectedPaths)` inline (both declared before line 944) instead of the wrapper.
+  - When a row-level keydown handler and a container-level handler both listen for the same key (Backspace), the event bubbles from row to container. Guard the row-level handler with `!selectMode` to prevent double-firing.
+  - State setters from `useState` (e.g. `setShowBatchMoveToSet`) are declared before the keyboard handler and are safe to add to the dep array without TDZ risk.
+---

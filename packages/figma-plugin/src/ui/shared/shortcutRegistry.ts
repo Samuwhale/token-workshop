@@ -86,6 +86,8 @@ export const SHORTCUT_KEYS = {
   TOKEN_RENAME:          'F2',
   TOKEN_DELETE:          '⌫',
   TOKEN_DUPLICATE:       '⌘D',
+  TOKEN_BATCH_MOVE_TO_SET: '⌘⇧M',
+  TOKEN_BATCH_COPY_TO_SET: '⌘⇧Y',
   // Paste Modal
   PASTE_CONFIRM:         '⌘↵',
 } as const;
@@ -162,9 +164,11 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   TOKEN_EXPAND_ALL:      { key: 'ArrowRight', meta: true,  shift: false, alt: false },
   TOKEN_COLLAPSE_ALL:    { key: 'ArrowLeft',  meta: true,  shift: false, alt: false },
   TOKEN_APPLY_SELECTION: { key: 'v',          meta: false, shift: false, alt: false },
-  TOKEN_RENAME:          { key: 'F2',         meta: false, shift: false, alt: false },
-  TOKEN_DELETE:          { key: 'Backspace',  meta: false, shift: false, alt: false },
-  TOKEN_DUPLICATE:       { key: 'd',          meta: true,  shift: false, alt: false },
+  TOKEN_RENAME:            { key: 'F2',         meta: false, shift: false, alt: false },
+  TOKEN_DELETE:            { key: 'Backspace',  meta: false, shift: false, alt: false },
+  TOKEN_DUPLICATE:         { key: 'd',          meta: true,  shift: false, alt: false },
+  TOKEN_BATCH_MOVE_TO_SET: { key: 'm',          meta: true,  shift: true,  alt: false },
+  TOKEN_BATCH_COPY_TO_SET: { key: 'y',          meta: true,  shift: true,  alt: false },
   // Paste Modal (same combo as EDITOR_SAVE — context-only, not a real conflict)
   PASTE_CONFIRM:         { key: 'Enter',      meta: true,  shift: false, alt: false },
 };
@@ -281,9 +285,11 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_COPY_CSS_VAR',   group: 'Token List',      description: 'Copy token value (preferred format — set in Settings)', mac: SHORTCUT_KEYS.TOKEN_COPY_CSS_VAR },
   { id: 'TOKEN_EXPAND_ALL',      group: 'Token List',      description: 'Expand all groups',              mac: SHORTCUT_KEYS.TOKEN_EXPAND_ALL },
   { id: 'TOKEN_COLLAPSE_ALL',    group: 'Token List',      description: 'Collapse all groups',            mac: SHORTCUT_KEYS.TOKEN_COLLAPSE_ALL },
-  { id: 'TOKEN_RENAME',          group: 'Token List',      description: 'Rename token',                   mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },
-  { id: 'TOKEN_DELETE',          group: 'Token List',      description: 'Delete token',                   mac: SHORTCUT_KEYS.TOKEN_DELETE,    altMac: 'Del', displayOnly: true },
-  { id: 'TOKEN_DUPLICATE',       group: 'Token List',      description: 'Duplicate token',                mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
+  { id: 'TOKEN_RENAME',            group: 'Token List',      description: 'Rename token',                              mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },
+  { id: 'TOKEN_DELETE',            group: 'Token List',      description: 'Delete token / delete selected (batch)',    mac: SHORTCUT_KEYS.TOKEN_DELETE,    altMac: 'Del' },
+  { id: 'TOKEN_DUPLICATE',         group: 'Token List',      description: 'Duplicate token',                           mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
+  { id: 'TOKEN_BATCH_MOVE_TO_SET', group: 'Token List',      description: 'Move selected tokens to another set',       mac: SHORTCUT_KEYS.TOKEN_BATCH_MOVE_TO_SET },
+  { id: 'TOKEN_BATCH_COPY_TO_SET', group: 'Token List',      description: 'Copy selected tokens to another set',       mac: SHORTCUT_KEYS.TOKEN_BATCH_COPY_TO_SET },
 
   // ── Token Editor ─────────────────────────────────────────────────────────
   { id: 'EDITOR_NEXT',           group: 'Token Editor',    description: 'Next token',                     mac: SHORTCUT_KEYS.EDITOR_NEXT_TOKEN },

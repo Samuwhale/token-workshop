@@ -1411,8 +1411,8 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       return;
     }
 
-    // Delete or Backspace: delete token
-    if (e.key === 'Delete' || matchesShortcut(e, 'TOKEN_DELETE')) {
+    // Delete or Backspace: delete token (skip in select mode — container handles bulk delete)
+    if (!selectMode && (e.key === 'Delete' || matchesShortcut(e, 'TOKEN_DELETE'))) {
       e.preventDefault();
       onDelete(node.path);
       return;

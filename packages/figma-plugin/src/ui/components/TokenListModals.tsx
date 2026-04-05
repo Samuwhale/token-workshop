@@ -147,6 +147,20 @@ export interface TokenListModalsProps {
   onSetMoveToGroupTarget: (v: string) => void;
   onSetMoveToGroupError: (v: string) => void;
   handleBatchMoveToGroup: () => void;
+
+  // Batch move selected tokens to another set
+  showBatchMoveToSet: boolean;
+  batchMoveToSetTarget: string;
+  onSetBatchMoveToSetTarget: (v: string) => void;
+  onSetShowBatchMoveToSet: (v: boolean) => void;
+  handleBatchMoveToSet: () => void;
+
+  // Batch copy selected tokens to another set
+  showBatchCopyToSet: boolean;
+  batchCopyToSetTarget: string;
+  onSetBatchCopyToSetTarget: (v: string) => void;
+  onSetShowBatchCopyToSet: (v: boolean) => void;
+  handleBatchCopyToSet: () => void;
 }
 
 function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorImpacts, themeImpacts, onConfirm, onCancel }: {
@@ -523,6 +537,16 @@ export function TokenListModals() {
     onSetMoveToGroupTarget,
     onSetMoveToGroupError,
     handleBatchMoveToGroup,
+    showBatchMoveToSet,
+    batchMoveToSetTarget,
+    onSetBatchMoveToSetTarget,
+    onSetShowBatchMoveToSet,
+    handleBatchMoveToSet,
+    showBatchCopyToSet,
+    batchCopyToSetTarget,
+    onSetBatchCopyToSetTarget,
+    onSetShowBatchCopyToSet,
+    handleBatchCopyToSet,
   } = useTokenListModals();
 
   return (
@@ -1421,6 +1445,90 @@ export function TokenListModals() {
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch move selected tokens to another set */}
+      {showBatchMoveToSet && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchMoveToSet(false); }}
+        >
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another set</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> and added to the target set.
+            </div>
+            <select
+              value={batchMoveToSetTarget}
+              onChange={e => onSetBatchMoveToSetTarget(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchMoveToSet(false); }}
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+              aria-label="Target set"
+              autoFocus
+            >
+              {sets.filter(s => s !== setName).map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => onSetShowBatchMoveToSet(false)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchMoveToSet}
+                disabled={!batchMoveToSetTarget}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch copy selected tokens to another set */}
+      {showBatchCopyToSet && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchCopyToSet(false); }}
+        >
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another set</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Tokens will be duplicated into the target set. Originals in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> are kept.
+            </div>
+            <select
+              value={batchCopyToSetTarget}
+              onChange={e => onSetBatchCopyToSetTarget(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchCopyToSet(false); }}
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+              aria-label="Target set"
+              autoFocus
+            >
+              {sets.filter(s => s !== setName).map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => onSetShowBatchCopyToSet(false)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchCopyToSet}
+                disabled={!batchCopyToSetTarget}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                Copy
               </button>
             </div>
           </div>

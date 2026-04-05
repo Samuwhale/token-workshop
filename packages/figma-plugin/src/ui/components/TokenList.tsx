@@ -100,6 +100,10 @@ export function TokenList({
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState('');
   const [moveToGroupError, setMoveToGroupError] = useState('');
+  const [showBatchMoveToSet, setShowBatchMoveToSet] = useState(false);
+  const [batchMoveToSetTarget, setBatchMoveToSetTarget] = useState('');
+  const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
+  const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState('');
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
@@ -1056,6 +1060,29 @@ export function TokenList({
       return;
     }
 
+    // ⌫/Del: bulk delete when in select mode with tokens selected
+    if (matchesShortcut(e, 'TOKEN_DELETE') && selectMode && selectedPaths.size > 0) {
+      e.preventDefault();
+      requestBulkDeleteFromHook(selectedPaths);
+      return;
+    }
+
+    // ⌘⇧M: batch move selected tokens to another set
+    if (matchesShortcut(e, 'TOKEN_BATCH_MOVE_TO_SET') && selectMode && selectedPaths.size > 0) {
+      e.preventDefault();
+      setBatchMoveToSetTarget(sets.filter(s => s !== setName)[0] ?? '');
+      setShowBatchMoveToSet(true);
+      return;
+    }
+
+    // ⌘⇧Y: batch copy selected tokens to another set
+    if (matchesShortcut(e, 'TOKEN_BATCH_COPY_TO_SET') && selectMode && selectedPaths.size > 0) {
+      e.preventDefault();
+      setBatchCopyToSetTarget(sets.filter(s => s !== setName)[0] ?? '');
+      setShowBatchCopyToSet(true);
+      return;
+    }
+
     // m: toggle multi-select mode
     if (matchesShortcut(e, 'TOKEN_MULTI_SELECT')) {
       e.preventDefault();
@@ -1238,7 +1265,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected]);
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -1373,6 +1400,44 @@ export function TokenList({
     setOperationLoading(null);
     onRefresh();
   }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
+
+  const handleBatchMoveToSet = useCallback(async () => {
+    const target = batchMoveToSetTarget.trim();
+    if (!target || selectedPaths.size === 0 || !connected) return;
+    setShowBatchMoveToSet(false);
+    setOperationLoading(`Moving ${selectedPaths.size} token${selectedPaths.size !== 1 ? 's' : ''} to ${target}…`);
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: [...selectedPaths], targetSet: target }),
+      });
+      setSelectedPaths(new Set());
+      setSelectMode(false);
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Move to set failed: network error');
+    }
+    setOperationLoading(null);
+    onRefresh();
+  }, [batchMoveToSetTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
+
+  const handleBatchCopyToSet = useCallback(async () => {
+    const target = batchCopyToSetTarget.trim();
+    if (!target || selectedPaths.size === 0 || !connected) return;
+    setShowBatchCopyToSet(false);
+    setOperationLoading(`Copying ${selectedPaths.size} token${selectedPaths.size !== 1 ? 's' : ''} to ${target}…`);
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: [...selectedPaths], targetSet: target }),
+      });
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Copy to set failed: network error');
+    }
+    setOperationLoading(null);
+    onRefresh();
+  }, [batchCopyToSetTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
 
   // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleSelectGroupChildren
   // are managed by useTokenSelection (destructured above)
@@ -1962,6 +2027,16 @@ export function TokenList({
     onSetMoveToGroupTarget: setMoveToGroupTarget,
     onSetMoveToGroupError: setMoveToGroupError,
     handleBatchMoveToGroup,
+    showBatchMoveToSet,
+    batchMoveToSetTarget,
+    onSetBatchMoveToSetTarget: setBatchMoveToSetTarget,
+    onSetShowBatchMoveToSet: setShowBatchMoveToSet,
+    handleBatchMoveToSet,
+    showBatchCopyToSet,
+    batchCopyToSetTarget,
+    onSetBatchCopyToSetTarget: setBatchCopyToSetTarget,
+    onSetShowBatchCopyToSet: setShowBatchCopyToSet,
+    handleBatchCopyToSet,
   }), [
     showScaffold, serverUrl, setName, sets, onRefresh, allTokensFlat, connected,
     deleteConfirm, modalProps, executeDelete,
@@ -1986,6 +2061,8 @@ export function TokenList({
     copyConflict, copyConflictAction, copyConflictNewPath,
     showMoveToGroup, moveToGroupTarget, moveToGroupError,
     selectedPaths, handleBatchMoveToGroup,
+    showBatchMoveToSet, batchMoveToSetTarget, handleBatchMoveToSet,
+    showBatchCopyToSet, batchCopyToSetTarget, handleBatchCopyToSet,
   ]);
 
   return (
@@ -2046,6 +2123,26 @@ export function TokenList({
                 >
                   Move to group…
                 </button>
+                {sets.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => { setBatchMoveToSetTarget(sets.filter(s => s !== setName)[0] ?? ''); setShowBatchMoveToSet(true); }}
+                      disabled={!!operationLoading}
+                      title={`Move selected tokens to another set (⌘⇧M)`}
+                      className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      Move to set…
+                    </button>
+                    <button
+                      onClick={() => { setBatchCopyToSetTarget(sets.filter(s => s !== setName)[0] ?? ''); setShowBatchCopyToSet(true); }}
+                      disabled={!!operationLoading}
+                      title={`Copy selected tokens to another set (⌘⇧Y)`}
+                      className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      Copy to set…
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => {
                     const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
