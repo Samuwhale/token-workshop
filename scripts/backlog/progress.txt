@@ -438,3 +438,17 @@
   - `/api/sync/log` cannot cheaply compute total via git log; use `-1` as a sentinel when `hasMore=true` and set `total = offset + data.length` when `hasMore=false`
   - The headless UI validation catches TypeError render crashes even when all network errors are filtered — component state set to `undefined` (instead of `[]`) will crash on `.length`
 ---
+
+## 2026-04-05 - Extract usePersistedState hook and domain hooks from ExportPanel
+- Created `usePersistedState.ts` with `usePersistedStringState` and `usePersistedJsonState` — each replaces the repeated `useState` + `useEffect(() => lsSet/lsSetJson(key, val), [val])` 3-line pattern with a single hook call.
+- Created `useDiffState.ts` — groups diff/changes-only state: `changesOnly`, `diffLoading`, `diffError`, `diffPaths`, `isGitRepo`, `lastExportTimestamp`, `scopeOpen` + persistence effects, auto-fetch effect, `fetchDiff`, `fetchDiffSince`, `handleSetBaseline`.
+- Created `useExportPresets.ts` — groups preset state: `presets`, `showSavePreset`, `presetName`, `pendingDeletePresetId` + persistence + command-palette dispatch effect. Also exports the `ExportPreset` interface.
+- Created `usePlatformConfig.ts` — groups platform output config: `selected`, `cssSelector`, `zipFilename`, `nestByPlatform`, `selectedSets`, `selectedTypes`, `pathPrefix` + all 4 filter-section collapse states + 4 persistence effects.
+- Updated `ExportPanel.tsx`: replaced ~40 useState + 8 dedicated persistence useEffects + fetchDiff/fetchDiffSince/handleSetBaseline functions with 3 hook calls. Removed `ExportPreset` interface (moved to hook), removed explicit `lsSetJson` for `lastExportTimestamp` (now handled by `usePersistedJsonState`), removed unused `lsSet/lsSetJson/lsGet` storage imports.
+- Files changed: `packages/figma-plugin/src/ui/hooks/usePersistedState.ts` (new), `packages/figma-plugin/src/ui/hooks/useDiffState.ts` (new), `packages/figma-plugin/src/ui/hooks/useExportPresets.ts` (new), `packages/figma-plugin/src/ui/hooks/usePlatformConfig.ts` (new), `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1 (imports), ~L57 (removed ExportPreset), ~L140 (hook calls), ~L357 (removed redundant lsSetJson), ~L690 (removed preset state), ~L762 (removed diff state + functions)
+- **Learnings for future iterations:**
+  - `usePersistedStringState`/`usePersistedJsonState` are general-purpose hooks useful beyond ExportPanel — any component that needs localStorage persistence can use them.
+  - For `Set<string>` values, use regular `useState` with a `useEffect` persistence one-liner; don't try to generalize Sets into `usePersistedJsonState` without a custom serialize/deserialize step.
+  - Domain hooks can be extracted from large components by simply moving the `useState` declarations + their related effects + logic functions into the hook file, returning all setters/values. Handlers that combine state across multiple domains (like `handleLoadPreset` which touches both platform config and diff state) stay in the main component — they receive their setters via destructuring from multiple hooks.
+  - The `ExportPreset` type was defined inside the component — when moving to a hook file, export it from the hook so the main component can re-import it as `import { useExportPresets, type ExportPreset }`.
+---

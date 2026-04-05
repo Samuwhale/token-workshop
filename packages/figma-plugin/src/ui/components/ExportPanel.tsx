@@ -1,7 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { Spinner } from './Spinner';
-import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEYS, lsGetJson } from '../shared/storage';
 import { useState, useEffect, useRef } from 'react';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
@@ -10,6 +10,9 @@ import type { Platform } from '../shared/platforms';
 import { useTokenSetsContext } from '../contexts/TokenDataContext';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { ConfirmModal } from './ConfirmModal';
+import { useDiffState } from '../hooks/useDiffState';
+import { useExportPresets, type ExportPreset } from '../hooks/useExportPresets';
+import { usePlatformConfig } from '../hooks/usePlatformConfig';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -51,18 +54,6 @@ interface SavePreviewItem {
 type ExportMode = 'platforms' | 'figma-variables';
 type SavePhase = 'idle' | 'preview-loading' | 'preview';
 
-interface ExportPreset {
-  id: string;
-  name: string;
-  platforms: string[];
-  cssSelector: string;
-  selectedSets: string[] | null; // null = all sets
-  selectedTypes: string[] | null; // null = all types
-  pathPrefix: string;
-  nestByPlatform: boolean;
-  zipFilename: string;
-  changesOnly?: boolean;
-}
 
 async function buildZipBlobAsync(
   files: { path: string; content: string }[],
@@ -147,43 +138,44 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
   const { sets, addSetToState } = useTokenSetsContext();
   const [mode, setMode] = useState<ExportMode>('platforms');
-  const [selected, setSelected] = useState<Set<string>>(() => {
-    const parsed = lsGetJson<string[]>(STORAGE_KEYS.EXPORT_PLATFORMS, []);
-    return Array.isArray(parsed) && parsed.length > 0 ? new Set(parsed) : new Set(['css']);
-  });
+  const {
+    selected, setSelected,
+    cssSelector, setCssSelector,
+    zipFilename, setZipFilename,
+    nestByPlatform, setNestByPlatform,
+    selectedSets, setSelectedSets,
+    selectedTypes, setSelectedTypes,
+    pathPrefix, setPathPrefix,
+    setsOpen, setSetsOpen,
+    typesOpen, setTypesOpen,
+    pathPrefixOpen, setPathPrefixOpen,
+    cssSelectorOpen, setCssSelectorOpen,
+  } = usePlatformConfig();
+  const {
+    changesOnly, setChangesOnly,
+    diffLoading, setDiffLoading,
+    diffError, setDiffError,
+    diffPaths, setDiffPaths,
+    isGitRepo, setIsGitRepo,
+    lastExportTimestamp, setLastExportTimestamp,
+    scopeOpen, setScopeOpen,
+    fetchDiff, fetchDiffSince, handleSetBaseline,
+  } = useDiffState({ serverUrl, connected });
+  const {
+    presets, setPresets,
+    showSavePreset, setShowSavePreset,
+    presetName, setPresetName,
+    pendingDeletePresetId, setPendingDeletePresetId,
+  } = useExportPresets();
+
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ platform: string; path: string; content: string }[]>([]);
   const [previewFileIndex, setPreviewFileIndex] = useState<number>(0);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
-  // CSS selector option
-  const [cssSelector, setCssSelector] = useState<string>(() => {
-    return lsGet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, ':root');
-  });
-
-  // ZIP download options
-  const [zipFilename, setZipFilename] = useState<string>(() => {
-    return lsGet(STORAGE_KEYS.EXPORT_ZIP_FILENAME, 'tokens');
-  });
-  const [nestByPlatform, setNestByPlatform] = useState<boolean>(() => {
-    return lsGetJson<boolean>(STORAGE_KEYS.EXPORT_NEST_PLATFORM, false) === true;
-  });
-
-  // Set filter state
-  const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
-
   // Type filter state — null means all types
   const ALL_TOKEN_TYPES = Object.keys(TOKEN_TYPE_BADGE_CLASS);
-  const [selectedTypes, setSelectedTypes] = useState<Set<string> | null>(() => {
-    const saved = lsGetJson<string[] | null>(STORAGE_KEYS.EXPORT_TYPES, null);
-    return Array.isArray(saved) ? new Set(saved) : null;
-  });
-
-  // Path prefix filter
-  const [pathPrefix, setPathPrefix] = useState<string>(() => {
-    return lsGet(STORAGE_KEYS.EXPORT_PATH_PREFIX, '');
-  });
 
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
@@ -206,34 +198,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [savePerMode, setSavePerMode] = useState(true);
   // For DTCG JSON export: null = all modes (default + $extensions), or a specific mode name
   const [selectedExportMode, setSelectedExportMode] = useState<string | null>(null);
-
-  // Persist selected platforms
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, [...selected]);
-  }, [selected]);
-
-  // Persist CSS selector
-  useEffect(() => {
-    lsSet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, cssSelector);
-  }, [cssSelector]);
-
-  // Persist ZIP options
-  useEffect(() => {
-    lsSet(STORAGE_KEYS.EXPORT_ZIP_FILENAME, zipFilename);
-  }, [zipFilename]);
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.EXPORT_NEST_PLATFORM, nestByPlatform);
-  }, [nestByPlatform]);
-
-  // Persist type filter
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.EXPORT_TYPES, selectedTypes === null ? null : [...selectedTypes]);
-  }, [selectedTypes]);
-
-  // Persist path prefix
-  useEffect(() => {
-    lsSet(STORAGE_KEYS.EXPORT_PATH_PREFIX, pathPrefix);
-  }, [pathPrefix]);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -391,7 +355,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       if (changesOnly && isGitRepo === false) {
         const now = Date.now();
         setLastExportTimestamp(now);
-        lsSetJson(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, now);
         setDiffPaths(null); // Reset so next preview refetches from new baseline
       }
     } catch (err) {
@@ -724,20 +687,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return String(modeVal.resolvedValue);
   };
 
-  // Export presets
-  const [presets, setPresets] = useState<ExportPreset[]>(() =>
-    lsGetJson<ExportPreset[]>(STORAGE_KEYS.EXPORT_PRESETS, [])
-  );
-  const [showSavePreset, setShowSavePreset] = useState(false);
-  const [presetName, setPresetName] = useState('');
   const savePresetInputRef = useRef<HTMLInputElement>(null);
-  const [pendingDeletePresetId, setPendingDeletePresetId] = useState<string | null>(null);
-
-  // Persist presets and notify App.tsx command palette
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.EXPORT_PRESETS, presets);
-    window.dispatchEvent(new CustomEvent('exportPresetsChanged'));
-  }, [presets]);
 
   const handleSavePreset = () => {
     const name = presetName.trim();
@@ -808,107 +758,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     onApply();
     return () => window.removeEventListener('applyExportPreset', onApply);
   }, []);
-
-  // Changes-only export mode
-  const [changesOnly, setChangesOnly] = useState<boolean>(() =>
-    lsGetJson<boolean>(STORAGE_KEYS.EXPORT_CHANGES_ONLY, false) === true
-  );
-  const [diffLoading, setDiffLoading] = useState(false);
-  const [diffError, setDiffError] = useState<string | null>(null);
-  // null = not yet fetched, string[] = fetched paths (added/modified only)
-  const [diffPaths, setDiffPaths] = useState<string[] | null>(null);
-  // undefined = not yet checked, false = not a git repo, true = is a git repo
-  const [isGitRepo, setIsGitRepo] = useState<boolean | undefined>(undefined);
-  // Timestamp-based fallback for non-git projects: tracks the last export time
-  const [lastExportTimestamp, setLastExportTimestamp] = useState<number | null>(() =>
-    lsGetJson<number | null>(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, null)
-  );
-
-  // Filter section collapse state — open if the filter is non-default so active filters are visible on load
-  const [setsOpen, setSetsOpen] = useState(() => selectedSets !== null);
-  const [typesOpen, setTypesOpen] = useState(() => selectedTypes !== null);
-  const [pathPrefixOpen, setPathPrefixOpen] = useState(() => pathPrefix !== '');
-  const [cssSelectorOpen, setCssSelectorOpen] = useState(() => cssSelector !== ':root');
-  const [scopeOpen, setScopeOpen] = useState(() => changesOnly);
-
-  // Persist changes-only setting
-  useEffect(() => {
-    lsSetJson(STORAGE_KEYS.EXPORT_CHANGES_ONLY, changesOnly);
-  }, [changesOnly]);
-
-  interface TokenChange {
-    path: string;
-    set: string;
-    type: string;
-    status: 'added' | 'modified' | 'removed';
-  }
-
-  const fetchDiff = async () => {
-    if (!connected) return;
-    setDiffLoading(true);
-    setDiffError(null);
-    setDiffPaths(null);
-    try {
-      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(
-        `${serverUrl}/api/sync/diff/tokens`,
-      );
-      const paths = data.changes
-        .filter(c => c.status === 'added' || c.status === 'modified')
-        .map(c => c.path);
-      setDiffPaths(paths);
-      setIsGitRepo(true);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 400) {
-        // Not a git repo — try timestamp-based fallback if a baseline is set
-        setIsGitRepo(false);
-        if (lastExportTimestamp !== null) {
-          await fetchDiffSince(lastExportTimestamp);
-        } else {
-          setDiffError(null);
-          setDiffPaths(null);
-        }
-      } else {
-        setDiffError(getErrorMessage(err));
-      }
-    } finally {
-      setDiffLoading(false);
-    }
-  };
-
-  const fetchDiffSince = async (timestamp: number) => {
-    if (!connected) return;
-    setDiffLoading(true);
-    setDiffError(null);
-    setDiffPaths(null);
-    try {
-      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(
-        `${serverUrl}/api/sync/diff/tokens/since?timestamp=${timestamp}`,
-      );
-      const paths = data.changes
-        .filter(c => c.status === 'added' || c.status === 'modified')
-        .map(c => c.path);
-      setDiffPaths(paths);
-    } catch (err) {
-      setDiffError(getErrorMessage(err));
-    } finally {
-      setDiffLoading(false);
-    }
-  };
-
-  const handleSetBaseline = () => {
-    const now = Date.now();
-    setLastExportTimestamp(now);
-    lsSetJson(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, now);
-    // Immediately fetch diff from the new baseline (should return 0 changed tokens)
-    fetchDiffSince(now);
-  };
-
-  // Auto-fetch diff when changesOnly is enabled and connected
-  useEffect(() => {
-    if (changesOnly && connected && diffPaths === null && !diffLoading) {
-      fetchDiff();
-    }
-  }, [changesOnly, connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track when we auto-switch mode due to disconnection
   const [modeAutoSwitched, setModeAutoSwitched] = useState(false);
