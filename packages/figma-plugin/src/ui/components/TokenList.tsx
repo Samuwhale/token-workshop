@@ -3385,7 +3385,7 @@ export function TokenList({
                   </span>
                 ))}
                 <button
-                  className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+                  className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
                   title="Collapse all groups below and jump to this group"
                   onClick={() => handleCollapseBelow(breadcrumbSegments[breadcrumbSegments.length - 1].path)}
                 >
@@ -4074,7 +4074,7 @@ export function TokenList({
                       <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[def.$type] ?? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>{def.$type}</span>
                       {/* Navigate button */}
                       <button
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                        className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                         onClick={() => onNavigateToSet?.(def.setName, whereIsPath)}
                         title={`Go to ${def.setName}`}
                       >

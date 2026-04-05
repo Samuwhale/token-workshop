@@ -627,7 +627,7 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
             onClick={(e) => { e.stopPropagation(); onNavigateToToken(path); }}
             title={`Go to token: ${path}`}
             aria-label={`Go to token: ${path}`}
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shadow-sm"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" />
@@ -684,7 +684,7 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
             onClick={(e) => { e.stopPropagation(); onNavigateToToken(path); }}
             title={`Go to token: ${path}`}
             aria-label={`Go to token: ${path}`}
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-figma-accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shadow-sm"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" />
