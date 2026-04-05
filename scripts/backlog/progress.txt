@@ -584,3 +584,12 @@
   - Spacing classes (ml-auto, mr-*, my-*) must move to the Tooltip wrapper div since it becomes the flex child; the inner button should only have its own sizing/appearance classes.
   - `group-focus-within` fires when the named group OR any descendant has focus — so a tooltip on a button's wrapper appears while Tab focus is on that button.
 ---
+
+## 2026-04-05 - Export "changes only" mode unavailable without Git
+- Added timestamp-based fallback for the "changes only" export mode when the token directory is not a git repository. Three changes: (1) New server endpoint `GET /api/sync/diff/tokens/since?timestamp=<unix-ms>` that uses `fs.stat` on each token set file; if `mtime > timestamp`, all tokens in that file are returned as "modified". (2) ExportPanel now tracks `lastExportTimestamp` in localStorage. When git is unavailable, it falls back to the timestamp endpoint automatically. After each successful changes-only export in non-git mode, the baseline advances to now so the next export starts from a clean state. (3) The UI replaces the dead-end "Requires a git repository" warning with an actionable flow: if no baseline is set, a "Set baseline now" button appears; once set, it shows the count of modified tokens with Refresh and Reset baseline buttons. The quick-action bar description also updates accordingly.
+- Files changed: `packages/server/src/routes/sync.ts` ~L1 (fs import), ~L557 (new endpoint); `packages/figma-plugin/src/ui/shared/storage.ts` ~L36 (new key); `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L807 (state), ~L830 (fetchDiff fallback), ~L862 (fetchDiffSince), ~L882 (handleSetBaseline), ~L310 (handleExport inline fetch), ~L1437 (UI)
+- **Learnings for future iterations:**
+  - File mtime gives whole-file granularity (all tokens in a modified file are returned), not per-token granularity like git. This is a deliberate tradeoff — it's much simpler than diffing file content and still useful in practice.
+  - The "advance baseline after export" pattern (set timestamp = now after successful export) is analogous to git commit: once exported, those changes are "committed" from the plugin's perspective.
+  - When `fetchDiff` calls `await fetchDiffSince(...)` in the catch branch, the outer `finally { setDiffLoading(false) }` runs after `fetchDiffSince` completes (since it's awaited), so there's no race condition despite both functions managing the same loading state.
+---

@@ -315,18 +315,35 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           // Fetch diff inline if not yet loaded
           setDiffLoading(true);
           try {
-            const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
-              `${serverUrl}/api/sync/diff/tokens`,
-            );
-            paths = data.changes
-              .filter(c => c.status === 'added' || c.status === 'modified')
-              .map(c => c.path);
-            setDiffPaths(paths);
-            setIsGitRepo(true);
+            if (isGitRepo === false) {
+              // Non-git fallback: use timestamp-based diff
+              if (lastExportTimestamp === null) {
+                setError('No baseline set. Click "Set baseline" to mark the current state before exporting changes only.');
+                setDiffLoading(false);
+                setExporting(false);
+                return;
+              }
+              const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
+                `${serverUrl}/api/sync/diff/tokens/since?timestamp=${lastExportTimestamp}`,
+              );
+              paths = data.changes
+                .filter(c => c.status === 'added' || c.status === 'modified')
+                .map(c => c.path);
+              setDiffPaths(paths);
+            } else {
+              const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
+                `${serverUrl}/api/sync/diff/tokens`,
+              );
+              paths = data.changes
+                .filter(c => c.status === 'added' || c.status === 'modified')
+                .map(c => c.path);
+              setDiffPaths(paths);
+              setIsGitRepo(true);
+            }
           } catch (diffErr) {
             if (diffErr instanceof ApiError && diffErr.status === 400) {
               setIsGitRepo(false);
-              setError('Changes only mode requires a git repository. The token directory is not tracked by git.');
+              setError('Changes only mode requires a git repository or a baseline timestamp. The token directory is not tracked by git.');
             } else {
               setError(`Failed to fetch changed tokens: ${getErrorMessage(diffErr)}`);
             }
@@ -338,7 +355,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           }
         }
         if (paths.length === 0) {
-          setError('No changed tokens found. All tokens are up to date since the last commit.');
+          const sinceMsg = isGitRepo === false && lastExportTimestamp !== null
+            ? `No changed tokens found since ${new Date(lastExportTimestamp).toLocaleString()}.`
+            : 'No changed tokens found. All tokens are up to date since the last commit.';
+          setError(sinceMsg);
           setExporting(false);
           return;
         }
@@ -365,6 +385,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       if (flatFiles.length > 0) setPreviewFileIndex(0);
       const changesLabel = changesOnly && resolvedDiffPaths ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})` : '';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)${changesLabel}` } }, '*');
+      // Advance the baseline timestamp after a successful changes-only export in non-git mode
+      if (changesOnly && isGitRepo === false) {
+        const now = Date.now();
+        setLastExportTimestamp(now);
+        lsSetJson(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, now);
+        setDiffPaths(null); // Reset so next preview refetches from new baseline
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -776,6 +803,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [diffPaths, setDiffPaths] = useState<string[] | null>(null);
   // undefined = not yet checked, false = not a git repo, true = is a git repo
   const [isGitRepo, setIsGitRepo] = useState<boolean | undefined>(undefined);
+  // Timestamp-based fallback for non-git projects: tracks the last export time
+  const [lastExportTimestamp, setLastExportTimestamp] = useState<number | null>(() =>
+    lsGetJson<number | null>(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, null)
+  );
 
   // Filter section collapse state — open if the filter is non-default so active filters are visible on load
   const [setsOpen, setSetsOpen] = useState(() => selectedSets !== null);
@@ -812,16 +843,48 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setIsGitRepo(true);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
-        // Not a git repo
+        // Not a git repo — try timestamp-based fallback if a baseline is set
         setIsGitRepo(false);
-        setDiffError(null);
-        setDiffPaths(null);
+        if (lastExportTimestamp !== null) {
+          await fetchDiffSince(lastExportTimestamp);
+        } else {
+          setDiffError(null);
+          setDiffPaths(null);
+        }
       } else {
         setDiffError(getErrorMessage(err));
       }
     } finally {
       setDiffLoading(false);
     }
+  };
+
+  const fetchDiffSince = async (timestamp: number) => {
+    if (!connected) return;
+    setDiffLoading(true);
+    setDiffError(null);
+    setDiffPaths(null);
+    try {
+      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(
+        `${serverUrl}/api/sync/diff/tokens/since?timestamp=${timestamp}`,
+      );
+      const paths = data.changes
+        .filter(c => c.status === 'added' || c.status === 'modified')
+        .map(c => c.path);
+      setDiffPaths(paths);
+    } catch (err) {
+      setDiffError(getErrorMessage(err));
+    } finally {
+      setDiffLoading(false);
+    }
+  };
+
+  const handleSetBaseline = () => {
+    const now = Date.now();
+    setLastExportTimestamp(now);
+    lsSetJson(STORAGE_KEYS.EXPORT_LAST_EXPORT_TIMESTAMP, now);
+    // Immediately fetch diff from the new baseline (should return 0 changed tokens)
+    fetchDiffSince(now);
   };
 
   // Auto-fetch diff when changesOnly is enabled and connected
@@ -1373,23 +1436,92 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-[11px] text-[var(--color-figma-text)]">Changes only</span>
-                      <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">Tokens added or modified since last commit</span>
+                      <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                        {isGitRepo === false
+                          ? 'Tokens from files modified since last export'
+                          : 'Tokens added or modified since last commit'}
+                      </span>
                     </div>
                   </label>
 
                   {changesOnly && (
                     <div className="mt-2 pl-6">
-                      {isGitRepo === false && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-warning)] shrink-0">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                            <line x1="12" y1="9" x2="12" y2="13" />
-                            <line x1="12" y1="17" x2="12.01" y2="17" />
-                          </svg>
-                          Token directory is not a git repository. Changes only mode requires git.
+                      {isGitRepo === false ? (
+                        <div className="flex flex-col gap-2">
+                          {/* Non-git mode: timestamp-based fallback */}
+                          <div className="flex items-start gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-text-tertiary)] shrink-0 mt-px">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span>Git not available — tracking by file modification time instead.</span>
+                          </div>
+                          {lastExportTimestamp === null ? (
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                Set a baseline to track changes. Future exports will include only tokens from files modified after that point.
+                              </span>
+                              <button
+                                onClick={handleSetBaseline}
+                                className="self-start px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                              >
+                                Set baseline now
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-1">
+                              {diffLoading ? (
+                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                  <Spinner size="sm" />
+                                  Checking for changes…
+                                </div>
+                              ) : diffError ? (
+                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-error)]">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                  </svg>
+                                  {diffError}
+                                </div>
+                              ) : diffPaths !== null ? (
+                                <div className="flex items-center gap-2 flex-wrap flex-1">
+                                  {diffPaths.length === 0 ? (
+                                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                                      No changes since {new Date(lastExportTimestamp).toLocaleString()}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-[var(--color-figma-text)]">
+                                      <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
+                                      {' '}token{diffPaths.length !== 1 ? 's' : ''} modified since {new Date(lastExportTimestamp).toLocaleString()}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={() => fetchDiffSince(lastExportTimestamp)}
+                                    title="Re-check for changes"
+                                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <polyline points="23 4 23 10 17 10" />
+                                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                    </svg>
+                                    Refresh
+                                  </button>
+                                  <button
+                                    onClick={handleSetBaseline}
+                                    title="Reset baseline to now"
+                                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                                  >
+                                    Reset baseline
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {isGitRepo !== false && (
+                      ) : (
                         <div className="flex items-center gap-2">
                           {diffLoading ? (
                             <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -1929,8 +2061,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 }
               }}
               title={changesOnly
-                ? 'Currently exporting only tokens with uncommitted git changes. Click to export all tokens.'
-                : 'Export only tokens added or modified since your last git commit — skips unchanged tokens.'}
+                ? isGitRepo === false
+                  ? 'Currently exporting only tokens from files modified since the baseline. Click to export all tokens.'
+                  : 'Currently exporting only tokens with uncommitted git changes. Click to export all tokens.'
+                : 'Export only tokens added or modified since your last git commit, or since a set baseline if git is unavailable.'}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-medium transition-colors shrink-0 ${
                 changesOnly
                   ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/15'
@@ -1963,9 +2097,23 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 Export tokens changed since last commit
               </span>
             )}
-            {changesOnly && isGitRepo === false && (
-              <span className="text-[10px] text-[var(--color-figma-warning,#e67e22)] leading-tight">
-                Requires a git repository
+            {changesOnly && isGitRepo === false && lastExportTimestamp === null && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                No baseline set — open Scope to configure
+              </span>
+            )}
+            {changesOnly && isGitRepo === false && lastExportTimestamp !== null && diffPaths !== null && !diffLoading && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                {diffPaths.length === 0
+                  ? 'No changes since last export'
+                  : `${diffPaths.length} token${diffPaths.length !== 1 ? 's' : ''} modified since last export`}
+                {diffPaths.length > 0 && (
+                  <button
+                    onClick={() => fetchDiffSince(lastExportTimestamp)}
+                    title="Re-check for changes"
+                    className="ml-1.5 text-[var(--color-figma-accent)] hover:underline"
+                  >Refresh</button>
+                )}
               </span>
             )}
             {changesOnly && isGitRepo !== false && diffPaths !== null && !diffLoading && (
@@ -1982,7 +2130,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 )}
               </span>
             )}
-            {changesOnly && isGitRepo !== false && diffLoading && (
+            {changesOnly && diffLoading && (
               <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Checking for changes…</span>
             )}
           </div>

@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Token, DTCGToken } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -553,6 +554,43 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       return handleRouteError(reply, err, 'Failed to compute token diff');
     }
   });
+
+  // GET /api/sync/diff/tokens/since?timestamp=<unix-ms>
+  // Returns token paths from files modified after the given timestamp. No git required.
+  fastify.get<{ Querystring: { timestamp?: string } }>(
+    '/sync/diff/tokens/since',
+    async (request, reply) => {
+      try {
+        const ts = Number(request.query.timestamp);
+        if (!Number.isFinite(ts) || ts < 0) {
+          return reply.status(400).send({ error: 'timestamp query param must be a non-negative number (Unix ms)' });
+        }
+        const changes: TokenChange[] = [];
+        let fileCount = 0;
+        const setNames = await fastify.tokenStore.getSets();
+        for (const name of setNames) {
+          const set = await fastify.tokenStore.getSet(name);
+          if (!set?.filePath) continue;
+          let mtime: number;
+          try {
+            const stat = await fs.stat(set.filePath);
+            mtime = stat.mtimeMs;
+          } catch {
+            continue;
+          }
+          if (mtime > ts) {
+            fileCount++;
+            for (const [path, token] of flattenTokenGroup(set.tokens)) {
+              changes.push({ path, set: name, type: token.$type || 'unknown', status: 'modified', after: token.$value });
+            }
+          }
+        }
+        return { changes, fileCount };
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to compute token diff by timestamp');
+      }
+    },
+  );
 
   // GET /api/sync/diff — compute two-way diff between local HEAD and remote
   fastify.get('/sync/diff', async (_request, reply) => {
