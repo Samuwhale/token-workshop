@@ -418,3 +418,9 @@
   - `missingProperties` deduplication using `seenBindable: Set<BindableProperty>` is needed because multiple Figma props (fontSize, fontName, letterSpacing, lineHeight) all map to the same 'typography' BindableProperty.
   - The `statusLabel` field in `QuickBindState` doubles as a node name for single-node triggers — check `nodeIds.length === 1` to decide display format.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: CreatePanel.tsx (creation flow, bulk create, post-creation UX), SetSwitcher.tsx (set management, drag-drop, theme badges), CommandPalette.tsx (registered commands, missing entries, search qualifiers), TokenEditor.tsx + InlineValuePopover.tsx (editing tiers, undo integration), HealthPanel.tsx + LintConfigPanel.tsx (health checks, auto-fix, lint config), ThemeManager.tsx + ResolverPanel.tsx (theme/resolver overlap, advanced mode toggle), PublishPanel.tsx + publish/ subdirectory (publish workflow, compare steps, readiness checks), RecentsPanel.tsx + HistoryPanel.tsx (overlap analysis), TokenFlowPanel.tsx + GraphPanel.tsx + nodeGraph/ (dependency vs generator visualization), CanvasAnalysisPanel.tsx + ComponentCoveragePanel.tsx (coverage overlap), navigationTypes.ts (tab structure, 3 top + 11 sub-tabs + 3 overflow), shortcutRegistry.ts + KeyboardShortcutsModal.tsx (shortcut coverage, display-only entries), QuickStartWizard.tsx (onboarding gaps)
+- Found 11 items — written to backlog-inbox.md
+- Notable: InlineValuePopover edits (shadow, typography, border, gradient) bypass the undo stack entirely — onSave is called directly without pushUndo, making composite token quick-edits irreversible. Also, ⌘Z/⌘⇧Z shortcuts are listed in the help modal but marked displayOnly with no handlers, so users see them documented but pressing them does nothing.
+---
