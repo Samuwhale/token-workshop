@@ -28,7 +28,9 @@ import type { ThemeManagerHandle } from '../components/ThemeManager';
 import { PublishPanel } from '../components/PublishPanel';
 import { ImportPanel } from '../components/ImportPanel';
 import { SelectionInspector } from '../components/SelectionInspector';
-import { CanvasAuditPanel } from '../components/CanvasAuditPanel';
+import { HeatmapPanel } from '../components/HeatmapPanel';
+import { ConsistencyPanel } from '../components/ConsistencyPanel';
+import { ComponentCoveragePanel } from '../components/ComponentCoveragePanel';
 import { GraphPanel } from '../components/GraphPanel';
 import { TokenFlowPanel } from '../components/TokenFlowPanel';
 import { ExportPanel } from '../components/ExportPanel';
@@ -389,9 +391,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       themes:     renderDefineThemes,
     },
     apply: {
-      inspect:          renderApplyInspect,
-      'canvas-audit':   renderApplyCanvasAudit,
-      dependencies:     renderApplyDependencies,
+      inspect:      renderApplyInspect,
+      coverage:     renderApplyCoverage,
+      consistency:  renderApplyConsistency,
+      components:   renderApplyComponents,
+      dependencies: renderApplyDependencies,
     },
     ship: {
       publish:    renderShipPublish,
@@ -689,10 +693,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     );
   }
 
-  function renderApplyCanvasAudit(): ReactNode {
+  function renderApplyCoverage(): ReactNode {
     return (
-      <ErrorBoundary panelName="Canvas Audit" onReset={() => navigateTo('apply', 'inspect')}>
-        <CanvasAuditPanel
+      <ErrorBoundary panelName="Coverage" onReset={() => navigateTo('apply', 'inspect')}>
+        <HeatmapPanel
           result={heatmapResult}
           loading={heatmapLoading}
           progress={heatmapProgress}
@@ -708,8 +712,26 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
             parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
           }}
           availableTokens={allTokensFlat}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  function renderApplyConsistency(): ReactNode {
+    return (
+      <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
+        <ConsistencyPanel
+          availableTokens={allTokensFlat}
           onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
         />
+      </ErrorBoundary>
+    );
+  }
+
+  function renderApplyComponents(): ReactNode {
+    return (
+      <ErrorBoundary panelName="Components" onReset={() => navigateTo('apply', 'inspect')}>
+        <ComponentCoveragePanel />
       </ErrorBoundary>
     );
   }

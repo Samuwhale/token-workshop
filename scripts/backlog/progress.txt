@@ -723,3 +723,12 @@
   - When consolidating wrapper chrome, the minimal approach is: extract the wrapper into a new component that re-exports the inner component's public types, update consumers to import from the new file, then replace inline wrappers with the extracted component.
   - Keeping ThemeManager's navigateToCompare working for 'theme-options' mode (command palette) while routing 'tokens' and 'cross-theme' modes to the Tokens tab is the right split — theme-options is a Themes-specific workflow.
 ---
+
+## 2026-04-05 - CanvasAuditPanel nested sub-tabs → promoted to top-level Apply sub-tabs
+- Promoted the three Canvas Audit types (Coverage, Consistency, Components) from internal tabs inside `CanvasAuditPanel` to first-class sub-tabs under the Apply top-tab, alongside Inspect and Dependencies. The `CanvasAuditPanel` wrapper component was deleted; each panel (HeatmapPanel, ConsistencyPanel, ComponentCoveragePanel) is now rendered directly by PanelRouter. Apply now has 5 sub-tabs: Inspect, Coverage, Consistency, Components, Dependencies.
+- Files changed: `packages/figma-plugin/src/ui/shared/navigationTypes.ts` ~L11-L25; `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L31-L34, ~L391-L401, ~L692-L735; `packages/figma-plugin/src/ui/App.tsx` ~L1003-L1018, ~L1528-L1542, ~L1682; `packages/figma-plugin/src/ui/components/HealthPanel.tsx` ~L892; deleted `packages/figma-plugin/src/ui/components/CanvasAuditPanel.tsx`
+- **Learnings for future iterations:**
+  - When a wrapper component's only job is to provide an internal tab bar for a set of children, deleting it and hoisting those children to the system-level tab router is always the right call — it eliminates the two-level hierarchy and gives each panel a proper URL-like addressable location.
+  - The command palette entry for 'canvas-audit' was split into three separate entries (canvas-coverage, canvas-consistency, canvas-components) for finer-grained deep-linking.
+  - The toolbar toggle button pointed at 'canvas-audit'; update it to the most primary sub-tab ('coverage') so the quick-access shortcut still works.
+---

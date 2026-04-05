@@ -1000,11 +1000,25 @@ export function App() {
         handler: () => { navigateTo('define', 'themes'); setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50); },
       },
       {
-        id: 'canvas-audit',
-        label: 'Canvas Audit',
-        description: 'Token coverage and near-match consistency for the canvas',
+        id: 'canvas-coverage',
+        label: 'Canvas Coverage',
+        description: 'Token binding coverage heatmap for the canvas',
         category: 'Navigation',
-        handler: () => { navigateTo('apply', 'canvas-audit'); triggerHeatmapScan(); },
+        handler: () => { navigateTo('apply', 'coverage'); triggerHeatmapScan(); },
+      },
+      {
+        id: 'canvas-consistency',
+        label: 'Canvas Consistency',
+        description: 'Near-match token consistency check for the canvas',
+        category: 'Navigation',
+        handler: () => navigateTo('apply', 'consistency'),
+      },
+      {
+        id: 'canvas-components',
+        label: 'Canvas Components',
+        description: 'Component token coverage report',
+        category: 'Navigation',
+        handler: () => navigateTo('apply', 'components'),
       },
       {
         id: 'publish',
@@ -1522,24 +1536,24 @@ export function App() {
           )}
         </button>
 
-        {/* Canvas Audit toggle */}
+        {/* Canvas Coverage toggle */}
         <button
           onClick={() => {
-            if (activeTopTab === 'apply' && activeSubTab === 'canvas-audit') {
+            if (activeTopTab === 'apply' && activeSubTab === 'coverage') {
               navigateTo('apply', 'inspect');
             } else {
-              navigateTo('apply', 'canvas-audit');
+              navigateTo('apply', 'coverage');
               triggerHeatmapScan();
             }
           }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            activeTopTab === 'apply' && activeSubTab === 'canvas-audit'
+            activeTopTab === 'apply' && activeSubTab === 'coverage'
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Canvas audit: coverage and consistency"
-          aria-label="Toggle canvas audit"
-          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'canvas-audit'}
+          title="Canvas coverage: token binding heatmap"
+          aria-label="Toggle canvas coverage"
+          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'coverage'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -1679,7 +1693,7 @@ export function App() {
                 onClick={() => {
                   guardEditorAction(() => {
                     setSubTab(sub.id);
-                    if (sub.id === 'canvas-audit') triggerHeatmapScan();
+                    if (sub.id === 'coverage') triggerHeatmapScan();
                   });
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
