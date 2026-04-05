@@ -501,3 +501,10 @@
   - When a compensating action (structural revert) fails inside an error handler, always combine both messages into a single thrown error so the HTTP layer surfaces the full picture — callers can't distinguish "rollback failed cleanly" from "rollback left state inconsistent" without this.
   - Setting `statusCode: 500` directly on the Error object is consistent with the existing typed-error pattern in `errors.ts` for Fastify route error propagation.
 ---
+## 2026-04-05 - Operation-log rollback swallows revert failures silently
+- Replaced the empty `catch {}` block in `OperationLog.rollback()` with one that captures the revert error, logs a CRITICAL message to stderr with both the original error and revert error, and throws a combined `Error` with `statusCode: 500` so the HTTP layer surfaces it as a 500 rather than the original error code.
+- Files changed: `packages/server/src/services/operation-log.ts` ~L429
+- **Learnings for future iterations:**
+  - When a compensating action (structural revert) fails inside an error handler, always combine both messages into a single thrown error so the HTTP layer surfaces the full picture — callers can't distinguish "rollback failed cleanly" from "rollback left state inconsistent" without this.
+  - Setting `statusCode: 500` directly on the Error object is consistent with the existing typed-error pattern in `errors.ts` for Fastify route error propagation.
+---
