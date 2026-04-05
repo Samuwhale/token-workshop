@@ -537,3 +537,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: The import flow has no client-side set name validation at all — empty/invalid names are accepted silently until the server rejects them. The PropertyRow vs QuickApplyPicker ARIA inconsistency is notable because they implement the exact same interaction pattern (search + pick token) but with different semantic markup.
 ---
+
+## 2026-04-05 - Color picker in token editor lacks eyedropper button
+- Added an eyedropper button directly to `ColorEditor` in `ValueEditors.tsx`, next to the format toggle. The plugin sandbox message handler and message types already existed; only the UI button was missing. The button sends `{ type: 'eyedropper' }` to the plugin sandbox and listens for `eyedropper-result` via `window.addEventListener('message')`. It shows three states: idle (eye icon), waiting (spinner), and success (checkmark + auto-reset after 1.5s). Calls `parseColorInput` on the returned hex to normalize before calling `onChange`.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L7,L130,L233
+- **Learnings for future iterations:**
+  - The full `ColorPicker` popup already had the eyedropper — this item was purely about surfacing it as a standalone button in the inline editor row. Always check if feature logic exists elsewhere in the component tree before implementing from scratch.
+  - The eyedropper result message (`eyedropper-result`) is broadcast to all registered window listeners — having two listeners (one in ColorPicker, one in ColorEditor) is safe since each listener updates its own state independently.
+---

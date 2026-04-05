@@ -5,6 +5,7 @@ import { AliasAutocomplete } from './AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { FormulaInput } from './FormulaInput';
 import { ColorPicker } from './ColorPicker';
+import { Spinner } from './Spinner';
 import { FontFamilyPicker } from './FontFamilyPicker';
 import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type ColorFormat } from '../shared/colorUtils';
 import { GamutIndicator } from './GamutIndicator';
@@ -129,7 +130,25 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
   }, [formatRev]);
   const [editingText, setEditingText] = useState<string | null>(null);
   const [formatMenuOpen, setFormatMenuOpen] = useState(false);
+  const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
+  const eyedropperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wideGamut = isWideGamutColor(colorStr);
+
+  // Listen for eyedropper result from plugin sandbox
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data?.pluginMessage;
+      if (msg?.type === 'eyedropper-result' && typeof msg.hex === 'string') {
+        const parsed = parseColorInput(msg.hex);
+        if (parsed) onChange(parsed);
+        setEyedropperState('success');
+        if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
+        eyedropperTimerRef.current = setTimeout(() => setEyedropperState('idle'), 1500);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onChange]);
 
   const displayValue = editingText ?? formatHexAs(colorStr, format);
 
@@ -211,6 +230,38 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
             </div>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            parent.postMessage({ pluginMessage: { type: 'eyedropper' } }, '*');
+            setEyedropperState('waiting');
+            if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
+          }}
+          disabled={eyedropperState === 'waiting'}
+          title={eyedropperState === 'waiting' ? 'Waiting for Figma selection…' : eyedropperState === 'success' ? 'Color sampled!' : 'Sample color from Figma selection'}
+          className={[
+            'shrink-0 flex items-center justify-center w-[26px] h-[26px] rounded border transition-colors',
+            eyedropperState === 'success'
+              ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              : eyedropperState === 'waiting'
+              ? 'text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
+              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
+          ].join(' ')}
+          aria-label="Sample color from Figma selection"
+        >
+          {eyedropperState === 'success' ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : eyedropperState === 'waiting' ? (
+            <Spinner size="sm" />
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+        </button>
       </div>
       {pickerOpen && (
         <ColorPicker
