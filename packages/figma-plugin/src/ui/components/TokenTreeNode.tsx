@@ -906,6 +906,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   const isHighlighted = highlightedToken === node.path;
   const [hovered, setHovered] = useState(false);
   const [hoverPreviewVisible, setHoverPreviewVisible] = useState(false);
+  const [hoverInfoVisible, setHoverInfoVisible] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -1007,6 +1008,17 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     const timer = setTimeout(() => setHoverPreviewVisible(true), 300);
     return () => clearTimeout(timer);
   }, [hovered, node.$type]);
+
+  // Delayed quick-info tooltip for tokens without an alias chain tooltip
+  useEffect(() => {
+    const aliasChainShowing = !!(resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias);
+    if (!hovered || aliasChainShowing || (!node.$type && !node.$description)) {
+      setHoverInfoVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setHoverInfoVisible(true), 400);
+    return () => clearTimeout(timer);
+  }, [hovered, resolutionSteps, isBrokenAlias, node.$type, node.$description]);
 
   // Memoized alias resolution — expensive traversal, only recompute when value/type/map changes
   const resolveResult = useMemo(
@@ -2361,6 +2373,26 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       {/* Complex type hover preview card */}
       {hoverPreviewVisible && node.$type && !isBrokenAlias && (
         <ComplexTypePreviewCard type={node.$type} value={displayValue} />
+      )}
+
+      {/* Quick-info tooltip — shows type, resolved value, and description for tokens without an alias chain */}
+      {hoverInfoVisible && (node.$type || node.$description) && (
+        <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
+          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
+            {node.$type && (
+              <span className="px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] font-mono text-[9px] shrink-0">{node.$type}</span>
+            )}
+            {node.$type && (
+              <span className="font-mono text-[var(--color-figma-text)]">{formatValue(node.$type, displayValue)}</span>
+            )}
+            {node.$description && (
+              <>
+                {node.$type && <span className="text-[var(--color-figma-border)] shrink-0">—</span>}
+                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[200px]">{node.$description}</span>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Alias resolution chain tooltip — visible on row hover */}

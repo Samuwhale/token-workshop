@@ -514,3 +514,12 @@
   - Cross-import between split files works fine: DimensionEditor exports StepperInput, which NumberEditor and GradientEditor import; CubicBezierEditor is imported by TransitionEditor.
   - The `isAlias` import name-clash (local variable named `isAlias` conflicting with the imported `isAlias` from resolveAlias) only appeared in valueEditorShared.tsx — renamed the local check inline rather than aliasing the import.
 ---
+
+## 2026-04-05 - No hover tooltip showing token description, type, and resolved value for simple tokens
+- Added a custom quick-info tooltip that appears on hover (after 400ms delay) for all tokens that don't already have an alias resolution chain tooltip. The tooltip shows a type pill, the resolved value (formatted), and the description (if any). Added `hoverInfoVisible` state in `TokenLeafNode`, a `useEffect` to manage the delay and suppress the tooltip when an alias chain is already visible, and a JSX block positioned `bottom-full` above the row (matching the alias chain style). The tooltip does not replace the existing `title` attribute (kept for accessibility) but provides a richer visual presentation that shows immediately on hover rather than waiting for browser native tooltip delay.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L908 (state), ~L1001 (useEffect), ~L2380 (JSX tooltip block)
+- **Learnings for future iterations:**
+  - The alias chain tooltip condition (`resolutionSteps?.length >= 2 && !isBrokenAlias`) is the canonical check for whether the chain tooltip is showing — use it to gate any competing hover UI.
+  - Keeping the `title` attribute on the name div is still worthwhile for accessibility even when a custom tooltip is added — native tooltips are delayed enough (1-2s browser default) that they don't visually conflict.
+  - A 400ms delay (slightly longer than the 300ms complex-preview delay) prevents tooltip flicker on quick mouse-over traversals.
+---
