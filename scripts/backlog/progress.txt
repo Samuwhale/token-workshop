@@ -743,3 +743,17 @@
   - `tabIndex={-1}` on a `<button>` that has an `onClick` handler is a common copy-paste mistake — the button is interactive but invisible to keyboard users. Always audit for this combination.
   - When both `onMouseDown` (with action) and no `onClick` exist, keyboard users pressing Enter on the button get nothing because `onMouseDown` only fires from pointer events, not keyboard.
 ---
+
+## 2026-04-05 - HistoryPanel async operations swallow errors
+- Added proper `catch` blocks and success/error toasts to all four async handlers in `HistoryPanel.tsx`:
+  - `handleSaveSnapshot`: now shows error toast on failure; shows success toast ("Snapshot '...' saved") on success instead of silently collapsing the input
+  - `handleRollback`: now shows error toast on failure; shows "Rollback applied successfully" toast on success
+  - `handleRedo`: now shows error toast on failure; shows "Redo applied successfully" toast on success
+  - `handleUndoToEntry`: now shows error toast on failure; shows "Undid N action(s)" toast on success
+- Added `import { dispatchToast } from '../shared/toastBus'` to the file
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L6 (import), ~L131 (handleRollback), ~L142 (handleRedo), ~L153 (handleUndoToEntry), ~L164 (handleSaveSnapshot)
+- **Learnings for future iterations:**
+  - `try/finally` without `catch` silently swallows errors — every async UI handler that can fail needs an explicit `catch` with a toast dispatch
+  - Successful mutations that change visible state (collapsing input, clearing spinner) need a success toast so users can distinguish success from a swallowed failure
+  - `dispatchToast(message, 'success'|'error')` from `../shared/toastBus` is the canonical notification path for in-UI feedback
+---

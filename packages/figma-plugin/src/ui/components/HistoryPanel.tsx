@@ -3,6 +3,7 @@ import { Spinner } from './Spinner';
 import { SkeletonTimelineRow } from './Skeleton';
 import { OpIcon } from './RecentActionsSource';
 import { apiFetch } from '../shared/apiFetch';
+import { dispatchToast } from '../shared/toastBus';
 import {
   formatRelativeTime,
 } from '../shared/changeHelpers';
@@ -132,6 +133,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     setConfirmOp(null);
     try {
       await onRollback?.(opId);
+      dispatchToast('Rollback applied successfully', 'success');
+    } catch (err) {
+      dispatchToast((err as Error).message || 'Rollback failed', 'error');
     } finally {
       setRollingBack(null);
     }
@@ -142,6 +146,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     setRedoing(opId);
     try {
       await onServerRedo(opId);
+      dispatchToast('Redo applied successfully', 'success');
+    } catch (err) {
+      dispatchToast((err as Error).message || 'Redo failed', 'error');
     } finally {
       setRedoing(null);
     }
@@ -154,6 +161,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       for (let i = 0; i < stepsToUndo; i++) {
         await executeUndo();
       }
+      dispatchToast(`Undid ${stepsToUndo} action${stepsToUndo !== 1 ? 's' : ''}`, 'success');
+    } catch (err) {
+      dispatchToast((err as Error).message || 'Undo failed', 'error');
     } finally {
       setUndoingToEntry(null);
     }
@@ -171,6 +181,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       setSaveLabel('');
       setShowSaveInput(false);
       await fetchTimeline(debouncedTimelineSearch);
+      dispatchToast(`Snapshot "${label}" saved`, 'success');
+    } catch (err) {
+      dispatchToast((err as Error).message || 'Failed to save snapshot', 'error');
     } finally {
       setSaving(false);
     }
