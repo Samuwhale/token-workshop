@@ -452,3 +452,16 @@
   - The word "dimension" was used consistently in code (variable names, function names, API paths) but inconsistently in the UI — safe to rename UI text without touching code symbols.
   - Adding inline examples as helper text below a name input (not just placeholder text) is more discoverable since placeholder disappears when the user starts typing.
 ---
+
+## 2026-04-05 - Generator creation has no entry point from ThemeManager
+- Added a "Generate" button to each theme axis (dimension) header in ThemeManager. When clicked, it determines the best target set (first `enabled` override set → first `source` set → first available set), switches `activeSet` to that set, sets `pendingOpenPicker = true`, and navigates to `define > generators`. GraphPanel detects `openTemplatePicker = true` on mount and auto-opens the template picker, giving the user a continuous flow from axis → generator type selection without manual navigation.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useGraphState.ts` ~L4 (added `pendingOpenPicker` state)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L54 (new `onGenerateForDimension` prop + Generate button in dimension header at ~L970)
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L94 (new `openTemplatePicker` prop + effect at ~L139)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L126 (new props, `onGenerateForDimension` callback, pass `openTemplatePicker` to GraphPanel)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L180 (destructure + pass `pendingOpenPicker`/`setPendingOpenPicker`)
+- **Learnings for future iterations:**
+  - When adding a cross-panel "jump + pre-configure" flow, the pattern is: (1) add state for the signal in `useGraphState`, (2) the source panel calls a callback that sets state + navigates, (3) the target panel reads the signal in a `useEffect` and auto-configures on mount. Keep `onClearPendingGroup` as the single cleanup entry point so both pending-group and pending-picker are cleared together.
+  - The `overrideSets`/`foundationSets` variables are already computed at the dimension render site in ThemeManager — they can be used directly in the button's onClick without extra computation.
+---

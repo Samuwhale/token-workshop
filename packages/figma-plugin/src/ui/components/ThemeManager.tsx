@@ -53,6 +53,8 @@ interface ThemeManagerProps {
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
   /** Called with a success message after a mutation completes (dimension/option create, rename). */
   onSuccess?: (msg: string) => void;
+  /** Called when user wants to generate tokens for a theme axis — provides the best target set and axis name. */
+  onGenerateForDimension?: (info: { dimensionName: string; targetSet: string }) => void;
 }
 
 
@@ -65,7 +67,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
 
   // Live preview panel
@@ -965,6 +967,23 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 <path d="M9 12h6" />
                               </svg>
                               Compare
+                            </button>
+                          )}
+                          {onGenerateForDimension && (
+                            <button
+                              onClick={() => {
+                                const targetSet =
+                                  overrideSets[0] ?? foundationSets[0] ?? sets[0] ?? '';
+                                if (targetSet) onGenerateForDimension({ dimensionName: dim.name, targetSet });
+                              }}
+                              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                              title={`Generate tokens for ${dim.name} axis`}
+                              aria-label={`Generate tokens for ${dim.name} axis`}
+                            >
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                              </svg>
+                              Generate
                             </button>
                           )}
                           <button

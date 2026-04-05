@@ -125,6 +125,8 @@ export interface PanelRouterProps {
   setPendingGraphFromGroup: (v: { groupPath: string; tokenType?: string } | null) => void;
   focusGeneratorId: string | null;
   setFocusGeneratorId: (id: string | null) => void;
+  pendingOpenPicker: boolean;
+  setPendingOpenPicker: (v: boolean) => void;
 
   // Refs
   themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
@@ -554,9 +556,10 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           onApplyTemplate={() => p.setPendingGraphTemplate(null)}
           pendingGroupPath={p.pendingGraphFromGroup?.groupPath ?? null}
           pendingGroupTokenType={p.pendingGraphFromGroup?.tokenType ?? null}
-          onClearPendingGroup={() => p.setPendingGraphFromGroup(null)}
+          onClearPendingGroup={() => { p.setPendingGraphFromGroup(null); p.setPendingOpenPicker(false); }}
           focusGeneratorId={p.focusGeneratorId}
           onClearFocusGenerator={() => p.setFocusGeneratorId(null)}
+          openTemplatePicker={p.pendingOpenPicker}
         />
       </ErrorBoundary>
     );
@@ -582,6 +585,11 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               onGoToTokens={() => navigateTo('define', 'tokens')}
               themeManagerHandle={p.themeManagerHandleRef}
               onSuccess={p.setSuccessToast}
+              onGenerateForDimension={({ dimensionName: _name, targetSet }) => {
+                if (targetSet) setActiveSet(targetSet);
+                p.setPendingOpenPicker(true);
+                navigateTo('define', 'generators');
+              }}
               resolverState={{
                 serverUrl,
                 connected,

@@ -91,6 +91,8 @@ export interface GraphPanelProps {
   focusGeneratorId?: string | null;
   onClearFocusGenerator?: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
+  /** When true, automatically opens the template picker on mount (used when navigating from ThemeManager). */
+  openTemplatePicker?: boolean;
 }
 
 export function GraphPanel({
@@ -110,6 +112,7 @@ export function GraphPanel({
   focusGeneratorId,
   onClearFocusGenerator,
   allTokensFlat,
+  openTemplatePicker,
 }: GraphPanelProps) {
   const help = usePanelHelp('generators');
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
@@ -134,6 +137,15 @@ export function GraphPanel({
   const [runningStale, setRunningStale] = useState(false);
   const [runStaleResult, setRunStaleResult] = useState<{ count: number; tokenCount: number } | null>(null);
   const [runStaleError, setRunStaleError] = useState<string | null>(null);
+
+  // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
+  useEffect(() => {
+    if (!openTemplatePicker) return;
+    setBrowsingTemplates(true);
+    setSelectedTemplate(null);
+    onClearPendingGroup?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openTemplatePicker]);
 
   // Scroll to and highlight a focused generator (from token badge click)
   useEffect(() => {

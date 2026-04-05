@@ -177,7 +177,7 @@ export function App() {
   }, []);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const { pendingGraphTemplate, setPendingGraphTemplate, pendingGraphFromGroup, setPendingGraphFromGroup, focusGeneratorId, setFocusGeneratorId } = useGraphState();
+  const { pendingGraphTemplate, setPendingGraphTemplate, pendingGraphFromGroup, setPendingGraphFromGroup, focusGeneratorId, setFocusGeneratorId, pendingOpenPicker, setPendingOpenPicker } = useGraphState();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -2394,6 +2394,8 @@ export function App() {
               setPendingGraphFromGroup={setPendingGraphFromGroup}
               focusGeneratorId={focusGeneratorId}
               setFocusGeneratorId={setFocusGeneratorId}
+              pendingOpenPicker={pendingOpenPicker}
+              setPendingOpenPicker={setPendingOpenPicker}
               themeManagerHandleRef={themeManagerHandleRef}
               onTokenDragStart={(paths, fromSet) => setTokenDragState({ paths, fromSet })}
               onTokenDragEnd={() => setTokenDragState(null)}
