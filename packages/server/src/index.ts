@@ -27,6 +27,7 @@ import { ResolverStore } from './services/resolver-store.js';
 import { ManualSnapshotStore } from './services/manual-snapshot.js';
 import { snapshotRoutes } from './routes/snapshots.js';
 import { TokenLock } from './services/token-lock.js';
+import { RateLimiter } from './services/rate-limiter.js';
 import { createDimensionsStore, type DimensionsStore } from './routes/themes.js';
 import { EventBus } from './services/event-bus.js';
 
@@ -43,6 +44,26 @@ export async function startServer(config: ServerConfig) {
     // 'null' origin is sent by the Figma plugin iframe (sandboxed iframe with no inherited origin)
     origin: ['https://www.figma.com', 'https://figma.com', /^https:\/\/.*\.figma\.com$/, 'null'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
+
+
+  // Rate-limit mutation endpoints (POST/PUT/PATCH/DELETE) to prevent runaway UI
+  // loops or external scripts from overwhelming the file system with rapid writes.
+  // GET/HEAD/OPTIONS requests are exempt — reads are cheap and SSE streams must
+  // stay open indefinitely. Uses a sliding-window counter per client IP.
+  const rateLimiter = new RateLimiter({ max: 200, windowMs: 60_000 });
+  fastify.addHook('onRequest', async (request, reply) => {
+    const result = rateLimiter.check(request.method, request.ip);
+    if (result) {
+      reply
+        .header('Retry-After', String(result.retryAfterSec))
+        .status(429)
+        .send({
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: `Rate limit exceeded: max 200 write requests per minute. Retry after ${result.retryAfterSec}s.`,
+        });
+    }
   });
 
   // Initialize services

@@ -753,3 +753,12 @@
 - **Learnings for future iterations:**
   - Check git log for the specific file before planning — prior backlog sessions may have already implemented the requested feature.
 ---
+
+## 2026-04-05 - Server has no rate limiting on mutation endpoints
+- Implemented a sliding-window rate limiter (`RateLimiter` class) as a pure in-memory service — no external packages needed. Limits POST/PUT/PATCH/DELETE requests to 200 per minute per client IP; GET/HEAD/OPTIONS are always exempt. Registered as a Fastify `onRequest` hook in `startServer()`, returning HTTP 429 with `Retry-After` header when the limit is exceeded.
+- Files changed: `packages/server/src/services/rate-limiter.ts` (new), `packages/server/src/index.ts` ~L30,L51
+- **Learnings for future iterations:**
+  - `@fastify/rate-limit` can't be installed in a worktree (pnpm virtualStoreDir mismatch); a simple custom implementation is preferable and sufficient for a local dev tool.
+  - A sliding-window counter per IP, exempt for read-only methods, is all that's needed — don't over-engineer with token buckets or persistent stores for this use case.
+  - `onRequest` hook fires before route handlers and before body parsing, making it the right lifecycle point for request-level throttling.
+---
