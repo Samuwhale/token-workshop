@@ -474,3 +474,10 @@
   - `local` undo entries have no `affectedPaths`, so they should be excluded when a token path filter is active (they can't be determined to be relevant or irrelevant).
   - `isFiltering` flag should include `!!filterTokenPath` so the "no results match your filter" empty state appears correctly.
 ---
+
+## 2026-04-05 - ux-pass
+- Areas explored: TokenTreeNode.tsx (inline editing, context menu, rename, validation), TokenListModals.tsx (confirmation dialogs, form validation), MetadataEditor.tsx (extensions editor, mode overrides), CreatePanel.tsx (form validation, success feedback), SelectionInspector.tsx (binding/unbinding, clear all, keyboard shortcuts), PropertyRow.tsx (token search autocomplete, create panel, ARIA), TokenUsages.tsx (usage display, loading states), ResolverPanel.tsx (CRUD, confirmations, edit form), ThemeManager.tsx (dimension/option CRUD, feedback), SettingsPanel.tsx (setting application, danger zone), ExportPanel.tsx (export flow, preview modal, file tabs)
+- Heuristics most relevant: system status visibility, error prevention, consistency, keyboard accessibility
+- Found 5 items — written to backlog-inbox.md
+- Notable: Inline token editing has no validation feedback at all — `parseInlineValue` returning null causes Enter to silently keep the editor open and Tab to silently drop the edit. Also, `opacity-0 group-hover:opacity-100` without `group-focus-within:opacity-100` is endemic across ~15+ components (ResolverPanel, ThemeManager, HistoryPanel, ExportPanel, etc.) while TokenTreeNode already has the correct pattern — a systemic consistency gap.
+---
