@@ -224,3 +224,26 @@ Already up to date.
 
   Merging to main: Token context menu missing "Go to definition" for aliases
 Already up to date.
+[main 52df0564] chore(backlog): done – Token context menu missing "Go to definition" for aliases
+ 5 files changed, 51 insertions(+), 3 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Token context menu missing "Go to definition" for aliases
+- Added a "Go to definition" menu item to the token context menu, visible only for non-broken alias tokens. Clicking it calls `onNavigateToAlias(aliasPath, node.path)` which triggers cross-set navigation with back-history support via the existing `useTokenNavigation` hook. Keyboard accelerator `G`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2266 (new conditional button after "Link to token…")
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #10  ·  13 queued · 0
+0 in-progress · last took 3m9s
+═══════════════════════════════════════════════════════════════
+  → Batch editor silently skips alias tokens during numeric transforms — when applying multiply/divide/add/subtract to selected tokens, tokens with alias values (e.g., `{spacing.base}`) are skipped without any feedback; show a count of skipped tokens after the operation completes so users know some selections weren't affected
+  Worktree: /tmp/backlog-50286-DeZqJk
+  Running agent… (started 23:21:21)
+
+  ✓ done: Batch editor silently skips alias tokens during numeric transforms
+    stale — already done; pre-apply warning banner + post-apply skipped count feedback both present in BatchEditor.tsx
+    15 turns · 107s · $0.39
+
+  Merging to main: Batch editor silently skips alias tokens during numeric transforms
+Already up to date.

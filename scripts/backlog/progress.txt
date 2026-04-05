@@ -600,3 +600,11 @@
   - The `onNavigateToAlias` callback handles both same-set and cross-set navigation automatically (via pendingHighlight + set switch), so no special handling needed at the call site.
   - Keyboard accelerator `G` is safe in the token context menu — the group menu also uses `G` but on a different `menuEl` ref, so there's no collision.
 ---
+
+## 2026-04-05 - Batch editor silently skips alias tokens during numeric transforms
+- Already implemented: BatchEditor.tsx has pre-apply warning banner (shows alias token names, lines ~1303-1339), edge-case message when all tokens are aliases ("Cannot transform — all selected tokens use reference values", line ~768), and post-apply feedback showing "Applied to N tokens (M reference values skipped)" with error styling (lines ~803-818). No changes needed.
+- Files changed: none
+- **Learnings for future iterations:**
+  - `scaleAliasCount` is pre-computed before the apply loop and used after to report skips — no need to count inside the loop
+  - Pre-apply warning lists token names; post-apply feedback gives counts; all-alias edge case has its own message
+---
