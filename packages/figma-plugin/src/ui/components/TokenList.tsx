@@ -46,6 +46,11 @@ import { useTokenCrud } from '../hooks/useTokenCrud';
 import { useFigmaMessage } from '../hooks/useFigmaMessage';
 import { extractSyncApplyResult } from '../hooks/useTokenSyncBase';
 import { TOKEN_TYPE_CATEGORIES } from '../shared/tokenTypeCategories';
+import { useTokenWhereIs } from '../hooks/useTokenWhereIs';
+import { useTokenExpansion } from '../hooks/useTokenExpansion';
+import { useTokenVirtualScroll } from '../hooks/useTokenVirtualScroll';
+import { useTokenSearch } from '../hooks/useTokenSearch';
+import { useTokenSelection } from '../hooks/useTokenSelection';
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
@@ -81,12 +86,9 @@ export function TokenList({
   // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
-  const lastSelectedPathRef = useRef<string | null>(null);
+  // selectMode/selectedPaths/showBatchEditor/lastSelectedPathRef managed by useTokenSelection (called below)
   const varReadPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
-  const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -133,19 +135,12 @@ export function TokenList({
     return map;
   }, [generators]);
 
-  // Expand/collapse state — persisted in localStorage per set
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
-  const initializedForSet = useRef<string | null>(null);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-  const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
+  // Expand/collapse state managed by useTokenExpansion (called below)
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
   // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
-  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
@@ -153,38 +148,19 @@ export function TokenList({
   const copyTokensAsPreferredRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsDtcgRefRef = useRef<(nodes: TokenNode[]) => void>(() => {});
 
-  // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
+  // Bridging refs — created here so they can be passed to both useTokenSearch and useTokenVirtualScroll
+  // useTokenVirtualScroll assigns flatItemsRef.current and itemOffsetsRef.current after its memos
   const virtualScrollTopRef = useRef(0);
   const flatItemsRef = useRef<Array<{ node: { path: string } }>>([]);
   const itemOffsetsRef = useRef<number[]>([0]);
   const scrollAnchorPathRef = useRef<string | null>(null);
   const isFilterChangeRef = useRef(false);
 
-
-  useEffect(() => {
-    if (tokens.length === 0) return;
-    if (initializedForSet.current === setName) return;
-    initializedForSet.current = setName;
-    setZoomRootPath(null);
-    try {
-      const stored = localStorage.getItem(`token-expand:${setName}`);
-      if (stored !== null) {
-        setExpandedPaths(new Set(JSON.parse(stored) as string[]));
-      } else {
-        setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
-      }
-    } catch (e) {
-      console.debug('[TokenList] storage read/parse expanded paths:', e);
-      setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
-    }
-  }, [setName, tokens]);
-
-  useEffect(() => {
-    if (initializedForSet.current !== setNameRef.current) return;
-    try {
-      localStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
-    } catch (e) { console.debug('[TokenList] storage write expanded paths:', e); }
-  }, [expandedPaths]);
+  // Ref-based clearSelection and selectedPaths — defined here so they're available before useTokenSelection is called.
+  // useTokenCrud and useTokenPromotion are called before useTokenSelection, so we use ref-based proxies.
+  const clearSelectionRef = useRef<() => void>(() => {});
+  const clearSelection = useCallback(() => clearSelectionRef.current(), []);
+  const selectedPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
@@ -201,45 +177,7 @@ export function TokenList({
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const handleToggleExpand = useCallback((path: string) => {
-    setExpandedPaths(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  }, []);
-
-  const handleExpandAll = useCallback(() => {
-    setExpandedPaths(new Set(collectAllGroupPaths(tokens)));
-  }, [tokens]);
-
-  const handleCollapseAll = useCallback(() => {
-    setExpandedPaths(new Set());
-  }, []);
-
-
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
-
-  // Expand ancestor groups (and the target itself if it's a group) when navigating to a highlighted token
-  useEffect(() => {
-    if (!highlightedToken) return;
-    const parts = highlightedToken.split('.');
-    const toExpand: string[] = [];
-    for (let i = 1; i < parts.length; i++) {
-      toExpand.push(parts.slice(0, i).join('.'));
-    }
-    // Also expand the target path itself — this is a no-op for leaf tokens
-    // but expands groups so their children are visible when navigated to
-    toExpand.push(highlightedToken);
-    setExpandedPaths(prev => {
-      const next = new Set(prev);
-      toExpand.forEach(a => next.add(a));
-      return next;
-    });
-    const timer = setTimeout(() => onClearHighlight?.(), 3000);
-    return () => clearTimeout(timer);
-  }, [highlightedToken, onClearHighlight]);
 
   useEffect(() => {
     if (!moreFiltersOpen) return;
@@ -286,143 +224,7 @@ export function TokenList({
     return locallyDeletedPaths.size > 0 ? pruneDeletedPaths(sorted, locallyDeletedPaths) : sorted;
   }, [tokens, sortOrder, locallyDeletedPaths]);
 
-  // Filters — search/ref persisted in sessionStorage (shared across sets);
-  // typeFilter persisted in localStorage per-set so each set remembers its own filter
-  const [searchQuery, setSearchQueryState] = useState(() => {
-    try { return sessionStorage.getItem('token-search') || ''; } catch (e) { console.debug('[TokenList] storage read search query:', e); return ''; }
-  });
-  const [typeFilter, setTypeFilterState] = useState<string>('');
-  const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
-    try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch (e) { console.debug('[TokenList] storage read ref filter:', e); return 'all'; }
-  });
-
-  useEffect(() => {
-    setTypeFilterState(lsGet(STORAGE_KEY.tokenTypeFilter(setName), ''));
-  }, [setName]);
-
-  const saveScrollAnchor = useCallback(() => {
-    const top = virtualScrollTopRef.current;
-    const items = flatItemsRef.current;
-    const offsets = itemOffsetsRef.current;
-    let firstIdx = 0;
-    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
-    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
-    isFilterChangeRef.current = true;
-  }, []);
-
-  const setSearchQuery = useCallback((v: string) => {
-    // Delegate to command palette when the query contains structured qualifiers
-    if (v && hasStructuredQualifiers(v) && onOpenCommandPaletteWithQuery) {
-      onOpenCommandPaletteWithQuery(v);
-      // Clear in-tree search so the tree shows unfiltered
-      setSearchQueryState('');
-      try { sessionStorage.removeItem('token-search'); } catch (e) { console.debug('[TokenList] storage clear search query:', e); }
-      return;
-    }
-    saveScrollAnchor();
-    setSearchQueryState(v);
-    try { sessionStorage.setItem('token-search', v); } catch (e) { console.debug('[TokenList] storage write search query:', e); }
-  }, [saveScrollAnchor, onOpenCommandPaletteWithQuery]);
-  const setTypeFilter = useCallback((v: string) => {
-    saveScrollAnchor();
-    setTypeFilterState(v);
-    lsSet(STORAGE_KEY.tokenTypeFilter(setName), v);
-  }, [saveScrollAnchor, setName]);
-  const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
-    saveScrollAnchor();
-    setRefFilterState(v);
-    try { sessionStorage.setItem('token-ref-filter', v); } catch (e) { console.debug('[TokenList] storage write ref filter:', e); }
-  }, [saveScrollAnchor]);
-
-  const [showDuplicates, setShowDuplicatesState] = useState(() => {
-    try { return sessionStorage.getItem('token-duplicates') === '1'; } catch (e) { console.debug('[TokenList] storage read duplicates flag:', e); return false; }
-  });
-  const setShowDuplicates = useCallback((v: boolean) => {
-    setShowDuplicatesState(v);
-    try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch (e) { console.debug('[TokenList] storage write duplicates flag:', e); }
-  }, []);
-
-  const [crossSetSearch, setCrossSetSearch] = useState(false);
-
-  // "Find in all sets" overlay — shows all set definitions for a specific token path
-  const [whereIsPath, setWhereIsPath] = useState<string | null>(null);
-  const [whereIsResults, setWhereIsResults] = useState<Array<{ setName: string; $type: string; $value: unknown; $description?: string; isAlias: boolean; isDifferentFromFirst: boolean }> | null>(null);
-  const [whereIsLoading, setWhereIsLoading] = useState(false);
-  const whereIsAbortRef = useRef<AbortController | null>(null);
-
-  const [showQualifierHints, setShowQualifierHints] = useState(false);
-  const [showQualifierHelp, setShowQualifierHelp] = useState(false);
-  const [hintIndex, setHintIndex] = useState(0);
-  const qualifierHintsRef = useRef<HTMLDivElement>(null);
-  const qualifierHelpRef = useRef<HTMLDivElement>(null);
-
-  // Cycling placeholder examples for search qualifier discoverability
-  const PLACEHOLDER_EXAMPLES = useMemo(() => [
-    'type:color',
-    'has:alias',
-    'value:#ff0000',
-    'path:colors.brand',
-    'name:500',
-    'type:dimension',
-    'has:duplicate',
-    'desc:primary',
-  ], []);
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-  useEffect(() => {
-    if (searchQuery) return; // don't cycle when there's text
-    const id = setInterval(() => {
-      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length);
-    }, 3000);
-    return () => clearInterval(id);
-  }, [searchQuery, PLACEHOLDER_EXAMPLES]);
-  const [searchFocused, setSearchFocused] = useState(false);
-
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
-
-  // Count of active non-search filters (for compact filter indicator)
-  const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showPinnedOnly ? 1 : 0);
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-
-  // Compute paths with lint violations for issues-only filter
-  const lintPaths = useMemo(() => {
-    const paths = new Set<string>();
-    for (const v of lintViolations) paths.add(v.path);
-    return paths;
-  }, [lintViolations]);
-
-  // Debounced tokens reference for the expensive duplicate-value computation.
-  // Without debouncing, every keystroke in a large set triggers an O(n) walk
-  // over all tokens. 300 ms idle time is imperceptible for a background stat.
-  const [debouncedTokens, setDebouncedTokens] = useState(tokens);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedTokens(tokens), 300);
-    return () => clearTimeout(timer);
-  }, [tokens]);
-
-  // Compute duplicate value info from all tokens in the current set
-  const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
-    const valueMap = new Map<string, string[]>(); // serialized value → paths
-    const collectLeaves = (nodes: TokenNode[]) => {
-      for (const n of nodes) {
-        if (!n.isGroup) {
-          const key = stableStringify(n.$value);
-          if (!valueMap.has(key)) valueMap.set(key, []);
-          valueMap.get(key)!.push(n.path);
-        }
-        if (n.children) collectLeaves(n.children);
-      }
-    };
-    collectLeaves(debouncedTokens);
-    const paths = new Set<string>();
-    const counts = new Map<string, number>(); // serialized value → count
-    for (const [key, ps] of valueMap) {
-      if (ps.length > 1) {
-        ps.forEach(p => paths.add(p));
-        counts.set(key, ps.length);
-      }
-    }
-    return { duplicateValuePaths: paths, duplicateCounts: counts };
-  }, [debouncedTokens]);
+  // Search/filter state managed by useTokenSearch (called below after sortedTokens/lintPaths are available)
 
   // Compute the set of token paths that are "unused": zero Figma usage AND not referenced by any other token as an alias
   const unusedTokenPaths = useMemo<Set<string> | undefined>(() => {
@@ -483,62 +285,7 @@ export function TokenList({
     return result;
   };
 
-  // Count of non-alias tokens with duplicate values — used by the promote banner
-  const promotableDuplicateCount = useMemo(() => {
-    const flat = flattenTokens(tokens);
-    return flat.filter(t => duplicateValuePaths.has(t.path) && !isAlias(t.$value)).length;
-  }, [tokens, duplicateValuePaths]);
-
-  const availableTypes = useMemo(() => {
-    const types = new Set<string>();
-    const collect = (nodes: TokenNode[]) => {
-      for (const n of nodes) {
-        if (!n.isGroup && n.$type) types.add(n.$type);
-        if (n.children) collect(n.children);
-      }
-    };
-    collect(tokens);
-    return [...types].sort();
-  }, [tokens]);
-
-  // Compute filtered qualifier hints based on what the user is currently typing.
-  // Must be declared AFTER availableTypes to avoid TDZ crash.
-  const qualifierHints = useMemo(() => {
-    const lastWord = searchQuery.split(/\s+/).pop() || '';
-
-    // Value completion after type: — show actual token types from the current set
-    if (lastWord.startsWith('type:')) {
-      const suffix = lastWord.slice(5).toLowerCase();
-      const matches = suffix
-        ? availableTypes.filter(t => t.toLowerCase().startsWith(suffix))
-        : availableTypes;
-      return matches.map(t => ({ qualifier: `type:${t}`, desc: `filter to ${t} tokens`, example: '' }));
-    }
-
-    // Value completion after has: — show recognized has: values
-    if (lastWord.startsWith('has:')) {
-      const suffix = lastWord.slice(4).toLowerCase();
-      const hasOptions = [
-        { v: 'alias', desc: 'Only reference tokens' },
-        { v: 'direct', desc: 'Only direct-value tokens' },
-        { v: 'duplicate', desc: 'Only tokens with duplicate values' },
-        { v: 'description', desc: 'Only tokens with a description' },
-        { v: 'extension', desc: 'Only tokens with extensions' },
-      ];
-      const matches = suffix ? hasOptions.filter(({ v }) => v.startsWith(suffix)) : hasOptions;
-      return matches.map(({ v, desc }) => ({ qualifier: `has:${v}`, desc, example: '' }));
-    }
-
-    // On focus with empty query — show all qualifiers as discovery hints
-    if (!lastWord) return QUERY_QUALIFIERS;
-
-    // Partial word after unknown qualifier — hide hints
-    if (lastWord.includes(':')) return [];
-
-    // Prefix match on qualifier names
-    const lw = lastWord.toLowerCase();
-    return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
-  }, [searchQuery, availableTypes]);
+  // promotableDuplicateCount computed after useTokenSearch hook call (below)
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
@@ -747,176 +494,7 @@ export function TokenList({
     parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath } }, '*');
   }, []);
 
-  const displayedTokens = useMemo(() => {
-    // Apply zoom: if a zoom root is set, extract that subtree's children
-    let baseTokens = sortedTokens;
-    if (zoomRootPath) {
-      const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
-      baseTokens = zoomNode?.children ?? [];
-    }
-    let result = filtersActive ? filterTokenNodes(baseTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
-    if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
-    if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
-    if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
-    if (showRecentlyTouched) {
-      if (recentlyTouched.paths.size > 0) result = filterByDuplicatePaths(result, recentlyTouched.paths);
-      else result = [];
-    }
-    if (showPinnedOnly) {
-      if (pinnedTokens.paths.size > 0) result = filterByDuplicatePaths(result, pinnedTokens.paths);
-      else result = [];
-    }
-    return result;
-  }, [sortedTokens, zoomRootPath, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths, derivedTokenPaths, unusedTokenPaths]);
-
-  // Auto-clear zoom if the zoomed group no longer exists in the tree
-  useEffect(() => {
-    if (zoomRootPath && !findGroupByPath(sortedTokens, zoomRootPath)) {
-      setZoomRootPath(null);
-    }
-  }, [sortedTokens, zoomRootPath]);
-
-  // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
-  const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
-  displayedLeafNodesRef.current = displayedLeafNodes;
-
-  // Notify parent when the visible leaf list changes (used for editor drawer navigation)
-  useEffect(() => { onDisplayedLeafNodesChange?.(displayedLeafNodes); }, [displayedLeafNodes, onDisplayedLeafNodesChange]);
-
-  // Notify parent when multi-select set changes (used by command palette bulk-delete)
-  useEffect(() => { onSelectionChange?.([...selectedPaths]); }, [selectedPaths, onSelectionChange]);
-
-  // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
-  const pinnedDisplayedNodes = useMemo(() => {
-    if (pinnedTokens.count === 0 || showPinnedOnly) return [];
-    return displayedLeafNodes.filter(n => pinnedTokens.isPinned(n.path));
-  }, [displayedLeafNodes, pinnedTokens, showPinnedOnly]);
-
-  // Compute highlight terms from the parsed search query for substring highlighting
-  const searchHighlight = useMemo(() => {
-    if (!searchQuery) return undefined;
-    const parsed = parseStructuredQuery(searchQuery);
-    const nameTerms: string[] = [];
-    const valueTerms: string[] = [];
-    if (parsed.text) nameTerms.push(parsed.text);
-    nameTerms.push(...parsed.names, ...parsed.paths);
-    valueTerms.push(...parsed.values);
-    // For plain text search, the term also matches values
-    if (parsed.text) valueTerms.push(parsed.text);
-    if (!nameTerms.length && !valueTerms.length) return undefined;
-    return { nameTerms, valueTerms };
-  }, [searchQuery]);
-
-  // Cross-set search: debounced server-side search across all sets
-  const [crossSetResults, setCrossSetResults] = useState<Array<{ setName: string; path: string; entry: TokenMapEntry }> | null>(null);
-  const [crossSetTotal, setCrossSetTotal] = useState<number>(0);
-  const [crossSetOffset, setCrossSetOffset] = useState<number>(0);
-  const crossSetAbortRef = useRef<AbortController | null>(null);
-  const CROSS_SET_PAGE_SIZE = 200;
-
-  // Reset offset when query changes
-  useEffect(() => {
-    setCrossSetOffset(0);
-  }, [crossSetSearch, searchQuery]);
-
-  useEffect(() => {
-    if (!crossSetSearch || !searchQuery.trim()) {
-      setCrossSetResults(crossSetSearch ? [] : null);
-      setCrossSetTotal(0);
-      return;
-    }
-    const parsed = parseStructuredQuery(searchQuery);
-    const params = new URLSearchParams();
-    if (parsed.text) params.set('q', parsed.text);
-    if (parsed.types.length) params.set('type', parsed.types.join(','));
-    if (parsed.has.length) params.set('has', parsed.has.join(','));
-    if (parsed.values.length) params.set('value', parsed.values.join(','));
-    if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
-    if (parsed.paths.length) params.set('path', parsed.paths.join(','));
-    if (parsed.names.length) params.set('name', parsed.names.join(','));
-    params.set('limit', String(CROSS_SET_PAGE_SIZE));
-    if (crossSetOffset > 0) params.set('offset', String(crossSetOffset));
-
-    crossSetAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    crossSetAbortRef.current = ctrl;
-
-    const timer = setTimeout(() => {
-      apiFetch<{ results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
-        .then(data => {
-          const mapped = data.results.map(r => ({
-            setName: r.setName,
-            path: r.path,
-            entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
-          }));
-          setCrossSetTotal(data.total);
-          if (crossSetOffset > 0) {
-            setCrossSetResults(prev => [...(prev ?? []), ...mapped]);
-          } else {
-            setCrossSetResults(mapped);
-          }
-        })
-        .catch(err => {
-          if (isAbortError(err)) return;
-          console.error('Cross-set search failed:', err);
-        });
-    }, 150);
-
-    return () => { clearTimeout(timer); ctrl.abort(); };
-  }, [crossSetSearch, searchQuery, serverUrl, crossSetOffset]);
-
-  // Report filtered leaf count to parent so set tabs can show "X / Y"
-  useEffect(() => {
-    if (!onFilteredCountChange) return;
-    onFilteredCountChange(filtersActive ? displayedLeafNodes.length : null);
-  }, [displayedLeafNodes, filtersActive, onFilteredCountChange]);
-
-  // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
-  const flatItems = useMemo(() => {
-    if (viewMode !== 'tree') return [];
-    if (showRecentlyTouched) {
-      // In recency mode, flatten and sort by timestamp (newest first)
-      const leaves = flattenLeafNodes(displayedTokens);
-      leaves.sort((a, b) => (recentlyTouched.timestamps.get(b.path) ?? 0) - (recentlyTouched.timestamps.get(a.path) ?? 0));
-      return leaves.map(node => ({ node, depth: 0 }));
-    }
-    return flattenVisible(displayedTokens, expandedPaths);
-  }, [displayedTokens, expandedPaths, viewMode, showRecentlyTouched, recentlyTouched.paths, recentlyTouched.timestamps]);
-
-  // Toggle alias chain expansion for a token row
-  const handleToggleChain = useCallback((path: string) => {
-    setExpandedChains(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path); else next.add(path);
-      return next;
-    });
-  }, []);
-
-  // Cumulative row offsets for variable-height virtual scroll.
-  // Each item is rowHeight px (density-dependent), plus dynamic chain height when its chain panel is open.
-  // Chain height = 18px per resolution step (each step is a row in the debugger).
-  const CHAIN_STEP_HEIGHT = 18;
-  const itemOffsets = useMemo(() => {
-    const offsets = new Array<number>(flatItems.length + 1);
-    offsets[0] = 0;
-    for (let i = 0; i < flatItems.length; i++) {
-      let h = rowHeight;
-      const item = flatItems[i];
-      if (expandedChains.has(item.node.path) && isAlias(item.node.$value)) {
-        const result = resolveTokenValue(item.node.$value, item.node.$type || 'unknown', allTokensFlat);
-        // steps = 1 (self) + chain.length hops; if not an alias, result is null and we skip
-        const stepCount = 1 + (result?.chain?.length ?? 0);
-        h += Math.max(stepCount * CHAIN_STEP_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT);
-      } else if (expandedChains.has(item.node.path)) {
-        h += VIRTUAL_CHAIN_EXPAND_HEIGHT;
-      }
-      offsets[i + 1] = offsets[i] + h;
-    }
-    return offsets;
-  }, [flatItems, expandedChains, rowHeight, allTokensFlat]);
-  // Sync refs so filter callbacks can read latest values without stale closure issues
-  flatItemsRef.current = flatItems;
-  itemOffsetsRef.current = itemOffsets;
+  // displayedTokens/displayedLeafNodes/flatItems/itemOffsets computed by hooks below
 
   // Map of group path ('' = root) → ordered child names, reflecting actual file order
   const siblingOrderMap = useMemo(() => {
@@ -1077,6 +655,191 @@ export function TokenList({
     handleCreateGroup, handleMoveTokenInGroup,
   } = groupOps;
 
+  // Phase 1: useTokenWhereIs
+  const tokenWhereIs = useTokenWhereIs({ serverUrl });
+  const {
+    whereIsPath, setWhereIsPath,
+    whereIsResults, setWhereIsResults,
+    whereIsLoading, setWhereIsLoading,
+    whereIsAbortRef,
+    handleFindInAllSets,
+  } = tokenWhereIs;
+
+  // Phase 2: useTokenExpansion
+  const tokenExpansion = useTokenExpansion({
+    setName,
+    tokens,
+    highlightedToken,
+    onClearHighlight,
+  });
+  const {
+    expandedPaths, setExpandedPaths,
+    expandedChains, setExpandedChains,
+    handleToggleExpand,
+    handleExpandAll,
+    handleCollapseAll,
+    handleToggleChain,
+  } = tokenExpansion;
+
+  // Compute lintPaths here so we can pass it to useTokenSearch
+  const lintPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const v of lintViolations) paths.add(v.path);
+    return paths;
+  }, [lintViolations]);
+
+  // Phase 4: useTokenSearch (needs bridging refs + sortedTokens + expansion state)
+  const tokenSearch = useTokenSearch({
+    setName,
+    tokens,
+    sets,
+    serverUrl,
+    onOpenCommandPaletteWithQuery,
+    virtualScrollTopRef,
+    flatItemsRef,
+    itemOffsetsRef,
+    scrollAnchorPathRef,
+    isFilterChangeRef,
+    expandedPaths,
+    pinnedPaths: pinnedTokens.paths,
+    sortedTokens,
+    recentlyTouched,
+    showIssuesOnly,
+    showRecentlyTouched,
+    showPinnedOnly,
+    inspectMode,
+    zoomRootPath,
+    lintPaths,
+    boundTokenPaths,
+    unusedTokenPaths,
+    derivedTokenPaths,
+  });
+  const {
+    searchQuery,
+    typeFilter,
+    refFilter,
+    showDuplicates,
+    crossSetSearch, setCrossSetSearch,
+    showQualifierHints, setShowQualifierHints,
+    showQualifierHelp, setShowQualifierHelp,
+    hintIndex, setHintIndex,
+    placeholderIdx,
+    searchFocused, setSearchFocused,
+    filterDrawerOpen, setFilterDrawerOpen,
+    crossSetResults,
+    crossSetTotal,
+    crossSetOffset, setCrossSetOffset,
+    searchRef,
+    qualifierHintsRef,
+    qualifierHelpRef,
+    crossSetAbortRef,
+    saveScrollAnchor,
+    setSearchQuery,
+    setTypeFilter,
+    setRefFilter,
+    setShowDuplicates,
+    filtersActive,
+    activeFilterCount,
+    duplicateValuePaths,
+    duplicateCounts,
+    availableTypes,
+    qualifierHints,
+    searchHighlight,
+    PLACEHOLDER_EXAMPLES,
+    displayedTokens,
+    displayedLeafNodes,
+  } = tokenSearch;
+
+  // Sync displayedLeafNodesRef
+  displayedLeafNodesRef.current = displayedLeafNodes;
+
+  // Notify parent when the visible leaf list changes
+  useEffect(() => { onDisplayedLeafNodesChange?.(displayedLeafNodes); }, [displayedLeafNodes, onDisplayedLeafNodesChange]);
+
+  // Auto-clear zoom if the zoomed group no longer exists in the tree
+  useEffect(() => {
+    if (zoomRootPath && !findGroupByPath(sortedTokens, zoomRootPath)) {
+      setZoomRootPath(null);
+    }
+  }, [sortedTokens, zoomRootPath]);
+
+  // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
+  const pinnedDisplayedNodes = useMemo(() => {
+    if (pinnedTokens.count === 0 || showPinnedOnly) return [];
+    return displayedLeafNodes.filter(n => pinnedTokens.isPinned(n.path));
+  }, [displayedLeafNodes, pinnedTokens, showPinnedOnly]);
+
+  // Phase 3: useTokenVirtualScroll (needs displayedTokens from useTokenSearch)
+  // Note: showRecentlyTouched special-case for flatItems is handled here
+  const flatItemsForScroll = useMemo(() => {
+    if (viewMode !== 'tree') return [];
+    if (showRecentlyTouched) {
+      const leaves = flattenLeafNodes(displayedTokens);
+      leaves.sort((a, b) => (recentlyTouched.timestamps.get(b.path) ?? 0) - (recentlyTouched.timestamps.get(a.path) ?? 0));
+      return leaves.map(node => ({ node, depth: 0 }));
+    }
+    return flattenVisible(displayedTokens, expandedPaths);
+  }, [displayedTokens, expandedPaths, viewMode, showRecentlyTouched, recentlyTouched.paths, recentlyTouched.timestamps]);
+
+  const tokenVirtualScroll = useTokenVirtualScroll({
+    displayedTokens: flatItemsForScroll.length === 0 ? displayedTokens : displayedTokens,
+    expandedPaths,
+    expandedChains,
+    rowHeight,
+    allTokensFlat,
+    viewMode,
+    recentlyTouched,
+    highlightedToken,
+    virtualListRef,
+    virtualScrollTopRef,
+    flatItemsRef,
+    itemOffsetsRef,
+    scrollAnchorPathRef,
+    isFilterChangeRef,
+  });
+  // Override flatItems from the hook with our special recency-sorted version
+  const flatItems = flatItemsForScroll;
+  const {
+    virtualScrollTop, setVirtualScrollTop,
+    itemOffsets,
+    pendingTabEdit,
+    handleClearPendingTabEdit,
+    handleJumpToGroup,
+    handleTabToNext,
+  } = tokenVirtualScroll;
+  // Sync flatItemsRef/itemOffsetsRef (useTokenVirtualScroll already does this, but flatItems is overridden above)
+  flatItemsRef.current = flatItems;
+  // itemOffsetsRef is set by useTokenVirtualScroll internally
+
+  // Report filtered leaf count to parent so set tabs can show "X / Y"
+  useEffect(() => {
+    if (!onFilteredCountChange) return;
+    onFilteredCountChange(filtersActive ? displayedLeafNodes.length : null);
+  }, [displayedLeafNodes, filtersActive, onFilteredCountChange]);
+
+  // Phase 5: useTokenSelection (called before tokenCrud/tokenPromotion so selectedPaths is available)
+  const tokenSelection = useTokenSelection({
+    viewMode,
+    flatItems,
+    displayedLeafNodes,
+    crossSetResults,
+    onSelectionChange,
+  });
+  const {
+    selectMode, setSelectMode,
+    selectedPaths, setSelectedPaths,
+    showBatchEditor, setShowBatchEditor,
+    lastSelectedPathRef,
+    displayedLeafPaths,
+    selectedLeafNodes,
+    handleTokenSelect,
+    handleSelectAll,
+    handleSelectGroupChildren,
+  } = tokenSelection;
+
+  // Wire up the clearSelection ref now that useTokenSelection has been called
+  clearSelectionRef.current = () => { setSelectMode(false); setSelectedPaths(new Set()); };
+
   const tokenCrud = useTokenCrud({
     connected,
     serverUrl,
@@ -1097,7 +860,7 @@ export function TokenList({
       recentlyTouched.renamePath(oldPath, newPath);
       pinnedTokens.renamePin(oldPath, newPath);
     },
-    onClearSelection: () => { setSelectMode(false); setSelectedPaths(new Set()); },
+    onClearSelection: clearSelection,
     onError,
   });
   const {
@@ -1132,7 +895,7 @@ export function TokenList({
     allTokensFlat,
     selectedPaths,
     onRefresh,
-    onClearSelection: () => { setSelectMode(false); setSelectedPaths(new Set()); },
+    onClearSelection: clearSelection,
     onError,
   });
   const {
@@ -1141,38 +904,20 @@ export function TokenList({
     handleOpenPromoteModal, handleConfirmPromote,
   } = tokenPromotion;
 
-  // Tab navigation between inline-editable token cells (spreadsheet-style)
-  const [pendingTabEdit, setPendingTabEdit] = useState<{ path: string; columnId: string | null } | null>(null);
-  const handleClearPendingTabEdit = useCallback(() => setPendingTabEdit(null), []);
-
-  const handleTabToNext = useCallback((currentPath: string, columnId: string | null, direction: 1 | -1) => {
-    const items = flatItemsRef.current;
-    const offsets = itemOffsetsRef.current;
-    const leafItems = items.filter(i => !i.node.isGroup);
-    const currentIdx = leafItems.findIndex(i => i.node.path === currentPath);
-    if (currentIdx === -1) return;
-    const nextIdx = currentIdx + direction;
-    if (nextIdx < 0 || nextIdx >= leafItems.length) return;
-    const nextPath = leafItems[nextIdx].node.path;
-    // Scroll into view if needed
-    const globalIdx = items.findIndex(i => i.node.path === nextPath);
-    if (globalIdx >= 0 && virtualListRef.current) {
-      const containerH = virtualListRef.current.clientHeight;
-      const itemTop = offsets[globalIdx];
-      const itemBottom = offsets[globalIdx + 1] ?? itemTop + 24;
-      const scrollTop = virtualListRef.current.scrollTop;
-      if (itemTop < scrollTop) {
-        virtualListRef.current.scrollTop = itemTop;
-        setVirtualScrollTop(itemTop);
-      } else if (itemBottom > scrollTop + containerH) {
-        const newTop = itemBottom - containerH;
-        virtualListRef.current.scrollTop = newTop;
-        setVirtualScrollTop(newTop);
+  // promotableDuplicateCount — needs duplicateValuePaths (from useTokenSearch) and tokens
+  const promotableDuplicateCount = useMemo(() => {
+    const flat: Array<{ path: string; $value: unknown }> = [];
+    const walk = (list: TokenNode[]) => {
+      for (const node of list) {
+        if (!node.isGroup) flat.push({ path: node.path, $value: node.$value });
+        if (node.children) walk(node.children);
       }
-    }
-    setPendingTabEdit({ path: nextPath, columnId });
-  }, []);
+    };
+    walk(tokens);
+    return flat.filter(t => duplicateValuePaths.has(t.path) && !isAlias(t.$value)).length;
+  }, [tokens, duplicateValuePaths]);
 
+  // handleListKeyDown is defined after custom hook calls to avoid TDZ
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -1608,87 +1353,8 @@ export function TokenList({
     onRefresh();
   }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
 
-  // Handles token selection with modifier key support:
-  // - ctrl/cmd-click: enter select mode and toggle the token
-  // - shift-click (in select mode): range-select from last selected to current
-  // - plain click (in select mode): toggle the token
-  const handleTokenSelect = useCallback((path: string, modifiers?: { shift: boolean; ctrl: boolean }) => {
-    const isCtrl = modifiers?.ctrl ?? false;
-    const isShift = modifiers?.shift ?? false;
-
-    if (isCtrl) {
-      // Enter select mode on ctrl/cmd-click, then toggle this token
-      if (!selectMode) setSelectMode(true);
-      setSelectedPaths(prev => {
-        const next = new Set(prev);
-        if (next.has(path)) next.delete(path);
-        else next.add(path);
-        return next;
-      });
-      lastSelectedPathRef.current = path;
-      return;
-    }
-
-    if (isShift && selectMode && lastSelectedPathRef.current !== null) {
-      // Range-select from the anchor to the current path
-      const orderedPaths = viewMode === 'tree'
-        ? flatItems.filter(i => !i.node.isGroup).map(i => i.node.path)
-        : displayedLeafNodes.map(n => n.path);
-      const anchorIdx = orderedPaths.indexOf(lastSelectedPathRef.current);
-      const targetIdx = orderedPaths.indexOf(path);
-      if (anchorIdx !== -1 && targetIdx !== -1) {
-        const lo = Math.min(anchorIdx, targetIdx);
-        const hi = Math.max(anchorIdx, targetIdx);
-        setSelectedPaths(prev => {
-          const next = new Set(prev);
-          for (let i = lo; i <= hi; i++) next.add(orderedPaths[i]);
-          return next;
-        });
-        return; // Keep anchor at lastSelectedPathRef — don't update it on shift-click
-      }
-    }
-
-    // Plain toggle
-    setSelectedPaths(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-    lastSelectedPathRef.current = path;
-  }, [selectMode, viewMode, flatItems, displayedLeafNodes]);
-
-  const displayedLeafPaths = useMemo(
-    () => crossSetResults !== null
-      ? new Set(crossSetResults.map(r => r.path))
-      : new Set(displayedLeafNodes.map(n => n.path)),
-    [displayedLeafNodes, crossSetResults]
-  );
-
-  const selectedLeafNodes = useMemo(
-    () => displayedLeafNodes.filter(n => selectedPaths.has(n.path)),
-    [displayedLeafNodes, selectedPaths]
-  );
-
-  const handleSelectAll = () => {
-    const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
-    if (allSelected) {
-      setSelectedPaths(new Set());
-    } else {
-      setSelectedPaths(new Set(displayedLeafPaths));
-    }
-  };
-
-  const handleSelectGroupChildren = useCallback((groupNode: TokenNode) => {
-    const leafPaths = flattenLeafNodes(groupNode.children ?? []).map(n => n.path);
-    if (leafPaths.length === 0) return;
-    setSelectMode(true);
-    setSelectedPaths(prev => {
-      const next = new Set(prev);
-      leafPaths.forEach(p => next.add(p));
-      return next;
-    });
-  }, []);
+  // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleSelectGroupChildren
+  // are managed by useTokenSelection (destructured above)
 
   /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
   const copyTokensAsJson = useCallback((nodes: TokenNode[]) => {
@@ -1912,15 +1578,7 @@ export function TokenList({
 
   const modalProps = getDeleteModalProps();
 
-  // Scroll the virtual list to a group header row
-  const handleJumpToGroup = useCallback((groupPath: string) => {
-    const idx = flatItems.findIndex(item => item.node.path === groupPath);
-    if (idx >= 0 && virtualListRef.current) {
-      const targetScrollTop = Math.max(0, itemOffsets[idx]);
-      virtualListRef.current.scrollTop = targetScrollTop;
-      setVirtualScrollTop(targetScrollTop);
-    }
-  }, [flatItems, itemOffsets]);
+  // handleJumpToGroup is managed by useTokenVirtualScroll (destructured above)
 
   // Collapse all groups that are descendants of the given group path,
   // keeping the ancestor chain expanded so the group header stays visible
@@ -2033,26 +1691,7 @@ export function TokenList({
     }
   }, [onOpenCrossThemeCompare]);
 
-  const handleFindInAllSets = useCallback((path: string) => {
-    whereIsAbortRef.current?.abort();
-    setWhereIsPath(path);
-    setWhereIsResults(null);
-    setWhereIsLoading(true);
-    const ctrl = new AbortController();
-    whereIsAbortRef.current = ctrl;
-    apiFetch<{ path: string; definitions: Array<{ setName: string; $type: string; $value: unknown; $description?: string; isAlias: boolean; isDifferentFromFirst: boolean }> }>(
-      `${serverUrl}/api/tokens/where?path=${encodeURIComponent(path)}`,
-      { signal: ctrl.signal },
-    ).then(data => {
-      setWhereIsResults(data.definitions);
-      setWhereIsLoading(false);
-    }).catch(err => {
-      if (isAbortError(err)) return;
-      console.error('[TokenList] Find in all sets failed:', err);
-      setWhereIsLoading(false);
-      setWhereIsResults([]);
-    });
-  }, [serverUrl]);
+  // handleFindInAllSets is managed by useTokenWhereIs (destructured above)
 
   // Expose imperative actions to the parent via compareHandle ref
   useEffect(() => {
@@ -2607,7 +2246,7 @@ export function TokenList({
                 <>
                   <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
                   <button
-                    onClick={() => { setSelectMode(true); setShowCompare(true); setShowBatchEditor(false); }}
+                    onClick={() => { setSelectMode(true); setShowBatchEditor(false); }}
                     title="Compare tokens — enter select mode to compare two or more tokens side-by-side"
                     aria-label="Compare tokens"
                     className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"

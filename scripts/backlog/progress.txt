@@ -451,3 +451,19 @@
   - The two callers had subtly different error handling for malformed regions (parseConflictMarkers skips the region; resolveConflictContent emits partial lines). The generator unifies this by yielding the partial lines and returning, which satisfies both behaviours via the `beforeLines` path.
   - Generator-based iteration is a clean fit for "walk a flat array, yielding structured chunks" — callers get typed structs instead of managing loop indices themselves.
 ---
+
+## 2026-04-05 - Extract domain-specific custom hooks from TokenList.tsx (useTokenSearch, useTokenSelection, useTokenExpansion, useTokenVirtualScroll, useTokenContextMenu)
+- Extracted 5 domain-specific custom hooks from the 4400-line TokenList.tsx orchestrator component. TokenList.tsx went from ~4400 lines to ~4047 lines with ~843 lines extracted.
+- Created `packages/figma-plugin/src/ui/hooks/useTokenWhereIs.ts` (55 lines) — whereIs/findInAllSets overlay state and `handleFindInAllSets` callback
+- Created `packages/figma-plugin/src/ui/hooks/useTokenExpansion.ts` (107 lines) — expandedPaths/expandedChains state, localStorage init/persist effects, ancestor expansion, toggle/expand/collapse/chain callbacks
+- Created `packages/figma-plugin/src/ui/hooks/useTokenVirtualScroll.ts` (161 lines) — virtualScrollTop, flatItems/itemOffsets memos with ref sync, scroll-to-highlighted and scroll-anchor layout effects, handleJumpToGroup, handleTabToNext, pendingTabEdit
+- Created `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` (394 lines) — all search/filter state, cross-set search with debounce, qualifier hints/help UI, saveScrollAnchor, availableTypes, displayedTokens/displayedLeafNodes computation
+- Created `packages/figma-plugin/src/ui/hooks/useTokenSelection.ts` (126 lines) — selectMode, selectedPaths, showBatchEditor, handleTokenSelect with ctrl/shift range-select, handleSelectAll, handleSelectGroupChildren, displayedLeafPaths/selectedLeafNodes
+- Fixed pre-existing `setShowCompare` bug (~L2610) — was calling a non-existent setter; corrected to `setShowBatchEditor`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` (top of component), `packages/figma-plugin/src/ui/hooks/useTokenWhereIs.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenExpansion.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenVirtualScroll.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenSearch.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenSelection.ts` (new)
+- **Learnings for future iterations:**
+  - Bridging refs pattern: When two hooks have a circular dependency via refs (search needs scroll refs to save anchor; scroll needs search output to build flatItems), create the refs in the component body BEFORE any hook calls and pass them to both hooks. Refs are mutable containers so this is safe.
+  - `clearSelectionRef` proxy: When a downstream hook (useTokenCrud) needs a callback (`clearSelection`) from an upstream hook (useTokenSelection) but the upstream isn't available yet at instantiation time, use a `MutableRefObject<() => void>` proxy. Create the ref before all hook calls, pass it to the downstream hook, then assign `.current = clearSelection` after the upstream hook call.
+  - `handleCollapseBelow` and `handleZoomIntoGroup` straddle expansion state + scroll state — keep these as composition points in the component body calling into both hooks' returned setters rather than trying to move them into either hook.
+  - The `availableTypes` memo inside `useTokenSearch` MUST be declared before `qualifierHints` to avoid TDZ (there's an existing code comment about this — preserve the order).
+---
