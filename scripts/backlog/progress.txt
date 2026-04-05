@@ -310,3 +310,9 @@
   - HeatmapScope and ConsistencyPanel's ScanScope are identical union types but defined separately — they cast cleanly since the values are the same strings.
   - Remember to audit HealthPanel and command palette for navigation targets when renaming sub-tabs — these are often missed.
 ---
+- **Learnings for future iterations:**
+  - Using `hidden` CSS class (not conditional rendering) to toggle between tabs preserves scan results and loading state in both sub-panels without needing to lift all state up.
+  - When merging two panels that each have their own scope selector, the cleanest approach is: add a `hideScopeSelector`/external-scope prop to each sub-panel, then have the wrapper own the shared scope and pass it down.
+  - HeatmapScope and ConsistencyPanel's ScanScope are identical union types but defined separately — they cast cleanly since the values are the same strings.
+  - Remember to audit HealthPanel and command palette for navigation targets when renaming sub-tabs — these are often missed.
+---
