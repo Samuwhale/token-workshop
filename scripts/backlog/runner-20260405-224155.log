@@ -432,3 +432,26 @@ Already up to date.
 
   Merging to main: ThemeManager hover-only actions are not discoverable — dimension reorder grips, delete buttons, and option management buttons only appear on hover; first-time users have no visual hint these actions exist; add persistent but subtle affordances (e.g., faint icons) or an onboarding tooltip the first time the theme panel is opened
 Already up to date.
+[main f7ce34b1] chore(backlog): done – ThemeManager hover-only actions are not discoverable — dimension reorder grips, delete buttons, and option management buttons only appear on hover; first-time users have no visual hint these actions exist; add persistent but subtle affordances (e.g., faint icons) or an onboarding tooltip the first time the theme panel is opened
+ 5 files changed, 41 insertions(+), 8 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - ThemeManager hover-only actions are not discoverable
+- Applied the "faint-always-visible" pattern to all dimension header hover-only actions. Changed `opacity-0` to `opacity-20` (so icons are dimly visible as affordances at rest) and added `pointer-events-none group-hover:pointer-events-auto transition-opacity` to prevent accidental clicks while the buttons are at low opacity.
+- Actions updated: drag grip handle, rename button, move up/down buttons wrapper, duplicate button, delete button. Compare and Generate buttons already used `opacity-40` (the correct pattern). Set row ⋯ menu button already used `opacity-40`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1030, ~L1076, ~L1086, ~L1146, ~L1156
+
+═══════════════════════════════════════════════════════════════
+  #19  ·  4 queued · 0
+0 in-progress · last took 2m59s
+═══════════════════════════════════════════════════════════════
+  → Clear all bindings in SelectionInspector fires without confirmation — `handleClearAllBindings` immediately removes every property binding on the selected layer(s) with no confirmation dialog; while undo exists, this bulk destructive action is a single click away from the sync controls bar (SelectionInspector.tsx ~L447) (violates: error prevention)
+  Worktree: /tmp/backlog-50286-EnCBSO
+  Running agent… (started 23:57:41)
+
+  ✓ done: Clear all bindings in SelectionInspector fires without confirmation
+    Added ConfirmModal before handleClearAllBindings — shows binding count, danger styling, Cancel/Clear all buttons; actual clear only fires on confirm
+    29 turns · 125s · $0.53
+
+  Merging to main: Clear all bindings in SelectionInspector fires without confirmation
+Already up to date.

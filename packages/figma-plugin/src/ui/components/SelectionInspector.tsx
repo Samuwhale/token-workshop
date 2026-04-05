@@ -29,6 +29,7 @@ import { PropertyRow } from './PropertyRow';
 import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
+import { ConfirmModal } from './ConfirmModal';
 
 /* ── Layer Search Panel ─────────────────────────────── */
 
@@ -210,6 +211,7 @@ export function SelectionInspector({
   // Extract tokens from selection state
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showLayerSearch, setShowLayerSearch] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Extract & Bind All Unbound fast-path state
   const [extractingUnbound, setExtractingUnbound] = useState(false);
@@ -1062,7 +1064,7 @@ export function SelectionInspector({
         </button>
         {totalBindings > 0 && (
           <button
-            onClick={handleClearAllBindings}
+            onClick={() => setShowClearConfirm(true)}
             title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? 's' : ''} from selection`}
             className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
@@ -1401,6 +1403,21 @@ export function SelectionInspector({
             Applying… {applyProgress.processed}/{applyProgress.total} layers
           </span>
         </div>
+      )}
+
+      {/* Clear all bindings confirmation */}
+      {showClearConfirm && (
+        <ConfirmModal
+          title={`Clear ${totalBindings} binding${totalBindings !== 1 ? 's' : ''}?`}
+          description="This will remove all token bindings from the selected layer. You can undo this action."
+          confirmLabel="Clear all"
+          danger
+          onConfirm={() => {
+            setShowClearConfirm(false);
+            handleClearAllBindings();
+          }}
+          onCancel={() => setShowClearConfirm(false)}
+        />
       )}
 
       {/* Create success banner */}

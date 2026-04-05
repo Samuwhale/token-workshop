@@ -686,3 +686,11 @@
   - Always pair a reduced-opacity "hint" state with `pointer-events-none` to avoid accidental clicks on faintly rendered buttons.
   - `transition-opacity` should be added alongside any opacity change for smoothness.
 ---
+
+## 2026-04-05 - Clear all bindings in SelectionInspector fires without confirmation
+- Added a `ConfirmModal` confirmation dialog before `handleClearAllBindings` executes. "Clear all" button now sets `showClearConfirm` state; the modal shows binding count, warns about the destructive action, and has a red "Clear all" confirm button with "Cancel". The actual clear only fires on confirm.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L32 (import), ~L213 (state), ~L1066 (button onClick), ~L1408 (modal render)
+- **Learnings for future iterations:**
+  - `ConfirmModal` is the standard pattern for destructive confirmations — it handles focus trap, Escape key, busy/error states, and danger styling.
+  - The modal's `onConfirm` can call the handler synchronously; the ConfirmModal handles async too but it's not needed here since the actual work is via `postMessage`.
+---
