@@ -397,3 +397,11 @@
   - The inline-setter wrapper pattern (`const setX = (v) => { lsSet(KEY, v); setXState(v); }`) is a lightweight alternative to `usePersistedStringState` when the state is a local variable — no hook needed, no extra file.
   - When persisting an enum-typed state, the lazy `useState` initialiser needs a type assertion on the `lsGet` return value since localStorage always returns `string | null`.
 ---
+
+## 2026-04-05 - ConsistencyPanel has no "apply all" for suggestions
+- The batch-apply UI was already fully implemented (per-card "Snap all" button, top-level "Snap all N" button, per-category "Snap N in Category" buttons, confirmation modal) but was completely non-functional because `useState` was missing from the React import on line 1. Added `useState` to the import — one-character fix that unblocked the entire feature.
+- Files changed: `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` ~L1
+- **Learnings for future iterations:**
+  - TypeScript does not catch missing hook imports at compile time — `useState` used in a nested component inside the same file is still in scope as a JS global in some bundler configs but will crash at runtime in strict mode. Always verify React hook imports when a component mysteriously fails to render.
+  - The ConsistencyPanel already has a three-level snap hierarchy: per-suggestion "Snap all", per-category "Snap N in Category", and global "Snap all N" — all behind a confirmation modal for bulk operations.
+---
