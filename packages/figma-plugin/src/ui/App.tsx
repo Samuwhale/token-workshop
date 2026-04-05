@@ -3256,8 +3256,11 @@ export function App() {
           activeSet={activeSet}
           allSets={sets}
           connected={connected}
+          checking={checking}
           onClose={() => setShowGuidedSetup(false)}
           onComplete={() => { setShowGuidedSetup(false); refreshAll(); }}
+          onSetCreated={(name) => { addSetToState(name, 0); setActiveSet(name); }}
+          onRetryConnection={retryConnection}
         />
       )}
 

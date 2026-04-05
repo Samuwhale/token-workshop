@@ -653,3 +653,22 @@
   - `compareAllLoading` was already shared by `handleOpenPublishAll` and `quickSync`; reusing it for `compareAll` keeps the banner spinner consistent at no extra cost.
   - Placing the "Compare All" button in a persistent toolbar row before the accordions (not inside the conditional publish banner) ensures it's always accessible, even before any changes are found.
 ---
+
+## 2026-04-05 - QuickStartWizard skips server connection and first set creation
+- Added two prerequisite steps to the wizard that appear before the main 3-step flow:
+  1. **ConnectStep** — shown when `connected=false`; displays a code block with `token-manager start`, a "Retry Connection" button (calls `onRetryConnection` prop), and a note that the wizard auto-advances when connection is detected. Automatically advances to the next phase when the `connected` prop becomes true.
+  2. **CreateSetStep** — shown when `allSets.length === 0`; has a name input defaulting to "primitives", validates the set name, calls `POST /api/sets`, then calls `onSetCreated(name)` to update the parent's state.
+- Added `PrereqBar` component that shows step indicators (connect server → create token set → then 3 setup steps) with completion state, visible only during the prereq phase.
+- Introduced `wizardCreatedSet` internal state so the main wizard steps use the newly created set immediately, without waiting for the parent to refresh.
+- Removed the `disabled={!connected}` guard from template buttons in Step 1 (was silently failing; prereq phase now prevents reaching step 1 without a connection).
+- Updated `WelcomePrompt`: removed `disabled={!connected}` on the "Start guided setup" button; replaced the offline note with an inline info box saying "the guided setup will walk you through connecting."
+- Updated `App.tsx` to pass `checking`, `onSetCreated`, and `onRetryConnection` props to the wizard.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` (full rewrite — added ConnectStep, CreateSetStep, PrereqBar, prereqPhase state)
+  - `packages/figma-plugin/src/ui/components/WelcomePrompt.tsx` ~L22 (removed disabled state, updated offline message)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L3254 (added checking, onSetCreated, onRetryConnection props)
+- **Learnings for future iterations:**
+  - Prereq steps that gate a wizard need `useEffect` + a ref for side-effect data (`allSetsRef`) to avoid listing transient data in the deps array that would cause double-advances.
+  - `wizardCreatedSet` pattern (internal shadow of external prop) is useful whenever a wizard creates something the parent will update asynchronously — lets the component proceed without a round-trip.
+  - WelcomePrompt's disabled-button approach was bad UX: it blocked users from entering the guided flow entirely. Better to let them in and handle the prerequisite inside the wizard.
+---

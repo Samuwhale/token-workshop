@@ -18,12 +18,23 @@ export function WelcomePrompt({ connected, onStartSetup, onDismiss }: WelcomePro
           </p>
         </div>
 
+        {!connected && (
+          <div className="flex items-start gap-2 px-2.5 py-2 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              Server offline — the guided setup will walk you through connecting.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           <button
             onClick={onStartSetup}
-            disabled={!connected}
-            title={connected ? undefined : 'Server offline — start the local server first'}
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 transition-opacity"
           >
             Start guided setup
           </button>
@@ -34,12 +45,6 @@ export function WelcomePrompt({ connected, onStartSetup, onDismiss }: WelcomePro
             I'll explore on my own
           </button>
         </div>
-
-        {!connected && (
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-snug">
-            Guided setup requires a running server. You can start it later from the command palette.
-          </p>
-        )}
       </div>
     </div>
   );
