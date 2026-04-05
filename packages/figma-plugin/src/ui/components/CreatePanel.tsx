@@ -64,6 +64,42 @@ function formatDraftAge(savedAt: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Type inference from token path
+// ---------------------------------------------------------------------------
+
+/**
+ * Infer a DTCG token type from the path segments (group + name).
+ * Checks each dot/dash/underscore-separated segment against known keywords.
+ * Returns null if no keyword matches — caller keeps the current type.
+ */
+function inferTypeFromPath(group: string, name: string): string | null {
+  const full = group ? `${group}.${name}` : name;
+  if (!full.trim()) return null;
+  const segments = full.toLowerCase().split(/[.\-_/\s]+/);
+  for (const seg of segments) {
+    if (['color', 'colour', 'colors', 'colours', 'fill', 'fills', 'background', 'backgrounds', 'bg', 'palette', 'hue', 'tint', 'tints', 'shade', 'shades', 'accent', 'brand'].includes(seg)) return 'color';
+    if (['typography', 'typographic'].includes(seg)) return 'typography';
+    if (['fontfamily', 'typeface'].includes(seg)) return 'fontFamily';
+    if (['fontweight'].includes(seg)) return 'fontWeight';
+    if (['lineheight', 'leading'].includes(seg)) return 'lineHeight';
+    if (['letterspacing', 'tracking', 'kerning'].includes(seg)) return 'letterSpacing';
+    if (['fontstyle'].includes(seg)) return 'fontStyle';
+    if (['fontsize'].includes(seg)) return 'dimension';
+    if (['font', 'fonts'].includes(seg)) return 'fontFamily';
+    if (['shadow', 'shadows', 'elevation'].includes(seg)) return 'shadow';
+    if (['border', 'borders', 'outline'].includes(seg)) return 'border';
+    if (['gradient', 'gradients'].includes(seg)) return 'gradient';
+    if (['spacing', 'space', 'spaces', 'gap', 'gaps', 'padding', 'margin', 'inset', 'offset', 'indent', 'size', 'sizes', 'width', 'height', 'radius', 'corner', 'corners', 'distance'].includes(seg)) return 'dimension';
+    if (['duration', 'delay', 'timing'].includes(seg)) return 'duration';
+    if (['easing', 'ease', 'bezier'].includes(seg)) return 'cubicBezier';
+    if (['transition', 'transitions'].includes(seg)) return 'transition';
+    if (['opacity', 'alpha'].includes(seg)) return 'number';
+    if (['text', 'body', 'heading', 'headings', 'display', 'label', 'labels', 'caption', 'title', 'subtitle'].includes(seg)) return 'typography';
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Alias cycle detection
 // ---------------------------------------------------------------------------
 
@@ -367,6 +403,9 @@ function SingleCreateTab({
     return parts[parts.length - 1] || '';
   });
   const [tokenType, setTokenType] = useState(initialType || 'color');
+  // Tracks whether the user has explicitly clicked a type button — suppresses path inference when true
+  const typeSetManually = useRef(!!initialType);
+  const [typeIsInferred, setTypeIsInferred] = useState(false);
   const [value, setValue] = useState<any>(() => {
     if (initialValue) return parseInlineValue(initialType || 'color', initialValue);
     return getDefaultValue(initialType || 'color');
@@ -400,6 +439,8 @@ function SingleCreateTab({
     if (!pendingDraft) return;
     setGroup(pendingDraft.group);
     setName(pendingDraft.name);
+    typeSetManually.current = true; // respect the saved type, not path inference
+    setTypeIsInferred(false);
     setTokenType(pendingDraft.tokenType);
     setValue(pendingDraft.value);
     setDescription(pendingDraft.description);
@@ -494,6 +535,8 @@ function SingleCreateTab({
   }, [saveBlockReason, connected, saving, tokenType, value, description, extendsPath, targetSet, fullPath, serverUrl, onRefresh, onTokenCreated]);
 
   const handleTypeChange = (type: string) => {
+    typeSetManually.current = true;
+    setTypeIsInferred(false);
     setTokenType(type);
     setValue(getDefaultValue(type));
     setRefMode(false);
@@ -569,7 +612,16 @@ function SingleCreateTab({
           type="text"
           placeholder="Root (none)"
           value={group}
-          onChange={e => { setGroup(e.target.value); setGroupOpen(true); setError(''); }}
+          onChange={e => {
+            const newGroup = e.target.value;
+            setGroup(newGroup);
+            setGroupOpen(true);
+            setError('');
+            if (!typeSetManually.current) {
+              const inferred = inferTypeFromPath(newGroup, name);
+              if (inferred && inferred !== tokenType) { setTokenType(inferred); setValue(getDefaultValue(inferred)); setTypeIsInferred(true); }
+            }
+          }}
           onFocus={() => setGroupOpen(true)}
           onBlur={() => setTimeout(() => setGroupOpen(false), 150)}
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
@@ -581,7 +633,14 @@ function SingleCreateTab({
                 key={gp}
                 type="button"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { setGroup(gp); setGroupOpen(false); }}
+                onClick={() => {
+                  setGroup(gp);
+                  setGroupOpen(false);
+                  if (!typeSetManually.current) {
+                    const inferred = inferTypeFromPath(gp, name);
+                    if (inferred && inferred !== tokenType) { setTokenType(inferred); setValue(getDefaultValue(inferred)); setTypeIsInferred(true); }
+                  }
+                }}
                 className="w-full text-left px-2 py-1 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors truncate"
               >
                 {gp}
@@ -599,7 +658,17 @@ function SingleCreateTab({
           type="text"
           placeholder="e.g. 500, base, primary"
           value={name}
-          onChange={e => { setName(e.target.value); setError(''); }}
+          onChange={e => {
+            const newName = e.target.value;
+            setName(newName);
+            setError('');
+            if (!newName.trim()) { typeSetManually.current = false; setTypeIsInferred(false); }
+            if (!typeSetManually.current) {
+              const inferred = inferTypeFromPath(group, newName);
+              if (inferred && inferred !== tokenType) { setTokenType(inferred); setValue(getDefaultValue(inferred)); setTypeIsInferred(true); }
+              else if (!inferred) setTypeIsInferred(false);
+            }
+          }}
           className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${
             pathError || pathExists ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'
           }`}
@@ -616,7 +685,12 @@ function SingleCreateTab({
 
 
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Type</label>
+        <div className="flex items-center gap-1.5 mb-1">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Type</label>
+          {typeIsInferred && (
+            <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">inferred from path</span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-1">
           {TYPE_CATEGORIES[0].types.map(t => (
             <button

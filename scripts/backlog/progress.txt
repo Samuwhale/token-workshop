@@ -325,3 +325,15 @@
   - Using `withLock(async (dims) => ({ dims, result: structuredClone(dims) }))` as a "read under lock" pattern is idempotent: it re-saves the same data atomically, ensuring cache coherence while serializing against concurrent writers.
   - Define minimal structural interfaces (`ThemesWriteLock`) in the consumer file rather than importing a rich interface from another service/route file to avoid circular dependencies and keep coupling low.
 ---
+
+## 2026-04-05 - Smart type inference when creating tokens
+- Implemented `inferTypeFromPath(group, name)` function that maps path keywords to DTCG token types. Checks each dot/dash/underscore-separated segment against keyword lists for color, dimension, typography, fontFamily, fontWeight, lineHeight, letterSpacing, shadow, border, gradient, duration, cubicBezier, transition, number, and more.
+- Added `typeSetManually` ref (true when user explicitly clicks a type button) and `typeIsInferred` state. Inference triggers on group input change, group autocomplete selection, and name input change — only when not manually set. Clearing the name resets `typeSetManually` so inference resumes on the next path.
+- Shows a subtle "inferred from path" hint next to the Type label when type was auto-detected.
+- `handleTypeChange`, `handleRestoreDraft`, and initial `initialType` prop all set `typeSetManually=true` so they suppress inference.
+- Files changed: `packages/figma-plugin/src/ui/components/CreatePanel.tsx` ~L66 (inferTypeFromPath), ~L407 (typeSetManually ref + typeIsInferred state), ~L442 (handleRestoreDraft), ~L537 (handleTypeChange), ~L618/638/663 (onChange handlers), ~L690 (Type label hint)
+- **Learnings for future iterations:**
+  - Using a `useRef` for the "manual override" flag (rather than state) avoids an extra render cycle and doesn't need to be in dep arrays. The `typeIsInferred` state handles the render-visible indicator separately.
+  - Clearing the name should reset `typeSetManually` so the form feels fresh for the next token — without this, users who changed a type, cleared the form, and started a new path would get no inference.
+  - Segment-based keyword matching (splitting on `.`, `-`, `_`, `/`) handles both dotted paths (group.name) and hyphenated segment names (font-family, line-height) correctly.
+---
