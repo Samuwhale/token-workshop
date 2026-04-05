@@ -731,3 +731,9 @@
   - For async FileReader operations, set loading state before `readAsText()` and clear it in both `onload` and `onerror` callbacks.
   - The existing inline `importSuccess` message ("Settings imported — reloading…") stays as a visual anchor in the panel; the `dispatchToast` adds the same feedback to the global notification history.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: App.tsx navigation (TOP_TABS, sub-tabs, overflow panels, command palette), TokenFlowPanel (dependency graph interaction), SelectionInspector (property binding, filter state, DeepInspectSection), CanvasAnalysisPanel (HeatmapPanel remediation, ConsistencyPanel batch apply), HistoryPanel (undo grouping, snapshot restore preview), CreatePanel (metadata during creation), ImportPanel (merge preview), PublishPanel/styleSync (gradient lossy read), SettingsPanel (structure), plugin sandbox controller.ts (variable rename propagation)
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenFlowPanel's non-interactive dependency nodes are the biggest workflow friction — tracing alias chains requires manually searching for each token instead of clicking through the graph. Also, gradient style sync silently discards multi-stop data, which is data loss.
+---
