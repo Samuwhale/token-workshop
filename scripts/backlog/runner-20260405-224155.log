@@ -54,3 +54,33 @@ Already up to date.
 
   Merging to main: ExportPanel.tsx is 2423 lines combining format selection, platform configuration, preset management, CSV/ZIP generation, and diff/changes-only filtering into a single component — extract platform-specific config editors, preset CRUD, and export format logic into sub-components/hooks
 Already up to date.
+[main 6fa6a311] chore(backlog): done – ExportPanel.tsx is 2423 lines combining format selection, platform configuration, preset management, CSV/ZIP generation, and diff/changes-only filtering into a single component — extract platform-specific config editors, preset CRUD, and export format logic into sub-components/hooks
+ 12 files changed, 2740 insertions(+), 2316 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ExportFooter.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/ExportPreviewModal.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/FigmaVariablesPanel.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/PlatformExportConfig.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useExportResults.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useFigmaVariables.ts
+ create mode 100644 packages/figma-plugin/src/ui/shared/zipUtils.ts
+  ✓ Merged and marked done
+
+## 2026-04-05 - ExportPanel.tsx refactor — extract sub-components and hooks
+- Extracted ExportPanel.tsx from 2423 → 460 lines (81% reduction) by splitting into 7 focused files:
+  - `src/ui/shared/zipUtils.ts` (76 lines) — pure ZIP builder utility
+  - `src/ui/components/ExportPreviewModal.tsx` (188 lines) — self-contained modal
+
+═══════════════════════════════════════════════════════════════
+  #3  ·  20 queued · 0
+0 in-progress · last took 16m45s
+═══════════════════════════════════════════════════════════════
+  → ThemeManager.tsx has two near-identical toggle bar blocks (~L503 and ~L554) for switching between simple/advanced mode — the blocks share the same structure (label, shortcut badge, chevron) but are maintained separately; extract a shared `ModeToggleBar` component to eliminate the duplication and prevent future drift
+  Worktree: /tmp/backlog-50286-S9Xzck
+  Running agent… (started 23:01:33)
+
+  ✓ done: ThemeManager.tsx has two near-identical toggle bar blocks (~L503 and ~L554) for switching between simple/advanced mode — the blocks share the same structure (label, shortcut badge, chevron) but are maintained separately; extract a shared `ModeToggleBar` component to eliminate the duplication and prevent future drift
+    Extracted ModeToggleBar component and MODE_LABELS to module scope; both render paths now use the shared component.
+    11 turns · 69s · $0.34
+
+  Merging to main: ThemeManager.tsx has two near-identical toggle bar blocks (~L503 and ~L554) for switching between simple/advanced mode — the blocks share the same structure (label, shortcut badge, chevron) but are maintained separately; extract a shared `ModeToggleBar` component to eliminate the duplication and prevent future drift
+Already up to date.

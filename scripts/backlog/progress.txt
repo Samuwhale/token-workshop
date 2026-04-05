@@ -537,3 +537,11 @@
   - `ExportMode` type must be exported from its defining component when other components need it — avoids creating a separate types file for a 2-value union
   - `useExportResults` receives a `Pick<DiffState, ...>` slice to document exactly which diff setters it mutates, preventing future maintainers from accidentally passing unrelated setters
 ---
+
+## 2026-04-05 - ThemeManager.tsx ModeToggleBar extraction
+- Extracted shared `ModeToggleBar` component (before `slugify`) from two near-identical toggle bar JSX blocks (~L503 and ~L554). Moved `MODE_LABELS` to module scope (shared by both). Both call sites now use `<ModeToggleBar themeMode={themeMode} onModeChange={setThemeMode} />`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L64 (new component + MODE_LABELS), ~L530 (advanced-mode return), ~L580 (main return)
+- **Learnings for future iterations:**
+  - When two render paths share identical JSX structure, extract to a local function component in the same file — no new file needed for small components.
+  - `MODE_LABELS` needed to move from inside the function body to module scope so the new component can access it without prop drilling.
+---

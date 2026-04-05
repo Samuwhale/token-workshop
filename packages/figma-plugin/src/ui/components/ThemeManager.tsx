@@ -61,6 +61,38 @@ interface ThemeManagerProps {
 
 
 
+const MODE_LABELS: Record<'simple' | 'advanced', string> = {
+  simple: 'Theme Layers',
+  advanced: 'DTCG Resolvers',
+};
+
+function ModeToggleBar({ themeMode, onModeChange }: { themeMode: 'simple' | 'advanced'; onModeChange: (m: 'simple' | 'advanced') => void }) {
+  return (
+    <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+      {(['simple', 'advanced'] as const).map(m => (
+        <button
+          key={m}
+          onClick={() => onModeChange(m)}
+          className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
+            themeMode === m
+              ? 'bg-[var(--color-figma-accent)] text-white'
+              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          {MODE_LABELS[m]}
+          {m === 'advanced' && (
+            <kbd className={`text-[9px] font-normal font-mono border rounded px-0.5 leading-none ${
+              themeMode === m ? 'border-white/40 text-white/80' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+            }`}>
+              {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
+            </kbd>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -490,38 +522,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     );
   }
 
-  const MODE_LABELS: Record<'simple' | 'advanced', string> = {
-    simple: 'Theme Layers',
-    advanced: 'DTCG Resolvers',
-  };
-
   // Advanced mode: render the resolver UI instead of the theme dimension grid
   if (themeMode === 'advanced' && resolverState) {
     return (
       <div className="flex flex-col h-full">
-        {/* Mode toggle bar */}
-        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
-          {(['simple', 'advanced'] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => setThemeMode(m)}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                themeMode === m
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
-            >
-              {MODE_LABELS[m]}
-              {m === 'advanced' && (
-                <kbd className={`text-[9px] font-normal font-mono border rounded px-0.5 leading-none ${
-                  themeMode === m ? 'border-white/40 text-white/80' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
-                }`}>
-                  {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
-                </kbd>
-              )}
-            </button>
-          ))}
-        </div>
+        <ModeToggleBar themeMode={themeMode} onModeChange={setThemeMode} />
         <div className="flex-1 overflow-hidden">
           <ResolverContent {...resolverState} onSuccess={onSuccess} />
         </div>
@@ -550,30 +555,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     <ThemeManagerModalsProvider value={modalContextValue}>
     <div className="flex flex-col h-full">
       {/* Mode toggle bar — only shown when resolver state is available */}
-      {resolverState && (
-        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
-          {(['simple', 'advanced'] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => setThemeMode(m)}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                themeMode === m
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
-            >
-              {MODE_LABELS[m]}
-              {m === 'advanced' && (
-                <kbd className={`text-[9px] font-normal font-mono border rounded px-0.5 leading-none ${
-                  themeMode === m ? 'border-white/40 text-white/80' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
-                }`}>
-                  {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
-                </kbd>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      {resolverState && <ModeToggleBar themeMode={themeMode} onModeChange={setThemeMode} />}
       {error && (
         <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
           <span>{error}</span>
