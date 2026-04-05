@@ -702,3 +702,12 @@
   - `e.stopPropagation()` on action button clicks prevents the card's own `onClick` (re-center graph) from firing when editing/navigating
   - The "Edit" action in PanelRouter needs both `setEditingToken` AND `setHighlightedToken`/`setPendingHighlight` so the token is visible and selected in the tree when the editor opens
 ---
+
+## 2026-04-05 - No "create token here" from token tree context menu
+- Added "Create token here…" as the first item in the group context menu in `TokenTreeNode.tsx`. The button calls `onCreateSibling(node.path, inferGroupTokenType(node.children))` which already handles the "open create form with group path pre-filled" flow (via `handleOpenCreateSibling` in `useTokenCreate.ts`). Keyboard accelerator `C` works automatically via the existing `data-accel` menu keyboard handler.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L483
+- **Learnings for future iterations:**
+  - `onCreateSibling(groupPath, type)` already does exactly what "create token in group" needs — it calls `onCreateNew(groupPath + '.', type)` which opens the create form with the group path as a prefix. No new callback or hook needed.
+  - The `data-accel` + `menuEl.querySelector('[data-accel="${key}"]')?.click()` pattern in the group menu keyboard handler means adding accelerators to new menu items is free — just set the attribute.
+  - The group row's `n` keydown shortcut (line 325) also triggers `onCreateSibling` — it was already there but not discoverable. The context menu entry makes this capability visible.
+---

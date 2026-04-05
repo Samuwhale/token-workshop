@@ -480,6 +480,20 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
           style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
         >
+          {onCreateSibling && (
+            <button
+              role="menuitem" tabIndex={-1}
+              data-accel="c"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onCreateSibling(node.path, inferGroupTokenType(node.children));
+              }}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <span>Create token here…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
+            </button>
+          )}
           {onCreateGroup && (
             <button
               role="menuitem" tabIndex={-1}
