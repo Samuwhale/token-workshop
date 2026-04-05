@@ -75,8 +75,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Live preview panel
   const [showPreview, setShowPreview] = useState(false);
   const [previewSearch, setPreviewSearch] = useState('');
-  // Coverage matrix view
-  const [showCoverageMatrix, setShowCoverageMatrix] = useState(false);
+  // Top-level view switcher: 'dimensions' is the default, 'coverage' shows the matrix, 'compare' shows the compare panel
+  const [activeView, setActiveView] = useState<'dimensions' | 'coverage' | 'compare'>('dimensions');
   // Collapsed "Excluded" sections per dimension
   const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
   // Dimension/option search filter
@@ -125,7 +125,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeDragDrop({ serverUrl, connected, dimensions, setDimensions, fetchDimensions });
 
   const {
-    showCompare, setShowCompare,
+    showCompare,
     compareMode, setCompareMode,
     compareTokenPath, setCompareTokenPath,
     compareTokenPaths, setCompareTokenPaths,
@@ -180,6 +180,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   } = useThemeCoverage({ coverage, missingOverrides, serverUrl, debouncedFetchDimensions, setError });
 
   useEffect(() => { onGapsDetected?.(totalFillableGaps); }, [totalFillableGaps, onGapsDetected]);
+
+  // Sync showCompare (set by external navigateToCompare calls) → activeView
+  useEffect(() => {
+    if (showCompare) setActiveView('compare');
+  }, [showCompare]);
 
   // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
   const handleAutoFillAllRef = useRef(handleAutoFillAllOptions);
@@ -587,6 +592,68 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       )}
 
       <>
+      {/* View tab bar — only visible when dimensions exist */}
+      {dimensions.length > 0 && (
+        <div className="shrink-0 flex items-stretch border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {([
+            { id: 'dimensions' as const, label: 'Dimensions', icon: (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            )},
+            { id: 'coverage' as const, label: 'Coverage', badge: totalFillableGaps > 0 ? totalFillableGaps : undefined, icon: (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            )},
+            { id: 'compare' as const, label: 'Compare', icon: (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <path d="M9 12h6" />
+              </svg>
+            )},
+          ] as const).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (tab.id === 'compare' && activeView !== 'compare') {
+                  // Set up compare defaults when switching to compare tab
+                  setCompareMode('theme-options');
+                  const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
+                  if (firstDimWithTwo) {
+                    setCompareThemeDefaultA(`${firstDimWithTwo.id}:${firstDimWithTwo.options[0].name}`);
+                    setCompareThemeDefaultB(`${firstDimWithTwo.id}:${firstDimWithTwo.options[1].name}`);
+                  } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
+                    setCompareThemeDefaultA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
+                    setCompareThemeDefaultB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
+                  }
+                  setCompareThemeKey(k => k + 1);
+                }
+                setActiveView(tab.id);
+              }}
+              className={`relative flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium transition-colors border-b-2 -mb-px ${
+                activeView === tab.id
+                  ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)]'
+                  : 'border-transparent text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {'badge' in tab && tab.badge !== undefined && (
+                <span className="ml-0.5 px-1 py-px rounded-full text-[9px] font-semibold leading-none bg-amber-500/20 text-amber-600">
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
           /* Empty state */
@@ -690,6 +757,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </div>
         ) : (
           <div className="flex flex-col">
+            {activeView === 'dimensions' && (<>
             {/* Stack header */}
             <div className="px-3 py-2 flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
               <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium">
@@ -717,59 +785,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                   Preview
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCompare(prev => {
-                      const next = !prev;
-                      if (next) {
-                        setCompareMode('theme-options');
-                        // Auto-select defaults on open
-                        const firstDimWithTwo = dimensions.find(d => d.options.length >= 2);
-                        if (firstDimWithTwo) {
-                          setCompareThemeDefaultA(`${firstDimWithTwo.id}:${firstDimWithTwo.options[0].name}`);
-                          setCompareThemeDefaultB(`${firstDimWithTwo.id}:${firstDimWithTwo.options[1].name}`);
-                        } else if (dimensions.length >= 2 && dimensions[0].options.length > 0 && dimensions[1].options.length > 0) {
-                          setCompareThemeDefaultA(`${dimensions[0].id}:${dimensions[0].options[0].name}`);
-                          setCompareThemeDefaultB(`${dimensions[1].id}:${dimensions[1].options[0].name}`);
-                        }
-                        setCompareThemeKey(k => k + 1);
-                      }
-                      return next;
-                    });
-                  }}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                    showCompare
-                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                      : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                  title="Compare resolved values between two theme options"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <path d="M9 12h6" />
-                  </svg>
-                  Compare
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCoverageMatrix(prev => !prev);
-                  }}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                    showCoverageMatrix
-                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                      : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                  title="Coverage matrix — token groups × theme options"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="7" height="7" />
-                    <rect x="14" y="3" width="7" height="7" />
-                    <rect x="3" y="14" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" />
-                  </svg>
-                  Matrix
                 </button>
                 {resolverState && (
                   <button
@@ -1800,9 +1815,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 </div>
               )}
             </div>
+            </>)}
 
-            {/* Coverage matrix view — stacked below dimension cards */}
-            {showCoverageMatrix && (
+            {/* Coverage tab view */}
+            {activeView === 'coverage' && (
               <ThemeCoverageMatrix
                 dimensions={filteredDimensions.length > 0 ? filteredDimensions : dimensions}
                 coverage={coverage}
@@ -1810,13 +1826,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 setTokenValues={setTokenValues}
                 onSelectOption={(dimId, optionName) => {
                   setSelectedOptions(prev => ({ ...prev, [dimId]: optionName }));
-                  setShowCoverageMatrix(false);
+                  setActiveView('dimensions');
                 }}
               />
             )}
 
-            {/* Compare panel — stacked below coverage matrix */}
-            {showCompare && (
+            {/* Compare tab view */}
+            {activeView === 'compare' && (
               <UnifiedComparePanel
                 mode={compareMode}
                 onModeChange={setCompareMode}
@@ -1833,16 +1849,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 themeOptionsDefaultB={compareThemeDefaultB}
                 onEditToken={(set, path) => onNavigateToToken?.(path, set)}
                 onCreateToken={(path, set) => onCreateToken?.(path, set)}
-                onGoToTokens={onGoToTokens ?? (() => setShowCompare(false))}
+                onGoToTokens={onGoToTokens ?? (() => setActiveView('dimensions'))}
                 serverUrl={serverUrl}
                 onTokensCreated={() => { debouncedFetchDimensions(); onTokensCreated?.(); }}
-                onBack={() => setShowCompare(false)}
-                backLabel="Close compare"
+                onBack={() => setActiveView('dimensions')}
+                backLabel="Back to Dimensions"
               />
             )}
 
-            {/* Live Token Resolution Preview */}
-            {showPreview && dimensions.length > 0 && (
+            {/* Live Token Resolution Preview — only in dimensions view */}
+            {activeView === 'dimensions' && showPreview && dimensions.length > 0 && (
               <div className="border-t-2 border-[var(--color-figma-accent)]/30">
                 <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -1922,8 +1938,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         )}
       </div>
 
-      {/* Create dimension footer */}
-      <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      {/* Create dimension footer — only shown in the Dimensions view */}
+      <div className={`p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] ${activeView !== 'dimensions' ? 'hidden' : ''}`}>
         {showCreateDim ? (
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">

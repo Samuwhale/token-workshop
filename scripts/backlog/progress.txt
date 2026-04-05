@@ -450,3 +450,17 @@
   - When cross-set search mode returns an empty array `[]` vs `null`, these have different UI semantics (empty result vs "not in this mode"). Always use `null` as the "inactive" sentinel to show the default tree view.
   - Server-side search endpoints that support all structured qualifiers natively don't need client-side command palette delegation — if a search mode has its own backend, let the user use all qualifiers directly.
 ---
+
+## 2026-04-05 - ThemeManager coverage matrix and compare panel are powerful but hidden below the fold
+- Added a top-level 3-tab navigation bar ("Dimensions" | "Coverage" | "Compare") that renders above the scrollable content area as a `shrink-0` row, always visible without scrolling.
+- The "Coverage" tab shows a badge with the `totalFillableGaps` count when there are actionable gaps, making the feature discoverable at a glance.
+- Introduced `activeView: 'dimensions' | 'coverage' | 'compare'` state that replaces the former `showCoverageMatrix` boolean flag and syncs with the `showCompare` boolean from `useThemeCompare` (via `useEffect`) so that external `navigateToCompare` calls from the command palette still work.
+- Removed the old "Compare" and "Matrix" toggle buttons from the dimensions toolbar header; kept "Preview" and "Upgrade" buttons there.
+- Wrapped the dimensions content (stack header, dimensions loop, preview panel) in `{activeView === 'dimensions' && ...}`. Coverage and Compare views render as direct peers inside the same `<div className="flex flex-col">`, so they appear at the top of the scrollable area when selected.
+- Hid the "Add theme axis" footer when not in the Dimensions view to avoid contextual confusion.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L76 (activeView state), ~L184 (showCompare sync effect), ~L594 (tab bar), ~L760 (dimensions wrapper open), ~L1870 (dimensions wrapper close + coverage tab), ~L1887 (compare tab), ~L1913 (preview guard), ~L789 (toolbar button removal), ~L1941 (footer hide)
+- **Learnings for future iterations:**
+  - The `showCompare` boolean from `useThemeCompare` is set by the external `navigateToCompare` imperative handle (command palette). Keep it as the hook's source of truth and use a `useEffect` to sync it into `activeView` — don't try to move the state into the component.
+  - Tab bar is most discoverable as a `shrink-0` row outside the `overflow-y-auto` div, so it never scrolls away. Place it between the mode toggle and the error messages.
+  - Coverage and Compare content doesn't need its own scrollable wrapper — placing it inside the existing `overflow-y-auto` container works correctly because hiding the dimensions content leaves only the active view visible from the top.
+---
