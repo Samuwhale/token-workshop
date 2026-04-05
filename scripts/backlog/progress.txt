@@ -700,3 +700,11 @@
   - When a row-level keydown handler and a container-level handler both listen for the same key (Backspace), the event bubbles from row to container. Guard the row-level handler with `!selectMode` to prevent double-firing.
   - State setters from `useState` (e.g. `setShowBatchMoveToSet`) are declared before the keyboard handler and are safe to add to the dep array without TDZ risk.
 ---
+
+## 2026-04-05 - Resolver panel is accessible from two disconnected entry points
+- Added a `⌘⇧R` keyboard shortcut badge to the "DTCG Resolvers" mode toggle button in ThemeManager. Both toggle bar instances (one rendered in simple/Theme Layers mode, one in advanced/DTCG Resolvers mode) now show the badge, so users who discover the resolver via the mode toggle learn about the shortcut, and vice versa. The `adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)` call ensures the badge shows the platform-appropriate key (⌘⇧R on Mac, Ctrl+Shift+R on Windows). The badge style adapts to the button's active/inactive state (white/80 when active on accent bg, secondary text color when inactive).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L19 (imports), ~L503 (advanced mode toggle bar), ~L554 (simple mode toggle bar)
+- **Learnings for future iterations:**
+  - The two toggle bar blocks in ThemeManager are nearly identical — when editing one, always check for the sibling block. A shared helper component would eliminate the duplication but wasn't necessary for this focused fix.
+  - `adaptShortcut(SHORTCUT_KEYS.X)` is the correct pattern for displaying shortcuts in UI labels — never hardcode Mac-specific symbols.
+---

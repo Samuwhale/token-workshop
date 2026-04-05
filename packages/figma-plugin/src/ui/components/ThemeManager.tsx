@@ -19,6 +19,8 @@ import { useThemeCompare } from '../hooks/useThemeCompare';
 import { ThemeManagerModalsProvider, ThemeManagerModals } from './ThemeManagerContext';
 import type { ThemeManagerModalsState } from './ThemeManagerContext';
 import { ThemeCoverageMatrix } from './ThemeCoverageMatrix';
+import { adaptShortcut } from '../shared/utils';
+import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 
 export interface ThemeManagerHandle {
   /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
@@ -498,13 +500,20 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             <button
               key={m}
               onClick={() => setThemeMode(m)}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
                 themeMode === m
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
             >
               {MODE_LABELS[m]}
+              {m === 'advanced' && (
+                <kbd className={`text-[9px] font-normal font-mono border rounded px-0.5 leading-none ${
+                  themeMode === m ? 'border-white/40 text-white/80' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                }`}>
+                  {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
+                </kbd>
+              )}
             </button>
           ))}
         </div>
@@ -542,13 +551,20 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             <button
               key={m}
               onClick={() => setThemeMode(m)}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
                 themeMode === m
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
             >
               {MODE_LABELS[m]}
+              {m === 'advanced' && (
+                <kbd className={`text-[9px] font-normal font-mono border rounded px-0.5 leading-none ${
+                  themeMode === m ? 'border-white/40 text-white/80' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                }`}>
+                  {adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER)}
+                </kbd>
+              )}
             </button>
           ))}
         </div>
