@@ -24,6 +24,9 @@ import { TokenNudge } from './TokenNudge';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { getMenuItems, handleMenuArrowKeys } from '../hooks/useMenuKeyboard';
 
+// Stable empty array to avoid creating new references when a node has no lint violations
+const EMPTY_LINT_VIOLATIONS: NonNullable<TokenTreeNodeProps['lintViolations']> = [];
+
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
 // ---------------------------------------------------------------------------
@@ -244,6 +247,19 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   }, [groupMenuPos]);
 
   const leafCount = countLeaves(node);
+
+  // Build a stable map of child path → filtered lint violations so we don't create
+  // a new array on every render when passing violations down to child nodes.
+  const childLintMap = useMemo(() => {
+    if (!lintViolations.length) return null;
+    const map = new Map<string, NonNullable<TokenTreeNodeProps['lintViolations']>>();
+    for (const v of lintViolations) {
+      let arr = map.get(v.path);
+      if (!arr) { arr = []; map.set(v.path, arr); }
+      arr.push(v);
+    }
+    return map;
+  }, [lintViolations]);
 
   const confirmGroupRename = useCallback(() => {
     const newName = renameGroupVal.trim();
@@ -751,7 +767,7 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
           node={child}
           depth={depth + 1}
           isSelected={false}
-          lintViolations={lintViolations.filter(v => v.path === child.path)}
+          lintViolations={childLintMap?.get(child.path) ?? EMPTY_LINT_VIOLATIONS}
         />
       ))}
     </div>
@@ -760,9 +776,15 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
   return (
     prev.node === next.node &&
     prev.depth === next.depth &&
+    prev.isSelected === next.isSelected &&
+    prev.lintViolations === next.lintViolations &&
+    prev.skipChildren === next.skipChildren &&
+    prev.showFullPath === next.showFullPath &&
     prev.isPinned === next.isPinned &&
+    prev.chainExpanded === next.chainExpanded &&
     prev.onMoveUp === next.onMoveUp &&
-    prev.onMoveDown === next.onMoveDown
+    prev.onMoveDown === next.onMoveDown &&
+    prev.multiModeValues === next.multiModeValues
   );
 });
 

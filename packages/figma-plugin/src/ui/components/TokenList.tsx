@@ -67,6 +67,7 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
   border:     '#e8e07d',
 };
 const TOKEN_TYPE_COLOR_FALLBACK = '#8888aa';
+const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -686,6 +687,17 @@ export function TokenList({
     const paths = new Set<string>();
     for (const v of lintViolations) paths.add(v.path);
     return paths;
+  }, [lintViolations]);
+
+  // Stable map of path → filtered violations so we don't create new arrays per-row on every render
+  const lintViolationsMap = useMemo(() => {
+    const map = new Map<string, LintViolation[]>();
+    for (const v of lintViolations) {
+      let arr = map.get(v.path);
+      if (!arr) { arr = []; map.set(v.path, arr); }
+      arr.push(v);
+    }
+    return map;
   }, [lintViolations]);
 
   // Phase 4: useTokenSearch (needs bridging refs + sortedTokens + expansion state)
@@ -3363,7 +3375,7 @@ export function TokenList({
                 depth={depth}
                 skipChildren
                 isSelected={node.isGroup ? false : selectedPaths.has(node.path)}
-                lintViolations={lintViolations.filter(v => v.path === node.path)}
+                lintViolations={lintViolationsMap.get(node.path) ?? EMPTY_LINT_VIOLATIONS}
                 chainExpanded={expandedChains.has(node.path)}
                 showFullPath={showRecentlyTouched || showPinnedOnly}
                 isPinned={pinnedTokens.isPinned(node.path)}

@@ -318,3 +318,12 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: TokenGroupNode's memo comparator at TokenTreeNode.tsx:759 only checks 5 of 11+ props — isSelected, lintViolations, showFullPath, skipChildren, chainExpanded, multiModeValues are all unchecked, meaning React.memo never prevents re-renders for group nodes. Combined with lintViolations.filter() creating new arrays every render at line 754, this makes the entire tree's memoization ineffective for group nodes.
 ---
+
+## 2026-04-05 - TokenGroupNode memo comparator is incomplete and allows stale renders
+- Fixed three related issues: (1) Added `EMPTY_LINT_VIOLATIONS` module-level constants in both `TokenTreeNode.tsx` and `TokenList.tsx` as stable empty-array references. (2) Added `childLintMap` useMemo inside `TokenGroupNode` that builds a `Map<path, LintViolation[]>` once per `lintViolations` change, replacing the inline `.filter()` call in the children render with `childLintMap?.get(child.path) ?? EMPTY_LINT_VIOLATIONS` — stable references instead of new arrays each render. (3) Added `lintViolationsMap` useMemo in `TokenList.tsx` for the same reason (virtual scroll section passes filtered violations per-node). (4) Expanded the `areEqual` comparator from 5 props to all 11: added `isSelected`, `lintViolations`, `skipChildren`, `showFullPath`, `chainExpanded`, `multiModeValues`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L27 (EMPTY_LINT_VIOLATIONS constant), ~L248 (childLintMap useMemo), ~L762 (child render), ~L775 (areEqual comparator); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L70 (EMPTY_LINT_VIOLATIONS constant), ~L696 (lintViolationsMap useMemo), ~L3380 (virtual scroll render)
+- **Learnings for future iterations:**
+  - The `memo(fn, areEqual)` comparator is an exhaustive check — any prop missing from it means the component will not re-render when that prop changes (stale renders). Treat it like `useEffect` deps: list every prop.
+  - `.filter()` in JSX props is a common silent performance killer: it creates a new array reference every render, defeating memo. Precompute a `Map<path, T[]>` via `useMemo` and look up with `?? EMPTY_STABLE_ARRAY` for O(1) stable references.
+  - Module-level `const EMPTY_FOO: T[] = []` is the correct pattern for stable empty arrays — not `useRef([])`/`useMemo(() => [], [])`, which still creates component-instance references.
+---
