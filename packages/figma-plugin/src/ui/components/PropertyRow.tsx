@@ -506,6 +506,8 @@ export function PropertyRow({
               }}
               placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
               aria-autocomplete="list"
+              aria-controls="bind-candidates-listbox"
+              aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]}` : undefined}
               aria-label="Search token candidates"
               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
@@ -514,7 +516,7 @@ export function PropertyRow({
                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
               </div>
             ) : (
-              <div role="listbox" aria-label="Token candidates" className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
+              <div id="bind-candidates-listbox" role="listbox" aria-label="Token candidates" className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
                 {/* Recently used section */}
                 {recentBindCandidates.length > 0 && (
                   <>
@@ -538,6 +540,7 @@ export function PropertyRow({
                       return (
                         <button
                           key={path}
+                          id={`bind-option-${path}`}
                           role="option"
                           aria-selected={isSelected}
                           onClick={() => handleBindToken(path)}
@@ -596,6 +599,7 @@ export function PropertyRow({
                         </div>
                       )}
                       <button
+                        id={`bind-option-${path}`}
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => handleBindToken(path)}

@@ -349,6 +349,7 @@ function ExtensionsEditor({
                       type="button"
                       onClick={() => removeEntry(idx)}
                       title="Remove entry"
+                      aria-label="Remove entry"
                       className="p-1 mt-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -554,6 +555,7 @@ export function MetadataEditor({
                           type="button"
                           onClick={() => { const next = { ...modeValues }; delete next[option.name]; onModeValuesChange(next); }}
                           title={`Clear ${option.name} override`}
+                          aria-label={`Clear ${option.name} override`}
                           className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
                         >
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

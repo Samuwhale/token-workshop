@@ -79,10 +79,12 @@ export function ExportPreviewModal({
         </div>
 
         {/* File tabs */}
-        <div className="flex gap-0.5 overflow-x-auto px-2 pt-2 shrink-0 scrollbar-thin">
+        <div role="tablist" aria-label="Export files" className="flex gap-0.5 overflow-x-auto px-2 pt-2 shrink-0 scrollbar-thin">
           {results.map((file, i) => (
             <button
               key={i}
+              role="tab"
+              aria-selected={i === fileIndex}
               onClick={() => onFileSelect(i)}
               className={`flex items-center gap-1.5 px-2 py-1.5 rounded-t-md border border-b-0 text-[10px] font-mono whitespace-nowrap transition-colors shrink-0 ${
                 i === fileIndex

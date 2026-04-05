@@ -713,3 +713,15 @@
   - When `pointer-events-none`/`pointer-events-auto` is toggled by hover, also toggle it by `group-focus-within` so keyboard users can click the now-visible button.
   - Purely decorative elements (commit hash text, chevron arrows on navigation rows) should also get `group-focus-within` so keyboard users see supplemental context when they focus the row.
 ---
+
+## 2026-04-06 - Incomplete ARIA relationships in interactive panels
+- Fixed three ARIA relationship issues:
+  1. PropertyRow token search input: added `aria-controls="bind-candidates-listbox"` and `aria-activedescendant` pointing to the focused option's id; added `id="bind-candidates-listbox"` to the listbox div; added `id={\`bind-option-${path}\`}` to each option button (both recent and main candidates sections).
+  2. ExportPreviewModal file tabs: added `role="tablist"` and `aria-label="Export files"` to the tab container div; added `role="tab"` and `aria-selected={i === fileIndex}` to each tab button.
+  3. MetadataEditor icon-only remove buttons: added `aria-label="Remove entry"` to the entry remove button and `aria-label={\`Clear ${option.name} override\`}` to the mode override clear button.
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L493 (input aria attrs), ~L517 (listbox id), ~L539/601 (option ids); `packages/figma-plugin/src/ui/components/ExportPreviewModal.tsx` ~L82 (tablist), ~L84 (tab/aria-selected); `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L348 (aria-label remove entry), ~L553 (aria-label clear override)
+- **Learnings for future iterations:**
+  - `aria-activedescendant` requires stable IDs on option elements — since token paths are already unique strings they work as id suffixes without needing an index-based scheme.
+  - `aria-controls` on a combobox input must reference the listbox by id; both must be present for the relationship to be valid.
+  - Icon-only buttons need both `title` (mouse tooltip) AND `aria-label` (screen reader) — `title` alone is insufficient because not all AT reads it.
+---

@@ -501,3 +501,26 @@ Already up to date.
 
   Merging to main: Hover-only action buttons are invisible to keyboard users across many panels
 Already up to date.
+[main a8215d1e] chore(backlog): done – Hover-only action buttons are invisible to keyboard users across many panels
+ 9 files changed, 47 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-06 - Hover-only action buttons are invisible to keyboard users
+- Added `group-focus-within:opacity-100` (and `group-focus-within/mo:opacity-100` for named groups) to all `opacity-0 group-hover:opacity-100` patterns in ResolverPanel, ThemeManager, HistoryPanel, SetSwitcher, and CompareView. Also added `group-focus-within/mo:pointer-events-auto` alongside the ThemeManager `group-hover/mo:pointer-events-auto` to unblock click events when focused. The drag handle in SetSwitcher got `group-focus-within:opacity-60` to match its hover opacity.
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L643, ~L655; `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1804; `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L683, ~L731, ~L743, ~L845, ~L848, ~L880; `packages/figma-plugin/src/ui/components/SetSwitcher.tsx` ~L805, ~L836; `packages/figma-plugin/src/ui/components/CompareView.tsx` ~L1029, ~L1458
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #22  ·  1 queued · 0
+0 in-progress · last took 3m6s
+═══════════════════════════════════════════════════════════════
+  → Incomplete ARIA relationships in interactive panels — PropertyRow token search has `aria-autocomplete="list"` but no `aria-controls`/`aria-activedescendant` linking input to the candidates listbox; ExportPanel preview file tabs are plain buttons without `role="tab"`/`aria-selected`/`role="tablist"` while SettingsPanel implements these correctly; MetadataEditor icon-only remove buttons have `title` but no `aria-label` despite `aria-hidden` SVG children (violates: accessibility, consistency)
+  Worktree: /tmp/backlog-50286-5HvNKh
+  Running agent… (started 00:07:54)
+
+  ✓ done: Incomplete ARIA relationships in interactive panels
+    Added aria-controls/aria-activedescendant/ids to PropertyRow token search listbox; role=tablist/tab/aria-selected to ExportPreviewModal file tabs; aria-label to MetadataEditor icon-only remove buttons
+    19 turns · 154s · $0.54
+
+  Merging to main: Incomplete ARIA relationships in interactive panels
+Already up to date.
