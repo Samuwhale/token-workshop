@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { NotFoundError, ConflictError } from '../errors.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 /** A snapshot of a single token path — null means the token did not exist. */
 export interface SnapshotEntry {
@@ -99,13 +100,7 @@ export class OperationLog {
   private filePath: string;
   private tokenDir: string;
   private loadPromise: Promise<void> | null = null;
-  private lockChain: Promise<void> = Promise.resolve();
-
-  private withLock<T>(fn: () => Promise<T>): Promise<T> {
-    const next = this.lockChain.then(() => fn());
-    this.lockChain = next.then(() => {}, () => {});
-    return next;
-  }
+  private lock = new PromiseChainLock();
 
   constructor(tokenDir: string) {
     this.tokenDir = path.resolve(tokenDir);
@@ -148,7 +143,7 @@ export class OperationLog {
   /** Record a new operation entry. */
   async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
     await this.ensureLoaded();
-    return this.withLock(() => this.pushAndPersist(entry));
+    return this.lock.run(() => this.pushAndPersist(entry));
   }
 
   /** Get recent entries (newest first) as lightweight summaries, with total count. */
@@ -370,7 +365,7 @@ export class OperationLog {
     // Acquire the lock for the entire rollback so that concurrent rollback requests
     // for the same operation cannot both pass the `rolledBack` check before either
     // sets it to true (TOCTOU race).
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       const entry = this.entries.find(e => e.id === id);
       if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
       if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);

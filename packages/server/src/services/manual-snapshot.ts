@@ -6,6 +6,7 @@ import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
 import { NotFoundError } from '../errors.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 export interface ManualSnapshotToken {
   $value: unknown;
@@ -57,13 +58,7 @@ export class ManualSnapshotStore {
   private journalPath: string;
   private snapshots: ManualSnapshotEntry[] = [];
   private loadPromise: Promise<void> | null = null;
-  private lockChain: Promise<void> = Promise.resolve();
-
-  private withLock<T>(fn: () => Promise<T>): Promise<T> {
-    const next = this.lockChain.then(() => fn());
-    this.lockChain = next.then(() => {}, () => {});
-    return next;
-  }
+  private lock = new PromiseChainLock();
 
   constructor(tokenDir: string) {
     const tmDir = path.join(path.resolve(tokenDir), '.tokenmanager');
@@ -100,7 +95,7 @@ export class ManualSnapshotStore {
 
   /** Capture the current state of all token sets. */
   save(label: string, tokenStore: TokenStore): Promise<ManualSnapshotEntry> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       await this.ensureLoaded();
 
       const sets = await tokenStore.getSets();
@@ -158,7 +153,7 @@ export class ManualSnapshotStore {
   }
 
   delete(id: string): Promise<boolean> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       await this.ensureLoaded();
       const before = this.snapshots.length;
       this.snapshots = this.snapshots.filter(s => s.id !== id);
@@ -249,7 +244,7 @@ export class ManualSnapshotStore {
 
   /** Restore a snapshot by overwriting current token files. */
   restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       await this.ensureLoaded();
       const snapshot = this.snapshots.find(s => s.id === id);
       if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);

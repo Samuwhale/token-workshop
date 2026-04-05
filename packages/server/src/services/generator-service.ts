@@ -36,6 +36,7 @@ import {
 import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
 import { NotFoundError, BadRequestError } from '../errors.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 interface GeneratorsFile {
   $generators: TokenGenerator[];
@@ -69,7 +70,7 @@ export class GeneratorService {
   /** Per-generator promise chain — serializes concurrent executions instead of skipping them. */
   private generatorLocks = new Map<string, Promise<void>>();
   /** Promise-chain mutex — serializes all saveGenerators() calls to prevent file-rename races. */
-  private saveLock: Promise<void> = Promise.resolve();
+  private saveLock = new PromiseChainLock();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -108,9 +109,7 @@ export class GeneratorService {
   }
 
   private saveGenerators(): Promise<void> {
-    const next = this.saveLock.then(() => this._doSave());
-    this.saveLock = next.catch(() => {});
-    return next;
+    return this.saveLock.run(() => this._doSave());
   }
 
   private async _doSave(): Promise<void> {

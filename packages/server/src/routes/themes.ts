@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { ThemeDimension, ThemesFile, ThemeSetStatus } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { handleRouteError, NotFoundError, ConflictError, BadRequestError } from '../errors.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 const VALID_THEME_SET_STATUSES = new Set<string>(['enabled', 'disabled', 'source']);
 
@@ -19,7 +20,7 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
   const filePath = path.join(tokenDir, '$themes.json');
   let cache: ThemeDimension[] | null = null;
   let cachedMtimeMs: number | null = null;
-  let lockChain: Promise<unknown> = Promise.resolve();
+  const lock = new PromiseChainLock();
 
   async function fileMtimeMs(): Promise<number | null> {
     try {
@@ -58,15 +59,12 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
     },
 
     withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T> {
-      const next = lockChain.then(async () => {
+      return lock.run(async () => {
         const dims = await store.load();
         const { dims: updated, result } = await fn(dims);
         await store.save(updated);
         return result;
       });
-      // Chain subsequent callers behind this one regardless of success/failure
-      lockChain = next.catch(() => {});
-      return next;
     },
   };
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { BadRequestError, GitTimeoutError } from '../errors.js';
 import type { TokenStore } from './token-store.js';
+import { PromiseChainLock } from '../utils/promise-chain-lock.js';
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).
@@ -204,24 +205,13 @@ export class GitSync {
   private dir: string;
   private git: SimpleGit;
   /** Promise-chain mutex — all git-mutating operations serialize behind this. */
-  private lockChain: Promise<void> = Promise.resolve();
+  private lock = new PromiseChainLock();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
     this.git = simpleGit({ baseDir: this.dir, timeout: { block: GIT_NETWORK_TIMEOUT_MS } });
   }
 
-  /**
-   * Run `fn` exclusively: each call chains behind the previous one so that
-   * concurrent git-mutating operations (add/checkout/commit/push) never interleave.
-   * Errors propagate to the caller but do NOT break the lock chain — subsequent
-   * callers still get their turn.
-   */
-  private withLock<T>(fn: () => Promise<T>): Promise<T> {
-    const next = this.lockChain.then(() => fn());
-    this.lockChain = next.then(() => {}, () => {});
-    return next;
-  }
 
   /** Validate a branch name is safe (not a flag, not empty, no control chars). */
   private validateBranchName(name: string): void {
@@ -254,7 +244,7 @@ export class GitSync {
   }
 
   async init(): Promise<void> {
-    return this.withLock(() => this.git.init());
+    return this.lock.run(() => this.git.init());
   }
 
   async status() {
@@ -262,7 +252,7 @@ export class GitSync {
   }
 
   async commit(message: string, files?: string[]): Promise<string> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       if (files && files.length > 0) {
         this.validatePaths(files);
         await this.git.add(files);
@@ -275,11 +265,11 @@ export class GitSync {
   }
 
   async push(): Promise<void> {
-    return this.withLock(() => wrapNetworkOp('push', this.git.push()));
+    return this.lock.run(() => wrapNetworkOp('push', this.git.push()));
   }
 
   async pull(): Promise<{ conflicts: string[] }> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       try {
         await wrapNetworkOp('pull', this.git.pull());
         return { conflicts: [] };
@@ -328,7 +318,7 @@ export class GitSync {
 
   /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
   async resolveFileConflict(file: string, choices: Record<number, 'ours' | 'theirs'>): Promise<void> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       this.validatePaths([file]);
       const filePath = path.resolve(this.dir, file);
       const content = await fs.readFile(filePath, 'utf-8');
@@ -355,7 +345,7 @@ export class GitSync {
   async resolveAllConflicts(
     resolutions: Array<{ file: string; choices: Record<number, 'ours' | 'theirs'> }>,
   ): Promise<void> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       // --- 1. Validate structure of each resolution entry ---
       for (const res of resolutions) {
         if (!res || typeof res.file !== 'string' || !res.file) {
@@ -444,12 +434,12 @@ export class GitSync {
 
   /** Abort the current merge. */
   async abortMerge(): Promise<void> {
-    return this.withLock(() => this.git.merge(['--abort']));
+    return this.lock.run(() => this.git.merge(['--abort']));
   }
 
   /** Finalize merge after all conflicts resolved — creates the merge commit. */
   async finalizeMerge(): Promise<void> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       // Check if any conflicts remain
       const remaining = await this.getConflictedFiles();
       if (remaining.length > 0) {
@@ -475,14 +465,14 @@ export class GitSync {
   }
 
   async checkout(branch: string): Promise<void> {
-    return this.withLock(() => {
+    return this.lock.run(() => {
       this.validateBranchName(branch);
       return this.git.checkout(branch);
     });
   }
 
   async createBranch(branch: string): Promise<void> {
-    return this.withLock(() => {
+    return this.lock.run(() => {
       this.validateBranchName(branch);
       return this.git.checkoutLocalBranch(branch);
     });
@@ -563,7 +553,7 @@ export class GitSync {
   }
 
   async setRemote(url: string): Promise<void> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       try {
         await this.git.addRemote('origin', url);
       } catch {
@@ -583,7 +573,7 @@ export class GitSync {
   }
 
   async fetch(): Promise<void> {
-    return this.withLock(() => wrapNetworkOp('fetch', this.git.fetch()));
+    return this.lock.run(() => wrapNetworkOp('fetch', this.git.fetch()));
   }
 
   /** Get token-level diffs for uncommitted changes in .tokens.json files.
@@ -757,7 +747,7 @@ export class GitSync {
     choices: Record<string, 'push' | 'pull' | 'skip'>,
     tokenStore?: TokenStore,
   ): Promise<ApplyDiffResult> {
-    return this.withLock(async () => {
+    return this.lock.run(async () => {
       const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
       const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
       this.validatePaths([...toPull, ...toPush]);
