@@ -694,3 +694,13 @@
   - `ConfirmModal` is the standard pattern for destructive confirmations — it handles focus trap, Escape key, busy/error states, and danger styling.
   - The modal's `onConfirm` can call the handler synchronously; the ConfirmModal handles async too but it's not needed here since the actual work is via `postMessage`.
 ---
+
+## 2026-04-05 - Inconsistent success feedback across mutation operations
+- Added success toasts to all missing mutation handlers. `handleDuplicateOption` in `useThemeOptions.ts` got `onSuccess?.()`. `ResolverPanel.tsx` got `onSuccess` calls for `handleCreate`, `handleCreateFromTemplate`, `handleDelete`, and `handleMigrate`. All routes the `onSuccess` callback through the existing chain: `PanelRouter.tsx` → `ThemeManager.tsx` → hooks → `dispatchToast` via `useToastBusListener` in App.tsx.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeOptions.ts` ~L160, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L115, ~L148, ~L212, ~L219
+- **Learnings for future iterations:**
+  - All ThemeManager create/rename/delete dimension and option operations already had success feedback via `onSuccess` callback or `dispatchToast`; only `handleDuplicateOption` was missing it.
+  - ResolverPanel's `handleEditSave` already called `onSuccess`, but the three non-edit mutations (create, create-from-template, delete) did not.
+  - The `onSuccess` chain: PanelRouter passes `p.setSuccessToast` → ThemeManager passes it to hooks → hooks call `onSuccess?.()`. This works correctly; gaps were just missing call sites.
+  - When capturing a value (like `newName`) before clearing state, extract it as a `const` at the top of the success block to avoid relying on stale closure state.
+---

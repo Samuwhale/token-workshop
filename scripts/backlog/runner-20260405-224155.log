@@ -455,3 +455,26 @@ Already up to date.
 
   Merging to main: Clear all bindings in SelectionInspector fires without confirmation
 Already up to date.
+[main a3528057] chore(backlog): done – Clear all bindings in SelectionInspector fires without confirmation
+ 5 files changed, 52 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Clear all bindings in SelectionInspector fires without confirmation
+- Added a `ConfirmModal` confirmation dialog before `handleClearAllBindings` executes. "Clear all" button now sets `showClearConfirm` state; the modal shows binding count, warns about the destructive action, and has a red "Clear all" confirm button with "Cancel". The actual clear only fires on confirm.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L32 (import), ~L213 (state), ~L1066 (button onClick), ~L1408 (modal render)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #20  ·  3 queued · 0
+0 in-progress · last took 2m12s
+═══════════════════════════════════════════════════════════════
+  → Inconsistent success feedback across mutation operations — CreatePanel and ExportPanel dispatch toasts on success, but ThemeManager dimension/option CRUD and ResolverPanel create/edit/delete show no success indication; users must infer success from list UI updates, creating uncertainty about whether the server operation completed (violates: system status visibility, consistency)
+  Worktree: /tmp/backlog-50286-2ndlXH
+  Running agent… (started 23:59:54)
+
+  ✓ done: Inconsistent success feedback across mutation operations — CreatePanel and ExportPanel dispatch toasts on success, but ThemeManager dimension/option CRUD and ResolverPanel create/edit/delete show no success indication; users must infer success from list UI updates, creating uncertainty about whether the server operation completed (violates: system status visibility, consistency)
+    Added onSuccess toast calls to handleDuplicateOption in useThemeOptions.ts and to handleCreate, handleCreateFromTemplate, handleDelete, handleMigrate in ResolverPanel.tsx; all wire through the existing onSuccess→setSuccessToast chain.
+    35 turns · 287s · $1.02
+
+  Merging to main: Inconsistent success feedback across mutation operations — CreatePanel and ExportPanel dispatch toasts on success, but ThemeManager dimension/option CRUD and ResolverPanel create/edit/delete show no success indication; users must infer success from list UI updates, creating uncertainty about whether the server operation completed (violates: system status visibility, consistency)
+Already up to date.

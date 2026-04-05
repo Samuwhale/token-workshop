@@ -158,6 +158,7 @@ export function useThemeOptions({
       ));
       setSelectedOptions(prev => ({ ...prev, [dimId]: newName }));
       debouncedFetchDimensions();
+      onSuccess?.(`Duplicated option as "${newName}"`);
     } catch (err) {
       setError(makeErrorMsg(err, 'Failed to duplicate option'));
     } finally {

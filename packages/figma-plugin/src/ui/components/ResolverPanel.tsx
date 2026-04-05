@@ -117,12 +117,13 @@ function ResolverInner({
     setMigrateError(null);
     try {
       await convertFromThemes();
+      onSuccess?.('Migrated themes to resolver format');
     } catch (err) {
       setMigrateError(err instanceof Error ? err.message : String(err));
     } finally {
       setMigrating(false);
     }
-  }, [convertFromThemes]);
+  }, [convertFromThemes, onSuccess]);
 
   const handleCreate = useCallback(async () => {
     if (!newName.trim()) return;
@@ -145,13 +146,15 @@ function ResolverInner({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      const created = newName.trim();
       setNewName('');
       setCreating(false);
       fetchResolvers();
+      onSuccess?.(`Created resolver "${created}"`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : String(err));
     }
-  }, [newName, sets, serverUrl, fetchResolvers]);
+  }, [newName, sets, serverUrl, fetchResolvers, onSuccess]);
 
   const handleTemplateNameNext = useCallback(() => {
     if (!templateName.trim()) return;
@@ -207,19 +210,22 @@ function ResolverInner({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      const created = templateName.trim();
       setTemplateName('');
       setTemplateStep('name');
       setCreatingFromTemplate(false);
       fetchResolvers();
+      onSuccess?.(`Created resolver "${created}"`);
     } catch (err) {
       setTemplateError(err instanceof Error ? err.message : String(err));
     }
-  }, [templateName, templateAssignments, serverUrl, fetchResolvers]);
+  }, [templateName, templateAssignments, serverUrl, fetchResolvers, onSuccess]);
 
   const handleDelete = useCallback(async (name: string) => {
     await deleteResolver(name);
     setConfirmDelete(null);
-  }, [deleteResolver]);
+    onSuccess?.(`Deleted resolver "${name}"`);
+  }, [deleteResolver, onSuccess]);
 
   const handleModifierChange = useCallback((modName: string, context: string) => {
     setResolverInput({ ...resolverInput, [modName]: context });
