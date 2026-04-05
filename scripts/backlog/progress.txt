@@ -464,3 +464,13 @@
   - Tab bar is most discoverable as a `shrink-0` row outside the `overflow-y-auto` div, so it never scrolls away. Place it between the mode toggle and the error messages.
   - Coverage and Compare content doesn't need its own scrollable wrapper — placing it inside the existing `overflow-y-auto` container works correctly because hiding the dimensions content leaves only the active view visible from the top.
 ---
+
+## 2026-04-05 - No token value history or changelog per token
+- Most of this item was already implemented: `TokenHistorySection` (collapsible per-token inline history) was already embedded in both `TokenDetailPreview` and `TokenEditor`; the "View history" context menu item in `TokenTreeNode` already navigated to the HistoryPanel with `filterTokenPath` set. The gap found: `HistoryPanel` showed a "Filtering: token.path" banner but the filter didn't actually remove unrelated entries from the timeline — `filteredEntries` only used `activeTypeFilters` and `searchQuery`, ignoring `filterTokenPath`.
+- Fixed: when `filterTokenPath` is set, `action` entries are filtered to only those with that path in `affectedPaths`; `local` undo entries (which have no path data) are hidden. Commits and snapshots are kept since their detail sub-views already filter by path. Also marked `isFiltering = true` when a token filter is active so the empty-state copy reflects the filter.
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` ~L282
+- **Learnings for future iterations:**
+  - A filter banner that shows path but doesn't filter entries is a silent UX lie — always ensure the filter prop is actually applied in the data pipeline, not just rendered in the header.
+  - `local` undo entries have no `affectedPaths`, so they should be excluded when a token path filter is active (they can't be determined to be relevant or irrelevant).
+  - `isFiltering` flag should include `!!filterTokenPath` so the "no results match your filter" empty state appears correctly.
+---

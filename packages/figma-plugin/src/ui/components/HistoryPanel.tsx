@@ -281,6 +281,14 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const searchQuery = timelineSearch.trim().toLowerCase();
   const filteredEntries = allEntries.filter(entry => {
     if (!activeTypeFilters.has(entry.kind)) return false;
+    // When filtering by token path, only show action entries that touched it;
+    // commits and snapshots are kept (their detail views filter by path too).
+    if (filterTokenPath) {
+      if (entry.kind === 'action') {
+        if (!entry.data.affectedPaths.includes(filterTokenPath)) return false;
+      }
+      if (entry.kind === 'local') return false;
+    }
     if (!searchQuery) return true;
     if (entry.kind === 'local') {
       return entry.data.description.toLowerCase().includes(searchQuery);
@@ -301,7 +309,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     return (entry.data as SnapshotSummary).label.toLowerCase().includes(searchQuery);
   });
 
-  const isFiltering = searchQuery.length > 0 || activeTypeFilters.size < 4;
+  const isFiltering = searchQuery.length > 0 || activeTypeFilters.size < 4 || !!filterTokenPath;
   const isEmpty = allEntries.length === 0 && !timelineError;
   const isFilteredEmpty = !isEmpty && filteredEntries.length === 0;
 
