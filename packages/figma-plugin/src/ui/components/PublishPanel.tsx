@@ -311,7 +311,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     publishAllStep, publishAllError, publishAllGitSkipped, setPublishAllGitSkipped,
     compareAllLoading, hasVarChanges, hasStyleChanges, hasGitDiffChanges,
     effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
-    gitDiffPendingCount, handleOpenPublishAll, runPublishAll, quickSync, quickSyncing,
+    gitDiffPendingCount, handleOpenPublishAll, compareAll, runPublishAll, quickSync, quickSyncing,
   } = publishAll;
 
   // ── Broadcast pending count to Ship tab badge ────────────────────────────
@@ -573,6 +573,34 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onDismiss={help.dismiss}
         />
       )}
+
+      {/* ── Compare All toolbar ─────────────────────────────────────────── */}
+      <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center justify-end">
+        <button
+          onClick={async () => {
+            setOpenSections(new Set(['figma-variables', 'figma-styles', 'git']));
+            await compareAll();
+          }}
+          disabled={compareAllLoading || varSync.loading || styleSync.loading || git.diffLoading}
+          title="Run all comparisons in parallel and expand results"
+          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-40 transition-colors flex items-center gap-1"
+        >
+          {compareAllLoading ? (
+            <>
+              <Spinner size="sm" />
+              Comparing\u2026
+            </>
+          ) : (
+            <>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 4v6h6M23 20v-6h-6" />
+                <path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" />
+              </svg>
+              Compare all
+            </>
+          )}
+        </button>
+      </div>
 
       {/* ── Sections ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">

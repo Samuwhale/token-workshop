@@ -54,6 +54,8 @@ export interface UsePublishAllReturn {
   gitDiffPendingCount: number;
   handleOpenPublishAll: () => Promise<void>;
   runPublishAll: (sections?: PublishAllSections) => Promise<void>;
+  /** Compare all three targets in parallel without opening a modal or applying changes. */
+  compareAll: () => Promise<void>;
   /** One-click sync: auto-compare variables + styles then apply immediately, no preview modal. */
   quickSync: () => Promise<void>;
   quickSyncing: boolean;
@@ -137,6 +139,25 @@ export function usePublishAll({
     }
   }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git.applyDiff, markChecksStale]);
 
+  // "Compare All": force re-run all three comparisons in parallel without opening a modal.
+  // Skips any currently in-flight comparisons to avoid double-calls.
+  const compareAll = useCallback(async () => {
+    const toCompare: Promise<void>[] = [];
+    if (!varSync.loading) toCompare.push(varSync.computeDiff());
+    if (!styleSync.loading) toCompare.push(styleSync.computeDiff());
+    if (!git.diffLoading) toCompare.push(git.computeDiff());
+
+    if (toCompare.length === 0) return;
+    setCompareAllLoading(true);
+    try {
+      await Promise.all(toCompare);
+    } catch {
+      // Each entity surfaces its own error in its section.
+    } finally {
+      setCompareAllLoading(false);
+    }
+  }, [varSync.loading, varSync.computeDiff, styleSync.loading, styleSync.computeDiff, git.diffLoading, git.computeDiff]);
+
   // One-click "Sync all changes": auto-compare variables + styles, then apply immediately.
   // Git is intentionally excluded — git operations (push/pull/commit) require deliberate review.
   // applyDiff reads from rowsRef/dirsRef which computeDiff updates synchronously,
@@ -189,6 +210,7 @@ export function usePublishAll({
     publishAllBusy,
     gitDiffPendingCount,
     handleOpenPublishAll,
+    compareAll,
     runPublishAll,
     quickSync,
     quickSyncing,

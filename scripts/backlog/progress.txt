@@ -644,3 +644,12 @@
 - **Learnings for future iterations:**
   - When a backlog item describes a discoverability gap, check if a previous session already addressed it via cycling placeholders + autocomplete + help button before implementing anything new
 ---
+
+## 2026-04-05 - Publish panel has no "Compare All" action
+- Added `compareAll()` function to `usePublishAll.ts` that runs all three comparisons (variables, styles, git remote diff) in parallel without opening a modal. Added a compact "Compare all" toolbar button just above the accordion sections in `PublishPanel.tsx` that calls `compareAll()` and simultaneously expands all three sections so results are immediately visible.
+- Files changed: `packages/figma-plugin/src/ui/hooks/usePublishAll.ts` ~L55 (interface), ~L140 (compareAll impl), ~L215 (return); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L314 (destructure compareAll), ~L578 (Compare All toolbar UI)
+- **Learnings for future iterations:**
+  - `compareAll` differs from `handleOpenPublishAll` in two ways: it always re-runs (not just unchecked), and it never opens a publish modal — useful as a lightweight "refresh all" action.
+  - `compareAllLoading` was already shared by `handleOpenPublishAll` and `quickSync`; reusing it for `compareAll` keeps the banner spinner consistent at no extra cost.
+  - Placing the "Compare All" button in a persistent toolbar row before the accordions (not inside the conditional publish banner) ensures it's always accessible, even before any changes are found.
+---
