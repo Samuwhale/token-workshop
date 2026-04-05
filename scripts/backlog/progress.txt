@@ -461,3 +461,10 @@
   - `onMouseDown` + `e.preventDefault()` on completion chips prevents the input from losing focus before the click fires — never use `onClick` for inline completions that need to keep the input focused.
   - `lastIndexOf(qualifier + ':' + partial)` correctly handles repeated qualifiers in the same query string by always targeting the rightmost match.
 ---
+
+## 2026-04-05 - No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route
+- The functionality already existed as `POST /api/tokens/:set/bulk-delete` (not matching the `batch-*` naming convention). Renamed the route from `bulk-delete` to `batch-delete` in the server and updated all client call sites to use the new name. Also updated the operation log type from `'bulk-delete'` to `'batch-delete'`.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L1013, `packages/figma-plugin/src/ui/hooks/useTokenDelete.ts` ~L137, `packages/figma-plugin/src/ui/hooks/useImportApply.ts` ~L291, `packages/figma-plugin/src/ui/App.tsx` ~L610, ~L629
+- **Learnings for future iterations:**
+  - When a backlog item says "add batch-X", first check for `bulk-X` — the functionality may exist under a different prefix. In this project, `batch-*` and `bulk-*` were used inconsistently and the rename brings the delete endpoint in line with all other batch routes.
+---

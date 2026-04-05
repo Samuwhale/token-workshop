@@ -134,7 +134,7 @@ export function useTokenDelete({
       if (deletedType === 'token' || deletedType === 'group') {
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(deletedPath)}`, { method: 'DELETE' });
       } else {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: deletedPaths }),

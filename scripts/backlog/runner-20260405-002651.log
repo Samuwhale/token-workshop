@@ -650,3 +650,26 @@ Already up to date.
 
   Merging to main: Command palette qualifier autocomplete is static — CommandPalette.tsx shows qualifier chip buttons (type:, has:, value:, etc.) but typing a qualifier like "type:" doesn't offer completions for available values (e.g. "color", "dimension"); add dynamic suggestions after the colon that enumerate actual values from the current token data
 Already up to date.
+[main c4376fcc] chore(backlog): done – Command palette qualifier autocomplete is static — CommandPalette.tsx shows qualifier chip buttons (type:, has:, value:, etc.) but typing a qualifier like "type:" doesn't offer completions for available values (e.g. "color", "dimension"); add dynamic suggestions after the colon that enumerate actual values from the current token data
+ 6 files changed, 175 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Command palette qualifier autocomplete is static
+- Added dynamic value completions after qualifier colons in CommandPalette token mode. When the query ends with e.g. `type:`, `has:`, `generator:`, `path:`, `name:`, `group:`, or `value:`, a completion chip row appears showing actual values from the current token data (e.g. "color", "dimension" for `type:`). Partial values are supported: `type:col` narrows to matching types. Clicking a chip inserts the full qualifier:value into the query and re-focuses the input. Uses `onMouseDown` + `e.preventDefault()` so the input doesn't lose focus before the click fires.
+- Added `getQualifierCompletions(qualifier, partial, tokens, groups?)` to `tokenListUtils.ts` — returns up to 10 completions filtered by partial prefix. Handles `type` (distinct token types), `has` (canonical has values), `generator`/`gen` (distinct generator names), `path` (top-level segments), `name` (leaf names, capped at 30), `group` (all group paths), `value` (top-20 by frequency). `desc` and unknown qualifiers return [].
+- Added `ACTIVE_QUALIFIER_RE` regex and `detectActiveQualifier()` helper to detect `qualifier:partial` at end of query string.
+
+═══════════════════════════════════════════════════════════════
+  #27  ·  23 queued · 0
+0 in-progress · last took 5m59s
+═══════════════════════════════════════════════════════════════
+  → No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route; clients must loop individual DELETE requests; add POST /api/tokens/:set/batch-delete accepting an array of paths
+  Worktree: /tmp/backlog-54964-5Ix7ma
+  Running agent… (started 02:47:49)
+
+  ✓ done: No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route; clients must loop individual DELETE requests; add POST /api/tokens/:set/batch-delete accepting an array of paths
+    Renamed existing `/bulk-delete` route to `/batch-delete` across server and all client call sites to match the `batch-*` naming convention used by all other batch endpoints.
+    26 turns · 154s · $0.65
+
+  Merging to main: No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route; clients must loop individual DELETE requests; add POST /api/tokens/:set/batch-delete accepting an array of paths
+Already up to date.

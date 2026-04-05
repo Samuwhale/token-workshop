@@ -1010,9 +1010,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/bulk-delete — delete multiple tokens/groups in one call
+  // POST /api/tokens/:set/batch-delete — delete multiple tokens/groups in one call
   fastify.post<{ Params: { set: string }; Body: { paths: string[]; force?: boolean } }>(
-    '/tokens/:set/bulk-delete',
+    '/tokens/:set/batch-delete',
     async (request, reply) => {
       const { set } = request.params;
       const { paths, force } = request.body ?? {};
@@ -1066,7 +1066,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const after = await snapshotPaths(fastify.tokenStore, set, paths);
           if (deleted.length > 0) {
             await fastify.operationLog.record({
-              type: 'bulk-delete',
+              type: 'batch-delete',
               description: `Delete ${deleted.length} token(s) from ${set}`,
               setName: set,
               affectedPaths: deleted,

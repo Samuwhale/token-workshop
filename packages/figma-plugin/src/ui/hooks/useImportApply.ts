@@ -288,7 +288,7 @@ export function useImportApply({
     setUndoing(true);
     try {
       for (const entry of lastImport.entries) {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(entry.setName)}/bulk-delete`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(entry.setName)}/batch-delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: entry.paths, force: true }),

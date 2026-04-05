@@ -341,7 +341,7 @@ export function App() {
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
-  // Command palette bulk-delete state
+  // Command palette batch-delete state
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const [paletteDeleteConfirm, setPaletteDeleteConfirm] = useState<{ paths: string[]; label: string } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -607,7 +607,7 @@ export function App() {
       if (entry) snapshot[p] = { $type: entry.$type, $value: entry.$value };
     }
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/bulk-delete`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch-delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paths }),
@@ -626,7 +626,7 @@ export function App() {
           refreshAll();
         },
         redo: async () => {
-          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/bulk-delete`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch-delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paths }),
