@@ -709,7 +709,7 @@ export class GeneratorService {
         sourceToken: generator.sourceToken,
       },
     };
-    let succeeded = false;
+    let runError: unknown = undefined;
     tokenStore.beginBatch();
     try {
       for (const result of results) {
@@ -725,28 +725,40 @@ export class GeneratorService {
           await tokenStore.createToken(effectiveTargetSet, result.path, token);
         }
       }
-      succeeded = true;
+    } catch (err) {
+      runError = err;
     } finally {
       tokenStore.endBatch();
-      if (!succeeded) {
-        // Roll back: restore tokens that existed before + delete tokens created during the run.
-        const currentTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet);
-        const restoreItems: Array<{ path: string; token: Token | null }> = [];
-        for (const [p, t] of Object.entries(preSnapshot)) {
-          restoreItems.push({ path: p, token: t });
-        }
-        for (const p of Object.keys(currentTokens)) {
-          if (!(p in preSnapshot)) {
-            restoreItems.push({ path: p, token: null });
-          }
-        }
-        if (restoreItems.length > 0) {
-          await tokenStore.restoreSnapshot(effectiveTargetSet, restoreItems).catch((rollbackErr) => {
-            console.error(`[GeneratorService] Rollback failed for set "${effectiveTargetSet}":`, rollbackErr);
-          });
+    }
+
+    if (runError !== undefined) {
+      // Roll back: restore tokens that existed before + delete tokens created during the run.
+      const currentTokens = await tokenStore.getFlatTokensForSet(effectiveTargetSet);
+      const restoreItems: Array<{ path: string; token: Token | null }> = [];
+      for (const [p, t] of Object.entries(preSnapshot)) {
+        restoreItems.push({ path: p, token: t });
+      }
+      for (const p of Object.keys(currentTokens)) {
+        if (!(p in preSnapshot)) {
+          restoreItems.push({ path: p, token: null });
         }
       }
+      if (restoreItems.length > 0) {
+        const [outcome] = await Promise.allSettled([
+          tokenStore.restoreSnapshot(effectiveTargetSet, restoreItems),
+        ]);
+        if (outcome.status === 'rejected') {
+          const rollbackMsg = outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+          console.error(`[GeneratorService] Rollback failed for set "${effectiveTargetSet}":`, outcome.reason);
+          throw new Error(
+            `Generator run failed and rollback of set "${effectiveTargetSet}" also failed (${rollbackMsg}). Token state may be inconsistent.`,
+            { cause: outcome.reason },
+          );
+        }
+      }
+      throw runError;
     }
+
     return results;
   }
 
@@ -818,30 +830,45 @@ export class GeneratorService {
       }
       succeeded = true;
     } catch (err) {
-      // Roll back all affected sets to their pre-run state.
-      // Build restore items: original tokens to restore + tokens created during the run to delete.
-      for (const [setName, preSnapshot] of preRunSnapshots) {
-        const currentTokens = await tokenStore.getFlatTokensForSet(setName);
-        const restoreItems: Array<{ path: string; token: Token | null }> = [];
-        for (const [p, t] of Object.entries(preSnapshot)) {
-          restoreItems.push({ path: p, token: t });
-        }
-        for (const p of Object.keys(currentTokens)) {
-          if (!(p in preSnapshot)) {
-            restoreItems.push({ path: p, token: null });
+      // Roll back all affected sets using allSettled so no set is skipped on failure.
+      const setNames = [...preRunSnapshots.keys()];
+      const rollbackResults = await Promise.allSettled(
+        setNames.map(async (setName) => {
+          const preSnapshot = preRunSnapshots.get(setName)!;
+          const currentTokens = await tokenStore.getFlatTokensForSet(setName);
+          const restoreItems: Array<{ path: string; token: Token | null }> = [];
+          for (const [p, t] of Object.entries(preSnapshot)) {
+            restoreItems.push({ path: p, token: t });
           }
-        }
-        if (restoreItems.length > 0) {
-          await tokenStore.restoreSnapshot(setName, restoreItems).catch((rollbackErr) => {
-            console.error(`[GeneratorService] Rollback failed for set "${setName}":`, rollbackErr);
-            const originalMsg = err instanceof Error ? err.message : String(err);
-            const rollbackMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-            throw new Error(
-              `Generator run failed (${originalMsg}) and rollback of set "${setName}" also failed (${rollbackMsg}). Token state may be inconsistent.`,
-              { cause: rollbackErr },
-            );
-          });
-        }
+          for (const p of Object.keys(currentTokens)) {
+            if (!(p in preSnapshot)) {
+              restoreItems.push({ path: p, token: null });
+            }
+          }
+          if (restoreItems.length > 0) {
+            await tokenStore.restoreSnapshot(setName, restoreItems);
+          }
+        }),
+      );
+
+      const rollbackFailures = rollbackResults
+        .map((r, i) => ({ r, setName: setNames[i] }))
+        .filter(({ r }) => r.status === 'rejected');
+
+      if (rollbackFailures.length > 0) {
+        const details = rollbackFailures
+          .map(({ setName, r }) => {
+            const reason = (r as PromiseRejectedResult).reason;
+            const msg = reason instanceof Error ? reason.message : String(reason);
+            console.error(`[GeneratorService] Rollback failed for set "${setName}":`, reason);
+            return `"${setName}": ${msg}`;
+          })
+          .join('; ');
+        const originalMsg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Generator run failed (${originalMsg}) and rollback of ${rollbackFailures.length} set(s) also failed (${details}). Token state may be inconsistent.`,
+          { cause: err },
+        );
       }
       throw err;
     } finally {

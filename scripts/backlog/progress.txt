@@ -391,3 +391,13 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: generator-service.ts has two different rollback strategies for single-brand vs multi-brand generator execution, and both are broken in different ways — single-brand silently swallows rollback errors, multi-brand throws inside a `.catch()` that exits the loop early leaving remaining sets un-rolled-back. Also, manual-snapshot.ts quarantined sets are never marked as completed, causing infinite recovery loops on every server restart.
 ---
+
+## 2026-04-05 - Generator rollback is inconsistent and can leave token state corrupted
+- Fixed single-brand path (`executeSingleBrand`): replaced `.catch()` that silently swallowed rollback errors with a proper try/catch/finally split — `endBatch()` runs in `finally`, rollback happens after the try/catch as sequential code; if rollback also fails, throws a combined error with "Token state may be inconsistent" message via `Promise.allSettled`.
+- Fixed multi-brand path (`executeGeneratorMultiBrand`): replaced sequential `for...of` rollback loop (which exited early on first failure) with `Promise.allSettled` over all affected sets in parallel; aggregates all failures into a single descriptive error listing each failing set.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L712 (single-brand), ~L832 (multi-brand)
+- **Learnings for future iterations:**
+  - When a rollback loop must visit all items regardless of failures, `Promise.allSettled` is the right primitive — it never short-circuits and provides a uniform `{ status, reason }[]` result for aggregation.
+  - In a `finally` block, throwing replaces the original error. To propagate both run-error and rollback-error cleanly, split the try/catch/finally: use `finally` only for cleanup (endBatch), capture the run error in a `catch` clause, then handle rollback and re-throw in sequential code after the try block.
+  - `Promise.allSettled([singlePromise])` is safe even with one item — the `[outcome]` destructure pattern is readable and consistent with the multi-item allSettled pattern.
+---
