@@ -866,3 +866,12 @@
   - For hooks called from context providers that are mounted above App.tsx (and thus can't receive `pushUndo` as a prop), the late-bound callback ref pattern (`useRef` + stable `useCallback` setter exposed via context) is the right tool — App.tsx calls `setPushUndo(pushUndo)` in a `useEffect` after the hook's context is available
   - The rollback endpoint (`POST /api/operations/:id/rollback`) already handles all structural restoration (create-set, write-resolver) plus token snapshots — no need to duplicate the restoration logic client-side
 ---
+
+## 2026-04-05 - Token rename in TokenTreeNode shows no inline validation feedback
+- The empty-name validation (`setRenameTokenError('Name cannot be empty')` / `setRenameGroupError`) and error display (`<p role="alert">`) were already implemented in a prior session (commit 741c13ae — "Inconsistent inline editing patterns"). Added the remaining missing piece: conflict detection for duplicate sibling names. `confirmTokenRename` now checks `allTokensFlat[newPath]` and shows "A token named '...' already exists here". `confirmGroupRename` checks whether any key in `allTokensFlat` starts with `newGroupPath.` and shows "A group named '...' already exists here".
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L246 (confirmGroupRename), ~L1085 (confirmTokenRename)
+- **Learnings for future iterations:**
+  - Check git blame before implementing — prior sessions often address part of an item as collateral improvement; identify which part remains and implement only that.
+  - `allTokensFlat` (from `useTokenTree()` context) is the right source for client-side conflict checks since it's always current without extra props.
+  - Group conflict check must use prefix `newGroupPath + '.'` (not just equality) because the group itself isn't a leaf in `allTokensFlat` — only its descendants are.
+---

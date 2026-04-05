@@ -1316,3 +1316,26 @@ Already up to date.
 
   Merging to main: Resolver and set deletion have no undo support unlike other destructive actions
 Already up to date.
+[main 838f8d2e] chore(backlog): done – Resolver and set deletion have no undo support unlike other destructive actions
+ 10 files changed, 109 insertions(+), 15 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Resolver and set deletion have no undo support unlike other destructive actions
+- Added undo slots for both set deletion and resolver deletion, making them consistent with token/dimension/option deletion
+- **Server changes:**
+  - `packages/server/src/routes/sets.ts` ~L259: capture `const entry = await operationLog.record(...)` and return `operationId: entry.id` in DELETE response
+
+═══════════════════════════════════════════════════════════════
+  #55  ·  1 queued · 0
+0 in-progress · last took 8m37s
+═══════════════════════════════════════════════════════════════
+  → Token rename in TokenTreeNode shows no inline validation feedback — when renaming a token or group via the inline input, there is no error display if the name is invalid or conflicts; `confirmTokenRename` and `confirmGroupRename` silently abort on empty names or conflicts with no user-visible message, unlike ThemeManager and SetSwitcher which show red error text below the input (violates: visibility of system status, help users recognize errors)
+  Worktree: /tmp/backlog-54964-hpzt9w
+  Running agent… (started 05:58:57)
+
+  ✓ done: Token rename in TokenTreeNode shows no inline validation feedback
+    Empty-name validation was already done in a prior session; added conflict detection using allTokensFlat to show "A token/group named '...' already exists here" for duplicate sibling names
+    25 turns · 179s · $0.68
+
+  Merging to main: Token rename in TokenTreeNode shows no inline validation feedback
+Already up to date.

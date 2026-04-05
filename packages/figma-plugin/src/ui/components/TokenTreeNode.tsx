@@ -249,10 +249,14 @@ const TokenGroupNode = memo(function TokenGroupNode(props: TokenTreeNodeProps) {
     if (newName === node.name) { setRenamingGroup(false); setRenameGroupError(''); return; }
     const parentPath = nodeParentPath(node.path, node.name);
     const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
+    // Check for conflict: a token or group already exists at the target path
+    const prefix = newGroupPath + '.';
+    const hasConflict = Object.keys(allTokensFlat).some(p => p === newGroupPath || p.startsWith(prefix));
+    if (hasConflict) { setRenameGroupError(`A group named '${newName}' already exists here`); return; }
     setRenamingGroup(false);
     setRenameGroupError('');
     onRenameGroup?.(node.path, newGroupPath);
-  }, [renameGroupVal, node.name, node.path, onRenameGroup]);
+  }, [renameGroupVal, node.name, node.path, allTokensFlat, onRenameGroup]);
 
   const cancelGroupRename = useCallback(() => {
     setRenamingGroup(false);
@@ -1088,10 +1092,12 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     if (newName === node.name) { setRenamingToken(false); setRenameTokenError(''); return; }
     const parentPath = nodeParentPath(node.path, node.name);
     const newPath = parentPath ? `${parentPath}.${newName}` : newName;
+    // Check for conflict: a token already exists at the target path
+    if (allTokensFlat[newPath]) { setRenameTokenError(`A token named '${newName}' already exists here`); return; }
     setRenamingToken(false);
     setRenameTokenError('');
     onRenameToken?.(node.path, newPath);
-  }, [renameTokenVal, node.name, node.path, onRenameToken]);
+  }, [renameTokenVal, node.name, node.path, allTokensFlat, onRenameToken]);
 
   const cancelTokenRename = useCallback(() => {
     setRenamingToken(false);
