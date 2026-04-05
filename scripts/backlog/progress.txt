@@ -337,3 +337,15 @@
   - Clearing the name should reset `typeSetManually` so the form feels fresh for the next token — without this, users who changed a type, cleared the form, and started a new path would get no inference.
   - Segment-based keyword matching (splitting on `.`, `-`, `_`, `/`) handles both dotted paths (group.name) and hyphenated segment names (font-family, line-height) correctly.
 ---
+
+## 2026-04-05 - Batch token upsert API endpoint
+- The `POST /api/tokens/:set/batch` endpoint already existed and was used by import, paste, compare, and export flows. Two remaining callers still used individual per-token HTTP requests:
+  1. `useGeneratorSave.ts`: Semantic alias token creation iterated `validMappings` in a serial `for` loop, doing POST then PATCH-on-409 per token. Replaced with a single `POST /api/tokens/:set/batch` call with `strategy: 'overwrite'`, eliminating N serial round trips.
+  2. `useTokenSyncBase.ts`: Pull rows (Figma → local sync) used `Promise.all` with individual PATCH calls — concurrent but still N separate requests. Replaced with a single `POST /api/tokens/:set/batch-update` call, making all pull changes atomic (single operation log entry).
+- Removed now-unused `tokenPathToUrlSegment` import from both files.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L2,L178, `packages/figma-plugin/src/ui/hooks/useTokenSyncBase.ts` ~L3,L228
+- **Learnings for future iterations:**
+  - The batch endpoint has been comprehensive for a while; the item was partially stale. The remaining work was wiring up the last two individual-request callers.
+  - For sync pull, replacing `Promise.all` with batch-update simplifies error handling (one try/catch instead of per-row) and records a single operation log entry for the entire sync operation, enabling clean rollback.
+  - `batch-update` timeout was bumped to 30s (from 10s per individual call) since the entire batch must complete in one request.
+---

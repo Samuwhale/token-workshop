@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import type { UndoSlot } from './useUndo';
@@ -178,31 +178,21 @@ export function useGeneratorSave({
         // Create semantic alias tokens inline if the user opted in
         if (tokensForMapping.length > 0 && semanticEnabledAtSave) {
           const validMappings = semanticMappingsAtSave.filter(m => m.semantic.trim() && m.step);
-          for (const mapping of validMappings) {
-            const fullPath = `${semanticPrefixAtSave.trim()}.${mapping.semantic}`;
-            const encodedFullPath = tokenPathToUrlSegment(fullPath);
-            const tokenType = tokensForMapping.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
-            const body = {
-              $type: tokenType,
+          if (validMappings.length > 0) {
+            const batchTokens = validMappings.map(mapping => ({
+              path: `${semanticPrefixAtSave.trim()}.${mapping.semantic}`,
+              $type: tokensForMapping.find(t => String(t.stepName) === mapping.step)?.type ?? 'string',
               $value: `{${targetGroupAtSave}.${mapping.step}}`,
               $description: `Semantic reference for ${targetGroupAtSave}.${mapping.step}`,
-            };
+            }));
             try {
-              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/${encodedFullPath}`, {
+              await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/batch`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
+                body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
               });
-            } catch (postErr: any) {
-              if (postErr?.status === 409) {
-                await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSetAtSave)}/${encodedFullPath}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(body),
-                });
-              } else {
-                console.warn('[useGeneratorSave] failed to create semantic token:', postErr);
-              }
+            } catch (err) {
+              console.warn('[useGeneratorSave] failed to create semantic tokens:', err);
             }
           }
         }

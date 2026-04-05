@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup, type DTCGToken } from '@tokenmanager/core';
-import { describeError, tokenPathToUrlSegment } from '../shared/utils';
+import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
 
 // ── Shared helpers ──
@@ -225,38 +225,29 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
       // Execute push (local → Figma)
       const pushResult = pushRows.length > 0 ? await cfg.executePush(pushRows) : null;
 
-      // Execute pull (Figma → local) via server PATCH
+      // Execute pull (Figma → local) via batch-update (single atomic request)
       const pullFailures: { path: string; error: string }[] = [];
       if (pullRows.length > 0) {
-        let pullDone = 0;
         const pullBase = pushRows.length;
-        const results = await Promise.all(pullRows.map(async (r) => {
-          try {
-            const payload = cfg.buildPullPayload(r);
-            await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPathToUrlSegment(r.path)}`,
-              {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                signal: createFetchSignal(signal, 10000),
-              },
-            );
-            return null;
-          } catch (err) {
-            if (signal.aborted) return null;
-            const msg = err instanceof ApiError
-              ? `${err.status}: ${err.message}`
-              : (err instanceof Error ? err.message : String(err));
-            return { path: r.path, error: msg };
-          } finally {
-            pullDone++;
-            if (!signal.aborted) setProgress({ current: pullBase + pullDone, total: totalOps });
-          }
-        }));
-        if (signal.aborted) return;
-        for (const f of results) {
-          if (f) pullFailures.push(f);
+        try {
+          const patches = pullRows.map(r => ({ path: r.path, patch: cfg.buildPullPayload(r) }));
+          await apiFetch(
+            `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch-update`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ patches }),
+              signal: createFetchSignal(signal, 30000),
+            },
+          );
+          if (!signal.aborted) setProgress({ current: pullBase + pullRows.length, total: totalOps });
+        } catch (err) {
+          if (signal.aborted) return;
+          const msg = err instanceof ApiError
+            ? `${err.status}: ${err.message}`
+            : (err instanceof Error ? err.message : String(err));
+          for (const r of pullRows) pullFailures.push({ path: r.path, error: msg });
+          if (!signal.aborted) setProgress({ current: pullBase + pullRows.length, total: totalOps });
         }
       }
 
