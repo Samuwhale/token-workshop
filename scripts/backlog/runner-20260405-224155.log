@@ -1,0 +1,32 @@
+./scripts/backlog/backlog.sh: line 251: [: 0
+0: integer expression expected
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    50286
+  Tool:   claude
+  Model:  claude-sonnet-4-6
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260405-224155.log
+  Passes: disabled
+
+  Queue:    22 ready · 0
+0 in-progress · 1 failed
+  Done:     1619 total
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  22 queued · 0
+0 in-progress
+═══════════════════════════════════════════════════════════════
+  → Color contrast matrix in HealthPanel does not surface actionable fixes — it shows WCAG AA/AAA pass/fail for color pairs but offers no suggestion for what the nearest compliant color would be; adding a "suggested fix" column (nearest color that passes the threshold) would close the loop from detection to resolution
+  Worktree: /tmp/backlog-50286-YmF33J
+  Running agent… (started 22:41:55)
+
+  ✓ done: Color contrast matrix in HealthPanel does not surface actionable fixes
+    Added "Suggested fg" column to failures-only view — shows nearest existing color token (by CIE ΔE) that passes AA against the same background, with swatch, name, and passing ratio
+    12 turns · 166s · $0.56
+
+  Merging to main: Color contrast matrix in HealthPanel does not surface actionable fixes
+Already up to date.

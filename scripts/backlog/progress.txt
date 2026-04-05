@@ -508,3 +508,13 @@
   - `LintConfigPanel` renders rules entirely from `LINT_RULE_REGISTRY` — adding a rule to the registry and implementing it server-side is all that's needed for full UI support, no panel changes required.
   - Route validation (`KNOWN_RULES` set in `routes/lint.ts`) must be kept in sync with `LintConfig` type and `DEFAULT_LINT_CONFIG` in `services/lint.ts`.
 ---
+
+## 2026-04-05 - Color contrast matrix suggested fix column
+- Added a "Suggested fg" column to the "Failures only" view in ContrastMatrixPanel. For each failing pair the column shows the nearest existing color token (by CIE ΔE / Lab distance) that would pass AA (≥4.5:1) against the same background, along with its swatch, name, and passing ratio. In multi-theme mode the suggestion must pass AA in every active theme. When no token in the palette can serve as a passing replacement, the cell shows "—".
+- Files changed: `packages/figma-plugin/src/ui/components/ContrastMatrixPanel.tsx` ~L4 (import hexToLab), ~L154 (findNearestPassingFg helper + updated FailPair type + suggestedFix field), ~L297 (new table column header), ~L308 (suggested fix cell with swatch + name + ratio)
+- **Learnings for future iterations:**
+  - `hexToLab` is already exported from `@tokenmanager/core` — no custom implementation needed for CIE ΔE.
+  - For nearest-passing-token searches, iterate candidates and skip same-path, compute CIE76 ΔE = sqrt(dL²+da²+db²), track min. O(N²) but N is small (color token sets rarely exceed a few dozen).
+  - In multi-theme mode the fix suggestion checks every active theme key in perThemeResolved, ensuring the replacement truly passes everywhere.
+  - The fix ratio displayed in the cell uses wcagContrast on the single-mode hex values; in multi-theme mode the tooltip suffix could show per-theme ratios but the single-mode hex is sufficient for a quick scan.
+---

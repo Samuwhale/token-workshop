@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
-import { normalizeHex } from '@tokenmanager/core';
+import { normalizeHex, hexToLab } from '@tokenmanager/core';
 import { resolveThemeOption } from '../shared/comparisonUtils';
 
 export interface ContrastMatrixPanelProps {
@@ -151,13 +151,48 @@ export function ContrastMatrixPanel({
     displayTokens = filteredTokens;
   }
 
-  type FailPair = { fg: MatrixToken; bg: MatrixToken; ratio: number; failingThemeCount: number; totalThemeCount: number };
+  /** Find the nearest token (by CIE ΔE) from candidates that would pass AA (≥4.5:1) against bg. */
+  const findNearestPassingFg = (fg: MatrixToken, bg: MatrixToken, candidates: MatrixToken[]): { path: string; hex: string } | null => {
+    const fgLab = hexToLab(fg.hex);
+    if (!fgLab) return null;
+    let best: { path: string; hex: string; deltaE: number } | null = null;
+    for (const candidate of candidates) {
+      if (candidate.path === fg.path) continue;
+      let passes = false;
+      if (isMultiMode && candidate.hexByTheme && bg.hexByTheme && perThemeResolved) {
+        // Multi-theme: must pass AA in every active theme
+        passes = true;
+        for (const themeKey of perThemeResolved.keys()) {
+          const cHex = candidate.hexByTheme.get(themeKey);
+          const bgHex = bg.hexByTheme.get(themeKey);
+          if (!cHex || !bgHex) { passes = false; break; }
+          const r = wcagContrast(cHex, bgHex);
+          if (r === null || r < 4.5) { passes = false; break; }
+        }
+      } else {
+        const r = wcagContrast(candidate.hex, bg.hex);
+        passes = r !== null && r >= 4.5;
+      }
+      if (!passes) continue;
+      const candLab = hexToLab(candidate.hex);
+      if (!candLab) continue;
+      const dL = candLab[0] - fgLab[0], da = candLab[1] - fgLab[1], db = candLab[2] - fgLab[2];
+      const deltaE = Math.sqrt(dL * dL + da * da + db * db);
+      if (best === null || deltaE < best.deltaE) best = { path: candidate.path, hex: candidate.hex, deltaE };
+    }
+    return best ? { path: best.path, hex: best.hex } : null;
+  };
+
+  type FailPair = { fg: MatrixToken; bg: MatrixToken; ratio: number; failingThemeCount: number; totalThemeCount: number; suggestedFix: { path: string; hex: string } | null };
   const allFailingPairs: FailPair[] = [];
   for (let i = 0; i < displayTokens.length; i++) {
     for (let j = 0; j < displayTokens.length; j++) {
       if (i === j) continue;
       const { ratio, failingThemeCount, totalThemeCount } = getCellContrast(displayTokens[i], displayTokens[j]);
-      if (ratio !== null && ratio < 4.5) allFailingPairs.push({ fg: displayTokens[i], bg: displayTokens[j], ratio, failingThemeCount, totalThemeCount });
+      if (ratio !== null && ratio < 4.5) {
+        const suggestedFix = findNearestPassingFg(displayTokens[i], displayTokens[j], displayTokens);
+        allFailingPairs.push({ fg: displayTokens[i], bg: displayTokens[j], ratio, failingThemeCount, totalThemeCount, suggestedFix });
+      }
     }
   }
   allFailingPairs.sort((a, b) => a.ratio - b.ratio);
@@ -285,17 +320,34 @@ export function ContrastMatrixPanel({
                     <th scope="col" className="px-1 py-0.5 text-left font-normal">Background</th>
                     <th scope="col" className="px-1 py-0.5 text-right font-normal">Worst ratio</th>
                     {isMultiMode && <th scope="col" className="px-1 py-0.5 text-right font-normal">Fails in</th>}
+                    <th scope="col" className="px-1 py-0.5 text-left font-normal">Suggested fg</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {allFailingPairs.map(({ fg, bg, ratio, failingThemeCount, totalThemeCount }) => (
-                    <tr key={`${fg.path}|${bg.path}`} className="border-t border-[var(--color-figma-border)]">
-                      <td className="px-1 py-0.5"><div className="flex items-center gap-1"><div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} /><span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">{fg.path.split('.').pop()}</span></div></td>
-                      <td className="px-1 py-0.5"><div className="flex items-center gap-1"><div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: bg.hex }} /><span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">{bg.path.split('.').pop()}</span></div></td>
-                      <td className="px-1 py-0.5 text-right"><span className="text-[var(--color-figma-error)]">{ratio.toFixed(1)}:1</span></td>
-                      {isMultiMode && <td className="px-1 py-0.5 text-right text-[var(--color-figma-text-secondary)]">{failingThemeCount}/{totalThemeCount}</td>}
-                    </tr>
-                  ))}
+                  {allFailingPairs.map(({ fg, bg, ratio, failingThemeCount, totalThemeCount, suggestedFix }) => {
+                    const fixRatio = suggestedFix ? wcagContrast(suggestedFix.hex, bg.hex) : null;
+                    return (
+                      <tr key={`${fg.path}|${bg.path}`} className="border-t border-[var(--color-figma-border)]">
+                        <td className="px-1 py-0.5"><div className="flex items-center gap-1"><div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} /><span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">{fg.path.split('.').pop()}</span></div></td>
+                        <td className="px-1 py-0.5"><div className="flex items-center gap-1"><div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: bg.hex }} /><span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">{bg.path.split('.').pop()}</span></div></td>
+                        <td className="px-1 py-0.5 text-right"><span className="text-[var(--color-figma-error)]">{ratio.toFixed(1)}:1</span></td>
+                        {isMultiMode && <td className="px-1 py-0.5 text-right text-[var(--color-figma-text-secondary)]">{failingThemeCount}/{totalThemeCount}</td>}
+                        <td className="px-1 py-0.5">
+                          {suggestedFix ? (
+                            <div className="flex items-center gap-1" title={`${suggestedFix.path} — ${fixRatio !== null ? fixRatio.toFixed(1) + ':1' : ''}`}>
+                              <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: suggestedFix.hex }} />
+                              <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">{suggestedFix.path.split('.').pop()}</span>
+                              {fixRatio !== null && (
+                                <span className="text-[var(--color-figma-success)] shrink-0">{fixRatio.toFixed(1)}:1</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[var(--color-figma-text-secondary)] opacity-40">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )
