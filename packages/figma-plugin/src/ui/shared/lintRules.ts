@@ -56,6 +56,30 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
     description: 'Detect multiple tokens with identical raw values.',
     tip: 'Consider extracting a shared token',
   },
+  {
+    id: 'no-hardcoded-dimensions',
+    label: 'Hardcoded dimension',
+    description: 'Flag dimension and number tokens using raw values instead of aliases. Promotes reuse of spacing/sizing scales.',
+    tip: 'Extract the value to a primitive scale token and reference it',
+  },
+  {
+    id: 'require-alias-for-semantic-tokens',
+    label: 'Raw semantic token',
+    description: 'Require tokens in semantic groups (e.g. "semantic", "component", "alias") to reference primitives via aliases rather than using raw values.',
+    tip: 'Replace the raw value with a reference to a primitive token',
+    options: [
+      { key: 'semanticPrefixes', label: 'Semantic prefixes (comma-separated)', type: 'text', placeholder: 'semantic,component,alias' },
+    ],
+  },
+  {
+    id: 'enforce-token-type-consistency',
+    label: 'Mixed types in group',
+    description: 'Warn when tokens in the same group have inconsistent $type values. Catches accidental type mismatches.',
+    tip: 'Change the token type to match the rest of the group',
+    options: [
+      { key: 'minGroupSize', label: 'Min group size', type: 'number' },
+    ],
+  },
 ];
 
 /** Quick lookup by rule id */
@@ -90,11 +114,14 @@ export const LINT_PRESETS: LintPreset[] = [
     label: 'Strict',
     description: 'All rules enabled with error severity and tight thresholds — best for mature, production design systems.',
     rules: {
-      'no-raw-color':        { enabled: true, severity: 'error' },
-      'require-description': { enabled: true, severity: 'error' },
-      'path-pattern':        { enabled: true, severity: 'error', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
-      'max-alias-depth':     { enabled: true, severity: 'error', options: { maxDepth: 2 } },
-      'no-duplicate-values': { enabled: true, severity: 'error' },
+      'no-raw-color':                        { enabled: true, severity: 'error' },
+      'require-description':                 { enabled: true, severity: 'error' },
+      'path-pattern':                        { enabled: true, severity: 'error', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
+      'max-alias-depth':                     { enabled: true, severity: 'error', options: { maxDepth: 2 } },
+      'no-duplicate-values':                 { enabled: true, severity: 'error' },
+      'no-hardcoded-dimensions':             { enabled: true, severity: 'error' },
+      'require-alias-for-semantic-tokens':   { enabled: true, severity: 'error' },
+      'enforce-token-type-consistency':      { enabled: true, severity: 'error', options: { minGroupSize: 2 } },
     },
   },
   {
@@ -102,11 +129,14 @@ export const LINT_PRESETS: LintPreset[] = [
     label: 'Recommended',
     description: 'Common quality rules with warning severity — a balanced starting point for most token libraries.',
     rules: {
-      'no-raw-color':        { enabled: true, severity: 'warning' },
-      'require-description': { enabled: false },
-      'path-pattern':        { enabled: false },
-      'max-alias-depth':     { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
-      'no-duplicate-values': { enabled: true, severity: 'warning' },
+      'no-raw-color':                        { enabled: true, severity: 'warning' },
+      'require-description':                 { enabled: false },
+      'path-pattern':                        { enabled: false },
+      'max-alias-depth':                     { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
+      'no-duplicate-values':                 { enabled: true, severity: 'warning' },
+      'no-hardcoded-dimensions':             { enabled: true, severity: 'warning' },
+      'require-alias-for-semantic-tokens':   { enabled: true, severity: 'warning' },
+      'enforce-token-type-consistency':      { enabled: true, severity: 'warning', options: { minGroupSize: 2 } },
     },
   },
   {
@@ -114,11 +144,14 @@ export const LINT_PRESETS: LintPreset[] = [
     label: 'Permissive',
     description: 'Structural rules only with info severity — minimal friction, useful early in a project.',
     rules: {
-      'no-raw-color':        { enabled: false },
-      'require-description': { enabled: false },
-      'path-pattern':        { enabled: false },
-      'max-alias-depth':     { enabled: true, severity: 'info', options: { maxDepth: 5 } },
-      'no-duplicate-values': { enabled: false },
+      'no-raw-color':                        { enabled: false },
+      'require-description':                 { enabled: false },
+      'path-pattern':                        { enabled: false },
+      'max-alias-depth':                     { enabled: true, severity: 'info', options: { maxDepth: 5 } },
+      'no-duplicate-values':                 { enabled: false },
+      'no-hardcoded-dimensions':             { enabled: false },
+      'require-alias-for-semantic-tokens':   { enabled: false },
+      'enforce-token-type-consistency':      { enabled: false },
     },
   },
 ];

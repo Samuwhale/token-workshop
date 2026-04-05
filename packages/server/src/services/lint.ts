@@ -42,6 +42,9 @@ export interface LintConfig {
     'path-pattern'?: LintRuleConfig;
     'max-alias-depth'?: LintRuleConfig;
     'no-duplicate-values'?: LintRuleConfig;
+    'no-hardcoded-dimensions'?: LintRuleConfig;
+    'require-alias-for-semantic-tokens'?: LintRuleConfig;
+    'enforce-token-type-consistency'?: LintRuleConfig;
   };
   /** Server-persisted suppression keys shared across all team members. Format: "rule:setName:tokenPath" */
   suppressions?: string[];
@@ -70,6 +73,9 @@ export const DEFAULT_LINT_CONFIG: LintConfig = {
     'path-pattern': { enabled: false, severity: 'warning', options: { pattern: '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$' } },
     'max-alias-depth': { enabled: true, severity: 'warning', options: { maxDepth: 3 } },
     'no-duplicate-values': { enabled: true, severity: 'info' },
+    'no-hardcoded-dimensions': { enabled: false, severity: 'warning' },
+    'require-alias-for-semantic-tokens': { enabled: false, severity: 'warning' },
+    'enforce-token-type-consistency': { enabled: false, severity: 'warning', options: { minGroupSize: 2 } },
   },
 };
 
@@ -392,6 +398,112 @@ export async function lintTokens(
             group: canonical,
           });
         }
+      }
+    }
+  }
+
+  // --- no-hardcoded-dimensions ---
+  const noHardcodedDims = rules['no-hardcoded-dimensions'] ? resolveRuleForSet(rules['no-hardcoded-dimensions'], setName) : undefined;
+  if (noHardcodedDims?.enabled) {
+    const severity = noHardcodedDims.severity ?? 'warning';
+    const types = (noHardcodedDims.options?.types as string[] | undefined) ?? ['dimension', 'number'];
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, noHardcodedDims.excludePaths)) continue;
+      if (!token.$type || !types.includes(token.$type)) continue;
+      if (isReference(token.$value)) continue;
+      // Look for an existing raw token with the same value to suggest as alias target
+      const rawVal = token.$value;
+      let suggestion: string | undefined;
+      for (const [candidatePath, candidateToken] of Object.entries(allFlatTokens)) {
+        if (candidatePath === tokenPath) continue;
+        if (candidateToken.$type !== token.$type) continue;
+        if (isReference(candidateToken.$value)) continue;
+        if (serializeValue(candidateToken.$value) === serializeValue(rawVal)) {
+          if (!suggestion || candidatePath.length < suggestion.length) {
+            suggestion = candidatePath;
+          }
+        }
+      }
+      const hint = suggestion ? ` Consider aliasing to {${suggestion}}.` : '';
+      violations.push({
+        rule: 'no-hardcoded-dimensions',
+        path: tokenPath,
+        severity,
+        message: `Token "${tokenPath}" (${token.$type}) uses a raw value instead of an alias.${hint}`,
+        suggestedFix: 'extract-to-alias',
+        suggestion: suggestion ? `{${suggestion}}` : undefined,
+      });
+    }
+  }
+
+  // --- require-alias-for-semantic-tokens ---
+  const requireAliasSemantic = rules['require-alias-for-semantic-tokens'] ? resolveRuleForSet(rules['require-alias-for-semantic-tokens'], setName) : undefined;
+  if (requireAliasSemantic?.enabled) {
+    const severity = requireAliasSemantic.severity ?? 'warning';
+    const rawPrefixes = requireAliasSemantic.options?.semanticPrefixes;
+    const semanticPrefixes: string[] = Array.isArray(rawPrefixes)
+      ? rawPrefixes as string[]
+      : typeof rawPrefixes === 'string' && rawPrefixes.trim()
+        ? rawPrefixes.split(',').map(s => s.trim()).filter(Boolean)
+        : ['semantic', 'component', 'alias'];
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, requireAliasSemantic.excludePaths)) continue;
+      const isSemanticPath = semanticPrefixes.some(
+        prefix => tokenPath === prefix || tokenPath.startsWith(prefix + '.'),
+      );
+      if (!isSemanticPath) continue;
+      if (isReference(token.$value)) continue;
+      violations.push({
+        rule: 'require-alias-for-semantic-tokens',
+        path: tokenPath,
+        severity,
+        message: `Semantic token "${tokenPath}" uses a raw value. Semantic tokens should reference primitive tokens via aliases.`,
+        suggestedFix: 'extract-to-alias',
+      });
+    }
+  }
+
+  // --- enforce-token-type-consistency ---
+  const enforceTypeConsistency = rules['enforce-token-type-consistency'] ? resolveRuleForSet(rules['enforce-token-type-consistency'], setName) : undefined;
+  if (enforceTypeConsistency?.enabled) {
+    const severity = enforceTypeConsistency.severity ?? 'warning';
+    const minGroupSize = (enforceTypeConsistency.options?.minGroupSize as number | undefined) ?? 2;
+    // Group tokens by immediate parent path
+    const groupMap = new Map<string, Array<{ path: string; type: string | undefined }>>();
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      if (isPathExcluded(tokenPath, enforceTypeConsistency.excludePaths)) continue;
+      const lastDot = tokenPath.lastIndexOf('.');
+      if (lastDot === -1) continue; // top-level tokens have no group
+      const parentPath = tokenPath.slice(0, lastDot);
+      if (!groupMap.has(parentPath)) groupMap.set(parentPath, []);
+      groupMap.get(parentPath)!.push({ path: tokenPath, type: token.$type });
+    }
+    for (const [groupPath, members] of groupMap) {
+      if (members.length < minGroupSize) continue;
+      // Count types (skip untyped tokens)
+      const typeCounts = new Map<string, number>();
+      for (const { type } of members) {
+        if (!type) continue;
+        typeCounts.set(type, (typeCounts.get(type) ?? 0) + 1);
+      }
+      if (typeCounts.size <= 1) continue; // all same type — no issue
+      // Find majority type
+      let majorityType = '';
+      let maxCount = 0;
+      for (const [type, count] of typeCounts) {
+        if (count > maxCount) { maxCount = count; majorityType = type; }
+      }
+      // Flag minority-type tokens
+      for (const { path: tokenPath, type } of members) {
+        if (!type || type === majorityType) continue;
+        violations.push({
+          rule: 'enforce-token-type-consistency',
+          path: tokenPath,
+          severity,
+          message: `Token "${tokenPath}" has type "${type}" but most tokens in group "${groupPath}" are "${majorityType}".`,
+          suggestedFix: 'fix-type',
+          suggestion: majorityType,
+        });
       }
     }
   }

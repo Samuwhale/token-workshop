@@ -491,3 +491,20 @@
   - In `handleInlineTabToNext`, the `inlineEditEscapedRef.current = true` guard (which blocks onBlur double-saving) must only be set when actually navigating away, not when blocking navigation due to an error.
   - Error tooltips in compact inline editors should use `absolute top-full` positioning so they don't affect the row height — the token row has a fixed height and content should not push against it.
 ---
+
+## 2026-04-05 - Lint rule system extended with 3 new built-in rules
+- Added 3 new lint rules to the server engine and UI registry:
+  - **no-hardcoded-dimensions**: flags `dimension` and `number` tokens using raw values instead of aliases; suggests the same-value primitive if one exists in the set
+  - **require-alias-for-semantic-tokens**: flags tokens in "semantic"/"component"/"alias" path groups that use raw values instead of aliases; `semanticPrefixes` option accepts a comma-separated string or array for flexibility
+  - **enforce-token-type-consistency**: groups tokens by immediate parent path and flags any token whose `$type` differs from the majority type in that group; `minGroupSize` option controls minimum group size before the rule fires
+- All 3 rules are disabled by default (off for permissive/recommended, on for strict preset)
+- Presets updated to include all 3 new rules across strict/recommended/permissive
+- Files changed:
+  - `packages/server/src/services/lint.ts` ~L40 (LintConfig type), ~L73 (DEFAULT_LINT_CONFIG), ~L400 (3 new rule implementations)
+  - `packages/server/src/routes/lint.ts` ~L43 (KNOWN_RULES set)
+  - `packages/figma-plugin/src/ui/shared/lintRules.ts` ~L55 (LINT_RULE_REGISTRY), ~L90 (LINT_PRESETS)
+- **Learnings for future iterations:**
+  - The `options` field is `Record<string, unknown>`; when a text input stores a comma-separated string but the rule expects an array, handle both forms in the engine (`Array.isArray(v) ? v : v.split(',')`).
+  - `LintConfigPanel` renders rules entirely from `LINT_RULE_REGISTRY` — adding a rule to the registry and implementing it server-side is all that's needed for full UI support, no panel changes required.
+  - Route validation (`KNOWN_RULES` set in `routes/lint.ts`) must be kept in sync with `LintConfig` type and `DEFAULT_LINT_CONFIG` in `services/lint.ts`.
+---

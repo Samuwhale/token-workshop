@@ -40,7 +40,7 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
       if (typeof rules !== 'object' || rules === null || Array.isArray(rules)) {
         return reply.status(400).send({ error: '"lintRules" must be an object' });
       }
-      const KNOWN_RULES = new Set<string>(['no-raw-color', 'require-description', 'path-pattern', 'max-alias-depth', 'no-duplicate-values']);
+      const KNOWN_RULES = new Set<string>(['no-raw-color', 'require-description', 'path-pattern', 'max-alias-depth', 'no-duplicate-values', 'no-hardcoded-dimensions', 'require-alias-for-semantic-tokens', 'enforce-token-type-consistency']);
       const VALID_SEVERITIES = new Set<string>(['error', 'warning', 'info']);
       for (const [ruleKey, ruleVal] of Object.entries(rules as Record<string, unknown>)) {
         if (!KNOWN_RULES.has(ruleKey)) {
