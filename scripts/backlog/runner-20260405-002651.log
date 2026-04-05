@@ -1339,3 +1339,26 @@ Already up to date.
 
   Merging to main: Token rename in TokenTreeNode shows no inline validation feedback
 Already up to date.
+[main f43bced2] chore(backlog): done – Token rename in TokenTreeNode shows no inline validation feedback
+ 5 files changed, 43 insertions(+), 5 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Token rename in TokenTreeNode shows no inline validation feedback
+- The empty-name validation (`setRenameTokenError('Name cannot be empty')` / `setRenameGroupError`) and error display (`<p role="alert">`) were already implemented in a prior session (commit 741c13ae — "Inconsistent inline editing patterns"). Added the remaining missing piece: conflict detection for duplicate sibling names. `confirmTokenRename` now checks `allTokensFlat[newPath]` and shows "A token named '...' already exists here". `confirmGroupRename` checks whether any key in `allTokensFlat` starts with `newGroupPath.` and shows "A group named '...' already exists here".
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L246 (confirmGroupRename), ~L1085 (confirmTokenRename)
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #56  ·  0 queued · 0
+0 in-progress · last took 3m6s
+═══════════════════════════════════════════════════════════════
+
+  Backlog empty — checking inbox for new items…
+  No items found — running discovery passes to replenish backlog…
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================
+  ✓ product pass: product-pass
+    12 items written to inbox — top finds: publish flow needs quick-sync path (4 steps → 1), no generator entry point from ThemeManager, no drag-drop between sets, git UX assumes developer familiarity, missing eyedropper button in color editor despite existing sandbox support
+Already up to date.

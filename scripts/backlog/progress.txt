@@ -875,3 +875,9 @@
   - `allTokensFlat` (from `useTokenTree()` context) is the right source for client-side conflict checks since it's always current without extra props.
   - Group conflict check must use prefix `newGroupPath + '.'` (not just equality) because the group itself isn't a leaf in `allTokensFlat` — only its descendants are.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: PanelRouter/navigationTypes (full tab structure), App.tsx (command palette, keyboard shortcuts), TokenList/TokenTreeNode (editing UX), TokenEditor (modal flow), BatchEditor (batch ops), ThemeManager (dimension CRUD, coverage, compare), GraphPanel (generator templates, pipeline cards), PublishPanel (sync + git sub-panels), ExportPanel (10 platforms, presets), ImportPanel (6 sources, conflict resolution), SettingsPanel (preferences, backup), EmptyState/WelcomePrompt (first-run), shortcutRegistry (60+ bindings), selectionHandling/heatmapScanning (plugin sandbox), variableSync/styleSync (Figma API coverage), all server routes (100+ endpoints), all services (9 services)
+- Found 12 items — written to backlog-inbox.md
+- Notable: The most impactful finding is the publish/sync flow requiring 4 sequential manual steps (Compare → Select → Preview → Apply) with no quick-sync path — power users who sync multiple times daily would benefit enormously from a one-click "sync all changes" action. The second most impactful is the complete lack of cross-feature discovery between ThemeManager and Generators — users must navigate between two separate tabs with no contextual bridge to understand that generators can fill theme dimensions.
+---
