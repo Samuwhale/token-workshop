@@ -3,6 +3,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { adaptShortcut, getErrorMessage } from '../shared/utils';
 import { parseInput, validateTokenPath, type ParsedToken } from '../shared/tokenParsers';
 import { apiFetch } from '../shared/apiFetch';
+import type { UndoSlot } from '../hooks/useUndo';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,9 +54,10 @@ interface PasteTokensModalProps {
   existingPaths: Set<string>;
   onClose: () => void;
   onConfirm: () => void;
+  pushUndo?: (slot: UndoSlot) => void;
 }
 
-export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose, onConfirm }: PasteTokensModalProps) {
+export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose, onConfirm, pushUndo }: PasteTokensModalProps) {
   const [input, setInput] = useState('');
   const [prefix, setPrefix] = useState('');
   const [busy, setBusy] = useState(false);
@@ -133,7 +135,8 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     setBusy(true);
     setSubmitError('');
     try {
-      const tokens = [...toCreate, ...toUpdate].map(row => ({
+      const tokenRows = [...toCreate, ...toUpdate];
+      const tokens = tokenRows.map(row => ({
         path: row.path,
         $type: row.$type,
         $value: row.$value,
@@ -143,6 +146,24 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens, strategy: 'overwrite' }),
       });
+      if (pushUndo && tokenRows.length > 0) {
+        const capturedPaths = tokenRows.map(r => r.path);
+        const capturedSet = activeSet;
+        const capturedUrl = serverUrl;
+        pushUndo({
+          description: `Paste ${tokenRows.length} token${tokenRows.length !== 1 ? 's' : ''} to "${capturedSet}"`,
+          restore: async () => {
+            await apiFetch(
+              `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-delete`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paths: capturedPaths, force: true }),
+              },
+            );
+          },
+        });
+      }
       onConfirm();
     } catch (err) {
       setSubmitError(getErrorMessage(err));

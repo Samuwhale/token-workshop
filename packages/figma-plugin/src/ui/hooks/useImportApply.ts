@@ -6,6 +6,7 @@ import type { ImportToken, CollectionData } from '../components/importPanelTypes
 import { useImportProgress } from './useImportProgress';
 import { useVariablesImport } from './useVariablesImport';
 import { useTokensImport } from './useTokensImport';
+import type { UndoSlot } from './useUndo';
 
 export interface UseImportApplyParams {
   serverUrl: string;
@@ -26,6 +27,7 @@ export interface UseImportApplyParams {
   onResetAfterImport: () => void;
   onImported: () => void;
   onImportComplete: (targetSet: string) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 export function useImportApply({
@@ -47,6 +49,7 @@ export function useImportApply({
   onResetAfterImport,
   onImported,
   onImportComplete,
+  onPushUndo,
 }: UseImportApplyParams) {
   // ── Shared progress state ───────────────────────────────────────────────────
   const progress = useImportProgress();
@@ -60,6 +63,60 @@ export function useImportApply({
   // Synchronous guard — same pattern as retryingRef to prevent double-trigger.
   const undoingRef = useRef(false);
 
+  // Late-bound refs for callbacks needed inside the undo restore closure.
+  // Using refs means the restore function always calls the latest version without
+  // capturing stale closures at the time the undo slot was pushed.
+  const onPushUndoRef = useRef(onPushUndo);
+  onPushUndoRef.current = onPushUndo;
+  const onImportedRef = useRef(onImported);
+  onImportedRef.current = onImported;
+  const setSuccessMessageRef = useRef(setSuccessMessage);
+  setSuccessMessageRef.current = setSuccessMessage;
+  // clearFailedState comes from variablesWorkflow (defined after this point);
+  // use a late-bound ref filled in after the sub-hooks run.
+  const clearFailedStateRef = useRef<() => void>(() => {});
+  const serverUrlRef = useRef(serverUrl);
+  serverUrlRef.current = serverUrl;
+
+  // Wrapper around setLastImport that also pushes to the main undo stack whenever
+  // a successful import records rollback entries. Passed to both sub-hooks so they
+  // automatically integrate with Cmd+Z after any import path.
+  const setLastImportWithUndo = useCallback(
+    (entries: { entries: { setName: string; paths: string[] }[] } | null) => {
+      setLastImport(entries);
+      if (!entries || !onPushUndoRef.current) return;
+      const captured = entries;
+      const totalPaths = captured.entries.reduce((sum, e) => sum + e.paths.length, 0);
+      const setNames = [...new Set(captured.entries.map(e => e.setName))];
+      const description =
+        setNames.length === 1
+          ? `Import ${totalPaths} token${totalPaths !== 1 ? 's' : ''} to "${setNames[0]}"`
+          : `Import ${totalPaths} token${totalPaths !== 1 ? 's' : ''} to ${setNames.length} sets`;
+      onPushUndoRef.current({
+        description,
+        restore: async () => {
+          for (const entry of captured.entries) {
+            await apiFetch(
+              `${serverUrlRef.current}/api/tokens/${encodeURIComponent(entry.setName)}/batch-delete`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paths: entry.paths, force: true }),
+              },
+            );
+          }
+          onImportedRef.current();
+          setLastImport(null);
+          setSuccessMessageRef.current(null);
+          clearFailedStateRef.current();
+        },
+      });
+    },
+    // setLastImport is stable (React state setter); refs are always current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   // ── Per-workflow sub-hooks ──────────────────────────────────────────────────
 
   const variablesWorkflow = useVariablesImport({
@@ -69,7 +126,7 @@ export function useImportApply({
     modeEnabled,
     modeSetNames,
     progress,
-    setLastImport,
+    setLastImport: setLastImportWithUndo,
     onImported,
     onImportComplete,
     onResetAfterImport,
@@ -82,7 +139,7 @@ export function useImportApply({
     source,
     targetSet,
     progress,
-    setLastImport,
+    setLastImport: setLastImportWithUndo,
     clearConflictState,
     setConflictPaths,
     setConflictExistingValues,
@@ -94,6 +151,9 @@ export function useImportApply({
     onImported,
     onImportComplete,
   });
+
+  // Fill in the late-bound ref for clearFailedState now that variablesWorkflow exists.
+  clearFailedStateRef.current = variablesWorkflow.clearFailedState;
 
   // ── Undo (owns lastImport, applies ref guard to prevent double-trigger) ─────
   const handleUndoImport = useCallback(async () => {

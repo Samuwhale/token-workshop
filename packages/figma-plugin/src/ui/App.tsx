@@ -3241,6 +3241,7 @@ export function App() {
           existingPaths={new Set(Object.keys(allTokensFlat).filter(p => pathToSet[p] === activeSet))}
           onClose={() => setShowPasteModal(false)}
           onConfirm={() => { setShowPasteModal(false); refreshAll(); }}
+          pushUndo={pushUndo}
         />
       )}
 

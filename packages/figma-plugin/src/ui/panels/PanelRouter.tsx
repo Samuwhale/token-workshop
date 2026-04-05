@@ -345,6 +345,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
               navigateTo('define', 'tokens');
               setActiveSet(importedSet);
             }}
+            onPushUndo={p.pushUndo}
           />
         </ErrorBoundary>
       </>

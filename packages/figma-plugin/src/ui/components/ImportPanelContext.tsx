@@ -9,12 +9,14 @@ import { useImportSets } from '../hooks/useImportSets';
 import { useImportSource } from '../hooks/useImportSource';
 import { useImportConflicts } from '../hooks/useImportConflicts';
 import { useImportApply } from '../hooks/useImportApply';
+import type { UndoSlot } from '../hooks/useUndo';
 
 export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
   onImported: () => void;
   onImportComplete: (targetSet: string) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 export interface ImportPanelContextValue {
@@ -156,6 +158,7 @@ export function ImportPanelProvider({
   connected,
   onImported,
   onImportComplete,
+  onPushUndo,
   children,
 }: ImportPanelProps & { children: React.ReactNode }) {
   // Late-bound refs for cross-domain callbacks, following the stable-callback-ref pattern.
@@ -220,6 +223,7 @@ export function ImportPanelProvider({
     onResetAfterImport: src.resetAfterImport,
     onImported,
     onImportComplete,
+    onPushUndo,
   });
 
   // Wrap async apply methods to propagate errors to src.setError (preserving original behaviour)

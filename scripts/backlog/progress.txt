@@ -544,3 +544,18 @@
   - When replacing a spinner that is the only use of `Spinner` in a file, remove the import to avoid unused-import lint warnings.
   - Add `aria-label` + `aria-busy="true"` on the skeleton wrapper (not on individual bones) so screen readers announce a single loading state.
 ---
+
+## 2026-04-05 - Import operations do not support undo
+- Integrated all import paths (JSON/CSS/Tailwind/Styles/Figma Variables/paste) into the main Cmd+Z undo stack via `useUndo.pushUndo`. After any successful import, a slot is pushed with description "Import N tokens to 'set-name'" and a `restore` callback that calls `/api/tokens/:set/batch-delete` for the recorded paths. The paste modal similarly pushes an undo slot on confirm. The existing manual "Undo import" button in `ImportSuccessView` is preserved for discoverability; both paths share the same batch-delete logic.
+- Implementation strategy: wrapped `setLastImport` in a new `setLastImportWithUndo` callback that calls `setLastImport` AND conditionally calls `onPushUndo`. Late-bound refs (`onPushUndoRef`, `onImportedRef`, `setSuccessMessageRef`, `clearFailedStateRef`, `serverUrlRef`) break the circular dependency between the wrapper (defined before sub-hooks) and `variablesWorkflow.clearFailedState` (defined after sub-hooks). `clearFailedStateRef.current` is assigned immediately after `variablesWorkflow` is created.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useImportApply.ts` ~L9 (UndoSlot import), ~L31 (onPushUndo param), ~L67 (late-bound refs), ~L82 (setLastImportWithUndo), ~L123 (pass to sub-hooks)
+  - `packages/figma-plugin/src/ui/components/ImportPanelContext.tsx` ~L12 (UndoSlot import), ~L17 (onPushUndo in ImportPanelProps), ~L158 (provider destructure + forward)
+  - `packages/figma-plugin/src/ui/panels/PanelRouter.tsx` ~L348 (onPushUndo={p.pushUndo})
+  - `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L6 (UndoSlot import), ~L55 (pushUndo prop), ~L135 (pushUndo call in handleConfirm)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L3243 (pushUndo={pushUndo})
+- **Learnings for future iterations:**
+  - When a wrapper callback needs to call a function from a hook that hasn't been called yet (ordering constraint), use a ref filled after the hook: `const fooRef = useRef(() => {}); /* call hook */ fooRef.current = result.clearFailed;`. The wrapper reads `fooRef.current` at call time.
+  - The "stable ref" pattern for callbacks that change each render: keep a `const fooRef = useRef(foo); fooRef.current = foo;` pair and read `fooRef.current` inside stable closures. This avoids re-registering effects or breaking `useCallback` dep arrays.
+  - For import undo, a `force: true` batch-delete is the correct inverse — it skips dependent-alias checks that would block deletion of newly created tokens.
+---
