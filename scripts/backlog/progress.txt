@@ -349,3 +349,9 @@
   - For sync pull, replacing `Promise.all` with batch-update simplifies error handling (one try/catch instead of per-row) and records a single operation log entry for the entire sync operation, enabling clean rollback.
   - `batch-update` timeout was bumped to 30s (from 10s per individual call) since the entire batch must complete in one request.
 ---
+
+## 2026-04-05 - product-pass
+- Areas explored: App shell & navigation (App.tsx, NavigationContext, CommandPalette, shortcutRegistry, SettingsPanel, ToastStack, PanelRouter), Theme & publish flow (PublishPanel, SyncSubPanel, GitSubPanel, PublishModals, ThemeManager, ResolverPanel), Token list & tree (TokenList, TokenTreeNode, BatchEditor, useDragDrop, usePinnedTokens, useTokenCreate, useGroupOperations), Export & generators (ExportPanel, GraphPanel, CreatePanel), Server routes (all 13 route files)
+- Found 10 items — written to backlog-inbox.md
+- Notable: The revert-sync button in SyncSubPanel fires instantly with no confirmation — a single misclick can undo a reviewed publish. Generator workflow has no dry-run/preview, forcing users to commit before seeing results. The command palette's structured query syntax is powerful but completely undiscoverable.
+---
