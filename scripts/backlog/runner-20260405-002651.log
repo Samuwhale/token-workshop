@@ -589,3 +589,26 @@ Already up to date.
 
   Merging to main: Batch editor has no preview of which tokens will be affected before applying
 Already up to date.
+[main cbdc6de9] chore(backlog): done – Batch editor has no preview of which tokens will be affected before applying
+ 5 files changed, 134 insertions(+), 12 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Batch editor has no preview of which tokens will be affected before applying
+- Added per-token before/after preview for the three operations that lacked them:
+  1. **Opacity** (was "Applies to N color tokens — M skipped"): now shows color swatches (before → after) for each affected token, with expand/collapse for large selections
+  2. **Set value** (was "Will set $value on N tokens"): now shows each token's current value → new parsed value per row
+
+═══════════════════════════════════════════════════════════════
+  #25  ·  13 queued · 0
+0 in-progress · last took 6m1s
+═══════════════════════════════════════════════════════════════
+  → Generator edit reopens full 3-step dialog for minor tweaks — clicking edit on a GeneratorPipelineCard opens the complete Where/What/Review stepper even when the user just wants to adjust a single config value (e.g. a color stop or ratio); add an "Edit config" shortcut that opens directly to Step 2 (What) with the existing config pre-loaded, skipping target selection
+  Worktree: /tmp/backlog-54964-EDE4U5
+  Running agent… (started 02:34:13)
+
+  ✓ done: Generator edit reopens full 3-step dialog for minor tweaks
+    Added "Edit config" button to GeneratorPipelineCard action bar that directly opens the full dialog at step 2 (Configure), bypassing the quick-edit panel intermediary
+    16 turns · 238s · $0.66
+
+  Merging to main: Generator edit reopens full 3-step dialog for minor tweaks
+Already up to date.

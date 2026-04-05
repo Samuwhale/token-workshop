@@ -436,3 +436,11 @@
   - Opacity and color-adjust previews both show color swatches using `backgroundColor: String(value)` — this approach works because the values are plain hex strings
   - TDZ safety: new useMemos referencing `*Active` flags (plain consts at lines 328–347) must come AFTER those declarations; inserting after the last `useMemo` in the preview block ensures safety
 ---
+
+## 2026-04-05 - Generator edit reopens full 3-step dialog for minor tweaks
+- Added "Edit config" button to `GeneratorPipelineCard` action bar that directly opens `TokenGeneratorDialog` with `existingGenerator`, bypassing the quick-edit panel intermediary. The dialog already starts at step 2 (What/Configure) when `existingGenerator` is provided (`dialog.isEditing = Boolean(existingGenerator)` → `useState('what')`), so no changes to `TokenGeneratorDialog` were needed.
+- Files changed: `packages/figma-plugin/src/ui/components/GeneratorPipelineCard.tsx` ~L791
+- **Learnings for future iterations:**
+  - `TokenGeneratorDialog` already had the correct step-2 initialization for edits (`dialog.isEditing ? 'what' : 'where'`). The only missing piece was a direct entry point on the card that skipped the quick-edit panel.
+  - The "Edit config" button calls `setShowQuickEdit(false)` before `setShowEditDialog(true)` to close any open inline panel — prevents two edit UIs being open simultaneously.
+---

@@ -796,6 +796,13 @@ export function GeneratorPipelineCard({
           {showQuickEdit ? 'Close edit' : 'Edit'}
         </button>
         <button
+          onClick={() => { setShowQuickEdit(false); setShowEditDialog(true); }}
+          className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          title="Open full config editor, starting at step 2 (Configure) — skips target selection"
+        >
+          Edit config
+        </button>
+        <button
           onClick={handleDuplicate}
           disabled={duplicating}
           className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-50"
