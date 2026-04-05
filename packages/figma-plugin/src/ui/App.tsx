@@ -152,7 +152,14 @@ export function App() {
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
+  const [pendingPublishCount, setPendingPublishCount] = useState(0);
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
+  // Listen for PublishPanel's broadcast of how many changes are pending sync
+  useEffect(() => {
+    const handler = (e: Event) => setPendingPublishCount((e as CustomEvent<{ total: number }>).detail.total);
+    window.addEventListener('publish-pending-count', handler);
+    return () => window.removeEventListener('publish-pending-count', handler);
+  }, []);
   // Close the inline banner URL editor when connection is (re-)established
   useEffect(() => { if (connected) setShowBannerUrlEditor(false); }, [connected]);
   // Wire the alias-not-found toast into EditorContext (setErrorToast is stable)
@@ -1363,7 +1370,10 @@ export function App() {
             {tab.id === 'apply' && selectedNodes.length > 0 && !(activeTopTab === 'apply' && overflowPanel === null) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
             )}
-            {tab.id === 'ship' && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && !(activeTopTab === 'ship' && overflowPanel === null) && (
+            {tab.id === 'ship' && !(activeTopTab === 'ship' && overflowPanel === null) && pendingPublishCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)] text-white text-[8px] font-bold leading-none" aria-label={`${pendingPublishCount} changes pending sync`}>{pendingPublishCount}</span>
+            )}
+            {tab.id === 'ship' && !(activeTopTab === 'ship' && overflowPanel === null) && pendingPublishCount === 0 && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && (
               <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-figma-bg)] ${gitHasChanges ? 'bg-amber-400' : 'bg-[var(--color-figma-error)]'}`} aria-label={gitHasChanges ? 'Uncommitted changes' : 'Health issues detected'} />
             )}
           </button>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
@@ -192,6 +192,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
     successMessage: 'Style sync applied', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Apply style sync',
     revertSuccessMessage: 'Style sync reverted', revertErrorMessage: 'Failed to revert style sync',
+    autoComputeOnConnect: true,
   });
 
   const git = useGitSync({ serverUrl, connected });
@@ -246,6 +247,17 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
     gitDiffPendingCount, handleOpenPublishAll, runPublishAll, quickSync, quickSyncing,
   } = publishAll;
+
+  // ── Broadcast pending count to Ship tab badge ────────────────────────────
+  // Fires whenever either check completes (or resets). Clears on unmount.
+  useEffect(() => {
+    const varCount = varSync.checked ? varSync.syncCount : 0;
+    const styleCount = styleSync.checked ? styleSync.syncCount : 0;
+    window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
+    };
+  }, [varSync.checked, varSync.syncCount, styleSync.checked, styleSync.syncCount]);
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 

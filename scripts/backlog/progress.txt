@@ -465,3 +465,14 @@
   - When adding a cross-panel "jump + pre-configure" flow, the pattern is: (1) add state for the signal in `useGraphState`, (2) the source panel calls a callback that sets state + navigates, (3) the target panel reads the signal in a `useEffect` and auto-configures on mount. Keep `onClearPendingGroup` as the single cleanup entry point so both pending-group and pending-picker are cleared together.
   - The `overrideSets`/`foundationSets` variables are already computed at the dimension render site in ThemeManager — they can be used directly in the button's onClick without extra computation.
 ---
+
+## 2026-04-05 - Publish panel shows no sync status until user manually clicks Compare
+- Added `autoComputeOnConnect: true` to the `styleSync` config in PublishPanel (variables already had it). Both variable and style checks now run automatically when the panel opens and the server is connected.
+- Added a `useEffect` in PublishPanel that dispatches a `publish-pending-count` CustomEvent whenever checked/syncCount changes, and clears the count to 0 on unmount.
+- In App.tsx, added `pendingPublishCount` state and a `useEffect` listener for the event.
+- Updated the Ship tab badge: when `pendingPublishCount > 0`, shows a numeric count badge (accent-colored) instead of the plain dot. When count is 0 but git changes or health issues exist, falls back to the existing dot badge.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1,L188,L250; `packages/figma-plugin/src/ui/App.tsx` ~L154,L1366
+- **Learnings for future iterations:**
+  - The `CustomEvent` broadcast pattern works cleanly for surfacing ephemeral runtime state (like sync counts) from a panel component up to App.tsx's tab bar — no context refactoring needed. Dispatch on unmount with `{ total: 0 }` to reset the badge when the user navigates away.
+  - `autoComputeOnConnect` was already wired in `useSyncEntity` — just a boolean config option. Adding it to styles required no infrastructure changes.
+---
