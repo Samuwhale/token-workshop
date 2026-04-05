@@ -214,30 +214,38 @@ export function ImportConflictResolver() {
                     ))}
                   </div>
                 </div>
-                {/* Value diff */}
-                <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                    <span className="text-[var(--color-figma-text-secondary)] truncate flex items-center gap-1">
+                {/* Value diff — two-column side-by-side */}
+                <div className="grid grid-cols-2 gap-x-2 mt-0.5 text-[10px] font-mono rounded border border-[var(--color-figma-border)] overflow-hidden">
+                  <div className="flex flex-col gap-0.5 px-1.5 py-1 bg-[var(--color-figma-error)]/5 border-r border-[var(--color-figma-border)] min-w-0">
+                    <span className="text-[9px] font-sans font-medium text-[var(--color-figma-error)] opacity-70 leading-none mb-0.5">Current</span>
+                    <span className="flex items-center gap-1 text-[var(--color-figma-text-secondary)] truncate min-w-0" title={String(existing?.$value ?? '—')}>
                       {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                    <span className={`truncate flex items-center gap-1 ${
+                  <div className={`flex flex-col gap-0.5 px-1.5 py-1 min-w-0 ${
+                    decision === 'reject'
+                      ? 'opacity-50'
+                      : 'bg-[var(--color-figma-success,#16a34a)]/5'
+                  }`}>
+                    <span className={`text-[9px] font-sans font-medium leading-none mb-0.5 ${
                       decision === 'reject'
-                        ? 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
+                        ? 'text-[var(--color-figma-text-tertiary)]'
+                        : 'text-[var(--color-figma-success,#16a34a)] opacity-70'
+                    }`}>Incoming</span>
+                    <span className={`flex items-center gap-1 truncate min-w-0 ${
+                      decision === 'reject'
+                        ? 'text-[var(--color-figma-text-secondary)] line-through'
                         : 'text-[var(--color-figma-text)]'
-                    }`}>
+                    }`} title={String(incoming?.$value ?? '—')}>
                       {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}
                     </span>
                   </div>
-                  {decision === 'merge' && (
-                    <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                      Value updated · description &amp; extensions kept
-                    </div>
-                  )}
                 </div>
+                {decision === 'merge' && (
+                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5 ml-0.5">
+                    Value updated · description &amp; extensions kept
+                  </div>
+                )}
               </div>
             );
           })}

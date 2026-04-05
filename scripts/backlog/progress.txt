@@ -468,3 +468,11 @@
 - **Learnings for future iterations:**
   - When a backlog item says "add batch-X", first check for `bulk-X` — the functionality may exist under a different prefix. In this project, `batch-*` and `bulk-*` were used inconsistently and the rename brings the delete endpoint in line with all other batch routes.
 ---
+
+## 2026-04-05 - Import preview has no side-by-side diff for conflicts
+- Replaced the vertical stacked `−`/`+` diff in `ImportConflictResolver.tsx` with a two-column grid layout showing "Current" (left, red-tinted) and "Incoming" (right, green-tinted) values side-by-side. Column headers are color-coded to match their semantic meaning. When a token is rejected, the "Incoming" column dims and strikes through. The "merge" annotation note moved below the grid. All existing filter, bulk-action, and keyboard shortcut behavior is unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportConflictResolver.tsx` ~L218
+- **Learnings for future iterations:**
+  - The conflict resolver already had both values available (existing + incoming); the fix was purely presentational — grid-cols-2 with tinted column backgrounds is the cleaner pattern vs stacked rows with glyph markers.
+  - Adding `title={String(value)}` on the value spans provides full-value tooltip for truncated entries without extra DOM.
+---

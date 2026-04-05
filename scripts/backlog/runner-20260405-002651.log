@@ -673,3 +673,26 @@ Already up to date.
 
   Merging to main: No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route; clients must loop individual DELETE requests; add POST /api/tokens/:set/batch-delete accepting an array of paths
 Already up to date.
+[main 4557259c] chore(backlog): done – No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route; clients must loop individual DELETE requests; add POST /api/tokens/:set/batch-delete accepting an array of paths
+ 8 files changed, 41 insertions(+), 11 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - No batch delete endpoint on server — tokens.ts supports batch-move, batch-copy, batch-rename, batch-update but has no batch-delete route
+- The functionality already existed as `POST /api/tokens/:set/bulk-delete` (not matching the `batch-*` naming convention). Renamed the route from `bulk-delete` to `batch-delete` in the server and updated all client call sites to use the new name. Also updated the operation log type from `'bulk-delete'` to `'batch-delete'`.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L1013, `packages/figma-plugin/src/ui/hooks/useTokenDelete.ts` ~L137, `packages/figma-plugin/src/ui/hooks/useImportApply.ts` ~L291, `packages/figma-plugin/src/ui/App.tsx` ~L610, ~L629
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #28  ·  22 queued · 0
+0 in-progress · last took 2m42s
+═══════════════════════════════════════════════════════════════
+  → Import preview has no side-by-side diff for conflicts — ImportPanelContext handles conflicts with a per-token cycle-through (skip/overwrite/rename) but never shows the existing token value alongside the incoming value; add a two-column diff view so users can compare current vs imported values before choosing a resolution strategy
+  Worktree: /tmp/backlog-54964-bdjZ24
+  Running agent… (started 02:50:30)
+
+  ✓ done: Import preview has no side-by-side diff for conflicts
+    Replaced vertical stacked ±-marker diff with a two-column grid layout in ImportConflictResolver — "Current" (red-tinted) on the left, "Incoming" (green-tinted) on the right, with color-coded column headers and tooltip on truncated values.
+    11 turns · 153s · $0.45
+
+  Merging to main: Import preview has no side-by-side diff for conflicts
+Already up to date.
