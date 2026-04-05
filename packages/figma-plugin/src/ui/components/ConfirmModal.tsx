@@ -12,6 +12,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   danger?: boolean;
   wide?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
@@ -24,6 +25,7 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   danger = false,
   wide = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -86,7 +88,7 @@ export function ConfirmModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
             className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 ${
               danger
                 ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'

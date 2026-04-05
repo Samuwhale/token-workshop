@@ -49,7 +49,7 @@ interface SavePreviewItem {
 }
 
 type ExportMode = 'platforms' | 'figma-variables';
-type SavePhase = 'idle' | 'preview-loading' | 'preview' | 'saving';
+type SavePhase = 'idle' | 'preview-loading' | 'preview';
 
 interface ExportPreset {
   id: string;
@@ -615,11 +615,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   const handleConfirmSave = async () => {
     if (!connected) return;
-    setSavePhase('saving');
-    setError(null);
 
+    let totalVarsSaved = 0;
     try {
-      let totalVarsSaved = 0;
 
       for (const collection of figmaCollections) {
         const baseSlug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
@@ -715,8 +713,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setSavePreviewItems([]);
       setSlugRenames({});
     } catch (err) {
-      setError(getErrorMessage(err));
-      setSavePhase('idle');
+      // Let the error propagate so ConfirmModal can display it inline
+      throw err;
     }
   };
 
@@ -1823,99 +1821,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   </button>
                 </div>
 
-                {/* Save-to-server preview */}
-                {savePhase === 'preview' && (() => {
-                  const effectiveItems = savePreviewItems.map(item => ({
-                    ...item,
-                    effectiveSlug: slugRenames[item.itemKey] ?? item.slug,
-                  }));
-                  const slugCounts = new Map<string, number>();
-                  for (const item of effectiveItems) {
-                    slugCounts.set(item.effectiveSlug, (slugCounts.get(item.effectiveSlug) ?? 0) + 1);
-                  }
-                  return (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                          Save Preview
-                        </div>
-                        <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                          {savePreviewItems.filter(i => i.action === 'create').length} new &middot;{' '}
-                          {savePreviewItems.filter(i => i.action === 'overwrite').length} overwrite
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {effectiveItems.map(item => {
-                          const isConflict = (slugCounts.get(item.effectiveSlug) ?? 0) > 1;
-                          return (
-                            <div
-                              key={item.itemKey}
-                              className={`flex items-center gap-2 px-2.5 py-2 rounded-md border ${isConflict ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5' : 'border-[var(--color-figma-border)]'}`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
-                                    {item.collectionName}
-                                  </span>
-                                  {item.modeName && (
-                                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] shrink-0">
-                                      {item.modeName}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                  </svg>
-                                  {isConflict ? (
-                                    <input
-                                      type="text"
-                                      value={item.effectiveSlug}
-                                      onChange={e => {
-                                        const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
-                                        setSlugRenames(prev => ({ ...prev, [item.itemKey]: val }));
-                                      }}
-                                      className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors"
-                                      spellCheck={false}
-                                      aria-label={`Set name for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
-                                    />
-                                  ) : (
-                                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
-                                      {item.effectiveSlug}
-                                    </span>
-                                  )}
-                                </div>
-                                {isConflict && (
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)] shrink-0" aria-hidden="true">
-                                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                                    </svg>
-                                    <span className="text-[9px] text-[var(--color-figma-error)]">Slug conflict — rename to continue</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                  {item.varCount} var{item.varCount !== 1 ? 's' : ''}
-                                </span>
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                                  item.action === 'overwrite'
-                                    ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
-                                    : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                                }`}>
-                                  {item.action === 'overwrite' ? 'Overwrite' : 'Create'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
                 {/* Collection list */}
-                {savePhase !== 'preview' && <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5">
                   {figmaCollections.map(collection => (
                     <div key={collection.name} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
                       <button
@@ -2051,7 +1958,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       )}
                     </div>
                   ))}
-                </div>}
+                </div>
               </>
             )}
           </>
@@ -2244,7 +2151,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             )}
           </button>
         )}
-        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase !== 'preview' && savePhase !== 'saving' && (() => {
+        {mode === 'figma-variables' && figmaCollections.length > 0 && (() => {
           const allModes = Array.from(new Set(figmaCollections.flatMap(c => c.modes)));
           const hasMultiModeCols = figmaCollections.some(c => c.modes.length > 1);
           return (
@@ -2322,39 +2229,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             </>
           );
         })()}
-        {mode === 'figma-variables' && figmaCollections.length > 0 && savePhase === 'preview' && (() => {
-          const effectiveSlugs = savePreviewItems.map(item => slugRenames[item.itemKey] ?? item.slug);
-          const slugCounts = new Map<string, number>();
-          for (const s of effectiveSlugs) slugCounts.set(s, (slugCounts.get(s) ?? 0) + 1);
-          const hasConflicts = [...slugCounts.values()].some(c => c > 1);
-          return (
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => { setSavePhase('idle'); setSavePreviewItems([]); setSlugRenames({}); }}
-                className="flex-1 px-3 py-2 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmSave}
-                disabled={hasConflicts}
-                className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-                title={hasConflicts ? 'Resolve slug conflicts before saving' : 'Confirm and save all collections to the token server'}
-              >
-                {hasConflicts ? 'Resolve conflicts first' : 'Confirm & Save'}
-              </button>
-            </div>
-          );
-        })()}
-        {mode === 'figma-variables' && savePhase === 'saving' && (
-          <button
-            disabled
-            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium opacity-70 flex items-center justify-center gap-1.5"
-          >
-            <Spinner />
-            Saving…
-          </button>
-        )}
       </div>
     </div>
 
@@ -2368,6 +2242,105 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         onCancel={() => setPendingDeletePresetId(null)}
       />
     )}
+    {savePhase === 'preview' && (() => {
+      const effectiveItems = savePreviewItems.map(item => ({
+        ...item,
+        effectiveSlug: slugRenames[item.itemKey] ?? item.slug,
+      }));
+      const slugCounts = new Map<string, number>();
+      for (const item of effectiveItems) {
+        slugCounts.set(item.effectiveSlug, (slugCounts.get(item.effectiveSlug) ?? 0) + 1);
+      }
+      const hasConflicts = [...slugCounts.values()].some(c => c > 1);
+      return (
+        <ConfirmModal
+          title="Save to Token Server"
+          confirmLabel={hasConflicts ? 'Resolve conflicts first' : 'Confirm & Save'}
+          confirmDisabled={hasConflicts}
+          wide
+          onConfirm={handleConfirmSave}
+          onCancel={() => { setSavePhase('idle'); setSavePreviewItems([]); setSlugRenames({}); }}
+        >
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                Preview
+              </span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                {savePreviewItems.filter(i => i.action === 'create').length} new &middot;{' '}
+                {savePreviewItems.filter(i => i.action === 'overwrite').length} overwrite
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto">
+              {effectiveItems.map(item => {
+                const isConflict = (slugCounts.get(item.effectiveSlug) ?? 0) > 1;
+                return (
+                  <div
+                    key={item.itemKey}
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-md border ${isConflict ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5' : 'border-[var(--color-figma-border)]'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-[var(--color-figma-text)] truncate font-medium">
+                          {item.collectionName}
+                        </span>
+                        {item.modeName && (
+                          <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] shrink-0">
+                            {item.modeName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                        {isConflict ? (
+                          <input
+                            type="text"
+                            value={item.effectiveSlug}
+                            onChange={e => {
+                              const val = e.target.value.replace(/[^a-zA-Z0-9_/-]/g, '-').toLowerCase();
+                              setSlugRenames(prev => ({ ...prev, [item.itemKey]: val }));
+                            }}
+                            className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-error)]/60 bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors"
+                            spellCheck={false}
+                            aria-label={`Set name for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                          />
+                        ) : (
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                            {item.effectiveSlug}
+                          </span>
+                        )}
+                      </div>
+                      {isConflict && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)] shrink-0" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
+                          <span className="text-[9px] text-[var(--color-figma-error)]">Slug conflict — rename to continue</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                        {item.varCount} var{item.varCount !== 1 ? 's' : ''}
+                      </span>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                        item.action === 'overwrite'
+                          ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
+                          : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                      }`}>
+                        {item.action === 'overwrite' ? 'Overwrite' : 'Create'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </ConfirmModal>
+      );
+    })()}
     </>
   );
 }

@@ -611,3 +611,12 @@
   - When adding a modal overlay to a component whose `return` has a single root element, wrap the return in `<>...</>` so the modal can be a sibling. Do NOT place it outside the JSX tree.
   - IIFE patterns `{(() => { ... })()}` work inside JSX but are unnecessary complexity — prefer a memoized variable or just evaluate the expression inline with `&&`.
 ---
+
+## 2026-04-05 - ExportPanel save-to-server preview renders inline instead of as a modal
+- Converted the inline save preview (`savePhase === 'preview'`) from an in-panel block into a proper ConfirmModal with focus trap, Escape-to-cancel, and backdrop dismiss. Added `confirmDisabled?: boolean` prop to ConfirmModal to support disabling the confirm button when slug conflicts exist. Removed the `'saving'` SavePhase variant (ConfirmModal's built-in `busy` spinner state now handles this). Removed the inline preview from inside the scrollable content area and the inline Cancel/Confirm/Saving buttons from the footer. The `handleConfirmSave` now lets errors propagate (ConfirmModal catches and displays them inline). The underlying panel content remains visible behind the modal backdrop, consistent with all other ConfirmModal usages.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L7,L20,L88; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L52,L616,L1824,L2154,L2232
+- **Learnings for future iterations:**
+  - When converting inline confirm flows to ConfirmModal, the `onConfirm` async callback should let errors propagate (throw) rather than catching them internally — ConfirmModal already has its own error display and busy state management.
+  - The `confirmDisabled` prop pattern is useful whenever the modal's confirm action depends on user-correctable validation state (e.g., conflict resolution). Add it as an optional prop rather than special-casing in callers.
+  - Removing a `'saving'` phase enum value is safe when ConfirmModal's `busy` state replaces it — the modal shows a spinner automatically during async `onConfirm` execution.
+---
