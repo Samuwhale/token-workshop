@@ -422,3 +422,17 @@
   - Each store needing serialization should own a `readonly lock = new TokenLock()` instance. The route plugin destructures `const { withLock } = fastify.resolverLock` at the top of `resolverRoutes`, matching the pattern of tokenLock in tokens/sets/generators routes.
   - The `from-themes` route does pre-flight I/O (reading `$themes.json`) outside the lock and only acquires the lock for the actual `create` + `operationLog.record()` — this is correct: the pre-flight reads are idempotent and the lock only needs to protect the read-modify-write of the resolver store state.
 ---
+
+## 2026-04-05 - Batch editor has no preview of which tokens will be affected before applying
+- Added per-token before/after preview for the three operations that lacked them:
+  1. **Opacity** (was "Applies to N color tokens — M skipped"): now shows color swatches (before → after) for each affected token, with expand/collapse for large selections
+  2. **Set value** (was "Will set $value on N tokens"): now shows each token's current value → new parsed value per row
+  3. **Set alias** (was "Will set {ref} on N tokens"): now shows each token's current value → alias reference per row
+- The existing numeric transform (scale) and color adjust previews were already per-token; find/replace, alias-replace, and move-to-set already had previews too — only these three were missing
+- Added three `useMemo` computations (`opacityPreview`, `setValuePreview`, `aliasPreview`) inserted after `aliasFindChanges` to avoid TDZ with `opacityActive`, `aliasActive`, `aliasConflict`, `setValueActive`, `numericTransformActive`, `colorAdjustActive`
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L415, ~L968, ~L1185, ~L1255
+- **Learnings for future iterations:**
+  - BatchEditor already had a consistent preview pattern (useMemo dry-run → expandable token list) for some operations; the missing three just needed the same treatment
+  - Opacity and color-adjust previews both show color swatches using `backgroundColor: String(value)` — this approach works because the values are plain hex strings
+  - TDZ safety: new useMemos referencing `*Active` flags (plain consts at lines 328–347) must come AFTER those declarations; inserting after the last `useMemo` in the preview block ensures safety
+---

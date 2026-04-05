@@ -413,6 +413,43 @@ export function BatchEditor({
       .filter(({ from, to }) => from !== to);
   }, [aliasFindText, aliasReplaceText, selectedEntries]);
 
+  // Dry-run: compute opacity preview for color tokens
+  const opacityPreview = useMemo(() => {
+    if (!opacityActive) return null;
+    const pct = parseFloat(opacityPct);
+    if (isNaN(pct)) return null;
+    return selectedEntries
+      .filter(({ entry }) => entry.$type === 'color')
+      .map(({ path, entry }) => {
+        const result = applyColorOpacity(entry.$value, pct);
+        if (result === null) return null;
+        return { path, from: entry.$value, to: result };
+      })
+      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
+  }, [opacityActive, opacityPct, selectedEntries]);
+
+  // Dry-run: compute set-value preview (current value → new parsed value per token)
+  const setValuePreview = useMemo(() => {
+    if (!setValueActive || aliasActive || opacityActive || numericTransformActive || colorAdjustActive) return null;
+    const raw = setValueInput.trim();
+    if (!raw) return null;
+    let parsed: unknown = raw;
+    if (setValueMode === 'json') {
+      try { parsed = JSON.parse(raw); } catch { /* keep as string */ }
+    } else {
+      if (raw === 'true') parsed = true;
+      else if (raw === 'false') parsed = false;
+      else if (!isNaN(Number(raw))) parsed = Number(raw);
+    }
+    return selectedEntries.map(({ path, entry }) => ({ path, from: entry.$value, to: parsed }));
+  }, [setValueActive, aliasActive, opacityActive, numericTransformActive, colorAdjustActive, setValueInput, setValueMode, selectedEntries]);
+
+  // Dry-run: compute alias preview (current value → alias ref per token)
+  const aliasPreview = useMemo(() => {
+    if (!aliasActive || aliasConflict) return null;
+    return selectedEntries.map(({ path, entry }) => ({ path, from: entry.$value, to: aliasRef }));
+  }, [aliasActive, aliasConflict, aliasRef, selectedEntries]);
+
   // Find/replace: count tokens whose paths would change
   const renamePreview = useMemo(() => {
     if (!findText) return 0;
@@ -925,6 +962,32 @@ export function BatchEditor({
               <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
             )}
           </div>
+          {opacityPreview && opacityPreview.length > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {(expandedPreviews['opacity'] ? opacityPreview : opacityPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
+                <div key={path} className="flex items-center gap-1.5 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={path}>{path.split('.').pop()}</span>
+                  <span
+                    className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: String(from) }}
+                    title={String(from)}
+                  />
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span
+                    className="w-3 h-3 rounded-sm shrink-0 border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: String(to) }}
+                    title={String(to)}
+                  />
+                  <span className="text-[var(--color-figma-text)] font-mono font-medium shrink-0">{String(to)}</span>
+                </div>
+              ))}
+              {opacityPreview.length > PREVIEW_MAX && (
+                <button type="button" onClick={() => togglePreview('opacity')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  {expandedPreviews['opacity'] ? 'Show less' : `and ${opacityPreview.length - PREVIEW_MAX} more…`}
+                </button>
+              )}
+            </div>
+          )}
           {!allColors && (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
@@ -1118,15 +1181,21 @@ export function BatchEditor({
           Conflicts with other value operations — clear the conflicting field to apply
         </div>
       )}
-      {setValueActive && !aliasActive && !opacityActive && !numericTransformActive && !colorAdjustActive && (
-        <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-tertiary)]">
-          Will set $value on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
-          {setValueMode === 'literal' && setValueInput.trim() !== '' && (() => {
-            const raw = setValueInput.trim();
-            if (raw === 'true' || raw === 'false') return ' as boolean';
-            if (raw !== '' && !isNaN(Number(raw))) return ' as number';
-            return ' as string';
-          })()}
+      {setValuePreview && setValuePreview.length > 0 && (
+        <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+          {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
+            <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+              <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
+              <span className="text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]" title={String(from)}>{formatBatchValue(from)}</span>
+              <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+              <span className="text-[var(--color-figma-text)] shrink-0 font-medium font-mono">{formatBatchValue(to)}</span>
+            </div>
+          ))}
+          {setValuePreview.length > PREVIEW_MAX && (
+            <button type="button" onClick={() => togglePreview('setValue')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+              {expandedPreviews['setValue'] ? 'Show less' : `and ${setValuePreview.length - PREVIEW_MAX} more…`}
+            </button>
+          )}
         </div>
       )}
 
@@ -1191,6 +1260,22 @@ export function BatchEditor({
           aliasConflict ? (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)] leading-snug">
               Alias cannot be combined with value transforms — disable one to apply
+            </div>
+          ) : aliasPreview && aliasPreview.length > 0 ? (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {(expandedPreviews['alias'] ? aliasPreview : aliasPreview.slice(0, PREVIEW_MAX)).map(({ path, from }) => (
+                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]" title={String(from)}>{formatBatchValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium font-mono">{aliasRef}</span>
+                </div>
+              ))}
+              {aliasPreview.length > PREVIEW_MAX && (
+                <button type="button" onClick={() => togglePreview('alias')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  {expandedPreviews['alias'] ? 'Show less' : `and ${aliasPreview.length - PREVIEW_MAX} more…`}
+                </button>
+              )}
             </div>
           ) : (
             <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">

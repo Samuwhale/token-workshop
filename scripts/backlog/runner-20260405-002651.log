@@ -566,3 +566,26 @@ Already up to date.
 
   Merging to main: Resolver mutation routes bypass the server-wide withLock() mutex
 Already up to date.
+[main 80f7335d] chore(backlog): done – Resolver mutation routes bypass the server-wide withLock() mutex
+ 7 files changed, 108 insertions(+), 54 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - Resolver mutation routes bypass server-wide withLock() mutex
+- Added `readonly lock = new TokenLock()` to `ResolverStore` (imported `TokenLock` from `./token-lock.js`)
+- Decorated fastify with `resolverLock: TokenLock` (mapped to `resolverStore.lock`) in `index.ts`
+- Added `resolverLock: TokenLock` to the `FastifyInstance` type augmentation in `index.ts`
+
+═══════════════════════════════════════════════════════════════
+  #24  ·  14 queued · 0
+0 in-progress · last took 2m36s
+═══════════════════════════════════════════════════════════════
+  → Batch editor has no preview of which tokens will be affected before applying — BatchEditor.tsx applies transforms (numeric, color, find-replace) to the selection and only shows "N tokens skipped" after the fact; add a pre-apply preview showing each token's current value and proposed new value so users can verify before committing
+  Worktree: /tmp/backlog-54964-Q3Pzj7
+  Running agent… (started 02:28:12)
+
+  ✓ done: Batch editor has no preview of which tokens will be affected before applying
+    Added per-token before/after previews for opacity (color swatches), set value (current→new), and set alias (current→alias ref) — the three operations that previously only showed a summary count
+    17 turns · 354s · $1.01
+
+  Merging to main: Batch editor has no preview of which tokens will be affected before applying
+Already up to date.
