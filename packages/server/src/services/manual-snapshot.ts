@@ -321,9 +321,11 @@ export class ManualSnapshotStore {
       if (retries >= MAX_RECOVERY_RETRIES) {
         console.error(
           `[ManualSnapshotStore] Set "${setName}" has failed recovery ${retries} time(s) — ` +
-          `skipping (quarantined). Manual intervention required.`
+          `quarantining. Manual intervention required.`
         );
-        // Count as resolved so we don't block journal cleanup forever
+        // Mark as completed so this set is never retried on subsequent restarts
+        journal.completedSets.push(setName);
+        await this.writeRestoreJournal(journal);
         continue;
       }
 

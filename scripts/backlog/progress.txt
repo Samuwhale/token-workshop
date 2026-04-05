@@ -564,3 +564,10 @@
   - The server-side `validateGeneratorConfig` function is the right place to catch config errors early (returns `{ error }` for 400 responses). After steps are validated (non-empty, valid shape, no duplicates), a `baseStep` membership check fits naturally there.
   - The generator engine should be the last line of defence — throwing in the engine catches cases where generators bypass the HTTP validation path (e.g., direct function calls in tests or scripts).
 ---
+
+## 2026-04-05 - manual-snapshot.ts quarantined sets never added to completedSets
+- Fixed: when a set exceeds MAX_RECOVERY_RETRIES during crash recovery, it is now added to `journal.completedSets` and the journal is written to disk before the `continue`. This prevents the quarantined set from re-appearing in `pending` on every subsequent server restart.
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L321
+- **Learnings for future iterations:**
+  - When a loop uses `continue` to skip an item that was supposed to be "done", double-check that it's added to the tracking list (completedSets, etc.) before skipping — otherwise the skip is ephemeral and the item resurfaces on the next run.
+---

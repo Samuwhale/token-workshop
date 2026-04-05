@@ -131,3 +131,26 @@ Already up to date.
 
   Merging to main: generator-engine.ts baseStep silent default
 Already up to date.
+[main 2b08b282] chore(backlog): done – generator-engine.ts baseStep silent default
+ 6 files changed, 44 insertions(+), 4 deletions(-)
+  ✓ Merged and marked done
+
+## 2026-04-05 - generator-engine.ts baseStep silent default
+- Added a descriptive `throw new Error(...)` in `runTypeScaleGenerator` when `baseStep` doesn't match any step name, replacing the silent `?? 0` fallback. Also added server-side validation in the `typeScale` config branch of `validateGeneratorConfig` to reject misconfigured generators at creation/edit time (HTTP 400) rather than silently producing wrong output.
+- Files changed: `packages/core/src/generator-engine.ts` ~L162; `packages/server/src/routes/generators.ts` ~L195
+- **Learnings for future iterations:**
+
+═══════════════════════════════════════════════════════════════
+  #6  ·  17 queued · 0
+0 in-progress · last took 1m9s
+═══════════════════════════════════════════════════════════════
+  → `manual-snapshot.ts:321` quarantined sets (those exceeding MAX_RECOVERY_RETRIES) are skipped via `continue` but never added to `journal.completedSets` — on every subsequent server restart, recovery re-attempts the quarantined set, hits the retry limit again, and logs the same error forever; the set should be added to completedSets (or a separate quarantine list) so the journal can eventually be cleaned up
+  Worktree: /tmp/backlog-50286-Tl7LLd
+  Running agent… (started 23:06:57)
+
+  ✓ done: manual-snapshot.ts quarantined sets never added to completedSets
+    Added journal.completedSets.push(setName) + writeRestoreJournal() before the continue in the quarantine branch so sets exceeding MAX_RECOVERY_RETRIES are persisted as done and never retried on restart
+    9 turns · 54s · $0.24
+
+  Merging to main: manual-snapshot.ts quarantined sets never added to completedSets
+Already up to date.
