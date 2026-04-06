@@ -83,22 +83,19 @@ export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale',
 // Types that work either way
 export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
-// Keep for backward compat in save validation — types that need source OR inline value
-export const SOURCE_REQUIRED_TYPES = VALUE_REQUIRED_TYPES;
-
 /** Human-readable labels for every generator type. Canonical source of truth. */
 export const TYPE_LABELS: Record<GeneratorType, string> = {
-  colorRamp: 'Color Ramp',
-  typeScale: 'Type Scale',
+  colorRamp: 'Color Palette',
+  typeScale: 'Font Size Scale',
   spacingScale: 'Spacing Scale',
   opacityScale: 'Opacity Scale',
   borderRadiusScale: 'Border Radius',
   zIndexScale: 'Z-Index',
   shadowScale: 'Shadow Scale',
-  customScale: 'Custom',
-  accessibleColorPair: 'Accessible Pair',
-  darkModeInversion: 'Dark Mode',
-  contrastCheck: 'Contrast Check',
+  customScale: 'Custom Formula',
+  accessibleColorPair: 'Contrast-Safe Pair',
+  darkModeInversion: 'Dark Mode Variant',
+  contrastCheck: 'Contrast Checker',
 };
 
 /** Primary generator types shown by default */
@@ -119,16 +116,16 @@ export const ALL_TYPES: GeneratorType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
 
 /** One-line descriptions for each generator type, written for designers. */
 export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
-  colorRamp: 'Generate a full color scale from a single base color',
+  colorRamp: 'Generate a full color palette from a single base color',
   typeScale: 'Create a harmonious font size progression using a ratio',
   spacingScale: 'Build consistent spacing values from a base unit',
   opacityScale: 'Define a set of opacity levels for layering effects',
   borderRadiusScale: 'Generate rounded corner values from small to large',
   zIndexScale: 'Set up stacking order values for layered components',
   shadowScale: 'Create elevation levels with progressive shadow depth',
-  customScale: 'Write a formula to generate any numeric scale',
-  accessibleColorPair: 'Generate foreground/background pairs that meet WCAG contrast',
-  darkModeInversion: 'Invert a color for dark mode with perceptual accuracy',
-  contrastCheck: 'Verify WCAG contrast ratios for a set of colors',
+  customScale: 'Write a custom formula to generate any numeric scale',
+  accessibleColorPair: 'Generate foreground + background colors that meet WCAG contrast',
+  darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
+  contrastCheck: 'Check WCAG contrast ratios for a set of color pairs',
 };
 

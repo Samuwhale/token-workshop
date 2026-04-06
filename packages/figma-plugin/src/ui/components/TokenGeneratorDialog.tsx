@@ -198,9 +198,7 @@ export function TokenGeneratorDialog({
             hasSource={dialog.hasSource}
             hasValue={dialog.hasValue}
             isMultiBrand={dialog.isMultiBrand}
-            editableSourcePath={dialog.editableSourcePath}
             sourceTokenPath={sourceTokenPath}
-            sourceTokenType={sourceTokenType}
             sourceTokenValue={sourceTokenValue}
             inlineValue={dialog.inlineValue}
             previewTokens={dialog.previewTokens}

@@ -2,7 +2,7 @@
  * Step 2 — What: The creative workspace for configuring a generator.
  * Two-column layout: type + config (left), live preview (right).
  */
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type {
   GeneratorType,
   GeneratorConfig,
@@ -33,14 +33,13 @@ import { CustomScaleConfigEditor } from '../generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview } from '../generators/ContrastCheckGenerator';
 import { AccessiblePairConfigEditor } from '../generators/AccessiblePairGenerator';
 import { DarkModeInversionConfigEditor } from '../generators/DarkModeInversionGenerator';
-import { GenericPreview, CompactColorInput, CompactDimensionInput } from '../generators/generatorShared';
+import { GenericPreview } from '../generators/generatorShared';
 import { AppliedPreview } from '../generators/AppliedPreview';
 import { TYPE_LABELS, TYPE_DESCRIPTIONS, PRIMARY_TYPES, ADVANCED_TYPES } from '../generators/generatorUtils';
 import { TypeThumbnail } from '../generators/TypeThumbnail';
-import { AliasAutocomplete } from '../AliasAutocomplete';
+import { UnifiedSourceInput } from '../UnifiedSourceInput';
 import { Spinner } from '../Spinner';
 import { ValueDiff } from '../ValueDiff';
-import { swatchBgColor } from '../../shared/colorUtils';
 import { Collapsible } from '../Collapsible';
 
 // ---------------------------------------------------------------------------
@@ -57,9 +56,7 @@ export interface StepWhatProps {
   hasValue: boolean;
   isMultiBrand: boolean;
   // Source binding
-  editableSourcePath: string;
   sourceTokenPath?: string;
-  sourceTokenType?: string;
   sourceTokenValue?: any;
   inlineValue: unknown;
   // Preview
@@ -157,9 +154,7 @@ export function StepWhat({
   hasSource,
   hasValue,
   isMultiBrand,
-  editableSourcePath,
   sourceTokenPath,
-  sourceTokenType,
   sourceTokenValue,
   inlineValue,
   previewTokens,
@@ -186,15 +181,12 @@ export function StepWhat({
   onClearAllOverrides,
 }: StepWhatProps) {
 
-  const [showSourceAutocomplete, setShowSourceAutocomplete] = useState(false);
-  const sourcePathInputRef = useRef<HTMLInputElement>(null);
-
   const overwritePaths = useMemo(
     () => new Set(overwrittenEntries.map(e => e.path)),
     [overwrittenEntries],
   );
 
-  // Effective source value for config editors
+  // Effective source value for config editors (still needed by ColorRamp, TypeScale, etc.)
   const effectiveSourceHex = typeof sourceTokenValue === 'string' ? sourceTokenValue : typeof inlineValue === 'string' ? inlineValue : undefined;
   const effectiveSourceDim = (() => {
     if (typeof sourceTokenValue === 'object' && sourceTokenValue !== null && 'value' in sourceTokenValue) return Number(sourceTokenValue.value);
@@ -205,46 +197,6 @@ export function StepWhat({
 
   const typeExpectsColor = selectedType === 'colorRamp' || selectedType === 'accessibleColorPair' || selectedType === 'darkModeInversion';
   const typeExpectsDimension = selectedType === 'typeScale' || selectedType === 'spacingScale' || selectedType === 'borderRadiusScale';
-
-  const sourcePreviewAvailable = Boolean(sourceTokenPath && editableSourcePath === sourceTokenPath && sourceTokenValue != null);
-  const sourcePreviewIsColor = sourcePreviewAvailable && (sourceTokenType === 'color') && typeof effectiveSourceHex === 'string';
-  const sourcePreviewIsDimension = sourcePreviewAvailable && (sourceTokenType === 'dimension' || sourceTokenType === 'fontSize') && effectiveSourceDim !== undefined;
-  const sourceDimUnit = typeof sourceTokenValue === 'object' && sourceTokenValue !== null && 'unit' in sourceTokenValue
-    ? String((sourceTokenValue as { unit: string }).unit)
-    : 'px';
-
-  // Matching tokens for inline value
-  const matchingTokens = useMemo(() => {
-    if (!allTokensFlat || !inlineValue) return [] as Array<{ path: string; value: string }>;
-    if (typeExpectsColor && typeof inlineValue === 'string') {
-      const normHex = inlineValue.toLowerCase().slice(0, 7);
-      if (!/^#[0-9a-f]{6}$/.test(normHex)) return [] as Array<{ path: string; value: string }>;
-      return Object.entries(allTokensFlat)
-        .filter(([, e]) => e.$type === 'color' && typeof e.$value === 'string' && (e.$value as string).toLowerCase().slice(0, 7) === normHex)
-        .slice(0, 5)
-        .map(([path, e]) => ({ path, value: e.$value as string }));
-    }
-    if (typeExpectsDimension && typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>)) {
-      const { value: numVal, unit } = inlineValue as { value: number; unit: string };
-      return Object.entries(allTokensFlat)
-        .filter(([, e]) => {
-          if (e.$type !== 'dimension') return false;
-          const v = e.$value;
-          if (typeof v === 'string') {
-            const m = (v as string).match(/^([0-9.]+)(px|rem|em|%)?$/);
-            if (m) return parseFloat(m[1]) === numVal && (m[2] ?? 'px') === unit;
-          }
-          if (typeof v === 'object' && v !== null && 'value' in (v as Record<string, unknown>)) {
-            const dv = v as { value: number; unit?: string };
-            return dv.value === numVal && (dv.unit ?? 'px') === unit;
-          }
-          return false;
-        })
-        .slice(0, 5)
-        .map(([path, e]) => ({ path, value: String(e.$value) }));
-    }
-    return [] as Array<{ path: string; value: string }>;
-  }, [allTokensFlat, inlineValue, typeExpectsColor, typeExpectsDimension]);
 
   const [showAdvancedTypes, setShowAdvancedTypes] = useState(() => ADVANCED_TYPES.includes(selectedType));
 
@@ -300,147 +252,19 @@ export function StepWhat({
             </Collapsible>
           </div>
 
-          {/* Source token binding */}
+          {/* Base value — unified source token / inline value input */}
           {typeNeedsValue && (
-            <div className="border border-[var(--color-figma-accent)]/40 rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Source token</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium">Recommended</span>
-              </div>
-              <div className="relative">
-                <div className="flex items-center gap-1.5">
-                  <input
-                    ref={sourcePathInputRef}
-                    type="text"
-                    value={editableSourcePath}
-                    onChange={e => {
-                      onSourcePathChange(e.target.value);
-                      setShowSourceAutocomplete(true);
-                    }}
-                    onFocus={() => setShowSourceAutocomplete(true)}
-                    onBlur={() => setTimeout(() => setShowSourceAutocomplete(false), 150)}
-                    placeholder={allTokensFlat ? 'Search or type a token path...' : 'e.g. colors.brand.primary'}
-                    className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
-                  />
-                  {editableSourcePath && (
-                    <button
-                      onClick={() => { onSourcePathChange(''); setShowSourceAutocomplete(false); }}
-                      aria-label="Clear source token"
-                      className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                    </button>
-                  )}
-                </div>
-                {showSourceAutocomplete && allTokensFlat && (
-                  <AliasAutocomplete
-                    query={editableSourcePath}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    filterType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : undefined}
-                    onSelect={path => {
-                      onSourcePathChange(path);
-                      setShowSourceAutocomplete(false);
-                    }}
-                    onClose={() => setShowSourceAutocomplete(false)}
-                  />
-                )}
-              </div>
-              {/* Resolved value */}
-              {editableSourcePath && sourcePreviewAvailable && (sourcePreviewIsColor || sourcePreviewIsDimension) && (
-                <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-                  {sourcePreviewIsColor && effectiveSourceHex && (
-                    <div
-                      className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                      style={{ backgroundColor: swatchBgColor(effectiveSourceHex) }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
-                    {sourcePreviewIsColor && effectiveSourceHex
-                      ? effectiveSourceHex
-                      : sourcePreviewIsDimension && effectiveSourceDim !== undefined
-                        ? `${effectiveSourceDim}${sourceDimUnit}`
-                        : null}
-                  </span>
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-auto">resolved</span>
-                </div>
-              )}
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1 block">
-                {editableSourcePath
-                  ? isMultiBrand
-                    ? 'Bound — used as a preview reference. Each brand\'s value comes from the table in Step 1.'
-                    : 'Bound to a token — changes to the source token automatically update the generator.'
-                  : isMultiBrand
-                    ? 'Optional in multi-brand mode — bind to a token for preview sampling.'
-                    : 'Bind to a token so the generator stays connected to your token graph.'}
-              </span>
-            </div>
-          )}
-
-          {/* Inline base value — when no source token bound */}
-          {!hasSource && typeNeedsValue && (
-            <div className="border border-dashed border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)] opacity-90">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Manual base value</span>
-                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">fallback</span>
-              </div>
-              {typeExpectsColor && (
-                <CompactColorInput
-                  value={typeof inlineValue === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(inlineValue) ? inlineValue : '#808080'}
-                  onChange={hex => onInlineValueChange(hex)}
-                  aria-label="Base color"
-                />
-              )}
-              {typeExpectsDimension && (() => {
-                const dimValue = typeof inlineValue === 'object' && inlineValue !== null && 'value' in (inlineValue as Record<string, unknown>)
-                  ? (inlineValue as { value: number; unit?: string })
-                  : null;
-                const currentUnit = dimValue?.unit ?? 'px';
-                return (
-                  <CompactDimensionInput
-                    value={dimValue?.value}
-                    unit={currentUnit}
-                    placeholder={selectedType === 'typeScale' ? '16' : selectedType === 'spacingScale' ? '4' : '8'}
-                    onValueChange={num => {
-                      if (num === undefined) { onInlineValueChange(undefined); return; }
-                      onInlineValueChange({ value: num, unit: currentUnit });
-                    }}
-                    onUnitChange={u => onInlineValueChange({ value: dimValue?.value ?? 0, unit: u })}
-                  />
-                );
-              })()}
-              {/* Matching token suggestions */}
-              {matchingTokens.length > 0 && (
-                <div className="mt-2 border-t border-[var(--color-figma-border)] pt-2">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] block mb-1">
-                    Tokens with this value — bind one to connect to the token graph:
-                  </span>
-                  <div className="flex flex-col gap-0.5">
-                    {matchingTokens.map(({ path, value: tv }) => (
-                      <button
-                        key={path}
-                        onClick={() => onSourcePathChange(path)}
-                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--color-figma-accent)]/10 text-left group"
-                      >
-                        {typeExpectsColor && typeof tv === 'string' && (
-                          <div
-                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                            style={{ backgroundColor: swatchBgColor(tv) }}
-                            aria-hidden="true"
-                          />
-                        )}
-                        <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
-                        <span className="text-[9px] text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">Use token</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <p className="mt-2 text-[9px] text-[var(--color-figma-text-secondary)]">
-                This value is stored inline and is not referenceable as a token. Binding a source token above is preferred.
-              </p>
-            </div>
+            <UnifiedSourceInput
+              expectedType={typeExpectsColor ? 'color' : typeExpectsDimension ? 'dimension' : null}
+              sourceTokenPath={sourceTokenPath}
+              sourceTokenValue={sourceTokenValue}
+              inlineValue={inlineValue}
+              isMultiBrand={isMultiBrand}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+              onSourcePathChange={onSourcePathChange}
+              onInlineValueChange={onInlineValueChange}
+            />
           )}
 
           {/* Config editor */}

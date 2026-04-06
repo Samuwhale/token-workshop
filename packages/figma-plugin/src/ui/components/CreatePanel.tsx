@@ -3,7 +3,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { flattenTokenGroup, COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
 import { FIGMA_SCOPES } from './MetadataEditor';
-import { AliasAutocomplete } from './AliasAutocomplete';
+import { TokenPickerDropdown } from './TokenPicker';
 import { parseInlineValue, valuePlaceholderForType } from './tokenListHelpers';
 import { getDefaultValue } from './tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
@@ -250,6 +250,10 @@ export interface CreatePanelProps {
   onRefresh: () => void;
   /** Close the panel */
   onClose: () => void;
+  /** Whether there are Figma canvas layers currently selected */
+  hasSelection?: boolean;
+  /** Called when the active tab changes, so parent can resize */
+  onTabChange?: (tab: CreateTab) => void;
   /** Available fonts for typography editor */
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
@@ -259,10 +263,39 @@ export interface CreatePanelProps {
 // Token type categories (for the type picker)
 // ---------------------------------------------------------------------------
 
+/** Designer-friendly labels for token types. DTCG name shown as subtitle. */
+const TYPE_FRIENDLY_LABELS: Record<string, string> = {
+  color: 'Color',
+  dimension: 'Size / Spacing',
+  number: 'Number',
+  string: 'Text',
+  boolean: 'Boolean',
+  typography: 'Typography',
+  shadow: 'Shadow',
+  border: 'Border',
+  gradient: 'Gradient',
+  transition: 'Transition',
+  duration: 'Duration',
+  fontFamily: 'Font Family',
+  fontWeight: 'Font Weight',
+  fontStyle: 'Font Style',
+  letterSpacing: 'Letter Spacing',
+  lineHeight: 'Line Height',
+  cubicBezier: 'Easing',
+  percentage: 'Percentage',
+  strokeStyle: 'Stroke Style',
+  textDecoration: 'Text Decoration',
+  textTransform: 'Text Case',
+  link: 'Link',
+  asset: 'Asset',
+  custom: 'Custom',
+  composition: 'Composition',
+};
+
 const TYPE_CATEGORIES = [
-  { group: 'Core', types: ['color', 'dimension', 'number', 'string', 'boolean'] },
-  { group: 'Composite', types: ['typography', 'shadow', 'border', 'gradient', 'transition'] },
-  { group: 'Specialized', types: ['duration', 'fontFamily', 'fontWeight', 'fontStyle', 'letterSpacing', 'lineHeight', 'cubicBezier', 'percentage', 'strokeStyle', 'textDecoration', 'textTransform', 'link', 'asset'] },
+  { group: 'Common', types: ['color', 'dimension', 'typography', 'shadow', 'border', 'gradient', 'number'] },
+  { group: 'Typography', types: ['fontFamily', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textDecoration', 'textTransform'] },
+  { group: 'More', types: ['duration', 'cubicBezier', 'transition', 'percentage', 'strokeStyle', 'string', 'boolean', 'link', 'asset', 'custom'] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -282,7 +315,9 @@ export function CreatePanel({
   initialType,
   initialValue,
   graphTemplates = [],
+  hasSelection = false,
   onOpenGenerator,
+  onTabChange,
   onTokenCreated,
   onCreateAndEdit,
   onRefresh,
@@ -291,23 +326,41 @@ export function CreatePanel({
   fontWeightsByFamily,
 }: CreatePanelProps) {
   const [activeTab, setActiveTab] = useState<CreateTab>(initialTab);
+  const handleTabChange = (tab: CreateTab) => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
+
+  const tabs: { id: CreateTab; label: string; disabled?: boolean; disabledReason?: string }[] = [
+    { id: 'single', label: 'Single' },
+    { id: 'scale', label: 'Generator' },
+    { id: 'bulk', label: 'Bulk' },
+    {
+      id: 'extract',
+      label: 'From Selection',
+      disabled: !hasSelection,
+      disabledReason: 'Select layers on the canvas to extract tokens',
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full">
       {/* Header with tabs */}
       <div className="flex items-center gap-1 px-3 pt-3 pb-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
         <div className="flex-1 flex items-center gap-1">
-          {(['single', 'scale', 'bulk', 'extract'] as const).map(tab => (
+          {tabs.map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
-                activeTab === tab
+              key={tab.id}
+              disabled={tab.disabled}
+              onClick={() => handleTabChange(tab.id)}
+              title={tab.disabled ? tab.disabledReason : undefined}
+              className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                !tab.disabled && activeTab === tab.id
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
               }`}
             >
-              {tab === 'single' ? 'Single' : tab === 'scale' ? 'Scale' : tab === 'bulk' ? 'Bulk' : 'From Selection'}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -360,14 +413,26 @@ export function CreatePanel({
           />
         )}
         {activeTab === 'extract' && (
-          <ExtractTokensPanel
-            connected={connected}
-            activeSet={activeSet}
-            serverUrl={serverUrl}
-            tokenMap={allTokensFlat}
-            onTokenCreated={() => { onRefresh(); }}
-            onClose={onClose}
-          />
+          hasSelection ? (
+            <ExtractTokensPanel
+              connected={connected}
+              activeSet={activeSet}
+              serverUrl={serverUrl}
+              tokenMap={allTokensFlat}
+              onTokenCreated={() => { onRefresh(); }}
+              onClose={onClose}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 9h6M9 12h6M9 15h4" /></svg>
+              </div>
+              <div>
+                <p className="text-[12px] font-medium text-[var(--color-figma-text)] mb-1">No layers selected</p>
+                <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[220px]">Select one or more layers on the Figma canvas to extract their style values as tokens.</p>
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>
@@ -441,7 +506,6 @@ function SingleCreateTab({
   const [refQuery, setRefQuery] = useState('');
   const [extendsPath, setExtendsPath] = useState('');
   const [pendingDraft, setPendingDraft] = useState<CreateSingleDraftData | null>(null);
-  const refInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [groupOpen, setGroupOpen] = useState(false);
 
@@ -736,49 +800,58 @@ function SingleCreateTab({
 
       <div>
         <div className="flex items-center gap-1.5 mb-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Type</label>
+          <label className="text-[11px] text-[var(--color-figma-text-secondary)]">Type</label>
           {typeIsInferred && (
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">inferred from path</span>
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">auto-detected</span>
           )}
         </div>
+        {/* Common types — always visible */}
         <div className="flex flex-wrap gap-1">
           {TYPE_CATEGORIES[0].types.map(t => (
             <button
               key={t}
               type="button"
               onClick={() => handleTypeChange(t)}
+              title={t !== (TYPE_FRIENDLY_LABELS[t] ?? t).toLowerCase() ? `DTCG type: ${t}` : undefined}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
                 tokenType === t
                   ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
             >
-              {t}
+              {TYPE_FRIENDLY_LABELS[t] ?? t}
             </button>
           ))}
         </div>
+        {/* Typography + more types — collapsed unless current type is in there */}
         <Collapsible
           open={!TYPE_CATEGORIES[0].types.includes(tokenType)}
           onToggle={() => {}}
           className="mt-1"
-          label="More types"
+          label="All types"
         >
-          <div className="flex flex-wrap gap-1 mt-1">
-            {[...TYPE_CATEGORIES[1].types, ...TYPE_CATEGORIES[2].types].map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => handleTypeChange(t)}
-                className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
-                  tokenType === t
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          {TYPE_CATEGORIES.slice(1).map(cat => (
+            <div key={cat.group} className="mt-1.5">
+              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wider font-medium">{cat.group}</span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {cat.types.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleTypeChange(t)}
+                    title={`DTCG type: ${t}`}
+                    className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                      tokenType === t
+                        ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                  >
+                    {TYPE_FRIENDLY_LABELS[t] ?? t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </Collapsible>
       </div>
 
@@ -791,10 +864,7 @@ function SingleCreateTab({
             onClick={() => {
               const next = !refMode;
               setRefMode(next);
-              if (next) {
-                setRefQuery('');
-                setTimeout(() => refInputRef.current?.focus(), 0);
-              }
+              if (next) setRefQuery('');
             }}
             title={refMode ? 'Switch to direct value' : 'Reference an existing token'}
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors ${
@@ -835,32 +905,18 @@ function SingleCreateTab({
                 )}
               </>
             ) : (
-              <>
-                <input
-                  ref={refInputRef}
-                  type="text"
-                  placeholder="Search tokens to reference..."
-                  value={refQuery}
-                  onChange={e => setRefQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Escape') setRefMode(false); }}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none"
-                />
-                {refQuery && (
-                  <AliasAutocomplete
-                    query={refQuery}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    filterType={tokenType !== 'custom' ? tokenType : undefined}
-                    onSelect={path => {
-                      setValue(`{${path}}`);
-                      setRefQuery('');
-                      const entry = allTokensFlat[path];
-                      if (entry?.$type) setTokenType(entry.$type);
-                    }}
-                    onClose={() => setRefQuery('')}
-                  />
-                )}
-              </>
+              <TokenPickerDropdown
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                filterType={tokenType !== 'custom' ? tokenType : undefined}
+                placeholder="Search tokens to reference..."
+                onSelect={(path, _resolvedValue, entry) => {
+                  setValue(`{${path}}`);
+                  setRefQuery('');
+                  if (entry?.$type) setTokenType(entry.$type);
+                }}
+                onClose={() => setRefMode(false)}
+              />
             )}
           </div>
         ) : (
@@ -886,25 +942,27 @@ function SingleCreateTab({
         onUseReference={(path) => { setValue(`{${path}}`); setRefMode(true); }}
       />
 
-      {/* More options — description, scopes, extends */}
+      {/* Description — surfaced prominently (visible in Figma) */}
+      <div>
+        <label className="block text-[11px] text-[var(--color-figma-text-secondary)] mb-0.5">
+          Description <span className="text-[9px] opacity-60">(visible in Figma)</span>
+        </label>
+        <input
+          type="text"
+          placeholder="What is this token for?"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+        />
+      </div>
+
+      {/* Figma integration — scopes, extends */}
       <Collapsible
         open={moreOpen}
         onToggle={() => setMoreOpen(v => !v)}
-        label={`More options${description || scopes.length > 0 || extendsPath ? ' \u2022' : ''}`}
+        label={`Figma integration${scopes.length > 0 || extendsPath ? ' \u2022' : ''}`}
       >
         <div className="flex flex-col gap-3 mt-2">
-          {/* Description */}
-          <div>
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Description</label>
-            <textarea
-              placeholder="Optional description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={2}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
-            />
-          </div>
-
           {/* Figma Variable Scopes — only for types that have scope definitions */}
           {FIGMA_SCOPES[tokenType] && (
             <div className="rounded border border-[var(--color-figma-border)]">

@@ -34,7 +34,8 @@ import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
 import type { TopTab, SubTab, OverflowPanel } from './shared/navigationTypes';
-import { TOP_TABS } from './shared/navigationTypes';
+import { TOP_TABS, FLAT_TABS, toFlatTabId } from './shared/navigationTypes';
+import type { FlatTabId } from './shared/navigationTypes';
 import { useConnectionContext, useSyncContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -58,6 +59,7 @@ import { usePinnedTokens } from './hooks/usePinnedTokens';
 import { useAnalyticsState } from './hooks/useAnalyticsState';
 import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
+import { useCommandPaletteCommands } from './hooks/useCommandPaletteCommands';
 import { useCompareState } from './hooks/useCompareState';
 import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
@@ -69,21 +71,7 @@ import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType, findLeafByPath, collectAllGroupPaths } from './components/tokenListUtils';
-import { inferTypeFromValue } from './components/tokenListHelpers';
 
-/** Format a timestamp as a human-readable relative time string. */
-function timeAgo(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
-
-type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 
 type FolderTreeNode = {
   name: string;   // display name (first path segment, e.g. 'brands')
@@ -113,29 +101,19 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
   return { roots };
 }
 
-const TABS: { id: Tab; label: string; shortcutNum: number }[] = [
-  { id: 'tokens', label: 'Tokens', shortcutNum: 1 },
-  { id: 'inspect', label: 'Inspect', shortcutNum: 2 },
-  { id: 'graph', label: 'Generators', shortcutNum: 3 },
-  { id: 'publish', label: 'Publish', shortcutNum: 4 },
-];
-
-
 export function App() {
-  const [activeTab, setActiveTabState] = useState<Tab>(() => {
-    const stored = lsGet(STORAGE_KEYS.ACTIVE_TAB);
-    return (stored && TABS.some(t => t.id === stored) ? stored : 'tokens') as Tab;
-  });
-  const setActiveTab = (tab: Tab) => {
-    lsSet(STORAGE_KEYS.ACTIVE_TAB, tab);
-    setActiveTabState(tab);
-  };
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel, setSubTab } = useNavigationContext();
   const { editingToken, setEditingToken, previewingToken, setPreviewingToken, highlightedToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, handleNavigateBack, navHistoryLength, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk' | 'extract'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
+  // Tracks the currently active tab inside CreatePanel so the drawer can size itself.
+  // Synced from showCreatePanel.tab whenever the panel opens, then updated via onTabChange.
+  const [createPanelActiveTab, setCreatePanelActiveTab] = useState<'single' | 'scale' | 'bulk' | 'extract'>('single');
+  useEffect(() => {
+    if (showCreatePanel) setCreatePanelActiveTab(showCreatePanel.tab ?? 'single');
+  }, [showCreatePanel]);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
   const { gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useSyncContext();
   const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
@@ -206,6 +184,7 @@ export function App() {
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
+  const activeFlatId = useMemo(() => toFlatTabId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
 
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -709,7 +688,7 @@ export function App() {
       console.warn('[App] clear all data request failed:', err);
     }
     // Clear all plugin localStorage keys
-    for (const key of [STORAGE_KEYS.ACTIVE_TAB, STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP, STORAGE_KEYS.ACTIVE_RESOLVER, STORAGE_KEYS.RESOLVER_INPUT]) {
+    for (const key of [STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP, STORAGE_KEYS.ACTIVE_RESOLVER, STORAGE_KEYS.RESOLVER_INPUT]) {
       lsRemove(key);
     }
     // Clear per-set sort/filter keys
@@ -717,7 +696,6 @@ export function App() {
     setClearing(false);
     setShowClearConfirm(false);
     setClearConfirmText('');
-    setActiveTabState('tokens');
     navigateTo('define', 'tokens');
     refreshTokens();
   };
@@ -857,507 +835,43 @@ export function App() {
     setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
   }, []);
 
-  // Track export preset changes so the command palette stays in sync.
-  const [exportPresetRev, setExportPresetRev] = useState(0);
-  useEffect(() => {
-    const onChanged = () => setExportPresetRev(r => r + 1);
-    window.addEventListener('exportPresetsChanged', onChanged);
-    return () => window.removeEventListener('exportPresetsChanged', onChanged);
-  }, []);
+  const { commands, activeSetPaletteTokens } = useCommandPaletteCommands({
+    showPreviewSplit,
+    setShowPreviewSplit,
+    lintViolations,
+    themeGapCount,
+    tokenListSelection,
+    setShowIssuesOnly,
+    setShowWelcome,
+    setShowCreatePanel,
+    setFlowPanelInitialPath,
+    setPaletteDeleteConfirm,
+    setShowPasteModal,
+    setShowGuidedSetup,
+    setShowColorScaleGen,
+    setShowKeyboardShortcuts,
+    setShowQuickApply,
+    setShowSetSwitcher,
+    setShowManageSets,
+    setPendingGraphTemplate,
+    refreshValidation,
+    jumpToNextIssue,
+    openOverflowPanel,
+    handlePaletteRename,
+    handlePaletteDuplicate,
+    handlePaletteMove,
+    handleOpenCrossThemeCompare,
+    tokenListCompareRef,
+    themeManagerHandleRef,
+    recentOperations,
+    handleRollback,
+    canRedo,
+    redoSlot,
+    executeRedo,
+    redoableItems,
+    handleServerRedo,
+  });
 
-  // Split the command palette registry into focused sub-memos so that
-  // frequently-changing state (highlightedToken on every hover, undo stack on
-  // every op) only rebuilds its own small slice instead of all 40+ commands.
-
-  // Base commands: stable navigation / action commands.
-  // Rebuilds when set count, preview toggle, lint count, selection, or
-  // server connectivity changes — all infrequent relative to hover events.
-  const baseCommands = useMemo<Command[]>(() => {
-    const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
-    return [
-      {
-        id: 'new-token',
-        label: 'Create new token',
-        description: `Open the unified creation panel`,
-        category: 'Tokens',
-        shortcut: adaptShortcut('⌘N'),
-        handler: () => { setShowCreatePanel({ tab: 'single' }); },
-      },
-      {
-        id: 'generate-scale',
-        label: 'Generate a scale',
-        description: 'Create a scale of tokens from a template',
-        category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'scale' }); },
-      },
-      {
-        id: 'bulk-create',
-        label: 'Bulk create tokens',
-        description: 'Create multiple tokens at once in a table',
-        category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'bulk' }); },
-      },
-      {
-        id: 'extract-from-selection',
-        label: 'Extract tokens from selection',
-        description: 'Scan selected Figma layers and create tokens from their design values',
-        category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'extract' }); },
-      },
-      {
-        id: 'switch-set',
-        label: 'Switch set\u2026',
-        description: `${sets.length} set${sets.length !== 1 ? 's' : ''} available`,
-        category: 'Sets',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
-        handler: () => setShowSetSwitcher(true),
-      },
-      {
-        id: 'manage-sets',
-        label: 'Manage sets\u2026',
-        description: `Create, rename, duplicate, reorder, and delete sets`,
-        category: 'Sets',
-        handler: () => setShowManageSets(true),
-      },
-      {
-        id: 'paste-tokens',
-        label: 'Paste tokens',
-        description: 'Create tokens from JSON, CSS vars, CSV, or Tailwind config',
-        category: 'Tokens',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS),
-        handler: () => setShowPasteModal(true),
-      },
-      {
-        id: 'new-from-clipboard',
-        label: 'New token from clipboard',
-        description: 'Create a single token pre-filled with your clipboard value',
-        category: 'Tokens',
-        handler: async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            const trimmed = text?.trim();
-            if (!trimmed) {
-              setErrorToast('Clipboard is empty');
-              return;
-            }
-            const inferredType = inferTypeFromValue(trimmed) || 'string';
-            goToTokens();
-            setEditingToken({ path: '', set: activeSet, isCreate: true, initialType: inferredType, initialValue: trimmed });
-          } catch (err) {
-            console.warn('[App] clipboard read failed:', err);
-            setErrorToast('Could not read clipboard — browser may have denied access');
-          }
-        },
-      },
-      {
-        id: 'find-replace-names',
-        label: 'Find & Replace Names',
-        description: 'Rename token paths by pattern',
-        category: 'Tokens',
-        handler: goToTokens,
-      },
-      {
-        id: 'recents-favorites',
-        label: 'Recents & Favorites',
-        description: 'View recently edited tokens and starred favorites across all sets',
-        category: 'View',
-        handler: () => openOverflowPanel('recents'),
-      },
-      {
-        id: 'import',
-        label: 'Import Tokens',
-        description: 'Import tokens from a file',
-        category: 'Data',
-        handler: () => openOverflowPanel('import'),
-      },
-      {
-        id: 'export',
-        label: 'Export Tokens',
-        description: 'Export tokens as CSS, JSON, or other formats',
-        category: 'Data',
-        handler: () => navigateTo('ship', 'export'),
-      },
-      {
-        id: 'toggle-preview',
-        label: showPreviewSplit ? 'Hide preview panel' : 'Show preview panel',
-        description: 'Split-view with live token previews — colors, typography, buttons, and more',
-        category: 'View',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW),
-        handler: () => { setShowPreviewSplit(v => !v); setOverflowPanel(null); },
-      },
-      {
-        id: 'settings',
-        label: 'Open Settings',
-        description: 'UI preferences, server, lint rules, and export defaults',
-        category: 'Settings',
-        handler: () => openOverflowPanel('settings'),
-      },
-      {
-        id: 'restart-guided-setup',
-        label: 'Restart guided setup',
-        description: 'Re-run the onboarding wizard — connect to the server, create a token set, and map semantic tokens',
-        category: 'Settings',
-        handler: () => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); },
-      },
-      {
-        id: 'quick-apply',
-        label: 'Quick apply token to selection',
-        description: 'Contextual token picker — infers property, shows relevant tokens',
-        category: 'Selection',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_QUICK_APPLY),
-        handler: () => { if (selectedNodes.length > 0) setShowQuickApply(true); },
-      },
-      {
-        id: 'inspect',
-        label: 'Go to Inspect',
-        description: 'Inspect token bindings on selected layers',
-        category: 'Navigation',
-        handler: () => navigateTo('apply', 'inspect'),
-      },
-      {
-        id: 'themes',
-        label: 'Open Themes',
-        description: 'Manage design themes and set assignments',
-        category: 'Navigation',
-        handler: () => navigateTo('define', 'themes'),
-      },
-      {
-        id: 'autofill-theme-gaps',
-        label: 'Auto-fill theme gaps',
-        description: themeGapCount > 0
-          ? `Fill ${themeGapCount} missing token value${themeGapCount !== 1 ? 's' : ''} from source sets`
-          : 'No fillable gaps detected — open Themes to run a coverage check',
-        category: 'Themes',
-        handler: () => {
-          navigateTo('define', 'themes');
-          // Small delay so ThemeManager has time to mount / receive focus before the modal opens
-          setTimeout(() => { themeManagerHandleRef.current?.autoFillAllGaps(); }, 150);
-        },
-      },
-      {
-        id: 'resolver',
-        label: 'Open DTCG Resolver',
-        description: 'Configure DTCG v2025.10 resolver rules and preview resolved tokens (in Themes)',
-        category: 'Navigation',
-        shortcut: adaptShortcut(SHORTCUT_KEYS.GO_TO_RESOLVER),
-        handler: () => { navigateTo('define', 'themes'); setTimeout(() => { themeManagerHandleRef.current?.switchToResolverMode(); }, 50); },
-      },
-      {
-        id: 'canvas-coverage',
-        label: 'Canvas Coverage',
-        description: 'Token binding coverage heatmap for the canvas',
-        category: 'Navigation',
-        handler: () => { navigateTo('apply', 'canvas-analysis'); triggerHeatmapScan(); },
-      },
-      {
-        id: 'canvas-consistency',
-        label: 'Canvas Suggestions',
-        description: 'Near-match token consistency check for the canvas',
-        category: 'Navigation',
-        handler: () => navigateTo('apply', 'canvas-analysis'),
-      },
-      {
-        id: 'canvas-components',
-        label: 'Canvas Components',
-        description: 'Component token coverage report',
-        category: 'Navigation',
-        handler: () => navigateTo('apply', 'canvas-analysis'),
-      },
-      {
-        id: 'publish',
-        label: 'Go to Publish',
-        description: 'Sync tokens to Figma and export',
-        category: 'Navigation',
-        handler: () => navigateTo('ship', 'publish'),
-      },
-      {
-        id: 'analytics',
-        label: 'Filter Validation Issues',
-        description: 'Show only tokens with lint violations',
-        category: 'Tokens',
-        handler: () => { setShowIssuesOnly(v => !v); navigateTo('define', 'tokens'); },
-      },
-      {
-        id: 'next-issue',
-        label: 'Jump to Next Issue',
-        description: lintViolations.length > 0
-          ? `Cycle through ${lintViolations.length} validation issue${lintViolations.length === 1 ? '' : 's'} in the current set`
-          : 'No validation issues in the current set',
-        category: 'Tokens',
-        shortcut: SHORTCUT_KEYS.NEXT_LINT_ISSUE,
-        handler: jumpToNextIssue,
-      },
-      {
-        id: 'validate',
-        label: 'Validate All Tokens',
-        description: 'Run cross-set validation for broken references, circular refs, and more',
-        category: 'Tokens',
-        handler: () => { navigateTo('ship', 'health'); refreshValidation(); },
-      },
-      {
-        id: 'health-dashboard',
-        label: 'Token Health',
-        description: 'Validation report, lint summary, generator health, canvas coverage, and unused tokens',
-        category: 'Navigation',
-        handler: () => navigateTo('ship', 'health'),
-      },
-      {
-        id: 'generate-color-scale',
-        label: 'Generate Color Scale',
-        description: 'Create a perceptually uniform color ramp',
-        category: 'Tokens',
-        handler: () => { goToTokens(); setShowColorScaleGen(true); },
-      },
-      {
-        id: 'new-graph',
-        label: 'New generator',
-        description: 'Create a token generator — color ramps, spacing scales, type scales, and more',
-        category: 'Generate',
-        handler: () => navigateTo('define', 'generators'),
-      },
-      {
-        id: 'open-graph',
-        label: 'Open Generators',
-        description: 'View token generators for the current set',
-        category: 'Generate',
-        handler: () => navigateTo('define', 'generators'),
-      },
-      ...GRAPH_TEMPLATES.map(t => ({
-        id: `graph-template-${t.id}`,
-        label: `Generate ${t.label}`,
-        description: `Generator template — ${t.description}`,
-        category: 'Generate' as const,
-        handler: () => {
-          navigateTo('define', 'generators');
-          setPendingGraphTemplate(t.id);
-        },
-      })),
-      {
-        id: 'guided-setup',
-        label: 'Guided Setup',
-        description: 'Step-by-step wizard: generate primitives, map semantics, set up themes',
-        category: 'Help',
-        handler: () => setShowGuidedSetup(true),
-      },
-      {
-        id: 'view-style-guide',
-        label: 'View style guide',
-        description: connected ? `Open ${serverUrl}/docs in browser` : 'Connect to server first',
-        category: 'Help',
-        handler: () => { if (connected) window.open(`${serverUrl}/docs`, '_blank', 'noopener,noreferrer'); },
-      },
-      {
-        id: 'keyboard-shortcuts',
-        label: 'Keyboard shortcuts\u2026',
-        description: 'View all keyboard shortcuts',
-        category: 'Help',
-        shortcut: SHORTCUT_KEYS.SHOW_SHORTCUTS,
-        handler: () => setShowKeyboardShortcuts(true),
-      },
-      // Compare tokens (multi-select → navigate to compare tab)
-      {
-        id: 'compare-tokens',
-        label: 'Compare tokens\u2026',
-        description: 'Enter multi-select mode and compare two or more tokens side-by-side',
-        category: 'Tokens',
-        handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
-      },
-    ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount]);
-
-  // Per-set switch commands — rebuilds when the set list or token counts change.
-  const setCommands = useMemo<Command[]>(() => {
-    const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
-    return sets.map(s => ({
-      id: `switch-set-${s}`,
-      label: `Switch to Set: ${s}`,
-      description: `${setTokenCounts[s] ?? 0} tokens`,
-      category: 'Sets' as const,
-      handler: () => { setActiveSet(s); goToTokens(); },
-    }));
-  }, [sets, setTokenCounts, navigateTo]);
-
-  // Theme compare commands — rebuilds when dimensions change (rare: theme config edits).
-  const themeCompareCommands = useMemo<Command[]>(() => [
-    // Compare theme options — shown when dimensions exist
-    ...(dimensions.length > 0 ? [{
-      id: 'compare-theme-options',
-      label: 'Compare theme options\u2026',
-      description: 'Side-by-side token diff across theme options',
-      category: 'Themes' as const,
-      handler: () => {
-        themeManagerHandleRef.current?.navigateToCompare('theme-options');
-        navigateTo('define', 'themes');
-      },
-    }] : []),
-    // Per-dimension compare shortcuts when there are ≥2 options
-    ...dimensions.filter(d => d.options.length >= 2).map(d => ({
-      id: `compare-dim-${d.id}`,
-      label: `Compare ${d.name}: ${d.options[0].name} vs ${d.options[1].name}`,
-      description: `See token differences across ${d.name} options`,
-      category: 'Themes' as const,
-      handler: () => {
-        themeManagerHandleRef.current?.navigateToCompare('theme-options', undefined, undefined, `${d.id}:${d.options[0].name}`, `${d.id}:${d.options[1].name}`);
-        navigateTo('define', 'themes');
-      },
-    })),
-  ], [dimensions, navigateTo]);
-
-  // Contextual commands — rebuilds on hover/selection changes (most frequent).
-  // Kept small (~5 entries) so the rebuild cost is negligible.
-  const contextualCommands = useMemo<Command[]>(() => [
-    // Rename highlighted token (only when a token in the active set is focused)
-    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-      id: 'rename-highlighted-token',
-      label: `Rename: ${highlightedToken}`,
-      description: 'Start inline rename mode for this token',
-      category: 'Tokens' as const,
-      handler: () => handlePaletteRename(highlightedToken),
-    }] : []),
-    // Duplicate highlighted token
-    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-      id: 'duplicate-highlighted-token',
-      label: `Duplicate: ${highlightedToken}`,
-      description: 'Create a copy of this token with a new path',
-      category: 'Tokens' as const,
-      handler: () => { handlePaletteDuplicate(highlightedToken); },
-    }] : []),
-    // Move highlighted token to a different set
-    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-      id: 'move-highlighted-token',
-      label: `Move to set: ${highlightedToken}`,
-      description: 'Move this token to a different token set',
-      category: 'Tokens' as const,
-      handler: () => handlePaletteMove(highlightedToken),
-    }] : []),
-    // Extract highlighted token value to an alias
-    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-      id: 'extract-highlighted-token-to-alias',
-      label: `Extract to alias: ${highlightedToken}`,
-      description: 'Create a primitive alias token and replace this value with a reference',
-      category: 'Tokens' as const,
-      handler: () => {
-        const entry = allTokensFlat[highlightedToken];
-        navigateTo('define', 'tokens');
-        setHighlightedToken(highlightedToken);
-        tokenListCompareRef.current?.triggerExtractToAlias(highlightedToken, entry?.$type, entry?.$value);
-      },
-    }] : []),
-    // Delete highlighted token (only when a token in the active set is focused)
-    ...(highlightedToken && pathToSet[highlightedToken] === activeSet ? [{
-      id: 'delete-highlighted-token',
-      label: `Delete token: ${highlightedToken}`,
-      description: `Permanently delete this token from set "${activeSet}"`,
-      category: 'Tokens' as const,
-      handler: () => setPaletteDeleteConfirm({ paths: [highlightedToken], label: `Delete "${highlightedToken}"?` }),
-    }] : []),
-    // Delete selected tokens (only when multi-select is active in TokenList)
-    ...(tokenListSelection.length > 0 ? [{
-      id: 'delete-selected-tokens',
-      label: `Delete ${tokenListSelection.length} selected token${tokenListSelection.length !== 1 ? 's' : ''}`,
-      description: `Permanently delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''} from set "${activeSet}"`,
-      category: 'Tokens' as const,
-      handler: () => setPaletteDeleteConfirm({
-        paths: tokenListSelection,
-        label: `Delete ${tokenListSelection.length} token${tokenListSelection.length !== 1 ? 's' : ''}?`,
-      }),
-    }] : []),
-    // Show dependencies of highlighted token
-    ...(highlightedToken ? [{
-      id: 'show-dependencies',
-      label: `Show dependencies: ${highlightedToken}`,
-      description: 'View what aliases and tokens reference this token',
-      category: 'Tokens' as const,
-      handler: () => { setFlowPanelInitialPath(highlightedToken); navigateTo('apply', 'dependencies'); },
-    }] : []),
-    // Compare token across themes (only when theme dimensions exist and a token is focused)
-    ...(dimensions.length > 0 && highlightedToken ? [{
-      id: 'compare-across-themes',
-      label: `Compare across themes: ${highlightedToken}`,
-      description: 'See how this token\u2019s value varies across all theme options',
-      category: 'Tokens' as const,
-      handler: () => { handleOpenCrossThemeCompare(highlightedToken); },
-    }] : []),
-    // Compare any token across themes (no focused token — prompt user)
-    ...(dimensions.length > 0 && !highlightedToken ? [{
-      id: 'compare-across-themes-pick',
-      label: 'Compare token across themes\u2026',
-      description: 'Focus a token first, then run this command to compare its values across theme options',
-      category: 'Tokens' as const,
-      handler: () => { themeManagerHandleRef.current?.navigateToCompare('cross-theme'); navigateTo('define', 'themes'); },
-    }] : []),
-  ], [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare, handlePaletteRename, handlePaletteDuplicate, handlePaletteMove, allTokensFlat, setHighlightedToken]);
-
-  // Undo/redo commands — rebuilds when the operation log or redo stack changes.
-  const undoRedoCommands = useMemo<Command[]>(() => [
-    // Server-side undo: recent operations with rollback
-    ...recentOperations
-      .filter(op => !op.rolledBack)
-      .slice(0, 5)
-      .map((op, i) => ({
-        id: `undo-op-${op.id}`,
-        label: i === 0 ? `Undo: ${op.description}` : `Rollback: ${op.description}`,
-        description: `${op.affectedPaths.length} path(s) \u00b7 ${op.setName} \u00b7 ${timeAgo(op.timestamp)}`,
-        category: 'Undo' as const,
-        handler: () => handleRollback(op.id),
-      })),
-    // Local redo: most recent item from the client-side future stack
-    ...(canRedo && redoSlot ? [{
-      id: 'redo-local',
-      label: `Redo: ${redoSlot.description}`,
-      description: 'Re-apply the last undone action',
-      category: 'Undo' as const,
-      shortcut: '⇧⌘Z',
-      handler: executeRedo,
-    }] : []),
-    // Server-side redo: rolled-back operations that can be re-applied (most recent first)
-    ...[...redoableItems].reverse().slice(0, 5).map((item, i) => ({
-      id: `redo-op-${item.origOpId}`,
-      label: i === 0 && !canRedo ? `Redo: ${item.description}` : `Re-apply: ${item.description}`,
-      description: 'Re-apply a rolled-back server operation',
-      category: 'Undo' as const,
-      handler: () => handleServerRedo(item.origOpId),
-    })),
-  ], [recentOperations, handleRollback, canRedo, redoSlot, executeRedo, redoableItems, handleServerRedo]);
-
-  // Export preset commands — one entry per saved preset.
-  // Rebuilds only when presets change (exportPresetRev bumped by custom event from ExportPanel).
-  const exportPresetCommands = useMemo<Command[]>(() => {
-    const presets = lsGetJson<Array<{ id: string; name: string }>>(STORAGE_KEYS.EXPORT_PRESETS, []);
-    return presets.map(preset => ({
-      id: `export-preset-${preset.id}`,
-      label: `Export with preset: ${preset.name}`,
-      description: 'Apply export preset and open the Export panel',
-      category: 'Data' as const,
-      handler: () => {
-        lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo('ship', 'export');
-        window.dispatchEvent(new CustomEvent('applyExportPreset'));
-      },
-    }));
-  // exportPresetRev is the only dep that changes when presets are added/removed/renamed
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exportPresetRev, navigateTo]);
-
-  // Merge all command slices. Each slice has a stable reference until its own
-  // deps change, so this array spread is the only work done on hover events.
-  const commands: Command[] = useMemo(
-    () => [...baseCommands, ...themeCompareCommands, ...setCommands, ...contextualCommands, ...undoRedoCommands, ...exportPresetCommands],
-    [baseCommands, themeCompareCommands, setCommands, contextualCommands, undoRedoCommands, exportPresetCommands],
-  );
-
-  // Flat token list for command palette — active set only (default mode)
-  const activeSetPaletteTokens: TokenEntry[] = useMemo(() => {
-    const setFlat = perSetFlat[activeSet] ?? {};
-    return Object.entries(setFlat).map(([path, entry]) => ({
-      path,
-      type: entry.$type || 'unknown',
-      value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
-      set: activeSet,
-      isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(path)?.name,
-    }));
-  }, [perSetFlat, activeSet, derivedTokenPaths]);
 
   // All-sets flat token list for command palette "Search all sets" mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
@@ -1473,33 +987,39 @@ export function App() {
         </div>
       )}
 
-      {/* Tab bar — two-tier: top tabs (Define/Apply/Ship) + sub-tabs */}
+      {/* Tab bar — flat single-tier navigation */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-center" role="tablist" aria-label="Workflow tabs">
-        {TOP_TABS.map(tab => (
+      <div className="flex items-center" role="tablist" aria-label="Navigation">
+        {FLAT_TABS.map(tab => {
+          const isActive = tab.id === activeFlatId && overflowPanel === null;
+          return (
           <button
             key={tab.id}
             role="tab"
-            aria-selected={activeTopTab === tab.id && overflowPanel === null}
-            onClick={() => guardEditorAction(() => navigateTo(tab.id))}
+            aria-selected={isActive}
+            onClick={() => guardEditorAction(() => navigateTo(tab.topTab, tab.subTab))}
             className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
-              activeTopTab === tab.id && overflowPanel === null
+              isActive
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
             {tab.label}
-            {tab.id === 'apply' && selectedNodes.length > 0 && !(activeTopTab === 'apply' && overflowPanel === null) && (
+            {tab.id === 'generators' && staleGeneratorCount > 0 && !isActive && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] flex items-center justify-center rounded-full bg-yellow-400 border border-[var(--color-figma-bg)] text-yellow-900 text-[8px] font-bold leading-none" aria-label={`${staleGeneratorCount} stale`}>{staleGeneratorCount}</span>
+            )}
+            {tab.id === 'inspect' && selectedNodes.length > 0 && !isActive && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
             )}
-            {tab.id === 'ship' && !(activeTopTab === 'ship' && overflowPanel === null) && pendingPublishCount > 0 && (
+            {tab.id === 'ship' && !isActive && pendingPublishCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)] text-white text-[8px] font-bold leading-none" aria-label={`${pendingPublishCount} changes pending sync`}>{pendingPublishCount}</span>
             )}
-            {tab.id === 'ship' && !(activeTopTab === 'ship' && overflowPanel === null) && pendingPublishCount === 0 && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && (
+            {tab.id === 'ship' && !isActive && pendingPublishCount === 0 && (gitHasChanges || computeHealthIssueCount(lintViolations, generators) > 0) && (
               <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-figma-bg)] ${gitHasChanges ? 'bg-amber-400' : 'bg-[var(--color-figma-error)]'}`} aria-label={gitHasChanges ? 'Uncommitted changes' : 'Health issues detected'} />
             )}
           </button>
-        ))}
+          );
+        })}
 
         {/* Issues filter toggle */}
         <Tooltip label="Validation issues filter" className="ml-auto mr-0.5 my-1">
@@ -1768,35 +1288,30 @@ export function App() {
           )}
         </div>
       </div>
-      {/* Sub-tab row */}
+      {/* Inner tabs — only shown for Inspect and Ship which have sub-sections */}
       {overflowPanel === null && (() => {
-        const topDef = TOP_TABS.find(t => t.id === activeTopTab);
-        if (!topDef || topDef.subTabs.length <= 1) return null;
+        const flatTab = FLAT_TABS.find(t => t.id === activeFlatId);
+        if (!flatTab?.innerTabs || flatTab.innerTabs.length <= 1) return null;
         return (
-          <div className="flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Sub-tabs">
-            {topDef.subTabs.map(sub => (
+          <div className="flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Section tabs">
+            {flatTab.innerTabs.map(inner => (
               <button
-                key={sub.id}
+                key={inner.id}
                 role="tab"
-                aria-selected={activeSubTab === sub.id}
+                aria-selected={activeSubTab === inner.id}
                 onClick={() => {
                   guardEditorAction(() => {
-                    setSubTab(sub.id);
-                    if (sub.id === 'canvas-analysis') triggerHeatmapScan();
+                    setSubTab(inner.id);
+                    if (inner.id === 'canvas-analysis') triggerHeatmapScan();
                   });
                 }}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
-                  activeSubTab === sub.id
+                  activeSubTab === inner.id
                     ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
                     : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
               >
-                {sub.label}
-                {sub.id === 'generators' && staleGeneratorCount > 0 && (
-                  <span className="ml-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-[3px] rounded-full bg-yellow-400 text-[9px] font-bold text-yellow-900 leading-none" aria-label={`${staleGeneratorCount} stale`}>
-                    {staleGeneratorCount}
-                  </span>
-                )}
+                {inner.label}
               </button>
             ))}
           </div>
@@ -2703,7 +2218,7 @@ export function App() {
             className="absolute inset-0 bg-black/30 drawer-fade-in"
             onClick={() => setShowCreatePanel(null)}
           />
-          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '75%' }}>
+          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: (showCreatePanel?.tab ?? createPanelActiveTab) === 'single' ? '55%' : '75%', transition: 'height 0.2s ease' }}>
             <div className="flex justify-center pt-2 pb-1 shrink-0">
               <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
             </div>
@@ -2720,6 +2235,7 @@ export function App() {
                 initialPath={showCreatePanel.initialPath}
                 initialType={showCreatePanel.initialType}
                 initialValue={showCreatePanel.initialValue}
+                hasSelection={selectedNodes.length > 0}
                 graphTemplates={GRAPH_TEMPLATES}
                 onOpenGenerator={(template) => {
                   setShowCreatePanel(null);
@@ -2739,6 +2255,7 @@ export function App() {
                 }}
                 onRefresh={refreshAll}
                 onClose={() => setShowCreatePanel(null)}
+                onTabChange={setCreatePanelActiveTab}
                 availableFonts={availableFonts}
                 fontWeightsByFamily={fontWeightsByFamily}
               />

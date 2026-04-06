@@ -13,6 +13,11 @@ type ShipSubTab = 'publish' | 'export' | 'history' | 'health';
 export type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 export type OverflowPanel = 'import' | 'settings' | 'recents' | null;
 
+/**
+ * Internal routing structure — kept for PanelRouter compatibility.
+ * The visual tab bar uses FLAT_TABS below; this is the source of truth
+ * for which panels exist.
+ */
 export const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: string }[] }[] = [
   { id: 'define', label: 'Define', subTabs: [
     { id: 'tokens', label: 'Tokens' },
@@ -43,3 +48,58 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY,
   ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP,
 };
+
+// ---------------------------------------------------------------------------
+// Flat navigation — the primary visual structure
+// ---------------------------------------------------------------------------
+
+export type FlatTabId = 'tokens' | 'themes' | 'generators' | 'inspect' | 'ship';
+
+export interface FlatTab {
+  id: FlatTabId;
+  label: string;
+  /** Internal top-tab this maps to. */
+  topTab: TopTab;
+  /** Internal sub-tab this maps to (default for the top-tab). */
+  subTab: SubTab;
+  /** Optional secondary tabs shown inline within this flat tab. */
+  innerTabs?: { id: SubTab; label: string }[];
+}
+
+/**
+ * The 5 flat top-level tabs shown in the tab bar.
+ * Internally they still route through the (topTab, subTab) system.
+ */
+export const FLAT_TABS: FlatTab[] = [
+  { id: 'tokens', label: 'Tokens', topTab: 'define', subTab: 'tokens' },
+  { id: 'themes', label: 'Themes', topTab: 'define', subTab: 'themes' },
+  { id: 'generators', label: 'Generators', topTab: 'define', subTab: 'generators' },
+  {
+    id: 'inspect', label: 'Inspect', topTab: 'apply', subTab: 'inspect',
+    innerTabs: [
+      { id: 'inspect', label: 'Selection' },
+      { id: 'canvas-analysis', label: 'Canvas' },
+      { id: 'dependencies', label: 'Dependencies' },
+    ],
+  },
+  {
+    id: 'ship', label: 'Ship', topTab: 'ship', subTab: 'publish',
+    innerTabs: [
+      { id: 'publish', label: 'Publish' },
+      { id: 'export', label: 'Export' },
+      { id: 'history', label: 'History' },
+      { id: 'health', label: 'Health' },
+    ],
+  },
+];
+
+/** Map a (topTab, subTab) pair to the flat tab ID it belongs to. */
+export function toFlatTabId(topTab: TopTab, subTab: SubTab): FlatTabId {
+  if (topTab === 'define') {
+    if (subTab === 'tokens') return 'tokens';
+    if (subTab === 'themes') return 'themes';
+    if (subTab === 'generators') return 'generators';
+  }
+  if (topTab === 'apply') return 'inspect';
+  return 'ship';
+}

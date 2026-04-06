@@ -5,6 +5,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
+import { dispatchToast } from '../shared/toastBus';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { GRAPH_TEMPLATES, templateIdForTokenType } from './graph-templates';
 import type { GraphTemplate } from './graph-templates';
@@ -127,39 +128,25 @@ export function GraphPanel({
 
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(initialTemplate);
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
-  const [justApplied, setJustApplied] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<GeneratorType | null>(null);
-  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
+  // Default to graph view when there are enough generators to make it useful.
+  // Reset when activeSet changes since the generator count may differ per set.
+  const [viewMode, setViewMode] = useState<'graph' | 'list'>(() =>
+    setGenerators.length >= 3 ? 'graph' : 'list',
+  );
+  const prevActiveSetRef = useRef(activeSet);
+  useEffect(() => {
+    if (prevActiveSetRef.current === activeSet) return;
+    prevActiveSetRef.current = activeSet;
+    setViewMode(setGenerators.length >= 3 ? 'graph' : 'list');
+  }, [activeSet, setGenerators.length]);
   const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
-  const [runAllResult, setRunAllResult] = useState<{ count: number; tokenCount: number } | null>(null);
-  const [runAllError, setRunAllError] = useState<string | null>(null);
   const [runningStale, setRunningStale] = useState(false);
-  const [runStaleResult, setRunStaleResult] = useState<{ count: number; tokenCount: number } | null>(null);
-  const [runStaleError, setRunStaleError] = useState<string | null>(null);
-
-  // Auto-dismiss run result toasts
-  useEffect(() => {
-    if (!runAllResult) return;
-    const t = setTimeout(() => setRunAllResult(null), 4000);
-    return () => clearTimeout(t);
-  }, [runAllResult]);
-  useEffect(() => {
-    if (!runAllError) return;
-    const t = setTimeout(() => setRunAllError(null), 8000);
-    return () => clearTimeout(t);
-  }, [runAllError]);
-  useEffect(() => {
-    if (!runStaleResult) return;
-    const t = setTimeout(() => setRunStaleResult(null), 4000);
-    return () => clearTimeout(t);
-  }, [runStaleResult]);
-  useEffect(() => {
-    if (!runStaleError) return;
-    const t = setTimeout(() => setRunStaleError(null), 8000);
-    return () => clearTimeout(t);
-  }, [runStaleError]);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [justApplied, setJustApplied] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   // Auto-open template picker when navigating from ThemeManager "Generate tokens" action
   useEffect(() => {
@@ -185,18 +172,31 @@ export function GraphPanel({
     return () => clearTimeout(timer);
   }, [focusGeneratorId, onClearFocusGenerator]);
 
+  // Close actions menu on outside click
+  useEffect(() => {
+    if (!actionsMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setActionsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [actionsMenuOpen]);
+
   const handleSelectTemplate = (template: GraphTemplate) => {
     setSelectedTemplate(template);
-    setJustApplied(null);
   };
 
   const handleApplied = useCallback(() => {
-    setJustApplied(selectedTemplate?.label ?? null);
+    const label = selectedTemplate?.label ?? null;
+    setJustApplied(label);
     setSelectedTemplate(null);
     setBrowsingTemplates(false);
     if (onApplyTemplate) onApplyTemplate('');
     if (onClearPendingGroup) onClearPendingGroup();
     onRefresh();
+    if (label) dispatchToast(`${label} applied — tokens are generating`, 'success');
   }, [selectedTemplate, onApplyTemplate, onClearPendingGroup, onRefresh]);
 
   const handleBack = () => {
@@ -209,8 +209,6 @@ export function GraphPanel({
 
   const handleRunAll = async () => {
     setRunningAll(true);
-    setRunAllResult(null);
-    setRunAllError(null);
     let successCount = 0;
     let totalTokens = 0;
     const errors: string[] = [];
@@ -225,9 +223,9 @@ export function GraphPanel({
     }
     setRunningAll(false);
     if (errors.length === 0) {
-      setRunAllResult({ count: successCount, tokenCount: totalTokens });
+      dispatchToast(`Ran ${successCount} generator${successCount !== 1 ? 's' : ''}${totalTokens > 0 ? ` — ${totalTokens} token${totalTokens !== 1 ? 's' : ''} updated` : ''}`, 'success');
     } else {
-      setRunAllError(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`);
+      dispatchToast(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`, 'error');
     }
     onRefresh();
   };
@@ -245,8 +243,6 @@ export function GraphPanel({
 
   const handleRunStale = async () => {
     setRunningStale(true);
-    setRunStaleResult(null);
-    setRunStaleError(null);
     let successCount = 0;
     let totalTokens = 0;
     const errors: string[] = [];
@@ -261,9 +257,9 @@ export function GraphPanel({
     }
     setRunningStale(false);
     if (errors.length === 0) {
-      setRunStaleResult({ count: successCount, tokenCount: totalTokens });
+      dispatchToast(`Re-ran ${successCount} stale generator${successCount !== 1 ? 's' : ''}${totalTokens > 0 ? ` — ${totalTokens} token${totalTokens !== 1 ? 's' : ''} updated` : ''}`, 'success');
     } else {
-      setRunStaleError(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`);
+      dispatchToast(`${errors.length} generator${errors.length !== 1 ? 's' : ''} failed: ${errors.join(', ')}`, 'error');
     }
     onRefresh();
   };
@@ -369,127 +365,105 @@ export function GraphPanel({
   if (setGenerators.length > 0 && !browsingTemplates) {
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <div>
-              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+        {/* Header row 1: title + actions */}
+        <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)] shrink-0">Generators</span>
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
               {(q || typeFilter)
-                ? <>{filteredGenerators.length} of {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''}</>
-                : <>{setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span></>
-              }
-              </div>
-            </div>
+                ? `${filteredGenerators.length} of ${setGenerators.length}`
+                : String(setGenerators.length)}
+            </span>
             <PanelHelpIcon panelKey="generators" title="Generators" expanded={help.expanded} onToggle={help.toggle} />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* View mode toggle */}
-            <div className="flex items-center rounded border border-[var(--color-figma-border)] overflow-hidden">
-              <button
-                onClick={() => setViewMode('graph')}
-                className={`p-1 transition-colors ${viewMode === 'graph' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
-                title="Node graph view"
-                aria-label="Node graph view"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="2" y="14" width="6" height="6" rx="1" />
-                  <rect x="16" y="4" width="6" height="6" rx="1" />
-                  <rect x="16" y="14" width="6" height="6" rx="1" />
-                  <path d="M8 17h2a2 2 0 002-2V9a2 2 0 012-2h2" />
-                  <path d="M12 17h4" />
-                </svg>
-              </button>
+            <div className="flex rounded border border-[var(--color-figma-border)] overflow-hidden text-[10px]">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1 transition-colors ${viewMode === 'list' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
+                className={`px-2 py-1 transition-colors ${viewMode === 'list' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
                 title="List view"
                 aria-label="List view"
+                aria-pressed={viewMode === 'list'}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <line x1="3" y1="6" x2="3.01" y2="6" />
-                  <line x1="3" y1="12" x2="3.01" y2="12" />
-                  <line x1="3" y1="18" x2="3.01" y2="18" />
-                </svg>
+                List
+              </button>
+              <button
+                onClick={() => setViewMode('graph')}
+                className={`px-2 py-1 transition-colors border-l border-[var(--color-figma-border)] ${viewMode === 'graph' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
+                title="Pipeline map"
+                aria-label="Pipeline map"
+                aria-pressed={viewMode === 'graph'}
+              >
+                Map
               </button>
             </div>
-            <button
-              onClick={() => exportGraphAsSVG(setGenerators, activeSet)}
-              className="p-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              title="Export graph as SVG"
-              aria-label="Export graph as SVG"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </button>
-            {staleGenerators.length > 0 && (
-              <button
-                onClick={handleRunStale}
-                disabled={!connected || runningStale || runningAll}
-                className="text-[10px] px-2 py-1 rounded border border-yellow-400/60 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                title={`Re-run ${staleGenerators.length} stale generator${staleGenerators.length !== 1 ? 's' : ''} — generated tokens are out of date because ${staleSourceTokens.length > 0 ? `${staleSourceTokens.length === 1 ? 'this source token has' : 'these source tokens have'} changed: ${staleSourceTokens.join(', ')}` : 'source tokens changed since last run'}`}
-              >
-                {runningStale
-                  ? (
-                    <>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                        <path d="M21 12a9 9 0 11-6.219-8.56" />
-                      </svg>
-                      Running…
-                    </>
-                  )
-                  : (
-                    <>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 9v4M12 17h.01" />
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                      </svg>
-                      Re-run stale ({staleGenerators.length})
-                    </>
-                  )
-                }
-              </button>
-            )}
-            <button
-              onClick={handleRunAll}
-              disabled={!connected || runningAll || runningStale}
-              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-              title={`Re-run all ${setGenerators.length} generator${setGenerators.length !== 1 ? 's' : ''} in this set`}
-            >
-              {runningAll
-                ? (
-                  <>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
-                      <path d="M21 12a9 9 0 11-6.219-8.56" />
-                    </svg>
-                    Running…
-                  </>
-                )
-                : (
-                  <>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    Run all
-                  </>
-                )
-              }
-            </button>
+            {/* Add generator — primary action */}
             <button
               onClick={() => setBrowsingTemplates(true)}
               disabled={!connected}
-              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Add another template"
+              className="text-[10px] px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
             >
-              + Template
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+              Add generator
             </button>
+            {/* Actions overflow menu */}
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                onClick={() => setActionsMenuOpen(v => !v)}
+                disabled={!connected}
+                className={`relative p-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${actionsMenuOpen ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                title="More actions"
+                aria-label="More actions"
+                aria-haspopup="menu"
+                aria-expanded={actionsMenuOpen}
+              >
+                {(runningAll || runningStale) ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+                )}
+                {staleGenerators.length > 0 && !actionsMenuOpen && (
+                  <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] px-[2px] flex items-center justify-center rounded-full bg-yellow-400 border border-[var(--color-figma-bg)] text-yellow-900 text-[7px] font-bold leading-none pointer-events-none">{staleGenerators.length}</span>
+                )}
+              </button>
+              {actionsMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-0.5 text-[11px]" role="menu">
+                  {staleGenerators.length > 0 && (
+                    <button
+                      role="menuitem"
+                      onClick={() => { setActionsMenuOpen(false); handleRunStale(); }}
+                      disabled={runningStale || runningAll}
+                      className="w-full text-left px-3 py-2 flex items-center gap-2 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                      Re-run stale ({staleGenerators.length})
+                    </button>
+                  )}
+                  <button
+                    role="menuitem"
+                    onClick={() => { setActionsMenuOpen(false); handleRunAll(); }}
+                    disabled={runningAll || runningStale}
+                    className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                    Run all generators
+                  </button>
+                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" role="separator" />
+                  <button
+                    role="menuitem"
+                    onClick={() => { setActionsMenuOpen(false); exportGraphAsSVG(setGenerators, activeSet); }}
+                    className="w-full text-left px-3 py-2 flex items-center gap-2 text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export as SVG
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
         {help.expanded && (
           <PanelHelpBanner
             title="Generators"
@@ -499,96 +473,17 @@ export function GraphPanel({
         )}
 
         {staleGenerators.length > 0 && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-start gap-1.5 shrink-0">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
-              <path d="M12 9v4M12 17h.01" />
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-            <span>
-              {staleGenerators.length === 1 ? '1 generator is' : `${staleGenerators.length} generators are`} out of date —{' '}
-              {staleSourceTokens.length > 0
-                ? <><strong>{staleSourceTokens.join(', ')}</strong> {staleSourceTokens.length === 1 ? 'has' : 'have'} changed since last run</>
-                : <>source tokens changed since last run</>
-              }. Use <strong>Re-run stale</strong> to refresh.
+          <div className="mx-3 mt-2 px-2.5 py-1.5 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-center justify-between gap-2 shrink-0">
+            <span className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M12 9v4M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+              {staleGenerators.length === 1 ? '1 generator out of date' : `${staleGenerators.length} generators out of date`}
             </span>
-          </div>
-        )}
-
-        {justApplied && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5 shrink-0">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            <span><strong>{justApplied}</strong> applied — tokens are generating</span>
-          </div>
-        )}
-
-        {runAllResult && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center justify-between gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              <span>
-                Ran {runAllResult.count} generator{runAllResult.count !== 1 ? 's' : ''}
-                {runAllResult.tokenCount > 0 && <> — {runAllResult.tokenCount} token{runAllResult.tokenCount !== 1 ? 's' : ''} updated</>}
-              </span>
-            </div>
-            <button onClick={() => setRunAllResult(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {runAllError && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-600 dark:text-red-400 flex items-center justify-between gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              <span>{runAllError}</span>
-            </div>
-            <button onClick={() => setRunAllError(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {runStaleResult && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-yellow-400/10 border border-yellow-400/30 text-[10px] text-yellow-700 dark:text-yellow-400 flex items-center justify-between gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              <span>
-                Re-ran {runStaleResult.count} stale generator{runStaleResult.count !== 1 ? 's' : ''}
-                {runStaleResult.tokenCount > 0 && <> — {runStaleResult.tokenCount} token{runStaleResult.tokenCount !== 1 ? 's' : ''} updated</>}
-              </span>
-            </div>
-            <button onClick={() => setRunStaleResult(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {runStaleError && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-600 dark:text-red-400 flex items-center justify-between gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              <span>{runStaleError}</span>
-            </div>
-            <button onClick={() => setRunStaleError(null)} className="opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+            <button
+              onClick={handleRunStale}
+              disabled={runningStale || runningAll}
+              className="shrink-0 text-[10px] font-medium underline underline-offset-2 hover:no-underline disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {runningStale ? 'Running…' : 'Re-run'}
             </button>
           </div>
         )}
