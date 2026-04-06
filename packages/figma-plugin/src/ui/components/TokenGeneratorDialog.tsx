@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
+import { Collapsible } from './Collapsible';
 import type {
   TokenGenerator,
   GeneratorTemplate,
 } from '../hooks/useGenerators';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
-import { StepperHeader, StepWhere, StepWhat, StepReview } from './generator-steps';
-import type { GeneratorStep } from './generator-steps';
+import { StepWhere, StepWhat, StepReview } from './generator-steps';
 import { Spinner } from './Spinner';
 
 // ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ export interface TokenGeneratorDialogProps {
 }
 
 // ---------------------------------------------------------------------------
-// Stepper shell
+// Single-form generator dialog (replaces the 3-step wizard)
 // ---------------------------------------------------------------------------
 
 export function TokenGeneratorDialog({
@@ -75,36 +75,13 @@ export function TokenGeneratorDialog({
     pushUndo: onPushUndo,
   });
 
-  // --- Stepper state ---
-  // Editing? Start on Step 2 (config). New? Start on Step 1 (where).
-  const [currentStep, setCurrentStep] = useState<GeneratorStep>(
-    dialog.isEditing ? 'what' : 'where'
-  );
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
-  // --- Step navigation ---
-  const canAdvanceToWhat = dialog.targetGroup.trim().length > 0 && dialog.name.trim().length > 0;
-  const canAdvanceToReview = canAdvanceToWhat && (
-    !dialog.typeNeedsValue || dialog.hasValue || dialog.isMultiBrand
-  );
-
-  const canNavigateTo = (step: GeneratorStep): boolean => {
-    switch (step) {
-      case 'where': return true;
-      case 'what': return canAdvanceToWhat;
-      case 'review': return canAdvanceToReview;
-    }
-  };
-
-  const goNext = () => {
-    if (currentStep === 'where' && canAdvanceToWhat) setCurrentStep('what');
-    else if (currentStep === 'what' && canAdvanceToReview) setCurrentStep('review');
-  };
-
-  const goPrev = () => {
-    if (currentStep === 'review') setCurrentStep('what');
-    else if (currentStep === 'what') setCurrentStep('where');
-  };
+  // Auto-open review when confirmation is required (e.g. overwrite check)
+  useEffect(() => {
+    if (dialog.showConfirmation) setReviewOpen(true);
+  }, [dialog.showConfirmation]);
 
   const handleClose = () => {
     if (dialog.isDirtyRef.current) {
@@ -114,74 +91,41 @@ export function TokenGeneratorDialog({
     onClose();
   };
 
-  // --- Footer button labels ---
-  const footerLabel = (() => {
-    if (currentStep === 'where') return 'Next: Configure';
-    if (currentStep === 'what') {
-      if (dialog.isEditing) return 'Save Changes';
-      const count = dialog.previewTokens.length;
-      return count > 0
-        ? `Next: Review (${count} token${count !== 1 ? 's' : ''})`
-        : 'Next: Review';
+  // --- Save logic ---
+  const canSave = dialog.targetGroup.trim().length > 0
+    && dialog.name.trim().length > 0
+    && (dialog.isMultiBrand || !dialog.typeNeedsValue || dialog.hasValue);
+
+  const handleSave = async () => {
+    if (dialog.showConfirmation) {
+      await dialog.handleConfirmSave();
+    } else {
+      await dialog.handleSave();
     }
-    // review step
-    if (dialog.saving) return dialog.isEditing ? 'Saving...' : 'Creating...';
-    if (dialog.overwriteCheckLoading) return 'Checking...';
+  };
+
+  const saveLabel = (() => {
+    if (dialog.saving) return dialog.isEditing ? 'Saving\u2026' : 'Creating\u2026';
+    if (dialog.overwriteCheckLoading) return 'Checking\u2026';
     const aliasCount = dialog.semanticEnabled
       ? dialog.semanticMappings.filter(m => m.semantic.trim()).length
       : 0;
-    if (dialog.isEditing) return 'Confirm & Update';
+    if (dialog.isEditing) return 'Save Changes';
     return aliasCount > 0
-      ? `Confirm & Create (+${aliasCount} aliases)`
-      : 'Confirm & Create';
+      ? `Create Generator (+${aliasCount} aliases)`
+      : 'Create Generator';
   })();
-
-  const footerDisabled = (() => {
-    if (currentStep === 'where') return !canAdvanceToWhat;
-    if (currentStep === 'what') {
-      if (dialog.isEditing) {
-        return dialog.saving || !!dialog.existingTokensError || !dialog.targetGroup.trim() || !dialog.name.trim() || (!dialog.isMultiBrand && dialog.typeNeedsValue && !dialog.hasValue);
-      }
-      return !canAdvanceToReview;
-    }
-    return dialog.saving || dialog.overwriteCheckLoading;
-  })();
-
-  const handleFooterClick = async () => {
-    if (currentStep === 'where') {
-      goNext();
-    } else if (currentStep === 'what') {
-      if (dialog.isEditing) {
-        // For edits, skip review — save directly via confirmation flow
-        await dialog.handleSave();
-      } else {
-        goNext();
-      }
-    } else {
-      // review step — confirm save
-      await dialog.handleConfirmSave();
-    }
-  };
 
   // --- Missing field hints ---
   const missingFields = (() => {
     const missing: string[] = [];
     if (!dialog.targetGroup.trim()) missing.push('target group');
     if (!dialog.name.trim()) missing.push('name');
-    if (currentStep !== 'where' && !dialog.isMultiBrand && dialog.typeNeedsValue && !dialog.hasValue) {
+    if (!dialog.isMultiBrand && dialog.typeNeedsValue && !dialog.hasValue) {
       missing.push(dialog.selectedType === 'colorRamp' || dialog.selectedType === 'accessibleColorPair' || dialog.selectedType === 'darkModeInversion' ? 'base color' : 'base value');
     }
     return missing;
   })();
-
-  // --- Handle confirmation flow from useGeneratorSave ---
-  // When useGeneratorSave sets showConfirmation=true after handleSave(),
-  // we navigate to the review step
-  useEffect(() => {
-    if (dialog.showConfirmation && currentStep !== 'review') {
-      setCurrentStep('review');
-    }
-  }, [dialog.showConfirmation, currentStep]);
 
   // --- Accessibility ---
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -191,8 +135,7 @@ export function TokenGeneratorDialog({
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-   
-  // handleClose is stable in practice; adding it would cause re-registration on every dirty state change.
+  // handleClose is stable in practice
   }, []);
 
   return (
@@ -213,15 +156,11 @@ export function TokenGeneratorDialog({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">
           <div className="flex items-center gap-2">
-            {currentStep !== 'where' ? (
-              <button type="button" onClick={goPrev} aria-label="Back" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-              </button>
-            ) : onBack ? (
+            {onBack && (
               <button type="button" onClick={onBack} aria-label="Back to templates" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
               </button>
-            ) : null}
+            )}
             <span id="token-generator-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               {dialog.isEditing ? 'Edit Generator' : template ? template.label : 'New Generator'}
             </span>
@@ -231,102 +170,105 @@ export function TokenGeneratorDialog({
           </button>
         </div>
 
-        {/* Step indicator */}
-        <StepperHeader
-          currentStep={currentStep}
-          onStepClick={setCurrentStep}
-          canNavigateTo={canNavigateTo}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <StepWhere
+            name={dialog.name}
+            targetSet={dialog.targetSet}
+            targetGroup={dialog.targetGroup}
+            allSets={allSets}
+            isMultiBrand={dialog.isMultiBrand}
+            inputTable={dialog.inputTable}
+            targetSetTemplate={dialog.targetSetTemplate}
+            isEditing={dialog.isEditing}
+            onNameChange={dialog.handleNameChange}
+            onTargetSetChange={dialog.setTargetSet}
+            onTargetGroupChange={dialog.setTargetGroup}
+            onToggleMultiBrand={dialog.handleToggleMultiBrand}
+            onInputTableChange={dialog.setInputTable}
+            onTargetSetTemplateChange={dialog.setTargetSetTemplate}
+          />
 
-        {/* Step content */}
-        <div className="flex-1 overflow-y-auto" key={currentStep}>
-          {currentStep === 'where' && (
-            <StepWhere
-              name={dialog.name}
-              targetSet={dialog.targetSet}
-              targetGroup={dialog.targetGroup}
-              allSets={allSets}
-              isMultiBrand={dialog.isMultiBrand}
-              inputTable={dialog.inputTable}
-              targetSetTemplate={dialog.targetSetTemplate}
-              isEditing={dialog.isEditing}
-              onNameChange={dialog.handleNameChange}
-              onTargetSetChange={dialog.setTargetSet}
-              onTargetGroupChange={dialog.setTargetGroup}
-              onToggleMultiBrand={dialog.handleToggleMultiBrand}
-              onInputTableChange={dialog.setInputTable}
-              onTargetSetTemplateChange={dialog.setTargetSetTemplate}
-            />
-          )}
-          {currentStep === 'what' && (
-            <StepWhat
-              selectedType={dialog.selectedType}
-              recommendedType={dialog.recommendedType}
-              currentConfig={dialog.currentConfig}
-              typeNeedsValue={dialog.typeNeedsValue}
-              hasSource={dialog.hasSource}
-              hasValue={dialog.hasValue}
-              isMultiBrand={dialog.isMultiBrand}
-              editableSourcePath={dialog.editableSourcePath}
-              sourceTokenPath={sourceTokenPath}
-              sourceTokenType={sourceTokenType}
-              sourceTokenValue={sourceTokenValue}
-              inlineValue={dialog.inlineValue}
-              previewTokens={dialog.previewTokens}
-              previewLoading={dialog.previewLoading}
-              previewError={dialog.previewError}
-              previewBrand={dialog.previewBrand}
-              multiBrandPreviews={dialog.multiBrandPreviews}
-              pendingOverrides={dialog.pendingOverrides}
-              lockedCount={dialog.lockedCount}
-              overwrittenEntries={dialog.overwrittenEntries}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              canUndo={dialog.canUndo}
-              canRedo={dialog.canRedo}
-              onUndo={dialog.handleUndo}
-              onRedo={dialog.handleRedo}
-              onConfigInteractionStart={dialog.handleConfigInteractionStart}
-              onTypeChange={dialog.handleTypeChange}
-              onConfigChange={dialog.handleConfigChange}
-              onSourcePathChange={dialog.setEditableSourcePath}
-              onInlineValueChange={dialog.setInlineValue}
-              onOverrideChange={dialog.handleOverrideChange}
-              onOverrideClear={dialog.handleOverrideClear}
-              onClearAllOverrides={dialog.clearAllOverrides}
-            />
-          )}
-          {currentStep === 'review' && (
-            <StepReview
-              selectedType={dialog.selectedType}
-              name={dialog.name}
-              targetGroup={dialog.targetGroup}
-              targetSet={dialog.targetSet}
-              isEditing={dialog.isEditing}
-              isMultiBrand={dialog.isMultiBrand}
-              inputTable={dialog.inputTable}
-              targetSetTemplate={dialog.targetSetTemplate}
-              previewTokens={dialog.previewTokens}
-              overwrittenEntries={dialog.overwrittenEntries}
-              existingOverwritePathSet={dialog.existingOverwritePathSet}
-              overwritePendingPaths={dialog.overwritePendingPaths}
-              overwriteCheckLoading={dialog.overwriteCheckLoading}
-              overwriteCheckError={dialog.overwriteCheckError}
-              semanticEnabled={dialog.semanticEnabled}
-              semanticPrefix={dialog.semanticPrefix}
-              semanticMappings={dialog.semanticMappings}
-              selectedSemanticPatternId={dialog.selectedSemanticPatternId}
-              saveError={dialog.saveError}
-              hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
-              onSemanticEnabledChange={dialog.setSemanticEnabled}
-              onSemanticPrefixChange={dialog.setSemanticPrefix}
-              onSemanticMappingsChange={dialog.setSemanticMappings}
-              onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
-            />
+          <div className="border-t border-[var(--color-figma-border)]" />
+
+          <StepWhat
+            selectedType={dialog.selectedType}
+            recommendedType={dialog.recommendedType}
+            currentConfig={dialog.currentConfig}
+            typeNeedsValue={dialog.typeNeedsValue}
+            hasSource={dialog.hasSource}
+            hasValue={dialog.hasValue}
+            isMultiBrand={dialog.isMultiBrand}
+            editableSourcePath={dialog.editableSourcePath}
+            sourceTokenPath={sourceTokenPath}
+            sourceTokenType={sourceTokenType}
+            sourceTokenValue={sourceTokenValue}
+            inlineValue={dialog.inlineValue}
+            previewTokens={dialog.previewTokens}
+            previewLoading={dialog.previewLoading}
+            previewError={dialog.previewError}
+            previewBrand={dialog.previewBrand}
+            multiBrandPreviews={dialog.multiBrandPreviews}
+            pendingOverrides={dialog.pendingOverrides}
+            lockedCount={dialog.lockedCount}
+            overwrittenEntries={dialog.overwrittenEntries}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            canUndo={dialog.canUndo}
+            canRedo={dialog.canRedo}
+            onUndo={dialog.handleUndo}
+            onRedo={dialog.handleRedo}
+            onConfigInteractionStart={dialog.handleConfigInteractionStart}
+            onTypeChange={dialog.handleTypeChange}
+            onConfigChange={dialog.handleConfigChange}
+            onSourcePathChange={dialog.setEditableSourcePath}
+            onInlineValueChange={dialog.setInlineValue}
+            onOverrideChange={dialog.handleOverrideChange}
+            onOverrideClear={dialog.handleOverrideClear}
+            onClearAllOverrides={dialog.clearAllOverrides}
+          />
+
+          {(dialog.previewTokens.length > 0 || dialog.showConfirmation) && (
+            <>
+              <div className="border-t border-[var(--color-figma-border)]" />
+              <div className="px-4 pt-3 pb-1">
+                <Collapsible
+                  open={reviewOpen}
+                  onToggle={() => setReviewOpen(v => !v)}
+                  label={`Review & semantic aliases (${dialog.previewTokens.length} token${dialog.previewTokens.length !== 1 ? 's' : ''})`}
+                >
+                  <StepReview
+                    selectedType={dialog.selectedType}
+                    name={dialog.name}
+                    targetGroup={dialog.targetGroup}
+                    targetSet={dialog.targetSet}
+                    isEditing={dialog.isEditing}
+                    isMultiBrand={dialog.isMultiBrand}
+                    inputTable={dialog.inputTable}
+                    targetSetTemplate={dialog.targetSetTemplate}
+                    previewTokens={dialog.previewTokens}
+                    overwrittenEntries={dialog.overwrittenEntries}
+                    existingOverwritePathSet={dialog.existingOverwritePathSet}
+                    overwritePendingPaths={dialog.overwritePendingPaths}
+                    overwriteCheckLoading={dialog.overwriteCheckLoading}
+                    overwriteCheckError={dialog.overwriteCheckError}
+                    semanticEnabled={dialog.semanticEnabled}
+                    semanticPrefix={dialog.semanticPrefix}
+                    semanticMappings={dialog.semanticMappings}
+                    selectedSemanticPatternId={dialog.selectedSemanticPatternId}
+                    saveError={dialog.saveError}
+                    hasInterceptHandler={Boolean(onInterceptSemanticMapping)}
+                    onSemanticEnabledChange={dialog.setSemanticEnabled}
+                    onSemanticPrefixChange={dialog.setSemanticPrefix}
+                    onSemanticMappingsChange={dialog.setSemanticMappings}
+                    onSemanticPatternSelect={dialog.setSelectedSemanticPatternId}
+                  />
+                </Collapsible>
+              </div>
+            </>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Sticky footer */}
         <div className="flex flex-col gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
           {missingFields.length > 0 && !dialog.saving && (
             <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -341,19 +283,19 @@ export function TokenGeneratorDialog({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={currentStep === 'where' ? handleClose : goPrev}
+              onClick={handleClose}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
             >
-              {currentStep === 'where' ? 'Cancel' : 'Back'}
+              Cancel
             </button>
             <button
               type="button"
-              onClick={handleFooterClick}
-              disabled={footerDisabled}
+              onClick={handleSave}
+              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {dialog.saving && <Spinner size="sm" className="text-white" />}
-              {footerLabel}
+              {saveLabel}
             </button>
           </div>
         </div>

@@ -433,6 +433,7 @@ function SingleCreateTab({
   const [description, setDescription] = useState('');
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [targetSet, setTargetSet] = useState(activeSet);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -471,6 +472,9 @@ function SingleCreateTab({
     setRefMode(pendingDraft.refMode);
     setRefQuery(pendingDraft.refQuery);
     if (pendingDraft.targetSet !== targetSet) setTargetSet(pendingDraft.targetSet);
+    if (pendingDraft.description || (pendingDraft.scopes ?? []).length > 0 || pendingDraft.extendsPath) {
+      setMoreOpen(true);
+    }
     setPendingDraft(null);
   }, [pendingDraft, targetSet]);
 
@@ -882,73 +886,82 @@ function SingleCreateTab({
         onUseReference={(path) => { setValue(`{${path}}`); setRefMode(true); }}
       />
 
-      {/* Description */}
-      <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Description</label>
-        <textarea
-          placeholder="Optional description"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          rows={2}
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
-        />
-      </div>
+      {/* More options — description, scopes, extends */}
+      <Collapsible
+        open={moreOpen}
+        onToggle={() => setMoreOpen(v => !v)}
+        label={`More options${description || scopes.length > 0 || extendsPath ? ' \u2022' : ''}`}
+      >
+        <div className="flex flex-col gap-3 mt-2">
+          {/* Description */}
+          <div>
+            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Description</label>
+            <textarea
+              placeholder="Optional description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={2}
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
+            />
+          </div>
 
-      {/* Figma Variable Scopes — only for types that have scope definitions */}
-      {FIGMA_SCOPES[tokenType] && (
-        <div className="rounded border border-[var(--color-figma-border)]">
-          <button
-            type="button"
-            onClick={() => setShowScopes(v => !v)}
-            title="Scopes control which Figma properties this variable is offered for"
-            className="w-full px-2.5 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium bg-[var(--color-figma-bg-secondary)] rounded"
-          >
-            <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : '(optional)'}</span>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
-              <path d="M2 3.5l3 3 3-3"/>
-            </svg>
-          </button>
-          {showScopes && (
-            <div className="px-2.5 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Controls where this variable appears in Figma's picker. Empty = all scopes.
-              </p>
-              {FIGMA_SCOPES[tokenType].map(scope => (
-                <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={scopes.includes(scope.value)}
-                    onChange={e => setScopes(
-                      e.target.checked ? [...scopes, scope.value] : scopes.filter(s => s !== scope.value)
-                    )}
-                    className="w-3 h-3 rounded mt-0.5"
-                  />
-                  <span className="flex flex-col">
-                    <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
-                  </span>
-                </label>
-              ))}
+          {/* Figma Variable Scopes — only for types that have scope definitions */}
+          {FIGMA_SCOPES[tokenType] && (
+            <div className="rounded border border-[var(--color-figma-border)]">
+              <button
+                type="button"
+                onClick={() => setShowScopes(v => !v)}
+                title="Scopes control which Figma properties this variable is offered for"
+                className="w-full px-2.5 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium bg-[var(--color-figma-bg-secondary)] rounded"
+              >
+                <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : '(optional)'}</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
+                  <path d="M2 3.5l3 3 3-3"/>
+                </svg>
+              </button>
+              {showScopes && (
+                <div className="px-2.5 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Controls where this variable appears in Figma's picker. Empty = all scopes.
+                  </p>
+                  {FIGMA_SCOPES[tokenType].map(scope => (
+                    <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={scopes.includes(scope.value)}
+                        onChange={e => setScopes(
+                          e.target.checked ? [...scopes, scope.value] : scopes.filter(s => s !== scope.value)
+                        )}
+                        className="w-3 h-3 rounded mt-0.5"
+                      />
+                      <span className="flex flex-col">
+                        <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Extends — only for composite token types */}
+          {COMPOSITE_TOKEN_TYPES.has(tokenType) && !refMode && (
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Extends (optional)</label>
+              <ExtendsTokenPicker
+                tokenType={tokenType}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                currentPath={fullPath}
+                extendsPath={extendsPath}
+                onSelect={setExtendsPath}
+                onClear={() => setExtendsPath('')}
+              />
             </div>
           )}
         </div>
-      )}
-
-      {/* Extends — only for composite token types */}
-      {COMPOSITE_TOKEN_TYPES.has(tokenType) && !refMode && (
-        <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5">Extends (optional)</label>
-          <ExtendsTokenPicker
-            tokenType={tokenType}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            currentPath={fullPath}
-            extendsPath={extendsPath}
-            onSelect={setExtendsPath}
-            onClear={() => setExtendsPath('')}
-          />
-        </div>
-      )}
+      </Collapsible>
 
       {error && <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>}
 

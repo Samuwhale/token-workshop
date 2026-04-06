@@ -1,10 +1,13 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--pass-model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N]
+# Usage: ./backlog.sh [--tool amp|claude] [--model default|sonnet|opus|<model-id>] [--pass-model default|sonnet|opus|<model-id>] [--passes true|false] [--pass-frequency N] [--worktrees true|false]
 #
-# Concurrency-safe: each agent runs in an isolated git worktree.
-# backlog.md mutations are serialised by file locks.
-# Code changes are cherry-picked back to main under a git lock.
+# --worktrees true  (default): parallel-safe mode — each agent runs in an isolated git worktree,
+#                              changes are cherry-picked back to main under a git lock.
+# --worktrees false:           single-runner mode — agent runs directly in the project root,
+#                              commits with a plain git add/commit/push. Simpler and more efficient.
+#
+# backlog.md mutations are serialised by file locks (both modes).
 #
 # Continuity between sessions via two files:
 #   backlog.md      task state ([ ] / [~] / [x] / [!])
@@ -26,6 +29,7 @@ MODEL="claude-sonnet-4-6"
 PASS_MODEL=""
 PASSES_ENABLED=1
 PASS_FREQUENCY=10
+WORKTREES_ENABLED=1
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -52,6 +56,21 @@ while [[ $# -gt 0 ]]; do
       shift ;;
     --pass-frequency)   PASS_FREQUENCY="$2"; shift 2 ;;
     --pass-frequency=*) PASS_FREQUENCY="${1#*=}"; shift ;;
+    --worktrees)
+      case "$2" in
+        true|1|yes)   WORKTREES_ENABLED=1 ;;
+        false|0|no)   WORKTREES_ENABLED=0 ;;
+        *)            echo "Error: --worktrees must be true or false"; exit 1 ;;
+      esac
+      shift 2 ;;
+    --worktrees=*)
+      _v="${1#*=}"
+      case "$_v" in
+        true|1|yes)   WORKTREES_ENABLED=1 ;;
+        false|0|no)   WORKTREES_ENABLED=0 ;;
+        *)            echo "Error: --worktrees must be true or false"; exit 1 ;;
+      esac
+      shift ;;
     *)                  shift ;;
   esac
 done
@@ -637,6 +656,58 @@ run_special_pass() {
   echo "  ★ Maintenance Pass: $pass_type"
   echo "================================================================"
 
+  # ── Simple mode: run pass directly in project root (no worktree) ──
+  if [ "$WORKTREES_ENABLED" -eq 0 ]; then
+    local context_file agent_tmp agent_err pass_output pass_err_text
+    context_file=$(mktemp)
+    cat "$PATTERNS_FILE" > "$context_file"
+    printf '\n\n## Recent session log:\n' >> "$context_file"
+    awk '/^## /{found=1; count++} found && count<=5{print} /^---$/ && found && count>=5{exit}' \
+      "$PROGRESS_FILE" >> "$context_file" 2>/dev/null || true
+
+    agent_tmp=$(mktemp); agent_err=$(mktemp)
+    (cd "$PROJECT_ROOT" && trap '' INT; claude \
+      --dangerously-skip-permissions \
+      --print \
+      --no-session-persistence \
+      --max-turns 100 \
+      --output-format json \
+      --json-schema "$JSON_SCHEMA" \
+      --model "$PASS_MODEL" \
+      --append-system-prompt-file "$context_file" \
+      < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
+    local pass_pid=$!
+    wait $pass_pid || true
+    if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $pass_pid 2>/dev/null; then
+      echo "  → Waiting for $pass_type pass to finish…"
+      wait $pass_pid 2>/dev/null || true
+    fi
+
+    rm -f "$context_file"
+    pass_output=$(cat "$agent_tmp")
+    pass_err_text=$(cat "$agent_err" 2>/dev/null || true)
+    rm -f "$agent_tmp" "$agent_err"
+
+    if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+      echo "  ⚠ Rate limit hit during $pass_type pass — skipping"
+      return 0
+    fi
+
+    local pass_status pass_item pass_note
+    pass_status=$(echo "$pass_output" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
+    pass_item=$(echo "$pass_output" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
+    pass_note=$(echo "$pass_output" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+
+    if [ "$pass_status" = "done" ]; then
+      echo "  ✓ $pass_type pass: ${pass_item:-done}"
+      [ -n "$pass_note" ] && echo "    $pass_note"
+      git_commit_and_push "chore(backlog): $pass_type pass – ${pass_item:-maintenance}"
+    else
+      echo "  · $pass_type pass: ${pass_status:-no result} — ${pass_note:-skipped}"
+    fi
+    return 0
+  fi
+
   # Set up isolated worktree for the pass (use a local ref to avoid
   # clobbering the outer WORKTREE_DIR used by the EXIT trap)
   local saved_worktree="$WORKTREE_DIR"
@@ -766,6 +837,7 @@ echo "  Model:  $MODEL"
 if [ "$PASS_MODEL" != "$MODEL" ]; then
   echo "  Pass model: $PASS_MODEL"
 fi
+echo "  Mode:   $( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "parallel (worktrees)" || echo "single (no worktrees)" )"
 echo "  Log:    $RUNNER_LOG"
 if [ "$PASSES_ENABLED" -eq 1 ]; then
   echo "  Passes: enabled (every $PASS_FREQUENCY items)"
@@ -866,15 +938,17 @@ while true; do
   fi
   echo "  → $CLAIMED_ITEM"
 
-  # ── Set up isolated worktree for the agent ──
-  if ! setup_worktree; then
-    echo "  Failed to set up worktree — unclaiming item"
-    update_item_status " " "$CLAIMED_ITEM"
-    CLAIMED_ITEM=""
-    sleep 5 || true
-    continue
+  # ── Set up isolated worktree for the agent (parallel mode only) ──
+  if [ "$WORKTREES_ENABLED" -eq 1 ]; then
+    if ! setup_worktree; then
+      echo "  Failed to set up worktree — unclaiming item"
+      update_item_status " " "$CLAIMED_ITEM"
+      CLAIMED_ITEM=""
+      sleep 5 || true
+      continue
+    fi
+    echo "  Worktree: $WORKTREE_DIR"
   fi
-  echo "  Worktree: $WORKTREE_DIR"
 
   # ── Run the agent ──
   echo "  Running agent… (started $(date '+%H:%M:%S'))"
@@ -882,7 +956,8 @@ while true; do
     PROMPT_FILE=$(mktemp)
     cat "$SCRIPT_DIR/CLAUDE.md" > "$PROMPT_FILE"
     printf '\n---\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n%s\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n' "$CLAIMED_ITEM" >> "$PROMPT_FILE"
-    OUTPUT=$(cat "$PROMPT_FILE" | (cd "$WORKTREE_DIR" && amp --dangerously-allow-all) 2>&1 | tee /dev/stderr) || true
+    AGENT_WORKDIR="$( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "$WORKTREE_DIR" || echo "$PROJECT_ROOT" )"
+    OUTPUT=$(cat "$PROMPT_FILE" | (cd "$AGENT_WORKDIR" && amp --dangerously-allow-all) 2>&1 | tee /dev/stderr) || true
     rm -f "$PROMPT_FILE"
   else
     # Build context file: patterns + recent progress + assigned item
@@ -895,10 +970,10 @@ while true; do
 
     AGENT_TMP=$(mktemp)
     AGENT_ERR=$(mktemp)
+    AGENT_WORKDIR="$( [ "$WORKTREES_ENABLED" -eq 1 ] && echo "$WORKTREE_DIR" || echo "$PROJECT_ROOT" )"
     # Run agent in background so the parent's wait builtin is interruptible by
     # Ctrl+C (fires graceful_stop) without killing the agent process itself.
-    # Agent runs inside the worktree for file isolation.
-    (cd "$WORKTREE_DIR" && trap '' INT; claude \
+    (cd "$AGENT_WORKDIR" && trap '' INT; claude \
       --dangerously-skip-permissions \
       --print \
       --no-session-persistence \
@@ -934,7 +1009,7 @@ while true; do
         echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
         update_item_status " " "$CLAIMED_ITEM"
         CLAIMED_ITEM=""
-        teardown_worktree
+        [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
         sleep 60 || true
         continue
       fi
@@ -955,7 +1030,7 @@ while true; do
       echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
-      teardown_worktree
+      [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
       sleep 60 || true
       continue
     fi
@@ -976,16 +1051,24 @@ while true; do
       CONSECUTIVE_FAILURES=0
       PUSH_ITEM="${ITEM_FROM_AGENT:-$CLAIMED_ITEM}"
       echo ""
-      echo "  Merging to main: $PUSH_ITEM"
-      if merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
-        update_item_status "x" "$CLAIMED_ITEM"
-        echo "  ✓ Merged and marked done"
+      if [ "$WORKTREES_ENABLED" -eq 1 ]; then
+        echo "  Merging to main: $PUSH_ITEM"
+        if merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
+          update_item_status "x" "$CLAIMED_ITEM"
+          echo "  ✓ Merged and marked done"
+        else
+          echo "  ✗ Cherry-pick conflict — marked failed"
+          update_item_status "!" "$CLAIMED_ITEM"
+        fi
+        CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
+        teardown_worktree
       else
-        echo "  ✗ Cherry-pick conflict — marked failed"
-        update_item_status "!" "$CLAIMED_ITEM"
+        echo "  Committing: $PUSH_ITEM"
+        git_commit_and_push "chore(backlog): done – $PUSH_ITEM"
+        update_item_status "x" "$CLAIMED_ITEM"
+        CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
+        echo "  ✓ Committed and marked done"
       fi
-      CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
-      teardown_worktree
 
       # Milestone maintenance passes (skip if stop was requested or passes disabled)
       TOTAL_DONE=$(increment_completed_count)
@@ -1021,14 +1104,14 @@ while true; do
       update_item_status "!" "$CLAIMED_ITEM"
       echo "  [$CONSECUTIVE_FAILURES/$MAX_CONSECUTIVE_FAILURES consecutive failures]"
       CLAIMED_ITEM=""
-      teardown_worktree
+      [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
       ;;
     *)
       CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
       echo "  ⚠ Agent returned unexpected status '$STATUS' — unclaiming item [$CONSECUTIVE_FAILURES/$MAX_CONSECUTIVE_FAILURES]"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
-      teardown_worktree
+      [ "$WORKTREES_ENABLED" -eq 1 ] && teardown_worktree
       ;;
   esac
 

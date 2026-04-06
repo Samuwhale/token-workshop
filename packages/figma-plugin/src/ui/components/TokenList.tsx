@@ -140,6 +140,14 @@ export function TokenList({
     return map;
   }, [generators]);
 
+  const generatorTargetGroups = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const gen of generators ?? []) {
+      if (gen.targetGroup) map.set(gen.targetGroup, gen.name || gen.type);
+    }
+    return map;
+  }, [generators]);
+
   // Expand/collapse state managed by useTokenExpansion (called below)
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
@@ -1828,6 +1836,7 @@ export function TokenList({
     cascadeDiff,
     generatorsBySource,
     derivedTokenPaths,
+    generatorTargetGroups,
     tokenUsageCounts,
     searchHighlight,
     selectedNodes,
@@ -1901,7 +1910,7 @@ export function TokenList({
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
-    generatorsBySource, derivedTokenPaths, tokenUsageCounts, searchHighlight,
+    generatorsBySource, derivedTokenPaths, generatorTargetGroups, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
     requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
@@ -3074,7 +3083,7 @@ export function TokenList({
       {/* Scrollable token content with virtual scroll */}
       <div
         ref={virtualListRef}
-        className="flex-1 overflow-y-auto"
+        className={`flex-1 overflow-y-auto${operationLoading ? ' opacity-50 pointer-events-none' : ''}`}
         onScroll={e => { const top = e.currentTarget.scrollTop; virtualScrollTopRef.current = top; setVirtualScrollTop(top); }}
       >
       <TokenTreeProvider value={treeCtx}>

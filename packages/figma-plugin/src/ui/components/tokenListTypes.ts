@@ -254,6 +254,8 @@ export interface TokenTreeContextType {
   cascadeDiff?: Record<string, { before: any; after: any }>;
   generatorsBySource?: Map<string, TokenGenerator[]>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
+  /** Maps generator target group paths to generator name — for ancestry badges on group headers */
+  generatorTargetGroups?: Map<string, string>;
   tokenUsageCounts?: Record<string, number>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
