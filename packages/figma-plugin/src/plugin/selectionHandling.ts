@@ -1,5 +1,5 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
-import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue } from '../shared/types.js';
+import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue, DimensionValue, BorderValue, ShadowTokenValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
@@ -12,7 +12,8 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
   switch (property) {
     case 'fill':
       if ('fills' in node) {
-        const color = parseColor(typeof value === 'string' ? value : value?.color || value);
+        const colorVal = value as (Record<string, unknown> | string | null);
+        const color = parseColor(typeof value === 'string' ? value : (colorVal as { color?: string })?.color as string || value as string);
         if (color) {
           (node as GeometryMixin & SceneNode).fills = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
         }
@@ -22,19 +23,21 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
     case 'stroke':
       if ('strokes' in node) {
         const strokeNode = node as GeometryMixin & SceneNode;
-        if (tokenType === 'border' && typeof value === 'object') {
-          const color = parseColor(value.color);
+        if (tokenType === 'border' && typeof value === 'object' && value !== null) {
+          const borderVal = value as BorderValue;
+          const color = parseColor(borderVal.color);
           if (color) {
             strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
           }
-          if ('strokeWeight' in node && value.width != null) {
-            (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value.width);
+          if ('strokeWeight' in node && borderVal.width != null) {
+            (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(borderVal.width);
           }
-          if ('dashPattern' in node && value.style === 'dashed') {
+          if ('dashPattern' in node && borderVal.style === 'dashed') {
             (node as Record<string, unknown>)['dashPattern'] = [8, 8];
           }
         } else {
-          const color = parseColor(typeof value === 'string' ? value : value?.color || value);
+          const colorVal = value as (Record<string, unknown> | string | null);
+          const color = parseColor(typeof value === 'string' ? value : (colorVal as { color?: string })?.color as string || value as string);
           if (color) {
             strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
           }
@@ -44,7 +47,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'width':
       if ('resize' in node) {
-        const w = parseDimValue(value);
+        const w = parseDimValue(value as string | number | DimensionValue | null);
         const resizableW = node as SceneNode & { resize(w: number, h: number): void; height: number };
         resizableW.resize(w, resizableW.height);
       }
@@ -52,40 +55,40 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'height':
       if ('resize' in node) {
-        const h = parseDimValue(value);
+        const h = parseDimValue(value as string | number | DimensionValue | null);
         const resizableH = node as SceneNode & { resize(w: number, h: number): void; width: number };
         resizableH.resize(resizableH.width, h);
       }
       break;
 
     case 'paddingTop':
-      if ('paddingTop' in node) (node as Record<string, unknown>)['paddingTop'] = parseDimValue(value);
+      if ('paddingTop' in node) (node as Record<string, unknown>)['paddingTop'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingRight':
-      if ('paddingRight' in node) (node as Record<string, unknown>)['paddingRight'] = parseDimValue(value);
+      if ('paddingRight' in node) (node as Record<string, unknown>)['paddingRight'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingBottom':
-      if ('paddingBottom' in node) (node as Record<string, unknown>)['paddingBottom'] = parseDimValue(value);
+      if ('paddingBottom' in node) (node as Record<string, unknown>)['paddingBottom'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
     case 'paddingLeft':
-      if ('paddingLeft' in node) (node as Record<string, unknown>)['paddingLeft'] = parseDimValue(value);
+      if ('paddingLeft' in node) (node as Record<string, unknown>)['paddingLeft'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'itemSpacing':
-      if ('itemSpacing' in node) (node as Record<string, unknown>)['itemSpacing'] = parseDimValue(value);
+      if ('itemSpacing' in node) (node as Record<string, unknown>)['itemSpacing'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'cornerRadius':
-      if ('cornerRadius' in node) (node as Record<string, unknown>)['cornerRadius'] = parseDimValue(value);
+      if ('cornerRadius' in node) (node as Record<string, unknown>)['cornerRadius'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'strokeWeight':
-      if ('strokeWeight' in node) (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value);
+      if ('strokeWeight' in node) (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value as string | number | DimensionValue | null);
       break;
 
     case 'opacity':
       if ('opacity' in node) {
-        let num = typeof value === 'number' ? value : parseFloat(value);
+        let num = typeof value === 'number' ? value : parseFloat(String(value));
         // DTCG number tokens for opacity should be 0–1, but values > 1 indicate
         // a percentage (0–100) — normalize to 0–1 to avoid silent clamping.
         if (!isNaN(num)) {
@@ -127,7 +130,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'shadow':
       if ('effects' in node) {
-        (node as Record<string, unknown>)['effects'] = shadowTokenToEffects(value);
+        (node as Record<string, unknown>)['effects'] = shadowTokenToEffects(value as ShadowTokenValue | ShadowTokenValue[]);
       }
       break;
 
@@ -517,14 +520,14 @@ export async function extractTokensFromSelection() {
           (e.type === 'DROP_SHADOW' || e.type === 'INNER_SHADOW') && e.visible !== false
         ) as (DropShadowEffect | InnerShadowEffect)[];
         if (shadows.length > 0) {
-          const shadowValue = shadows.map((s) => ({
+          const shadowValue: ShadowTokenValue[] = shadows.map((s) => ({
             type: s.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
             color: rgbToHex(s.color, s.color.a ?? 1),
             offsetX: { value: s.offset.x, unit: 'px' },
             offsetY: { value: s.offset.y, unit: 'px' },
             blur: { value: s.radius, unit: 'px' },
             spread: { value: (s as DropShadowEffect).spread ?? 0, unit: 'px' },
-          }));
+          } as ShadowTokenValue));
           entries.push({
             property: 'shadow',
             tokenType: 'shadow',
@@ -824,7 +827,7 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
           let type = entry.$type;
           if (isAlias(value)) {
             const resolved = resolveTokenValue(value, type, tokenMap);
-            if (resolved.error) {
+            if (resolved.error || resolved.value === null) {
               console.warn(`Alias resolution failed for ${tokenPath}: ${resolved.error}`);
               skipped++;
               continue;

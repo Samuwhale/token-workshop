@@ -372,7 +372,7 @@ export function ThemeManagerModals() {
       {/* Bulk set-status context menu */}
       {bulkMenu && (
         <div
-          ref={bulkMenuRef}
+          ref={bulkMenuRef as React.LegacyRef<HTMLDivElement>}
           role="menu"
           aria-label={`Set "${bulkMenu.setName}" in all options`}
           className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px]"

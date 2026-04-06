@@ -765,7 +765,7 @@ export function App() {
       setTokenListSelection([]);
       pushUndo({
         description: paths.length === 1 ? `Delete "${paths[0]}"` : `Delete ${paths.length} tokens`,
-        undo: async () => {
+        restore: async () => {
           for (const [path, token] of Object.entries(snapshot)) {
             await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`, {
               method: 'PUT',

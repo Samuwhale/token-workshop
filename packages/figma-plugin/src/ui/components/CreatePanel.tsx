@@ -1285,7 +1285,7 @@ function BulkTab({
       try {
         const parsed = JSON.parse(text) as Record<string, unknown>;
         if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-          const flat = flattenTokenGroup(parsed);
+          const flat = flattenTokenGroup(parsed as import('@tokenmanager/core').DTCGGroup);
           if (flat.size > 0) {
             e.preventDefault();
             const newRows = Array.from(flat.entries()).map(([path, token]) => {

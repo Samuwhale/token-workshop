@@ -31,7 +31,7 @@ export function resolveTokenValue(
 
   const visited = new Set<string>();
   const chain: string[] = [];
-  let current = value;
+  let current: TokenValue | TokenReference = value;
   let currentType = $type;
 
   for (let depth = 0; depth < maxDepth; depth++) {

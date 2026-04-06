@@ -31,7 +31,7 @@ export interface ParseResult {
 
 export function inferType(value: string): { $type: string; $value: unknown } {
   const trimmed = value.trim();
-  if (isReference(trimmed)) {
+  if (isReference(trimmed as unknown)) {
     return { $type: 'color', $value: trimmed }; // alias — type unknown at parse time
   }
   if (/^#([0-9a-fA-F]{3,8})$/.test(trimmed)) {
@@ -385,7 +385,7 @@ export function parseInput(raw: string): ParseResult {
   if (trimmed.startsWith('{')) {
     // Try DTCG JSON first
     try {
-      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const parsed = JSON.parse(trimmed) as DTCGGroup;
       const tokens = flattenDTCG(parsed);
       if (tokens.length > 0) {
         return { tokens, errors: [], skipped: [], format: 'dtcg' };

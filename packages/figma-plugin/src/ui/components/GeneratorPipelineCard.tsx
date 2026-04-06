@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, ShadowScaleConfig, DarkModeInversionConfig, AccessibleColorPairConfig, GeneratorType, GeneratorConfig, BorderRadiusScaleConfig, CustomScaleConfig, ContrastCheckConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch } from '../shared/apiFetch';
@@ -31,7 +31,7 @@ export function getGeneratorTypeLabel(type: GeneratorType): string {
 }
 
 export function getGeneratorStepCount(generator: TokenGenerator): number {
-  const cfg = generator.config as Record<string, unknown>;
+  const cfg = generator.config as unknown as Record<string, unknown>;
   const steps = cfg.steps;
   if (Array.isArray(steps)) return steps.length;
   return 0;
@@ -850,7 +850,7 @@ export function GeneratorPipelineCard({
   };
 
   return (
-    <div ref={isFocused ? focusRef : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? 'opacity-60 border-[var(--color-figma-border)] border-dashed' : hasError ? 'border-[var(--color-figma-error)]' : isStale ? 'border-yellow-400/70' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
+    <div ref={isFocused ? focusRef as React.LegacyRef<HTMLDivElement> : undefined} className={`p-3 rounded border bg-[var(--color-figma-bg)] transition-all duration-500 ${!isEnabled ? 'opacity-60 border-[var(--color-figma-border)] border-dashed' : hasError ? 'border-[var(--color-figma-error)]' : isStale ? 'border-yellow-400/70' : isFocused ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}

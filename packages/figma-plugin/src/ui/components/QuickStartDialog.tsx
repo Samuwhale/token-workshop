@@ -140,7 +140,7 @@ export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
 // ---------------------------------------------------------------------------
 
 export function getTemplateStepNames(t: GeneratorTemplate): string[] {
-  const cfg = t.config as Record<string, unknown>;
+  const cfg = t.config as unknown as Record<string, unknown>;
   const steps = cfg.steps as Array<Record<string, unknown>> | undefined;
   if (!steps) return [];
   return steps.map(s => String(s.name ?? s.value ?? ''));

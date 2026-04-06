@@ -251,7 +251,7 @@ function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
 }
 
 function getStepCount(gen: TokenGenerator): number {
-  const cfg = gen.config as Record<string, unknown>;
+  const cfg = gen.config as unknown as Record<string, unknown>;
   if (Array.isArray(cfg.steps)) return (cfg.steps as unknown[]).length;
   return 0;
 }

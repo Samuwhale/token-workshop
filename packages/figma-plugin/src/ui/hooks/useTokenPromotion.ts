@@ -47,7 +47,7 @@ export function useTokenPromotion({
     walk(tokens);
 
     const sourcePaths = pathsOverride ?? selectedPaths;
-    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value));
+    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value as import('@tokenmanager/core').TokenValue | undefined));
     const rows: PromoteRow[] = selectedFlat.map(t => {
       const candidates = Object.entries(allTokensFlat).filter(
         ([candidatePath, entry]) => candidatePath !== t.path && entry.$type === t.$type && !isAlias(entry.$value),

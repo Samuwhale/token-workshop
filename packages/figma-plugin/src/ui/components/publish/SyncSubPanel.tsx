@@ -292,7 +292,7 @@ export function SyncSubPanel({
               </svg>
               {inSyncMessage}
             </div>
-            {sync.snapshot && (
+            {!!sync.snapshot && (
               <div className="mt-2 flex flex-col gap-1">
                 {revertPending ? (
                   <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">

@@ -229,6 +229,11 @@ export interface BorderValue {
   style: string;
 }
 
+/** Object variant of ResolvedTokenValue — breaks the recursive type alias cycle. */
+export interface ResolvedTokenObject {
+  [key: string]: unknown;
+}
+
 /**
  * Union of all resolved DTCG token values that flow through the plugin sandbox.
  * Covers primitives, dimension objects, composite token shapes, and null.
@@ -242,7 +247,7 @@ export type ResolvedTokenValue =
   | ShadowTokenValue[]
   | TypographyValue
   | BorderValue
-  | Record<string, ResolvedTokenValue>
+  | ResolvedTokenObject
   | null;
 
 // ─── Variable sync token types ────────────────────────────────────────────────
@@ -980,7 +985,9 @@ export type ControllerMessage =
   | SelectNextSiblingResultMessage
   | CanvasHeatmapProgressMessage
   | CanvasHeatmapResultMessage
+  | CanvasHeatmapErrorMessage
   | ComponentCoverageResultMessage
+  | ComponentCoverageErrorMessage
   | ExtractedTokensResponseMessage
   | SelectionResponseMessage
   | LayerSearchResultMessage

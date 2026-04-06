@@ -73,7 +73,7 @@ export function useImportConflicts({
     setExistingTokenMapError(null);
     apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
       .then(data => {
-        const flat = flattenTokenGroup(data.tokens ?? {});
+        const flat = flattenTokenGroup((data.tokens ?? {}) as import('@tokenmanager/core').DTCGGroup);
         const map = new Map<string, { $type: string; $value: unknown }>();
         for (const [path, tok] of flat) {
           map.set(path, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
@@ -152,7 +152,7 @@ export function useImportConflicts({
           if (fetchId !== varConflictFetchIdRef.current) return;
           const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`);
           if (fetchId !== varConflictFetchIdRef.current) return;
-          const flat = flattenTokenGroup(data.tokens ?? {});
+          const flat = flattenTokenGroup((data.tokens ?? {}) as import('@tokenmanager/core').DTCGGroup);
           for (const t of mode.tokens) {
             if (flat.has(t.path)) {
               const ex = flat.get(t.path);

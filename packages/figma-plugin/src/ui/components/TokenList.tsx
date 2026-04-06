@@ -945,7 +945,7 @@ export function TokenList({
       }
     };
     walk(tokens);
-    return flat.filter(t => duplicateValuePaths.has(t.path) && !isAlias(t.$value)).length;
+    return flat.filter(t => duplicateValuePaths.has(t.path) && !isAlias(t.$value as import('@tokenmanager/core').TokenValue | undefined)).length;
   }, [tokens, duplicateValuePaths]);
 
   // handleListKeyDown is defined after custom hook calls to avoid TDZ
@@ -2282,7 +2282,7 @@ export function TokenList({
               )}
 
               {/* Density toggle */}
-              {(viewMode === 'tree' || viewMode === 'table') && (
+              {viewMode === 'tree' && (
                 <>
                   <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
                   <button

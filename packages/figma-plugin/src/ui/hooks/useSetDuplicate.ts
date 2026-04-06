@@ -7,7 +7,7 @@ interface UseSetDuplicateParams {
   getDisconnectSignal: () => AbortSignal;
   sets: string[];
   tokenCounts: Record<string, number>;
-  addSetToState: (name: string, count?: number) => void;
+  addSetToState: (name: string, count: number) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;

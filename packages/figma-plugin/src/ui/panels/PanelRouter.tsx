@@ -81,7 +81,7 @@ export interface PanelRouterProps {
 
   // Font data
   availableFonts: string[];
-  fontWeightsByFamily: Record<string, string[]>;
+  fontWeightsByFamily: Record<string, number[]>;
 
   // Token list display state
   showIssuesOnly: boolean;
@@ -126,8 +126,8 @@ export interface PanelRouterProps {
   // Generator / graph state
   pendingGraphTemplate: string | null;
   setPendingGraphTemplate: (id: string | null) => void;
-  pendingGraphFromGroup: { groupPath: string; tokenType?: string } | null;
-  setPendingGraphFromGroup: (v: { groupPath: string; tokenType?: string } | null) => void;
+  pendingGraphFromGroup: { groupPath: string; tokenType: string | null } | null;
+  setPendingGraphFromGroup: (v: { groupPath: string; tokenType: string | null } | null) => void;
   focusGeneratorId: string | null;
   setFocusGeneratorId: (id: string | null) => void;
   pendingOpenPicker: boolean;
@@ -265,7 +265,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
       p.setGroupScopesSelected([]);
       p.setGroupScopesError(null);
     },
-    onGenerateScaleFromGroup: (groupPath: string, tokenType?: string) => {
+    onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
       p.setPendingGraphFromGroup({ groupPath, tokenType });
       navigateTo('define', 'generators');
     },

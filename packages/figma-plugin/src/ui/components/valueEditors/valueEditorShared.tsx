@@ -372,8 +372,8 @@ export function FontFamilySubProp({
 }
 
 export function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
-  if (isAlias(raw)) {
-    const entry = allTokensFlat[extractAliasPath(raw)!];
+  if (isAlias(raw as import('@tokenmanager/core').TokenValue | undefined)) {
+    const entry = allTokensFlat[extractAliasPath(raw as import('@tokenmanager/core').TokenValue)!];
     if (entry) return entry.$value;
   }
   return raw;

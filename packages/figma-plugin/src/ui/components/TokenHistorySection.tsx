@@ -132,7 +132,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
         <div className="px-3 pb-3">
           {loading && entries.length === 0 && (
             <div className="flex items-center gap-2 py-2">
-              <Spinner size={12} />
+              <Spinner size="sm" />
               <span className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading history…</span>
             </div>
           )}

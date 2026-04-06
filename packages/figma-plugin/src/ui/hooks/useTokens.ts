@@ -262,24 +262,26 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
     if (key.startsWith('$')) continue;
     const path = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && '$value' in value) {
+      const token = value as import('@tokenmanager/core').DTCGToken;
       nodes.push({
         path,
         name: key,
-        $type: value.$type,
-        $value: value.$value,
-        $description: value.$description,
-        $extensions: value.$extensions,
+        $type: token.$type,
+        $value: token.$value as import('@tokenmanager/core').TokenValue | undefined,
+        $description: token.$description,
+        $extensions: token.$extensions as Record<string, unknown> | undefined,
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const grp = value as import('@tokenmanager/core').DTCGGroup;
       nodes.push({
         path,
         name: key,
-        $type: value.$type,
-        $description: value.$description,
-        $extensions: value.$extensions,
+        $type: grp.$type,
+        $description: grp.$description,
+        $extensions: grp.$extensions,
         isGroup: true,
-        children: buildTree(value, path),
+        children: buildTree(grp, path),
       });
     }
   }

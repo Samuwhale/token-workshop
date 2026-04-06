@@ -906,7 +906,7 @@ export function SelectionInspector({
             )}
             {mixedBindings > 0 && (
               <button
-                onClick={() => setPropFilterMode(prev => prev === 'mixed' ? 'all' : 'mixed')}
+                onClick={() => setPropFilterMode(propFilterMode === 'mixed' ? 'all' : 'mixed')}
                 title={propFilterMode === 'mixed' ? 'Show all properties' : 'Show only mixed properties'}
                 className={`px-1.5 py-0.5 rounded-full font-medium transition-colors ${
                   propFilterMode === 'mixed'
@@ -1098,7 +1098,7 @@ export function SelectionInspector({
       {suggestions.length > 0 && (
         <SuggestedTokens
           suggestions={suggestions}
-          onApply={handleBindToken}
+          onApply={(tokenPath, property) => handleBindToken(property, tokenPath)}
           onNavigateToToken={onNavigateToToken}
         />
       )}
@@ -1133,7 +1133,7 @@ export function SelectionInspector({
           {(['bound', 'unbound', 'colors', 'dimensions'] as const).map(mode => (
             <button
               key={mode}
-              onClick={() => setPropFilterMode(prev => prev === mode ? 'all' : mode)}
+              onClick={() => setPropFilterMode(propFilterMode === mode ? 'all' : mode)}
               className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
                 propFilterMode === mode
                   ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
@@ -1145,7 +1145,7 @@ export function SelectionInspector({
           ))}
           {mixedBindings > 0 && (
             <button
-              onClick={() => setPropFilterMode(prev => prev === 'mixed' ? 'all' : 'mixed')}
+              onClick={() => setPropFilterMode(propFilterMode === 'mixed' ? 'all' : 'mixed')}
               className={`text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-colors ${
                 propFilterMode === 'mixed'
                   ? 'bg-[var(--color-figma-warning,#f5a623)]/20 text-[var(--color-figma-warning,#f5a623)] font-medium'

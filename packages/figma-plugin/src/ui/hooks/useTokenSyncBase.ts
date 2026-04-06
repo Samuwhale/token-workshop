@@ -34,6 +34,8 @@ export interface DiffRowBase {
   cat: 'local-only' | 'figma-only' | 'conflict';
   localType?: string;
   figmaType?: string;
+  localScopes?: string[];
+  figmaScopes?: string[];
 }
 
 // ── Configuration callbacks ──
@@ -168,7 +170,7 @@ export function useTokenSyncBase<TRow extends DiffRowBase>(
         `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`,
         { signal: createFetchSignal() },
       );
-      const localTokens = flattenTokenGroup(data.tokens || {});
+      const localTokens = flattenTokenGroup((data.tokens || {}) as import('@tokenmanager/core').DTCGGroup);
 
       const figmaMap = cfg.buildFigmaMap(figmaTokens);
       const localMap = cfg.buildLocalMap(localTokens);

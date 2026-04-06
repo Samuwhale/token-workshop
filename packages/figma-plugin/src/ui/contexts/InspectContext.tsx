@@ -44,7 +44,7 @@ export interface HeatmapContextValue {
   heatmapError: string | null;
   heatmapProgress: HeatmapProgress | null;
   heatmapScope: ScanScope;
-  setScanScope: (scope: ScanScope) => void;
+  setHeatmapScope: (scope: ScanScope) => void;
   triggerHeatmapScan: (scope?: ScanScope) => void;
   cancelHeatmapScan: () => void;
 }
@@ -117,7 +117,7 @@ function HeatmapProvider({ children }: { children: ReactNode }) {
   const value = useMemo<HeatmapContextValue>(
     () => ({
       heatmapResult, heatmapLoading, heatmapError, heatmapProgress,
-      heatmapScope, setScanScope, triggerHeatmapScan, cancelHeatmapScan,
+      heatmapScope, setHeatmapScope: setScanScope, triggerHeatmapScan, cancelHeatmapScan,
     }),
     [
       heatmapResult, heatmapLoading, heatmapError, heatmapProgress,

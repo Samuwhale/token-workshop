@@ -196,7 +196,7 @@ export async function scanConsistency(
     }
 
     const colorIndex = buildColorIndex(colorTokens);
-    const dimIndex = buildSortedNumericIndex(dimTokens, (v) => parseDimValue(v));
+    const dimIndex = buildSortedNumericIndex(dimTokens, (v) => parseDimValue(v as Parameters<typeof parseDimValue>[0]));
     const numIndex = buildSortedNumericIndex(numTokens, (v) =>
       typeof v === 'number' ? v : parseFloat(String(v)),
     );

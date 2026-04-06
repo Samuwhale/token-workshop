@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useImportPanel } from './ImportPanelContext';
 
 export function ImportSourceSelector() {
@@ -103,7 +103,7 @@ export function ImportSourceSelector() {
         </svg>
       </button>
       <input
-        ref={fileInputRef}
+        ref={fileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
         accept=".json,application/json"
         className="sr-only"
@@ -133,7 +133,7 @@ export function ImportSourceSelector() {
         </svg>
       </button>
       <input
-        ref={tokensStudioFileInputRef}
+        ref={tokensStudioFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
         accept=".json,application/json"
         className="sr-only"
@@ -164,7 +164,7 @@ export function ImportSourceSelector() {
         </svg>
       </button>
       <input
-        ref={cssFileInputRef}
+        ref={cssFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
         accept=".css,text/css"
         className="sr-only"
@@ -189,7 +189,7 @@ export function ImportSourceSelector() {
         </svg>
       </button>
       <input
-        ref={tailwindFileInputRef}
+        ref={tailwindFileInputRef as React.LegacyRef<HTMLInputElement>}
         type="file"
         accept=".js,.ts,.mjs,.cjs"
         className="sr-only"

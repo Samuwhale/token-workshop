@@ -12,7 +12,7 @@ interface UseSetTabsParams {
   sets: string[];
   setSets: (sets: string[]) => void;
   activeSet: string;
-  addSetToState: (name: string, count?: number) => void;
+  addSetToState: (name: string, count: number) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;

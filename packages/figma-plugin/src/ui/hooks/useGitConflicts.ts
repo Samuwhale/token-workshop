@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
@@ -24,7 +24,7 @@ interface UseGitConflictsOptions {
 export interface UseGitConflictsReturn {
   mergeConflicts: FileConflict[];
   conflictChoices: Record<string, Record<number, 'ours' | 'theirs'>>;
-  setConflictChoices: (v: Record<string, Record<number, 'ours' | 'theirs'>>) => void;
+  setConflictChoices: Dispatch<SetStateAction<Record<string, Record<number, 'ours' | 'theirs'>>>>;
   resolvingConflicts: boolean;
   fetchConflicts: () => Promise<void>;
   resolveConflicts: () => Promise<void>;

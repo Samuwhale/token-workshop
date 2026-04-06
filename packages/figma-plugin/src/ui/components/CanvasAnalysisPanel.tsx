@@ -37,7 +37,7 @@ export function CanvasAnalysisPanel({
 
   const {
     heatmapScope,
-    setScanScope,
+    setHeatmapScope,
     triggerHeatmapScan,
     cancelHeatmapScan,
   } = useHeatmapContext();
@@ -49,7 +49,7 @@ export function CanvasAnalysisPanel({
         {/* Scope selector — only relevant for coverage/suggestions tabs */}
         {activeTab !== 'components' && (
           <div className="mr-3">
-            <ScanScopeSelector value={heatmapScope} onChange={setScanScope} showLabel />
+            <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
           </div>
         )}
 

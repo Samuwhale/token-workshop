@@ -217,9 +217,8 @@ export function HealthPanel({
   // Load suppressions from server on mount / reconnect
   useEffect(() => {
     if (!connected || !serverUrl) return;
-    apiFetch(`${serverUrl}/api/lint/suppressions`)
-      .then(r => r.json())
-      .then((data: { suppressions: string[] }) => {
+    apiFetch<{ suppressions: string[] }>(`${serverUrl}/api/lint/suppressions`)
+      .then((data) => {
         if (Array.isArray(data.suppressions)) {
           setSuppressedKeys(new Set(data.suppressions));
         }
@@ -297,7 +296,7 @@ export function HealthPanel({
       visited.add(path);
       const entry = allTokensUnified[path];
       if (!entry || entry.$type !== 'color') return null;
-      const v = entry.$value;
+      const v = entry.$value as import('@tokenmanager/core').TokenValue;
       if (isAlias(v)) {
         const aliasPath = extractAliasPath(v);
         return aliasPath ? resolveColorHex(aliasPath, visited) : null;
@@ -312,7 +311,7 @@ export function HealthPanel({
     const colors: { path: string; hex: string }[] = [];
     for (const [path, entry] of Object.entries(allTokensUnified)) {
       if (entry.$type !== 'color') continue;
-      if (isAlias(entry.$value)) continue;
+      if (isAlias(entry.$value as import('@tokenmanager/core').TokenValue)) continue;
       const v = entry.$value;
       if (typeof v !== 'string' || !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) continue;
       colors.push({ path, hex: normalizeHex(v) });

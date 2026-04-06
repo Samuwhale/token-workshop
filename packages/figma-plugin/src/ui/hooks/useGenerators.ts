@@ -178,6 +178,8 @@ export interface TokenGenerator {
   overrides?: Record<string, StepOverride>;
   inputTable?: InputTable;
   targetSetTemplate?: string;
+  /** When false, the generator is disabled and skipped during auto-run. Defaults to true. */
+  enabled?: boolean;
   createdAt: string;
   updatedAt: string;
   /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
@@ -245,7 +247,7 @@ function getStepNames(config: Record<string, unknown>): string[] {
 }
 
 function computeDerivedPaths(generator: TokenGenerator): string[] {
-  return getStepNames(generator.config as Record<string, unknown>).map(
+  return getStepNames(generator.config as unknown as Record<string, unknown>).map(
     (name) => `${generator.targetGroup}.${name}`,
   );
 }

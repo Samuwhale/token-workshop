@@ -253,7 +253,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       <div className="flex flex-col items-center justify-center flex-1 p-6 gap-3 text-center">
         <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
         <button
-          onClick={fetchCommits}
+          onClick={() => void fetchCommits()}
           className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
         >
           Retry

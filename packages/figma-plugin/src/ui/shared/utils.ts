@@ -27,8 +27,10 @@ export function getErrorMessage(err: unknown, fallback = 'An unexpected error oc
 }
 
 /** Build a user-facing error string for a failed operation. */
-export function describeError(err: unknown, operation: string): string {
-  return `${operation} failed: ${getErrorMessage(err, String(err))}`;
+export function describeError(err: unknown, operation?: string): string {
+  return operation
+    ? `${operation} failed: ${getErrorMessage(err, String(err))}`
+    : getErrorMessage(err, String(err));
 }
 
 /** Log a caught error with a context label. Returns the formatted message string. */

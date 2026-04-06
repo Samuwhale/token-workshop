@@ -72,5 +72,5 @@ export async function buildZipBlobAsync(
   w16(ev, 8, files.length); w16(ev, 10, files.length);
   w32(ev, 12, cdSize); w32(ev, 16, offset); w16(ev, 20, 0);
 
-  return new Blob([...parts, ...centralDir, new Uint8Array(eocd)], { type: 'application/zip' });
+  return new Blob([...(parts as BlobPart[]), ...(centralDir as BlobPart[]), new Uint8Array(eocd) as unknown as BlobPart], { type: 'application/zip' });
 }

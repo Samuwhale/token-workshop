@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { TokenValidator } from '@tokenmanager/core';
-import type { Token } from '@tokenmanager/core';
+import type { Token, TokenValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 import { apiFetch } from '../shared/apiFetch';
@@ -325,36 +325,6 @@ export function BatchEditor({
     return { currentTypes, count: selectedEntries.length, incompatible };
   }, [newType, selectedEntries]);
 
-  // Dry-run: compute numeric transform values for preview
-  const scalePreview = useMemo(() => {
-    if (!numericTransformActive) return null;
-    const operand = parseFloat(scaleFactor);
-    if (isNaN(operand)) return null;
-    return selectedEntries
-      .filter(({ entry }) => entry.$type === 'dimension' || entry.$type === 'number')
-      .map(({ path, entry }) => {
-        const result = applyNumericTransform(entry.$value, numericOpMode, operand);
-        if (result === null) return null;
-        return { path, from: entry.$value, to: result };
-      })
-      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
-  }, [numericTransformActive, scaleFactor, numericOpMode, selectedEntries]);
-
-  // Dry-run: compute color adjust values for preview
-  const colorAdjustPreview = useMemo(() => {
-    if (!colorAdjustActive) return null;
-    const amount = parseFloat(colorAdjustAmt);
-    if (isNaN(amount)) return null;
-    return selectedEntries
-      .filter(({ entry }) => entry.$type === 'color')
-      .map(({ path, entry }) => {
-        const result = applyColorAdjust(entry.$value, colorAdjustOp, amount);
-        if (result === null) return null;
-        return { path, from: entry.$value, to: result };
-      })
-      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
-  }, [colorAdjustActive, colorAdjustAmt, colorAdjustOp, selectedEntries]);
-
   const aliasActive = aliasRef !== '' && isAlias(aliasRef);
 
   const setValueActive = setValueInput.trim() !== '';
@@ -415,6 +385,36 @@ export function BatchEditor({
   }, [hasNumericTarget, scaleFactor, numericOpMode]);
 
   const colorAdjustActive = hasColorTarget && colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt));
+
+  // Dry-run: compute numeric transform values for preview
+  const scalePreview = useMemo(() => {
+    if (!numericTransformActive) return null;
+    const operand = parseFloat(scaleFactor);
+    if (isNaN(operand)) return null;
+    return selectedEntries
+      .filter(({ entry }) => entry.$type === 'dimension' || entry.$type === 'number')
+      .map(({ path, entry }) => {
+        const result = applyNumericTransform(entry.$value, numericOpMode, operand);
+        if (result === null) return null;
+        return { path, from: entry.$value, to: result };
+      })
+      .filter(Boolean) as { path: string; from: TokenValue; to: unknown }[];
+  }, [numericTransformActive, scaleFactor, numericOpMode, selectedEntries]);
+
+  // Dry-run: compute color adjust values for preview
+  const colorAdjustPreview = useMemo(() => {
+    if (!colorAdjustActive) return null;
+    const amount = parseFloat(colorAdjustAmt);
+    if (isNaN(amount)) return null;
+    return selectedEntries
+      .filter(({ entry }) => entry.$type === 'color')
+      .map(({ path, entry }) => {
+        const result = applyColorAdjust(entry.$value, colorAdjustOp, amount);
+        if (result === null) return null;
+        return { path, from: entry.$value, to: result };
+      })
+      .filter(Boolean) as { path: string; from: TokenValue; to: string }[];
+  }, [colorAdjustActive, colorAdjustAmt, colorAdjustOp, selectedEntries]);
 
   // Whether a composite transform will actually run (raw input checks, not gated on hasColors/hasScalable)
   const compositeTransformActive = compositeSubPropActive && (
@@ -508,7 +508,7 @@ export function BatchEditor({
         if (result === null) return null;
         return { path, from: entry.$value, to: result };
       })
-      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
+      .filter(Boolean) as { path: string; from: TokenValue; to: string }[];
   }, [opacityActive, opacityPct, selectedEntries]);
 
   // Dry-run: compute set-value preview (current value → new parsed value per token)

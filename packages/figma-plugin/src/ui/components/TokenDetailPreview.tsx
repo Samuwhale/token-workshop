@@ -197,26 +197,31 @@ export function TokenDetailPreview({
         )}
 
         {/* Typography preview */}
-        {type === 'typography' && typeof resolvedValue === 'object' && resolvedValue !== null && (
-          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
-            <div
-              className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
-              style={{
-                fontFamily: resolvedValue.fontFamily || 'inherit',
-                fontWeight: resolvedValue.fontWeight || 400,
-                fontSize: typeof resolvedValue.fontSize === 'object'
-                  ? `${resolvedValue.fontSize.value}${resolvedValue.fontSize.unit}`
-                  : resolvedValue.fontSize ? `${resolvedValue.fontSize}px` : '14px',
-                lineHeight: resolvedValue.lineHeight ? (typeof resolvedValue.lineHeight === 'object'
-                  ? `${resolvedValue.lineHeight.value}${resolvedValue.lineHeight.unit}`
-                  : resolvedValue.lineHeight) : undefined,
-              }}
-            >
-              The quick brown fox
+        {type === 'typography' && typeof resolvedValue === 'object' && resolvedValue !== null && (() => {
+          const tv = resolvedValue as Record<string, unknown>;
+          const fontSize = tv.fontSize as { value: number; unit: string } | string | undefined;
+          const lineHeight = tv.lineHeight as { value: number; unit: string } | string | undefined;
+          return (
+            <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+              <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
+              <div
+                className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
+                style={{
+                  fontFamily: (tv.fontFamily as string) || 'inherit',
+                  fontWeight: (tv.fontWeight as number) || 400,
+                  fontSize: typeof fontSize === 'object' && fontSize
+                    ? `${fontSize.value}${fontSize.unit}`
+                    : fontSize ? `${fontSize}px` : '14px',
+                  lineHeight: lineHeight ? (typeof lineHeight === 'object'
+                    ? `${lineHeight.value}${lineHeight.unit}`
+                    : String(lineHeight)) : undefined,
+                }}
+              >
+                The quick brown fox
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         {/* Value history */}
         {serverUrl && (
           <TokenHistorySection

@@ -264,7 +264,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         figma.variables.getLocalVariableCollectionsAsync(),
         figma.variables.getLocalVariablesAsync(),
       ]);
-      const colsById = new Map(colsAfter.map(c => [c.id, c]));
+      const colsById = new Map<string, VariableCollection>(colsAfter.map(c => [c.id, c] as [string, VariableCollection]));
       for (const colId of [...createdCollectionIds].reverse()) {
         const col = colsById.get(colId);
         if (col) {

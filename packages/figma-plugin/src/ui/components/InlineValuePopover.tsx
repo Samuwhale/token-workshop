@@ -157,7 +157,7 @@ export function InlineValuePopover({
   onOpenFullEditor,
   onClose,
 }: InlineValuePopoverProps) {
-  const isCurrentAlias = isAlias(currentValue);
+  const isCurrentAlias = isAlias(currentValue as import('@tokenmanager/core').TokenValue | undefined);
 
   // Start in alias mode if current value is already an alias
   const [aliasMode, setAliasMode] = useState(isCurrentAlias);
@@ -244,7 +244,7 @@ export function InlineValuePopover({
             if (aliasMode) {
               // Switch to direct value mode — clear alias
               setAliasMode(false);
-              setDraftValue(currentValue && !isAlias(currentValue) ? currentValue : undefined);
+              setDraftValue(currentValue && !isAlias(currentValue as import('@tokenmanager/core').TokenValue | undefined) ? currentValue as import('@tokenmanager/core').TokenValue : undefined);
             } else {
               setAliasMode(true);
               setAliasQuery('');

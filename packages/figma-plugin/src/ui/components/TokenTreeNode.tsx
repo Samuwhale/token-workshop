@@ -1137,17 +1137,6 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
     return () => clearTimeout(timer);
   }, [hovered, node.$type]);
 
-  // Delayed quick-info tooltip for tokens without an alias chain tooltip
-  useEffect(() => {
-    const aliasChainShowing = !!(resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias);
-    if (!hovered || aliasChainShowing || (!node.$type && !node.$description)) {
-      setHoverInfoVisible(false);
-      return;
-    }
-    const timer = setTimeout(() => setHoverInfoVisible(true), 400);
-    return () => clearTimeout(timer);
-  }, [hovered, resolutionSteps, isBrokenAlias, node.$type, node.$description]);
-
   // Memoized alias resolution — expensive traversal, only recompute when value/type/map changes
   const resolveResult = useMemo(
     () => isAlias(node.$value)
@@ -1174,6 +1163,17 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
       allTokensFlat, pathToSet, setThemeMap,
     );
   }, [node.path, node.$value, node.$type, allTokensFlat, pathToSet, setThemeMap]);
+
+  // Delayed quick-info tooltip for tokens without an alias chain tooltip
+  useEffect(() => {
+    const aliasChainShowing = !!(resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias);
+    if (!hovered || aliasChainShowing || (!node.$type && !node.$description)) {
+      setHoverInfoVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setHoverInfoVisible(true), 400);
+    return () => clearTimeout(timer);
+  }, [hovered, resolutionSteps, isBrokenAlias, node.$type, node.$description]);
 
   // Inline quick-edit eligibility
   const canInlineEdit = !isAlias(node.$value) && !!node.$type
@@ -1274,6 +1274,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   }, [node.$value, isBrokenAlias, onNavigateToAlias, node.path]);
 
   const applyWithProperty = useCallback((property: BindableProperty) => {
+    if (node.$value === undefined) return;
     const resolved = resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat);
     if (resolved.error) {
       dispatchToast(`Cannot apply: ${resolved.error}`, 'error');
@@ -1512,7 +1513,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${node.$extensions?.tokenmanager?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 20)}px` }}
       tabIndex={rovingFocusPath === node.path ? 0 : -1}
       data-token-path={node.path}
@@ -1700,7 +1701,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           )}
           {/* Lifecycle badge */}
           {(() => {
-            const lc = node.$extensions?.tokenmanager?.lifecycle;
+            const lc = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
             if (lc === 'draft') return (
               <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400" title="Draft — not yet published">draft</span>
             );
@@ -1711,7 +1712,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           })()}
           {/* Provenance badge — imported/synced source */}
           {(() => {
-            const src = node.$extensions?.tokenmanager?.source;
+            const src = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.source as string | undefined;
             if (!src) return null;
             const labels: Record<string, { label: string; title: string; icon: JSX.Element }> = {
               'figma-variables': { label: 'Figma', title: 'Imported from Figma variables', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
@@ -1734,7 +1735,7 @@ const TokenLeafNode = memo(function TokenLeafNode(props: TokenTreeNodeProps) {
           })()}
           {/* Extends (inheritance) indicator */}
           {(() => {
-            const ext = node.$extensions?.tokenmanager?.extends;
+            const ext = (node.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.extends;
             if (typeof ext === 'string' && ext) return (
               <span
                 title={`Extends ${ext}`}

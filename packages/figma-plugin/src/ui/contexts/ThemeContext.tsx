@@ -22,9 +22,9 @@ import { useConnectionContext } from './ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useThemeSwitcher } from '../hooks/useThemeSwitcher';
 import { useResolvers } from '../hooks/useResolvers';
-import type { ResolverMeta } from '../hooks/useResolvers';
+import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { ThemeDimension, ResolverFile } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 
 // ---------------------------------------------------------------------------
@@ -40,15 +40,15 @@ export interface ResolverState {
   resolverInput: Record<string, string>;
   setResolverInput: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   resolvedTokens: Record<string, TokenMapEntry> | null;
-  activeModifiers: Record<string, string>;
+  activeModifiers: Record<string, ResolverModifierMeta>;
   resolverError: string | null;
   loading: boolean;
   resolversLoading: boolean;
   fetchResolvers: () => void;
-  convertFromThemes: () => Promise<void>;
+  convertFromThemes: (name?: string) => Promise<unknown>;
   deleteResolver: (name: string) => Promise<void>;
-  getResolverFile: (name: string) => Promise<string>;
-  updateResolver: (name: string, yaml: string) => Promise<void>;
+  getResolverFile: (name: string) => Promise<ResolverFile>;
+  updateResolver: (name: string, file: ResolverFile) => Promise<void>;
   /** Register the undo push handler — call from App.tsx after mount. */
   setPushUndo: (fn: ((slot: UndoSlot) => void) | undefined) => void;
 }

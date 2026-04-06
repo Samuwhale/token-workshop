@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -46,7 +46,7 @@ export interface UseGitDiffReturn {
   diffView: { localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null;
   diffLoading: boolean;
   diffChoices: Record<string, 'push' | 'pull' | 'skip'>;
-  setDiffChoices: (v: Record<string, 'push' | 'pull' | 'skip'>) => void;
+  setDiffChoices: Dispatch<SetStateAction<Record<string, 'push' | 'pull' | 'skip'>>>;
   applyingDiff: boolean;
   tokenPreview: TokenChange[] | null;
   tokenPreviewLoading: boolean;

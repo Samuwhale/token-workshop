@@ -234,7 +234,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
 ];
 
 export function getTemplateStepCount(template: GraphTemplate): number {
-  const cfg = template.config as Record<string, unknown>;
+  const cfg = template.config as unknown as Record<string, unknown>;
   const steps = cfg.steps;
   if (Array.isArray(steps)) return steps.length;
   return 0;

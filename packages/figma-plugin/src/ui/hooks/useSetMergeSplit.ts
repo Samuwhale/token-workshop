@@ -115,7 +115,7 @@ export function useSetMergeSplit({
     setMergeLoading(true);
     try {
       const tgtData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
-      const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
+      const preMergeTokens = (tgtData.tokens || {}) as DTCGGroup;
       const tgtFlat = flattenTokensObj(preMergeTokens);
       const writes: Promise<unknown>[] = [];
       for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {

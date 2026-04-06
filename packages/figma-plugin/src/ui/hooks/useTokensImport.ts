@@ -168,7 +168,7 @@ export function useTokensImport({
         const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
           `${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`,
         );
-        flat = flattenTokenGroup(data.tokens || {});
+        flat = flattenTokenGroup((data.tokens || {}) as import('@tokenmanager/core').DTCGGroup);
       } catch (fetchErr) {
         if (!(fetchErr instanceof ApiError && fetchErr.status === 404)) {
           throw fetchErr;

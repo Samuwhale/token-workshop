@@ -1,3 +1,4 @@
+import React from 'react';
 import type { RefObject } from 'react';
 import { Spinner } from './Spinner';
 import { PLATFORMS } from '../shared/platforms';
@@ -134,7 +135,7 @@ export function PlatformExportConfig({
         {showSavePreset && (
           <div className="flex items-center gap-1.5 mb-2">
             <input
-              ref={savePresetInputRef}
+              ref={savePresetInputRef as React.LegacyRef<HTMLInputElement>}
               type="text"
               value={presetName}
               onChange={e => setPresetName(e.target.value)}

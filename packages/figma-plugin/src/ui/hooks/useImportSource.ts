@@ -216,7 +216,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           return;
         }
 
-        const flat = flattenTokenGroup(group);
+        const flat = flattenTokenGroup(group as import('@tokenmanager/core').DTCGGroup);
         const importTokens: ImportToken[] = [];
         for (const [path, token] of flat) {
           importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });

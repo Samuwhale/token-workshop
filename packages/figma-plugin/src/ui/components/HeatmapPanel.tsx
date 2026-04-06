@@ -158,11 +158,11 @@ export function HeatmapPanel({ result, loading, progress, error, scope, onRescan
   const filteredNodes = result?.nodes.filter(n => filter === 'all' || n.status === filter) ?? [];
 
   // Group nodes by status for the grouped view
-  const groups: { status: 'red' | 'yellow' | 'green'; nodes: HeatmapNode[] }[] = [
-    { status: 'red', nodes: result?.nodes.filter(n => n.status === 'red') ?? [] },
-    { status: 'yellow', nodes: result?.nodes.filter(n => n.status === 'yellow') ?? [] },
-    { status: 'green', nodes: result?.nodes.filter(n => n.status === 'green') ?? [] },
-  ].filter(g => g.nodes.length > 0);
+  const groups = ([
+    { status: 'red' as const, nodes: result?.nodes.filter(n => n.status === 'red') ?? [] },
+    { status: 'yellow' as const, nodes: result?.nodes.filter(n => n.status === 'yellow') ?? [] },
+    { status: 'green' as const, nodes: result?.nodes.filter(n => n.status === 'green') ?? [] },
+  ] as { status: 'red' | 'yellow' | 'green'; nodes: HeatmapNode[] }[]).filter(g => g.nodes.length > 0);
 
   const tokenPaths = availableTokens ? Object.keys(availableTokens) : [];
 

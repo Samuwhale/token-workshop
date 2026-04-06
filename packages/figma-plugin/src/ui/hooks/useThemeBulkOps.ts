@@ -21,7 +21,7 @@ export function useThemeBulkOps({
   setError,
 }: UseThemeBulkOpsParams) {
   // Bulk set-status context menu
-  const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
+  const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string; optName?: string } | null>(null);
   const bulkMenuRef = useRef<HTMLDivElement | null>(null);
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 

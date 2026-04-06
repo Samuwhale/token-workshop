@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Spinner } from './Spinner';
+import type { ExportResultFile } from '../hooks/useExportResults';
 
 export interface ExportPreviewModalProps {
-  results: { platform: string; path: string; content: string }[];
+  results: ExportResultFile[];
   fileIndex: number;
   onFileSelect: (i: number) => void;
   zipProgress: number | null;
@@ -10,8 +11,8 @@ export interface ExportPreviewModalProps {
   nestByPlatform: boolean;
   copiedFile: string | null;
   onDownloadZip: () => void;
-  onDownloadFile: (file: { path: string; content: string }) => void;
-  onCopyFile: (file: { path: string; content: string }) => void;
+  onDownloadFile: (file: ExportResultFile) => void;
+  onCopyFile: (file: ExportResultFile) => void;
   onClose: () => void;
 }
 

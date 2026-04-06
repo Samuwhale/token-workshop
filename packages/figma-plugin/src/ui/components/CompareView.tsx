@@ -115,8 +115,8 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
       let aliasRef: string | undefined;
       if (aliasCheck) {
         aliasRef = typeof entry.$value === 'string' ? entry.$value.replace(/^\{|\}$/g, '') : undefined;
-        const res = resolveTokenValue(entry.$value, allTokensFlat);
-        if (res && !res.error) resolved = res.value;
+        const res = resolveTokenValue(entry.$value, entry.$type ?? 'unknown', allTokensFlat);
+        if (res && !res.error && res.value != null) resolved = res.value as TokenValue;
       }
       result.push({ path, name, type: entry.$type, rawValue: entry.$value, resolvedValue: resolved, isAlias: aliasCheck, aliasRef });
     }
@@ -1120,8 +1120,8 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
     if (!setA || !serverUrl) { setFlatA(null); return; }
     let cancelled = false;
     setLoadingA(true);
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setA)}`)
-      .then((data: { tokens?: object }) => {
+    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(setA)}`)
+      .then((data) => {
         if (cancelled) return;
         const flat: Record<string, { $value: unknown; $type: string }> = {};
         for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {
@@ -1138,8 +1138,8 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
     if (!setB || !serverUrl) { setFlatB(null); return; }
     let cancelled = false;
     setLoadingB(true);
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setB)}`)
-      .then((data: { tokens?: object }) => {
+    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(setB)}`)
+      .then((data) => {
         if (cancelled) return;
         const flat: Record<string, { $value: unknown; $type: string }> = {};
         for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {

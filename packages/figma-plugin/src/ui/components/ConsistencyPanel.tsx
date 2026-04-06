@@ -100,7 +100,7 @@ function SuggestionCard({
           </div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {formatValue(suggestion.tokenValue, suggestion.property)}
+              {formatValue(suggestion.tokenValue as string | number, suggestion.property)}
             </span>
             <span className="text-[9px] text-[var(--color-figma-text-secondary)]">·</span>
             <button

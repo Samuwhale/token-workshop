@@ -622,7 +622,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           sync={varSync}
           activeSet={activeSet}
           diffFilter={diffFilter}
-          onRequestConfirm={setConfirmAction}
+          onRequestConfirm={(action) => setConfirmAction(action as ConfirmAction)}
           onRevert={varSync.revert}
           description="Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back."
           sectionLabel="Token differences"
@@ -654,7 +654,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             sync={styleSync}
             activeSet={activeSet}
             diffFilter={diffFilter}
-            onRequestConfirm={setConfirmAction}
+            onRequestConfirm={(action) => setConfirmAction(action as ConfirmAction)}
             onRevert={styleSync.revert}
             description="Sync color, text, and effect styles between local tokens and Figma styles."
             sectionLabel="Style differences"

@@ -37,7 +37,7 @@ function getAvailableFonts(): Promise<Font[]> {
       throw err;
     });
   }
-  return cachedFontsPromise;
+  return cachedFontsPromise!;
 }
 
 /** Returns deduplicated sorted list of font family names available in Figma. */

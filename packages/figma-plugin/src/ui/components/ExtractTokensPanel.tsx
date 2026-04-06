@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ExtractedTokenEntry, TokenMapEntry } from '../../shared/types';
+import type { ExtractedTokenEntry, TokenMapEntry, DimensionValue, BorderValue, TypographyValue, ShadowTokenValue } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
@@ -16,21 +16,36 @@ interface ExtractTokensPanelProps {
 function formatValuePreview(entry: ExtractedTokenEntry): string {
   const v = entry.value;
   if (entry.tokenType === 'color' && typeof v === 'string') return v;
-  if (entry.tokenType === 'dimension' && typeof v === 'object' && v.value != null) return `${v.value}${v.unit}`;
-  if (entry.tokenType === 'number') return String(v);
-  if (entry.tokenType === 'border' && typeof v === 'object') {
-    return `${v.color} ${v.width?.value}${v.width?.unit} ${v.style}`;
+  if (entry.tokenType === 'dimension' && typeof v === 'object' && v !== null) {
+    const dim = v as DimensionValue;
+    if (dim.value != null) return `${dim.value}${dim.unit}`;
   }
-  if (entry.tokenType === 'typography' && typeof v === 'object') {
+  if (entry.tokenType === 'number') return String(v);
+  if (entry.tokenType === 'border' && typeof v === 'object' && v !== null) {
+    const border = v as BorderValue;
+    const w = typeof border.width === 'object' ? border.width as DimensionValue : null;
+    return `${border.color} ${w?.value}${w?.unit} ${border.style}`;
+  }
+  if (entry.tokenType === 'typography' && typeof v === 'object' && v !== null) {
+    const typo = v as TypographyValue;
     const parts: string[] = [];
-    if (v.fontFamily) parts.push(v.fontFamily);
-    if (v.fontWeight) parts.push(String(v.fontWeight));
-    if (v.fontSize) parts.push(`${v.fontSize.value}${v.fontSize.unit}`);
+    if (typo.fontFamily) parts.push(Array.isArray(typo.fontFamily) ? typo.fontFamily[0] : typo.fontFamily);
+    if (typo.fontWeight) parts.push(String(typo.fontWeight));
+    if (typo.fontSize) {
+      const fs = typeof typo.fontSize === 'object' ? typo.fontSize as DimensionValue : null;
+      if (fs) parts.push(`${fs.value}${fs.unit}`);
+    }
     return parts.join(' ');
   }
-  if (entry.tokenType === 'shadow' && typeof v === 'object') {
-    const s = Array.isArray(v) ? v[0] : v;
-    if (s) return `${s.color} ${s.offsetX?.value ?? 0}/${s.offsetY?.value ?? 0} blur:${s.blur?.value ?? 0}`;
+  if (entry.tokenType === 'shadow' && typeof v === 'object' && v !== null) {
+    const shadows = Array.isArray(v) ? v as ShadowTokenValue[] : [v as ShadowTokenValue];
+    const s = shadows[0];
+    if (s) {
+      const ox = typeof s.offsetX === 'object' ? (s.offsetX as DimensionValue).value : s.offsetX ?? 0;
+      const oy = typeof s.offsetY === 'object' ? (s.offsetY as DimensionValue).value : s.offsetY ?? 0;
+      const bl = typeof s.blur === 'object' ? (s.blur as DimensionValue).value : s.blur ?? 0;
+      return `${s.color} ${ox}/${oy} blur:${bl}`;
+    }
   }
   return JSON.stringify(v).slice(0, 40);
 }
