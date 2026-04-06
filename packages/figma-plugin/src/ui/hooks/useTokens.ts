@@ -131,10 +131,7 @@ export function useTokens(
     }
     refreshTokens();
      
-    // Safe: `refreshTokens` is intentionally omitted — the effect at line 101 already handles
-    // re-fetching when `refreshTokens` changes (e.g. on reconnect). Including it here would
-    // cause a redundant double-fetch whenever connection state changes.
-  }, [activeSet]);
+  }, [activeSet, refreshTokens]);
 
   /** Add a new set to local state without re-fetching from server. */
   const addSetToState = useCallback((name: string, count = 0) => {

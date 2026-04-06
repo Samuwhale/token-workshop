@@ -40,7 +40,7 @@ export function useTokenDependents({
     };
     fetchDependents();
     return () => controller.abort();
-  }, [serverUrl, setName, tokenPath, isCreateMode]);
+  }, [serverUrl, setName, tokenPath, isCreateMode, encodedTokenPath]);
 
   return { dependents, dependentsLoading };
 }

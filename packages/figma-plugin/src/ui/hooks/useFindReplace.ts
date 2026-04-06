@@ -553,7 +553,7 @@ export function useFindReplace({
       abortRef.current = null;
       setFrBusy(false);
     }
-  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frTypeFilter, frBusy, frPreview, frValuePreview, serverUrl, setName, onRefresh, onPushUndo]);
+  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frBusy, frPreview, frValuePreview, serverUrl, setName, onRefresh, onPushUndo]);
 
   const frConflictCount = useMemo(() => frPreview.filter(r => r.conflict).length, [frPreview]);
   const frRenameCount = useMemo(() => frPreview.filter(r => !r.conflict).length, [frPreview]);

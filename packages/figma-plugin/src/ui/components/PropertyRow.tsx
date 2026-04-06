@@ -8,7 +8,6 @@ import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import type { UndoSlot } from '../hooks/useUndo';
 import {
   getBindingForProperty,
   getCurrentValue,
@@ -18,15 +17,12 @@ import {
   getTokenValueFromProp,
   formatTokenValuePreview,
   resolveBindingDisplay,
-  buildRemoveBindingUndo,
   isTokenScopeCompatible,
   getDefaultScopesForProperty,
   scoreBindCandidate,
   collectSiblingBindings,
   collectBoundPrefixes,
   getMixedBindingValues,
-  SUGGESTED_NAMES,
-  suggestTokenPath,
 } from './selectionInspectorUtils';
 
 interface PropertyRowProps {

@@ -156,9 +156,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     if (initialSelectedHash) {
       fetchDetail(initialSelectedHash);
     }
-     
-    // Safe: mount-only. `initialSelectedHash` is an "initial value" prop.
-  }, []);
+  }, [fetchDetail, initialSelectedHash]);
 
   const handleSelectCommit = useCallback((hash: string) => {
     setSelectedHash(hash);

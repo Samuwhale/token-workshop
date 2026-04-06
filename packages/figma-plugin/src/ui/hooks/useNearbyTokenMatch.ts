@@ -134,7 +134,7 @@ export function useNearbyTokenMatch(
       setMatches(findNearbyTokens(inputValue, tokenType, allTokensFlatRef.current, currentPath));
     }, 150);
     return () => clearTimeout(timerRef.current);
-  }, [enabled, inputKey, tokenType, currentPath]);
+  }, [enabled, inputKey, tokenType, currentPath, inputValue]);
 
   return matches;
 }

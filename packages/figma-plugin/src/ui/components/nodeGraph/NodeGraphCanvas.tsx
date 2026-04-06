@@ -1,8 +1,7 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { UndoSlot } from '../../hooks/useUndo';
-import type { TransformOp, PortDirection } from './nodeGraphTypes';
-import { portPosition, TRANSFORM_OPS, nodeHeight, computeDependencyEdges } from './nodeGraphTypes';
+import { portPosition, nodeHeight, computeDependencyEdges } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
 import { edgePath } from '../../shared/graphUtils';
@@ -13,65 +12,8 @@ import { edgePath } from '../../shared/graphUtils';
 // ---------------------------------------------------------------------------
 
 function depEdgePath(x1: number, y1: number, x2: number, y2: number): string {
-  // Route right of the output column, then curve down-left to the source node
   const rightX = Math.max(x1, x2) + 60;
   return `M${x1},${y1} C${rightX},${y1} ${rightX},${y2} ${x2},${y2}`;
-}
-
-// ---------------------------------------------------------------------------
-// Context menu for adding transform nodes
-// ---------------------------------------------------------------------------
-
-function AddNodeMenu({
-  x,
-  y,
-  onAdd,
-  onClose,
-}: {
-  x: number;
-  y: number;
-  onAdd: (op: TransformOp) => void;
-  onClose: () => void;
-}) {
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  // Clamp position to prevent off-screen
-  const menuW = 160;
-  const menuH = TRANSFORM_OPS.length * 30 + 32;
-  const clampedX = Math.min(x, window.innerWidth - menuW);
-  const clampedY = Math.min(y, window.innerHeight - menuH);
-
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-lg shadow-lg overflow-hidden"
-      style={{ left: clampedX, top: clampedY, width: menuW }}
-    >
-      <div className="px-2 py-1.5 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] uppercase tracking-wider border-b border-[var(--color-figma-border)]">
-        Add Transform Node
-      </div>
-      {TRANSFORM_OPS.map(({ op, label, description }) => (
-        <button
-          key={op}
-          onClick={() => { onAdd(op); onClose(); }}
-          className="w-full text-left px-2 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors flex flex-col gap-0"
-        >
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{label}</span>
-          <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">{description}</span>
-        </button>
-      ))}
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +53,6 @@ function Minimap({
   const kindColors: Record<string, string> = {
     source: '#6b7280',
     generator: '#3b82f6',
-    transform: '#d97706',
     output: '#6b7280',
   };
 
@@ -170,22 +111,9 @@ export function NodeGraphCanvas({
   const {
     graph,
     moveNode,
-    removeNode,
-    addTransformNode,
-    updateTransformParam,
     pushMoveUndo,
-    addEdge: _addEdgeAction,
-    removeEdge,
     selectedNodeId,
     setSelectedNodeId,
-    selectedEdgeId,
-    setSelectedEdgeId,
-    wiring,
-    wiringSourcePortType,
-    startWiring,
-    updateWiring,
-    finishWiring,
-    cancelWiring,
     persistPositions,
   } = useNodeGraph(generators, activeSet, onPushUndo);
 
@@ -195,12 +123,10 @@ export function NodeGraphCanvas({
   const [isPanning, setIsPanning] = useState(false);
   const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const dragRef = useRef<{ nodeId: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; graphX: number; graphY: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 600, h: 400 });
-  const addBtnRef = useRef<HTMLButtonElement>(null);
 
   // ---------------------------------------------------------------------------
-  // Dependency edges — cross-generator connections (computed from raw generators)
+  // Dependency edges
   // ---------------------------------------------------------------------------
   const dependencyEdges = useMemo(() => computeDependencyEdges(generators), [generators]);
 
@@ -259,36 +185,22 @@ export function NodeGraphCanvas({
     return () => obs.disconnect();
   }, []);
 
-  // Convert screen coords to graph coords
-  const screenToGraph = useCallback(
-    (sx: number, sy: number) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return { x: sx, y: sy };
-      return {
-        x: (sx - rect.left - pan.x) / zoom,
-        y: (sy - rect.top - pan.y) / zoom,
-      };
-    },
-    [pan, zoom],
-  );
 
   // ---------------------------------------------------------------------------
   // Pan
   // ---------------------------------------------------------------------------
   const handleCanvasPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.button === 2) return; // right-click for context menu
-      // Check if we clicked on a node
+      if (e.button === 2) return;
       const target = e.target as HTMLElement;
       if (target.closest('[data-node-id]')) return;
 
       setSelectedNodeId(null);
-      setSelectedEdgeId(null);
       setIsPanning(true);
       panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [pan, setSelectedNodeId, setSelectedEdgeId],
+    [pan, setSelectedNodeId],
   );
 
   const handleCanvasPointerMove = useCallback(
@@ -304,12 +216,8 @@ export function NodeGraphCanvas({
         const dy = (e.clientY - dragRef.current.startY) / zoom;
         moveNode(dragRef.current.nodeId, dragRef.current.nodeX + dx, dragRef.current.nodeY + dy);
       }
-      if (wiring) {
-        const g = screenToGraph(e.clientX, e.clientY);
-        updateWiring(g.x, g.y);
-      }
     },
-    [zoom, moveNode, wiring, updateWiring, screenToGraph],
+    [zoom, moveNode],
   );
 
   const handleCanvasPointerUp = useCallback(
@@ -324,11 +232,8 @@ export function NodeGraphCanvas({
         persistPositions();
         pushMoveUndo(nodeId, nodeX, nodeY);
       }
-      if (wiring) {
-        cancelWiring();
-      }
     },
-    [wiring, cancelWiring, persistPositions, pushMoveUndo],
+    [persistPositions, pushMoveUndo],
   );
 
   // ---------------------------------------------------------------------------
@@ -339,7 +244,6 @@ export function NodeGraphCanvas({
       e.preventDefault();
       const factor = e.deltaY > 0 ? 0.92 : 1.08;
       const newZoom = Math.max(0.2, Math.min(3, zoom * factor));
-      // Zoom toward cursor
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
         const cx = e.clientX - rect.left;
@@ -353,18 +257,6 @@ export function NodeGraphCanvas({
       setZoom(newZoom);
     },
     [zoom],
-  );
-
-  // ---------------------------------------------------------------------------
-  // Context menu (right-click to add transform nodes)
-  // ---------------------------------------------------------------------------
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const g = screenToGraph(e.clientX, e.clientY);
-      setContextMenu({ x: e.clientX, y: e.clientY, graphX: g.x, graphY: g.y });
-    },
-    [screenToGraph],
   );
 
   // ---------------------------------------------------------------------------
@@ -387,68 +279,17 @@ export function NodeGraphCanvas({
   );
 
   // ---------------------------------------------------------------------------
-  // Port interactions
-  // ---------------------------------------------------------------------------
-  const handlePortPointerDown = useCallback(
-    (nodeId: string, portId: string, direction: PortDirection, cx: number, cy: number) => {
-      startWiring(nodeId, portId, direction, cx, cy);
-    },
-    [startWiring],
-  );
-
-  const handlePortPointerUp = useCallback(
-    (nodeId: string, portId: string, _direction: PortDirection) => {
-      if (wiring) {
-        finishWiring(nodeId, portId);
-      }
-    },
-    [wiring, finishWiring],
-  );
-
-  // ---------------------------------------------------------------------------
   // Keyboard
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (document.activeElement?.tagName === 'INPUT') return;
-        if (selectedNodeId) {
-          const node = graph.nodes.find(n => n.id === selectedNodeId);
-          if (node && node.kind === 'transform') {
-            removeNode(selectedNodeId);
-          }
-        } else if (selectedEdgeId) {
-          removeEdge(selectedEdgeId);
-        }
-      }
       if (e.key === 'Escape') {
-        cancelWiring();
-        setContextMenu(null);
         setSelectedNodeId(null);
-        setSelectedEdgeId(null);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedNodeId, selectedEdgeId, graph.nodes, removeNode, removeEdge, cancelWiring, setSelectedNodeId, setSelectedEdgeId]);
-
-  // ---------------------------------------------------------------------------
-  // Floating "+" button — opens AddNodeMenu near the button
-  // ---------------------------------------------------------------------------
-  const handleAddButtonClick = useCallback(() => {
-    const btn = addBtnRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    // Place menu above-right of the button
-    const menuX = rect.left;
-    const menuY = rect.top - (TRANSFORM_OPS.length * 30 + 32) - 4;
-    // Graph position: center of current viewport
-    const graphCenter = screenToGraph(
-      (containerSize.w) / 2 + (containerRef.current?.getBoundingClientRect().left ?? 0),
-      (containerSize.h) / 2 + (containerRef.current?.getBoundingClientRect().top ?? 0),
-    );
-    setContextMenu({ x: menuX, y: Math.max(4, menuY), graphX: graphCenter.x, graphY: graphCenter.y });
-  }, [screenToGraph, containerSize]);
+  }, [setSelectedNodeId]);
 
   // ---------------------------------------------------------------------------
   // Fit to view
@@ -471,7 +312,6 @@ export function NodeGraphCanvas({
     setZoom(newZoom);
   }, [graph.nodes, containerSize]);
 
-  // Fit on first render
   const didFitRef = useRef(false);
   useEffect(() => {
     if (!didFitRef.current && graph.nodes.length > 0) {
@@ -492,7 +332,6 @@ export function NodeGraphCanvas({
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handleCanvasPointerUp}
       onWheel={handleWheel}
-      onContextMenu={handleContextMenu}
     >
       {/* Dot grid background */}
       <svg
@@ -525,7 +364,7 @@ export function NodeGraphCanvas({
         style={{ zIndex: 1 }}
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Cross-generator dependency edges — rendered below regular edges */}
+          {/* Cross-generator dependency edges */}
           {dependencyEdges.map(dep => {
             const fromOutNode = graph.nodes.find(n => n.id === `out-${dep.fromGeneratorId}`);
             const toSrcNode = graph.nodes.find(n => n.id === `src-${dep.toGeneratorId}`);
@@ -541,9 +380,7 @@ export function NodeGraphCanvas({
 
             return (
               <g key={dep.id} style={{ pointerEvents: 'none' }} aria-hidden="true">
-                {/* Glow / hit area */}
                 <path d={path} fill="none" stroke="var(--color-figma-accent)" strokeWidth={6} strokeOpacity={0.08} />
-                {/* Dashed accent line */}
                 <path
                   d={path}
                   fill="none"
@@ -552,9 +389,7 @@ export function NodeGraphCanvas({
                   strokeDasharray="5 4"
                   strokeOpacity={0.55}
                 />
-                {/* Arrow tip at destination */}
                 <circle cx={toX} cy={toY} r={3} fill="var(--color-figma-accent)" opacity={0.7} />
-                {/* Label near midpoint showing the token path */}
                 {dep.label && (() => {
                   const rightX = Math.max(fromX, toX) + 60;
                   const midX = (rightX + toX) / 2;
@@ -600,60 +435,20 @@ export function NodeGraphCanvas({
             const from = portPosition(fromNode, edge.fromPortId);
             const to = portPosition(toNode, edge.toPortId);
             if (!from || !to) return null;
-            const isSelected = selectedEdgeId === edge.id;
             return (
-              <g key={edge.id}>
-                {/* Fat invisible hit target */}
+              <g key={edge.id} style={{ pointerEvents: 'none' }}>
                 <path
                   d={edgePath(from.x, from.y, to.x, to.y)}
                   fill="none"
-                  stroke="transparent"
-                  strokeWidth={12}
-                  style={{ cursor: 'pointer' }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    setSelectedEdgeId(edge.id);
-                    setSelectedNodeId(null);
-                  }}
+                  stroke="var(--color-figma-text-tertiary)"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.5}
                 />
-                <path
-                  d={edgePath(from.x, from.y, to.x, to.y)}
-                  fill="none"
-                  stroke={isSelected ? 'var(--color-figma-accent)' : 'var(--color-figma-text-tertiary)'}
-                  strokeWidth={isSelected ? 2 : 1.5}
-                  strokeOpacity={isSelected ? 1 : 0.5}
-                  style={{ pointerEvents: 'none' }}
-                />
-                {/* Port dots */}
-                <circle cx={from.x} cy={from.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} style={{ pointerEvents: 'none' }} />
-                <circle cx={to.x} cy={to.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} style={{ pointerEvents: 'none' }} />
+                <circle cx={from.x} cy={from.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} />
+                <circle cx={to.x} cy={to.y} r={3} fill="var(--color-figma-accent)" opacity={0.6} />
               </g>
             );
           })}
-
-          {/* Wiring temporary edge */}
-          {wiring && (() => {
-            const fromNode = graph.nodes.find(n => n.id === wiring.fromNodeId);
-            if (!fromNode) return null;
-            const from = portPosition(fromNode, wiring.fromPortId);
-            if (!from) return null;
-            const toX = wiring.mouseX;
-            const toY = wiring.mouseY;
-            return (
-              <path
-                d={wiring.fromDirection === 'out'
-                  ? edgePath(from.x, from.y, toX, toY)
-                  : edgePath(toX, toY, from.x, from.y)
-                }
-                fill="none"
-                stroke="var(--color-figma-accent)"
-                strokeWidth={1.5}
-                strokeDasharray="4 3"
-                opacity={0.7}
-                style={{ pointerEvents: 'none' }}
-              />
-            );
-          })()}
 
           {/* Nodes */}
           {graph.nodes.map(node => (
@@ -667,14 +462,6 @@ export function NodeGraphCanvas({
                 isSelected={selectedNodeId === node.id}
                 isHighlighted={matchedNodeIds.size > 0 && matchedNodeIds.has(node.id)}
                 onSelect={setSelectedNodeId}
-                onPortPointerDown={handlePortPointerDown}
-                onPortPointerUp={handlePortPointerUp}
-                onParamChange={updateTransformParam}
-                onDelete={removeNode}
-                isWiring={!!wiring}
-                wiringSourceDirection={wiring?.fromDirection ?? null}
-                wiringSourcePortType={wiringSourcePortType}
-                wiringSourceNodeId={wiring?.fromNodeId ?? null}
               />
             </g>
           ))}
@@ -709,20 +496,9 @@ export function NodeGraphCanvas({
         </span>
       </div>
 
-      {/* Floating "+" button — bottom-left, above help text */}
-      <button
-        ref={addBtnRef}
-        onClick={handleAddButtonClick}
-        className="absolute bottom-8 left-2 w-7 h-7 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] flex items-center justify-center text-[16px] font-bold shadow-sm transition-colors"
-        style={{ zIndex: 10, lineHeight: 1 }}
-        title="Add transform node"
-      >
-        +
-      </button>
-
       {/* Help text */}
       <div className="absolute bottom-2 left-2 text-[8px] text-[var(--color-figma-text-tertiary)] pointer-events-none" style={{ zIndex: 10 }}>
-        Scroll to zoom &middot; Drag to pan &middot; Right-click or + to add transform
+        Scroll to zoom &middot; Drag to pan
       </div>
 
       {/* Minimap */}
@@ -733,16 +509,6 @@ export function NodeGraphCanvas({
         viewW={containerSize.w}
         viewH={containerSize.h}
       />
-
-      {/* Context menu */}
-      {contextMenu && (
-        <AddNodeMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onAdd={(op) => addTransformNode(op, contextMenu.graphX, contextMenu.graphY)}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
     </div>
   );
 }

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { ReactNode } from 'react';
 import type { TokenListImperativeHandle } from './components/tokenListTypes';
-import { ThemeManager } from './components/ThemeManager';
 import type { ThemeManagerHandle } from './components/ThemeManager';
 import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
@@ -15,16 +13,14 @@ import { QuickStartDialog } from './components/QuickStartDialog';
 import { QuickStartWizard } from './components/QuickStartWizard';
 import { WelcomePrompt } from './components/WelcomePrompt';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
-import { CreatePanel } from './components/CreatePanel';
 import { CommandPalette } from './components/CommandPalette';
-import type { Command, TokenEntry } from './components/CommandPalette';
+import type { TokenEntry } from './components/CommandPalette';
 import { SetSwitcher } from './components/SetSwitcher';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
-import { HealthPanel, computeHealthIssueCount } from './components/HealthPanel';
+import { computeHealthIssueCount } from './components/HealthPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PanelRouter } from './panels/PanelRouter';
-import { GRAPH_TEMPLATES } from './components/graph-templates';
 import { useServerEvents } from './hooks/useServerEvents';
 import type { TokenNode } from './hooks/useTokens';
 import { useUndo } from './hooks/useUndo';
@@ -33,9 +29,8 @@ import { usePreviewSplit } from './hooks/usePreviewSplit';
 import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useWindowResize } from './hooks/useWindowResize';
-import type { TopTab, SubTab, OverflowPanel } from './shared/navigationTypes';
+import type { OverflowPanel } from './shared/navigationTypes';
 import { TOP_TABS, FLAT_TABS, toFlatTabId } from './shared/navigationTypes';
-import type { FlatTabId } from './shared/navigationTypes';
 import { useConnectionContext, useSyncContext } from './contexts/ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext, useGeneratorContext } from './contexts/TokenDataContext';
 import { useThemeSwitcherContext, useResolverContext } from './contexts/ThemeContext';
@@ -51,7 +46,6 @@ import { useSetMetadata } from './hooks/useSetMetadata';
 import { useModalVisibility } from './hooks/useModalVisibility';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
-import { useLintConfig } from './hooks/useLintConfig';
 import { useRecentlyTouched } from './hooks/useRecentlyTouched';
 import { useCrossSetRecents } from './hooks/useCrossSetRecents';
 import { useStarredTokens } from './hooks/useStarredTokens';
@@ -61,6 +55,7 @@ import { useValidationCache } from './hooks/useValidationCache';
 import { useGraphState } from './hooks/useGraphState';
 import { useCommandPaletteCommands } from './hooks/useCommandPaletteCommands';
 import { useCompareState } from './hooks/useCompareState';
+import { useSettingsListener } from './components/SettingsPanel';
 import type { TokenMapEntry } from '../shared/types';
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from '../shared/types';
 import { isAlias } from '../shared/resolveAlias';
@@ -69,8 +64,8 @@ import { SHORTCUT_KEYS, matchesShortcut } from './shared/shortcutRegistry';
 import { Tooltip } from './shared/Tooltip';
 import { getMenuItems, handleMenuArrowKeys } from './hooks/useMenuKeyboard';
 import { apiFetch, ApiError } from './shared/apiFetch';
-import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
-import { buildTreeByType, findLeafByPath, collectAllGroupPaths } from './components/tokenListUtils';
+import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from './shared/storage';
+import { findLeafByPath } from './components/tokenListUtils';
 
 
 type FolderTreeNode = {
@@ -104,40 +99,35 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const { activeTopTab, activeSubTab, overflowPanel, navigateTo, setOverflowPanel, setSubTab } = useNavigationContext();
-  const { editingToken, setEditingToken, previewingToken, setPreviewingToken, highlightedToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, handleNavigateBack, navHistoryLength, setAliasNotFoundHandler } = useEditorContext();
+  const { editingToken, setEditingToken, previewingToken, setPreviewingToken, setHighlightedToken, createFromEmpty, setPendingHighlight, setPendingHighlightForSet, handleNavigateToAlias, setAliasNotFoundHandler } = useEditorContext();
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showCreatePanel, setShowCreatePanel] = useState<{ tab?: 'single' | 'scale' | 'bulk' | 'extract'; initialPath?: string; initialType?: string; initialValue?: string } | null>(null);
-  // Tracks the currently active tab inside CreatePanel so the drawer can size itself.
-  // Synced from showCreatePanel.tab whenever the panel opens, then updated via onTabChange.
-  const [createPanelActiveTab, setCreatePanelActiveTab] = useState<'single' | 'scale' | 'bulk' | 'extract'>('single');
-  useEffect(() => {
-    if (showCreatePanel) setCreatePanelActiveTab(showCreatePanel.tab ?? 'single');
-  }, [showCreatePanel]);
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useConnectionContext();
-  const { gitHasChanges, syncing, syncProgress, syncResult, syncError, sync } = useSyncContext();
-  const { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount, setFilteredSetCount, syncSnapshot, tokensLoading, tokensError } = useTokenFlatMapContext();
+  const { gitHasChanges } = useSyncContext();
+  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet } = useTokenSetsContext();
+  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount } = useTokenFlatMapContext();
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGeneratorContext();
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, themedAllTokensFlat, setThemeStatusMap } = useThemeSwitcherContext();
+  const { dimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themesError, retryThemes, setThemeStatusMap } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
   const { selectedNodes } = useSelectionContext();
-  const { heatmapResult, heatmapLoading, heatmapError, heatmapProgress, heatmapScope, setHeatmapScope, triggerHeatmapScan, cancelHeatmapScan } = useHeatmapContext();
-  const { tokenUsageCounts, triggerUsageScan } = useUsageContext();
+  const { triggerHeatmapScan } = useHeatmapContext();
+  const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } = useAvailableFonts();
-  const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
-  const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
+  // Banner URL editor has its own local state (separate from SettingsPanel's connection state)
+  const [bannerUrlInput, setBannerUrlInput] = useState(serverUrl);
+  const [bannerConnectResult, setBannerConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showBannerUrlEditor, setShowBannerUrlEditor] = useState(false);
-  const { showClearConfirm, setShowClearConfirm, showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
+  const { showPasteModal, setShowPasteModal, showScaffoldWizard, setShowScaffoldWizard, showGuidedSetup, setShowGuidedSetup, showColorScaleGen, setShowColorScaleGen, showCommandPalette, setShowCommandPalette, showKeyboardShortcuts, setShowKeyboardShortcuts, showQuickApply, setShowQuickApply, showSetSwitcher, setShowSetSwitcher, showManageSets, setShowManageSets } = useModalVisibility();
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
   const paletteRecentlyTouched = useRecentlyTouched();
   const crossSetRecents = useCrossSetRecents();
   const starredTokens = useStarredTokens();
   const palettePinnedTokens = usePinnedTokens(activeSet);
   const [showWelcome, setShowWelcome] = useState(() => !lsGet(STORAGE_KEYS.FIRST_RUN_DONE));
-  const [clearConfirmText, setClearConfirmText] = useState('');
-  const [clearing, setClearing] = useState(false);
-  const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
+  // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
+  const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const undoMaxHistory = useMemo(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20) ?? 20, [undoHistoryRev]);
   const [pendingPublishCount, setPendingPublishCount] = useState(0);
   const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
   // Listen for PublishPanel's broadcast of how many changes are pending sync
@@ -165,24 +155,22 @@ export function App() {
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
-  }, []);
+  }, [setErrorToast]);
   const onServiceError = useCallback(({ setName, message }: { setName: string; message: string }) => {
     const label = setName ? `Failed to load "${setName}"` : 'File load error';
     setErrorToast(`${label}: ${message}`);
-  }, []);
+  }, [setErrorToast]);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const { pendingGraphTemplate, setPendingGraphTemplate, pendingGraphFromGroup, setPendingGraphFromGroup, focusGeneratorId, setFocusGeneratorId, pendingOpenPicker, setPendingOpenPicker } = useGraphState();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
-  const lintConfig = useLintConfig(serverUrl, connected);
   // Tracks the current position for "next issue" cycling — reset when set changes
   const lintIssueIndexRef = useRef(-1);
   useEffect(() => { lintIssueIndexRef.current = -1; }, [activeSet]);
   const [tokenChangeKey, setTokenChangeKey] = useState(0);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); setTokenChangeKey(k => k + 1); }, [refreshTokens, refreshGenerators]);
-  const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
   const staleGeneratorCount = useMemo(() => generators.filter(g => g.isStale).length, [generators]);
   const activeFlatId = useMemo(() => toFlatTabId(activeTopTab, activeSubTab), [activeTopTab, activeSubTab]);
 
@@ -266,11 +254,11 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
+  const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll, setEditingToken]);
   const handlePreviewEdit = useCallback(() => {
     if (previewingToken) { setEditingToken({ path: previewingToken.path, name: previewingToken.name, set: previewingToken.set }); setPreviewingToken(null); }
-  }, [previewingToken]);
-  const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, []);
+  }, [previewingToken, setEditingToken, setPreviewingToken]);
+  const handlePreviewClose = useCallback(() => { setPreviewingToken(null); }, [setPreviewingToken]);
   const editorIsDirtyRef = useRef(false);
   const editorCloseRef = useRef<() => void>(() => { if (!editorIsDirtyRef.current) handleEditorClose(); });
   // Pending navigation action — set when user tries to navigate away from a dirty editor
@@ -326,7 +314,7 @@ export function App() {
       setEditingToken({ path: next.path, name: next.name, set: editingToken.set });
       setHighlightedToken(next.path);
     }
-  }, [editingToken, setHighlightedToken]);
+  }, [editingToken, setHighlightedToken, setEditingToken]);
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
@@ -348,7 +336,7 @@ export function App() {
         },
       );
     }
-  }, [refreshAll, setHighlightedToken, generatorsBySource, pushActionToast, serverUrl, refreshGenerators]);
+  }, [refreshAll, setHighlightedToken, setEditingToken, generatorsBySource, pushActionToast, serverUrl, refreshGenerators]);
   const handleEditorSaveAndCreateAnother = useCallback((savedPath: string, savedType: string) => {
     setHighlightedToken(savedPath);
     refreshAll();
@@ -356,7 +344,7 @@ export function App() {
     const segments = savedPath.split('.');
     const parentPrefix = segments.length > 1 ? segments.slice(0, -1).join('.') + '.' : '';
     setEditingToken({ path: parentPrefix, set: activeSet, isCreate: true, initialType: savedType });
-  }, [refreshAll, setHighlightedToken, activeSet]);
+  }, [refreshAll, setHighlightedToken, setEditingToken, activeSet]);
   const handleNavigateToSet = useCallback((targetSet: string, tokenPath: string) => {
     if (targetSet === activeSet) {
       setHighlightedToken(tokenPath);
@@ -368,7 +356,7 @@ export function App() {
   const handleNavigateToGenerator = useCallback((generatorId: string) => {
     navigateTo('define', 'generators');
     setFocusGeneratorId(generatorId);
-  }, [navigateTo]);
+  }, [navigateTo, setFocusGeneratorId]);
   const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
   const {
     validationIssues,
@@ -379,7 +367,6 @@ export function App() {
     validationIsStale,
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
-  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<string | null>(null);
   // Command palette batch-delete state
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
@@ -428,18 +415,18 @@ export function App() {
   }, [tokenDragState, serverUrl, refreshTokens, setSuccessToast, setErrorToast]);
 
   // Set tab management (drag, context menu, overflow, new-set form)
-  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragLeave, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs, checkSetTabsOverflow } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
+  const { dragSetName, dragOverSetName, tabMenuOpen, setTabMenuOpen, tabMenuPos, tabMenuRef, creatingSet, setCreatingSet, newSetName, setNewSetName, newSetError, setNewSetError, newSetInputRef, setTabsScrollRef, setTabsOverflow, cascadeDiff, openSetMenu, handleSetDragStart, handleSetDragOver, handleSetDragLeave, handleSetDragEnd, handleSetDrop, handleReorderSet, handleReorderSetFull, handleCreateSet, scrollSetTabs } = useSetTabs({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, addSetToState, refreshTokens, setSuccessToast, setErrorToast, markDisconnected, perSetFlat, allTokensFlat, activeThemes, tokenDragFromSet: tokenDragState?.fromSet ?? null, onTokenDropOnSet: handleTokenDropOnSet });
 
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupApplying, syncGroupProgress, syncGroupStylesPending, setSyncGroupStylesPending, syncGroupStylesApplying, syncGroupStylesProgress, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, syncGroupError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
 
   useEffect(() => {
     if (syncGroupStylesError) setErrorToast(syncGroupStylesError);
-  }, [syncGroupStylesError]);
+  }, [syncGroupStylesError, setErrorToast]);
 
   useEffect(() => {
     if (syncGroupError) setErrorToast(syncGroupError);
-  }, [syncGroupError]);
+  }, [syncGroupError, setErrorToast]);
 
   // Set management hooks
   const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, updateSetMetadataInState, setTabMenuOpen, onError: setErrorToast });
@@ -522,29 +509,9 @@ export function App() {
     return result;
   }, [perSetFlat]);
 
-  // Sidebar mode: activate when any set has a '/' folder separator or there are many sets
-  const useSidebar = sets.some(s => s.includes('/')) || sets.length >= 7;
+  // Sidebar mode: activate when there are more than 5 sets
+  const useSidebar = sets.length > 5;
   const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
-
-  // Simple mode: hide set abstraction when total tokens < 200 and user hasn't opted out
-  const totalTokenCount = useMemo(
-    () => Object.values(setTokenCounts).reduce((a, b) => a + b, 0),
-    [setTokenCounts],
-  );
-  const [advancedModeOverride, setAdvancedModeOverride] = useState<boolean>(
-    () => lsGet(STORAGE_KEYS.ADVANCED_MODE) === 'true',
-  );
-  const isSimpleMode = totalTokenCount > 0 && totalTokenCount < 200 && sets.length > 0 && !advancedModeOverride;
-
-  // In simple mode, build a merged tree organized by token type
-  const simpleModeTokens = useMemo(() => {
-    if (!isSimpleMode) return [];
-    return buildTreeByType(themedAllTokensFlat);
-  }, [isSimpleMode, themedAllTokensFlat]);
-
-  // Effective tokens/set for TokenList — simple mode merges all sets by type
-  const effectiveTokens = isSimpleMode ? simpleModeTokens : tokens;
-  const effectiveSetName = isSimpleMode ? (sets[0] || '') : activeSet;
 
   // Collapsed folders state (persisted to localStorage)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() =>
@@ -634,7 +601,8 @@ export function App() {
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'n') {
       e.preventDefault();
-      setShowCreatePanel(prev => prev ? null : { tab: 'single' });
+      navigateTo('define', 'tokens');
+      setEditingToken({ path: '', set: activeSet, isCreate: true });
     }
     if (matchesShortcut(e, 'GO_TO_DEFINE')) { e.preventDefault(); navigateTo(TOP_TABS[0].id); }
     if (matchesShortcut(e, 'GO_TO_APPLY'))  { e.preventDefault(); navigateTo(TOP_TABS[1].id); }
@@ -679,31 +647,11 @@ export function App() {
   }, []);
 
 
-  const handleClearAll = async () => {
-    if (clearConfirmText !== 'DELETE') return;
-    setClearing(true);
-    try {
-      await apiFetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
-    } catch (err) {
-      console.warn('[App] clear all data request failed:', err);
-    }
-    // Clear all plugin localStorage keys
-    for (const key of [STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP, STORAGE_KEYS.ACTIVE_RESOLVER, STORAGE_KEYS.RESOLVER_INPUT]) {
-      lsRemove(key);
-    }
-    // Clear per-set sort/filter keys
-    lsClearByPrefix(STORAGE_PREFIXES.TOKEN_SORT, STORAGE_PREFIXES.TOKEN_TYPE_FILTER);
-    setClearing(false);
-    setShowClearConfirm(false);
-    setClearConfirmText('');
-    navigateTo('define', 'tokens');
-    refreshTokens();
-  };
 
   const openOverflowPanel = useCallback((panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
-  }, []);
+  }, [setOverflowPanel]);
 
   const jumpToNextIssue = useCallback(() => {
     if (lintViolations.length === 0) {
@@ -721,9 +669,6 @@ export function App() {
     setSuccessToast(`${icon} Issue ${n}/${total}: ${violation.message}`);
   }, [lintViolations, navigateTo, setEditingToken, setHighlightedToken, setErrorToast, setSuccessToast]);
 
-  const onTokenListSelectionChange = useCallback((paths: string[]) => {
-    setTokenListSelection(paths);
-  }, []);
 
   const handlePaletteDeleteConfirm = useCallback(async () => {
     if (!paletteDeleteConfirm) return;
@@ -843,7 +788,6 @@ export function App() {
     tokenListSelection,
     setShowIssuesOnly,
     setShowWelcome,
-    setShowCreatePanel,
     setFlowPanelInitialPath,
     setPaletteDeleteConfirm,
     setShowPasteModal,
@@ -938,7 +882,7 @@ export function App() {
                 </button>
                 <span className="opacity-40">·</span>
                 <button
-                  onClick={() => { setShowBannerUrlEditor(v => !v); setServerUrlInput(serverUrl); setConnectResult(null); }}
+                  onClick={() => { setShowBannerUrlEditor(v => !v); setBannerUrlInput(serverUrl); setBannerConnectResult(null); }}
                   className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
                 >
                   {showBannerUrlEditor ? 'Cancel' : 'Change URL'}
@@ -952,13 +896,13 @@ export function App() {
               <div className="flex gap-1.5">
                 <input
                   type="text"
-                  value={serverUrlInput}
-                  onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
+                  value={bannerUrlInput}
+                  onChange={e => { setBannerUrlInput(e.target.value); setBannerConnectResult(null); }}
                   onKeyDown={async e => {
                     if (e.key === 'Enter') {
-                      setConnectResult(null);
-                      const ok = await updateServerUrlAndConnect(serverUrlInput.trim());
-                      setConnectResult(ok ? 'ok' : 'fail');
+                      setBannerConnectResult(null);
+                      const ok = await updateServerUrlAndConnect(bannerUrlInput.trim());
+                      setBannerConnectResult(ok ? 'ok' : 'fail');
                       if (ok) setShowBannerUrlEditor(false);
                     }
                   }}
@@ -968,18 +912,18 @@ export function App() {
                 />
                 <button
                   onClick={async () => {
-                    setConnectResult(null);
-                    const ok = await updateServerUrlAndConnect(serverUrlInput.trim());
-                    setConnectResult(ok ? 'ok' : 'fail');
+                    setBannerConnectResult(null);
+                    const ok = await updateServerUrlAndConnect(bannerUrlInput.trim());
+                    setBannerConnectResult(ok ? 'ok' : 'fail');
                     if (ok) setShowBannerUrlEditor(false);
                   }}
-                  disabled={checking || !serverUrlInput.trim()}
+                  disabled={checking || !bannerUrlInput.trim()}
                   className="px-2.5 py-1 text-[11px] font-medium rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   Connect
                 </button>
               </div>
-              {connectResult === 'fail' && (
+              {bannerConnectResult === 'fail' && (
                 <span className="text-[10px] text-[var(--color-figma-error)]">Cannot reach server — check the URL and try again</span>
               )}
             </div>
@@ -1131,6 +1075,47 @@ export function App() {
           </button>
         </Tooltip>
 
+        {/* Undo history indicator */}
+        {canUndo && undoDescriptions.length > 0 && (
+          <div className="relative group/undo-indicator mr-0.5 my-1">
+            <button
+              onClick={() => navigateTo('ship', 'history')}
+              className="flex items-center gap-0.5 h-7 px-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px] font-medium"
+              aria-label={`${undoDescriptions.length} undoable action${undoDescriptions.length !== 1 ? 's' : ''} — click to view history`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 7v6h6"/>
+                <path d="M3 13C5 8 10 5 16 5a9 9 0 0 1 5.2 16.2"/>
+              </svg>
+              {undoDescriptions.length}
+            </button>
+            <div
+              role="tooltip"
+              className="absolute top-full right-0 mt-1 z-[60] pointer-events-none
+                opacity-0 group-hover/undo-indicator:opacity-100
+                transition-opacity duration-100
+                bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
+                text-[var(--color-figma-text)] text-[10px]
+                rounded shadow-md min-w-[160px] max-w-[240px] py-1"
+            >
+              <div className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] text-[9px] uppercase tracking-wide font-medium border-b border-[var(--color-figma-border)] mb-0.5">
+                Undo stack
+              </div>
+              {[...undoDescriptions].reverse().slice(0, 5).map((desc, i) => (
+                <div key={i} className={`px-2 py-0.5 truncate ${i === 0 ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                  {i === 0 && <span className="text-[var(--color-figma-accent)] mr-1">↩</span>}
+                  {desc}
+                </div>
+              ))}
+              {undoDescriptions.length > 5 && (
+                <div className="px-2 py-0.5 text-[var(--color-figma-text-secondary)] italic">
+                  +{undoDescriptions.length - 5} more
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Notification history */}
         <div className="relative group/tooltip mr-0.5 my-1">
           <button
@@ -1185,7 +1170,6 @@ export function App() {
                 retryConnection();
               } else {
                 setOverflowPanel('settings');
-                setConnectResult(null);
               }
             }}
             className="flex items-center justify-center w-7 h-7 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1319,8 +1303,8 @@ export function App() {
       })()}
       </div>
 
-      {/* Set selector (for tokens tab) — hidden when sidebar or simple mode is active */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && !isSimpleMode && (
+      {/* Set selector (for tokens tab) — hidden when sidebar is active */}
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
         <>
         <div className="relative">
         <div ref={setTabsScrollRef} className={`flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto transition-colors ${tokenDragState ? 'bg-[var(--color-figma-accent)]/[0.03]' : ''}`} style={{ scrollbarWidth: 'none' }}>
@@ -1588,41 +1572,12 @@ export function App() {
         </>
       )}
 
-      {/* Simple mode info bar — shows when set navigation is hidden */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && isSimpleMode && sets.length >= 1 && (
-        <div className="flex items-center justify-between px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {sets.length > 1
-              ? `${totalTokenCount} tokens across ${sets.length} sets — organized by type`
-              : `${totalTokenCount} tokens — organized by type`}
-          </span>
-          <button
-            onClick={() => { setAdvancedModeOverride(true); lsSet(STORAGE_KEYS.ADVANCED_MODE, 'true'); }}
-            className="text-[10px] text-[var(--color-figma-accent)] hover:underline shrink-0 ml-2"
-          >
-            {sets.length > 1 ? 'Show sets' : 'Show original structure'}
-          </button>
-        </div>
-      )}
-
-      {/* Advanced mode return bar — shown when user opted into advanced mode but could use simple mode */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && advancedModeOverride && totalTokenCount > 0 && totalTokenCount < 200 && sets.length >= 1 && (
-        <div className="flex items-center justify-end px-2 py-0.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-          <button
-            onClick={() => { setAdvancedModeOverride(false); lsRemove(STORAGE_KEYS.ADVANCED_MODE); }}
-            className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:underline"
-          >
-            Simplify view
-          </button>
-        </div>
-      )}
-
       {/* Content — outer wrapper is flex-row so the set sidebar can sit alongside the content column */}
       <ErrorBoundary>
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Set sidebar — shown when sets have folder structure (/) or count ≥ 7, hidden in simple mode */}
-        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && !isSimpleMode && (
+        {/* Set sidebar — shown when there are more than 5 sets */}
+        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && (
           <aside className="w-[128px] shrink-0 border-r border-[var(--color-figma-border)] flex flex-col bg-[var(--color-figma-bg-secondary)] overflow-hidden">
             <div className="flex-1 overflow-y-auto py-0.5" style={{ scrollbarWidth: 'none' }}>
               {sidebarTree.roots.map(item => {
@@ -2062,7 +2017,6 @@ export function App() {
               fontWeightsByFamily={fontWeightsByFamily}
               showIssuesOnly={showIssuesOnly}
               setShowIssuesOnly={setShowIssuesOnly}
-              effectiveTokens={effectiveTokens}
               lintViolations={lintViolations}
               cascadeDiff={cascadeDiff ?? null}
               validationIssues={validationIssues}
@@ -2072,8 +2026,6 @@ export function App() {
               validationLastRefreshed={validationLastRefreshed}
               validationIsStale={validationIsStale}
               refreshValidation={refreshValidation}
-              historyFilterPath={historyFilterPath}
-              setHistoryFilterPath={setHistoryFilterPath}
               recentOperations={recentOperations}
               totalOperations={totalOperations}
               hasMoreOperations={hasMoreOperations}
@@ -2138,20 +2090,7 @@ export function App() {
               onShowColorScaleGen={() => setShowColorScaleGen(true)}
               onShowGuidedSetup={() => setShowGuidedSetup(true)}
               onRestartGuidedSetup={() => { lsSet(STORAGE_KEYS.FIRST_RUN_DONE, ''); setShowWelcome(true); setOverflowPanel(null); }}
-              serverUrlInput={serverUrlInput}
-              setServerUrlInput={setServerUrlInput}
-              connectResult={connectResult}
-              setConnectResult={setConnectResult}
-              advancedModeOverride={advancedModeOverride}
-              setAdvancedModeOverride={setAdvancedModeOverride}
-              undoMaxHistory={undoMaxHistory}
-              setUndoMaxHistory={setUndoMaxHistory}
-              showClearConfirm={showClearConfirm}
-              setShowClearConfirm={setShowClearConfirm}
-              clearConfirmText={clearConfirmText}
-              setClearConfirmText={setClearConfirmText}
-              handleClearAll={handleClearAll}
-              clearing={clearing}
+              onClearAllComplete={() => { setOverflowPanel(null); navigateTo('define', 'tokens'); refreshTokens(); }}
             />
           </div>
         </div>
@@ -2211,58 +2150,6 @@ export function App() {
         </div>
       )}
 
-      {/* Create panel drawer */}
-      {showCreatePanel && overflowPanel === null && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
-          <div
-            className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={() => setShowCreatePanel(null)}
-          />
-          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: (showCreatePanel?.tab ?? createPanelActiveTab) === 'single' ? '55%' : '75%', transition: 'height 0.2s ease' }}>
-            <div className="flex justify-center pt-2 pb-1 shrink-0">
-              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <CreatePanel
-                serverUrl={serverUrl}
-                activeSet={activeSet}
-                allSets={sets}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                allGroupPaths={allGroupPaths}
-                connected={connected}
-                initialTab={showCreatePanel.tab}
-                initialPath={showCreatePanel.initialPath}
-                initialType={showCreatePanel.initialType}
-                initialValue={showCreatePanel.initialValue}
-                hasSelection={selectedNodes.length > 0}
-                graphTemplates={GRAPH_TEMPLATES}
-                onOpenGenerator={(template) => {
-                  setShowCreatePanel(null);
-                  setPendingGraphTemplate(template.id);
-                  navigateTo('define', 'generators');
-                }}
-                onTokenCreated={(path) => {
-                  setHighlightedToken(path);
-                  setSuccessToast(`Created ${path}`);
-                }}
-                onCreateAndEdit={(path) => {
-                  setShowCreatePanel(null);
-                  setHighlightedToken(path);
-                  const name = path.includes('.') ? path.split('.').pop()! : path;
-                  setEditingToken({ path, name, set: activeSet });
-                  navigateTo('define', 'tokens');
-                }}
-                onRefresh={refreshAll}
-                onClose={() => setShowCreatePanel(null)}
-                onTabChange={setCreatePanelActiveTab}
-                availableFonts={availableFonts}
-                fontWeightsByFamily={fontWeightsByFamily}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Token preview drawer (narrow windows only; wide windows use side panel) */}
       {!editingToken && previewingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (

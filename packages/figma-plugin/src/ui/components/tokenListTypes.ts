@@ -256,6 +256,10 @@ export interface TokenTreeContextType {
   derivedTokenPaths?: Map<string, TokenGenerator>;
   /** Maps generator target group paths to generator name — for ancestry badges on group headers */
   generatorTargetGroups?: Map<string, string>;
+  /** Maps generator target group paths to generator id — for click-to-navigate */
+  generatorTargetGroupIds?: Map<string, string>;
+  /** Set of target group paths whose generator has isStale === true — for amber stale badge */
+  generatorStaleTargetGroups?: Set<string>;
   tokenUsageCounts?: Record<string, number>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
@@ -326,6 +330,8 @@ export interface TokenTreeContextType {
   onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
   onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
+  /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
+  onRegenerateGenerator?: (generatorId: string) => Promise<void>;
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
   /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */

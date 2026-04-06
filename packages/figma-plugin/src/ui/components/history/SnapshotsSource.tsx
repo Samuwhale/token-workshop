@@ -143,9 +143,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       handleCompare(initialComparingId);
     }
     return () => { singleCompareAbortRef.current?.abort(); };
-     
-    // Safe: mount-only. `initialComparingId` is an "initial value" prop.
-  }, []);
+  }, [handleCompare, initialComparingId]);
 
   // Bug fix: abort previous pair compare before starting a new one.
   const handlePairCompare = useCallback(async (a: SnapshotSummary, b: SnapshotSummary) => {

@@ -34,7 +34,7 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
   );
 }
 
-export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo, executeUndo, canUndo }: HistoryPanelProps) {
+export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens, filterTokenPath, onClearFilter, recentOperations, totalOperations, hasMoreOperations, onLoadMoreOperations, onRollback, undoDescriptions, redoableOpIds, onServerRedo, executeUndo, canUndo: _canUndo }: HistoryPanelProps) {
   // Timeline data
   const [timelineCommits, setTimelineCommits] = useState<CommitEntry[]>([]);
   const [timelineSnapshots, setTimelineSnapshots] = useState<SnapshotSummary[]>([]);

@@ -8,7 +8,6 @@ export function useModalVisibility() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showQuickApply, setShowQuickApply] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showSetSwitcher, setShowSetSwitcher] = useState(false);
   const [showManageSets, setShowManageSets] = useState(false);
 
@@ -20,7 +19,6 @@ export function useModalVisibility() {
     showCommandPalette, setShowCommandPalette,
     showKeyboardShortcuts, setShowKeyboardShortcuts,
     showQuickApply, setShowQuickApply,
-    showClearConfirm, setShowClearConfirm,
     showSetSwitcher, setShowSetSwitcher,
     showManageSets, setShowManageSets,
   };

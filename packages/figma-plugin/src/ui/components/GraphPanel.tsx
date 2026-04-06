@@ -4,14 +4,13 @@ import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { GRAPH_TEMPLATES, templateIdForTokenType } from './graph-templates';
 import type { GraphTemplate } from './graph-templates';
 import { TemplatePicker } from './TemplatePicker';
 import { GeneratorPipelineCard, getGeneratorTypeLabel } from './GeneratorPipelineCard';
-import { Spinner } from './Spinner';
 import { SkeletonGeneratorCard } from './Skeleton';
 
 // ---------------------------------------------------------------------------
@@ -232,14 +231,6 @@ export function GraphPanel({
 
   const staleGenerators = setGenerators.filter(g => g.isStale);
 
-  // Unique source token paths for all stale generators (for tooltip + info strip)
-  const staleSourceTokens = useMemo(() => {
-    const tokens = new Set<string>();
-    for (const g of staleGenerators) {
-      if (g.sourceToken) tokens.add(g.sourceToken);
-    }
-    return Array.from(tokens);
-  }, [staleGenerators]);
 
   const handleRunStale = async () => {
     setRunningStale(true);
@@ -295,15 +286,15 @@ export function GraphPanel({
             `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
           );
-        } catch (postErr: any) {
-          if (postErr?.status !== 409) {
+        } catch (postErr) {
+          if (postErr instanceof ApiError && postErr.status === 409) {
             try {
               await apiFetch(
                 `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
                 { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tokenBody) },
               );
             } catch {
-              // best-effort — skip conflicts silently
+              // best-effort — skip if update also fails
             }
           }
         }

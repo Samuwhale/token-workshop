@@ -187,8 +187,6 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   // Active token list: all-sets or current-set
   const activeTokenList = searchAllSets && allSetTokens ? allSetTokens : tokens;
 
-  const MAX_TOKEN_BROWSE = 100;
-
   // Derive unique group paths from tokens
   const groups: GroupEntry[] = useMemo(() => {
     if (!activeTokenList.length) return [];

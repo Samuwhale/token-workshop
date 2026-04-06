@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TokenMapEntry, BindableProperty, ScanScope } from '../../shared/types';
+import type { TokenMapEntry, BindableProperty } from '../../shared/types';
 import { HeatmapPanel } from './HeatmapPanel';
 import type { HeatmapResult } from './HeatmapPanel';
 import { ConsistencyPanel } from './ConsistencyPanel';

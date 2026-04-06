@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type { ToastItem } from '../hooks/useToastStack';
-import type { UndoSlot } from '../hooks/useUndo';
 import { modKey, shiftKey } from '../shared/utils';
 
 interface ToastStackProps {

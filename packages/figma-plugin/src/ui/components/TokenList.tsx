@@ -5,24 +5,24 @@ import { isAlias, extractAliasPath, resolveTokenValue, resolveAllAliases } from 
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
-import { stableStringify, getErrorMessage, isAbortError } from '../shared/utils';
+import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener, type PreferredCopyFormat } from './SettingsPanel';
 import type { SortOrder } from './tokenListUtils';
 import {
   formatDisplayPath, nodeParentPath, flattenVisible,
-  pruneDeletedPaths, filterByDuplicatePaths, filterTokenNodes,
-  sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths,
+  pruneDeletedPaths,
+  sortTokenNodes, collectAllGroupPaths,
   flattenLeafNodes, findGroupByPath,
-  buildZoomBreadcrumb, getDefaultValue,
-  hasStructuredQualifiers, parseStructuredQuery, QUERY_QUALIFIERS,
+  buildZoomBreadcrumb,
+  hasStructuredQualifiers, QUERY_QUALIFIERS,
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
-import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
+import type { TokenListProps, MultiModeValue, Density, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
+import { VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
+import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, valuePlaceholderForType, valueFormatHint } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { TokenTreeNode } from './TokenTreeNode';
@@ -148,6 +148,22 @@ export function TokenList({
     return map;
   }, [generators]);
 
+  const generatorTargetGroupIds = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const gen of generators ?? []) {
+      if (gen.targetGroup) map.set(gen.targetGroup, gen.id);
+    }
+    return map;
+  }, [generators]);
+
+  const generatorStaleTargetGroups = useMemo(() => {
+    const set = new Set<string>();
+    for (const gen of generators ?? []) {
+      if (gen.isStale && gen.targetGroup) set.add(gen.targetGroup);
+    }
+    return set;
+  }, [generators]);
+
   // Expand/collapse state managed by useTokenExpansion (called below)
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
@@ -173,7 +189,6 @@ export function TokenList({
   // useTokenCrud and useTokenPromotion are called before useTokenSelection, so we use ref-based proxies.
   const clearSelectionRef = useRef<() => void>(() => {});
   const clearSelection = useCallback(() => clearSelectionRef.current(), []);
-  const selectedPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
@@ -329,7 +344,6 @@ export function TokenList({
     setDensityState((stored === 'compact' || stored === 'comfortable') ? stored : 'default');
   }, [densityRev]);
   const rowHeight = DENSITY_ROW_HEIGHT[density];
-  const [showScopesCol, setShowScopesCol] = useState(false);
 
   // Condensed view — caps indentation at CONDENSED_MAX_DEPTH to prevent deep nesting from pushing content off-screen
   const [condensedView, setCondensedViewState] = useState<boolean>(() => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === '1');
@@ -584,7 +598,7 @@ export function TokenList({
     tableRows, rowErrors, createAllError, busy: tableCreateBusy,
     hasDraft: tableCreateHasDraft,
     addRow: addTableRow, removeRow: removeTableRow, updateRow: updateTableRow,
-    closeTableCreate, resetTableCreate, restoreDraft: restoreTableDraft, dismissDraft: dismissTableDraft,
+    closeTableCreate, restoreDraft: restoreTableDraft, dismissDraft: dismissTableDraft,
     openTableCreate, handleCreateAll,
     tableSuggestions,
   } = tableCreate;
@@ -594,7 +608,7 @@ export function TokenList({
     if (groupActiveIdx < 0 || !createFormRef.current) return;
     const el = createFormRef.current.querySelector(`[data-group-idx="${groupActiveIdx}"]`) as HTMLElement | null;
     el?.scrollIntoView({ block: 'nearest' });
-  }, [groupActiveIdx]);
+  }, [groupActiveIdx, createFormRef]);
 
   const findReplace = useFindReplace({
     connected,
@@ -818,7 +832,7 @@ export function TokenList({
       return leaves.map(node => ({ node, depth: 0 }));
     }
     return flattenVisible(displayedTokens, expandedPaths);
-  }, [displayedTokens, expandedPaths, viewMode, showRecentlyTouched, recentlyTouched.paths, recentlyTouched.timestamps]);
+  }, [displayedTokens, expandedPaths, viewMode, showRecentlyTouched, recentlyTouched.timestamps]);
 
   const tokenVirtualScroll = useTokenVirtualScroll({
     displayedTokens: flatItemsForScroll.length === 0 ? displayedTokens : displayedTokens,
@@ -925,6 +939,15 @@ export function TokenList({
     handleRequestMoveToken, handleConfirmMoveToken, handleChangeMoveTokenTargetSet,
     handleRequestCopyToken, handleConfirmCopyToken, handleChangeCopyTokenTargetSet,
   } = tokenCrud;
+
+  const handleRegenerateGenerator = useCallback(async (generatorId: string) => {
+    try {
+      await apiFetch(`${serverUrl}/api/generators/${generatorId}/run`, { method: 'POST' });
+      onRefreshGenerators?.();
+    } catch {
+      onError?.('Failed to regenerate — check server connection');
+    }
+  }, [serverUrl, onRefreshGenerators, onError]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -1280,7 +1303,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet]);
+  }, [showCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack, handleMoveTokenInGroup, siblingOrderMap, sortOrder, connected, requestBulkDeleteFromHook, sets, setName, setBatchMoveToSetTarget, setShowBatchMoveToSet, setBatchCopyToSetTarget, setShowBatchCopyToSet, editingTokenPath, handleTokenSelect, lastSelectedPathRef, onEdit, resetCreateFormFull, searchRef, setSelectMode, setSelectedPaths, setShowBatchEditor, setShowCreateForm, setVirtualScrollTop]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -1291,7 +1314,7 @@ export function TokenList({
     const targetScrollTop = Math.max(0, itemOffsets[idx] - containerH / 2 + rowHeight / 2);
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
-  }, [highlightedToken, flatItems, itemOffsets, viewMode]);
+  }, [highlightedToken, flatItems, itemOffsets, viewMode, rowHeight, setVirtualScrollTop]);
 
   // Restore scroll anchor after filter changes so the first visible item stays visible
   useLayoutEffect(() => {
@@ -1312,7 +1335,7 @@ export function TokenList({
     // Anchor not in filtered list — scroll to top of results
     virtualListRef.current.scrollTop = 0;
     setVirtualScrollTop(0);
-  }, [flatItems, itemOffsets]);
+  }, [flatItems, itemOffsets, setVirtualScrollTop]);
 
   const syncChangedCount = useMemo(() => {
     if (!syncSnapshot) return 0;
@@ -1354,7 +1377,7 @@ export function TokenList({
   }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates, showIssuesOnly, onToggleIssuesOnly]);
 
   // Merge capabilities from all selected nodes for the property picker
-  const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
+  const selectionCapabilities = useMemo<NodeCapabilities | null>(() => selectedNodes.length > 0
     ? {
         hasFills: selectedNodes.some(n => n.capabilities.hasFills),
         hasStrokes: selectedNodes.some(n => n.capabilities.hasStrokes),
@@ -1362,7 +1385,7 @@ export function TokenList({
         isText: selectedNodes.some(n => n.capabilities.isText),
         hasEffects: selectedNodes.some(n => n.capabilities.hasEffects),
       }
-    : null;
+    : null, [selectedNodes]);
 
   // Extract to alias state — managed by useExtractToAlias hook
   const {
@@ -1414,7 +1437,7 @@ export function TokenList({
     }
     setOperationLoading(null);
     onRefresh();
-  }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
+  }, [moveToGroupTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError, setSelectMode, setSelectedPaths]);
 
   const handleBatchMoveToSet = useCallback(async () => {
     const target = batchMoveToSetTarget.trim();
@@ -1434,7 +1457,7 @@ export function TokenList({
     }
     setOperationLoading(null);
     onRefresh();
-  }, [batchMoveToSetTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError]);
+  }, [batchMoveToSetTarget, selectedPaths, connected, serverUrl, setName, onRefresh, onError, setSelectMode, setSelectedPaths]);
 
   const handleBatchCopyToSet = useCallback(async () => {
     const target = batchCopyToSetTarget.trim();
@@ -1568,11 +1591,11 @@ export function TokenList({
       return { ...t, $value: resolved.value ?? t.$value, $type: resolved.$type };
     });
 
-  const doApplyVariables = (flat: any[]) => {
+  const doApplyVariables = useCallback((flat: any[]) => {
     parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens: flat, collectionMap, modeMap } }, '*');
     setApplyResult({ type: 'variables', count: flat.length });
     setTimeout(() => setApplyResult(null), 3000);
-  };
+  }, [collectionMap, modeMap, setApplyResult]);
 
   const handleApplyVariables = async () => {
     const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({ ...t, setName }));
@@ -1701,7 +1724,7 @@ export function TokenList({
       virtualListRef.current.scrollTop = targetScrollTop;
       setVirtualScrollTop(targetScrollTop);
     }
-  }, [flatItems, itemOffsets]);
+  }, [flatItems, itemOffsets, setExpandedPaths, setVirtualScrollTop]);
 
   const handleZoomIntoGroup = useCallback((groupPath: string) => {
     setZoomRootPath(groupPath);
@@ -1709,19 +1732,19 @@ export function TokenList({
     if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
     // Ensure the zoom target's children are visible
     setExpandedPaths(prev => { const next = new Set(prev); next.add(groupPath); return next; });
-  }, []);
+  }, [setExpandedPaths, setVirtualScrollTop, setZoomRootPath]);
 
   const handleZoomOut = useCallback(() => {
     setZoomRootPath(null);
     setVirtualScrollTop(0);
     if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
-  }, []);
+  }, [setVirtualScrollTop, setZoomRootPath]);
 
   const handleZoomToAncestor = useCallback((ancestorPath: string) => {
     setZoomRootPath(ancestorPath || null);
     setVirtualScrollTop(0);
     if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
-  }, []);
+  }, [setVirtualScrollTop, setZoomRootPath]);
 
   // Virtual scroll window computation — uses itemOffsets for variable-height rows
   const virtualContainerH = virtualListRef.current?.clientHeight ?? 500;
@@ -1784,7 +1807,7 @@ export function TokenList({
       setSelectedPaths(new Set([path]));
       setShowBatchEditor(false);
     }
-  }, [onOpenCompare]);
+  }, [onOpenCompare, setSelectMode, setSelectedPaths, setShowBatchEditor]);
 
   const handleCompareAcrossThemes = useCallback((path: string) => {
     if (onOpenCrossThemeCompare) {
@@ -1813,9 +1836,9 @@ export function TokenList({
       },
     };
     return () => { compareHandle.current = null; };
-  }, [compareHandle]);
+  }, [compareHandle, setSelectMode, setShowBatchEditor, setPendingRenameToken, setMovingToken, handleOpenExtractToAlias]);
 
-  const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), []);
+  const handleClearPendingRename = useCallback(() => setPendingRenameToken(null), [setPendingRenameToken]);
 
   // Effective roving focus path: if none has been set yet, default to the first visible row
   // so Tab-into-tree always lands on a meaningful starting point.
@@ -1837,6 +1860,8 @@ export function TokenList({
     generatorsBySource,
     derivedTokenPaths,
     generatorTargetGroups,
+    generatorTargetGroupIds,
+    generatorStaleTargetGroups,
     tokenUsageCounts,
     searchHighlight,
     selectedNodes,
@@ -1877,6 +1902,7 @@ export function TokenList({
     onRenameToken: handleRenameToken,
     onDetachFromGenerator: handleDetachFromGenerator,
     onNavigateToGenerator,
+    onRegenerateGenerator: handleRegenerateGenerator,
     onToggleChain: handleToggleChain,
     onTogglePin: pinnedTokens.togglePin,
     onToggleStar,
@@ -1910,7 +1936,7 @@ export function TokenList({
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
-    generatorsBySource, derivedTokenPaths, generatorTargetGroups, tokenUsageCounts, searchHighlight,
+    generatorsBySource, derivedTokenPaths, generatorTargetGroups, generatorTargetGroupIds, generatorStaleTargetGroups, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
     requestDeleteGroup, handleTokenSelect, handleToggleExpand, handleSelectGroupChildren, onNavigateToAlias,
@@ -1920,7 +1946,7 @@ export function TokenList({
     handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
     onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
     setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
-    handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
+    handleDetachFromGenerator, handleRegenerateGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
     handleCompareToken, onViewTokenHistory, onShowReferences, handleCompareAcrossThemes, handleFindInAllSets, handleDragStartNotify, handleDragEndNotify, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, condensedView, themeCoverage,
@@ -1928,6 +1954,7 @@ export function TokenList({
     pathToSet, dimensions, activeThemes, pendingRenameToken, handleClearPendingRename,
     pendingTabEdit, handleClearPendingTabEdit, handleTabToNext,
     effectiveRovingPath, setRovingFocusPath,
+    sets.length,
   ]);
 
   // Build modal context value — memoized so TokenListModals only re-renders when
@@ -2070,15 +2097,20 @@ export function TokenList({
     movingToken, movingGroup, moveGroupTargetSet, moveTokenTargetSet,
     setMoveGroupTargetSet, handleChangeMoveTokenTargetSet,
     handleConfirmMoveToken, handleConfirmMoveGroup,
-    moveConflict, moveConflictAction, moveConflictNewPath,
+    moveConflict, moveConflictAction, setMoveConflictAction, moveConflictNewPath, setMoveConflictNewPath,
     copyingToken, copyingGroup, copyGroupTargetSet, copyTokenTargetSet,
     setCopyGroupTargetSet, handleChangeCopyTokenTargetSet,
     handleConfirmCopyToken, handleConfirmCopyGroup,
-    copyConflict, copyConflictAction, copyConflictNewPath,
+    copyConflict, copyConflictAction, setCopyConflictAction, copyConflictNewPath, setCopyConflictNewPath,
     showMoveToGroup, moveToGroupTarget, moveToGroupError,
     selectedPaths, handleBatchMoveToGroup,
     showBatchMoveToSet, batchMoveToSetTarget, handleBatchMoveToSet,
     showBatchCopyToSet, batchCopyToSetTarget, handleBatchCopyToSet,
+    setCopyingGroup, setCopyingToken, setDeleteConfirm, setExistingAlias, setExistingAliasSearch,
+    setExtractError, setExtractMode, setExtractToken, setFrError, setFrFind, setFrIsRegex,
+    setFrReplace, setFrScope, setFrTarget, setFrTypeFilter, setMovingGroup, setMovingToken,
+    setNewGroupDialogParent, setNewGroupError, setNewGroupName, setNewPrimitivePath, setNewPrimitiveSet,
+    setPromoteRows, setRenameGroupConfirm, setRenameTokenConfirm, setShowFindReplace,
   ]);
 
   return (

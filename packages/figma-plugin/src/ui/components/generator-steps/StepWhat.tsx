@@ -151,7 +151,7 @@ export function StepWhat({
   recommendedType,
   currentConfig,
   typeNeedsValue,
-  hasSource,
+  hasSource: _hasSource,
   hasValue,
   isMultiBrand,
   sourceTokenPath,

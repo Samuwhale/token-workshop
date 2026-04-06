@@ -8,6 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
+import { useState } from 'react';
 import type {
   ReactNode,
   MutableRefObject,
@@ -54,6 +55,7 @@ import type { RecentlyTouchedState } from '../hooks/useRecentlyTouched';
 import type { CrossSetRecentsState } from '../hooks/useCrossSetRecents';
 import type { StarredTokensState } from '../hooks/useStarredTokens';
 import type { TopTab, SubTab } from '../shared/navigationTypes';
+import { useEditorWidth } from '../hooks/useEditorWidth';
 
 // ---------------------------------------------------------------------------
 // Props interface
@@ -86,8 +88,6 @@ export interface PanelRouterProps {
   // Token list display state
   showIssuesOnly: boolean;
   setShowIssuesOnly: Dispatch<SetStateAction<boolean>>;
-  /** Effective tokens: simpleModeTokens when isSimpleMode, else tokens from TokenDataContext */
-  effectiveTokens: TokenNode[];
   lintViolations: LintViolation[];
   /** Set-level cascade diff from useSetTabs — not in any context */
   cascadeDiff: Record<string, { before: unknown; after: unknown }> | null;
@@ -102,8 +102,6 @@ export interface PanelRouterProps {
   refreshValidation: () => void;
 
   // History / operations
-  historyFilterPath: string | null;
-  setHistoryFilterPath: (path: string | null) => void;
   recentOperations: OperationEntry[];
   totalOperations: number;
   hasMoreOperations: boolean;
@@ -177,22 +175,9 @@ export interface PanelRouterProps {
   onShowColorScaleGen: () => void;
   onShowGuidedSetup: () => void;
 
-  // Settings panel state
-  serverUrlInput: string;
-  setServerUrlInput: (url: string) => void;
-  connectResult: 'ok' | 'fail' | null;
-  setConnectResult: (r: 'ok' | 'fail' | null) => void;
-  advancedModeOverride: boolean;
-  setAdvancedModeOverride: (v: boolean) => void;
-  undoMaxHistory: number;
-  setUndoMaxHistory: (n: number) => void;
-  showClearConfirm: boolean;
-  setShowClearConfirm: (v: boolean) => void;
-  clearConfirmText: string;
-  setClearConfirmText: (v: string) => void;
-  handleClearAll: () => void;
-  clearing: boolean;
   onRestartGuidedSetup: () => void;
+  /** Called after "Clear all data" — navigate away and refresh tokens */
+  onClearAllComplete?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +222,13 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
 
+  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
+
+  const editingTokenType = editingToken
+    ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
+    : undefined;
+  const { editorWidth, handleEditorWidthDragStart } = useEditorWidth(editingTokenType);
+
   // Build the common TokenList `actions` object once — it's identical across the
   // three TokenList render variants (side-panel, no-split, preview-split).
   const tokenListActions = {
@@ -274,7 +266,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
     onFilteredCountChange: setFilteredSetCount,
     onNavigateToSet: p.handleNavigateToSet,
     onViewTokenHistory: (path: string) => {
-      p.setHistoryFilterPath(path);
+      setHistoryFilterPath(path);
       navigateTo('ship', 'history');
     },
     onNavigateToGenerator: p.handleNavigateToGenerator,
@@ -384,22 +376,9 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
         serverUrl={serverUrl}
         connected={connected}
         checking={checking}
-        serverUrlInput={p.serverUrlInput}
-        setServerUrlInput={p.setServerUrlInput}
-        connectResult={p.connectResult}
-        setConnectResult={p.setConnectResult}
         updateServerUrlAndConnect={updateServerUrlAndConnect}
-        advancedModeOverride={p.advancedModeOverride}
-        setAdvancedModeOverride={p.setAdvancedModeOverride}
-        undoMaxHistory={p.undoMaxHistory}
-        setUndoMaxHistory={p.setUndoMaxHistory}
-        showClearConfirm={p.showClearConfirm}
-        setShowClearConfirm={p.setShowClearConfirm}
-        clearConfirmText={p.clearConfirmText}
-        setClearConfirmText={p.setClearConfirmText}
-        onClearAll={p.handleClearAll}
-        clearing={p.clearing}
         onRestartGuidedSetup={p.onRestartGuidedSetup}
+        onClearAllComplete={p.onClearAllComplete}
         onClose={() => setOverflowPanel(null)}
       />
     );
@@ -482,7 +461,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           </div>
         )}
         {/* Empty state */}
-        {p.effectiveTokens.length === 0 && !createFromEmpty && !editingToken && (
+        {tokens.length === 0 && !createFromEmpty && !editingToken && (
           <EmptyState
             connected={connected}
             serverUrl={serverUrl}
@@ -498,7 +477,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           />
         )}
         {/* Main content: TokenList variants */}
-        {(p.effectiveTokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
+        {(tokens.length > 0 || createFromEmpty) && !p.showPreviewSplit && (
           p.useSidePanel ? (
             <div className="flex h-full overflow-hidden">
               <div className="flex-1 min-w-0 overflow-hidden">
@@ -514,7 +493,8 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                 />
               </div>
               <div
-                className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden"
+                className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
+                style={{ width: editorWidth }}
                 onKeyDown={(e) => {
                   if ((e.key === ']' || e.key === '[') && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
                     e.preventDefault();
@@ -522,6 +502,14 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                   }
                 }}
               >
+                {/* Drag handle — user drags left to widen, right to narrow */}
+                <div
+                  className="w-1 shrink-0 cursor-col-resize hover:bg-[var(--color-figma-accent)]/30 active:bg-[var(--color-figma-accent)]/50 transition-colors"
+                  onMouseDown={handleEditorWidthDragStart}
+                  title="Drag to resize"
+                  aria-hidden="true"
+                />
+                <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 {editingToken && tokenEditorProps ? (
                   <TokenEditor {...tokenEditorProps} />
                 ) : previewingToken ? (
@@ -539,6 +527,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
                     onNavigateToAlias={handleNavigateToAlias}
                   />
                 ) : null}
+                </div>
               </div>
             </div>
           ) : (
@@ -555,7 +544,7 @@ export function PanelRouter(p: PanelRouterProps): ReactNode {
           )
         )}
         {/* Preview split view */}
-        {(p.effectiveTokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
+        {(tokens.length > 0 || createFromEmpty) && p.showPreviewSplit && (
           <div ref={p.splitContainerRef} className="flex flex-col h-full overflow-hidden">
             <div style={{ height: `${p.splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
               <TokenList
@@ -807,8 +796,8 @@ function renderApplyDependencies(): ReactNode {
           connected={connected}
           onPushUndo={p.pushUndo}
           onRefreshTokens={p.refreshAll}
-          filterTokenPath={p.historyFilterPath}
-          onClearFilter={() => p.setHistoryFilterPath(null)}
+          filterTokenPath={historyFilterPath}
+          onClearFilter={() => setHistoryFilterPath(null)}
           recentOperations={p.recentOperations}
           totalOperations={p.totalOperations}
           hasMoreOperations={p.hasMoreOperations}

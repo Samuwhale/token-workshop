@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
@@ -439,6 +439,170 @@ function ExtractToAliasModal() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Delete impact details — summary line + collapsible sections
+// ---------------------------------------------------------------------------
+
+function DeleteImpactDetails({
+  pathList,
+  affectedRefs,
+  generatorImpacts,
+  themeImpacts,
+}: {
+  pathList?: string[];
+  affectedRefs?: AffectedRef[];
+  generatorImpacts?: GeneratorImpact[];
+  themeImpacts?: ThemeImpact[];
+}) {
+  const [tokensOpen, setTokensOpen] = useState(false);
+  const [refsOpen, setRefsOpen] = useState(false);
+  const [gensOpen, setGensOpen] = useState(false);
+  const [themesOpen, setThemesOpen] = useState(false);
+
+  const tokenCount = pathList?.length ?? 0;
+  const refCount = affectedRefs?.length ?? 0;
+  const genCount = generatorImpacts?.length ?? 0;
+  const themeCount = themeImpacts?.length ?? 0;
+
+  const hasSideEffects = refCount > 0 || genCount > 0 || themeCount > 0;
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {/* Summary line with colored badges */}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--color-figma-text-secondary)]">
+        {tokenCount > 0 && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]">
+            {tokenCount} token{tokenCount !== 1 ? 's' : ''}
+          </span>
+        )}
+        {hasSideEffects && <span>will affect</span>}
+        {refCount > 0 && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+            {refCount} broken reference{refCount !== 1 ? 's' : ''}
+          </span>
+        )}
+        {genCount > 0 && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            {genCount} generator{genCount !== 1 ? 's' : ''}
+          </span>
+        )}
+        {themeCount > 0 && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            {themeCount} theme option{themeCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Collapsible: tokens to delete */}
+      {tokenCount > 0 && (
+        <CollapsibleSection
+          open={tokensOpen}
+          onToggle={() => setTokensOpen(v => !v)}
+          label={`Tokens (${tokenCount})`}
+        >
+          <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {pathList!.slice(0, 20).map(p => (
+              <div key={p} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={p}>{p}</div>
+            ))}
+            {tokenCount > 20 && (
+              <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">and {tokenCount - 20} more…</div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Collapsible: broken references */}
+      {refCount > 0 && (
+        <CollapsibleSection
+          open={refsOpen}
+          onToggle={() => setRefsOpen(v => !v)}
+          label={`Broken references (${refCount})`}
+        >
+          <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {affectedRefs!.slice(0, 20).map((ref, i) => (
+              <div key={i} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${ref.setName}/${ref.path}`}>
+                <span className="text-[var(--color-figma-text-tertiary)]">{ref.setName}/</span>{ref.path}
+              </div>
+            ))}
+            {refCount > 20 && (
+              <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">and {refCount - 20} more…</div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Collapsible: generator impacts */}
+      {genCount > 0 && (
+        <CollapsibleSection
+          open={gensOpen}
+          onToggle={() => setGensOpen(v => !v)}
+          label={`Affected generators (${genCount})`}
+        >
+          <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {generatorImpacts!.map((impact, i) => (
+              <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
+                <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})</span>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Collapsible: theme impacts */}
+      {themeCount > 0 && (
+        <CollapsibleSection
+          open={themesOpen}
+          onToggle={() => setThemesOpen(v => !v)}
+          label={`Affected theme options (${themeCount})`}
+        >
+          <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {themeImpacts!.map((impact, i) => (
+              <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
+                <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
+                <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
+                <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleSection({
+  open,
+  onToggle,
+  label,
+  children,
+}: {
+  open: boolean;
+  onToggle?: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      {onToggle ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] mb-1"
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
+            <path d="M2 1l4 3-4 3" />
+          </svg>
+          {label}
+        </button>
+      ) : (
+        <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">{label}</div>
+      )}
+      {open && children}
+    </div>
+  );
+}
+
 export function TokenListModals() {
   const {
     showScaffold,
@@ -573,70 +737,12 @@ export function TokenListModals() {
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
         >
-          {modalProps.pathList && modalProps.pathList.length > 0 && (
-            <div className="mt-2 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              {modalProps.pathList.slice(0, 20).map(p => (
-                <div key={p} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate hover:text-[var(--color-figma-text)]" title={p}>
-                  {p}
-                </div>
-              ))}
-              {modalProps.pathList.length > 20 && (
-                <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">
-                  and {modalProps.pathList.length - 20} more…
-                </div>
-              )}
-            </div>
-          )}
-          {modalProps.affectedRefs && modalProps.affectedRefs.length > 0 && (
-            <div className="mt-2">
-              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">Affected alias references:</div>
-              <div className="max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {modalProps.affectedRefs.slice(0, 20).map((ref, i) => (
-                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate hover:text-[var(--color-figma-text)]" title={`${ref.setName}/${ref.path}`}>
-                    <span className="text-[var(--color-figma-text-tertiary)]">{ref.setName}/</span>{ref.path}
-                  </div>
-                ))}
-                {modalProps.affectedRefs.length > 20 && (
-                  <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] italic">
-                    and {modalProps.affectedRefs.length - 20} more…
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {modalProps.generatorImpacts && modalProps.generatorImpacts.length > 0 && (
-            <div className="mt-2">
-              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected generators ({modalProps.generatorImpacts.length}) — generator configs will need manual update:
-              </div>
-              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {modalProps.generatorImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
-                    <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
-                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">
-                      ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {modalProps.themeImpacts && modalProps.themeImpacts.length > 0 && (
-            <div className="mt-2">
-              <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected theme options ({modalProps.themeImpacts.length}):
-              </div>
-              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {modalProps.themeImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.dimName} / ${impact.optionName} (${impact.setName})`}>
-                    <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
-                    <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <DeleteImpactDetails
+            pathList={modalProps.pathList}
+            affectedRefs={modalProps.affectedRefs}
+            generatorImpacts={modalProps.generatorImpacts}
+            themeImpacts={modalProps.themeImpacts}
+          />
         </ConfirmModal>
       )}
 

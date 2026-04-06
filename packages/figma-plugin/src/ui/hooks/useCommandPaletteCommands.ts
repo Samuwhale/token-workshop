@@ -41,7 +41,6 @@ export interface CommandPaletteCommandsOptions {
   themeGapCount: number;
   tokenListSelection: string[];
   setShowWelcome: (v: boolean) => void;
-  setShowCreatePanel: (v: { tab?: 'single' | 'scale' | 'bulk' | 'extract'; initialPath?: string; initialType?: string; initialValue?: string } | null) => void;
   setFlowPanelInitialPath: (v: string | null) => void;
   setPaletteDeleteConfirm: (v: { paths: string[]; label: string } | null) => void;
   // From useAnalyticsState (local state in App)
@@ -95,7 +94,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
   const {
     showPreviewSplit, setShowPreviewSplit,
     lintViolations, themeGapCount, tokenListSelection,
-    setShowIssuesOnly, setShowWelcome, setShowCreatePanel,
+    setShowIssuesOnly, setShowWelcome,
     setFlowPanelInitialPath, setPaletteDeleteConfirm,
     setShowPasteModal, setShowGuidedSetup, setShowColorScaleGen,
     setShowKeyboardShortcuts, setShowQuickApply, setShowSetSwitcher, setShowManageSets,
@@ -128,31 +127,17 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       {
         id: 'new-token',
         label: 'Create new token',
-        description: `Open the unified creation panel`,
+        description: 'Open the token editor in create mode',
         category: 'Tokens',
         shortcut: adaptShortcut('⌘N'),
-        handler: () => { setShowCreatePanel({ tab: 'single' }); },
+        handler: () => { navigateTo('define', 'tokens'); setEditingToken({ path: '', set: activeSet, isCreate: true }); },
       },
       {
         id: 'generate-scale',
         label: 'Generate a scale',
-        description: 'Create a scale of tokens from a template',
+        description: 'Create a scale of tokens from a generator template',
         category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'scale' }); },
-      },
-      {
-        id: 'bulk-create',
-        label: 'Bulk create tokens',
-        description: 'Create multiple tokens at once in a table',
-        category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'bulk' }); },
-      },
-      {
-        id: 'extract-from-selection',
-        label: 'Extract tokens from selection',
-        description: 'Scan selected Figma layers and create tokens from their design values',
-        category: 'Tokens',
-        handler: () => { setShowCreatePanel({ tab: 'extract' }); },
+        handler: () => { navigateTo('define', 'generators'); },
       },
       {
         id: 'switch-set',
@@ -412,7 +397,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         handler: () => { navigateTo('define', 'tokens'); tokenListCompareRef.current?.openCompareMode(); },
       },
     ];
-  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount]);
+  }, [activeSet, sets, openOverflowPanel, navigateTo, triggerHeatmapScan, selectedNodes, lintViolations, jumpToNextIssue, showPreviewSplit, setShowPreviewSplit, connected, serverUrl, themeGapCount, refreshValidation, setEditingToken, setOverflowPanel, setPendingGraphTemplate, setShowColorScaleGen, setShowGuidedSetup, setShowIssuesOnly, setShowKeyboardShortcuts, setShowManageSets, setShowPasteModal, setShowQuickApply, setShowSetSwitcher, setShowWelcome, themeManagerHandleRef, tokenListCompareRef]);
 
   // Per-set switch commands — rebuilds when the set list or token counts change.
   const setCommands = useMemo<Command[]>(() => {
@@ -424,7 +409,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       category: 'Sets' as const,
       handler: () => { setActiveSet(s); goToTokens(); },
     }));
-  }, [sets, setTokenCounts, navigateTo]);
+  }, [sets, setTokenCounts, navigateTo, setActiveSet, setEditingToken]);
 
   // Theme compare commands — rebuilds when dimensions change (rare: theme config edits).
   const themeCompareCommands = useMemo<Command[]>(() => [
@@ -448,7 +433,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
         navigateTo('define', 'themes');
       },
     })),
-  ], [dimensions, navigateTo]);
+  ], [dimensions, navigateTo, themeManagerHandleRef]);
 
   // Contextual commands — rebuilds on hover/selection changes (most frequent).
   // Kept small (~5 entries) so the rebuild cost is negligible.
@@ -527,7 +512,7 @@ export function useCommandPaletteCommands(opts: CommandPaletteCommandsOptions): 
       handler: () => { themeManagerHandleRef.current?.navigateToCompare('cross-theme'); navigateTo('define', 'themes'); },
     }] : []),
   ];
-  }, [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare, handlePaletteRename, handlePaletteDuplicate, handlePaletteMove, allTokensFlat, setHighlightedToken]);
+  }, [highlightedToken, tokenListSelection, pathToSet, activeSet, dimensions, setPaletteDeleteConfirm, navigateTo, setFlowPanelInitialPath, handleOpenCrossThemeCompare, handlePaletteRename, handlePaletteDuplicate, handlePaletteMove, allTokensFlat, setHighlightedToken, themeManagerHandleRef, tokenListCompareRef]);
 
   // Undo/redo commands — rebuilds when the operation log or redo stack changes.
   const undoRedoCommands = useMemo<Command[]>(() => [

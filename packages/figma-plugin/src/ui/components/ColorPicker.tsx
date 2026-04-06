@@ -10,9 +10,6 @@ import {
   p3ToSrgb,
   isP3InSrgbGamut,
   wcagContrast,
-  swatchBgColor,
-  isWideGamutColor,
-  getSrgbFallback,
 } from '../shared/colorUtils';
 import {
   parseAnyColor,
@@ -20,7 +17,6 @@ import {
   toHex as coreToHex,
   oklchToOklab,
   oklabToLinearSrgb,
-  serializeColor,
 } from '@tokenmanager/core';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
@@ -280,7 +276,6 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
   // Current hex (no alpha)
   const hex6 = hslToHex(hue, sat, lit);
-  const hexFull = applyAlpha(hex6, alpha);
 
   // Color harmony variants (same sat/lit, rotated hue)
   const harmonyComplement = hslToHex((hue + 180) % 360, sat, lit);
@@ -338,7 +333,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   }, [hue, sat, lit, alpha, onClose]);
 
   // Recent colors state
-  const [recentColors, setRecentColors] = useState(getRecentColors);
+  const [recentColors] = useState(getRecentColors);
 
   // Token color swatches
   const [showTokens, setShowTokens] = useState(false);

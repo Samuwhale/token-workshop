@@ -180,7 +180,7 @@ export function useTokenCreate({
     }
     setNewTokenType(tokenType || 'color');
     setShowCreateForm(true);
-  }, [onCreateNew, siblingOrderMap, selectedNodes]);
+  }, [onCreateNew, siblingOrderMap, selectedNodes, setShowCreateForm]);
 
   // After Save & New, auto-fill name suggestion once siblings update
   useEffect(() => {
@@ -290,7 +290,7 @@ export function useTokenCreate({
         setCreateError('Network error — could not create token');
       }
     }
-  }, [newTokenPath, newTokenName, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
+  }, [newTokenPath, newTokenName, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, newTokenGroup, setShowCreateForm]);
 
   const handleCreate = useCallback(() => doCreate(false), [doCreate]);
   const handleCreateAndNew = useCallback(() => doCreate(true), [doCreate]);

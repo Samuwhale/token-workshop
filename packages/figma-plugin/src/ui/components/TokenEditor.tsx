@@ -1,4 +1,4 @@
-import { getErrorMessage, adaptShortcut, tokenPathToUrlSegment } from '../shared/utils';
+import { adaptShortcut, tokenPathToUrlSegment } from '../shared/utils';
 import { SHORTCUT_KEYS } from '../shared/shortcutRegistry';
 import { Spinner } from './Spinner';
 import { apiFetch } from '../shared/apiFetch';
@@ -24,6 +24,7 @@ import { MetadataEditor } from './MetadataEditor';
 import { PathAutocomplete } from './PathAutocomplete';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
+import { Collapsible } from './Collapsible';
 
 // Hooks
 import { useTokenEditorFields } from '../hooks/useTokenEditorFields';
@@ -347,7 +348,7 @@ function ThemeValuesSection({
     return String(v);
   };
 
-  const handleSave = async (optionName: string, targetSet: string, currentRaw: any) => {
+  const handleSave = async (optionName: string, targetSet: string, _currentRaw: any) => {
     const editedStr = edits[optionName];
     if (editedStr === undefined) return;
     let finalValue: any = editedStr;
@@ -892,6 +893,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     handlePasteInValueEditor(e, parsePastedValue, setValue);
   }, [handlePasteInValueEditor, setValue]);
 
+  // Progressive disclosure: collapsible section state
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [lifecycleOpen, setLifecycleOpen] = useState(false);
+  const [refsOpen, setRefsOpen] = useState(false);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -1316,10 +1322,13 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           />
         )}
 
-        {/* Lifecycle */}
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Lifecycle</label>
-          <div className="flex gap-1">
+        {/* Lifecycle — collapsed by default */}
+        <Collapsible
+          open={lifecycleOpen}
+          onToggle={() => setLifecycleOpen(v => !v)}
+          label={<>Lifecycle <span className="opacity-60 font-normal">{lifecycle}</span></>}
+        >
+          <div className="flex gap-1 mt-1.5">
             {(['draft', 'published', 'deprecated'] as const).map(lc => (
               <button
                 key={lc}
@@ -1338,7 +1347,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               </button>
             ))}
           </div>
-        </div>
+        </Collapsible>
 
         {/* Inline theme values — per-set overrides for each theme option */}
         {!isCreateMode && dimensions.length > 0 && perSetFlat && Object.keys(perSetFlat).length > 0 && (
@@ -1352,33 +1361,46 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           />
         )}
 
-        {/* Description, Scopes, Mode Values, Extensions */}
-        <MetadataEditor
-          description={description}
-          onDescriptionChange={setDescription}
-          tokenType={tokenType}
-          scopes={scopes}
-          onScopesChange={setScopes}
-          dimensions={dimensions}
-          modeValues={modeValues}
-          onModeValuesChange={setModeValues}
-          aliasMode={aliasMode}
-          reference={reference}
-          value={value}
-          extensionsJsonText={extensionsJsonText}
-          onExtensionsJsonTextChange={setExtensionsJsonText}
-          extensionsJsonError={extensionsJsonError}
-          onExtensionsJsonErrorChange={setExtensionsJsonError}
-          isCreateMode={isCreateMode}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-        />
+        {/* Description, Scopes, Mode Values, Extensions — collapsed by default */}
+        <Collapsible
+          open={metaOpen}
+          onToggle={() => setMetaOpen(v => !v)}
+          label={description ? `Description & metadata` : 'Description & metadata'}
+        >
+          <div className="mt-2">
+            <MetadataEditor
+              description={description}
+              onDescriptionChange={setDescription}
+              tokenType={tokenType}
+              scopes={scopes}
+              onScopesChange={setScopes}
+              dimensions={dimensions}
+              modeValues={modeValues}
+              onModeValuesChange={setModeValues}
+              aliasMode={aliasMode}
+              reference={reference}
+              value={value}
+              extensionsJsonText={extensionsJsonText}
+              onExtensionsJsonTextChange={setExtensionsJsonText}
+              extensionsJsonError={extensionsJsonError}
+              onExtensionsJsonErrorChange={setExtensionsJsonError}
+              isCreateMode={isCreateMode}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+            />
+          </div>
+        </Collapsible>
 
         {/* References — outgoing aliases this token uses + incoming dependents + graph link */}
         {!isCreateMode && (outgoingRefs.length > 0 || dependents.length > 0 || dependentsLoading || onShowReferences) && (
-          <div className="flex flex-col gap-1.5">
+          <Collapsible
+            open={refsOpen}
+            onToggle={() => setRefsOpen(v => !v)}
+            label={`References${outgoingRefs.length + dependents.length > 0 ? ` (${outgoingRefs.length + dependents.length})` : ''}`}
+          >
+          <div className="flex flex-col gap-1.5 mt-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">References</span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium sr-only">References</span>
               {onShowReferences && (
                 <button
                   type="button"
@@ -1502,6 +1524,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               </div>
             )}
           </div>
+          </Collapsible>
         )}
       </div>
 

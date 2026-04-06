@@ -315,10 +315,7 @@ export function SelectionInspector({
     if (deepInspect) {
       parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: true } }, '*');
     }
-   
-  // Safe: mount-only sync. `deepInspect` is intentionally omitted — the Cmd+Shift+D toggle
-  // handler already sends the postMessage on every state change. Adding it here would double-fire.
-  }, []);
+  }, [deepInspect]);
 
   // Cmd+T: open create-from-first-unbound-property
   useEffect(() => {
@@ -345,12 +342,7 @@ export function SelectionInspector({
       setCreatingFromProp(target);
       setNewTokenName(SUGGESTED_NAMES[target] || 'token.new-token');
     }
-   
-  // Safe: trigger-only pattern. Only `triggerCreateToken` is a dep. `selectedNodes`, `connected`,
-  // `activeSet` and the state setters are intentionally omitted — they are read from the closure
-  // captured when the trigger fires (a state update), so they reflect the latest render. Including
-  // them would cause the effect to re-run on every selection change while the trigger is active.
-  }, [triggerCreateToken]);
+  }, [triggerCreateToken, selectedNodes, connected, activeSet, setBindingFromProp, setCreatingFromProp, setNewTokenName]);
 
   // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
   const rootNodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);
@@ -384,7 +376,7 @@ export function SelectionInspector({
       setNoMoreSiblings(false);
       setDeepRemoveError(null);
     }
-  }, [selectedNodes]);
+  }, [selectedNodes, rootNodes]);
 
   const totalBindings = hasSelection
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
@@ -659,10 +651,7 @@ export function SelectionInspector({
   const suggestions = useMemo(
     () => hasSelection && hasAnyTokens ? rankTokensForSelection(rootNodes, tokenMap, caps) : [],
      
-    // Safe: `caps` is listed as specific properties rather than the full object because `caps` is
-    // recreated on every render. The listed properties are all that `rankTokensForSelection` reads
-    // from `caps`; listing them prevents unnecessary recomputation on unrelated cap changes.
-    [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps.hasFills, caps.hasStrokes, caps.hasAutoLayout, caps.isText, caps.hasEffects],
+    [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps],
   );
 
   // Check if all visible properties with values are bound (no more unbound to advance to)

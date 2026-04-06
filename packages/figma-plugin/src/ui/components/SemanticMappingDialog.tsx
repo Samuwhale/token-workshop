@@ -1,7 +1,7 @@
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { useState, useRef, useEffect } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -110,8 +110,8 @@ export function SemanticMappingDialog({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           });
-        } catch (postErr: any) {
-          if (postErr?.status === 409) {
+        } catch (postErr) {
+          if (postErr instanceof ApiError && postErr.status === 409) {
             // Token already exists — overwrite via PATCH
             await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
               method: 'PATCH',

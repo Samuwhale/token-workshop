@@ -76,6 +76,5 @@ export function useFocusTrap(
       previouslyFocused?.focus();
     };
      
-    // containerRef and initialFocusRef are refs — stable objects, intentionally omitted.
-  }, []);
+  }, [containerRef, options?.initialFocusRef]);
 }

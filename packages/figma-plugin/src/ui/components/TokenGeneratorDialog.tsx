@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { Collapsible } from './Collapsible';
@@ -83,13 +83,13 @@ export function TokenGeneratorDialog({
     if (dialog.showConfirmation) setReviewOpen(true);
   }, [dialog.showConfirmation]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (dialog.isDirtyRef.current) {
       setShowDiscardConfirm(true);
       return;
     }
     onClose();
-  };
+  }, [dialog.isDirtyRef, onClose]);
 
   // --- Save logic ---
   const canSave = dialog.targetGroup.trim().length > 0
@@ -135,11 +135,10 @@ export function TokenGeneratorDialog({
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  // handleClose is stable in practice
-  }, []);
+  }, [handleClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       {showDiscardConfirm && (
         <ConfirmModal
           title="Discard unsaved changes?"
@@ -151,7 +150,7 @@ export function TokenGeneratorDialog({
           onCancel={() => setShowDiscardConfirm(false)}
         />
       )}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="token-generator-dialog-title" className="bg-[var(--color-figma-bg)] rounded-t-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="token-generator-dialog-title" className="bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-figma-border)] shrink-0">
@@ -171,25 +170,6 @@ export function TokenGeneratorDialog({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <StepWhere
-            name={dialog.name}
-            targetSet={dialog.targetSet}
-            targetGroup={dialog.targetGroup}
-            allSets={allSets}
-            isMultiBrand={dialog.isMultiBrand}
-            inputTable={dialog.inputTable}
-            targetSetTemplate={dialog.targetSetTemplate}
-            isEditing={dialog.isEditing}
-            onNameChange={dialog.handleNameChange}
-            onTargetSetChange={dialog.setTargetSet}
-            onTargetGroupChange={dialog.setTargetGroup}
-            onToggleMultiBrand={dialog.handleToggleMultiBrand}
-            onInputTableChange={dialog.setInputTable}
-            onTargetSetTemplateChange={dialog.setTargetSetTemplate}
-          />
-
-          <div className="border-t border-[var(--color-figma-border)]" />
-
           <StepWhat
             selectedType={dialog.selectedType}
             recommendedType={dialog.recommendedType}
@@ -223,6 +203,25 @@ export function TokenGeneratorDialog({
             onOverrideChange={dialog.handleOverrideChange}
             onOverrideClear={dialog.handleOverrideClear}
             onClearAllOverrides={dialog.clearAllOverrides}
+          />
+
+          <div className="border-t border-[var(--color-figma-border)]" />
+
+          <StepWhere
+            name={dialog.name}
+            targetSet={dialog.targetSet}
+            targetGroup={dialog.targetGroup}
+            allSets={allSets}
+            isMultiBrand={dialog.isMultiBrand}
+            inputTable={dialog.inputTable}
+            targetSetTemplate={dialog.targetSetTemplate}
+            isEditing={dialog.isEditing}
+            onNameChange={dialog.handleNameChange}
+            onTargetSetChange={dialog.setTargetSet}
+            onTargetGroupChange={dialog.setTargetGroup}
+            onToggleMultiBrand={dialog.handleToggleMultiBrand}
+            onInputTableChange={dialog.setInputTable}
+            onTargetSetTemplateChange={dialog.setTargetSetTemplate}
           />
 
           {(dialog.previewTokens.length > 0 || dialog.showConfirmation) && (

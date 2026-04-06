@@ -83,7 +83,7 @@ export function useSyncEntity<TRow extends DiffRowBase, TSnapshot>(
       ...extractSyncApplyResult(msg),
       snapshot: messages.extractApplySnapshot(msg),
     }),
-    [messages.extractApplySnapshot],
+    [messages],
   );
 
   const sendRead = useFigmaMessage<any[]>({

@@ -58,7 +58,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
 
   // Map value to y position (larger values at top)
   const valToY = (v: number) => PAD_T + GH - ((v - minVal) / (maxVal - minVal)) * GH;
-  const yToVal = (y: number) => minVal + ((PAD_T + GH - y) / GH) * (maxVal - minVal);
+  const yToVal = useCallback((y: number) => minVal + ((PAD_T + GH - y) / GH) * (maxVal - minVal), [minVal, maxVal]);
 
   // Bar layout
   const barHeight = Math.max(2, Math.min(12, GH / steps.length - 2));
@@ -102,7 +102,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
     setSnapLabel(snap);
 
     onChange({ ...config, ratio: finalRatio });
-  }, [draggingStep, steps, baseExponent, sourceValue, config, onChange]);
+  }, [draggingStep, steps, baseExponent, sourceValue, config, onChange, yToVal]);
 
   const handlePointerUp = useCallback(() => {
     setDraggingStep(null);

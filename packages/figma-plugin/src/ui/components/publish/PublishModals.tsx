@@ -245,10 +245,7 @@ export function GitPreviewModal({
 
   useEffect(() => {
     fetchPreview();
-   
-  // Safe: mount-only fetch. `fetchPreview` is a prop that may be recreated by the parent on every
-  // render; adding it to deps would re-fetch on every parent re-render instead of just once.
-  }, []);
+  }, [fetchPreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -429,11 +426,7 @@ export function CommitPreviewModal({
     if (tokenPreview === null && !tokenPreviewLoading) {
       fetchTokenPreview();
     }
-   
-  // Safe: mount-only conditional fetch. `tokenPreview`, `tokenPreviewLoading`, and
-  // `fetchTokenPreview` are intentionally omitted — adding them would re-run the effect
-  // every time loading state changes and create a feedback loop.
-  }, []);
+  }, [tokenPreview, tokenPreviewLoading, fetchTokenPreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };

@@ -13,7 +13,7 @@ import { useState, useCallback, useMemo } from 'react';
 import type { ResolverFile } from '@tokenmanager/core';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
-import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { usePanelHelp, PanelHelpIcon } from './PanelHelpHint';
 import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
@@ -85,12 +85,12 @@ function ResolverInner({
   getResolverFile,
   updateResolver,
   onSuccess,
-  showHeader,
+  showHeader: _showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
   const help = usePanelHelp('resolvers');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
-  const [migrateError, setMigrateError] = useState<string | null>(null);
+  const [, setMigrateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);

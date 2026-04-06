@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsGetJson, lsSetJson } from '../shared/storage';
+import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsGetJson, lsSetJson, lsRemove, lsClearByPrefix } from '../shared/storage';
 import { apiFetch } from '../shared/apiFetch';
 import { PLATFORMS } from '../shared/platforms';
 import { useLintConfig } from '../hooks/useLintConfig';
@@ -151,26 +151,11 @@ export interface SettingsPanelProps {
   serverUrl: string;
   connected: boolean;
   checking: boolean;
-  serverUrlInput: string;
-  setServerUrlInput: (v: string) => void;
-  connectResult: 'ok' | 'fail' | null;
-  setConnectResult: (v: 'ok' | 'fail' | null) => void;
   updateServerUrlAndConnect: (url: string) => Promise<boolean>;
-  // Advanced mode
-  advancedModeOverride: boolean;
-  setAdvancedModeOverride: (v: boolean) => void;
-  // Undo
-  undoMaxHistory: number;
-  setUndoMaxHistory: (v: number) => void;
-  // Danger zone
-  showClearConfirm: boolean;
-  setShowClearConfirm: (v: boolean) => void;
-  clearConfirmText: string;
-  setClearConfirmText: (v: string) => void;
-  onClearAll: () => void;
-  clearing: boolean;
   // Guided setup
   onRestartGuidedSetup: () => void;
+  /** Called after "Clear all data" completes — caller should navigate + refresh */
+  onClearAllComplete?: () => void;
   // Close
   onClose: () => void;
 }
@@ -186,7 +171,6 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.DENSITY,
   STORAGE_KEYS.COLOR_FORMAT,
   STORAGE_KEYS.PREFERRED_COPY_FORMAT,
-  STORAGE_KEYS.ADVANCED_MODE,
   STORAGE_KEYS.CONTRAST_BG,
   STORAGE_KEYS.HIDE_DEPRECATED,
   STORAGE_KEYS.SERVER_URL,
@@ -215,7 +199,6 @@ const IMPORT_KEY_LABELS: Record<string, string> = {
   [STORAGE_KEYS.DENSITY]:              'UI density',
   [STORAGE_KEYS.COLOR_FORMAT]:         'Color format',
   [STORAGE_KEYS.PREFERRED_COPY_FORMAT]: 'Preferred copy format',
-  [STORAGE_KEYS.ADVANCED_MODE]:        'Advanced mode',
   [STORAGE_KEYS.CONTRAST_BG]:          'Contrast background',
   [STORAGE_KEYS.HIDE_DEPRECATED]:      'Hide deprecated tokens',
   [STORAGE_KEYS.SERVER_URL]:           'Server URL',
@@ -238,24 +221,43 @@ export function SettingsPanel({
   serverUrl,
   connected,
   checking,
-  serverUrlInput,
-  setServerUrlInput,
-  connectResult,
-  setConnectResult,
   updateServerUrlAndConnect,
-  advancedModeOverride,
-  setAdvancedModeOverride,
-  undoMaxHistory,
-  setUndoMaxHistory,
-  showClearConfirm,
-  setShowClearConfirm,
-  clearConfirmText,
-  setClearConfirmText,
-  onClearAll,
-  clearing,
   onRestartGuidedSetup,
+  onClearAllComplete,
   onClose,
 }: SettingsPanelProps) {
+  // --- Connection state (owned here, not lifted) ---
+  const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
+  const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
+  // --- Undo history (owned here; dispatches event so App.tsx re-reads) ---
+  const [undoMaxHistory, setUndoMaxHistoryState] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
+  const setUndoMaxHistory = (v: number) => {
+    setUndoMaxHistoryState(v);
+    lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
+    dispatchSettingsChanged(STORAGE_KEYS.UNDO_MAX_HISTORY);
+  };
+  // --- Danger zone state (owned here) ---
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearAll = async () => {
+    if (clearConfirmText !== 'DELETE') return;
+    setClearing(true);
+    try {
+      await apiFetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
+    } catch (err) {
+      console.warn('[SettingsPanel] clear all data request failed:', err);
+    }
+    for (const key of [STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP, STORAGE_KEYS.ACTIVE_RESOLVER, STORAGE_KEYS.RESOLVER_INPUT]) {
+      lsRemove(key);
+    }
+    lsClearByPrefix(STORAGE_PREFIXES.TOKEN_SORT, STORAGE_PREFIXES.TOKEN_TYPE_FILTER);
+    setClearing(false);
+    setShowClearConfirm(false);
+    setClearConfirmText('');
+    onClearAllComplete?.();
+  };
   // ---- Lint / Validation config ----
   const { config: lintConfig, saving: lintSaving, updateRule: lintUpdateRule, applyConfig: lintApplyConfig, resetToDefaults: lintResetDefaults } = useLintConfig(serverUrl, connected);
 
@@ -319,7 +321,6 @@ export function SettingsPanel({
       STORAGE_KEYS.DENSITY,
       STORAGE_KEYS.COLOR_FORMAT,
       STORAGE_KEYS.PREFERRED_COPY_FORMAT,
-      STORAGE_KEYS.ADVANCED_MODE,
       STORAGE_KEYS.CONTRAST_BG,
       STORAGE_KEYS.HIDE_DEPRECATED,
       STORAGE_KEYS.SERVER_URL,
@@ -493,11 +494,6 @@ export function SettingsPanel({
     setHideDeprecated(v);
     lsSet(STORAGE_KEYS.HIDE_DEPRECATED, v ? 'true' : 'false');
     dispatchSettingsChanged(STORAGE_KEYS.HIDE_DEPRECATED);
-  };
-
-  const handleAdvancedModeChange = (v: boolean) => {
-    setAdvancedModeOverride(v);
-    lsSet(STORAGE_KEYS.ADVANCED_MODE, v ? 'true' : 'false');
   };
 
   const handleExportPlatformToggle = (platformId: string) => {
@@ -685,14 +681,6 @@ export function SettingsPanel({
                 onChange={handlePreferredCopyFormatChange}
               />
             </div>
-
-            {/* Advanced mode */}
-            <Toggle
-              checked={advancedModeOverride}
-              onChange={handleAdvancedModeChange}
-              label="Advanced mode"
-              description="Always show set tabs and advanced controls, even for small projects"
-            />
 
             {/* Contrast background */}
             <div>
@@ -894,7 +882,7 @@ export function SettingsPanel({
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] block">Max undo steps</span>
                 {undoMaxHistory !== 20 && (
                   <button
-                    onClick={() => { setUndoMaxHistory(20); lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, 20); }}
+                    onClick={() => { setUndoMaxHistory(20); }}
                     className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                   >
                     Reset to 20
@@ -909,7 +897,6 @@ export function SettingsPanel({
                 onChange={e => {
                   const v = Math.max(1, Math.min(200, Math.round(Number(e.target.value) || 20)));
                   setUndoMaxHistory(v);
-                  lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
                 }}
                 className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right focus-visible:border-[var(--color-figma-accent)]"
               />
@@ -1091,7 +1078,7 @@ export function SettingsPanel({
                     Cancel
                   </button>
                   <button
-                    onClick={onClearAll}
+                    onClick={handleClearAll}
                     disabled={clearConfirmText !== 'DELETE' || clearing}
                     className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-error)] text-white text-[11px] font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
                   >

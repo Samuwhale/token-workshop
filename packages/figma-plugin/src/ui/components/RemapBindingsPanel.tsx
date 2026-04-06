@@ -8,7 +8,7 @@ interface RemapBindingsPanelProps {
   onClose: () => void;
 }
 
-export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: RemapBindingsPanelProps) {
+export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose: _onClose }: RemapBindingsPanelProps) {
   const [remapRows, setRemapRows] = useState<{ from: string; to: string }[]>(() => {
     const prefill = initialMissingTokens;
     return prefill && prefill.length > 0

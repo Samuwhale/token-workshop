@@ -86,7 +86,7 @@ export function useTokenVirtualScroll({
     const targetScrollTop = Math.max(0, itemOffsets[idx] - containerH / 2 + rowHeight / 2);
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
-  }, [highlightedToken, flatItems, itemOffsets, viewMode]);
+  }, [highlightedToken, flatItems, itemOffsets, viewMode, rowHeight, virtualListRef]);
 
   // Restore scroll anchor after filter changes so the first visible item stays visible
   useLayoutEffect(() => {
@@ -107,7 +107,7 @@ export function useTokenVirtualScroll({
     // Anchor not in filtered list — scroll to top of results
     virtualListRef.current.scrollTop = 0;
     setVirtualScrollTop(0);
-  }, [flatItems, itemOffsets]);
+  }, [flatItems, itemOffsets, isFilterChangeRef, scrollAnchorPathRef, virtualListRef]);
 
   // Scroll the virtual list to a group header row
   const handleJumpToGroup = useCallback((groupPath: string) => {
@@ -117,7 +117,7 @@ export function useTokenVirtualScroll({
       virtualListRef.current.scrollTop = targetScrollTop;
       setVirtualScrollTop(targetScrollTop);
     }
-  }, [flatItems, itemOffsets]);
+  }, [flatItems, itemOffsets, virtualListRef]);
 
   const handleTabToNext = useCallback((currentPath: string, columnId: string | null, direction: 1 | -1) => {
     const items = flatItemsRef.current;
@@ -145,7 +145,7 @@ export function useTokenVirtualScroll({
       }
     }
     setPendingTabEdit({ path: nextPath, columnId });
-  }, []);
+  }, [flatItemsRef, itemOffsetsRef, virtualListRef]);
 
   return {
     virtualScrollTop,

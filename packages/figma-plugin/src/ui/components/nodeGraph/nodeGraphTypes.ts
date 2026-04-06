@@ -2,20 +2,10 @@ import type { TokenGenerator } from '../../hooks/useGenerators';
 import { TYPE_LABELS } from '../generators/generatorUtils';
 
 // ---------------------------------------------------------------------------
-// Node kinds & transform operations
+// Node kinds — transform nodes removed (were non-functional)
 // ---------------------------------------------------------------------------
 
-export type NodeKind = 'source' | 'generator' | 'transform' | 'output';
-
-export type TransformOp = 'lighten' | 'darken' | 'scale' | 'mix' | 'contrastCheck';
-
-export const TRANSFORM_OPS: { op: TransformOp; label: string; description: string }[] = [
-  { op: 'lighten', label: 'Lighten', description: 'Increase L* lightness in CIELAB' },
-  { op: 'darken', label: 'Darken', description: 'Decrease L* lightness in CIELAB' },
-  { op: 'scale', label: 'Scale', description: 'Multiply numeric value by a factor' },
-  { op: 'mix', label: 'Mix', description: 'Blend two colors by a ratio' },
-  { op: 'contrastCheck', label: 'Contrast Check', description: 'Verify WCAG contrast ratio' },
-];
+export type NodeKind = 'source' | 'generator' | 'output';
 
 // ---------------------------------------------------------------------------
 // Ports
@@ -50,9 +40,6 @@ export interface GraphNode {
   generatorId?: string;
   generatorType?: string;
   stepCount?: number;
-  // Transform nodes
-  transformOp?: TransformOp;
-  transformParams?: Record<string, number | string>;
   // Output nodes
   targetGroup?: string;
   targetSet?: string;
@@ -125,25 +112,12 @@ export interface NodeGraphState {
 }
 
 // ---------------------------------------------------------------------------
-// Wiring state (temporary edge while dragging)
-// ---------------------------------------------------------------------------
-
-export interface WiringState {
-  fromNodeId: string;
-  fromPortId: string;
-  fromDirection: PortDirection;
-  mouseX: number;
-  mouseY: number;
-}
-
-// ---------------------------------------------------------------------------
 // Layout constants
 // ---------------------------------------------------------------------------
 
 export const NODE_WIDTHS: Record<NodeKind, number> = {
   source: 140,
   generator: 180,
-  transform: 160,
   output: 140,
 };
 
@@ -159,25 +133,6 @@ export function nodeHeight(node: GraphNode): number {
   const base = NODE_HEADER_H + Math.max(1, node.ports.length) * PORT_ROW_H + 8;
   if (node.kind === 'generator') return base + GENERATOR_PREVIEW_H;
   return base;
-}
-
-// ---------------------------------------------------------------------------
-// Port type compatibility
-// ---------------------------------------------------------------------------
-
-/**
- * Returns true if an output of type `from` can connect to an input of type `to`.
- * Rules:
- *  - `any` matches everything
- *  - exact match always works
- *  - `dimension` and `number` are interchangeable (dimensions are numeric)
- */
-export function isCompatiblePortType(from: PortType, to: PortType): boolean {
-  if (from === 'any' || to === 'any') return true;
-  if (from === to) return true;
-  // dimension ↔ number interop
-  if ((from === 'dimension' && to === 'number') || (from === 'number' && to === 'dimension')) return true;
-  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -349,75 +304,4 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
   }
 
   return { nodes, edges };
-}
-
-// ---------------------------------------------------------------------------
-// Transform node factory
-// ---------------------------------------------------------------------------
-
-export function createTransformNode(
-  op: TransformOp,
-  x: number,
-  y: number,
-): GraphNode {
-  const id = `transform-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const opDef = TRANSFORM_OPS.find(o => o.op === op)!;
-
-  let ports: Port[];
-  let params: Record<string, number | string>;
-
-  switch (op) {
-    case 'lighten':
-      ports = [
-        { id: `${id}-in`, label: 'Color', type: 'color', direction: 'in' },
-        { id: `${id}-out`, label: 'Result', type: 'color', direction: 'out' },
-      ];
-      params = { amount: 20 };
-      break;
-    case 'darken':
-      ports = [
-        { id: `${id}-in`, label: 'Color', type: 'color', direction: 'in' },
-        { id: `${id}-out`, label: 'Result', type: 'color', direction: 'out' },
-      ];
-      params = { amount: 20 };
-      break;
-    case 'scale':
-      ports = [
-        { id: `${id}-in`, label: 'Value', type: 'number', direction: 'in' },
-        { id: `${id}-out`, label: 'Result', type: 'number', direction: 'out' },
-      ];
-      params = { factor: 2 };
-      break;
-    case 'mix':
-      ports = [
-        { id: `${id}-in-a`, label: 'Color A', type: 'color', direction: 'in' },
-        { id: `${id}-in-b`, label: 'Color B', type: 'color', direction: 'in' },
-        { id: `${id}-out`, label: 'Result', type: 'color', direction: 'out' },
-      ];
-      params = { ratio: 0.5 };
-      break;
-    case 'contrastCheck':
-      ports = [
-        { id: `${id}-in-fg`, label: 'Foreground', type: 'color', direction: 'in' },
-        { id: `${id}-in-bg`, label: 'Background', type: 'color', direction: 'in' },
-        { id: `${id}-out`, label: 'Ratio', type: 'number', direction: 'out' },
-      ];
-      params = { level: 'AA' };
-      break;
-  }
-
-  const node: GraphNode = {
-    id,
-    kind: 'transform',
-    label: opDef.label,
-    x,
-    y,
-    width: NODE_WIDTHS.transform,
-    height: 0,
-    ports,
-    transformOp: op,
-    transformParams: params,
-  };
-  node.height = nodeHeight(node);
-  return node;
 }

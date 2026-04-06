@@ -96,13 +96,6 @@ function ModeToggleBar({ themeMode, onModeChange }: { themeMode: 'simple' | 'adv
   );
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onCreateToken, onPushUndo, resolverState, allTokensFlat = {}, pathToSet = {}, onGapsDetected, onTokensCreated, onGoToTokens, themeManagerHandle, onSuccess, onGenerateForDimension, onSetCreated }: ThemeManagerProps) {
   const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
@@ -135,7 +128,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     coverage, missingOverrides,
     optionSetOrders, setOptionSetOrders,
     selectedOptions, setSelectedOptions,
-    setTokenValues, setTokenTypesRef,
+    setTokenValues,
     newlyCreatedDim,
     fetchDimensions, debouncedFetchDimensions,
     newDimName, setNewDimName,
@@ -568,11 +561,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     handleBulkSetState,
     createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   }), [
-    dimensions, autoFillPreview, autoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
+    dimensions, autoFillPreview, setAutoFillPreview, autoFillStrategy, setAutoFillStrategy, executeAutoFillAll, executeAutoFillAllOptions,
     dimensionDeleteConfirm, openDeleteConfirm, closeDeleteConfirm, executeDeleteDimension,
-    optionDeleteConfirm, executeDeleteOption,
-    bulkMenu, bulkMenuRef, handleBulkSetState,
-    createOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
+    optionDeleteConfirm, setOptionDeleteConfirm, executeDeleteOption,
+    bulkMenu, setBulkMenu, bulkMenuRef, handleBulkSetState,
+    createOverrideSet, setCreateOverrideSet, executeCreateOverrideSet, isCreatingOverrideSet,
   ]);
 
   if (!connected) {
@@ -1184,7 +1177,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         className="flex items-center gap-0 px-2 pt-1 pb-0 overflow-x-auto"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
-                        {dim.options.map((o, oIdx) => {
+                        {dim.options.map((o, _oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
                           const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
                           const optMissingOverrideCount = missingOverrides[dim.id]?.[o.name]?.missing.length ?? 0;

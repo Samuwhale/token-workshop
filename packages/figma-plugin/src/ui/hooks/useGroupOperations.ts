@@ -116,7 +116,7 @@ export function useGroupOperations({
       return;
     }
     await executeGroupRename(oldGroupPath, newGroupPath);
-  }, [connected, serverUrl, setName, executeGroupRename]);
+  }, [connected, serverUrl, setName, executeGroupRename, onError]);
 
   const handleRequestMoveGroup = useCallback((groupPath: string) => {
     const otherSets = sets.filter(s => s !== setName);

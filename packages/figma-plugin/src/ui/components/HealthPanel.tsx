@@ -196,13 +196,12 @@ export function HealthPanel({
   validationIssues: validationIssuesProp,
   validationSummary,
   validationLoading,
-  validationError,
+  validationError: _validationError,
   validationLastRefreshed,
   validationIsStale,
   onRefreshValidation,
   onError,
 }: HealthPanelProps) {
-  const validationIssues = validationIssuesProp ?? [];
   const validating = validationLoading;
   const lastRefreshed = validationLastRefreshed;
   const runValidation = onRefreshValidation;
@@ -394,7 +393,7 @@ export function HealthPanel({
     };
     for (const entry of Object.values(allTokensUnified)) collectRefs(entry.$value);
     return Object.entries(allTokensUnified)
-      .filter(([path, entry]) =>
+      .filter(([path, _entry]) =>
         (tokenUsageCounts[path] ?? 0) === 0 &&
         !referencedPaths.has(path) &&
         allTokensFlat[path]?.$lifecycle !== 'deprecated'

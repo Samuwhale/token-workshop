@@ -265,7 +265,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const git = useGitSync({ serverUrl, connected });
 
   // ── Shared diff filter ──
-  const [diffFilter, setDiffFilter] = useState('');
+  const [diffFilter] = useState('');
 
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -310,7 +310,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const { orphansDeleting, orphanConfirm, setOrphanConfirm, executeOrphanDeletion } = orphanCleanup;
   const {
     publishAllStep, publishAllError, publishAllGitSkipped, setPublishAllGitSkipped,
-    compareAllLoading, hasVarChanges, hasStyleChanges, hasGitDiffChanges,
+    compareAllLoading, hasVarChanges, hasStyleChanges,
     effectiveHasGitDiffChanges, hasMergeConflicts, publishAllAvailable, publishAllBusy,
     gitDiffPendingCount, handleOpenPublishAll, compareAll, runPublishAll, quickSync, quickSyncing,
   } = publishAll;
@@ -1145,10 +1145,7 @@ function GitPreviewModal({
 
   useEffect(() => {
     fetchPreview();
-   
-  // Safe: mount-only fetch. `fetchPreview` is a prop that may be recreated by the parent on every
-  // render; adding it to deps would re-fetch on every parent re-render instead of just once.
-  }, []);
+  }, [fetchPreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -1380,11 +1377,7 @@ function CommitPreviewModal({
     if (tokenPreview === null && !tokenPreviewLoading) {
       fetchTokenPreview();
     }
-   
-  // Safe: mount-only conditional fetch. `tokenPreview`, `tokenPreviewLoading`, and
-  // `fetchTokenPreview` are intentionally omitted — adding them would re-run the effect
-  // every time loading state changes and create a feedback loop.
-  }, []);
+  }, [tokenPreview, tokenPreviewLoading, fetchTokenPreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -1864,182 +1857,6 @@ function TokenChangeRow({ change }: { change: import('../hooks/useGitDiff').Toke
         <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
           {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
           <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Per-file token diff list (unified file + token preview) ───────────── */
-
-function FileTokenDiffList({
-  allChanges,
-  selectedFiles,
-  setSelectedFiles,
-  tokenPreview,
-  tokenPreviewLoading,
-  fetchTokenPreview,
-}: {
-  allChanges: Array<{ file: string; status: string }>;
-  selectedFiles: Set<string>;
-  setSelectedFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
-  tokenPreview: import('../hooks/useGitDiff').TokenChange[] | null;
-  tokenPreviewLoading: boolean;
-  fetchTokenPreview: () => Promise<void>;
-}) {
-  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
-
-  // Auto-fetch token preview when component mounts with changes
-  useEffect(() => {
-    if (tokenPreview === null && !tokenPreviewLoading && allChanges.length > 0) {
-      fetchTokenPreview();
-    }
-   
-  // Safe: only `allChanges.length` triggers a re-check. `tokenPreview`, `tokenPreviewLoading`,
-  // and `fetchTokenPreview` are intentionally omitted — including them would create a feedback
-  // loop (loading state change → effect fires again → guard re-evaluated endlessly).
-  }, [allChanges.length]);
-
-  // Group token changes by file
-  const changesByFile = useMemo(() => {
-    const map = new Map<string, import('../hooks/useGitDiff').TokenChange[]>();
-    if (!tokenPreview) return map;
-    for (const tc of tokenPreview) {
-      const fileName = tc.set + '.tokens.json';
-      const arr = map.get(fileName);
-      if (arr) arr.push(tc);
-      else map.set(fileName, [tc]);
-    }
-    return map;
-  }, [tokenPreview]);
-
-  const toggleExpand = (file: string) => {
-    setExpandedFiles(prev => {
-      const next = new Set(prev);
-      if (next.has(file)) next.delete(file); else next.add(file);
-      return next;
-    });
-  };
-
-  return (
-    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
-        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={allChanges.length > 0 && selectedFiles.size === allChanges.length}
-            ref={el => { if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < allChanges.length; }}
-            onChange={e => {
-              if (e.target.checked) {
-                setSelectedFiles(new Set(allChanges.map(c => c.file)));
-              } else {
-                setSelectedFiles(new Set());
-              }
-            }}
-            className="w-3 h-3"
-          />
-          Uncommitted changes
-        </label>
-        <span className="text-[10px] opacity-60">
-          {selectedFiles.size}/{allChanges.length} selected
-          {tokenPreviewLoading && (
-            <span className="ml-1.5 inline-flex items-center gap-1">
-              <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
-            </span>
-          )}
-        </span>
-      </div>
-      <div className="max-h-64 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-        {allChanges.map((change, i) => {
-          const fileTokenChanges = changesByFile.get(change.file) ?? [];
-          const isTokenFile = change.file.endsWith('.tokens.json');
-          const hasTokenChanges = fileTokenChanges.length > 0;
-          const isExpanded = expandedFiles.has(change.file);
-          const addedCount = fileTokenChanges.filter(c => c.status === 'added').length;
-          const modifiedCount = fileTokenChanges.filter(c => c.status === 'modified').length;
-          const removedCount = fileTokenChanges.filter(c => c.status === 'removed').length;
-
-          return (
-            <div key={i}>
-              <div className="flex items-center gap-2 px-3 py-1 hover:bg-[var(--color-figma-bg-hover)] group">
-                {/* Expand chevron */}
-                <button
-                  onClick={() => hasTokenChanges && toggleExpand(change.file)}
-                  disabled={!hasTokenChanges}
-                  className="w-3 h-3 flex items-center justify-center shrink-0 disabled:opacity-0"
-                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                >
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}>
-                    <path d="M2 1l4 3-4 3V1z" />
-                  </svg>
-                </button>
-                {/* Checkbox */}
-                <label className="flex items-center cursor-pointer" onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedFiles.has(change.file)}
-                    onChange={e => {
-                      setSelectedFiles(prev => {
-                        const next = new Set(prev);
-                        if (e.target.checked) next.add(change.file); else next.delete(change.file);
-                        return next;
-                      });
-                    }}
-                    className="w-3 h-3"
-                  />
-                </label>
-                {/* Status badge */}
-                <span className={`text-[10px] font-mono font-bold w-3 flex-shrink-0 ${
-                  change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                  change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                  change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                  'text-[var(--color-figma-text-secondary)]'
-                }`}>
-                  {change.status}
-                </span>
-                {/* File name — clickable to expand */}
-                <button
-                  onClick={() => hasTokenChanges && toggleExpand(change.file)}
-                  className="text-[10px] text-[var(--color-figma-text)] truncate text-left flex-1 min-w-0"
-                  disabled={!hasTokenChanges}
-                >
-                  {change.file}
-                </button>
-                {/* Per-file token change summary badges */}
-                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && hasTokenChanges && (
-                  <span className="flex gap-1.5 text-[9px] font-mono shrink-0 ml-auto">
-                    {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
-                    {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
-                    {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
-                  </span>
-                )}
-                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && !hasTokenChanges && change.status !== 'D' && (
-                  <span className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    no value changes
-                  </span>
-                )}
-              </div>
-              {/* Expanded token changes */}
-              {isExpanded && hasTokenChanges && (
-                <div className="bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                  {fileTokenChanges.map((tc, j) => (
-                    <TokenChangeRow key={j} change={tc} />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {/* Overall summary bar */}
-      {tokenPreview !== null && !tokenPreviewLoading && tokenPreview.length > 0 && (
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-          {tokenPreview.filter(c => c.status === 'added').length > 0 && <span className="text-[var(--color-figma-success)]">+{tokenPreview.filter(c => c.status === 'added').length} added</span>}
-          {tokenPreview.filter(c => c.status === 'modified').length > 0 && <span className="text-[var(--color-figma-warning)]">~{tokenPreview.filter(c => c.status === 'modified').length} modified</span>}
-          {tokenPreview.filter(c => c.status === 'removed').length > 0 && <span className="text-[var(--color-figma-error)]">&minus;{tokenPreview.filter(c => c.status === 'removed').length} removed</span>}
         </div>
       )}
     </div>

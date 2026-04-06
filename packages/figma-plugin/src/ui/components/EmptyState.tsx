@@ -17,7 +17,7 @@ interface EmptyStateProps {
   onGuidedSetup?: () => void;
 }
 
-export function EmptyState({ connected, serverUrl, checking, onConnect, onCreateToken, onPasteJSON, onImportFigma, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
+export function EmptyState({ connected, serverUrl, checking, onConnect, onCreateToken, onPasteJSON, onImportFigma, onUsePreset: _onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
   const [showMore, setShowMore] = useState(false);
   const [urlInput, setUrlInput] = useState(serverUrl ?? 'http://localhost:9400');
   const [connecting, setConnecting] = useState(false);

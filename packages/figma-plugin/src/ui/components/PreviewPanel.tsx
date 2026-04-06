@@ -100,8 +100,6 @@ function resolvePreviewSlots(allTokensFlat: Record<string, TokenMapEntry>): Reco
   const slots: Record<string, string> = {};
   const set = (key: string, val: string | null) => { if (val) slots[`--preview-${key}`] = val; };
   const C = ['color'];
-  const D = ['dimension', 'number', 'spacing'];
-
   // ── Color slots ──────────────────────────────────────────────────────────
   set('primary', pickTokenByPatterns(allTokensFlat, C,
     [/\bprimary\b/, /\bbrand\b/, /\baccent\b/],
@@ -860,7 +858,7 @@ function ButtonsTemplate({ darkMode }: { darkMode: boolean }) {
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
 
-function FormsTemplate({ darkMode }: { darkMode: boolean }) {
+function FormsTemplate({ darkMode: _darkMode }: { darkMode: boolean }) {
   const clrBorder = 'var(--preview-border, var(--color-border, var(--color-neutral-200, var(--color-grey-300, #d1d5db))))';
   const clrSurface = 'var(--preview-surface, var(--color-surface, var(--color-white, var(--color-bg, transparent))))';
   const clrText = 'var(--preview-text, var(--color-text, var(--color-neutral-900, inherit)))';

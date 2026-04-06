@@ -109,7 +109,7 @@ export function usePublishAll({
       }
     }
     setConfirmAction('publish-all');
-  }, [varSync.checked, varSync.loading, varSync.computeDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, git.diffView, git.diffLoading, git.computeDiff, setConfirmAction]);
+  }, [setConfirmAction, git, styleSync, varSync]);
 
   const runPublishAll = useCallback(async (sections: PublishAllSections = { vars: true, styles: true, git: true }) => {
     setPublishAllError(null);
@@ -137,7 +137,7 @@ export function usePublishAll({
     } finally {
       setPublishAllStep(null);
     }
-  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, varSync.applyDiff, styleSync.applyDiff, git.applyDiff, markChecksStale]);
+  }, [hasVarChanges, hasStyleChanges, hasGitDiffChanges, hasMergeConflicts, markChecksStale, git, styleSync, varSync]);
 
   // "Compare All": force re-run all three comparisons in parallel without opening a modal.
   // Skips any currently in-flight comparisons to avoid double-calls.
@@ -156,7 +156,7 @@ export function usePublishAll({
     } finally {
       setCompareAllLoading(false);
     }
-  }, [varSync.loading, varSync.computeDiff, styleSync.loading, styleSync.computeDiff, git.diffLoading, git.computeDiff]);
+  }, [git, styleSync, varSync]);
 
   // One-click "Sync all changes": auto-compare variables + styles, then apply immediately.
   // Git is intentionally excluded — git operations (push/pull/commit) require deliberate review.
@@ -192,7 +192,7 @@ export function usePublishAll({
       setPublishAllStep(null);
       setQuickSyncing(false);
     }
-  }, [varSync.checked, varSync.loading, varSync.computeDiff, varSync.applyDiff, styleSync.checked, styleSync.loading, styleSync.computeDiff, styleSync.applyDiff, markChecksStale]);
+  }, [markChecksStale, styleSync, varSync]);
 
   return {
     publishAllStep,

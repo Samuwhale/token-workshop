@@ -66,12 +66,6 @@ export function TokenDetailPreview({
     return String(rawValue);
   }, [rawValue]);
 
-  const resolvedValueStr = useMemo(() => {
-    if (resolvedValue == null || resolvedValue === rawValue) return null;
-    if (typeof resolvedValue === 'object') return JSON.stringify(resolvedValue, null, 2);
-    return String(resolvedValue);
-  }, [resolvedValue, rawValue]);
-
   const tokenSet = pathToSet?.[tokenPath] ?? setName;
 
   if (!entry) {

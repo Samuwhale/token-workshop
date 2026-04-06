@@ -679,7 +679,7 @@ export function GeneratorPipelineCard({
   onPushUndo,
 }: GeneratorPipelineCardProps) {
   const [running, setRunning] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [showClonePanel, setShowClonePanel] = useState(false);
   const [cloneName, setCloneName] = useState('');

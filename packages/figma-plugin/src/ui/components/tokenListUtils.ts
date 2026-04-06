@@ -555,28 +555,3 @@ export function sortLeafNodes(
   return sorted;
 }
 
-/**
- * Build a tree of TokenNodes grouped by $type from a flat token map.
- * Used in "simple mode" to merge all tokens across sets by type.
- */
-export function buildTreeByType(flat: Record<string, TokenMapEntry>): TokenNode[] {
-  const byType = new Map<string, TokenNode[]>();
-  for (const [path, entry] of Object.entries(flat)) {
-    const t = entry.$type || 'unknown';
-    if (!byType.has(t)) byType.set(t, []);
-    const parts = path.split('.');
-    byType.get(t)!.push({
-      path,
-      name: parts[parts.length - 1],
-      $type: entry.$type,
-      $value: entry.$value,
-      isGroup: false,
-    });
-  }
-  const groups: TokenNode[] = [];
-  for (const [type, children] of byType) {
-    groups.push({ path: type, name: type, isGroup: true, $type: type, children });
-  }
-  groups.sort((a, b) => a.name.localeCompare(b.name));
-  return groups;
-}

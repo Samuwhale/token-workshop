@@ -82,7 +82,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
 }
 
 /** Icon-only version for tight headers — just the (?) button, renders banner via a sibling slot */
-export function PanelHelpIcon({ panelKey, title, expanded, onToggle }: {
+export function PanelHelpIcon({ panelKey: _panelKey, title, expanded, onToggle }: {
   panelKey: string;
   title: string;
   expanded: boolean;

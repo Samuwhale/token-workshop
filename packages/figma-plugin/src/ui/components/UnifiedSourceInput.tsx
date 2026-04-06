@@ -50,7 +50,7 @@ export interface UnifiedSourceInputProps {
 export function UnifiedSourceInput({
   expectedType,
   sourceTokenPath,
-  sourceTokenValue,
+  sourceTokenValue: _sourceTokenValue,
   inlineValue,
   isMultiBrand,
   allTokensFlat,

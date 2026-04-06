@@ -114,6 +114,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     previewingToken,
     highlightedToken,
     createFromEmpty,
+    setCreateFromEmpty,
+    setHighlightedToken,
     setPendingHighlight,
     setPendingHighlightForSet,
     handleNavigateToAlias,
